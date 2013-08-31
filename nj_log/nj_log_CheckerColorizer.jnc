@@ -1,0 +1,164 @@
+#include "Log.h"
+#include "CommInPlace.h"
+#include "Registry.h"
+#include "Document.h"
+
+#define PATH_CheckerRegKey "HKCU\\Software\\Tibbo\\IoNinja2\\CheckerColorizer"
+
+//.............................................................................
+
+interface ICheckerSettings
+{
+	TTextAttr m_AttrEven;
+	TTextAttr m_AttrOdd;
+
+	void SetDefaults();
+
+	bool Load(ISimpleStorage Storage);
+	bool Save(ISimpleStorage Storage);
+};
+
+ICheckerSettings g_CheckerDefaultSettings;
+
+//.............................................................................
+
+class CCheckerSettings: ICheckerSettings
+{
+};
+
+void CCheckerSettings::SetDefaults()
+{
+	m_AttrEven = g_NullTextAttr;
+	
+	m_AttrOdd.m_FontFlags = EFontFlags::Transparent;
+	m_AttrOdd.m_TextColor = EColorFlags::Transparent;
+	m_AttrOdd.m_BackColor = EBackColor::PastelYellow;
+}
+
+bool CCheckerSettings::Load(ISimpleStorage Storage)
+{
+	Storage.ReadBinary("AttrEven", &m_AttrEven, sizeof(m_AttrEven));
+	Storage.ReadBinary("AttrOdd", &m_AttrOdd, sizeof(m_AttrOdd));
+}
+
+bool CCheckerSettings::Save(ISimpleStorage Storage)
+{
+	Storage.WriteBinary("AttrEven", &m_AttrEven, sizeof(m_AttrEven));
+	Storage.WriteBinary("AttrOdd", &m_AttrOdd, sizeof(m_AttrOdd));
+}
+
+//.............................................................................
+
+[
+	name = "Checker pattern colorizer",
+	description = "Colorizes merged packets in Checker pattern"	
+]
+
+class CCheckerColorizer: 
+	ILogColorizer,
+	IModifiable,
+	IPropertyCtrlExtender
+{
+	TTextAttr m_AttrEven;
+	TTextAttr m_AttrOdd;
+
+	void CCheckerColorizer();
+};
+
+void CCheckerColorizer::CCheckerColorizer()
+{
+	m_AttrEven = g_CheckerDefaultSettings.m_AttrEven;
+	m_AttrOdd = g_CheckerDefaultSettings.m_AttrOdd;
+}
+
+void CCheckerColorizer::Colorize(
+	ILogColorizeSink Sink, 
+	TLogColorizeBlock* pBlock,
+	bool SaveStateHint
+	)
+{
+	int IsOdd = pBlock->m_PartIndex & 1;
+	
+	size_t Offset = pBlock->m_Offset;
+
+	TLogBinLinePart* pPart = pBlock->m_pPartArray;
+	TLogBinLinePart* pEnd = pPart + pBlock->m_PartCount;
+
+	for (; pPart < pEnd; pPart++)
+	{
+		Sink.SetAttr(IsOdd ? &m_AttrOdd : &m_AttrEven, Offset, pPart->m_Offset);
+		Offset = pPart->m_Offset;
+		IsOdd = !IsOdd;
+	}
+
+	Sink.SetAttr(IsOdd ? &m_AttrOdd : &m_AttrEven, Offset, pBlock->m_Offset + pBlock->m_Size);
+}
+
+int CCheckerColorizer::DoModifyDialog()
+{
+	return PropertyCtrlDlg(this);
+}
+
+bool CCheckerColorizer::AddProperties(IPropertyCtrl PropertyCtrl)
+{
+	IPropertyLine Group;
+	IPropertyLine Line;
+
+	Group = PropertyCtrl.InsertLine();
+	Group.Name = "Checker colorizer";
+	Group.UserContext = this; // keep us alive
+	SetPropertyGroup(Group);
+
+	Line = Group.InsertChild();
+	Line.Name = "Even packets";
+	Line.Value = "Sample text";
+	Line.InPlace = new CTextAttrInPlace;
+	Line.InPlaceAccessor := m_AttrEven;
+	Line.Update();
+
+	Line = Group.InsertChild();
+	Line.Name = "Odd packets";
+	Line.Value = "Sample text";
+	Line.InPlace = new CTextAttrInPlace;
+	Line.InPlaceAccessor := m_AttrOdd;
+	Line.Update();
+
+	return true;
+}
+
+bool CCheckerColorizer::Apply()
+{
+	ILogDocument ActiveDoc = (ILogDocument) GetActiveDocument();
+	if (ActiveDoc)
+		ActiveDoc.LogCtrl.ReColorizeAll();
+
+	g_CheckerDefaultSettings.m_AttrEven = m_AttrEven;
+	g_CheckerDefaultSettings.m_AttrOdd = m_AttrOdd;
+	return true;
+}
+
+//.............................................................................
+
+static bool main()
+{
+	g_LogStreamColorizerClassList.InsertTail(CCheckerColorizer);
+
+	g_CheckerDefaultSettings = new CCheckerSettings;
+
+	IRegKey RegKey = OpenRegKey(PATH_CheckerRegKey, EOpenRegKey::ReadOnly);
+	if (RegKey)
+		g_CheckerDefaultSettings.Load(RegKey);
+	else
+		g_CheckerDefaultSettings.SetDefaults();
+
+	return true;
+}
+
+static void term()
+{
+	IRegKey RegKey = OpenRegKey(PATH_CheckerRegKey);
+	if (RegKey)
+		g_CheckerDefaultSettings.Save(RegKey);
+}
+
+//.............................................................................

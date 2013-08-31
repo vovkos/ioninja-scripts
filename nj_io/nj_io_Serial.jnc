@@ -1,0 +1,145 @@
+//.............................................................................
+//
+// Serial communications
+//
+//.............................................................................
+
+#pragma once 
+
+#include "Transport.h"
+
+//.............................................................................
+
+__enum ESerialBaudRate
+{
+	[ name = "110 bps" ]
+	_110    = 110,
+	[ name = "300 bps" ]
+	_300    = 300,
+	[ name = "600 bps" ]
+	_600    = 600,
+	[ name = "1200 bps" ]
+	_1200   = 1200,
+	[ name = "2400 bps" ]
+	_2400   = 2400,
+	[ name = "4800 bps" ]
+	_4800   = 4800,
+	[ name = "9600 bps" ]
+	_9600   = 9600,
+	[ name = "14400 bps" ]
+	_14400  = 14400,
+	[ name = "19200 bps" ]
+	_19200  = 19200,
+	[ name = "38400 bps" ]
+	_38400  = 38400,
+	[ name = "56000 bps" ]
+	_56000  = 56000,
+	[ name = "57600 bps" ]
+	_57600  = 57600,
+	[ name = "115200 bps" ]
+	_115200 = 115200,
+	[ name = "128000 bps" ]
+	_128000 = 128000,
+	[ name = "256000 bps" ]
+	_256000 = 256000,
+};
+
+__enum ESerialFlowControl
+{
+	None = 0,
+	[ name = "RTS/CTS" ]
+	RtsCts,
+};
+
+__enum ESerialParity
+{
+	None  = 0,
+	Odd   = 1,
+	Even  = 2,
+	Mark  = 3,
+	Space = 4,
+};
+
+__enum ESerialDataBits
+{
+	[ name = "7 bits" ]
+	_7 = 7,
+	[ name = "8 bits" ]
+	_8 = 8,
+};
+
+__enum ESerialStopBits
+{
+	[ name = "1 bit" ]
+	_1  = 0,
+	[ name = "1.5 bits" ]
+	_15 = 1,
+	[ name = "2 bits" ]
+	_2  = 2,
+};
+
+__enum ESerialLine
+{
+	DTR  = 0x01,
+	RTS  = 0x02,
+	DSR  = 0x04,
+	CTS  = 0x08,
+	DCD  = 0x10,
+	Ring = 0x20,
+	
+	Control = DTR | RTS,
+	Status  = DSR | CTS | DCD,
+	All     = 0xff,
+};
+
+//.............................................................................
+
+interface ISerial: ITransport
+{
+	bool Open(const char* pName = NULL);
+	void Close();
+
+	bool property IsOpen;
+
+	// serial settings
+
+	const char* property PortName;
+
+	uint_t property BaudRate;
+	uint_t property FlowControl;
+	uint_t property Parity;
+	uint_t property DataBits;
+	uint_t property StopBits;
+
+	// control lines
+
+	bool property DTR;
+	bool property RTS;
+
+	// status lines
+
+	bool const property DSR;
+	bool const property CTS;
+	bool const property DCD;
+
+	event OnOpen();
+	event OnOpenError(TError* pError);
+	event OnClose();
+
+	event OnStatusLineChange(int Mask);
+};
+
+class CSerial: ISerial;
+
+//.............................................................................
+
+struct TSerialInfo
+{
+	string m_PortName;
+	string m_FriendlyName;
+	string m_HardwareId;
+};
+
+size_t BuildSerialPortList(list<TSerialInfo>* pList);
+
+//.............................................................................

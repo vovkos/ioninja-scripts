@@ -1,0 +1,95 @@
+#include "Log.h"
+#include "CommInPlace.h"
+#include "CommDlg.h"
+#include "Registry.h"
+#include "Document.h"
+
+#define PATH_CharColorizerRegKey "HKCU\\Software\\Tibbo\\IoNinja2\\CharColorizer"
+
+TTextAttr g_CharColorizerDefaultAttr[256];
+
+//.............................................................................
+
+[
+	name = "ASCII-char colorizer",
+	description = "Allows to assign special text attribute for each and every character",
+]
+
+class CCharColorizer: 
+	ILogColorizer,
+	IModifiable
+{
+	TTextAttr m_Attr[256];
+
+	void CCharColorizer();
+};
+
+void CCharColorizer::CCharColorizer()
+{
+	m_Attr = g_CharColorizerDefaultAttr;
+}
+
+void CCharColorizer::Colorize(
+	ILogColorizeSink Sink, 
+	TLogColorizeBlock* pBlock,
+	bool SaveStateHint
+	)
+{
+	size_t Offset = pBlock->m_Offset;
+	
+	uchar_t* p = (uchar_t*) pBlock->m_p;
+	uchar_t* pEnd = p + pBlock->m_Size;
+
+	for (; p < pEnd; p++, Offset++)
+		Sink->SetAttr(&m_Attr[*p], Offset, Offset + 1);
+}
+
+int CCharColorizer::DoModifyDialog()
+{
+	ICharAttrTableDlg CharAttrTableDlg = new CCharAttrTableDlg;
+	CharAttrTableDlg.m_StdAttr.m_TextColor = ETextColor::Black;
+	CharAttrTableDlg.m_StdAttr.m_BackColor = EBackColor::White;
+	CharAttrTableDlg.m_Attr = m_Attr;
+
+	int Result = CharAttrTableDlg.DoModal();
+	if (Result != IDOK)
+		return Result;
+
+	m_Attr = CharAttrTableDlg.m_Attr;
+
+	ILogDocument ActiveDoc = (ILogDocument) GetActiveDocument();
+	if (ActiveDoc)
+		ActiveDoc.LogCtrl.ReColorizeAll();
+
+	g_CharColorizerDefaultAttr = m_Attr;
+	return IDOK;
+}
+
+//.............................................................................
+
+static bool main()
+{
+	g_LogStreamColorizerClassList.InsertTail(CCharColorizer);
+	g_LogPacketColorizerClassList.InsertTail(CCharColorizer);
+
+	memset(g_CharColorizerDefaultAttr, 0xff, sizeof(g_CharColorizerDefaultAttr)); // transparent
+
+	IRegKey RegKey = OpenRegKey(PATH_CharColorizerRegKey, EOpenRegKey::ReadOnly);
+	if (RegKey)
+		RegKey.ReadBinary("Attr", g_CharColorizerDefaultAttr, sizeof(g_CharColorizerDefaultAttr));
+
+	g_CharColorizerDefaultAttr['a'].m_TextColor = RGB(255,0,0);
+	g_CharColorizerDefaultAttr['b'].m_TextColor = RGB(0,128,128);
+	g_CharColorizerDefaultAttr['c'].m_TextColor = RGB(255,0,255);
+
+	return true;
+}
+
+static void term()
+{
+	IRegKey RegKey = OpenRegKey(PATH_CharColorizerRegKey);
+	if (RegKey)
+		RegKey.WriteBinary("Attr", g_CharColorizerDefaultAttr, sizeof(g_CharColorizerDefaultAttr));
+}
+
+//.............................................................................

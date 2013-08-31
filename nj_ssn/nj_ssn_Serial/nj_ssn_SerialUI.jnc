@@ -1,0 +1,134 @@
+#include "SerialUI.h"
+#include "UI.h"
+
+#pragma once
+
+#include "Serial.h"
+
+//.............................................................................
+
+__enum ESerialUpdateUI
+{
+	DTR       = ESerialLine::DTR,
+	DSR       = ESerialLine::DSR,
+	RTS       = ESerialLine::RTS,
+	CTS       = ESerialLine::CTS,
+	DCD       = ESerialLine::DCD,
+
+	PortName  = 0x100,
+	OpenState = 0x2ff,
+
+	All       = 0xffff,
+};
+
+//.............................................................................
+
+interface ISerialUI
+{
+	void ShowUI(bool IsVisible);
+	void UpdateUI(ISerial Serial, int Mask);
+};
+
+extern ISerialUI g_SerialUI;
+
+//.............................................................................
+
+//.............................................................................
+
+class CSerialUI: ISerialUI
+{
+	IStatusBarPane m_PortNamePane;
+	IStatusBarPane m_DTRPane;
+	IStatusBarPane m_RTSPane;
+	IStatusBarPane m_DSRPane;
+	IStatusBarPane m_CTSPane;
+	IStatusBarPane m_DCDPane;
+
+	IUIGroup m_UIGroup;
+
+	void CSerialUI();
+};
+
+void CSerialUI::CSerialUI()
+{
+	m_UIGroup = new CUIGroup;
+	m_UIGroup.Show(false);
+
+	// status bar panes
+
+	m_PortNamePane = new CStatusBarPane;
+	m_PortNamePane.Group = m_UIGroup;
+	m_PortNamePane.Width = 64;
+	m_PortNamePane.TextColor = ETextColor::Gray;
+
+	m_DTRPane = new CStatusBarPane;
+	m_DTRPane.Group = m_UIGroup;
+	m_DTRPane.Width = 32;
+	m_DTRPane.Text = "DTR";
+	m_DTRPane.TextColor = ETextColor::Gray;
+
+	m_RTSPane = new CStatusBarPane;
+	m_RTSPane.Group = m_UIGroup;
+	m_RTSPane.Width = 32;
+	m_RTSPane.Text = "RTS";
+	m_RTSPane.TextColor = ETextColor::Gray;
+
+	m_DSRPane = new CStatusBarPane;
+	m_DSRPane.Group = m_UIGroup;
+	m_DSRPane.Width = 32;
+	m_DSRPane.Text = "DSR";
+	m_DSRPane.TextColor = ETextColor::Gray;
+
+	m_CTSPane = new CStatusBarPane;
+	m_CTSPane.Group = m_UIGroup;
+	m_CTSPane.Width = 32;
+	m_CTSPane.Text = "CTS";
+	m_CTSPane.TextColor = ETextColor::Gray;
+
+	m_DCDPane = new CStatusBarPane;
+	m_DCDPane.Group = m_UIGroup;
+	m_DCDPane.Width = 32;
+	m_DCDPane.Text = "DCD";
+	m_DCDPane.TextColor = ETextColor::Gray;
+}
+
+void CSerialUI::ShowUI(bool IsVisible)
+{
+	m_UIGroup.Show(IsVisible);
+}
+
+void CSerialUI::UpdateUI(ISerial Serial, int Mask)
+{
+	if (Mask & ESerialUpdateUI::PortName)
+		m_PortNamePane.Text = Serial.PortName;
+
+	if (Mask & ESerialUpdateUI::OpenState)
+		m_PortNamePane.TextColor = Serial.IsOpen ? ETextColor::LightBlue : ETextColor::Gray;
+
+	if (Mask & ESerialUpdateUI::DTR)
+		m_DTRPane.TextColor = Serial.DTR ? ETextColor::Red : ETextColor::Gray;
+
+	if (Mask & ESerialUpdateUI::RTS)
+		m_RTSPane.TextColor = Serial.RTS ? ETextColor::Red : ETextColor::Gray;
+
+	if (Mask & ESerialUpdateUI::DSR)
+		m_DSRPane.TextColor = Serial.DSR ? ETextColor::Red : ETextColor::Gray;
+
+	if (Mask & ESerialUpdateUI::CTS)
+		m_CTSPane.TextColor = Serial.CTS ? ETextColor::Red : ETextColor::Gray;
+
+	if (Mask & ESerialUpdateUI::DCD)
+		m_DCDPane.TextColor = Serial.DCD ? ETextColor::Red : ETextColor::Gray;
+}
+
+//.............................................................................
+
+ISerialUI g_SerialUI;
+
+static bool main()
+{
+	g_SerialUI = new CSerialUI;
+	return true;
+}
+
+//.............................................................................

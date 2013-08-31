@@ -1,0 +1,583 @@
+#include "FileTransfer.h"
+#include "Document.h"
+#include "Timer.h"
+#include "CommDlg.h"
+
+//.............................................................................
+
+// xmodem protocol constants and structures 
+
+__enum EXModem
+{
+	Soh = 0x01,
+	Eot = 0x04,
+	Ack = 0x06,
+	Nak = 0x15,
+	Can = 0x18,
+
+	BlockSize = 128,
+};
+
+struct TXModemBlock
+{
+	uchar_t m_OpCode;
+	uchar_t m_BlockNum;
+	uchar_t m_Complement;
+	uchar_t m_Data[EXModem::BlockSize];
+	uchar_t m_Checksum;
+};
+
+uchar_t CalcXModemChecksum(const void* _p)
+{
+	uchar_t Checksum = 0;
+	uchar_t* p = (uchar_t*) _p;
+	uchar_t* pEnd = p + EXModem::BlockSize;
+	for (; p < pEnd; p++)
+		Checksum += *p;
+
+	return Checksum;
+}
+
+//.............................................................................
+
+// xmodem transfer (sending side implementation)
+
+class CXModemSend: ISendTransfer
+{
+	__enum EState
+	{
+		Idle = 0,
+		WaitNak,
+		Data,
+		Eot,
+	};
+
+	// fields
+
+	int m_State;
+
+	ulong_t m_RetransmitInterval;
+	size_t m_CanCount;
+
+	string m_Status;
+	bool m_TransferResult;
+	size_t m_TransferSize;
+
+	TXModemBlock m_Block;	
+	void* m_pPacket;
+	size_t m_PacketSize;
+
+	char* m_p;
+	size_t m_Size;
+
+	ITransport m_Transport;
+	ITimer m_Timer;
+
+	// constructor
+
+	void CXModemSend();
+
+	void OnRx(const void* p, size_t Size);
+	void OnRx_WaitNak(char Code);
+	void OnRx_Data(char Code);
+	void OnRx_Eot(char Code);
+
+	void Release();
+	bool PrepareDataBlock();
+	void RetransmitPacket();
+
+	void Complete(bool Result);
+	void SetStatus(const char* pStatus);
+};
+
+void CXModemSend::CXModemSend()
+{
+	m_State = EState::Idle;
+	m_RetransmitInterval = 1000;
+	m_CanCount = 8;
+
+	memset(&m_Block, 0, sizeof(TXModemBlock));
+	m_pPacket = NULL;
+	m_PacketSize = 0;
+
+	m_p = NULL;
+	m_Size = 0;
+	m_TransferSize = 0;
+
+	m_Timer = new CTimer;
+	m_Timer.OnTimer = RetransmitPacket;
+}
+
+void CXModemSend::Release()
+{
+	m_State = EState::Idle;
+
+	if (m_Transport)
+	{
+		m_Transport.OnReceive -= OnRx;
+		m_Transport = NULL;
+	}
+
+	m_Timer.Cancel();
+}
+
+// property getters
+
+const char* CXModemSend::Status::get()
+	{ return (const char*) m_Status; }
+
+size_t CXModemSend::TransferSize::get()
+	{ return m_TransferSize; }
+
+bool CXModemSend::TransferResult::get()
+	{ return m_TransferResult; }
+
+// set property + fire notification
+
+void CXModemSend::SetStatus(const char* pStatus)
+{ 
+	m_Status = pStatus;
+	propchange(Status); 
+}
+
+void CXModemSend::Complete(bool Result)
+{ 
+	m_TransferResult = Result;
+	Release();
+	OnComplete();
+}
+
+// public interface methods
+
+bool CXModemSend::StartSend(
+	ITransport Transport, 
+	const void* p, 
+	size_t Size
+	)
+{
+	Cancel();
+
+	m_Transport = Transport;
+
+	m_p = (char*) p;
+	m_Size = Size;
+	m_TransferSize = 0;
+	m_Transport.OnReceive += OnRx;
+
+	m_State = EState::WaitNak;
+	SetStatus("Waiting for the peer to accept XModem transfer...");
+	return true;
+}
+
+void CXModemSend::Cancel()
+{
+	if (m_State == EState::Idle)
+		return;
+
+	static uchar_t _Can = EXModem::Can;
+	for (int i = 0; i < m_CanCount; i++)
+		m_Transport.Transmit(&_Can, sizeof(uchar_t));
+
+	SetStatus("XModem transfer cancelled by user");
+	Complete(false);
+}
+
+// implementation
+
+bool CXModemSend::PrepareDataBlock()
+{
+	if (m_TransferSize >= m_Size)
+		return false;
+
+	size_t Size = m_Size - m_TransferSize;
+	if (Size > EXModem::BlockSize)
+		Size = EXModem::BlockSize;
+
+	memset(&m_Block, 0, sizeof(TXModemBlock));
+	m_Block.m_BlockNum = (uchar_t) (m_TransferSize / EXModem::BlockSize + 1);
+	m_Block.m_OpCode = EXModem::Soh;
+	m_Block.m_Complement = m_Block.m_BlockNum ^ 0xff;
+
+	memcpy(m_Block.m_Data, m_p + m_TransferSize, Size);
+
+	m_Block.m_Checksum = CalcXModemChecksum(m_Block.m_Data);
+
+	m_pPacket = &m_Block;
+	m_PacketSize = sizeof(TXModemBlock);
+
+	return true;
+}
+
+void CXModemSend::RetransmitPacket()
+{
+	m_Transport.Transmit(m_pPacket, m_PacketSize);
+	m_Timer.Set(m_RetransmitInterval);
+}
+
+void CXModemSend::OnRx(const void* p, size_t Size)
+{
+	switch (m_State)
+	{
+	case EState::WaitNak:
+		OnRx_WaitNak(*(char*) p);
+		break;
+
+	case EState::Data:
+		OnRx_Data(*(char*) p);
+		break;
+
+	case EState::Eot:
+		OnRx_Eot(*(char*) p);
+		break;
+	}
+}
+
+void CXModemSend::OnRx_WaitNak(char Code)
+{
+	if (Code != EXModem::Nak)
+		return;
+
+	m_State = EState::Data;
+	SetStatus("Transferring XModem data blocks...");
+	PrepareDataBlock();
+	RetransmitPacket();
+}
+
+void CXModemSend::OnRx_Data(char Code)
+{
+	switch (Code)
+	{
+	case EXModem::Ack:
+		m_TransferSize += EXModem::BlockSize;
+		propchange(TransferSize);
+
+		if (m_TransferSize < m_Size)
+		{
+			PrepareDataBlock();
+			RetransmitPacket();
+		}
+		else
+		{
+			m_State = EState::Eot;
+			SetStatus("Ending XModem tranfer");
+
+			static uchar_t _Eot = EXModem::Eot;
+			m_pPacket = &_Eot;
+			m_PacketSize = sizeof(uchar_t);
+
+			RetransmitPacket();
+		}
+
+		break;
+
+	case EXModem::Nak:
+		SetStatus("Remote node reported out-of-sequence XModem block");
+		Complete(false);
+		break;
+
+	case EXModem::Can:
+		SetStatus("XModem transfer cancelled by remote node");
+		Complete(false);
+		break;
+
+	default:
+		SetStatus("Invalid response to XModem data block");
+	}
+}
+
+void CXModemSend::OnRx_Eot(char Code)
+{
+	switch (Code)
+	{
+	case EXModem::Ack:
+		SetStatus("XModem transfer completed successfully");
+		Complete(true);
+		break;
+
+	case EXModem::Nak:
+		RetransmitPacket();
+		break;
+
+	default:
+		SetStatus("Invalid response to XModem EOT command");
+	}
+}
+
+//.............................................................................
+
+// xmodem transfer (receiving side implementation)
+
+class CXModemReceive: IReceiveTransfer
+{
+	__enum EState
+	{
+		Idle = 0,
+		SendNak,
+		Data,
+		Eot,
+	};
+
+	// fields
+
+	int m_State;
+
+	ulong_t m_RetransmitInterval;
+	size_t m_CanCount;
+
+	string m_Status;
+	bool m_TransferResult;
+	uchar_t m_BlockNum;
+
+	ITransport m_Transport;
+	ITimer m_NakTimer;
+
+	// constructor
+
+	void CXModemReceive();
+
+	void OnRx(const void* p, size_t Size);
+	void OnRx_Block(TXModemBlock* pBlock);
+
+	void SendPacket(uchar_t Code);
+	void Release();
+	void OnNakTimer();
+
+	void Complete(bool Result);
+	void SetStatus(const char* pStatus);
+};
+
+void CXModemReceive::CXModemReceive()
+{
+	m_State = EState::Idle;
+	m_RetransmitInterval = 1000;
+	m_CanCount = 8;
+	m_BlockNum = 0;
+
+	m_NakTimer = new CTimer;
+	m_NakTimer.OnTimer = OnNakTimer;
+}
+
+void CXModemReceive::Release()
+{
+	m_State = EState::Idle;
+
+	if (m_Transport)
+	{
+		m_Transport.OnReceive -= OnRx;
+		m_Transport = NULL;
+	}
+
+	m_NakTimer.Cancel();
+}
+
+// property getters
+
+const char* CXModemReceive::Status::get()
+	{ return (const char*) m_Status; }
+
+bool CXModemReceive::TransferResult::get()
+	{ return m_TransferResult; }
+
+// set property + fire notification
+
+void CXModemReceive::SetStatus(const char* pStatus)
+{ 
+	m_Status = pStatus;
+	propchange(Status); 
+}
+
+void CXModemReceive::Complete(bool Result)
+{ 
+	m_TransferResult = Result;
+	Release();
+	OnComplete(); 
+}
+
+// public interface methods
+
+bool CXModemReceive::StartReceive(ITransport Transport)
+{
+	Cancel();
+
+	m_Transport = Transport;
+
+	m_BlockNum = 0;
+
+	m_Transport.OnReceive += OnRx;
+
+	m_State = EState::SendNak;
+	SetStatus("Waiting for the peer to start XModem transfer...");
+	
+	SendPacket(EXModem::Nak);
+	m_NakTimer.Set(m_RetransmitInterval, true);
+	return true;
+}
+
+void CXModemReceive::Cancel()
+{
+	if (m_State == EState::Idle)
+		return;
+
+	static uchar_t _Can = EXModem::Can;
+	for (int i = 0; i < m_CanCount; i++)
+		m_Transport.Transmit(&_Can, sizeof(uchar_t));
+
+	SetStatus("XModem transfer cancelled by user");
+	Complete(false);
+}
+
+// implementation
+
+void CXModemReceive::SendPacket(uchar_t Code)
+	{ m_Transport.Transmit(&Code, sizeof(uchar_t)); }
+
+void CXModemReceive::OnNakTimer()
+	{ SendPacket(EXModem::Nak); }
+
+void CXModemReceive::OnRx(const void* p, size_t Size)
+{
+	char Code = *(char*) p;
+
+	switch (Code)
+	{
+	case EXModem::Soh:
+		if (m_State == EState::SendNak)
+		{
+			m_State = EState::Data;
+			m_NakTimer.Cancel();
+			SetStatus("Receiving XModem data blocks...");
+		}
+
+		if (m_State == EState::Data && Size == sizeof(TXModemBlock))
+			OnRx_Block((TXModemBlock*) p);
+
+		break;
+
+	case EXModem::Can: 
+		SetStatus("XModem transfer cancelled by remote node.");
+		Complete(false);
+		break;
+
+	case EXModem::Eot:
+		SendPacket(EXModem::Ack);
+		SetStatus("XModem transfer completed successfully");
+		Complete(true);
+		break;
+	}
+}
+
+void CXModemReceive::OnRx_Block(TXModemBlock* pBlock)
+{
+	if (pBlock->m_BlockNum != m_BlockNum)
+	{
+		SendPacket(EXModem::Nak);
+		SetStatus("Out-of-sequence XModem block");
+		return;
+	}
+
+	if (pBlock->m_Checksum != CalcXModemChecksum(pBlock->m_Data))
+	{
+		SendPacket(EXModem::Nak);
+		SetStatus("Bad checksum of XModem block");
+		return;
+	}
+
+	// OK!
+
+	SendPacket(EXModem::Ack);
+	m_BlockNum++;
+	OnData(pBlock->m_Data, sizeof(pBlock->m_Data));
+}
+
+//.............................................................................
+
+__enum ECommands
+{
+	Send = 1,
+	Receive,
+	About
+};
+
+void OnCommand(int ID)
+{
+	switch (ID)
+	{
+	case ECommands::Send:
+		ITransport Transport = (ITransportSession) GetActiveDocument();
+		if (!Transport)
+		{
+			MessageBox("No active transport found", "Error", MB_ICONEXCLAMATION);
+			return;
+		}
+
+		IFileDlg FileDlg = new CFileDlg;	
+		FileDlg.Caption = "Send File via XModem...";
+		FileDlg.IsOpenFileDlg = true;
+		FileDlg.NoChangeDir = true;
+		FileDlg.Filter = "All files (*.*)|*.*";
+		int Result = FileDlg.DoModal();
+		if (Result != IDOK)
+			return;
+
+		IFileSyncTransfer FileSyncSend = new CFileSyncSend;
+		FileSyncSend.Transfer(CXModemSend, Transport, FileDlg.FilePath);
+		break;
+
+	case ECommands::Receive:
+		ITransport Transport = (ITransportSession) GetActiveDocument();
+		if (!Transport)
+		{
+			MessageBox("No active transport found", "Error", MB_ICONEXCLAMATION);
+			return;
+		}
+
+		IFileDlg FileDlg = new CFileDlg;	
+		FileDlg.Caption = "Receive File via XModem To...";
+		FileDlg.IsOpenFileDlg = false;
+		FileDlg.NoChangeDir = true;
+		FileDlg.Filter = "All files (*.*)|*.*";
+		int Result = FileDlg.DoModal();
+		if (Result != IDOK)
+			return;
+
+		IFileSyncTransfer FileSyncReceive = new CFileSyncReceive;
+		FileSyncReceive.Transfer(CXModemReceive, Transport, FileDlg.FilePath);
+		break;
+
+	case ECommands::About:
+		MessageBox("This script implements XModem protocol", "About XModem...", MB_OK | MB_ICONINFORMATION);
+		break;
+	}
+}
+
+//.............................................................................
+
+IMenu g_Menu;
+
+static bool main()
+{
+	static TCommandInitEntry _Commands[] = 
+	{
+		{ ECommands::Send,    "XModem &Send" },
+		{ ECommands::Receive, "XModem &Receive" },
+		{ ECommands::About,   "&About" },
+		{ 0 }
+	};
+
+	ICommandSet CommandSet = new CCommandSet;
+	CommandSet.Handler = OnCommand;
+	CommandSet.AddCommands(_Commands);
+
+	g_Menu = CreateRootMenuItem("&XModem");
+	g_Menu.AddItems(
+		CommandSet, 
+		ECommands::Send, 
+		ECommands::Receive, 
+		0,
+		ECommands::About
+		);
+
+	return true;
+}
+
+//.............................................................................

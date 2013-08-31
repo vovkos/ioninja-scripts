@@ -1,0 +1,182 @@
+#include "Log.h"
+#include "RegExp.h"
+#include "CommInPlace.h"
+#include "Registry.h"
+#include "Document.h"
+
+#define PATH_RegExpRegKey  "HKCU\\Software\\Tibbo\\IoNinja2\\RegExpColorizer"
+
+//.............................................................................
+
+interface IRegExpSettings
+{
+	bool m_IsCaseSensitive;
+	string m_Pattern;
+	TTextAttr m_Attr;
+
+	void SetDefaults();
+
+	bool Load(ISimpleStorage Storage);
+	bool Save(ISimpleStorage Storage);;
+};
+
+IRegExpSettings g_RegExpDefaultSettings;
+
+//.............................................................................
+
+class CRegExpSettings: IRegExpSettings
+{
+};
+
+void CRegExpSettings::SetDefaults()
+{
+	m_Pattern = "[0-9]+";
+	m_IsCaseSensitive = true;
+	m_Attr.m_TextColor = ETextColor::LightRed;
+	m_Attr.m_BackColor = EColorFlags::Transparent;
+}
+
+bool CRegExpSettings::Load(ISimpleStorage Storage)
+{
+	m_Pattern          = Storage.ReadString("Pattern", m_Pattern);
+	m_IsCaseSensitive  = Storage.ReadInteger("IsCaseSensitive", m_IsCaseSensitive);
+	Storage.ReadBinary("Attr", &m_Attr, sizeof(m_Attr));
+}
+
+bool CRegExpSettings::Save(ISimpleStorage Storage)
+{
+	Storage.WriteString("Pattern", m_Pattern);
+	Storage.WriteInteger("IsCaseSensitive", m_IsCaseSensitive);
+	Storage.WriteBinary("Attr", &m_Attr, sizeof(m_Attr));
+}
+
+//.............................................................................
+
+[
+	name = "RegExp colorizer",
+	description = "Colorizes packets using regular expression"
+]
+
+class CRegExpColorizer: 
+	ILogColorizer,
+	IModifiable,
+	IPropertyCtrlExtender
+{
+	IRegExp m_RegExp;
+	TTextAttr m_Attr;
+
+	void CRegExpColorizer();
+};
+
+void CRegExpColorizer::CRegExpColorizer()
+{
+	m_RegExp = new CRegExp;
+	m_RegExp.Pattern = g_RegExpDefaultSettings.m_Pattern;
+	m_RegExp.IsCaseSensitive = g_RegExpDefaultSettings.m_IsCaseSensitive;
+	m_Attr = g_RegExpDefaultSettings.m_Attr;
+}
+
+int CRegExpColorizer::DoModifyDialog()
+{
+	return PropertyCtrlDlg(this);
+}
+
+void CRegExpColorizer::Colorize(
+	ILogColorizeSink Sink, 
+	TLogColorizeBlock* pBlock,
+	bool SaveStateHint
+	)
+{
+	char* pBegin = (char*) pBlock->m_p;
+	char* pEnd = pBegin + pBlock->m_Size;
+
+	char* p = pBegin;
+	while (p < pEnd)
+	{	
+		IRegExpMatch Match = m_RegExp.Match(p, pEnd - p);
+		if (!Match)
+			break;
+
+		size_t Offset = pBlock->m_Offset + p - pBegin;
+
+		Sink->SetAttr(
+			&m_Attr, 
+			Offset + Match.m_Range.m_StartOffset, 
+			Offset + Match.m_Range.m_EndOffset
+			);
+
+		p += Match.m_Range.m_EndOffset;
+	}
+}
+
+bool CRegExpColorizer::AddProperties(IPropertyCtrl PropertyCtrl)
+{
+	IPropertyLine Group;
+	IPropertyLine Line;
+
+	Group = PropertyCtrl.InsertLine();
+	Group.Name = "RegExp colorizer";
+	Group.UserContext = this; // keep us alive
+	SetPropertyGroup(Group);
+
+	Line = Group.InsertChild();
+	Line.Name = "Case sensitive";
+	Line.IsSinglePane = true;
+	Line.OptionBoxType = EPropertyOptionBoxType::CheckBox;
+	Line.OptionBoxAccessor := m_RegExp.IsCaseSensitive;
+	Line.Update();
+
+	Line = Group.InsertChild();
+	Line.Name = "Pattern";
+	Line.InPlace = new CStringInPlace;
+	Line.InPlaceAccessor := m_RegExp.Pattern;
+	Line.Update();
+
+	Line = Group.InsertChild();
+	Line.Name = "Attributes";
+	Line.Value = "Sample Text";
+	Line.InPlace = new CTextAttrInPlace;
+	Line.InPlaceAccessor := m_Attr;
+	Line.Update();
+
+	return true;
+}
+
+bool CRegExpColorizer::Apply()
+{
+	ILogDocument ActiveDoc = (ILogDocument) GetActiveDocument();
+	if (ActiveDoc)
+		ActiveDoc.LogCtrl.ReColorizeAll();
+
+	g_RegExpDefaultSettings.m_Pattern = m_RegExp.Pattern;
+	g_RegExpDefaultSettings.m_IsCaseSensitive = m_RegExp.IsCaseSensitive;
+	g_RegExpDefaultSettings.m_Attr = m_Attr;
+	return true;
+}
+
+//.............................................................................
+
+static bool main()
+{
+	g_LogStreamColorizerClassList.InsertTail(CRegExpColorizer);
+	g_LogPacketColorizerClassList.InsertTail(CRegExpColorizer);
+
+	g_RegExpDefaultSettings = new CRegExpSettings;
+
+	IRegKey RegKey = OpenRegKey(PATH_RegExpRegKey, EOpenRegKey::ReadOnly);
+	if (RegKey)
+		g_RegExpDefaultSettings.Load(RegKey);
+	else
+		g_RegExpDefaultSettings.SetDefaults();
+
+	return true;
+}
+
+static void term()
+{
+	IRegKey RegKey = OpenRegKey(PATH_RegExpRegKey);
+	if (RegKey)
+		g_RegExpDefaultSettings.Save(RegKey);
+}
+
+//.............................................................................

@@ -1,0 +1,182 @@
+#include "SerialPropGroup.h"
+#include "CommInPlace.h"
+#include "Log.h"
+
+#pragma once
+
+#include "PropertyCtrl.h"
+#include "Serial.h"
+
+//.............................................................................
+
+bool AddSerialPropGroup(
+	IPropertyCtrl PropertyCtrl, 
+	ISerial Serial
+	);
+
+//.............................................................................
+
+//.............................................................................
+
+interface ISerialPropGroup
+{
+	bool Create(IPropertyCtrl PropertyCtrl, ISerial Serial);
+};
+
+class CSerialPropGroup: ISerialPropGroup
+{
+	ISerial m_Serial;
+
+	IPropertyLine m_OpenLine;
+	IPropertyLine m_DTRLine;
+	IPropertyLine m_RTSLine;
+
+	void OnOpenClick();
+	void OnSerialOpen();
+	void OnSerialClose();
+	void OnFlowControlChange(int FlowControl);
+};
+
+bool CSerialPropGroup::Create(IPropertyCtrl PropertyCtrl, ISerial Serial)
+{
+	IPropertyLine Group;
+	IPropertyLine Line;
+
+	m_Serial = Serial; // save it
+
+	Group = PropertyCtrl.InsertLine();
+	Group.Name = "Serial";
+	Group.ID = EStdPropertyGroup::Main;
+	Group.UserContext = this; // keep us alive
+	SetPropertyGroup(Group);
+
+	// port name
+
+	Line = Group.InsertChild();
+	Line.Name = "Port name";
+	Line.InPlace = new CPortNameDropDownInPlace;
+	Line.InPlaceAccessor := Serial.PortName;
+	Line.Update();
+
+	// baud rate
+
+	Line = Group.InsertChild();
+	Line.Name = "Baud rate";
+	Line.InPlace = new CIntEnumDropDownInPlace;
+	Line.InPlaceContext = ESerialBaudRate;
+	Line.InPlaceAccessor := Serial.BaudRate;
+	Line.Update();
+
+	// data bits
+
+	Line = Group.InsertChild();
+	Line.Name = "Data bits";
+	Line.InPlace = new CIntEnumDropDownInPlace;
+	Line.InPlaceContext = ESerialDataBits;
+	Line.InPlaceAccessor := Serial.DataBits;
+	Line.Update();
+
+	// stop bits
+
+	Line = Group.InsertChild();
+	Line.Name = "Stop bits";
+	Line.InPlace = new CIntEnumDropDownInPlace;
+	Line.InPlaceContext = ESerialStopBits;
+	Line.InPlaceAccessor := Serial.StopBits;
+	Line.Update();
+
+	// flow control
+
+	Line = Group.InsertChild();
+	Line.Name = "Flow control";
+	Line.InPlace = new CIntEnumDropDownInPlace;
+	Line.InPlaceContext = ESerialFlowControl;
+	Line.InPlaceAccessor := Serial.FlowControl;
+	Line.Update();
+
+	onchange(Serial.FlowControl) += OnFlowControlChange;
+
+	// parity
+
+	Line = Group.InsertChild();
+	Line.Name = "Parity";
+	Line.InPlace = new CIntEnumDropDownInPlace;
+	Line.InPlaceContext = ESerialParity;
+	Line.InPlaceAccessor := Serial.Parity;
+	Line.Update();
+
+	// DTR
+
+	Line = Group.InsertChild();
+	Line.Name = "DTR";
+	Line.IsSinglePane = true;
+	Line.OptionBoxType = EPropertyOptionBoxType::CheckBox;
+	Line.OptionBoxAccessor := Serial.DTR;
+	Line.Update();
+
+	m_DTRLine = Line; // save it
+
+	// RTS
+
+	Line = Group.InsertChild();
+	Line.Name = "RTS";
+	Line.IsSinglePane = true;
+	Line.OptionBoxType = EPropertyOptionBoxType::CheckBox;
+	Line.OptionBoxAccessor := Serial.RTS;
+	Line.Update();
+
+	m_RTSLine = Line; // save it
+
+	// open button
+
+	Line = Group.InsertChild();
+	Line.Name = "Open port";
+	SetPropertyButton(Line);
+	Line.OnButtonClick = OnOpenClick;
+	m_OpenLine = Line;
+
+	Serial.OnOpen += OnSerialOpen;
+	Serial.OnClose += OnSerialClose;
+
+	OnSerialClose();
+	OnFlowControlChange(Serial.FlowControl);
+
+	return true;
+}
+
+void CSerialPropGroup::OnOpenClick()
+{
+	m_Serial.IsOpen = !m_Serial.IsOpen;
+}
+
+void CSerialPropGroup::OnSerialOpen()
+{
+	m_OpenLine.Name = "Close port";
+	m_DTRLine.IsEnabled = true;
+	m_RTSLine.IsEnabled = m_Serial.FlowControl != ESerialFlowControl::RtsCts;
+}
+
+void CSerialPropGroup::OnSerialClose()
+{
+	m_OpenLine.Name = "Open port";
+	m_DTRLine.IsEnabled = false;
+	m_RTSLine.IsEnabled = false;
+}
+
+void CSerialPropGroup::OnFlowControlChange(int FlowControl)
+{
+	m_RTSLine.IsEnabled = m_Serial.IsOpen && FlowControl != ESerialFlowControl::RtsCts;
+}
+
+//.............................................................................
+
+bool AddSerialPropGroup(
+	IPropertyCtrl PropertyCtrl, 
+	ISerial Serial
+	)
+{
+	ISerialPropGroup Group = new CSerialPropGroup;
+	return Group.Create(PropertyCtrl, Serial);
+}
+
+//.............................................................................

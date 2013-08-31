@@ -1,0 +1,352 @@
+//.............................................................................
+//
+// Log model
+//
+//.............................................................................
+
+#pragma once
+
+#include "File.h"
+#include "TextAttr.h"
+#include "Image.h"
+#include "UI.h"
+#include "Reflection.h"
+
+//.............................................................................
+ 
+// log file itself is simply a header followed by a list of messages
+
+//.............................................................................
+
+__enum ELogFile
+{
+	FileSignature    = ':gol', // log: signature for log files
+	MessageSignature = ':gsm', // msg: signature for log messages
+	CurrentVersion   = MAKELONG(0, MAKEWORD(0, 2)), // 2.0.0
+};
+
+//.............................................................................
+
+struct TLogMessage
+{
+	ulong_t m_Signature;   // ELogConst::MessageSignature
+	ulonglong_t m_Timestamp;
+	ulong_t m_Code;
+	ulong_t m_DataSize; 
+
+	// followed by message data (if any)
+};
+
+//.............................................................................
+
+// raw access to log file
+
+interface ILogMessageFile // : IAbstractFile
+{
+	guid property ClassGuid;
+
+	size_t const property MessageCount;
+	size_t const property MessageSize;
+
+	void Clear();
+
+	bool Write(ulong_t Code, const void* p = NULL, size_t Size = 0);
+	bool WriteFormat(ulong_t Code, const char* pFormat, ...);	
+
+	// overwrite last message
+	// bool ReWrite(ulong_t Code, const void* p = NULL, size_t Size = 0);
+	// bool ReWriteFormat(ulong_t Code, const char* pFormat, ...);
+
+	TLogMessage* GetMessage(size_t Offset);
+};
+
+class CLogMessageFile: ILogMessageFile;
+
+//.............................................................................
+
+// now comes the tricky part: log message representation and indexing
+
+//.............................................................................
+                                                                     
+// message code flags
+
+__enum ELogMsgCode
+{
+	Mergeable = 0x80000000,
+};
+
+__enum ELogBinView
+{
+	[ name = "HEX-ASCII" ]
+	HexAscii = 0,
+
+	[ name = "Plain text" ]
+	Text,
+};
+
+__enum ELogMerge
+{
+	None     = 0,
+	Backward = 1,
+	Forward  = 2,
+	Normal   = 3,
+};
+
+// log data configuration
+  
+struct TLogDataConfig
+{
+	ushort_t m_BinView:1;
+	ushort_t m_BinTextTabSize:15;
+	ushort_t m_BinHexLineSize; // binary data is auto-wrapped
+	ushort_t m_BinTextLineSize; // binary data is auto-wrapped
+	ulonglong_t m_TextMergeThreshold;
+	ulonglong_t m_BinMergeThreshold;
+};
+
+//.............................................................................
+
+// visual attributes of representation
+
+//...................................................................
+
+// delimiters
+
+__enum ELogLineDelimiter
+{
+	None   = 0,
+	Light  = 1,
+	Normal = 2,
+	Bold   = 3,
+};
+
+//.............................................................................
+
+// std log messages / visuals
+
+__enum EStdLogMsg
+{
+	_First = 0x100,
+	
+	Rx |= ELogMsgCode::Mergeable,
+	Tx |= ELogMsgCode::Mergeable,
+};
+
+__enum EStdLogMsgAttr
+{
+	Default = 0,
+	Error,
+	Info,
+	Warning,
+	Start,
+	Stop,
+	Tx,
+	Rx,
+};
+
+TTextAttr GetStdLogMsgAttr(int Msg);
+
+//.............................................................................
+
+struct TCursorPos
+{
+	long m_Line;
+	long m_Col;
+};
+
+interface ILogCtrl;
+
+__enum ELogLine
+{
+	Text,
+	BinHex,
+	BinText
+};
+
+interface ILogLine
+{
+	// for efficient iteration (LogCtrl.Line[i] requires lookups into the cache map)
+
+	ILogLine const property Next;
+	ILogLine const property Prev;
+
+	int const property Type;
+	string const property Text;
+};
+
+struct TLogBinLinePart
+{
+	size_t m_Offset;
+	ulonglong_t m_Timestamp;
+};
+
+interface ILogBinLine: ILogLine
+{
+	size_t const property Offset;
+	const void* const property Data;
+	size_t const property Size;
+};
+
+//.............................................................................
+
+// colorize
+
+interface ILogColorizeSink
+{
+	variant property ColorizerState;
+	ulong_t property ColorizerMetric;
+	void SetAttr(TTextAttr* pAttr, size_t OffsetStart, size_t OffsetEnd);
+};
+
+struct TLogColorizeBlock
+{
+	ulong_t m_PartCode;
+	size_t m_PartIndex;
+	ulonglong_t m_Timestamp;
+	size_t m_Offset;
+	const void* m_p;
+	size_t m_Size;
+	TLogBinLinePart* m_pPartArray;
+	size_t m_PartCount;
+};
+
+interface ILogColorizer
+{
+	void Colorize(
+		ILogColorizeSink Sink, 
+		TLogColorizeBlock* pBlock,
+		bool SaveStateHint
+		);
+};
+
+//.............................................................................
+
+// represent
+
+interface ILogRepresentSink
+{
+	long Icon;
+	bool TileIcon;
+
+	TTextAttr Attr;
+	ulong_t PartCode;
+	ulong_t Merge;
+
+	void AddBin(const void* p, size_t Size);
+	void AddPlainText(const char* pFormat, ...);
+	void AddHyperText(const char* pFormat, ...);
+	void AddDelimiter(int Delimiter = ELogLineDelimiter::Normal);
+};
+
+//.............................................................................
+
+[ functional ]
+interface ILogRepresentor
+{
+	bool Represent(ILogRepresentSink Sink, ulong_t Code, const void* p, size_t Size, ulong_t VolatileFlags);
+};
+
+interface ILogPostProcessor
+{
+	bool PostProcess(ILogMessageFile SecondaryFile, ulong_t Code, const void* p, size_t Size);
+	void Reset();
+};
+
+interface ILogHyperlinkHandler
+{
+	bool OnHyperlink(ILogCtrl LogCtrl, ILogLine Line, const char* pHyperlink);
+};
+
+interface ILogFilter
+{
+	bool Filter(ulong_t Code, const void* p, size_t Size, ulong_t* pVolatileFlags);
+};
+
+interface ILogBinBlockProcessor
+{
+	bool ProcessBlock(const void* p, size_t Size);
+};
+
+//.............................................................................
+
+// log ctrl is a complex entity that binds all together: 
+// message file, index file, log window, filter, representor, colorizer, hyperlink handler
+
+interface ILogCtrl
+{
+	ILogMessageFile const property MessageFile;
+
+	ILogRepresentor property Representor;
+	ILogColorizer property Colorizer;
+	ILogFilter property Filter;
+	ILogHyperlinkHandler property HyperlinkHandler;
+
+	bool property IsIconVisible;
+	IImageList property ImageList;
+
+	bool property IsTimestampVisible;
+	const char* property TimestampFormat;
+
+	uchar_t property OffsetWidth; // 0..8
+
+	TCursorPos property CursorPos;
+	bool Copy();
+
+	bool const property IsSelBinBlock;
+	bool GetSelBinRange(size_t* pOffset, size_t* pSize);
+	bool GetSelection(TCursorPos* SelStart, TCursorPos* SelEnd);
+	size_t ProcessSelAsBinBlock(ILogBinBlockProcessor Processor);
+
+	size_t const property LineCount;
+	
+	property
+	{
+		ILogLine get(size_t);
+	} Line;
+
+	TLogDataConfig property PreferredDataConfig;
+
+	void UpdateLog();
+
+	void ReRepresentAll();
+	void ReFilterAll();
+	void ReColorizeAll();
+
+	bool ModifyVolatileFlags(ILogLine AnchorLine, ulong_t VolatileFlags);
+
+	bool SaveAsTextFile(const char* pFileName);
+};
+
+//.............................................................................
+
+// global list of context menu extenders
+
+interface ILogContextMenuExtender
+{
+	bool ExtendContextMenu(
+		IMenu Menu,
+		ILogCtrl LogCtrl,
+		int x, int y
+		);
+};
+
+extern list<ILogContextMenuExtender> g_LogContextMenuExtenderList;
+
+//.............................................................................
+
+// global list of log post processors
+
+extern list<IClassType> g_LogPostProcessorClassList;
+
+//.............................................................................
+
+// global list of colorizers
+
+extern list<IClassType> g_LogStreamColorizerClassList;
+extern list<IClassType> g_LogPacketColorizerClassList;
+
+//.............................................................................
+
+void ShowTraceLog(bool IsVisible = true);
+
+//.............................................................................

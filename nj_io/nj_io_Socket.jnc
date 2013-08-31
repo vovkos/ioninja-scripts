@@ -1,0 +1,178 @@
+//.............................................................................
+//
+// Sockets
+//
+//.............................................................................
+
+#pragma once 
+
+#include "Transport.h"
+
+//.............................................................................
+
+#define SOCK_DEFINE_PROTO(af, pf, id) MAKELONG(MAKEWORD(af, pf), id)
+#define SOCK_PROTO_GET_AF(proto)      LOBYTE(LOWORD(proto))
+#define SOCK_PROTO_GET_PF(proto)      HIBYTE(LOWORD(proto))
+#define SOCK_PROTO_GET_ID(proto)      HIWORD(proto)
+
+//.............................................................................
+
+__enum ESockProtoFamily
+{
+	Conn  = 1,
+	Dgram = 2,
+};
+
+__enum ESockAddrFamily
+{
+	Ip   = 2,
+	Ip6  = 23,
+	Pipe = 65,
+};
+
+__enum ESockProto
+{
+	Undefined = 0,
+
+	Icmp  = SOCK_DEFINE_PROTO(ESockAddrFamily::Ip,   ESockProtoFamily::Dgram, 1),
+	Udp   = SOCK_DEFINE_PROTO(ESockAddrFamily::Ip,   ESockProtoFamily::Dgram, 17),
+	Tcp   = SOCK_DEFINE_PROTO(ESockAddrFamily::Ip,   ESockProtoFamily::Conn,  6),
+
+	Icmp6 = SOCK_DEFINE_PROTO(ESockAddrFamily::Ip6,  ESockProtoFamily::Dgram, 1),
+	Udp6  = SOCK_DEFINE_PROTO(ESockAddrFamily::Ip6,  ESockProtoFamily::Dgram, 17),
+	Tcp6  = SOCK_DEFINE_PROTO(ESockAddrFamily::Ip6,  ESockProtoFamily::Conn,  6),
+
+	Pipe  = SOCK_DEFINE_PROTO(ESockAddrFamily::Pipe, ESockProtoFamily::Conn,  6),   
+};
+
+__enum ESockPublicProto
+{
+	UDP  = ESockProto::Udp,
+	TCP  = ESockProto::Tcp,
+	PIPE = ESockProto::Pipe,
+};
+
+//.............................................................................
+
+struct TSockAddr
+{
+	ulong_t m_Size;
+	ulong_t m_Protocol;
+
+	// followed by actual address data
+};
+
+// ip4 address
+
+struct TSockAddrIp
+{
+	TSockAddr;
+
+	union
+	{
+		ulong_t m_IpAddr;
+		uchar_t m_Ip[4];
+	};
+
+	ushort_t m_Port;
+};
+
+// pipe address is TSockAddr followed by UNICODE pipe name
+
+//.............................................................................
+
+string GetSockAddrString(TSockAddr* pAddr);
+
+//.............................................................................
+
+// this object is TSockAddr wrapper
+// it deals with allocation of address memory (because it's generally a dynamic buffer)
+
+interface ISockAddr
+{
+	TSockAddr* property Address;
+	
+	string ToString();
+
+	TSockAddrIp* SetIpAddress(ulong_t Ip, ushort_t Port, int Protocol = ESockProto::Tcp);
+	TSockAddr* SetPipeAddress(const char* pHostName, const char* pPipeName);
+	TSockAddr* SetPipeIpAddress(ulong_t Ip, const char* pPipeName);
+	TSockAddr* Parse(const char* pString, int Proto = ESockProto::Tcp);
+};
+
+class CSockAddr: ISockAddr;
+
+ISockAddr ParseSockAddr(const char* pString, int Proto = ESockProto::Tcp);
+
+//.............................................................................
+
+__enum ESockDisconnect
+{
+	ByLocalNode       = 0,
+	ByRemoteNode      = 1,
+	ByInactivityTimer = 2,
+	InitiatorMask     = 0xf,
+
+	Reset             = 16,
+};
+
+//.............................................................................
+
+interface IConnectionSocket: ITransport
+{
+	TSockAddr* property AddrLocal;
+	TSockAddr* property AddrRemote;
+
+	bool const property IsConnected;
+
+	bool Connect(TSockAddr* pAddr = NULL); // if NULL use AddrRemote
+	void Disconnect();
+
+	event OnConnect();
+	event OnConnectError(TError* pError);
+	event OnDisconnect(int Flags);
+};
+
+class CConnectionSocket: IConnectionSocket;
+
+//.............................................................................
+
+interface IListenerSocket
+{
+	TSockAddr* property AddrListen;
+
+	bool const property IsListening;
+
+	bool Listen(TSockAddr* pAddr = NULL); // if NULL use AddrListen
+	void Close();
+
+	event OnListen();
+	event OnListenError(TError* pError);
+	event OnClose();
+	event OnAccept(IConnectionSocket Connection);
+};
+
+class CListenerSocket: IListenerSocket;
+
+//.............................................................................
+
+interface IDatagramSocket
+{
+	TSockAddr* property AddrLocal;
+
+	bool const property IsOpen;
+
+	bool Open(TSockAddr* pAddr = NULL); // if NULL use AddrLocal
+	void Close();
+
+	bool SendTo(const void* p, size_t Size, TSockAddr* pAddr);
+	event OnRecvFrom(const void* p, size_t Size, TSockAddr* pAddr);
+
+	event OnOpen();
+	event OnOpenError(TError* pError);
+	event OnClose();
+};
+
+class CDatagramSocket: IDatagramSocket;
+
+//.............................................................................
