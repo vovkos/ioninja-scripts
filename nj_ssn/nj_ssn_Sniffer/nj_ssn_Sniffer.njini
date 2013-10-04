@@ -1,0 +1,21 @@
+//.............................................................................
+//
+// Network Sniffer session provider
+//
+
+[session]
+
+name        = "Network Sniffer"
+description = "WinPCap-based network traffic sniffer\nProvides basic WinDump functionality for TCP/UDP/ICMP protocols"
+guid        = 0fcb41f4-97e9-4d6d-80dd-0b4526461ade
+icon        = monitor.ico
+representer = CSnifferLogRepresenter
+session     = CSnifferSession
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+[scripts]
+
+nj_ssn_SnifferLog.jnc
+nj_ssn_SnifferSession.jnc
+

@@ -1,0 +1,21 @@
+//.............................................................................
+//
+// Serial Monitor session provider
+//
+
+[session]
+
+name        = "Serial Monitor"
+description = "Monitor serial communication through one of the installed COM ports on your PC"
+guid        = 0fcb41f4-97e9-4d6d-80dd-0b4526461ade
+icon        = monitor.ico
+representer = CSerialMonLogRepresenter
+session     = CSerialMonSession
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+[scripts]
+
+nj_ssn_SerialMonLog.jnc
+nj_ssn_SerialMonSession.jnc
+

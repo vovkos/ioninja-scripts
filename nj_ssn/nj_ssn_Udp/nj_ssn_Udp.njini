@@ -1,0 +1,21 @@
+//.............................................................................
+//
+//  UDP Socket session provider
+//
+
+[session]
+
+name        = UDP Socket
+description = "UDP socket without \"connection\" notation"
+guid        = 0fcb41f4-97e9-4d6d-80dd-0b4526461ade
+icon        = udp.ico
+representer = CUdpLogRepresenter
+session     = CUdpSession
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+[scripts]
+
+nj_ssn_UdpLog.jnc
+nj_ssn_UdpSession.jnc
+
