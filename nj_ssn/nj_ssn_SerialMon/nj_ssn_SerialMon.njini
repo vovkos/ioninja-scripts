@@ -7,7 +7,7 @@
 
 name        = "Serial Monitor"
 description = "Monitor serial communication through one of the installed COM ports on your PC"
-guid        = 0fcb41f4-97e9-4d6d-80dd-0b4526461ade
+guid        = 27dcecb3-47dc-4f1d-b0f8-227b627b90ae
 icon        = monitor.ico
 representer = CSerialMonLogRepresenter
 session     = CSerialMonSession

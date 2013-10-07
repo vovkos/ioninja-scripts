@@ -7,7 +7,7 @@
 
 name        = Connection Socket
 description = "Establishes connection over TCP, UDP or PIPE protocols"
-guid        = 0fcb41f4-97e9-4d6d-80dd-0b4526461ade
+guid        = db8c8923-a699-46cc-be7c-f0bcd523082b
 icon        = connection.ico
 representer = CConnectionSocketLogRepresenter
 session     = CConnectionSocketSession

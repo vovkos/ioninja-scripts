@@ -7,7 +7,7 @@
 
 name        = Listener Socket
 description = "Listens for connection over TCP, UDP or PIPE protocols"
-guid        = 0fcb41f4-97e9-4d6d-80dd-0b4526461ade
+guid        = aa4252c0-8039-498f-8a98-b9cc6ca3b42f
 icon        = listener.ico
 representer = CListenerSocketLogRepresenter
 session     = CListenerSocketSession
