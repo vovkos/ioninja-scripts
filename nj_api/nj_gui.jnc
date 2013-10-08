@@ -1,274 +1,99 @@
 //.............................................................................
 //
-// UI model
+// Ninja GUI declarations
 //
-//.............................................................................
 
-#pragma once
-
-#include "Image.h"
-#include "TextAttr.h"
+namespace gui {
 
 //.............................................................................
 
-interface IStatic
+// colors
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+enumf EColorFlags
 {
-	const char* property Text;
-	TTextAttr property Attr;
-};
+	Transparent  = 0x80000000,
+	Index        = 0x40000000,
+	IndexMask    = 0x0fffffff,
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+enum EStdColor
+{
+	Black        = 0x000000,
+	White        = 0xffffff,
+	Gray         = 0x808080,
+	Red          = 0x800000,
+	Green        = 0x008000,
+	Blue         = 0x000080,
+	Purple       = 0x800080,
+	Cyan         = 0x008080,
+
+	LightRed     = 0xff0000,
+	LightGreen   = 0x00ff00,
+	LightBlue    = 0x0000ff,
+	LightPurple  = 0xff00ff,
+	LightCyan    = 0x00ffff,
+
+	PastelGray   = 0xefefef,
+	PastelRed    = 0xffe4e1,
+	PastelOrange = 0xfffacd,
+	PastelYellow = 0xffffc0,
+	PastelGreen  = 0xe1fada,
+	PastelCyan   = 0xcdfaff,
+	PastelBlue   = 0xe2edff,
+	PastelPurple = 0xe2dafd,
+}
+
+struct TColorAttr
+{
+	uint_t m_ForeColor;
+	uint_t m_BackColor;
+}
 
 //.............................................................................
 
-interface IEdit
+// text
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+enumf EFontFlags
 {
-	bool property IsReadOnly;
-	size_t const property TextLength;
-	const char* property Text;
-	event OnChange();
-};
+	Bold,
+	Italic,
+	Underline,
+	Strikeout,
+
+	Transparent,
+}
+
+struct TTextAttr: TColorAttr
+{
+	EFontFlags m_FontFlags;
+}
 
 //.............................................................................
 
-interface IButton
-{
-	const char* property Text;
-	bool property IsEnabled;
-	event OnClick();	
-};
+// icons / images
 
 //.............................................................................
 
-struct TSpinAccel
+// widgets
+
+class CPropertyWidget
 {
-	ulong_t m_Time; // in seconds
-	int m_Delta;
-};
+}
 
-interface ISpinCtrl
+class CLogWidget
 {
-	int property Pos;
-	int property Min;
-	int property Max;
+}
 
-	IEdit property Buddy;
-
-	void SetAccel(TSpinAccel* pAccel, size_t Count = -1);
-
-	event OnChange();
-};
+class CTransmitWidget
+{
+}
 
 //.............................................................................
 
-interface ICalendarCtrl
-{
-	ulonglong_t property Today;
-	ulonglong_t property CurSel;
-
-	event OnChange();
-};
-
-//.............................................................................
-
-__enum EByteCtrlFlags
-{
-	Hex          = 1,
-	Uppercase    = 2,
-	LeadingZero  = 4,
-	LittleEndian = 8,
-};
-
-interface IByteCtrl
-{
-	size_t property Size;
-
-	int property Flags;
-	char property Delimiter;
-
-	size_t GetData(void* p, size_t Size);
-	size_t SetData(const void* p, size_t Size);
-	size_t SetText(const char* pText);
-
-	event OnChange();
-};
-
-string FormatByteCtrlString(const void* p, size_t Size, int Flags = 0, char Delimiter = '.');
-size_t ParseByteCtrlString(const char* pString, void* p, size_t Size, int Flags = 0, char Delimiter = '.');
-
-//.............................................................................
-
-struct TListBoxInitEntry
-{
-	const char* m_pText;
-	variant m_Data;
-};
-
-TListBoxInitEntry* FindListBoxInitEntry(variant Data, TListBoxInitEntry* pInit, size_t Count = -1);
-
-interface IListBox
-{
-	bool property IsSorted;
-
-	size_t property CurSel;
-	size_t const property ItemCount;
-
-	property
-	{	
-		const char* get(size_t);
-	} ItemText;
-
-	property
-	{	
-		variant get(size_t);
-		void set(size_t, variant);
-	} ItemData;
-
-	size_t AddItem(const char* pText, variant Data = 0);
-	size_t DeleteItem(size_t Index);
-
-	size_t FindItemByText(const char* pText, bool IsCaseSensitive = true);
-	size_t FindItemByData(variant Data);
-
-	size_t SelectItemByText(const char* pText, bool IsCaseSensitive = true);
-	size_t SelectItemByData(variant Data);
-
-	size_t Init(TListBoxInitEntry* pInit, size_t Count = -1);
-	void Clear();
-
-	event OnSelChange();
-};
-
-//.............................................................................
-
-__enum EComboBox
-{
-	DropDown = 0,
-	DropDownList = 1,
-};
-
-interface IComboBox: IListBox
-{
-	int property Type;
-	const char* property Text;
-	event OnEditChange();
-};
-
-//.............................................................................
-
-// commands (menus, toolbars, buttons)
-
-typedef void FCommandHandler(int ID);
-
-struct TCommandInitEntry
-{
-	int m_ID;            // > 1
-	const char* m_pText; // "Name" or "Name\nHelp_string"
-	int m_Image;         // 1-based index
-};
-
-interface ICommand
-{
-	int const property ID;
-	const char* property Name;
-	const char* property HelpString;
-	bool property IsEnabled;
-	bool property IsChecked;
-	size_t property Image;
-};
-
-interface ICommandSet
-{
-	FCommandHandler property Handler;
-	IImageSet property ImageSet;
-
-	property
-	{
-		ICommand get(int ID);
-	} Command;	
-
-	ICommand FindCommand(int ID);
-
-	bool CheckCommand(int ID, bool IsChecked);
-	bool EnableCommand(int ID, bool IsEnabled);
-
-	size_t AddCommands(TCommandInitEntry* pInit, size_t Count = -1);
-	void Clear();
-};
-
-class CCommandSet: ICommandSet;
-
-//.............................................................................
-
-interface IUIGroup;
-
-interface IUIElement
-{
-	IUIGroup property Group;
-	bool property const IsVisible;
-	bool property const IsShown;
-	void Show(bool IsShown);
-};
-
-//.............................................................................
-
-interface IUIGroup: IUIElement
-{
-	bool property const IsStrong;
-};
-
-class CUIGroup: IUIGroup;
-class CStrongUIGroup: IUIGroup;
-
-//.............................................................................
-
-interface IStatusBarPane: IUIElement
-{
-	ulong_t property Width;
-	const char* property Text;
-	const char* property ToolTipText;
-	COLORREF property TextColor;
-	COLORREF property BackColor;
-	IImageList property ImageList;
-	size_t property Image;
-};
-
-class CStatusBarPane: IStatusBarPane;
-
-//.............................................................................
-
-interface IToolBar
-{
-	ICommandSet const property CommandSet;
-
-	size_t property const ButtonCount;
-	void AddButtons(...);
-};
-
-//.............................................................................
-
-interface IReBarBand: IUIElement
-{
-	long property MinHeight;
-
-	void AddSpacing(long Width);
-	void AddLabel(const char* pText);
-
-	IEdit AddEdit(long Width);
-	IComboBox AddCombo(long Width, int Type = EComboBox::DropDown);
-	IToolBar AddToolBar(ICommandSet CommandSet, ...);
-};
-
-class CReBarBand: IReBarBand;
-
-//.............................................................................
-
-interface IMenu: IUIElement
-{
-	IMenu AddSubMenu(const char* pName);
-	void AddItems(ICommandSet CommandSet, ...);
-	int TrackPopupMenu(int x, int y);
-};
-
-IMenu CreateRootMenuItem(const char* pName);
-
-//.............................................................................
-
+} // namespace gui {

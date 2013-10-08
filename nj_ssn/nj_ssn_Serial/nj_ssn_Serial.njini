@@ -7,7 +7,7 @@
 
 name        = Serial
 description = "Serial communication using one of the installed COM ports on your PC"
-guid        = 29725452-e64f-4c0e-a871-776277b68572
+guid        = {29725452-e64f-4c0e-a871-776277b68572}
 icon        = serial.ico
 
 session-class         = CSerialSession
@@ -16,5 +16,5 @@ log-representer-class = CSerialLogRepresenter
 [scripts]
 
 nj_ssn_SerialLog.jnc
-nj_ssn_SerialSession.jnc
+// nj_ssn_SerialSession.jnc
 

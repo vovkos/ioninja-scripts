@@ -1,0 +1,39 @@
+//.............................................................................
+//
+// Ninja document model
+//
+
+namespace doc {
+
+//.............................................................................
+
+enum EDocument
+{
+	Log,
+	Session,
+};
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+class CDocument
+{
+	pubconst gui.CToolBar* m_pToolBar;
+	pubconst gui.CPropertyWidget* m_pPropertyWidget;
+	pubconst gui.CTransmitWidget* m_pTransmitWidget;
+	pubconst log.CLogWidget* m_pLogWidget;
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+class CSession: CDocument
+{
+	protected CTransport* m_pTransport;
+
+	abstract
+	bool
+	Create (CDocument* pDocument);
+}
+
+//.............................................................................
+
+} // namespace gui {

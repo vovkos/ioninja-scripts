@@ -1,0 +1,58 @@
+//.............................................................................
+//
+// Ninja I/O declarations 
+//
+
+namespace io {
+
+//.............................................................................
+
+class CTransport
+{
+	virtual 
+	size_t 
+	Transmit (
+		const void* p,
+		size_t Size
+		);
+
+	event
+	m_OnTransmit (
+		const void* p,
+		size_t Size
+		);
+
+	event
+	m_OnReceive (
+		const void* p,
+		size_t Size
+		);
+};
+
+//.............................................................................
+
+class CSerial: CTransport
+{
+	uint_t autoget property m_BaudRate;
+	uint_t autoget property m_DataBits;
+	uint_t autoget property m_StopBits;
+	uint_t autoget property m_FlowControl;
+	uint_t autoget property m_Parity;
+
+	bool
+	Open (const char* pName);
+
+	void
+	Close ();
+
+	override 
+	size_t 
+	Transmit (
+		const void* p,
+		size_t Size
+		);
+};
+
+//.............................................................................
+
+} // namespace io {

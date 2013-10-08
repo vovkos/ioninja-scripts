@@ -1,311 +1,47 @@
-#include "Serial.h"
-#include "SerialSession.h"
-#include "SerialSettings.h"
-#include "SerialUI.h"
-#include "SerialLog.h"
-#include "SerialPropGroup.h"
-#include "LogPropGroup.h"
-#include "LogSettings.h"
-#include "TransmitPropGroup.h"
-#include "TransmitSettings.h"
-
-#pragma once
-
-#include "Document.h"
+//.............................................................................
+//
+// Serial log packet declarations and representer
+//
 
 //.............................................................................
 
-#define GUID_SerialSession (CDE306D8-4147-497d-B24D-27107E48172B)
-#define PATH_SerialIcon    __PATH__ "Serial.ico"
-
-class CSerialSession: ITransportSession;
-
-//.............................................................................
-
-
-//.............................................................................
-
-[
-	guid = GUID_SerialSession,
-	icon = PATH_SerialIcon,
-	name = "Serial",
-	description = "Serial communication using one of the installed COM ports on your PC",
-]
-
-class CSerialSession: ITransportSession
+class CSerialSession: CSession
 {
-	using CTransportSession;
+protected:
+	CSerial* m_pSerial;
 
-	override OnActivate;
-	override OnDeactivate;
-	override Load;
-	override Save;
-	override Transmit;
+public:
+	override
+	bool
+	Create (CDocument* pDocument);
 
-	ISerial m_Serial;
-	IFilterLpp m_Filter;
+protected:
 
-	void CSerialSession();
-
-	void UpdateDigest();
-
-	void OnSerialOpen();
-	void OnSerialOpenError(TError* pError);
-	void OnSerialClose();
-
-	void OnSerialPortNameChange(const char* pName);
-	void OnSerialBaudRateChange(uint_t Value);
-	void OnSerialFlowControlChange(uint_t Value);
-	void OnSerialParityChange(uint_t Value);
-	void OnSerialDataBitsChange(uint_t Value);
-	void OnSerialStopBitsChange(uint_t Value);
-	void OnSerialDTRChange(bool Value);
-	void OnSerialRTSChange(bool Value);
-	void OnSerialStatusLineChange(int Mask);
-	void OnSerialTransmit(const void* p, size_t Size);
-	void OnSerialReceive(const void* p, size_t Size);
 };
 
-//.............................................................................
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-void CSerialSession::CSerialSession()
+bool
+CSerialSession.Create (CDocument* pDocument)
 {
-	Caption = "Serial";
-	Icon = GetIcon(PATH_SerialIcon);
+	// serial transport
 
-	m_Serial = new CSerial;
-	m_Filter = new CSerialLogFilter;
-	m_Filter.m_Filter = g_SerialDefaultSettings.m_Filter;
+	m_pSerial = new CSerial;
 
-	SetSerialSettings(m_Serial, g_SerialDefaultSettings);
-	SetLogSettings(LogCtrl, g_LogDefaultSettings);
-	SetTransmitSettings(this, g_TransmitDefaultSettings);
+	// toolbars
 
-	LogCtrl.MessageFile.ClassGuid = GUID_SerialLog;
-	LogCtrl.Representor = new CSerialLogRepresentor;
-	LogPostProcessor = m_Filter;
+	pDocument->m_pToolBar->AddButton ("Open");
+	pDocument->m_pToolBar->AddButton ("Close");
 
-	m_Serial.OnOpen = OnSerialOpen;
-	m_Serial.OnOpenError = OnSerialOpenError;
-	m_Serial.OnClose = OnSerialClose;
-	m_Serial.OnStatusLineChange = OnSerialStatusLineChange;
-	m_Serial.OnReceive = OnSerialReceive;
-	m_Serial.OnTransmit = OnSerialTransmit;
+	// property grid
 
-	onchange(m_Serial.PortName) = OnSerialPortNameChange;
-	onchange(m_Serial.BaudRate) = OnSerialBaudRateChange;
-	onchange(m_Serial.FlowControl) = OnSerialFlowControlChange;
-	onchange(m_Serial.Parity) = OnSerialParityChange;
-	onchange(m_Serial.DataBits) = OnSerialDataBitsChange;
-	onchange(m_Serial.StopBits) = OnSerialStopBitsChange;
-	onchange(m_Serial.DTR) = OnSerialDTRChange;
-	onchange(m_Serial.RTS) = OnSerialRTSChange;
+	pDocument->m_pPropertyWidget->AddButton ("Open");
 
-	// property groups
+	// log widget
 
-	AddSerialPropGroup(PropertyCtrl, m_Serial);
+	pDocument.m_pLogWidget.m_Representer = new CSerialLogRepresenter;
+	pDocument.m_pLogWidget.m_ImageList = 
 	
-	m_Filter.AddProperties(PropertyCtrl);
-
-	AddLogPropGroup(PropertyCtrl, this);
-	AddTransmitPropGroup(PropertyCtrl, this);
-
-	SetStdPropertyGroupExpandCollapseState(PropertyCtrl);
-	ShowPropertyCtrl(true);
-
-	g_SerialUI.ShowUI(true);
-	g_SerialUI.UpdateUI(m_Serial, ESerialUpdateUI::All);
-
-	UpdateDigest();
-}
-
-void CSerialSession::UpdateDigest()
-{
-	Caption = FormatString("%s %d bps", m_Serial.PortName, m_Serial.BaudRate);
-}
-
-void CSerialSession::OnActivate()
-{
-	g_SerialDefaultSettings.m_Filter = m_Filter.m_Filter;
-
-	GetSerialSettings(m_Serial, g_SerialDefaultSettings);
-	GetLogSettings(LogCtrl, g_LogDefaultSettings);
-	GetTransmitSettings(this, g_TransmitDefaultSettings);
-	GetStdPropertyGroupExpandCollapseState(PropertyCtrl);
-
-	g_SerialUI.ShowUI(true);
-	g_SerialUI.UpdateUI(m_Serial, ESerialUpdateUI::All);
-}
-
-void CSerialSession::OnDeactivate()
-{
-	g_SerialDefaultSettings.m_Filter = m_Filter.m_Filter;
-
-	GetSerialSettings(m_Serial, g_SerialDefaultSettings);
-	GetLogSettings(LogCtrl, g_LogDefaultSettings);
-	GetTransmitSettings(this, g_TransmitDefaultSettings);
-	GetStdPropertyGroupExpandCollapseState(PropertyCtrl);
-
-	g_SerialUI.ShowUI(false);
-}
-
-bool CSerialSession::Load(IIniFile File)
-{
-	File.Read("Serial", g_SerialDefaultSettings);
-	File.Read("Log", g_LogDefaultSettings);
-	File.Read("Transmit", g_TransmitDefaultSettings);
-
-	m_Filter.m_Filter = g_SerialDefaultSettings.m_Filter;
-
-	SetSerialSettings(m_Serial, g_SerialDefaultSettings);
-	SetLogSettings(LogCtrl, g_LogDefaultSettings);
-	SetTransmitSettings(this, g_TransmitDefaultSettings);
-
-	PropertyCtrl.UpdateAllLines();
-
-	return true;
-}
-
-bool CSerialSession::Save(IIniFile File)
-{
-	g_SerialDefaultSettings.m_Filter = m_Filter.m_Filter;
-
-	GetSerialSettings(m_Serial, g_SerialDefaultSettings);
-	GetLogSettings(LogCtrl, g_LogDefaultSettings);
-	GetTransmitSettings(this, g_TransmitDefaultSettings);
-
-	File.Write("Serial", g_SerialDefaultSettings);
-	File.Write("Log", g_LogDefaultSettings);
-	File.Write("Transmit", g_TransmitDefaultSettings);
-
-	return true;
-}
-
-void CSerialSession::OnSerialPortNameChange(const char* pName)
-{
-	UpdateDigest();
-}
-
-void CSerialSession::OnSerialBaudRateChange(uint_t Value)
-{ 
-	if (m_Serial.IsOpen)
-		WriteLog(ESerialMsg::BaudRateChange, &Value, sizeof(int));
-
-	UpdateDigest();
-}
-
-void CSerialSession::OnSerialFlowControlChange(uint_t Value)
-{ 
-	if (m_Serial.IsOpen)
-		WriteLog(ESerialMsg::FlowControlChange, &Value, sizeof(int));
-}
-
-void CSerialSession::OnSerialParityChange(uint_t Value)
-{ 
-	if (m_Serial.IsOpen)
-		WriteLog(ESerialMsg::ParityChange, &Value, sizeof(int));
-}
-
-void CSerialSession::OnSerialDataBitsChange(uint_t Value)
-{ 
-	if (m_Serial.IsOpen)
-		WriteLog(ESerialMsg::DataBitsChange, &Value, sizeof(int));
-}
-
-void CSerialSession::OnSerialStopBitsChange(uint_t Value)
-{ 
-	if (m_Serial.IsOpen)
-		WriteLog(ESerialMsg::StopBitsChange, &Value, sizeof(int));
-}
-
-void CSerialSession::OnSerialDTRChange(bool Value)
-{ 
-	if (m_Serial.IsOpen)
-		WriteLog(ESerialMsg::DTRChange, &Value, sizeof(int));
-
-	if (IsActive)
-		g_SerialUI.UpdateUI(m_Serial, ESerialUpdateUI::DTR);
-}
-
-void CSerialSession::OnSerialRTSChange(bool Value)
-{ 
-	if (m_Serial.IsOpen)
-		WriteLog(ESerialMsg::RTSChange, &Value, sizeof(int));
-
-	if (IsActive)
-		g_SerialUI.UpdateUI(m_Serial, ESerialUpdateUI::RTS);
-}
-
-void CSerialSession::OnSerialOpen()
-{
-	TSerialOpenParams Params;
-	Params.m_BaudRate = m_Serial.BaudRate;
-	Params.m_FlowControl = m_Serial.FlowControl;
-	Params.m_Parity = m_Serial.Parity;
-	Params.m_DataBits = m_Serial.DataBits;
-	Params.m_StopBits = m_Serial.StopBits;
-
-	WriteFormatLog(ESerialMsg::PortOpen, "%P%s", &Params, sizeof(Params), m_Serial.PortName);
-	
-	if (IsActive)
-		g_SerialUI.UpdateUI(m_Serial, ESerialUpdateUI::OpenState);
-}
-
-void CSerialSession::OnSerialOpenError(TError* pError)
-{
-	WriteFormatLog(ESerialMsg::PortOpenError, "%P%s", pError, sizeof(TError) + pError->m_DataSize, m_Serial.PortName);
-}
-
-void CSerialSession::OnSerialClose()
-{
-	WriteFormatLog(ESerialMsg::PortClose, "%s", m_Serial.PortName);
-
-	if (IsActive)
-		g_SerialUI.UpdateUI(m_Serial, ESerialUpdateUI::OpenState);
-}
-
-void CSerialSession::OnSerialStatusLineChange(int Mask)
-{
-	int Lines = 0;
-
-	if (m_Serial.DSR)
-		Lines |= ESerialLine::DSR;
-
-	if (m_Serial.CTS)
-		Lines |= ESerialLine::CTS;
-
-	if (m_Serial.DCD)
-		Lines |= ESerialLine::DCD;
-
-	WriteFormatLog(ESerialMsg::StatusLineChange, "%d%d", Mask, Lines);
-	
-	if (IsActive)
-		g_SerialUI.UpdateUI(m_Serial, Mask);
-}
-
-bool CSerialSession::Transmit(const void* p, size_t Size)
-{
-	return m_Serial.Transmit(p, Size);
-}
-
-void CSerialSession::OnSerialTransmit(const void* p, size_t Size)
-{
-	WriteLog(EStdLogMsg::Tx, p, Size);
-	OnTransmit(p, Size);
-}
-
-void CSerialSession::OnSerialReceive(const void* p, size_t Size)
-{
-	WriteLog(EStdLogMsg::Rx, p, Size);
-	OnReceive(p, Size);
-}
-
-//.............................................................................
-
-static bool main()
-{
-	g_SessionClassList.InsertTail(CSerialSession);
-	return true;
 }
 
 //.............................................................................
