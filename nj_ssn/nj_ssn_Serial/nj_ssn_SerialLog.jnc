@@ -118,3 +118,33 @@ CSerialLogRepresenter.Represent (
 }
 
 //.............................................................................
+
+void
+AddIcon (const char* pFilePath);
+
+void
+AddToolBarButton (
+	intptr ButtonId,
+	size_t IconIdx,
+	const char* pToolTip
+	);
+
+void
+Initialize ()
+{
+	AddIcon ("D:/Prj/Ninja/ioninja/scripts/nj_ssn/nj_ssn_Serial/play.png");
+	AddIcon ("D:/Prj/Ninja/ioninja/scripts/nj_ssn/nj_ssn_Serial/reload.png");
+	AddIcon ("D:/Prj/Ninja/ioninja/scripts/nj_ssn/nj_ssn_Serial/return.png");
+	AddIcon ("D:/Prj/Ninja/ioninja/scripts/nj_ssn/nj_ssn_Serial/stepinto.png");
+	AddIcon ("D:/Prj/Ninja/ioninja/scripts/nj_ssn/nj_ssn_Serial/stepover.png");
+	AddIcon ("D:/Prj/Ninja/ioninja/scripts/nj_ssn/nj_ssn_Serial/stepout.png");
+
+	AddToolBarButton (0, 0, "play.png");
+	AddToolBarButton (1, 1, "reload.png");
+	AddToolBarButton (2, 2, "return.png");
+	AddToolBarButton (3, 3, "stepinto.png");
+	AddToolBarButton (4, 4, "stepover.png");
+	AddToolBarButton (5, 5, "stepout.png");
+}
+
+//.............................................................................
