@@ -7,7 +7,7 @@ namespace log {
 
 //.............................................................................
 
-enumf EPacketCodeFlags
+enumf PacketCodeFlags
 {
 	Foldable          = 0x80000000,
 	MergeableBackward = 0x40000000,
@@ -17,7 +17,7 @@ enumf EPacketCodeFlags
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-enumf ELineAttrFlags
+enumf LineAttrFlags
 {
 	TileIcon,
 	Delimiter,
@@ -26,15 +26,15 @@ enumf ELineAttrFlags
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-struct TLineAttr: gui.TTextAttr
+struct LineAttr: gui.TextAttr
 {
-	ELineAttrFlags m_Flags;
-	uint_t m_IconIdx;
+	LineAttrFlags m_flags;
+	uint_t m_iconIdx;
 }
 
 //.............................................................................
 
-enum EPart
+enum PartKind
 {
 	PlainText = 0,
 	HyperText,
@@ -43,69 +43,69 @@ enum EPart
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-class CRepresenterTarget
+class RepresenterTarget
 {
-	pubconst uint_t m_PacketCode;
-	pubconst uint64_t m_Timestamp;
+	pubconst uint_t m_packetCode;
+	pubconst uint64_t m_timestamp;
 
-	TLineAttr m_LineAttr;
+	LineAttr m_lineAttr;
 
 	abstract
 	void 
-	AddPart (
-		EPart PartKind,
-		uint_t PartCode,
+	addPart (
+		PartKind partKind,
+		uint_t partCode,
 		const void* p,
-		size_t Size
+		size_t size
 		);
 
 	void
-	AddHyperText (
-		uint_t PartCode,
-		const char* pText
+	addHyperText (
+		uint_t partCode,
+		const char* text
 		)
 	{
-		AddPart (EPart.HyperText, PartCode, pText, jnc.StrLen (pText));
+		addPart (PartKind.HyperText, partCode, text, jnc.StrLen (text));
 	}
 
 	void
-	AddHyperText (const char* pText)
+	addHyperText (const char* text)
 	{
-		AddPart (EPart.HyperText, m_PacketCode, pText, jnc.StrLen (pText));
+		addPart (PartKind.HyperText, m_packetCode, text, jnc.StrLen (text));
 	}
 
 	void
-	AddBin (
-		uint_t PartCode,
+	addBin (
+		uint_t partCode,
 		const void* p,
-		size_t Size
+		size_t size
 		)
 	{
-		AddPart (EPart.Bin, PartCode, p, Size);
+		addPart (PartKind.Bin, partCode, p, size);
 	}
 
 	void
-	AddBin (
+	addBin (
 		const void* p,
-		size_t Size
+		size_t size
 		)
 	{
-		AddPart (EPart.Bin, m_PacketCode, p, Size);
+		addPart (PartKind.Bin, m_packetCode, p, size);
 	}
 }
 
 //.............................................................................
 
-class CRepresenter
+class Representer
 {
 	abstract
 	bool 
-	Represent (
-		CRepresenterTarget* pTarget,
-		uint_t PacketCode, 
+	represent (
+		RepresenterTarget* target,
+		uint_t packetCode, 
 		const void* p, 
-		size_t Size, 
-		uint64_t FoldFlags
+		size_t size, 
+		uint64_t foldFlags
 		);
 }
 

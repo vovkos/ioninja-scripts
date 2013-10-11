@@ -7,23 +7,23 @@ namespace io {
 
 //.............................................................................
 
-class CTransport
+class Transport
 {
-	virtual 
+	abstract 
 	size_t 
-	Transmit (
+	transmit (
 		const void* p,
 		size_t Size
 		);
 
 	event
-	m_OnTransmit (
+	m_onTransmit (
 		const void* p,
 		size_t Size
 		);
 
 	event
-	m_OnReceive (
+	m_onReceive (
 		const void* p,
 		size_t Size
 		);
@@ -31,23 +31,23 @@ class CTransport
 
 //.............................................................................
 
-class CSerial: CTransport
+class Serial: Transport
 {
-	uint_t autoget property m_BaudRate;
-	uint_t autoget property m_DataBits;
-	uint_t autoget property m_StopBits;
-	uint_t autoget property m_FlowControl;
-	uint_t autoget property m_Parity;
+	uint_t autoget property m_baudRate;
+	uint_t autoget property m_dataBits;
+	uint_t autoget property m_stopBits;
+	uint_t autoget property m_flowControl;
+	uint_t autoget property m_parity;
 
 	bool
-	Open (const char* pName);
+	open (const char* name);
 
 	void
-	Close ();
+	close ();
 
 	override 
 	size_t 
-	Transmit (
+	transmit (
 		const void* p,
 		size_t Size
 		);

@@ -5,15 +5,15 @@
 
 //.............................................................................
 
-class CSerialSession: CSession
+class SerialSession: Session
 {
 protected:
-	CSerial* m_pSerial;
+	Serial* m_serial;
 
 public:
 	override
 	bool
-	Create (CDocument* pDocument);
+	create (Document* document);
 
 protected:
 
@@ -22,25 +22,25 @@ protected:
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 bool
-CSerialSession.Create (CDocument* pDocument)
+SerialSession.create (Document* document)
 {
 	// serial transport
 
-	m_pSerial = new CSerial;
+	m_serial = new CSerial;
 
 	// toolbars
 
-	pDocument->m_pToolBar->AddButton ("Open");
-	pDocument->m_pToolBar->AddButton ("Close");
+	document->m_toolBar->addButton ("Open");
+	document->m_toolBar->addButton ("Close");
 
 	// property grid
 
-	pDocument->m_pPropertyWidget->AddButton ("Open");
+	document->m_propertyWidget->addButton ("Open");
 
 	// log widget
 
-	pDocument.m_pLogWidget.m_Representer = new CSerialLogRepresenter;
-	pDocument.m_pLogWidget.m_ImageList = 
+	document.m_logWidget.m_representer = new SerialLogRepresenter;
+	document.m_logWidget.m_imageList = 
 	
 }
 

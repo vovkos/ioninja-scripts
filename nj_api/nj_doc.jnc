@@ -7,7 +7,7 @@ namespace doc {
 
 //.............................................................................
 
-enum EDocument
+enum DocumentKind
 {
 	Log,
 	Session,
@@ -15,23 +15,23 @@ enum EDocument
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-class CDocument
+class Document
 {
-	pubconst gui.CToolBar* m_pToolBar;
-	pubconst gui.CPropertyWidget* m_pPropertyWidget;
-	pubconst gui.CTransmitWidget* m_pTransmitWidget;
-	pubconst log.CLogWidget* m_pLogWidget;
+	pubconst gui.ToolBar* m_toolBar;
+	pubconst gui.PropertyWidget* m_propertyWidget;
+	pubconst gui.TransmitWidget* m_transmitWidget;
+	pubconst log.LogWidget* m_logWidget;
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-class CSession: CDocument
+class Session: Document
 {
-	protected CTransport* m_pTransport;
+	protected Transport* m_transport;
 
 	abstract
 	bool
-	Create (CDocument* pDocument);
+	create (Document* document);
 }
 
 //.............................................................................

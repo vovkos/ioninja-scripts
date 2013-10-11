@@ -5,68 +5,68 @@
 
 //.............................................................................
 
-enum ESerialLogPacket
+enum SerialLogPacket
 {
 	DeviceOpened    = 1,
-	DeviceClosed    = 2 | log.EPacketCodeFlags.Foldable,
-	Connect         = 4 | log.EPacketCodeFlags.MergeableForward,
-	ConnectComplete = 5 | log.EPacketCodeFlags.MergeableBackward,
-	ConnectError    = 6 | log.EPacketCodeFlags.MergeableBackward,	
+	DeviceClosed    = 2 | log.PacketCodeFlags.Foldable,
+	Connect         = 4 | log.PacketCodeFlags.MergeableForward,
+	ConnectComplete = 5 | log.PacketCodeFlags.MergeableBackward,
+	ConnectError    = 6 | log.PacketCodeFlags.MergeableBackward,	
 	Connect_m       = 7,
-	Bin             = 8 | log.EPacketCodeFlags.Mergeable,
+	Bin             = 8 | log.PacketCodeFlags.Mergeable,
 }
 
 //.............................................................................
 
-class CSerialLogRepresenter: log.CRepresenter
+class SerialLogRepresenter: log.Representer
 {
 	override
 	bool 
-	Represent (
-		log.CRepresenterTarget* pTarget, 
-		uint_t PacketCode, 
+	represent (
+		log.RepresenterTarget* target, 
+		uint_t packetCode, 
 		const void* p, 
-		size_t Size, 
-		uint64_t FoldFlags
+		size_t size, 
+		uint64_t foldFlags
 		);
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 bool
-CSerialLogRepresenter.Represent (
-	log.CRepresenterTarget* pTarget, 
-	uint_t PacketCode, 
+SerialLogRepresenter.represent (
+	log.RepresenterTarget* target, 
+	uint_t packetCode, 
 	const void* p, 
-	size_t Size, 
-	uint64_t FoldFlags
+	size_t size, 
+	uint64_t foldFlags
 	)
 {
-	char Data [] = "0123456789abcf01234";
+	char data [] = "0123456789abcf01234";
 
-	switch (PacketCode)
+	switch (packetCode)
 	{
-	case ESerialLogPacket.DeviceOpened:
-		pTarget->m_LineAttr.m_IconIdx = 3;
-		pTarget->m_LineAttr.m_BackColor = gui.EStdColor.PastelYellow;
-		pTarget->m_LineAttr.m_Flags = log.ELineAttrFlags.Delimiter;			 
+	case SerialLogPacket.DeviceOpened:
+		target->m_lineAttr.m_iconIdx = 3;
+		target->m_lineAttr.m_backColor = gui.StdColor.PastelYellow;
+		target->m_lineAttr.m_flags = log.LineAttrFlags.Delimiter;			 
 
-		pTarget->AddHyperText (
+		target->addHyperText (
 			"Device <#0000ff>COM3<> is...<+b>opened<> <=!5,3>nahui!<>\n"
 			"Vot <+is>tak<> vot!!"
 			);
 
-		pTarget->m_LineAttr.m_BackColor = gui.EColorFlags.Transparent;
-		pTarget->AddBin (Data, sizeof (Data));
+		target->m_lineAttr.m_backColor = gui.ColorFlags.Transparent;
+		target->addBin (data, sizeof (data));
 		break;
 
-	case ESerialLogPacket.DeviceClosed:
-		pTarget->m_LineAttr.m_IconIdx = 2;
+	case SerialLogPacket.DeviceClosed:
+		target->m_lineAttr.m_iconIdx = 2;
 
-		if (!(FoldFlags & 1))
-			pTarget->AddHyperText ("[<#0000ff=+1>+<>] Device is closed.");
+		if (!(foldFlags & 1))
+			target->addHyperText ("[<#0000ff=+1>+<>] Device is closed.");
 		else
-			pTarget->AddHyperText (
+			target->addHyperText (
 				"[<#0000ff=-1>-<>] Device is closed.\n"
 				"  Some info...\n"
 				"  Some more info which makes a very long line..\n"
@@ -74,40 +74,39 @@ CSerialLogRepresenter.Represent (
 				);
 		break;
 
-	case ESerialLogPacket.Connect:
-		pTarget->m_LineAttr.m_IconIdx = 4;
-		pTarget->m_LineAttr.m_BackColor = gui.EStdColor.PastelBlue;
-		pTarget->AddHyperText (
-			ESerialLogPacket.Connect_m | log.EPacketCodeFlags.MergeableForward,
+	case SerialLogPacket.Connect:
+		target->m_lineAttr.m_iconIdx = 4;
+		target->m_lineAttr.m_backColor = gui.StdColor.PastelBlue;
+		target->addHyperText (
+			SerialLogPacket.Connect_m | log.PacketCodeFlags.MergeableForward,
 			"Connecting..."
 			);
 		break;
 
-	case ESerialLogPacket.ConnectComplete:
-		pTarget->m_LineAttr.m_Flags = log.ELineAttrFlags.Override;
-		pTarget->m_LineAttr.m_IconIdx = 1;
-		pTarget->m_LineAttr.m_BackColor = gui.EStdColor.PastelBlue;
-
-		pTarget->AddHyperText (
-			ESerialLogPacket.Connect_m | log.EPacketCodeFlags.MergeableBackward,
+	case SerialLogPacket.ConnectComplete:
+		target->m_lineAttr.m_flags = log.LineAttrFlags.Override;
+		target->m_lineAttr.m_iconIdx = 1;
+		target->m_lineAttr.m_backColor = gui.StdColor.PastelBlue;
+		target->addHyperText (
+			SerialLogPacket.Connect_m | log.PacketCodeFlags.MergeableBackward,
 			"OK!"
 			);
 		break;
 
-	case ESerialLogPacket.ConnectError:
-		pTarget->m_LineAttr.m_Flags = log.ELineAttrFlags.Override;
-		pTarget->m_LineAttr.m_IconIdx = 0;
-		pTarget->m_LineAttr.m_BackColor = gui.EStdColor.PastelRed;
-		pTarget->AddHyperText (
-			ESerialLogPacket.Connect_m | log.EPacketCodeFlags.MergeableBackward,
+	case SerialLogPacket.ConnectError:
+		target->m_lineAttr.m_flags = log.LineAttrFlags.Override;
+		target->m_lineAttr.m_iconIdx = 0;
+		target->m_lineAttr.m_backColor = gui.StdColor.PastelRed;
+		target->addHyperText (
+			SerialLogPacket.Connect_m | log.PacketCodeFlags.MergeableBackward,
 			"<\b*>FAIL!"
 			);
 		break;
 
-	case ESerialLogPacket.Bin:
-		pTarget->m_LineAttr.m_IconIdx = 8;
-		pTarget->m_LineAttr.m_Flags |= log.ELineAttrFlags.TileIcon;
-		pTarget->AddBin (p, Size);
+	case SerialLogPacket.Bin:
+		target->m_lineAttr.m_iconIdx = 8;
+		target->m_lineAttr.m_flags |= log.LineAttrFlags.TileIcon;
+		target->addBin (p, size);
 		break;
 
 	default:
@@ -120,31 +119,31 @@ CSerialLogRepresenter.Represent (
 //.............................................................................
 
 void
-AddIcon (const char* pFilePath);
+addIcon (const char* pFilePath);
 
 void
-AddToolBarButton (
-	intptr ButtonId,
-	size_t IconIdx,
-	const char* pToolTip
+addToolBarButton (
+	intptr buttonId,
+	size_t iconIdx,
+	const char* toolTip
 	);
 
 void
-Initialize ()
+initialize ()
 {
-	AddIcon ("D:/Prj/Ninja/ioninja/scripts/nj_ssn/nj_ssn_Serial/play.png");
-	AddIcon ("D:/Prj/Ninja/ioninja/scripts/nj_ssn/nj_ssn_Serial/reload.png");
-	AddIcon ("D:/Prj/Ninja/ioninja/scripts/nj_ssn/nj_ssn_Serial/return.png");
-	AddIcon ("D:/Prj/Ninja/ioninja/scripts/nj_ssn/nj_ssn_Serial/stepinto.png");
-	AddIcon ("D:/Prj/Ninja/ioninja/scripts/nj_ssn/nj_ssn_Serial/stepover.png");
-	AddIcon ("D:/Prj/Ninja/ioninja/scripts/nj_ssn/nj_ssn_Serial/stepout.png");
+	addIcon ("D:/Prj/Ninja/ioninja/scripts/nj_ssn/nj_ssn_Serial/play.png");
+	addIcon ("D:/Prj/Ninja/ioninja/scripts/nj_ssn/nj_ssn_Serial/reload.png");
+	addIcon ("D:/Prj/Ninja/ioninja/scripts/nj_ssn/nj_ssn_Serial/return.png");
+	addIcon ("D:/Prj/Ninja/ioninja/scripts/nj_ssn/nj_ssn_Serial/stepinto.png");
+	addIcon ("D:/Prj/Ninja/ioninja/scripts/nj_ssn/nj_ssn_Serial/stepover.png");
+	addIcon ("D:/Prj/Ninja/ioninja/scripts/nj_ssn/nj_ssn_Serial/stepout.png");
 
-	AddToolBarButton (0, 0, "play.png");
-	AddToolBarButton (1, 1, "reload.png");
-	AddToolBarButton (2, 2, "return.png");
-	AddToolBarButton (3, 3, "stepinto.png");
-	AddToolBarButton (4, 4, "stepover.png");
-	AddToolBarButton (5, 5, "stepout.png");
+	addToolBarButton (0, 0, "play.png");
+	addToolBarButton (1, 1, "reload.png");
+	addToolBarButton (2, 2, "return.png");
+	addToolBarButton (3, 3, "stepinto.png");
+	addToolBarButton (4, 4, "stepover.png");
+	addToolBarButton (5, 5, "stepout.png");
 }
 
 //.............................................................................
