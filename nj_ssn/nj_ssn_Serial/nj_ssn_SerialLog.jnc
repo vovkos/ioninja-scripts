@@ -11,7 +11,7 @@ enum SerialLogPacket
 	DeviceClosed    = 2 | log.PacketCodeFlags.Foldable,
 	Connect         = 4 | log.PacketCodeFlags.MergeableForward,
 	ConnectComplete = 5 | log.PacketCodeFlags.MergeableBackward,
-	ConnectError    = 6 | log.PacketCodeFlags.MergeableBackward,	
+	ConnectError    = 6 | log.PacketCodeFlags.MergeableBackward,
 	Connect_m       = 7,
 	Bin             = 8 | log.PacketCodeFlags.Mergeable,
 }
@@ -20,25 +20,22 @@ enum SerialLogPacket
 
 class SerialLogRepresenter: log.Representer
 {
-	override
-	bool 
-	represent (
-		log.RepresenterTarget* target, 
-		uint_t packetCode, 
-		const void* p, 
-		size_t size, 
+	override bool represent (
+		log.RepresenterTarget* target,
+		uint_t packetCode,
+		const void* p,
+		size_t size,
 		uint64_t foldFlags
 		);
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-bool
-SerialLogRepresenter.represent (
-	log.RepresenterTarget* target, 
-	uint_t packetCode, 
-	const void* p, 
-	size_t size, 
+bool SerialLogRepresenter.represent (
+	log.RepresenterTarget* target,
+	uint_t packetCode,
+	const void* p,
+	size_t size,
 	uint64_t foldFlags
 	)
 {
@@ -49,7 +46,7 @@ SerialLogRepresenter.represent (
 	case SerialLogPacket.DeviceOpened:
 		target->m_lineAttr.m_iconIdx = 3;
 		target->m_lineAttr.m_backColor = gui.StdColor.PastelYellow;
-		target->m_lineAttr.m_flags = log.LineAttrFlags.Delimiter;			 
+		target->m_lineAttr.m_flags = log.LineAttrFlags.Delimiter;
 
 		target->addHyperText (
 			"Device <#0000ff>COM3<> is...<+b>opened<> <=!5,3>nahui!<>\n"

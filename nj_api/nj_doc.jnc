@@ -17,21 +17,19 @@ enum DocumentKind
 
 class Document
 {
-	pubconst gui.ToolBar* m_toolBar;
-	pubconst gui.PropertyWidget* m_propertyWidget;
-	pubconst gui.TransmitWidget* m_transmitWidget;
-	pubconst log.LogWidget* m_logWidget;
+	gui.ToolBar* constd m_toolBar;
+	gui.PropertyWidget* constd m_propertyWidget;
+	gui.TransmitWidget* constd m_transmitWidget;
+	log.LogWidget* constd m_logWidget;
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 class Session: Document
 {
-	protected Transport* m_transport;
+	Transport* constd m_transport;
 
-	abstract
-	bool
-	create (Document* document);
+	abstract bool pitcher create (Document* document);
 }
 
 //.............................................................................

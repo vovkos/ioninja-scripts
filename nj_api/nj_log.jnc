@@ -45,22 +45,19 @@ enum PartKind
 
 class RepresenterTarget
 {
-	pubconst uint_t m_packetCode;
-	pubconst uint64_t m_timestamp;
+	constd uint_t m_packetCode;
+	constd uint64_t m_timestamp;
 
 	LineAttr m_lineAttr;
 
-	abstract
-	void 
-	addPart (
+	abstract void addPart (
 		PartKind partKind,
 		uint_t partCode,
 		const void* p,
 		size_t size
 		);
 
-	void
-	addHyperText (
+	void addHyperText (
 		uint_t partCode,
 		const char* text
 		)
@@ -68,14 +65,12 @@ class RepresenterTarget
 		addPart (PartKind.HyperText, partCode, text, jnc.StrLen (text));
 	}
 
-	void
-	addHyperText (const char* text)
+	void addHyperText (const char* text)
 	{
 		addPart (PartKind.HyperText, m_packetCode, text, jnc.StrLen (text));
 	}
 
-	void
-	addBin (
+	void addBin (
 		uint_t partCode,
 		const void* p,
 		size_t size
@@ -84,8 +79,7 @@ class RepresenterTarget
 		addPart (PartKind.Bin, partCode, p, size);
 	}
 
-	void
-	addBin (
+	void addBin (
 		const void* p,
 		size_t size
 		)
@@ -98,9 +92,7 @@ class RepresenterTarget
 
 class Representer
 {
-	abstract
-	bool 
-	represent (
+	abstract bool represent (
 		RepresenterTarget* target,
 		uint_t packetCode, 
 		const void* p, 

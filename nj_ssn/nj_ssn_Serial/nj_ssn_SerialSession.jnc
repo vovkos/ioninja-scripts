@@ -11,18 +11,12 @@ protected:
 	Serial* m_serial;
 
 public:
-	override
-	bool
-	create (Document* document);
-
-protected:
-
+	override bool pitcher create (Document* document);
 };
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-bool
-SerialSession.create (Document* document)
+bool pitcher SerialSession.create (Document* document)
 {
 	// serial transport
 
@@ -30,6 +24,7 @@ SerialSession.create (Document* document)
 
 	// toolbars
 
+	document->m_toolBar->
 	document->m_toolBar->addButton ("Open");
 	document->m_toolBar->addButton ("Close");
 
@@ -40,8 +35,7 @@ SerialSession.create (Document* document)
 	// log widget
 
 	document.m_logWidget.m_representer = new SerialLogRepresenter;
-	document.m_logWidget.m_imageList = 
-	
+	document.m_logWidget.m_imageList =
 }
 
 //.............................................................................
