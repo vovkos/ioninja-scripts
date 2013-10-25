@@ -62,12 +62,12 @@ class RepresenterTarget
 		const char* text
 		)
 	{
-		addPart (PartKind.HyperText, partCode, text, jnc.StrLen (text));
+		addPart (PartKind.HyperText, partCode, text, strlen (text));
 	}
 
 	void addHyperText (const char* text)
 	{
-		addPart (PartKind.HyperText, m_packetCode, text, jnc.StrLen (text));
+		addPart (PartKind.HyperText, m_packetCode, text, strlen (text));
 	}
 
 	void addBin (
@@ -94,9 +94,9 @@ class Representer
 {
 	abstract bool represent (
 		RepresenterTarget* target,
-		uint_t packetCode, 
-		const void* p, 
-		size_t size, 
+		uint_t packetCode,
+		const void* p,
+		size_t size,
 		uint64_t foldFlags
 		);
 }

@@ -1,23 +1,26 @@
 # This file is part of IO Ninja project
 # Tibbo Technology Inc (C) 2004-2013. All rights reserved
 # Author: Vladimir Gladkov
-	   
+
+#..............................................................................
+
+project_virtual_folder (nj_ssn_Socket)
+
 #..............................................................................
 #
 # src folder
 #
 
 set (
-	SOCKET_JNC_LIST 
+	SOCKET_JNC_LIST
 	nj_ssn_ConnectionSocketLog.jnc
 	nj_ssn_ConnectionSocketSession.jnc
 	nj_ssn_ListenerSocketLog.jnc
 	nj_ssn_ListenerSocketSession.jnc
 	)
 
-source_group (
+source_virtual_folder (
 	src
-	FILES 
 	${SOCKET_JNC_LIST}
 	)
 
@@ -27,16 +30,15 @@ source_group (
 #
 
 set (
-	SOCKET_RES_LIST 
+	SOCKET_RES_LIST
 	nj_ssn_ConnectionSocket.njini
-	nj_ssn_ConnectionSocket.ico
 	nj_ssn_ListenerSocket.njini
-	nj_ssn_ListenerSocket.ico
+	conn_sock.png
+	listener_sock.png
 	)
 
-source_group (
+source_virtual_folder (
 	res
-	FILES 
 	${SOCKET_RES_LIST}
 	)
 
@@ -44,7 +46,7 @@ source_group (
 #
 # nj_ssn_Socket script library
 #
-  
+
 add_library (
 	nj_ssn_Socket
 	EXCLUDE_FROM_ALL
@@ -54,7 +56,7 @@ add_library (
 
 set_target_properties (
 	nj_ssn_Socket
-	PROPERTIES 
+	PROPERTIES
 	FOLDER scripts
 	LINKER_LANGUAGE C
 	)

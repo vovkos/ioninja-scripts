@@ -1,14 +1,18 @@
 # This file is part of IO Ninja project
 # Tibbo Technology Inc (C) 2004-2013. All rights reserved
 # Author: Vladimir Gladkov
-	   
+
+#..............................................................................
+
+project_virtual_folder (nj_api)
+
 #..............................................................................
 #
 # src folder
 #
 
 set (
-	API_JNC_LIST 
+	API_JNC_LIST
 	nj_doc.jnc
 	nj_gui.jnc
 	nj_io.jnc
@@ -16,9 +20,8 @@ set (
 	nj_std.jnc
 	)
 
-source_group (
+source_virtual_folder (
 	src
-	FILES 
 	${API_JNC_LIST}
 	)
 
@@ -26,7 +29,7 @@ source_group (
 #
 # nj_api script library
 #
-  
+
 add_library (
 	nj_api
 	EXCLUDE_FROM_ALL
@@ -34,8 +37,8 @@ add_library (
 	)
 
 set_target_properties (
-	nj_api 
-	PROPERTIES 
+	nj_api
+	PROPERTIES
 	FOLDER scripts
 	LINKER_LANGUAGE C
 	)

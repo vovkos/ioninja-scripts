@@ -1,21 +1,24 @@
 # This file is part of IO Ninja project
 # Tibbo Technology Inc (C) 2004-2013. All rights reserved
 # Author: Vladimir Gladkov
-	   
+
+#..............................................................................
+
+project_virtual_folder (nj_ssn_SerialMon)
+
 #..............................................................................
 #
 # src folder
 #
 
 set (
-	SERIALMON_JNC_LIST 
+	SERIALMON_JNC_LIST
 	nj_ssn_SerialMonLog.jnc
 	nj_ssn_SerialMonSession.jnc
 	)
 
-source_group (
+source_virtual_folder (
 	src
-	FILES 
 	${SERIALMON_JNC_LIST}
 	)
 
@@ -25,14 +28,13 @@ source_group (
 #
 
 set (
-	SERIALMON_RES_LIST 
+	SERIALMON_RES_LIST
 	nj_ssn_SerialMon.njini
-	nj_ssn_SerialMon.ico
+	serial_mon.png
 	)
 
-source_group (
+source_virtual_folder (
 	res
-	FILES 
 	${SERIALMON_RES_LIST}
 	)
 
@@ -40,7 +42,7 @@ source_group (
 #
 # nj_ssn_SerialMon script library
 #
-  
+
 add_library (
 	nj_ssn_SerialMon
 	EXCLUDE_FROM_ALL
@@ -50,7 +52,7 @@ add_library (
 
 set_target_properties (
 	nj_ssn_SerialMon
-	PROPERTIES 
+	PROPERTIES
 	FOLDER scripts
 	LINKER_LANGUAGE C
 	)

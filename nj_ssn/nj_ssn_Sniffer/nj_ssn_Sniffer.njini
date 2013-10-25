@@ -8,7 +8,7 @@
 name        = "Network Sniffer"
 description = "WinPCap-based network traffic sniffer\nProvides basic WinDump functionality for TCP/UDP/ICMP protocols"
 guid        = b0a872b3-de4b-4f15-88bd-8de55eba7a78
-icon        = monitor.ico
+icon        = sniffer.png
 representer = CSnifferLogRepresenter
 session     = CSnifferSession
 

@@ -8,7 +8,7 @@
 name        = UDP Socket
 description = "UDP socket without \"connection\" notation"
 guid        = 7827807e-2ea8-4e86-9344-f016aa77621e
-icon        = udp.ico
+icon        = udp.png
 representer = CUdpLogRepresenter
 session     = CUdpSession
 

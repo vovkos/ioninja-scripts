@@ -8,7 +8,7 @@
 name        = Serial
 description = "Serial communication using one of the installed COM ports on your PC"
 guid        = {29725452-e64f-4c0e-a871-776277b68572}
-icon        = serial.ico
+icon        = serial.png
 
 session-class         = SerialSession
 log-representer-class = SerialLogRepresenter
