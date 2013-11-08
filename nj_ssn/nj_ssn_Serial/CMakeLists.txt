@@ -18,7 +18,7 @@ set (
 	)
 
 source_virtual_folder (
-	src
+	ssn
 	${SERIAL_JNC_LIST}
 	)
 
@@ -31,6 +31,8 @@ set (
 	SERIAL_RES_LIST
 	nj_ssn_Serial.njini
 	serial.png
+	connect.png
+	pause.png
 	)
 
 source_virtual_folder (

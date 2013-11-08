@@ -10,24 +10,24 @@ namespace io {
 class Transport
 {
 	abstract size_t pitcher transmit (
-		const void* p,
+		void const* p,
 		size_t Size
 		);
 
 	event m_onTransmit (
-		const void* p,
+		void const* p,
 		size_t Size
 		);
 
 	event m_onReceive (
-		const void* p,
+		void const* p,
 		size_t Size
 		);
 }
 
 //.............................................................................
 
-class Serial: Transport
+opaque class Serial: Transport
 {
 	uint_t autoget property m_baudRate;
 	uint_t autoget property m_dataBits;
@@ -35,12 +35,12 @@ class Serial: Transport
 	uint_t autoget property m_flowControl;
 	uint_t autoget property m_parity;
 
-	bool pitcher open (const char* name);
+	bool pitcher open (char const* name);
 
 	void close ();
 
 	override size_t pitcher transmit (
-		const void* p,
+		void const* p,
 		size_t Size
 		);
 }

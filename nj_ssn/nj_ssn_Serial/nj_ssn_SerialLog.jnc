@@ -5,8 +5,6 @@
 
 //.............................................................................
 
-suka
-
 enum SerialLogPacket
 {
 	DeviceOpened    = 1,
@@ -113,36 +111,6 @@ bool SerialLogRepresenter.represent (
 	}
 
 	return true;
-}
-
-//.............................................................................
-
-void
-addIcon (const char* pFilePath);
-
-void
-addToolBarButton (
-	intptr buttonId,
-	size_t iconIdx,
-	const char* toolTip
-	);
-
-void
-initialize ()
-{
-	addIcon ("D:/Prj/Ninja/ioninja/scripts/nj_ssn/nj_ssn_Serial/play.png");
-	addIcon ("D:/Prj/Ninja/ioninja/scripts/nj_ssn/nj_ssn_Serial/reload.png");
-	addIcon ("D:/Prj/Ninja/ioninja/scripts/nj_ssn/nj_ssn_Serial/return.png");
-	addIcon ("D:/Prj/Ninja/ioninja/scripts/nj_ssn/nj_ssn_Serial/stepinto.png");
-	addIcon ("D:/Prj/Ninja/ioninja/scripts/nj_ssn/nj_ssn_Serial/stepover.png");
-	addIcon ("D:/Prj/Ninja/ioninja/scripts/nj_ssn/nj_ssn_Serial/stepout.png");
-
-	addToolBarButton (0, 0, "play.png");
-	addToolBarButton (1, 1, "reload.png");
-	addToolBarButton (2, 2, "return.png");
-	addToolBarButton (3, 3, "stepinto.png");
-	addToolBarButton (4, 4, "stepover.png");
-	addToolBarButton (5, 5, "stepout.png");
 }
 
 //.............................................................................

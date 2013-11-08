@@ -80,22 +80,64 @@ struct TextAttr: ColorAttr
 
 //.............................................................................
 
-// icons / images
+// icons
 
-//.............................................................................
-
-// widgets
-
-class PropertyWidget
+opaque class Icon
 {
 }
 
-class LogWidget
-{
+Icon* loadIcon (const char* fileName);
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+// actions
+
+opaque class Action
+{	
+	event m_onTriggered ();
 }
 
-class TransmitWidget
+Action* createAction (
+	char const* text,
+	Icon* icon = null
+	);
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+// menu
+
+opaque class Menu
 {
+	addAction (Action* action);
+	addSeparator ();
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+// toolbar
+
+opaque class ToolBar
+{
+	addAction (Action* action);
+	addLabel (const char* pText);
+	addComboBox ();
+	addSeparator ();
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+// property grid
+
+opaque class PropertyGrid
+{
+	addProperty (
+		uint_t propertyId,
+		size_t iconIdx,
+		size_t type,
+		int Value,
+		char const* name,
+		char const* tooltipText
+		);
 }
 
 //.............................................................................

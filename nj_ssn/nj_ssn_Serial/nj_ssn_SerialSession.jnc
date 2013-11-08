@@ -5,20 +5,70 @@
 
 //.............................................................................
 
-class SerialSession: Session
+class SerialSession: doc.Session
 {
 protected:
-	Serial* m_serial;
+//	Serial* m_serial;
 
 public:
-	override bool pitcher create (Document* document);
-};
+	construct (doc.DocumentHost* documentHost);
+
+protected:
+	open ();
+	close ();
+	setDtr ();
+	setRts ();
+}
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-bool pitcher SerialSession.create (Document* document)
+SerialSession.construct (doc.DocumentHost* documentHost)
 {
+	basetype.construct (documentHost);
+
+	printf ("+SerialSession.construct ()\n");
+
+	// toolbar & menu
+
+	gui.Icon* icon;
+	gui.Action* action;
+
+	icon = gui.loadIcon ("connect.png");
+	action = gui.createAction ("Open", icon);
+	action.m_onTriggered += open;
+	documentHost.m_menu.addAction (action);
+	documentHost.m_toolbar.addAction (action);
+
+	icon = gui.loadIcon ("pause.png");
+	action = gui.createAction ("Close", icon);
+	action.m_onTriggered += close;
+	documentHost.m_menu.addAction (action);
+	documentHost.m_toolbar.addAction (action);
+
+	documentHost.m_menu.addSeparator ();
+	documentHost.m_toolbar.addSeparator ();
+
+	action = gui.createAction ("DTR");
+	action.m_onTriggered += setDtr;
+	documentHost.m_menu.addAction (action);
+	documentHost.m_toolbar.addAction (action);
+
+	action = gui.createAction ("RTS");
+	action.m_onTriggered += setRts;
+	documentHost.m_menu.addAction (action);
+	documentHost.m_toolbar.addAction (action);
+
+	// property grid
+
+	documentHost.m_propertyGrid.addProperty (14, -1, 1, 38400, "Baud rate", "Baud rate nah");
+	documentHost.m_propertyGrid.addProperty (15, -1, 2, 8, "Data bits", "Data size nah");
+	documentHost.m_propertyGrid.addProperty (15, -1, 3, 1, "Stop bits", "Stop size nah");
+	documentHost.m_propertyGrid.addProperty (15, -1, 4, 0, "Parity", "Parity nah");
+	documentHost.m_propertyGrid.addProperty (15, -1, 5, 1, "Flow control", "Flow control nah");
+
 	// serial transport
+
+/*
 
 	m_serial = new CSerial;
 
@@ -36,6 +86,30 @@ bool pitcher SerialSession.create (Document* document)
 
 	document.m_logWidget.m_representer = new SerialLogRepresenter;
 	document.m_logWidget.m_imageList =
+
+ */
+
+	printf ("-SerialSession.construct ()\n");
+}
+
+SerialSession.open ()
+{
+	printf ("SerialSession.open ()\n");
+}
+
+SerialSession.close ()
+{
+	printf ("SerialSession.close ()\n");
+}
+
+SerialSession.setDtr ()
+{
+	printf ("SerialSession.setDtr ()\n");
+}
+
+SerialSession.setRts ()
+{
+	printf ("SerialSession.setRts ()\n");
 }
 
 //.............................................................................

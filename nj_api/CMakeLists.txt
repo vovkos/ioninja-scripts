@@ -4,7 +4,7 @@
 
 #..............................................................................
 
-project_virtual_folder (nj_api)
+project_virtual_folder (nj_api_Script)
 
 #..............................................................................
 #
@@ -21,7 +21,7 @@ set (
 	)
 
 source_virtual_folder (
-	src
+	api
 	${API_JNC_LIST}
 	)
 
@@ -31,13 +31,13 @@ source_virtual_folder (
 #
 
 add_library (
-	nj_api
+	nj_api_Script
 	EXCLUDE_FROM_ALL
 	${API_JNC_LIST}
 	)
 
 set_target_properties (
-	nj_api
+	nj_api_Script
 	PROPERTIES
 	FOLDER scripts
 	LINKER_LANGUAGE C

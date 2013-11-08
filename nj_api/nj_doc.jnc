@@ -15,23 +15,42 @@ enum DocumentKind
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
+class DocumentHost
+{
+	gui.Menu* m_menu;
+	gui.ToolBar* m_toolbar;
+	gui.PropertyGrid* m_propertyGrid;
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
 class Document
 {
-	gui.ToolBar* constd m_toolBar;
-	gui.PropertyWidget* constd m_propertyWidget;
-	gui.TransmitWidget* constd m_transmitWidget;
-	log.LogWidget* constd m_logWidget;
+	DocumentKind constd m_documentKind;
+	DocumentHost* constd m_documentHost;
+
+	construct (
+		DocumentKind documentKind,
+		DocumentHost* documentHost
+		)
+	{
+		m_documentKind = documentKind;
+		m_documentHost = documentHost;
+	}
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 class Session: Document
 {
-	Transport* constd m_transport;
+//	Transport* constd m_transport;
 
-	abstract bool pitcher create (Document* document);
+	construct (DocumentHost* documentHost)
+	{
+		basetype.construct (DocumentKind.Session, documentHost);
+	}
 }
 
 //.............................................................................
 
-} // namespace gui {
+} // namespace doc {

@@ -29,7 +29,7 @@ enumf LineAttrFlags
 struct LineAttr: gui.TextAttr
 {
 	LineAttrFlags m_flags;
-	uint_t m_iconIdx;
+	size_t m_iconIdx;
 }
 
 //.............................................................................
@@ -45,34 +45,34 @@ enum PartKind
 
 class RepresenterTarget
 {
-	constd uint_t m_packetCode;
-	constd uint64_t m_timestamp;
+	uint_t constd m_packetCode;
+	uint64_t constd m_timestamp;
 
 	LineAttr m_lineAttr;
 
 	abstract void addPart (
 		PartKind partKind,
 		uint_t partCode,
-		const void* p,
+		void const* p,
 		size_t size
 		);
 
 	void addHyperText (
 		uint_t partCode,
-		const char* text
+		char const* text
 		)
 	{
 		addPart (PartKind.HyperText, partCode, text, strlen (text));
 	}
 
-	void addHyperText (const char* text)
+	void addHyperText (char const* text)
 	{
 		addPart (PartKind.HyperText, m_packetCode, text, strlen (text));
 	}
 
 	void addBin (
 		uint_t partCode,
-		const void* p,
+		void const* p,
 		size_t size
 		)
 	{
@@ -80,7 +80,7 @@ class RepresenterTarget
 	}
 
 	void addBin (
-		const void* p,
+		void const* p,
 		size_t size
 		)
 	{
@@ -95,7 +95,7 @@ class Representer
 	abstract bool represent (
 		RepresenterTarget* target,
 		uint_t packetCode,
-		const void* p,
+		void const* p,
 		size_t size,
 		uint64_t foldFlags
 		);
