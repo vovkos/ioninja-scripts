@@ -94,6 +94,9 @@ Icon* loadIcon (const char* fileName);
 
 opaque class Action
 {	
+	bool autoget property m_isCheckable;
+	bool autoget property m_isChecked;
+
 	event m_onTriggered ();
 }
 

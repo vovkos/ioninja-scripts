@@ -9,15 +9,17 @@ class SerialSession: doc.Session
 {
 protected:
 //	Serial* m_serial;
+	gui.Action* m_dtrAction;
+	gui.Action* m_rtsAction;
 
 public:
 	construct (doc.DocumentHost* documentHost);
 
 protected:
-	open ();
-	close ();
-	setDtr ();
-	setRts ();
+	onOpen ();
+	onClose ();
+	onDtr ();
+	onRts ();
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -35,13 +37,13 @@ SerialSession.construct (doc.DocumentHost* documentHost)
 
 	icon = gui.loadIcon ("connect.png");
 	action = gui.createAction ("Open", icon);
-	action.m_onTriggered += open;
+	action.m_onTriggered += onOpen;
 	documentHost.m_menu.addAction (action);
 	documentHost.m_toolbar.addAction (action);
 
 	icon = gui.loadIcon ("pause.png");
 	action = gui.createAction ("Close", icon);
-	action.m_onTriggered += close;
+	action.m_onTriggered += onClose;
 	documentHost.m_menu.addAction (action);
 	documentHost.m_toolbar.addAction (action);
 
@@ -49,14 +51,18 @@ SerialSession.construct (doc.DocumentHost* documentHost)
 	documentHost.m_toolbar.addSeparator ();
 
 	action = gui.createAction ("DTR");
-	action.m_onTriggered += setDtr;
+	action.m_isCheckable = true;
+	action.m_onTriggered += onDtr;
 	documentHost.m_menu.addAction (action);
 	documentHost.m_toolbar.addAction (action);
+	m_dtrAction = action;
 
 	action = gui.createAction ("RTS");
-	action.m_onTriggered += setRts;
+	action.m_isCheckable = true;
+	action.m_onTriggered += onRts;
 	documentHost.m_menu.addAction (action);
 	documentHost.m_toolbar.addAction (action);
+	m_rtsAction = action;
 
 	// property grid
 
@@ -92,24 +98,26 @@ SerialSession.construct (doc.DocumentHost* documentHost)
 	printf ("-SerialSession.construct ()\n");
 }
 
-SerialSession.open ()
+SerialSession.onOpen ()
 {
-	printf ("SerialSession.open ()\n");
+	printf ("SerialSession.onOpen ()\n");
 }
 
-SerialSession.close ()
+SerialSession.onClose ()
 {
-	printf ("SerialSession.close ()\n");
+	printf ("SerialSession.onClose ()\n");
 }
 
-SerialSession.setDtr ()
+SerialSession.onDtr ()
 {
-	printf ("SerialSession.setDtr ()\n");
+	bool state = m_dtrAction.m_isChecked;
+	printf ("SerialSession.onDtr (%d)\n", state);
 }
 
-SerialSession.setRts ()
+SerialSession.onRts ()
 {
-	printf ("SerialSession.setRts ()\n");
+	bool state = m_rtsAction.m_isChecked;
+	printf ("SerialSession.onRts (%d)\n", state);
 }
 
 //.............................................................................
