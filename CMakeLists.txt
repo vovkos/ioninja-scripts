@@ -4,6 +4,8 @@
 
 #..............................................................................
 
+root_virtual_folder (${CMAKE_CURRENT_BINARY_DIR}/scripts.virtual)
+
 add_subdirectory (nj_api)
 # add_subdirectory (nj_ext)
 add_subdirectory (nj_ssn)
