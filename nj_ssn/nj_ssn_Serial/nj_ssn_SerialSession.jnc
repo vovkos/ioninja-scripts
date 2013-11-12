@@ -9,8 +9,13 @@ class SerialSession: doc.Session
 {
 protected:
 //	Serial* m_serial;
+	gui.ComboBox* m_portCombo;
 	gui.Action* m_dtrAction;
 	gui.Action* m_rtsAction;
+
+	gui.BoolProperty* m_boolProp;
+	gui.StringProperty* m_stringProp;
+	gui.EnumProperty* m_enumProp;
 
 public:
 	construct (doc.DocumentHost* documentHost);
@@ -20,6 +25,11 @@ protected:
 	onClose ();
 	onDtr ();
 	onRts ();
+
+	onPortComboCurrentIndexChanged ();
+	onBoolPropChanged ();
+	onStringPropChanged ();
+	onEnumPropChanged ();
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -34,6 +44,16 @@ SerialSession.construct (doc.DocumentHost* documentHost)
 
 	gui.Icon* icon;
 	gui.Action* action;
+	gui.ComboBox* combo;
+
+	documentHost.m_toolbar.addLabel ("Port ");
+	combo = documentHost.m_toolbar.addComboBox ();
+	combo.addItem ("COM1");
+	combo.addItem ("COM2");
+	combo.addItem ("COM3");
+	combo.m_currentIndex = 2;
+	combo.m_onCurrentIndexChanged += onPortComboCurrentIndexChanged;
+	m_portCombo = combo;
 
 	icon = gui.loadIcon ("connect.png");
 	action = gui.createAction ("Open", icon);
@@ -66,6 +86,55 @@ SerialSession.construct (doc.DocumentHost* documentHost)
 
 	// property grid
 
+	gui.BoolProperty* boolProp = gui.createBoolProperty ("bool-prop");
+	boolProp.m_toolTipText = "sample boolean property";
+	bindingof (boolProp.m_value) += onBoolPropChanged;
+	documentHost.m_propertyGrid.addProperty (boolProp);
+
+	m_boolProp = boolProp;
+
+	gui.IntProperty* intProp = gui.createIntProperty ("int-prop");
+	intProp.m_toolTipText = "sample integer property";
+	intProp.m_isEnabled = false;
+	documentHost.m_propertyGrid.addProperty (intProp);
+
+	gui.StringProperty* stringProp = gui.createStringProperty ("string-prop");
+	bindingof (stringProp.m_value) += onStringPropChanged;
+	documentHost.m_propertyGrid.addProperty (stringProp);
+
+	m_stringProp = stringProp;
+
+	gui.EnumProperty* enumProp = gui.createEnumProperty ("enum-prop");
+
+	m_enumProp = enumProp;
+
+	static char const* ItemTextArray [] = 
+	{
+		"9600 bps",
+		"19200 bps",
+		"38400 bps",
+		"115200 bps",
+	};
+
+	static int ItemValueArray [] = 
+	{
+		9600,
+		19200,
+		38400,
+		115200,
+	};
+
+	enumProp.setOptions (
+		ItemTextArray,
+		ItemValueArray,
+		countof (ItemValueArray)
+		);
+
+	bindingof (enumProp.m_value) += onEnumPropChanged;
+
+	documentHost.m_propertyGrid.addProperty (enumProp);
+
+/*
 	documentHost.m_propertyGrid.addProperty (14, -1, 1, 38400, "Baud rate", "Baud rate nah");
 	documentHost.m_propertyGrid.addProperty (15, -1, 2, 8, "Data bits", "Data size nah");
 	documentHost.m_propertyGrid.addProperty (15, -1, 3, 1, "Stop bits", "Stop size nah");
@@ -118,6 +187,28 @@ SerialSession.onRts ()
 {
 	bool state = m_rtsAction.m_isChecked;
 	printf ("SerialSession.onRts (%d)\n", state);
+}
+
+SerialSession.onPortComboCurrentIndexChanged ()
+{
+	size_t index = m_portCombo.m_currentIndex;
+	char const* name = m_portCombo.m_itemText [index];
+	printf ("SerialSession.onPortComboCurrentIndexChanged (%d, %s)\n", index, name);
+}
+
+SerialSession.onBoolPropChanged ()
+{
+	printf ("SerialSession.onBoolPropChanged (%d)\n", m_boolProp.m_value);
+}
+
+SerialSession.onStringPropChanged ()
+{
+	printf ("SerialSession.onStringPropChanged (%s)\n", m_stringProp.m_value);
+}
+
+SerialSession.onEnumPropChanged ()
+{
+	printf ("SerialSession.onEnumPropChanged (%d)\n", m_enumProp.m_value);
 }
 
 //.............................................................................

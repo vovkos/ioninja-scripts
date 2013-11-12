@@ -86,7 +86,7 @@ opaque class Icon
 {
 }
 
-Icon* loadIcon (const char* fileName);
+Icon* loadIcon (char const* fileName);
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
@@ -117,15 +117,83 @@ opaque class Menu
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
+// combo box
+
+opaque class ComboBox
+{
+	size_t addItem (
+		char const* text, 
+		object* data = null
+		);
+
+	char const* indexed property m_itemText (size_t index);
+	object* indexed property m_itemData (size_t index);
+
+	size_t autoget property m_currentIndex;
+	event m_onCurrentIndexChanged ();
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
 // toolbar
 
 opaque class ToolBar
 {
 	addAction (Action* action);
-	addLabel (const char* pText);
-	addComboBox ();
+	addLabel (char const* pText);
+	ComboBox* addComboBox ();
 	addSeparator ();
 }
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+// properties
+
+class Property
+{
+	protected uint_t m_id; // <-- tmp solution
+
+	char const* autoget property m_name;
+	char const* autoget property m_toolTipText;
+	bool autoget property m_isEnabled;
+}
+
+class BoolProperty: Property
+{
+	bool autoget bindable property m_value;
+}
+
+opaque class IntProperty: Property
+{
+	int autoget bindable property m_value;
+}
+
+opaque class StringProperty: Property
+{
+	char const* autoget bindable property m_value;
+}
+
+opaque class EnumProperty: Property
+{
+	int autoget bindable property m_value;
+
+	setOptions (
+		char const* const* textArray,
+		int const* valueArray,
+		size_t count
+		);
+}
+
+opaque class GroupProperty
+{
+	addProperty (Property* prop);
+}
+
+BoolProperty* createBoolProperty (char const* name);
+IntProperty* createIntProperty (char const* name);
+StringProperty* createStringProperty (char const* name);
+EnumProperty* createEnumProperty (char const* name);
+GroupProperty* createGroupProperty (char const* name);
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
@@ -133,14 +201,7 @@ opaque class ToolBar
 
 opaque class PropertyGrid
 {
-	addProperty (
-		uint_t propertyId,
-		size_t iconIdx,
-		size_t type,
-		int Value,
-		char const* name,
-		char const* tooltipText
-		);
+	addProperty (Property* prop);
 }
 
 //.............................................................................
