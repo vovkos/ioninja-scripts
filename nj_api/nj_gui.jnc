@@ -93,7 +93,7 @@ Icon* loadIcon (char const* fileName);
 // actions
 
 opaque class Action
-{	
+{
 	bool autoget property m_isCheckable;
 	bool autoget property m_isChecked;
 
@@ -122,7 +122,7 @@ opaque class Menu
 opaque class ComboBox
 {
 	size_t addItem (
-		char const* text, 
+		char const* text,
 		object* data = null
 		);
 
@@ -158,24 +158,24 @@ class Property
 	bool autoget property m_isEnabled;
 }
 
-class BoolProperty: Property
+opaque class BoolProperty: Property
 {
-	bool autoget bindable property m_value;
+	bool autoget bindable const property m_value;
 }
 
 opaque class IntProperty: Property
 {
-	int autoget bindable property m_value;
+	int autoget bindable const property m_value;
 }
 
 opaque class StringProperty: Property
 {
-	char const* autoget bindable property m_value;
+	char const* autoget bindable const property m_value;
 }
 
 opaque class EnumProperty: Property
 {
-	int autoget bindable property m_value;
+	int autoget bindable const property m_value;
 
 	setOptions (
 		char const* const* textArray,
