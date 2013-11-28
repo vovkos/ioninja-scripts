@@ -26,8 +26,8 @@ class DocumentHost
 
 class Document
 {
-	DocumentKind constd m_documentKind;
-	DocumentHost* constd m_documentHost;
+	DocumentKind dconst m_documentKind;
+	DocumentHost* dconst m_documentHost;
 
 	construct (
 		DocumentKind documentKind,
@@ -43,7 +43,7 @@ class Document
 
 class Session: Document
 {
-//	Transport* constd m_transport;
+//	Transport* dconst m_transport;
 
 	construct (DocumentHost* documentHost)
 	{

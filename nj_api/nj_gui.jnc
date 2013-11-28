@@ -11,7 +11,7 @@ namespace gui {
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-enumf ColorFlags
+fenum ColorFlags
 {
 	Transparent  = 0x80000000,
 	Index        = 0x40000000,
@@ -61,7 +61,7 @@ struct ColorAttr
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-enumf FontFlags
+fenum FontFlags
 {
 	Bold,
 	Italic,

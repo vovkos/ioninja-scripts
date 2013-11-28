@@ -7,7 +7,7 @@ namespace log {
 
 //.............................................................................
 
-enumf PacketCodeFlags
+fenum PacketCodeFlags
 {
 	Foldable          = 0x80000000,
 	MergeableBackward = 0x40000000,
@@ -17,7 +17,7 @@ enumf PacketCodeFlags
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-enumf LineAttrFlags
+fenum LineAttrFlags
 {
 	TileIcon,
 	Delimiter,
@@ -45,8 +45,8 @@ enum PartKind
 
 class RepresenterTarget
 {
-	uint_t constd m_packetCode;
-	uint64_t constd m_timestamp;
+	uint_t dconst m_packetCode;
+	uint64_t dconst m_timestamp;
 
 	LineAttr m_lineAttr;
 
