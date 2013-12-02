@@ -27,23 +27,64 @@ class Transport
 
 //.............................................................................
 
-opaque class Serial: Transport
+enum SerialStopBits
+{
+	_1  = 0,
+	_15 = 1,
+	_2  = 2
+};
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+enum SerialFlowControl
+{
+	None = 0,
+	RtsCts,
+	XOnXOff,
+};
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+enum SerialParity
+{
+	None = 0,
+	Odd,
+	Even,
+	Mark,
+	Space,
+};
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+opaque class Serial
 {
 	uint_t autoget property m_baudRate;
-	uint_t autoget property m_dataBits;
-	uint_t autoget property m_stopBits;
-	uint_t autoget property m_flowControl;
-	uint_t autoget property m_parity;
+	uint_t autoget property m_dataBits; // typically 5..8
+	SerialStopBits autoget property m_stopBits;
+	SerialFlowControl autoget property m_flowControl;
+	SerialParity autoget property m_parity;
 
+	bool autoget property m_dtr;
+	bool autoget property m_rts;
+	
 	bool pitcher open (char const* name);
 
 	void close ();
 
-	override size_t pitcher transmit (
+	size_t pitcher read (
+		void* p,
+		size_t Size
+		);
+	
+	size_t pitcher write (
 		void const* p,
 		size_t Size
 		);
 }
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+Serial* createSerial ();
 
 //.............................................................................
 

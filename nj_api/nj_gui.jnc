@@ -160,22 +160,22 @@ class Property
 
 opaque class BoolProperty: Property
 {
-	bool autoget bindable const property m_value;
+	bool autoget bindable property m_value;
 }
 
 opaque class IntProperty: Property
 {
-	int autoget bindable const property m_value;
+	int autoget bindable property m_value;
 }
 
 opaque class StringProperty: Property
 {
-	char const* autoget bindable const property m_value;
+	char const* autoget bindable property m_value;
 }
 
 opaque class EnumProperty: Property
 {
-	int autoget bindable const property m_value;
+	int autoget bindable property m_value;
 
 	setOptions (
 		char const* const* textArray,
