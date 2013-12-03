@@ -52,7 +52,7 @@ protected:
 	{
 		m_serial.m_baudRate = m_baudRateProp.m_value;
 	}
-	
+
 	onDataBitsPropChanged ()
 	{
 		m_serial.m_dataBits = m_dataBitsProp.m_value;
@@ -67,7 +67,7 @@ protected:
 	{
 		m_serial.m_flowControl = (io.SerialFlowControl) m_flowControlProp.m_value;
 	}
-			
+
 	onParityPropChanged ()
 	{
 		m_serial.m_parity = (io.SerialParity) m_parityProp.m_value;
@@ -83,9 +83,9 @@ SerialSession.construct (doc.DocumentHost* documentHost)
 	printf ("+SerialSession.construct ()\n");
 
 	// serial transport
-	
+
 	m_serial = io.createSerial ();
-	
+
 	// toolbar & menu
 
 	gui.Icon* icon;
@@ -132,7 +132,7 @@ SerialSession.construct (doc.DocumentHost* documentHost)
 	documentHost.m_toolbar.addAction (action);
 	m_rtsAction = action;
 
-	// property grid	
+	// property grid
 
 	createBaudRateProp ();
 	createDataBitsProp ();
@@ -145,7 +145,7 @@ SerialSession.construct (doc.DocumentHost* documentHost)
 
 SerialSession.createBaudRateProp ()
 {
-	static char const* textArray [] = 
+	static char const* textArray [] =
 	{
 		"9600 bps",
 		"19200 bps",
@@ -153,103 +153,103 @@ SerialSession.createBaudRateProp ()
 		"115200 bps",
 	};
 
-	static int valueArray [] = 
+	static int valueArray [] =
 	{
 		9600,
 		19200,
 		38400,
 		115200,
 	};
-	
-	gui.EnumProperty* prop = gui.createEnumProperty ("Baud rate");	
+
+	gui.EnumProperty* prop = gui.createEnumProperty ("Baud rate");
+	prop.setOptions (textArray, valueArray, countof (valueArray));
 	prop.m_toolTipText = "Serial baud rate";
 	prop.m_value = m_serial.m_baudRate;
-	prop.setOptions (textArray, valueArray, countof (valueArray));
 	bindingof (prop.m_value) += onBaudRatePropChanged;
 	m_documentHost.m_propertyGrid.addProperty (prop);
-	
+
 	m_baudRateProp = prop;
 }
 
 SerialSession.createDataBitsProp ()
 {
-	static char const* textArray [] = 
+	static char const* textArray [] =
 	{
 		"7 bits",
 		"8 bits",
 	};
 
-	static int valueArray [] = 
+	static int valueArray [] =
 	{
 		7,
 		8,
 	};
-	
+
 	gui.EnumProperty* prop = gui.createEnumProperty ("Data bits");
+	prop.setOptions (textArray, valueArray, countof (valueArray));
 	prop.m_toolTipText = "Serial data bit count (word size)";
 	prop.m_value = m_serial.m_dataBits;
-	prop.setOptions (textArray, valueArray, countof (valueArray));
 	bindingof (prop.m_value) += onDataBitsPropChanged;
 	m_documentHost.m_propertyGrid.addProperty (prop);
-	
-	m_dataBitsProp = prop;	
+
+	m_dataBitsProp = prop;
 }
 
 SerialSession.createStopBitsProp ()
 {
-	static char const* textArray [] = 
+	static char const* textArray [] =
 	{
 		"1 bit",
 		"1.5 bits",
 		"2 bits",
 	};
 
-	static int valueArray [] = 
+	static int valueArray [] =
 	{
 		io.SerialStopBits._1,
 		io.SerialStopBits._15,
 		io.SerialStopBits._2,
 	};
-	
+
 	gui.EnumProperty* prop = gui.createEnumProperty ("Stop bits");
+	prop.setOptions (textArray, valueArray, countof (valueArray));
 	prop.m_toolTipText = "Serial stop bit count";
 	prop.m_value = m_serial.m_stopBits;
-	prop.setOptions (textArray, valueArray, countof (valueArray));
 	bindingof (prop.m_value) += onStopBitsPropChanged;
 	m_documentHost.m_propertyGrid.addProperty (prop);
-	
-	m_stopBitsProp = prop;	
+
+	m_stopBitsProp = prop;
 }
 
 SerialSession.createFlowControlProp ()
 {
-	static char const* textArray [] = 
+	static char const* textArray [] =
 	{
 		"None",
 		"Hardware (RTS/CTS)",
 		"Software (XON/XOFF)",
 	};
 
-	static int valueArray [] = 
+	static int valueArray [] =
 	{
 		io.SerialFlowControl.None,
 		io.SerialFlowControl.RtsCts,
 		io.SerialFlowControl.XOnXOff,
 	};
-	
+
 	gui.EnumProperty* prop = gui.createEnumProperty ("Flow control");
+	prop.setOptions (textArray, valueArray, countof (valueArray));
 	prop.m_toolTipText = "Serial flow control";
 	prop.m_value = m_serial.m_flowControl;
-	prop.setOptions (textArray, valueArray, countof (valueArray));
 	bindingof (prop.m_value) += onFlowControlPropChanged;
 	m_documentHost.m_propertyGrid.addProperty (prop);
-	
-	m_flowControlProp = prop;		
+
+	m_flowControlProp = prop;
 }
 
 SerialSession.createParityProp ()
 {
-	static char const* textArray [] = 
+	static char const* textArray [] =
 	{
 		"None",
 		"Odd",
@@ -258,7 +258,7 @@ SerialSession.createParityProp ()
 		"Space",
 	};
 
-	static int valueArray [] = 
+	static int valueArray [] =
 	{
 		io.SerialParity.None,
 		io.SerialParity.Odd,
@@ -266,15 +266,15 @@ SerialSession.createParityProp ()
 		io.SerialParity.Mark,
 		io.SerialParity.Space,
 	};
-	
+
 	gui.EnumProperty* prop = gui.createEnumProperty ("Parity");
+	prop.setOptions (textArray, valueArray, countof (valueArray));
 	prop.m_toolTipText = "Serial parity check";
 	prop.m_value = m_serial.m_parity;
-	prop.setOptions (textArray, valueArray, countof (valueArray));
 	bindingof (prop.m_value) += onStopBitsPropChanged;
 	m_documentHost.m_propertyGrid.addProperty (prop);
-	
-	m_parityProp = prop;		
+
+	m_parityProp = prop;
 }
 
 SerialSession.onOpen ()
@@ -283,13 +283,13 @@ SerialSession.onOpen ()
 
 	size_t index = m_portCombo.m_currentIndex;
 	char const* name = m_portCombo.m_itemText [index];
-	
+
 	bool result = try m_serial.open (name);
 	if (result)
-	{		
+	{
 	}
 	else
-	{		
+	{
 	}
 }
 
