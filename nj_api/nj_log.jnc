@@ -43,11 +43,10 @@ enum PartKind
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-class RepresenterTarget
+opaque class RepresenterTarget
 {
-	uint_t dconst m_packetCode;
 	uint64_t dconst m_timestamp;
-
+	uint_t dconst m_packetCode;
 	LineAttr m_lineAttr;
 
 	abstract void addPart (

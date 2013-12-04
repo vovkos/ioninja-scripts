@@ -271,7 +271,7 @@ SerialSession.createParityProp ()
 	prop.setOptions (textArray, valueArray, countof (valueArray));
 	prop.m_toolTipText = "Serial parity check";
 	prop.m_value = m_serial.m_parity;
-	bindingof (prop.m_value) += onStopBitsPropChanged;
+	bindingof (prop.m_value) += onParityPropChanged;
 	m_documentHost.m_propertyGrid.addProperty (prop);
 
 	m_parityProp = prop;
