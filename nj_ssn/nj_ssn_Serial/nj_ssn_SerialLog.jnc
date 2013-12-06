@@ -27,6 +27,12 @@ class SerialLogRepresenter: log.Representer
 		size_t size,
 		uint64_t foldFlags
 		);
+
+	static SerialLogRepresenter* getSingleton ()
+	{
+		static SerialLogRepresenter singleton;
+		return &singleton;
+	}
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .

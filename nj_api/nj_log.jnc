@@ -102,4 +102,32 @@ class Representer
 
 //.............................................................................
 
+opaque class Log
+{
+	object* autoget property m_representer;
+
+	writeEx (
+		uint64_t timestamp,
+		uint_t packetCode,
+		void const* p,
+		size_t size
+		);
+
+	write (
+		uint_t packetCode,
+		void const* p,
+		size_t size
+		)
+	{
+		writeEx (jnc.getTimestamp (), packetCode, p, size);
+	}
+
+	write (uint_t packetCode)
+	{
+		writeEx (jnc.getTimestamp (), packetCode, null, 0);
+	}
+}
+
+//.............................................................................
+
 } // namespace log {

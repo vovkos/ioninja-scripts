@@ -82,9 +82,10 @@ SerialSession.construct (doc.DocumentHost* documentHost)
 
 	printf ("+SerialSession.construct ()\n");
 
-	// serial transport
+	// transport & log
 
 	m_serial = io.createSerial ();
+	documentHost.m_log.m_representer = SerialLogRepresenter.getSingleton ();
 
 	// toolbar & menu
 
@@ -291,12 +292,16 @@ SerialSession.onOpen ()
 	else
 	{
 	}
+
+	m_documentHost.m_log.write (SerialLogPacket.DeviceOpened);
 }
 
 SerialSession.onClose ()
 {
 	printf ("SerialSession.onClose ()\n");
 	m_serial.close ();
+
+	m_documentHost.m_log.write (SerialLogPacket.DeviceClosed);
 }
 
 //.............................................................................
