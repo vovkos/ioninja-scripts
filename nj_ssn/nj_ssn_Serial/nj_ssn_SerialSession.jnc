@@ -16,8 +16,10 @@ protected:
 	gui.EnumProperty* m_baudRateProp;
 	gui.EnumProperty* m_dataBitsProp;
 	gui.EnumProperty* m_stopBitsProp;
-	gui.EnumProperty* m_flowControlProp;
 	gui.EnumProperty* m_parityProp;
+	gui.EnumProperty* m_flowControlProp;
+
+	char const* m_portName;
 
 public:
 	construct (doc.DocumentHost* documentHost);
@@ -33,45 +35,14 @@ protected:
 	onOpen ();
 	onClose ();
 
-	onDtr ()
-	{
-		m_serial.m_dtr = m_dtrAction.m_isChecked;
-	}
-
-	onRts ()
-	{
-		m_serial.m_rts = m_rtsAction.m_isChecked;
-	}
-
-	onPortComboCurrentIndexChanged ()
-	{
-		m_serial.close ();
-	}
-
-	onBaudRatePropChanged ()
-	{
-		m_serial.m_baudRate = m_baudRateProp.m_value;
-	}
-
-	onDataBitsPropChanged ()
-	{
-		m_serial.m_dataBits = m_dataBitsProp.m_value;
-	}
-
-	onStopBitsPropChanged ()
-	{
-		m_serial.m_stopBits = (io.SerialStopBits) m_stopBitsProp.m_value;
-	}
-
-	onFlowControlPropChanged ()
-	{
-		m_serial.m_flowControl = (io.SerialFlowControl) m_flowControlProp.m_value;
-	}
-
-	onParityPropChanged ()
-	{
-		m_serial.m_parity = (io.SerialParity) m_parityProp.m_value;
-	}
+	onDtr ();
+	onRts ();
+	onPortComboCurrentIndexChanged ();
+	onBaudRatePropChanged ();
+	onDataBitsPropChanged ();
+	onStopBitsPropChanged ();
+	onParityPropChanged ();
+	onFlowControlPropChanged ();
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -138,8 +109,8 @@ SerialSession.construct (doc.DocumentHost* documentHost)
 	createBaudRateProp ();
 	createDataBitsProp ();
 	createStopBitsProp ();
-	createFlowControlProp ();
 	createParityProp ();
+	createFlowControlProp ();
 
 	printf ("-SerialSession.construct ()\n");
 }
@@ -222,32 +193,6 @@ SerialSession.createStopBitsProp ()
 	m_stopBitsProp = prop;
 }
 
-SerialSession.createFlowControlProp ()
-{
-	static char const* textArray [] =
-	{
-		"None",
-		"Hardware (RTS/CTS)",
-		"Software (XON/XOFF)",
-	};
-
-	static int valueArray [] =
-	{
-		io.SerialFlowControl.None,
-		io.SerialFlowControl.RtsCts,
-		io.SerialFlowControl.XOnXOff,
-	};
-
-	gui.EnumProperty* prop = gui.createEnumProperty ("Flow control");
-	prop.setOptions (textArray, valueArray, countof (valueArray));
-	prop.m_toolTipText = "Serial flow control";
-	prop.m_value = m_serial.m_flowControl;
-	bindingof (prop.m_value) += onFlowControlPropChanged;
-	m_documentHost.m_propertyGrid.addProperty (prop);
-
-	m_flowControlProp = prop;
-}
-
 SerialSession.createParityProp ()
 {
 	static char const* textArray [] =
@@ -278,6 +223,32 @@ SerialSession.createParityProp ()
 	m_parityProp = prop;
 }
 
+SerialSession.createFlowControlProp ()
+{
+	static char const* textArray [] =
+	{
+		"None",
+		"Hardware (RTS/CTS)",
+		"Software (XON/XOFF)",
+	};
+
+	static int valueArray [] =
+	{
+		io.SerialFlowControl.None,
+		io.SerialFlowControl.RtsCts,
+		io.SerialFlowControl.XOnXOff,
+	};
+
+	gui.EnumProperty* prop = gui.createEnumProperty ("Flow control");
+	prop.setOptions (textArray, valueArray, countof (valueArray));
+	prop.m_toolTipText = "Serial flow control";
+	prop.m_value = m_serial.m_flowControl;
+	bindingof (prop.m_value) += onFlowControlPropChanged;
+	m_documentHost.m_propertyGrid.addProperty (prop);
+
+	m_flowControlProp = prop;
+}
+
 SerialSession.onOpen ()
 {
 	printf ("SerialSession.onOpen ()\n");
@@ -293,7 +264,19 @@ SerialSession.onOpen ()
 	{
 	}
 
-	m_documentHost.m_log.write (SerialLogPacket.DeviceOpened);
+	m_portName = name;
+
+	SerialOpenParams params;
+	params.m_baudRate = m_serial.m_baudRate;
+	params.m_dataBits = m_serial.m_dataBits;
+	params.m_stopBits = m_serial.m_stopBits;
+	params.m_parity = m_serial.m_parity;
+	params.m_flowControl = m_serial.m_flowControl;
+
+	char const* p = $"$(params,B)$name";
+	size_t size = jnc.getDataPtrSpan (p);
+
+	m_documentHost.m_log.write (SerialLogPacketCode.PortOpened, p, size);
 }
 
 SerialSession.onClose ()
@@ -301,7 +284,65 @@ SerialSession.onClose ()
 	printf ("SerialSession.onClose ()\n");
 	m_serial.close ();
 
-	m_documentHost.m_log.write (SerialLogPacket.DeviceClosed);
+	m_documentHost.m_log.write (
+		SerialLogPacketCode.PortClosed,
+		m_portName,
+		strlen (m_portName) + 1
+		);
+}
+
+SerialSession.onDtr ()
+{
+	bool value = m_dtrAction.m_isChecked;
+	m_serial.m_dtr = value;
+	m_documentHost.m_log.write (SerialLogPacketCode.DtrChanged, &value, sizeof (value));
+}
+
+SerialSession.onRts ()
+{
+	bool value = m_rtsAction.m_isChecked;
+	m_serial.m_rts = value;
+	m_documentHost.m_log.write (SerialLogPacketCode.RtsChanged, &value, sizeof (value));
+}
+
+SerialSession.onPortComboCurrentIndexChanged ()
+{
+}
+
+SerialSession.onBaudRatePropChanged ()
+{
+	uint_t value = m_baudRateProp.m_value;
+	m_serial.m_baudRate = value;
+	m_documentHost.m_log.write (SerialLogPacketCode.BaudRateChanged, &value, sizeof (value));
+}
+
+SerialSession.onDataBitsPropChanged ()
+{
+	uint_t value = m_dataBitsProp.m_value;
+	m_serial.m_dataBits = value;
+	m_documentHost.m_log.write (SerialLogPacketCode.DataBitsChanged, &value, sizeof (value));
+}
+
+SerialSession.onStopBitsPropChanged ()
+{
+	io.SerialStopBits value = (io.SerialStopBits) m_stopBitsProp.m_value;
+	m_serial.m_stopBits = value;
+	m_documentHost.m_log.write (SerialLogPacketCode.StopBitsChanged, &value, sizeof (value));
+}
+
+SerialSession.onParityPropChanged ()
+{
+	io.SerialParity value = (io.SerialParity) m_parityProp.m_value;
+	m_serial.m_parity = value;
+	m_documentHost.m_log.write (SerialLogPacketCode.ParityChanged, &value, sizeof (value));
+}
+
+SerialSession.onFlowControlPropChanged ()
+{
+	io.SerialFlowControl value = (io.SerialFlowControl) m_flowControlProp.m_value;
+	m_serial.m_flowControl = value;
+	m_documentHost.m_log.write (SerialLogPacketCode.FlowControlChanged, &value, sizeof (value));
 }
 
 //.............................................................................
+

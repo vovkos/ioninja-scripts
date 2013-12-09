@@ -36,15 +36,6 @@ enum SerialStopBits
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-enum SerialFlowControl
-{
-	None = 0,
-	RtsCts,
-	XOnXOff,
-};
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
 enum SerialParity
 {
 	None = 0,
@@ -56,17 +47,42 @@ enum SerialParity
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
+enum SerialFlowControl
+{
+	None = 0,
+	RtsCts,
+	XOnXOff,
+};
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+fenum SerialLines
+{
+	Dtr,
+	Rts,
+
+	Dsr,
+	Cts,
+	Dcd,
+	Ring,
+
+	Control = Dtr | Rts,
+	Status  = Dsr | Cts | Dcd | Ring,
+};
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
 opaque class Serial
 {
 	uint_t autoget property m_baudRate;
 	uint_t autoget property m_dataBits; // typically 5..8
 	SerialStopBits autoget property m_stopBits;
-	SerialFlowControl autoget property m_flowControl;
 	SerialParity autoget property m_parity;
+	SerialFlowControl autoget property m_flowControl;
 
 	bool autoget property m_dtr;
 	bool autoget property m_rts;
-	
+
 	bool pitcher open (char const* name);
 
 	void close ();
@@ -75,7 +91,7 @@ opaque class Serial
 		void* p,
 		size_t Size
 		);
-	
+
 	size_t pitcher write (
 		void const* p,
 		size_t Size

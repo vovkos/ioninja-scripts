@@ -5,16 +5,33 @@
 
 //.............................................................................
 
-enum SerialLogPacket
+enum SerialLogPacketCode
 {
-	DeviceOpened    = 1,
-	DeviceClosed    = 2 | log.PacketCodeFlags.Foldable,
-	Connect         = 4 | log.PacketCodeFlags.MergeableForward,
-	ConnectComplete = 5 | log.PacketCodeFlags.MergeableBackward,
-	ConnectError    = 6 | log.PacketCodeFlags.MergeableBackward,
-	Connect_m       = 7,
-	Bin             = 8 | log.PacketCodeFlags.Mergeable,
-}
+	PortOpened    = 1 | log.PacketCodeFlags.Foldable,
+	PortOpenError = 2,
+	PortClosed,
+	BaudRateChanged,
+	DataBitsChanged,
+	StopBitsChanged,
+	ParityChanged,
+	FlowControlChanged,
+	RtsChanged,
+	DtrChanged,
+	StatusLineChanged,
+};
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+struct SerialOpenParams
+{
+	uint_t m_baudRate;
+	uint_t m_dataBits;
+	uint_t m_stopBits;
+	uint_t m_parity;
+	uint_t m_flowControl;
+
+	// followed by port name
+};
 
 //.............................................................................
 
@@ -23,7 +40,7 @@ class SerialLogRepresenter: log.Representer
 	override bool represent (
 		log.RepresenterTarget* target,
 		uint_t packetCode,
-		const void* p,
+		void const* p,
 		size_t size,
 		uint64_t foldFlags
 		);
@@ -40,78 +57,138 @@ class SerialLogRepresenter: log.Representer
 bool SerialLogRepresenter.represent (
 	log.RepresenterTarget* target,
 	uint_t packetCode,
-	const void* p,
+	void const* p,
 	size_t size,
 	uint64_t foldFlags
 	)
 {
-	char data [] = "0123456789abcf01234";
-
 	switch (packetCode)
 	{
-	case SerialLogPacket.DeviceOpened:
-		target->m_lineAttr.m_iconIdx = 3;
-		target->m_lineAttr.m_backColor = gui.StdColor.PastelYellow;
-		target->m_lineAttr.m_flags = log.LineAttrFlags.Delimiter;
+	case SerialLogPacketCode.PortOpened:
+		SerialOpenParams const* params = (SerialOpenParams const*) p;
+		char const* name = (char const*) (params + 1);
 
-		target->addHyperText (
-			"Device <#0000ff>COM3<> is...<+b>opened<> <=!5,3>nahui!<>\n"
-			"Vot <+is>tak<> vot!!"
-			);
-
-		target->m_lineAttr.m_backColor = gui.ColorFlags.Transparent;
-		target->addBin (data, sizeof (data));
-		break;
-
-	case SerialLogPacket.DeviceClosed:
-		target->m_lineAttr.m_iconIdx = 2;
+		target.m_lineAttr.m_iconIdx = StdLogIcon.Play;
+		target.m_lineAttr.m_backColor = StdLogColor.Start;
 
 		if (!(foldFlags & 1))
-			target->addHyperText ("[<#0000ff=+1>+<>] Device is closed.");
+			target.addHyperText ($"[<#0000ff=+1>+<>] Opened port <15>$name<> at <15>$(params.m_baudRate)<> bps");
 		else
-			target->addHyperText (
-				"[<#0000ff=-1>-<>] Device is closed.\n"
-				"  Some info...\n"
-				"  Some more info which makes a very long line..\n"
-				"  bla bla bla"
+			target.addHyperText (
+				$"[<#0000ff=-1>-<>] Opened port <15>$name<>\n"
+				$"    <#808080+i>Baud rate:<>    $(params.m_baudRate) bps\n"
+				$"    <#808080+i>Data bits:<>    $(params.m_dataBits)\n"
+				$"    <#808080+i>Stop bits:<>    $(params.m_stopBits)\n"
+				$"    <#808080+i>Parity:<>       $(params.m_parity)\n"
+				$"    <#808080+i>Flow control:<> $(params.m_flowControl)"
 				);
+
 		break;
 
-	case SerialLogPacket.Connect:
-		target->m_lineAttr.m_iconIdx = 4;
-		target->m_lineAttr.m_backColor = gui.StdColor.PastelBlue;
-		target->addHyperText (
-			SerialLogPacket.Connect_m | log.PacketCodeFlags.MergeableForward,
-			"Connecting..."
-			);
+	case SerialLogPacketCode.PortClosed:
+		char const* name = (char const*) p;
+
+		target.m_lineAttr.m_iconIdx = StdLogIcon.Pause;
+		target.m_lineAttr.m_backColor = StdLogColor.Stop;
+		target.addHyperText ($"Port <15>$name<> closed");
 		break;
 
-	case SerialLogPacket.ConnectComplete:
-		target->m_lineAttr.m_flags = log.LineAttrFlags.Override;
-		target->m_lineAttr.m_iconIdx = 1;
-		target->m_lineAttr.m_backColor = gui.StdColor.PastelBlue;
-		target->addHyperText (
-			SerialLogPacket.Connect_m | log.PacketCodeFlags.MergeableBackward,
-			"OK!"
-			);
+	case SerialLogPacketCode.PortOpenError:
+		char const* name = (char const*) p;
+
+		// TError* pError = (TError*) p;
+		// char* pPortName = (char*) (pError + 1) + pError->m_DataSize;
+
+		target.m_lineAttr.m_iconIdx = StdLogIcon.Error;
+		target.m_lineAttr.m_backColor = StdLogColor.Stop;
+		target.addHyperText ($"Unable to open port <5>$name<>");
 		break;
 
-	case SerialLogPacket.ConnectError:
-		target->m_lineAttr.m_flags = log.LineAttrFlags.Override;
-		target->m_lineAttr.m_iconIdx = 0;
-		target->m_lineAttr.m_backColor = gui.StdColor.PastelRed;
-		target->addHyperText (
-			SerialLogPacket.Connect_m | log.PacketCodeFlags.MergeableBackward,
-			"<\b*>FAIL!"
-			);
+	case SerialLogPacketCode.BaudRateChanged:
+		uint_t baudRate = *(uint_t*) p;
+
+		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = StdLogColor.Info;
+		target.addHyperText ($"Baud rate set to <15>$baudRate<> bps");
 		break;
 
-	case SerialLogPacket.Bin:
-		target->m_lineAttr.m_iconIdx = 8;
-		target->m_lineAttr.m_flags |= log.LineAttrFlags.TileIcon;
-		target->addBin (p, size);
+	case SerialLogPacketCode.DataBitsChanged:
+		uint_t dataBits = *(uint_t*) p;
+
+		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = StdLogColor.Info;
+		target.addHyperText ($"Data bits set to <15>$dataBits<>");
 		break;
 
+	case SerialLogPacketCode.StopBitsChanged:
+		uint_t stopBits = *(uint_t*) p;
+
+		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = StdLogColor.Info;
+		target.addHyperText ($"Stop bits set to <15>$stopBits<>");
+		break;
+
+	case SerialLogPacketCode.ParityChanged:
+		uint_t parity = *(uint_t*) p;
+
+		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = StdLogColor.Info;
+		target.addHyperText ($"Parity set to <15>$parity<>");
+		break;
+
+	case SerialLogPacketCode.FlowControlChanged:
+		uint_t flowControl = *(uint_t*) p;
+
+		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = StdLogColor.Info;
+		target.addHyperText ($"Flow control set to <15>$flowControl");
+		break;
+
+	case SerialLogPacketCode.RtsChanged:
+		bool rts = *(bool*) p;
+
+		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = StdLogColor.Info;
+		target.addHyperText ($"<15>RTS<> set to $rts");
+		break;
+
+	case SerialLogPacketCode.DtrChanged:
+		bool dtr = *(bool*) p;
+
+		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = StdLogColor.Info;
+		target.addHyperText ($"<15>DTR<> set to $dtr");
+		break;
+/*
+	case SerialLogPacketCode.StatusLineChanged:
+		uint_t mask = *(uint_t*) p;
+		uint_t lines = *((uint_t*) p + 1);
+
+		jnc.String text = "Status line(s) changed:";
+
+		if (mask & SerialLines.Dsr)
+		{
+			bool dsr = (lines & SerialLines.Dsr) != 0;
+			text += " <15>DSR<>:$dsr";
+		}
+
+		if (Mask & SerialLines.Cts)
+		{
+			bool cts = (lines & SerialLines.Cts) != 0;
+			text += " <15>CTS<>:$cts";
+		}
+
+		if (Mask & SerialLines.Dcd)
+		{
+			bool dcd = (lines & SerialLines.Dcd) != 0;
+			text += " <15>DCD<>:$dcd";
+		}
+
+		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = StdLogColor.Info;
+		target.addHyperText (text);
+		break;
+*/
 	default:
 		return false;
 	}
