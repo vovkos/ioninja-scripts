@@ -21,6 +21,8 @@ protected:
 
 	char const* m_portName;
 
+	doc.DocumentHost* m_documentHost; // tmp
+
 public:
 	construct (doc.DocumentHost* documentHost);
 
@@ -47,6 +49,8 @@ protected:
 SerialSession.construct (doc.DocumentHost* documentHost)
 {
 	basetype.construct (documentHost);
+
+	m_documentHost = documentHost; // tmp
 
 	// transport & log
 
@@ -229,7 +233,7 @@ SerialSession.onOpen ()
 	size_t size = jnc.getDataPtrSpan (p);
 
 	m_documentHost.m_log.write (SerialLogPacketCode.PortOpened, p, size);
-//	m_uiReactor.start ();
+	m_uiReactor.start ();
 }
 
 SerialSession.onClose ()
@@ -237,7 +241,7 @@ SerialSession.onClose ()
 	if (!m_serial.m_isOpen)
 		return;
 
-//	m_uiReactor.stop ();
+	m_uiReactor.stop ();
 	m_serial.close ();
 
 	m_documentHost.m_log.write (
@@ -267,40 +271,40 @@ SerialSession.onPortComboCurrentIndexChanged ()
 
 reactor SerialSession.m_uiReactor ()
 {
-	onchange (m_baudRateProp.m_value)
+	onchanged (m_baudRateProp.m_value)
 	{
-//		uint_t value = m_baudRateProp.m_value;
-//		m_serial.m_baudRate = value;
-//		m_documentHost.m_log.write (SerialLogPacketCode.BaudRateChanged, &value, sizeof (value));
+		uint_t value = m_baudRateProp.m_value;
+		m_serial.m_baudRate = value;
+		m_documentHost.m_log.write (SerialLogPacketCode.BaudRateChanged, &value, sizeof (value));
 	}
-/*
-	onchange (m_dataBitsProp.m_value)
+
+	onchanged (m_dataBitsProp.m_value)
 	{
 		uint_t value = m_dataBitsProp.m_value;
 		m_serial.m_dataBits = value;
 		m_documentHost.m_log.write (SerialLogPacketCode.DataBitsChanged, &value, sizeof (value));
 	}
 
-	onchange (m_stopBitsProp.m_value)
+	onchanged (m_stopBitsProp.m_value)
 	{
 		io.SerialStopBits value = (io.SerialStopBits) m_stopBitsProp.m_value;
 		m_serial.m_stopBits = value;
 		m_documentHost.m_log.write (SerialLogPacketCode.StopBitsChanged, &value, sizeof (value));
 	}
 
-	onchange (m_parityProp.m_value)
+	onchanged (m_parityProp.m_value)
 	{
 		io.SerialParity value = (io.SerialParity) m_parityProp.m_value;
 		m_serial.m_parity = value;
 		m_documentHost.m_log.write (SerialLogPacketCode.ParityChanged, &value, sizeof (value));
 	}
 
-	onchange (m_flowControlProp.m_value)
+	onchanged (m_flowControlProp.m_value)
 	{
 		io.SerialFlowControl value = (io.SerialFlowControl) m_flowControlProp.m_value;
 		m_serial.m_flowControl = value;
 		m_documentHost.m_log.write (SerialLogPacketCode.FlowControlChanged, &value, sizeof (value));
-	} */
+	}
 }
 
 //.............................................................................
