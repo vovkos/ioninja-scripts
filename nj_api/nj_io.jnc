@@ -82,6 +82,7 @@ opaque class Serial
 
 	bool autoget property m_dtr;
 	bool autoget property m_rts;
+	bool dconst m_isOpen;
 
 	bool pitcher open (char const* name);
 

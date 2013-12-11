@@ -38,11 +38,8 @@ protected:
 	onDtr ();
 	onRts ();
 	onPortComboCurrentIndexChanged ();
-	onBaudRatePropChanged ();
-	onDataBitsPropChanged ();
-	onStopBitsPropChanged ();
-	onParityPropChanged ();
-	onFlowControlPropChanged ();
+
+	reactor m_uiReactor ();
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -50,8 +47,6 @@ protected:
 SerialSession.construct (doc.DocumentHost* documentHost)
 {
 	basetype.construct (documentHost);
-
-	printf ("+SerialSession.construct ()\n");
 
 	// transport & log
 
@@ -111,33 +106,22 @@ SerialSession.construct (doc.DocumentHost* documentHost)
 	createStopBitsProp ();
 	createParityProp ();
 	createFlowControlProp ();
-
-	printf ("-SerialSession.construct ()\n");
 }
 
 SerialSession.createBaudRateProp ()
 {
-	static char const* textArray [] =
+	static gui.EnumPropertyOption optionArray [] =
 	{
-		"9600 bps",
-		"19200 bps",
-		"38400 bps",
-		"115200 bps",
-	};
-
-	static int valueArray [] =
-	{
-		9600,
-		19200,
-		38400,
-		115200,
+		{ "9600 bps",   9600 },
+		{ "19200 bps",  19200 },
+		{ "38400 bps",  38400 },
+		{ "115200 bps", 115200 },
 	};
 
 	gui.EnumProperty* prop = gui.createEnumProperty ("Baud rate");
-	prop.setOptions (textArray, valueArray, countof (valueArray));
+	prop.setOptions (optionArray, countof (optionArray));
 	prop.m_toolTipText = "Serial baud rate";
 	prop.m_value = m_serial.m_baudRate;
-	bindingof (prop.m_value) += onBaudRatePropChanged;
 	m_documentHost.m_propertyGrid.addProperty (prop);
 
 	m_baudRateProp = prop;
@@ -145,23 +129,16 @@ SerialSession.createBaudRateProp ()
 
 SerialSession.createDataBitsProp ()
 {
-	static char const* textArray [] =
+	static gui.EnumPropertyOption optionArray [] =
 	{
-		"7 bits",
-		"8 bits",
-	};
-
-	static int valueArray [] =
-	{
-		7,
-		8,
+		{ "7 bits", 7 },
+		{ "8 bits", 8 },
 	};
 
 	gui.EnumProperty* prop = gui.createEnumProperty ("Data bits");
-	prop.setOptions (textArray, valueArray, countof (valueArray));
+	prop.setOptions (optionArray, countof (optionArray));
 	prop.m_toolTipText = "Serial data bit count (word size)";
 	prop.m_value = m_serial.m_dataBits;
-	bindingof (prop.m_value) += onDataBitsPropChanged;
 	m_documentHost.m_propertyGrid.addProperty (prop);
 
 	m_dataBitsProp = prop;
@@ -169,25 +146,17 @@ SerialSession.createDataBitsProp ()
 
 SerialSession.createStopBitsProp ()
 {
-	static char const* textArray [] =
+	static gui.EnumPropertyOption optionArray [] =
 	{
-		"1 bit",
-		"1.5 bits",
-		"2 bits",
-	};
-
-	static int valueArray [] =
-	{
-		io.SerialStopBits._1,
-		io.SerialStopBits._15,
-		io.SerialStopBits._2,
+		{ "1 bit",    io.SerialStopBits._1 },
+		{ "1.5 bits", io.SerialStopBits._15 },
+		{ "2 bits",   io.SerialStopBits._2 },
 	};
 
 	gui.EnumProperty* prop = gui.createEnumProperty ("Stop bits");
-	prop.setOptions (textArray, valueArray, countof (valueArray));
+	prop.setOptions (optionArray, countof (optionArray));
 	prop.m_toolTipText = "Serial stop bit count";
 	prop.m_value = m_serial.m_stopBits;
-	bindingof (prop.m_value) += onStopBitsPropChanged;
 	m_documentHost.m_propertyGrid.addProperty (prop);
 
 	m_stopBitsProp = prop;
@@ -195,29 +164,19 @@ SerialSession.createStopBitsProp ()
 
 SerialSession.createParityProp ()
 {
-	static char const* textArray [] =
+	static gui.EnumPropertyOption optionArray [] =
 	{
-		"None",
-		"Odd",
-		"Even",
-		"Mark",
-		"Space",
-	};
-
-	static int valueArray [] =
-	{
-		io.SerialParity.None,
-		io.SerialParity.Odd,
-		io.SerialParity.Even,
-		io.SerialParity.Mark,
-		io.SerialParity.Space,
+		{ "None",  io.SerialParity.None },
+		{ "Odd",   io.SerialParity.Odd },
+		{ "Even",  io.SerialParity.Even },
+		{ "Mark",  io.SerialParity.Mark },
+		{ "Space", io.SerialParity.Space },
 	};
 
 	gui.EnumProperty* prop = gui.createEnumProperty ("Parity");
-	prop.setOptions (textArray, valueArray, countof (valueArray));
+	prop.setOptions (optionArray, countof (optionArray));
 	prop.m_toolTipText = "Serial parity check";
 	prop.m_value = m_serial.m_parity;
-	bindingof (prop.m_value) += onParityPropChanged;
 	m_documentHost.m_propertyGrid.addProperty (prop);
 
 	m_parityProp = prop;
@@ -225,25 +184,17 @@ SerialSession.createParityProp ()
 
 SerialSession.createFlowControlProp ()
 {
-	static char const* textArray [] =
+	static gui.EnumPropertyOption optionArray [] =
 	{
-		"None",
-		"Hardware (RTS/CTS)",
-		"Software (XON/XOFF)",
-	};
-
-	static int valueArray [] =
-	{
-		io.SerialFlowControl.None,
-		io.SerialFlowControl.RtsCts,
-		io.SerialFlowControl.XOnXOff,
+		{ "None",                io.SerialFlowControl.None },
+		{ "Hardware (RTS/CTS)",  io.SerialFlowControl.RtsCts },
+		{ "Software (XON/XOFF)", io.SerialFlowControl.XOnXOff },
 	};
 
 	gui.EnumProperty* prop = gui.createEnumProperty ("Flow control");
-	prop.setOptions (textArray, valueArray, countof (valueArray));
+	prop.setOptions (optionArray, countof (optionArray));
 	prop.m_toolTipText = "Serial flow control";
 	prop.m_value = m_serial.m_flowControl;
-	bindingof (prop.m_value) += onFlowControlPropChanged;
 	m_documentHost.m_propertyGrid.addProperty (prop);
 
 	m_flowControlProp = prop;
@@ -251,7 +202,8 @@ SerialSession.createFlowControlProp ()
 
 SerialSession.onOpen ()
 {
-	printf ("SerialSession.onOpen ()\n");
+	if (m_serial.m_isOpen)
+		return;
 
 	size_t index = m_portCombo.m_currentIndex;
 	char const* name = m_portCombo.m_itemText [index];
@@ -277,11 +229,15 @@ SerialSession.onOpen ()
 	size_t size = jnc.getDataPtrSpan (p);
 
 	m_documentHost.m_log.write (SerialLogPacketCode.PortOpened, p, size);
+//	m_uiReactor.start ();
 }
 
 SerialSession.onClose ()
 {
-	printf ("SerialSession.onClose ()\n");
+	if (!m_serial.m_isOpen)
+		return;
+
+//	m_uiReactor.stop ();
 	m_serial.close ();
 
 	m_documentHost.m_log.write (
@@ -309,40 +265,42 @@ SerialSession.onPortComboCurrentIndexChanged ()
 {
 }
 
-SerialSession.onBaudRatePropChanged ()
+reactor SerialSession.m_uiReactor ()
 {
-	uint_t value = m_baudRateProp.m_value;
-	m_serial.m_baudRate = value;
-	m_documentHost.m_log.write (SerialLogPacketCode.BaudRateChanged, &value, sizeof (value));
-}
+	onchange (m_baudRateProp.m_value)
+	{
+//		uint_t value = m_baudRateProp.m_value;
+//		m_serial.m_baudRate = value;
+//		m_documentHost.m_log.write (SerialLogPacketCode.BaudRateChanged, &value, sizeof (value));
+	}
+/*
+	onchange (m_dataBitsProp.m_value)
+	{
+		uint_t value = m_dataBitsProp.m_value;
+		m_serial.m_dataBits = value;
+		m_documentHost.m_log.write (SerialLogPacketCode.DataBitsChanged, &value, sizeof (value));
+	}
 
-SerialSession.onDataBitsPropChanged ()
-{
-	uint_t value = m_dataBitsProp.m_value;
-	m_serial.m_dataBits = value;
-	m_documentHost.m_log.write (SerialLogPacketCode.DataBitsChanged, &value, sizeof (value));
-}
+	onchange (m_stopBitsProp.m_value)
+	{
+		io.SerialStopBits value = (io.SerialStopBits) m_stopBitsProp.m_value;
+		m_serial.m_stopBits = value;
+		m_documentHost.m_log.write (SerialLogPacketCode.StopBitsChanged, &value, sizeof (value));
+	}
 
-SerialSession.onStopBitsPropChanged ()
-{
-	io.SerialStopBits value = (io.SerialStopBits) m_stopBitsProp.m_value;
-	m_serial.m_stopBits = value;
-	m_documentHost.m_log.write (SerialLogPacketCode.StopBitsChanged, &value, sizeof (value));
-}
+	onchange (m_parityProp.m_value)
+	{
+		io.SerialParity value = (io.SerialParity) m_parityProp.m_value;
+		m_serial.m_parity = value;
+		m_documentHost.m_log.write (SerialLogPacketCode.ParityChanged, &value, sizeof (value));
+	}
 
-SerialSession.onParityPropChanged ()
-{
-	io.SerialParity value = (io.SerialParity) m_parityProp.m_value;
-	m_serial.m_parity = value;
-	m_documentHost.m_log.write (SerialLogPacketCode.ParityChanged, &value, sizeof (value));
-}
-
-SerialSession.onFlowControlPropChanged ()
-{
-	io.SerialFlowControl value = (io.SerialFlowControl) m_flowControlProp.m_value;
-	m_serial.m_flowControl = value;
-	m_documentHost.m_log.write (SerialLogPacketCode.FlowControlChanged, &value, sizeof (value));
+	onchange (m_flowControlProp.m_value)
+	{
+		io.SerialFlowControl value = (io.SerialFlowControl) m_flowControlProp.m_value;
+		m_serial.m_flowControl = value;
+		m_documentHost.m_log.write (SerialLogPacketCode.FlowControlChanged, &value, sizeof (value));
+	} */
 }
 
 //.............................................................................
-

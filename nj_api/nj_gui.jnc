@@ -107,8 +107,6 @@ Action* createAction (
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-// menu
-
 opaque class Menu
 {
 	addAction (Action* action);
@@ -173,13 +171,18 @@ opaque class StringProperty: Property
 	char const* autoget bindable property m_value;
 }
 
+struct EnumPropertyOption
+{
+	char const* m_text;
+	int m_value;
+};
+
 opaque class EnumProperty: Property
 {
 	int autoget bindable property m_value;
 
 	setOptions (
-		char const* const* textArray,
-		int const* valueArray,
+		EnumPropertyOption const* optionArray,
 		size_t count
 		);
 }
