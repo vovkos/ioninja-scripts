@@ -21,8 +21,6 @@ protected:
 
 	char const* m_portName;
 
-	doc.DocumentHost* m_documentHost; // tmp
-
 public:
 	construct (doc.DocumentHost* documentHost);
 
@@ -49,8 +47,6 @@ protected:
 SerialSession.construct (doc.DocumentHost* documentHost)
 {
 	basetype.construct (documentHost);
-
-	m_documentHost = documentHost; // tmp
 
 	// transport & log
 
@@ -212,13 +208,23 @@ SerialSession.onOpen ()
 	size_t index = m_portCombo.m_currentIndex;
 	char const* name = m_portCombo.m_itemText [index];
 
+	// open and configure
+
 	bool result = try m_serial.open (name);
-	if (result)
+	if (!result)
 	{
+		char const* p = $"$name"; // TODO: add error to log packet
+		size_t size = jnc.getDataPtrSpan (p);
+
+		m_documentHost.m_log.write (SerialLogPacketCode.PortOpenError, p, size);
+		return;
 	}
-	else
-	{
-	}
+
+	m_serial.m_baudRate = m_baudRateProp.m_value;
+	m_serial.m_dataBits = m_dataBitsProp.m_value;
+	m_serial.m_stopBits = (io.SerialStopBits) m_stopBitsProp.m_value;
+	m_serial.m_parity = (io.SerialParity) m_parityProp.m_value;
+	m_serial.m_flowControl = (io.SerialFlowControl) m_flowControlProp.m_value;
 
 	m_portName = name;
 
