@@ -85,7 +85,6 @@ opaque class Serial
 	bool dconst m_isOpen;
 
 	bool pitcher open (char const* name);
-
 	void close ();
 
 	size_t pitcher read (
@@ -102,6 +101,30 @@ opaque class Serial
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 Serial* createSerial ();
+
+//.............................................................................
+
+opaque class ConnectionSocket
+{
+	bool dconst m_isConnected;
+
+	bool pitcher connect (char const* name);
+	void disconnect ();
+
+	size_t pitcher recv (
+		void* p,
+		size_t Size
+		);
+
+	size_t pitcher send (
+		void const* p,
+		size_t Size
+		);
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+ConnectionSocket* createConnectionSocket ();
 
 //.............................................................................
 

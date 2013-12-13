@@ -4,7 +4,7 @@
 
 #..............................................................................
 
-project_virtual_folder (nj_ssn_SerialMon)
+project_virtual_folder (nj_ssn_Connection)
 
 #..............................................................................
 #
@@ -12,14 +12,14 @@ project_virtual_folder (nj_ssn_SerialMon)
 #
 
 set (
-	SERIALMON_JNC_LIST
-	nj_ssn_SerialMonLog.jnc
-	nj_ssn_SerialMonSession.jnc
+	CONNECTION_JNC_LIST
+	nj_ssn_ConnectionLog.jnc
+	nj_ssn_ConnectionSession.jnc
 	)
 
 source_virtual_folder (
 	src
-	${SERIALMON_JNC_LIST}
+	${CONNECTION_JNC_LIST}
 	)
 
 #..............................................................................
@@ -28,30 +28,32 @@ source_virtual_folder (
 #
 
 set (
-	SERIALMON_RES_LIST
-	nj_ssn_SerialMon.njini
-	serialmon.png
+	CONNECTION_RES_LIST
+	nj_ssn_Connection.njini
+	connection.png
+	connect.png
+	pause.png
 	)
 
 source_virtual_folder (
 	res
-	${SERIALMON_RES_LIST}
+	${CONNECTION_RES_LIST}
 	)
 
 #..............................................................................
 #
-# nj_ssn_SerialMon script library
+# nj_ssn_Connection script library
 #
 
 add_library (
-	nj_ssn_SerialMon
+	nj_ssn_Connection
 	EXCLUDE_FROM_ALL
-	${SERIALMON_JNC_LIST}
-	${SERIALMON_RES_LIST}
+	${CONNECTION_JNC_LIST}
+	${CONNECTION_RES_LIST}
 	)
 
 set_target_properties (
-	nj_ssn_SerialMon
+	nj_ssn_Connection
 	PROPERTIES
 	FOLDER scripts
 	LINKER_LANGUAGE C

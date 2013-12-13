@@ -1,0 +1,21 @@
+//.............................................................................
+//
+// Listener Socket session provider
+//
+
+[session]
+
+name        = Listener Socket/Pipe
+description = "Listens for connection over TCP or Pipe"
+id          = listener
+guid        = aa4252c0-8039-498f-8a98-b9cc6ca3b42f
+icon        = listener.png
+
+session-class         = ListenerSession
+log-representer-class = ListenerLogRepresenter
+
+[scripts]
+
+nj_ssn_ListenerLog.jnc
+nj_ssn_ListenerSession.jnc
+

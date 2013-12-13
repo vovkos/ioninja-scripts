@@ -4,7 +4,7 @@
 
 #..............................................................................
 
-project_virtual_folder (nj_ssn_Socket)
+project_virtual_folder (nj_ssn_Listener)
 
 #..............................................................................
 #
@@ -12,16 +12,14 @@ project_virtual_folder (nj_ssn_Socket)
 #
 
 set (
-	SOCKET_JNC_LIST
-	nj_ssn_ConnectionSocketLog.jnc
-	nj_ssn_ConnectionSocketSession.jnc
-	nj_ssn_ListenerSocketLog.jnc
-	nj_ssn_ListenerSocketSession.jnc
+	LISTENER_JNC_LIST
+	nj_ssn_ListenerLog.jnc
+	nj_ssn_ListenerSession.jnc
 	)
 
 source_virtual_folder (
 	src
-	${SOCKET_JNC_LIST}
+	${LISTENER_JNC_LIST}
 	)
 
 #..............................................................................
@@ -30,32 +28,32 @@ source_virtual_folder (
 #
 
 set (
-	SOCKET_RES_LIST
-	nj_ssn_ConnectionSocket.njini
-	nj_ssn_ListenerSocket.njini
-	conn_sock.png
-	listener_sock.png
+	LISTENER_RES_LIST
+	nj_ssn_Listener.njini
+	listener.png
+	listen.png
+	pause.png
 	)
 
 source_virtual_folder (
 	res
-	${SOCKET_RES_LIST}
+	${LISTENER_RES_LIST}
 	)
 
 #..............................................................................
 #
-# nj_ssn_Socket script library
+# nj_ssn_Listener script library
 #
 
 add_library (
-	nj_ssn_Socket
+	nj_ssn_Listener
 	EXCLUDE_FROM_ALL
-	${SOCKET_JNC_LIST}
-	${SOCKET_RES_LIST}
+	${LISTENER_JNC_LIST}
+	${LISTENER_RES_LIST}
 	)
 
 set_target_properties (
-	nj_ssn_Socket
+	nj_ssn_Listener
 	PROPERTIES
 	FOLDER scripts
 	LINKER_LANGUAGE C

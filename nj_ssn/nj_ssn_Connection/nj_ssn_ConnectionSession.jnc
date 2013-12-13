@@ -1,0 +1,118 @@
+//.............................................................................
+//
+// Connection session
+//
+
+//.............................................................................
+
+class ConnectionSession: doc.Session
+{
+protected:
+	io.ConnectionSocket* m_socket;
+	gui.ComboBox* m_addressCombo;
+
+public:
+	construct (doc.DocumentHost* documentHost);
+
+protected:
+	onConnect ();
+	onDisconnect ();
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+ConnectionSession.construct (doc.DocumentHost* documentHost)
+{
+	basetype.construct (documentHost);
+
+	// transport & log
+
+	m_socket = io.createConnectionSocket ();
+	documentHost.m_log.m_representer = ConnectionLogRepresenter.getSingleton ();
+
+	// toolbar & menu
+
+	gui.Icon* icon;
+	gui.Action* action;
+	gui.ComboBox* combo;
+
+	documentHost.m_toolbar.addLabel ("Address ");
+	combo = documentHost.m_toolbar.addComboBox (-1);
+	combo.m_isEditable = true;
+	combo.m_editText = "127.0.0.1:23";
+	m_addressCombo = combo;
+
+	icon = gui.loadIcon ("connect.png");
+	action = gui.createAction ("Connect", icon);
+	action.m_onTriggered += onConnect;
+	documentHost.m_menu.addAction (action);
+	documentHost.m_toolbar.addAction (action);
+
+	icon = gui.loadIcon ("pause.png");
+	action = gui.createAction ("Disconnect", icon);
+	action.m_onTriggered += onDisconnect;
+	documentHost.m_menu.addAction (action);
+	documentHost.m_toolbar.addAction (action);
+
+	// no properties
+
+	documentHost.m_propertyGrid.m_isVisible = false;
+}
+
+ConnectionSession.onConnect ()
+{
+	if (m_socket.m_isConnected)
+		return;
+/*
+	size_t index = m_portCombo.m_currentIndex;
+	char const* name = m_portCombo.m_itemText [index];
+
+	// open and configure
+
+	bool result = try m_socket.open (name);
+	if (!result)
+	{
+		char const* p = $"$name"; // TODO: add error to log packet
+		size_t size = jnc.getDataPtrSpan (p);
+
+		m_documentHost.m_log.write (ConnectionLogPacketCode.PortOpenError, p, size);
+		return;
+	}
+
+	m_socket.m_baudRate = m_baudRateProp.m_value;
+	m_socket.m_dataBits = m_dataBitsProp.m_value;
+	m_socket.m_stopBits = (io.ConnectionStopBits) m_stopBitsProp.m_value;
+	m_socket.m_parity = (io.ConnectionParity) m_parityProp.m_value;
+	m_socket.m_flowControl = (io.ConnectionFlowControl) m_flowControlProp.m_value;
+
+	m_portName = name;
+
+	ConnectionOpenParams params;
+	params.m_baudRate = m_socket.m_baudRate;
+	params.m_dataBits = m_socket.m_dataBits;
+	params.m_stopBits = m_socket.m_stopBits;
+	params.m_parity = m_socket.m_parity;
+	params.m_flowControl = m_socket.m_flowControl;
+
+	char const* p = $"$(params,B)$name";
+	size_t size = jnc.getDataPtrSpan (p);
+
+	m_documentHost.m_log.write (ConnectionLogPacketCode.PortOpened, p, size);
+	m_uiReactor.start (); */
+}
+
+ConnectionSession.onDisconnect ()
+{
+	if (!m_socket.m_isConnected)
+		return;
+/*
+	m_socket.disconnect ();
+
+	m_documentHost.m_log.write (
+		ConnectionLogPacketCode.PortClosed,
+		m_portName,
+		strlen (m_portName) + 1
+		); */
+}
+
+//.............................................................................

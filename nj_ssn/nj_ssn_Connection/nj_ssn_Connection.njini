@@ -1,0 +1,21 @@
+//.............................................................................
+//
+// Connection session provider
+//
+
+[session]
+
+name        = Connection Socket/Pipe
+description = "Establishes connection over TCP or Pipe"
+id          = connection
+guid        = db8c8923-a699-46cc-be7c-f0bcd523082b
+icon        = connection.png
+
+session-class         = ConnectionSession
+log-representer-class = ConnectionLogRepresenter
+
+[scripts]
+
+nj_ssn_ConnectionLog.jnc
+nj_ssn_ConnectionSession.jnc
+
