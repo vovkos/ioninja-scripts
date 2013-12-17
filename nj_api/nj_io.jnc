@@ -96,6 +96,8 @@ opaque class Serial
 		void const* p,
 		size_t Size
 		);
+
+	event m_onReadyRead ();
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -108,18 +110,25 @@ opaque class ConnectionSocket
 {
 	bool dconst m_isConnected;
 
-	bool pitcher connect (char const* name);
-	void disconnect ();
+	void connect (
+		char const* name,
+		function* onComplete (bool result)
+		);
 
-	size_t pitcher recv (
+	void disconnect (bool isReset = false);
+
+	size_t read (
 		void* p,
 		size_t Size
 		);
 
-	size_t pitcher send (
+	size_t write (
 		void const* p,
 		size_t Size
 		);
+
+	event m_onPeerDisconnected (bool isReset);
+	event m_onReadyRead ();
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
