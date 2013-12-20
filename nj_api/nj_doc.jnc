@@ -9,8 +9,9 @@ namespace doc {
 
 enum DocumentKind
 {
-	Session,
 	Log,
+	MonitorSession,
+	StreamSession,
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -21,6 +22,7 @@ class DocumentHost
 	gui.ToolBar* m_toolbar;
 	gui.PropertyGrid* m_propertyGrid;
 	log.Log* m_log;
+	jnc.Scheduler* m_mainThreadScheduler;
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -40,16 +42,34 @@ class Document
 	}
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+//.............................................................................
 
-class Session: Document
+class MonitorSession: Document
 {
-//	Transport* dconst m_transport;
-
 	construct (DocumentHost* documentHost)
 	{
-		basetype.construct (DocumentKind.Session, documentHost);
+		basetype.construct (DocumentKind.MonitorSession, documentHost);
 	}
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+class StreamSession: Document
+{
+	construct (DocumentHost* documentHost)
+	{
+		basetype.construct (DocumentKind.StreamSession, documentHost);
+	}
+
+	abstract size_t transmit (
+		void const* p,
+		size_t size
+		);
+
+	event m_onReceived (
+		void const* p,
+		size_t size
+		);
 }
 
 //.............................................................................

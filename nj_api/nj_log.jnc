@@ -42,7 +42,7 @@ enum StdLogIcon
 	Packet,
 	Tx,
 	Rx,
-};
+}
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
@@ -55,7 +55,7 @@ enum StdLogColor
 	Error   = gui.StdColor.PastelRed,
 	Tx      = gui.StdColor.Blue,
 	Rx      = gui.StdColor.Green,
-};
+}
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 

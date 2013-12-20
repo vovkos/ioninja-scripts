@@ -5,7 +5,7 @@
 
 //.............................................................................
 
-class SerialSession: doc.Session
+class SerialSession: doc.StreamSession
 {
 protected:
 	io.Serial* m_serial;
@@ -30,6 +30,11 @@ protected:
 	createStopBitsProp ();
 	createFlowControlProp ();
 	createParityProp ();
+
+	override size_t pitcher transmit (
+		void const* p,
+		size_t size
+		);
 
 protected:
 	onOpen ();
@@ -273,6 +278,15 @@ SerialSession.onRts ()
 
 SerialSession.onPortComboCurrentIndexChanged ()
 {
+}
+
+size_t SerialSession.transmit (
+	void const* p,
+	size_t size
+	)
+{
+	printf ("ConnectionSession.transmit (%d)\n", size);
+	return size;
 }
 
 reactor SerialSession.m_uiReactor ()

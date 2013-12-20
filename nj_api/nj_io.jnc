@@ -7,26 +7,6 @@ namespace io {
 
 //.............................................................................
 
-class Transport
-{
-	abstract size_t pitcher transmit (
-		void const* p,
-		size_t Size
-		);
-
-	event m_onTransmit (
-		void const* p,
-		size_t Size
-		);
-
-	event m_onReceive (
-		void const* p,
-		size_t Size
-		);
-}
-
-//.............................................................................
-
 enum SerialStopBits
 {
 	_1  = 0,
@@ -110,12 +90,14 @@ opaque class ConnectionSocket
 {
 	bool dconst m_isConnected;
 
+	int const property m_error;
+
 	void connect (
 		char const* name,
-		function* onComplete (bool result)
+		function* onComplete ()
 		);
 
-	void disconnect (bool isReset = false);
+	void close ();
 
 	size_t read (
 		void* p,
@@ -127,7 +109,7 @@ opaque class ConnectionSocket
 		size_t Size
 		);
 
-	event m_onPeerDisconnected (bool isReset);
+	event m_onDisconnected ();
 	event m_onReadyRead ();
 }
 

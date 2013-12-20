@@ -7,31 +7,21 @@
 
 enum ConnectionLogPacketCode
 {
-	PortOpened    = 1 | log.PacketCodeFlags.Foldable,
-	PortOpenError = 2,
-	PortClosed,
-	BaudRateChanged,
-	DataBitsChanged,
-	StopBitsChanged,
-	ParityChanged,
-	FlowControlChanged,
-	RtsChanged,
-	DtrChanged,
-	StatusLineChanged,
-};
+	Connecting       = 1 | log.PacketCodeFlags.Mergeable,
+	ConnectCancelled = 2 | log.PacketCodeFlags.Mergeable,
+	ConnectComplete  = 3 | log.PacketCodeFlags.Mergeable,
+	ConnectError     = 4 | log.PacketCodeFlags.Mergeable,
+	Disconnected     = 5,
+	Tx               = 6 | log.PacketCodeFlags.Mergeable,
+	Rx               = 7 | log.PacketCodeFlags.Mergeable,
+}
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-struct ConnectionOpenParams
+enum ConnectionPartCode
 {
-	uint_t m_baudRate;
-	uint_t m_dataBits;
-	uint_t m_stopBits;
-	uint_t m_parity;
-	uint_t m_flowControl;
+	Connecting       = 1 | log.PacketCodeFlags.MergeableForward,
+	ConnectComplete  = 1 | log.PacketCodeFlags.MergeableBackward,
+}
 
-	// followed by port name
-};
 
 //.............................................................................
 
@@ -64,131 +54,52 @@ bool ConnectionLogRepresenter.represent (
 {
 	switch (packetCode)
 	{
-	case ConnectionLogPacketCode.PortOpened:
-		ConnectionOpenParams const* params = (ConnectionOpenParams const*) p;
-		char const* name = (char const*) (params + 1);
-
-		target.m_lineAttr.m_iconIdx = StdLogIcon.Play;
-		target.m_lineAttr.m_backColor = StdLogColor.Start;
-
-		if (!(foldFlags & 1))
-			target.addHyperText ($"[<#0000ff=+1>+<>] Opened port <15>$name<> at <15>$(params.m_baudRate)<> bps");
-		else
-			target.addHyperText (
-				$"[<#0000ff=-1>-<>] Opened port <15>$name<>\n"
-				$"    <#808080+i>Baud rate:<>    $(params.m_baudRate) bps\n"
-				$"    <#808080+i>Data bits:<>    $(params.m_dataBits)\n"
-				$"    <#808080+i>Stop bits:<>    $(params.m_stopBits)\n"
-				$"    <#808080+i>Parity:<>       $(params.m_parity)\n"
-				$"    <#808080+i>Flow control:<> $(params.m_flowControl)"
-				);
-
+	case ConnectionLogPacketCode.Connecting:
+		char const* address = (char const*) p;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText (ConnectionPartCode.Connecting, $"Connecting to <15>$address<>...");
 		break;
 
-	case ConnectionLogPacketCode.PortClosed:
-		char const* name = (char const*) p;
-
-		target.m_lineAttr.m_iconIdx = StdLogIcon.Pause;
-		target.m_lineAttr.m_backColor = StdLogColor.Stop;
-		target.addHyperText ($"Port <15>$name<> closed");
+	case ConnectionLogPacketCode.ConnectCancelled:
+		target.addHyperText (ConnectionPartCode.ConnectComplete, "cancelled");
 		break;
 
-	case ConnectionLogPacketCode.PortOpenError:
-		char const* name = (char const*) p;
-
-		// TError* pError = (TError*) p;
-		// char* pPortName = (char*) (pError + 1) + pError->m_DataSize;
-
-		target.m_lineAttr.m_iconIdx = StdLogIcon.Error;
-		target.m_lineAttr.m_backColor = StdLogColor.Stop;
-		target.addHyperText ($"Unable to open port <5>$name<>");
+	case ConnectionLogPacketCode.ConnectComplete:
+		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
+		target.addHyperText (ConnectionPartCode.ConnectComplete, "ok");
 		break;
 
-	case ConnectionLogPacketCode.BaudRateChanged:
-		uint_t baudRate = *(uint_t*) p;
-
-		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = StdLogColor.Info;
-		target.addHyperText ($"Baud rate set to <15>$baudRate<> bps");
+	case ConnectionLogPacketCode.ConnectError:
+		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
+		target.addHyperText (ConnectionPartCode.ConnectComplete, "error");
 		break;
 
-	case ConnectionLogPacketCode.DataBitsChanged:
-		uint_t dataBits = *(uint_t*) p;
-
-		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = StdLogColor.Info;
-		target.addHyperText ($"Data bits set to <15>$dataBits<>");
+	case ConnectionLogPacketCode.Disconnected:
+		char const* address = (char const*) p;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
+		target.addHyperText (ConnectionPartCode.ConnectComplete, $"Disconnected from <15>$address<>");
 		break;
 
-	case ConnectionLogPacketCode.StopBitsChanged:
-		uint_t stopBits = *(uint_t*) p;
-
-		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = StdLogColor.Info;
-		target.addHyperText ($"Stop bits set to <15>$stopBits<>");
+	case ConnectionLogPacketCode.Tx:
+		target.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Tx;
+		target.m_lineAttr.m_foreColor = gui.StdColor.Blue;
+		target.addBin (p, size);
 		break;
 
-	case ConnectionLogPacketCode.ParityChanged:
-		uint_t parity = *(uint_t*) p;
-
-		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = StdLogColor.Info;
-		target.addHyperText ($"Parity set to <15>$parity<>");
+	case ConnectionLogPacketCode.Rx:
+		target.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Rx;
+		target.m_lineAttr.m_foreColor = gui.StdColor.Green;
+		target.addBin (p, size);
 		break;
 
-	case ConnectionLogPacketCode.FlowControlChanged:
-		uint_t flowControl = *(uint_t*) p;
-
-		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = StdLogColor.Info;
-		target.addHyperText ($"Flow control set to <15>$flowControl");
-		break;
-
-	case ConnectionLogPacketCode.RtsChanged:
-		bool rts = *(bool*) p;
-
-		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = StdLogColor.Info;
-		target.addHyperText ($"<15>RTS<> set to $rts");
-		break;
-
-	case ConnectionLogPacketCode.DtrChanged:
-		bool dtr = *(bool*) p;
-
-		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = StdLogColor.Info;
-		target.addHyperText ($"<15>DTR<> set to $dtr");
-		break;
-/*
-	case ConnectionLogPacketCode.StatusLineChanged:
-		uint_t mask = *(uint_t*) p;
-		uint_t lines = *((uint_t*) p + 1);
-
-		jnc.String text = "Status line(s) changed:";
-
-		if (mask & ConnectionLines.Dsr)
-		{
-			bool dsr = (lines & ConnectionLines.Dsr) != 0;
-			text += " <15>DSR<>:$dsr";
-		}
-
-		if (Mask & ConnectionLines.Cts)
-		{
-			bool cts = (lines & ConnectionLines.Cts) != 0;
-			text += " <15>CTS<>:$cts";
-		}
-
-		if (Mask & ConnectionLines.Dcd)
-		{
-			bool dcd = (lines & ConnectionLines.Dcd) != 0;
-			text += " <15>DCD<>:$dcd";
-		}
-
-		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = StdLogColor.Info;
-		target.addHyperText (text);
-		break;
-*/
 	default:
 		return false;
 	}

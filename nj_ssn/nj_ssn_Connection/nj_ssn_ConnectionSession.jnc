@@ -5,11 +5,12 @@
 
 //.............................................................................
 
-class ConnectionSession: doc.Session
+class ConnectionSession: doc.StreamSession
 {
 protected:
 	io.ConnectionSocket* m_socket;
 	gui.ComboBox* m_addressCombo;
+	char const* m_remoteAddress;
 
 public:
 	construct (doc.DocumentHost* documentHost);
@@ -18,8 +19,14 @@ protected:
 	onConnect ();
 	onDisconnect ();
 
-	onConnectComplete (bool result);
-	onRemoteDisconnect (bool isReset);
+	onConnectComplete ();
+	onReadyRead ();
+	onDisconnected ();
+
+	override size_t pitcher transmit (
+		void const* p,
+		size_t size
+		);
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -28,9 +35,14 @@ ConnectionSession.construct (doc.DocumentHost* documentHost)
 {
 	basetype.construct (documentHost);
 
+	printf ("ConnectionSession.construct (this = %x)\n", this);
+
 	// transport & log
 
 	m_socket = io.createConnectionSocket ();
+	m_socket.m_onDisconnected += onDisconnected;
+	m_socket.m_onReadyRead += onReadyRead;
+
 	documentHost.m_log.m_representer = ConnectionLogRepresenter.getSingleton ();
 
 	// toolbar & menu
@@ -42,7 +54,7 @@ ConnectionSession.construct (doc.DocumentHost* documentHost)
 	documentHost.m_toolbar.addLabel ("Address ");
 	combo = documentHost.m_toolbar.addComboBox (-1);
 	combo.m_isEditable = true;
-	combo.m_editText = "127.0.0.1:23";
+	combo.m_editText = "127.0.0.1:1001";
 	m_addressCombo = combo;
 
 	icon = gui.loadIcon ("connect.png");
@@ -69,12 +81,13 @@ ConnectionSession.onConnect ()
 
 	char const* text = m_addressCombo.m_editText;
 
-/*	m_documentHost.m_log.write (
-		ConnectionLogPacketCode.PortClosed,
-		m_portName,
-		strlen (m_portName) + 1
-		); */
+	m_documentHost.m_log.write (
+		ConnectionLogPacketCode.Connecting,
+		text,
+		strlen (text) + 1
+		);
 
+	m_remoteAddress = text;
 	m_socket.connect (text, onConnectComplete);
 }
 
@@ -83,29 +96,50 @@ ConnectionSession.onDisconnect ()
 	if (!m_socket.m_isConnected)
 		return;
 
-	m_socket.disconnect ();
+	m_socket.close ();
 }
 
-ConnectionSession.onConnectComplete (bool result)
+ConnectionSession.onConnectComplete ()
 {
-	printf ("ConnectionSession.onConnectComplete (%d)\n", result);
+	printf ("ConnectionSession.onConnectComplete ()\n");
 
-/*	m_documentHost.m_log.write (
-		ConnectionLogPacketCode.PortClosed,
-		m_portName,
-		strlen (m_portName) + 1
-		); */
+	int error = m_socket.m_error;
+	if (error == 0)
+	{
+		m_documentHost.m_log.write (ConnectionLogPacketCode.ConnectComplete);
+	}
+	else
+	{
+		m_documentHost.m_log.write (ConnectionLogPacketCode.ConnectError);
+	}
 }
 
-ConnectionSession.onRemoteDisconnect (bool isReset)
+ConnectionSession.onDisconnected ()
 {
-	printf ("ConnectionSession.onRemoteDisconnect (%d)\n", isReset);
+	m_documentHost.m_log.write (ConnectionLogPacketCode.Disconnected);
+}
 
-/*	m_documentHost.m_log.write (
-		ConnectionLogPacketCode.PortClosed,
-		m_portName,
-		strlen (m_portName) + 1
-		); */
+ConnectionSession.onReadyRead ()
+{
+	char buffer [256];
+	size_t size = m_socket.read (buffer, sizeof (buffer));
+	m_documentHost.m_log.write (ConnectionLogPacketCode.Rx, buffer, size);
+}
+
+size_t ConnectionSession.transmit (
+	void const* p,
+	size_t size
+	)
+{
+	if (!m_socket.m_isConnected)
+	{
+		// onConnect ();
+		return 0;
+	}
+
+	m_socket.write (p, size);
+	m_documentHost.m_log.write (ConnectionLogPacketCode.Tx, p, size);
+	return size;
 }
 
 //.............................................................................
