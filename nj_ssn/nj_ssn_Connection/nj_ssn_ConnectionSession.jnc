@@ -59,7 +59,7 @@ ConnectionSession.construct (doc.DocumentHost* documentHost)
 	documentHost.m_toolbar.addLabel ("Address ");
 	combo = documentHost.m_toolbar.addComboBox (-1);
 	combo.m_isEditable = true;
-	combo.m_editText = "127.0.0.1:1001";
+	combo.m_editText = "192.168.1.194:1001"; // "127.0.0.1:1001";
 	m_addressCombo = combo;
 
 	icon = gui.loadIcon ("connect.png");
@@ -128,6 +128,9 @@ ConnectionSession.onReadyRead ()
 {
 	char buffer [256];
 	size_t size = m_socket.read (buffer, sizeof (buffer));
+	if (size == -1)
+		return;
+
 	m_documentHost.m_log.write (ConnectionLogPacketCode.Rx, buffer, size);
 }
 

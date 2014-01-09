@@ -42,7 +42,6 @@ protected:
 
 	onDtr ();
 	onRts ();
-	onPortComboCurrentIndexChanged ();
 
 	reactor m_uiReactor ();
 }
@@ -70,7 +69,6 @@ SerialSession.construct (doc.DocumentHost* documentHost)
 	combo.addItem ("COM2");
 	combo.addItem ("COM3");
 	combo.m_currentIndex = 2;
-	combo.m_onCurrentIndexChanged += onPortComboCurrentIndexChanged;
 	m_portCombo = combo;
 
 	icon = gui.loadIcon ("connect.png");
@@ -274,10 +272,6 @@ SerialSession.onRts ()
 	bool value = m_rtsAction.m_isChecked;
 	m_serial.m_rts = value;
 	m_documentHost.m_log.write (SerialLogPacketCode.RtsChanged, &value, sizeof (value));
-}
-
-SerialSession.onPortComboCurrentIndexChanged ()
-{
 }
 
 size_t SerialSession.transmit (

@@ -102,7 +102,7 @@ opaque class Action
 
 Action* createAction (
 	char const* text,
-	Icon* icon = null
+	nullable Icon* icon = null
 	);
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -124,7 +124,7 @@ opaque class ComboBox
 
 	size_t addItem (
 		char const* text,
-		object* data = null
+		nullable object* data = null
 		);
 
 	char const* indexed property m_itemText (size_t index);
