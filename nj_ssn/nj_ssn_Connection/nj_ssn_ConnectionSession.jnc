@@ -15,6 +15,11 @@ protected:
 public:
 	construct (doc.DocumentHost* documentHost);
 
+	destruct ()
+	{
+		printf ("ConnectionSession.destruct ()\n");
+	}
+
 protected:
 	onConnect ();
 	onDisconnect ();

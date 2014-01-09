@@ -146,13 +146,13 @@ opaque class Log
 	writeEx (
 		uint64_t timestamp,
 		uint_t packetCode,
-		void const* p,
+		nullable void const* p,
 		size_t size
 		);
 
 	write (
 		uint_t packetCode,
-		void const* p,
+		nullable void const* p,
 		size_t size
 		)
 	{
