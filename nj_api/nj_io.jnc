@@ -102,7 +102,7 @@ enum AddressFamily: uint16_t
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-struct SocketAddress_Ip4 
+struct SocketAddress_Ip4
 {
 	bigendian uint16_t m_port;
 
@@ -119,7 +119,7 @@ struct SocketAddress_Ip6
 {
 	bigendian uint16_t m_port;
 	bigendian uint32_t m_flow;
-	
+
 	union
 	{
 		bigendian uint16_t m_ip16 [8];
@@ -167,6 +167,13 @@ opaque class AsyncSocketAddressResolver
 
 //.............................................................................
 
+enum SocketKind
+{
+	Connection = 0,
+	Listener,
+	Udp
+}
+
 enum SocketState
 {
 	Closed = 0,
@@ -182,7 +189,7 @@ enum SocketState
 class Socket
 {
 	protected intptr m_fd;
-	Protocol dconst m_protocol;
+	SocketKind m_socketKind;
 	SocketAddress const property m_address;
 	SocketState dconst m_state;
 
@@ -225,7 +232,7 @@ opaque class ListenerSocket: Socket
 
 //.............................................................................
 
-opaque class UdpSocket: Socket	
+opaque class UdpSocket: Socket
 {
 	size_t pitcher read (
 		void* p,
