@@ -62,11 +62,15 @@ bool SerialLogRepresenter.represent (
 	uint64_t foldFlags
 	)
 {
+	printf ("SerialLogRepresenter.represent (%x)\n", packetCode);
+
 	switch (packetCode)
 	{
 	case SerialLogPacketCode.PortOpened:
 		SerialOpenParams const* params = (SerialOpenParams const*) p;
 		char const* name = (char const*) (params + 1);
+
+		printf ("SerialLogPacketCode.PortOpened (%s, %d)\n", name, params.m_baudRate);
 
 		target.m_lineAttr.m_iconIdx = StdLogIcon.Play;
 		target.m_lineAttr.m_backColor = StdLogColor.Start;

@@ -100,11 +100,6 @@ opaque class Action
 	event m_onTriggered ();
 }
 
-Action* createAction (
-	char const* text,
-	nullable Icon* icon = null
-	);
-
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 opaque class Menu
@@ -194,12 +189,6 @@ opaque class GroupProperty
 	addProperty (Property* prop);
 }
 
-BoolProperty* createBoolProperty (char const* name);
-IntProperty* createIntProperty (char const* name);
-StringProperty* createStringProperty (char const* name);
-EnumProperty* createEnumProperty (char const* name);
-GroupProperty* createGroupProperty (char const* name);
-
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 // property grid
@@ -210,6 +199,21 @@ opaque class PropertyGrid
 
 	addProperty (Property* prop);
 }
+
+//.............................................................................
+
+// create functions (to be removed after 'new operator' for opaque classes is implemented )
+
+Action* createAction (
+	char const* text,
+	nullable Icon* icon = null
+	);
+
+BoolProperty* createBoolProperty (char const* name);
+IntProperty* createIntProperty (char const* name);
+StringProperty* createStringProperty (char const* name);
+EnumProperty* createEnumProperty (char const* name);
+GroupProperty* createGroupProperty (char const* name);
 
 //.............................................................................
 

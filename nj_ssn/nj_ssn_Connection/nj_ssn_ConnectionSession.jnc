@@ -24,9 +24,17 @@ protected:
 	onConnect ();
 	onDisconnect ();
 
-	onConnectComplete ();
-	onReadyRead ();
-	onDisconnected ();
+	onConnectCompleted (bool result);	
+	
+	onReadCompleted (
+		void const* p,
+		size_t size
+		);
+
+	onWriteCompleted (
+		void const* p,
+		size_t size
+		);
 
 	override size_t pitcher transmit (
 		void const* p,
@@ -40,13 +48,11 @@ ConnectionSession.construct (doc.DocumentHost* documentHost)
 {
 	basetype.construct (documentHost);
 
-	printf ("ConnectionSession.construct (this = %x)\n", this);
+	printf ("ConnectionSession.construct (this = %x, PID = %x)\n", this, jnc.getCurrentThreadId ());
 
 	// transport & log
 
 	m_socket = io.createConnectionSocket ();
-	m_socket.m_onDisconnected += onDisconnected;
-	m_socket.m_onReadyRead += onReadyRead;
 
 	documentHost.m_log.m_representer = ConnectionLogRepresenter.getSingleton ();
 
@@ -59,7 +65,7 @@ ConnectionSession.construct (doc.DocumentHost* documentHost)
 	documentHost.m_toolbar.addLabel ("Address ");
 	combo = documentHost.m_toolbar.addComboBox (-1);
 	combo.m_isEditable = true;
-	combo.m_editText = "192.168.1.194:1001"; // "127.0.0.1:1001";
+	combo.m_editText = "127.0.0.1:1001"; // "192.168.1.11:1001";
 	m_addressCombo = combo;
 
 	icon = gui.loadIcon ("connect.png");
@@ -81,10 +87,15 @@ ConnectionSession.construct (doc.DocumentHost* documentHost)
 
 ConnectionSession.onConnect ()
 {
-	if (m_socket.m_isConnected)
-		return;
-
 	char const* text = m_addressCombo.m_editText;
+
+	io.SocketAddress address;
+	bool result = try io.resolveSocketAddress (text, &address);
+	if (!result)
+	{
+		printf ("invalid address '%s'\n", text);
+		return;
+	}
 
 	m_documentHost.m_log.write (
 		ConnectionLogPacketCode.Connecting,
@@ -93,45 +104,74 @@ ConnectionSession.onConnect ()
 		);
 
 	m_remoteAddress = text;
-	m_socket.connect (text, onConnectComplete);
+	try m_socket.open (); // any address
+	try m_socket.connect (&address, onConnectCompleted);
 }
 
 ConnectionSession.onDisconnect ()
 {
-	if (!m_socket.m_isConnected)
-		return;
+	if (m_socket.m_state == io.SocketState.Connected)
+		m_documentHost.m_log.write (ConnectionLogPacketCode.Disconnected);
 
 	m_socket.close ();
 }
 
-ConnectionSession.onConnectComplete ()
+ConnectionSession.onConnectCompleted (bool result)
 {
-	printf ("ConnectionSession.onConnectComplete ()\n");
+	printf ("ConnectionSession.onConnectCompleted (PID = %x)\n", jnc.getCurrentThreadId ());
 
-	int error = m_socket.m_error;
-	if (error == 0)
-	{
-		m_documentHost.m_log.write (ConnectionLogPacketCode.ConnectComplete);
-	}
-	else
+	if (!result)
 	{
 		m_documentHost.m_log.write (ConnectionLogPacketCode.ConnectError);
 	}
+	else
+	{
+		m_documentHost.m_log.write (ConnectionLogPacketCode.ConnectComplete);
+
+		heap char buffer [512];
+		try m_socket.read (buffer, sizeof (buffer), onReadCompleted ~(buffer));
+	}
 }
 
-ConnectionSession.onDisconnected ()
+ConnectionSession.onReadCompleted (
+	void const* p, 
+	size_t size
+	)
 {
-	m_documentHost.m_log.write (ConnectionLogPacketCode.Disconnected);
-}
+	printf ("ConnectionSession.onReadCompleted (PID = %x)\n", jnc.getCurrentThreadId ());
 
-ConnectionSession.onReadyRead ()
-{
-	char buffer [256];
-	size_t size = m_socket.read (buffer, sizeof (buffer));
 	if (size == -1)
-		return;
+	{
+	}
+	else if (size == 0)
+	{
+	}
+	else
+	{		
+		m_documentHost.m_log.write (ConnectionLogPacketCode.Rx, p, size);
 
-	m_documentHost.m_log.write (ConnectionLogPacketCode.Rx, buffer, size);
+		heap char buffer [512];
+		try m_socket.read (buffer, sizeof (buffer), onReadCompleted ~(buffer));
+	}
+}
+
+ConnectionSession.onWriteCompleted (
+	void const* p, 
+	size_t size
+	)
+{
+	printf ("ConnectionSession.onWriteCompleted (PID = %x)\n", jnc.getCurrentThreadId ());
+
+	if (size == -1)
+	{
+	}
+	else if (size == 0)
+	{
+	}
+	else
+	{		
+		m_documentHost.m_log.write (ConnectionLogPacketCode.Tx, p, size);
+	}
 }
 
 size_t ConnectionSession.transmit (
@@ -139,15 +179,13 @@ size_t ConnectionSession.transmit (
 	size_t size
 	)
 {
-	if (!m_socket.m_isConnected)
+	if (m_socket.m_state != io.SocketState.Connected)
 	{
 		// onConnect ();
 		return 0;
 	}
-
-	m_socket.write (p, size);
-	m_documentHost.m_log.write (ConnectionLogPacketCode.Tx, p, size);
-	return size;
+	
+	return try m_socket.write (p, size, onWriteCompleted ~(p));
 }
 
 //.............................................................................

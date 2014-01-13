@@ -7,6 +7,8 @@ namespace io {
 
 //.............................................................................
 
+// serial
+
 enum SerialStopBits
 {
 	_1  = 0,
@@ -69,53 +71,185 @@ opaque class Serial
 
 	size_t pitcher read (
 		void* p,
-		size_t Size
+		size_t size,
+		nullable function* onCompleted (size_t size)
 		);
 
 	size_t pitcher write (
 		void const* p,
-		size_t Size
+		size_t Size,
+		nullable function* onCompleted (size_t size)
 		);
-
-	event m_onReadyRead ();
 }
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-Serial* createSerial ();
 
 //.............................................................................
 
-opaque class ConnectionSocket
+// sockets
+
+enum Protocol
 {
-	bool dconst m_isConnected;
-
-	int const property m_error;
-
-	void connect (
-		char const* name,
-		function* onComplete ()
-		);
-
-	void close ();
-
-	size_t read (
-		void* p,
-		size_t Size
-		);
-
-	size_t write (
-		void const* p,
-		size_t Size
-		);
-
-	event m_onDisconnected ();
-	event m_onReadyRead ();
+	Tcp = 6,
+	Udp = 17,
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
+enum AddressFamily: uint16_t
+{
+	Ip4 = 2,
+	Ip6 = 23,
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+struct SocketAddress_Ip4 
+{
+	bigendian uint16_t m_port;
+
+	union
+	{
+		bigendian uint32_t m_ip32;
+		bigendian uint8_t m_ip8 [4];
+	}
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+struct SocketAddress_Ip6
+{
+	bigendian uint16_t m_port;
+	bigendian uint32_t m_flow;
+	
+	union
+	{
+		bigendian uint16_t m_ip16 [8];
+		bigendian uint8_t m_ip8 [16];
+	}
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+// layout matches berkely sockets sockaddr
+
+struct SocketAddress
+{
+	AddressFamily m_family;
+
+	union
+	{
+		SocketAddress_Ip4 m_ip4;
+		SocketAddress_Ip6 m_ip6;
+	}
+}
+
+//.............................................................................
+
+bool pitcher resolveSocketAddress (
+	char const* string,
+	SocketAddress* address
+	);
+
+/*
+
+opaque class AsyncSocketAddressResolver
+{
+	// async resolve
+
+	uintptr_t pitcher resolve (
+		char const* string,
+		function* onCompleted (SocketAddress const* address)
+		);
+
+	cancel (uintptr_t cookie);
+}
+
+*/
+
+//.............................................................................
+
+enum SocketState
+{
+	Closed = 0,
+	Zombie,
+	Opened,
+	Connecting,
+	Connected,
+	Listening,
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+class Socket
+{
+	protected intptr m_fd;
+	Protocol dconst m_protocol;
+	SocketAddress const property m_address;
+	SocketState dconst m_state;
+
+	bool pitcher open (nullable SocketAddress const* address = null);
+	void close ();
+}
+
+//.............................................................................
+
+opaque class ConnectionSocket: Socket
+{
+	SocketAddress const property m_peerAddress;
+
+	bool pitcher connect (
+		SocketAddress const* address,
+		nullable function* onCompleted (bool result)
+		);
+
+	size_t pitcher read (
+		void* p,
+		size_t size,
+		nullable function* onCompleted (size_t size)
+		);
+
+	size_t pitcher write (
+		void const* p,
+		size_t size,
+		nullable function* onCompleted (size_t size)
+		);
+}
+
+//.............................................................................
+
+opaque class ListenerSocket: Socket
+{
+	bool pitcher listen (size_t backLog = 0); // 0 -- default
+
+	ConnectionSocket* pitcher accept (nullable function* onCompleted (ConnectionSocket* socket));
+}
+
+//.............................................................................
+
+opaque class UdpSocket: Socket	
+{
+	size_t pitcher read (
+		void* p,
+		size_t size,
+		SocketAddress* address,
+		nullable function* onCompleted (size_t size)
+		);
+
+	size_t pitcher write (
+		void const* p,
+		size_t size,
+		SocketAddress const* address,
+		nullable function* onCompleted (size_t size)
+		);
+}
+
+//.............................................................................
+
+// create functions (to be removed after 'new operator' for opaque classes is implemented )
+
+Serial* createSerial ();
 ConnectionSocket* createConnectionSocket ();
+ListenerSocket* createListenerSocket ();
+UdpSocket* createUdpSocket ();
 
 //.............................................................................
 
