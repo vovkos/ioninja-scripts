@@ -34,23 +34,17 @@ enum SerialFlowControl
 	None = 0,
 	RtsCts,
 	XOnXOff,
-};
+}
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-fenum SerialLines
+fenum SerialStatusLines
 {
-	Dtr,
-	Rts,
-
 	Dsr,
 	Cts,
 	Dcd,
 	Ring,
-
-	Control = Dtr | Rts,
-	Status  = Dsr | Cts | Dcd | Ring,
-};
+}
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
@@ -62,8 +56,11 @@ opaque class Serial
 	SerialParity autoget property m_parity;
 	SerialFlowControl autoget property m_flowControl;
 
+	SerialStatusLines const property m_statusLines;
+
 	bool autoget property m_dtr;
 	bool autoget property m_rts;
+
 	bool dconst m_isOpen;
 
 	bool pitcher open (char const* name);
@@ -71,15 +68,16 @@ opaque class Serial
 
 	size_t pitcher read (
 		void* p,
-		size_t size,
-		nullable function* onCompleted (size_t size)
+		size_t size
 		);
 
 	size_t pitcher write (
 		void const* p,
-		size_t Size,
-		nullable function* onCompleted (size_t size)
+		size_t Size
 		);
+
+	event m_onReadyRead ();
+	event m_onStatusLineChanged (SerialStatusLines mask);
 }
 
 //.............................................................................
@@ -177,11 +175,12 @@ enum SocketKind
 enum SocketState
 {
 	Closed = 0,
-	Zombie,
 	Opened,
+	Zombie,
+	Listening,
 	Connecting,
 	Connected,
-	Listening,
+	PeerDisconnected,
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -205,20 +204,21 @@ opaque class ConnectionSocket: Socket
 
 	bool pitcher connect (
 		SocketAddress const* address,
-		nullable function* onCompleted (bool result)
+		nullable function* onCompleted (bool result) // jnc.Error const* error)
 		);
 
 	size_t pitcher read (
 		void* p,
-		size_t size,
-		nullable function* onCompleted (size_t size)
+		size_t size
 		);
 
 	size_t pitcher write (
 		void const* p,
-		size_t size,
-		nullable function* onCompleted (size_t size)
+		size_t size
 		);
+
+	event m_onReadyRead ();
+	event m_onDisconnected ();
 }
 
 //.............................................................................
@@ -227,7 +227,9 @@ opaque class ListenerSocket: Socket
 {
 	bool pitcher listen (size_t backLog = 0); // 0 -- default
 
-	ConnectionSocket* pitcher accept (nullable function* onCompleted (ConnectionSocket* socket));
+	ConnectionSocket* pitcher accept ();
+
+	event m_onReadyAccept ();
 }
 
 //.............................................................................
@@ -237,16 +239,16 @@ opaque class UdpSocket: Socket
 	size_t pitcher read (
 		void* p,
 		size_t size,
-		SocketAddress* address,
-		nullable function* onCompleted (size_t size)
+		SocketAddress* address
 		);
 
 	size_t pitcher write (
 		void const* p,
 		size_t size,
-		SocketAddress const* address,
-		nullable function* onCompleted (size_t size)
+		SocketAddress const* address
 		);
+
+	event m_onReadyRead ();
 }
 
 //.............................................................................

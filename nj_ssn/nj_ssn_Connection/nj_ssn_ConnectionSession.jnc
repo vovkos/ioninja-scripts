@@ -10,6 +10,7 @@ class ConnectionSession: doc.StreamSession
 protected:
 	io.ConnectionSocket* m_socket;
 	gui.ComboBox* m_addressCombo;
+	gui.Action* m_disconnectAction;
 	char const* m_remoteAddress;
 
 public:
@@ -25,16 +26,8 @@ protected:
 	onDisconnect ();
 
 	onConnectCompleted (bool result);
-
-	onReadCompleted (
-		void const* p,
-		size_t size
-		);
-
-	onWriteCompleted (
-		void const* p,
-		size_t size
-		);
+	onDisconnected ();
+	onReadyRead ();
 
 	override size_t pitcher transmit (
 		void const* p,
@@ -53,6 +46,8 @@ ConnectionSession.construct (doc.DocumentHost* documentHost)
 	// transport & log
 
 	m_socket = io.createConnectionSocket ();
+	m_socket.m_onReadyRead += onReadyRead;
+	m_socket.m_onDisconnected += onDisconnected;
 
 	documentHost.m_log.m_representer = ConnectionLogRepresenter.getSingleton ();
 
@@ -77,8 +72,11 @@ ConnectionSession.construct (doc.DocumentHost* documentHost)
 	icon = gui.loadIcon ("pause.png");
 	action = gui.createAction ("Disconnect", icon);
 	action.m_onTriggered += onDisconnect;
+	action.m_isEnabled = false;
 	documentHost.m_menu.addAction (action);
 	documentHost.m_toolbar.addAction (action);
+
+	m_disconnectAction = action;
 
 	// no properties
 
@@ -87,6 +85,8 @@ ConnectionSession.construct (doc.DocumentHost* documentHost)
 
 ConnectionSession.onConnect ()
 {
+	onDisconnect ();
+
 	char const* text = m_addressCombo.m_editText;
 
 	io.SocketAddress address;
@@ -110,13 +110,6 @@ ConnectionSession.onConnect ()
 
 ConnectionSession.onDisconnect ()
 {
-	if (m_socket.m_state == io.SocketState.Connected)
-		m_documentHost.m_log.write (
-			ConnectionLogPacketCode.Disconnected,
-			$"$m_remoteAddress",
-			strlen (m_remoteAddress)
-			);
-
 	m_socket.close ();
 }
 
@@ -131,61 +124,26 @@ ConnectionSession.onConnectCompleted (bool result)
 	else
 	{
 		m_documentHost.m_log.write (ConnectionLogPacketCode.ConnectComplete);
-
-		heap char buffer [512];
-		try m_socket.read (buffer, sizeof (buffer), onReadCompleted ~(buffer));
+		m_disconnectAction.m_isEnabled = true;
 	}
 }
 
-ConnectionSession.onReadCompleted (
-	void const* p,
-	size_t size
-	)
+ConnectionSession.onDisconnected ()
 {
-	printf ("ConnectionSession.onReadCompleted (TID = %x)\n", jnc.getCurrentThreadId ());
-
-	if (size == -1)
-	{
-		m_documentHost.m_log.write (
-			ConnectionLogPacketCode.Disconnected,
-			$"$m_remoteAddress",
-			strlen (m_remoteAddress)
-			);
-	}
-	else if (size == 0)
-	{
-		m_documentHost.m_log.write (
-			ConnectionLogPacketCode.Disconnected,
-			$"$m_remoteAddress",
-			strlen (m_remoteAddress)
-			);
-	}
-	else
-	{
-		m_documentHost.m_log.write (ConnectionLogPacketCode.Rx, p, size);
-
-		heap char buffer [512];
-		try m_socket.read (buffer, sizeof (buffer), onReadCompleted ~(buffer));
-	}
+	m_documentHost.m_log.write (
+		ConnectionLogPacketCode.Disconnected,
+		$"$m_remoteAddress",
+		strlen (m_remoteAddress)
+		);
+	m_disconnectAction.m_isEnabled = false;
 }
 
-ConnectionSession.onWriteCompleted (
-	void const* p,
-	size_t size
-	)
+ConnectionSession.onReadyRead ()
 {
-	printf ("ConnectionSession.onWriteCompleted (TID = %x)\n", jnc.getCurrentThreadId ());
-
-	if (size == -1)
-	{
-	}
-	else if (size == 0)
-	{
-	}
-	else
-	{
-		m_documentHost.m_log.write (ConnectionLogPacketCode.Tx, p, size);
-	}
+	heap char buffer [512];
+	size_t result = try m_socket.read (buffer, sizeof (buffer));
+	if (result != -1)
+		m_documentHost.m_log.write (ConnectionLogPacketCode.Rx, buffer, result);
 }
 
 size_t ConnectionSession.transmit (
@@ -199,7 +157,11 @@ size_t ConnectionSession.transmit (
 		return 0;
 	}
 
-	return try m_socket.write (p, size, onWriteCompleted ~(p));
+	size_t result = try m_socket.write (p, size);
+	if (result != -1)
+		m_documentHost.m_log.write (ConnectionLogPacketCode.Tx, p, result);
+
+	return result;
 }
 
 //.............................................................................
