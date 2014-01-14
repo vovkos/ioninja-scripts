@@ -25,7 +25,7 @@ protected:
 	onConnect ();
 	onDisconnect ();
 
-	onConnectCompleted (bool result);
+	onConnectCompleted (jnc.Error const* error);
 	onDisconnected ();
 	onReadyRead ();
 
@@ -113,13 +113,13 @@ ConnectionSession.onDisconnect ()
 	m_socket.close ();
 }
 
-ConnectionSession.onConnectCompleted (bool result)
+ConnectionSession.onConnectCompleted (jnc.Error const* error)
 {
 	printf ("ConnectionSession.onConnectCompleted (TID = %x)\n", jnc.getCurrentThreadId ());
 
-	if (!result)
+	if (error)
 	{
-		m_documentHost.m_log.write (ConnectionLogPacketCode.ConnectError);
+		m_documentHost.m_log.write (ConnectionLogPacketCode.ConnectError, error, error.m_size);
 	}
 	else
 	{

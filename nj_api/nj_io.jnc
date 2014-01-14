@@ -204,7 +204,7 @@ opaque class ConnectionSocket: Socket
 
 	bool pitcher connect (
 		SocketAddress const* address,
-		nullable function* onCompleted (bool result) // jnc.Error const* error)
+		nullable function* onCompleted (jnc.Error const* error)
 		);
 
 	size_t pitcher read (

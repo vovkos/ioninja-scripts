@@ -76,7 +76,9 @@ bool ConnectionLogRepresenter.represent (
 		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		target.addHyperText (ConnectionPartCode.ConnectComplete, "error");
+
+		jnc.Error* Error = (jnc.Error*) p;
+		target.addHyperText (ConnectionPartCode.ConnectComplete, $"error ($(Error.m_description))");
 		break;
 
 	case ConnectionLogPacketCode.Disconnected:
