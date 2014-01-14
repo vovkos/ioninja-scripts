@@ -14,4 +14,3 @@ typedef unsigned int32  uint32_t;
 typedef unsigned int64  uint64_t;
 
 //.............................................................................
-

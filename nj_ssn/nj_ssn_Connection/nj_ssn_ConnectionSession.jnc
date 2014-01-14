@@ -24,8 +24,8 @@ protected:
 	onConnect ();
 	onDisconnect ();
 
-	onConnectCompleted (bool result);	
-	
+	onConnectCompleted (bool result);
+
 	onReadCompleted (
 		void const* p,
 		size_t size
@@ -65,7 +65,7 @@ ConnectionSession.construct (doc.DocumentHost* documentHost)
 	documentHost.m_toolbar.addLabel ("Address ");
 	combo = documentHost.m_toolbar.addComboBox (-1);
 	combo.m_isEditable = true;
-	combo.m_editText = "127.0.0.1:1001"; // "192.168.1.11:1001";
+	combo.m_editText = "192.168.1.11:1001"; // "127.0.0.1:1001";
 	m_addressCombo = combo;
 
 	icon = gui.loadIcon ("connect.png");
@@ -111,14 +111,18 @@ ConnectionSession.onConnect ()
 ConnectionSession.onDisconnect ()
 {
 	if (m_socket.m_state == io.SocketState.Connected)
-		m_documentHost.m_log.write (ConnectionLogPacketCode.Disconnected);
+		m_documentHost.m_log.write (
+			ConnectionLogPacketCode.Disconnected,
+			$"$m_remoteAddress",
+			strlen (m_remoteAddress)
+			);
 
 	m_socket.close ();
 }
 
 ConnectionSession.onConnectCompleted (bool result)
 {
-	printf ("ConnectionSession.onConnectCompleted (PID = %x)\n", jnc.getCurrentThreadId ());
+	printf ("ConnectionSession.onConnectCompleted (TID = %x)\n", jnc.getCurrentThreadId ());
 
 	if (!result)
 	{
@@ -134,20 +138,30 @@ ConnectionSession.onConnectCompleted (bool result)
 }
 
 ConnectionSession.onReadCompleted (
-	void const* p, 
+	void const* p,
 	size_t size
 	)
 {
-	printf ("ConnectionSession.onReadCompleted (PID = %x)\n", jnc.getCurrentThreadId ());
+	printf ("ConnectionSession.onReadCompleted (TID = %x)\n", jnc.getCurrentThreadId ());
 
 	if (size == -1)
 	{
+		m_documentHost.m_log.write (
+			ConnectionLogPacketCode.Disconnected,
+			$"$m_remoteAddress",
+			strlen (m_remoteAddress)
+			);
 	}
 	else if (size == 0)
 	{
+		m_documentHost.m_log.write (
+			ConnectionLogPacketCode.Disconnected,
+			$"$m_remoteAddress",
+			strlen (m_remoteAddress)
+			);
 	}
 	else
-	{		
+	{
 		m_documentHost.m_log.write (ConnectionLogPacketCode.Rx, p, size);
 
 		heap char buffer [512];
@@ -156,11 +170,11 @@ ConnectionSession.onReadCompleted (
 }
 
 ConnectionSession.onWriteCompleted (
-	void const* p, 
+	void const* p,
 	size_t size
 	)
 {
-	printf ("ConnectionSession.onWriteCompleted (PID = %x)\n", jnc.getCurrentThreadId ());
+	printf ("ConnectionSession.onWriteCompleted (TID = %x)\n", jnc.getCurrentThreadId ());
 
 	if (size == -1)
 	{
@@ -169,7 +183,7 @@ ConnectionSession.onWriteCompleted (
 	{
 	}
 	else
-	{		
+	{
 		m_documentHost.m_log.write (ConnectionLogPacketCode.Tx, p, size);
 	}
 }
@@ -184,7 +198,7 @@ size_t ConnectionSession.transmit (
 		// onConnect ();
 		return 0;
 	}
-	
+
 	return try m_socket.write (p, size, onWriteCompleted ~(p));
 }
 

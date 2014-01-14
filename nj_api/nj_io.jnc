@@ -188,8 +188,8 @@ enum SocketState
 
 class Socket
 {
-	protected intptr m_fd;
-	SocketKind m_socketKind;
+	intptr dconst m_fd;
+	SocketKind dconst m_socketKind;
 	SocketAddress const property m_address;
 	SocketState dconst m_state;
 
