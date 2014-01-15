@@ -63,7 +63,7 @@ SerialSession.construct (doc.DocumentHost* documentHost)
 	gui.Action* action;
 	gui.ComboBox* combo;
 
-	documentHost.m_toolbar.addLabel ("Port ");
+	documentHost.m_toolbar.addLabel ("Port: ");
 	combo = documentHost.m_toolbar.addComboBox ();
 	combo.addItem ("COM1");
 	combo.addItem ("COM2");

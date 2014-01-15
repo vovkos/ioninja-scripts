@@ -142,11 +142,10 @@ struct SocketAddress
 
 //.............................................................................
 
-bool pitcher resolveSocketAddress (
+bool pitcher parseSocketAddress (
 	char const* string,
 	SocketAddress* address
 	);
-
 /*
 
 opaque class AsyncSocketAddressResolver

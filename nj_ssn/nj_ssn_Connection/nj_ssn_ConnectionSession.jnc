@@ -16,11 +16,6 @@ protected:
 public:
 	construct (doc.DocumentHost* documentHost);
 
-	destruct ()
-	{
-		printf ("ConnectionSession.destruct ()\n");
-	}
-
 protected:
 	onConnect ();
 	onDisconnect ();
@@ -53,10 +48,10 @@ ConnectionSession.construct (doc.DocumentHost* documentHost)
 	gui.Action* action;
 	gui.ComboBox* combo;
 
-	documentHost.m_toolbar.addLabel ("Address ");
+	documentHost.m_toolbar.addLabel ("Address: ");
 	combo = documentHost.m_toolbar.addComboBox (-1);
 	combo.m_isEditable = true;
-	combo.m_editText = "192.168.1.11:1001"; // "127.0.0.1:1001";
+	combo.m_editText = "192.168.1.11:1001"; // "127.0.0.1:1024";
 	m_addressCombo = combo;
 
 	icon = gui.loadIcon ("connect.png");
@@ -65,7 +60,7 @@ ConnectionSession.construct (doc.DocumentHost* documentHost)
 	documentHost.m_menu.addAction (action);
 	documentHost.m_toolbar.addAction (action);
 
-	icon = gui.loadIcon ("pause.png");
+	icon = gui.loadIcon ("disconnect.png");
 	action = gui.createAction ("Disconnect", icon);
 	action.m_onTriggered += onDisconnect;
 	action.m_isEnabled = false;
@@ -86,7 +81,7 @@ ConnectionSession.onConnect ()
 	char const* addressString = m_addressCombo.m_editText;
 
 	io.SocketAddress address;
-	bool result = try io.resolveSocketAddress (addressString, &address);
+	bool result = try io.parseSocketAddress (addressString, &address);
 	if (!result)
 	{
 		printf ("invalid address '%s'\n", addressString);
@@ -157,10 +152,7 @@ size_t ConnectionSession.transmit (
 	)
 {
 	if (m_socket.m_state != io.SocketState.Connected)
-	{
-		// onConnect ();
-		return 0;
-	}
+		return -1;
 
 	size_t result = try m_socket.write (p, size);
 	if (result != -1)

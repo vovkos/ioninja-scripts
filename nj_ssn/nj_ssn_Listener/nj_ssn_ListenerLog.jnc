@@ -1,306 +1,106 @@
-#include "SerialLog.h"
-#include "SerialSession.h"
-#include "SerialSettings.h"
-#include "LogPropGroup.h"
-#include "LogSettings.h"
-
-#pragma once
-
-#include "Log.h"
-#include "Document.h"
-#include "..\Extensions\FilterLpp.h"
+//.............................................................................
+//
+// Listener log packet declarations and representer
+//
 
 //.............................................................................
 
-#define GUID_SerialLog (2737EF3C-6027-49b0-8C58-6AFFBA402330)
-
-//.............................................................................
-
-__enum ESerialMsg
+enum ListenerLogPacketCode
 {
-	PortOpen,
-	PortOpenError,
-	PortClose,
-	BaudRateChange,
-	DataBitsChange,
-	StopBitsChange,
-	ParityChange,
-	FlowControlChange,
-	RTSChange,
-	DTRChange,
-	StatusLineChange,
-};
-
-__enum ESerialMsgFlags
-{
-	Hidden  = 1,
-	Verbose = 2,
-};
-
-//.............................................................................
-
-struct TSerialOpenParams
-{
-	uint_t m_BaudRate;
-	uint_t m_FlowControl;
-	uint_t m_Parity;
-	uint_t m_DataBits;
-	uint_t m_StopBits;
-
-	// followed by port name
-};
-
-//.............................................................................
-
-class CSerialLogFilter: IFilterLpp;
-class CSerialLogRepresentor: ILogRepresentor;
-class CSerialLog: ILogDocument;
-
-//.............................................................................
-
-const char* GetLineStateString(bool LineState, bool IsHypertext = true);
-
-//.............................................................................
-//.............................................................................
-
-const char* GetLineStateString(bool LineState, bool IsHypertext = true)
-{
-	return IsHypertext ? 
-		LineState ? "<5>high<>" : "<2>low<>" :
-		LineState ? "high" : "low";
+	Listening          = 1,
+	ListenError        = 2,
+	ListenStopped      = 3,
+	ClientConnected    = 4,
+	ClientDisconnected = 5,
+	Tx                 = 6 | log.PacketCodeFlags.Mergeable,
+	Rx                 = 7 | log.PacketCodeFlags.Mergeable,
 }
 
 //.............................................................................
 
-class CSerialLogFilter: IFilterLpp
+class ListenerLogRepresenter: log.Representer
 {
-	using CFilterLpp;
-
-	void CSerialLogFilter();
-};
-
-void CSerialLogFilter::CSerialLogFilter()
-{
-	m_Filter = g_SerialDefaultSettings.m_Filter;
-
-	AddMessageGroup(
-		"Port open/close", 
-		ESerialMsg::PortOpen, 
-		ESerialMsg::PortClose,
-		ESerialMsg::PortOpenError 
+	override bool represent (
+		log.RepresenterTarget* target,
+		uint_t packetCode,
+		void const* p,
+		size_t size,
+		uint64_t foldFlags
 		);
 
-	AddMessageGroup(
-		"Serial setting change", 
-		ESerialMsg::BaudRateChange,
-		ESerialMsg::DataBitsChange,
-		ESerialMsg::StopBitsChange,
-		ESerialMsg::ParityChange,
-		ESerialMsg::FlowControlChange
-		);
-
-	AddMessageGroup(
-		"Control line change", 
-		ESerialMsg::RTSChange,
-		ESerialMsg::DTRChange
-		);
-
-	AddMessageGroup(
-		"Status line change", 
-		ESerialMsg::StatusLineChange
-		);
-
-	AddMessageGroup(
-		"TX data", 
-		EStdLogMsg::Tx
-		);
-
-	AddMessageGroup(
-		"RX data", 
-		EStdLogMsg::Rx
-		);
+	static ListenerLogRepresenter* getSingleton ()
+	{
+		static ListenerLogRepresenter singleton;
+		return &singleton;
+	}
 }
 
-//.............................................................................
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-[ singleton ]
-class CSerialLogRepresentor: ILogRepresentor
-{
-};
-
-bool CSerialLogRepresentor::Represent(
-	ILogRepresentSink Sink,
-	ulong_t Code, 
-	const void* p, 
-	size_t Size,
-	ulong_t VolatileFlags
+bool ListenerLogRepresenter.represent (
+	log.RepresenterTarget* target,
+	uint_t packetCode,
+	void const* p,
+	size_t size,
+	uint64_t foldFlags
 	)
 {
-	if (VolatileFlags & ESerialMsgFlags::Hidden)
-		return true;
-
-	int Delimiter = ELogLineDelimiter::Normal;
-
-	switch (Code)
+	switch (packetCode)
 	{
-	case EStdLogMsg::Tx:
-		Sink.Icon = EStdIcons::Tx;
-		Sink.TileIcon = true;
-		Sink.Attr = GetStdLogMsgAttr(EStdLogMsgAttr::Tx);
-		Sink.AddBin(p, Size);
-		Delimiter = ELogLineDelimiter::Light;
+	case ListenerLogPacketCode.Listening:
+		char const* address = (char const*) p;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
+		target.addHyperText ($"Listening on <15>$address<>...");
 		break;
 
-	case EStdLogMsg::Rx:
-		Sink.Icon = EStdIcons::Rx;
-		Sink.TileIcon = true;
-		Sink.Attr = GetStdLogMsgAttr(EStdLogMsgAttr::Rx);
-		Sink.AddBin(p, Size);
-		Delimiter = ELogLineDelimiter::Light;
+	case ListenerLogPacketCode.ListenError:
+		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
+
+		jnc.Error* Error = (jnc.Error*) p;
+		target.addHyperText ($"Cannot listen ($(Error.m_description))");
 		break;
 
-	case ESerialMsg::PortOpen:
-		TSerialOpenParams* pParams = (TSerialOpenParams*) p;
-		const char* pPortName = (const char*) (pParams + 1);
-
-		Sink.Icon = EStdIcons::Play;
-		Sink.Attr = GetStdLogMsgAttr(EStdLogMsgAttr::Start);
-
-		if (!(VolatileFlags & ESerialMsgFlags::Verbose))
-			Sink.AddHyperText("[<#0000ff=+2>+<>] Opened port <15>%s<> at <15>%d<> bps", pPortName, pParams->m_BaudRate);
-		else
-			Sink.AddHyperText(
-				"[<#0000ff=-2>-<>] Opened port <15>%s<>\n"
-				"    <#808080+i>Baud rate:<>    %d bps\n"
-				"    <#808080+i>Data bits:<>    %s\n"
-				"    <#808080+i>Stop bits:<>    %s\n"
-				"    <#808080+i>Parity:<>       %s\n"
-				"    <#808080+i>Flow control:<> %s",
-				pPortName, 
-				pParams->m_BaudRate, 
-				ESerialDataBits.GetValueText(pParams->m_DataBits), 
-				ESerialStopBits.GetValueText(pParams->m_StopBits), 
-				ESerialParity.GetValueText(pParams->m_Parity), 
-				ESerialFlowControl.GetValueText(pParams->m_FlowControl)
-				);
-		
+	case ListenerLogPacketCode.ListenStopped:
+		char const* address = (char const*) p;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
+		target.addHyperText ($"Stopped listening on <15>$address<>");
 		break;
 
-	case ESerialMsg::PortOpenError:
-		TError* pError = (TError*) p;
-		char* pPortName = (char*) (pError + 1) + pError->m_DataSize;
-
-		Sink.Icon = EStdIcons::Error;
-		Sink.Attr = GetStdLogMsgAttr(EStdLogMsgAttr::Error);
-		Sink.AddHyperText("Unable to open port <5>%s<> (%s)", pPortName, GetErrorString(pError));
+	case ListenerLogPacketCode.ClientConnected:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText ("Client connected");
 		break;
 
-	case ESerialMsg::PortClose:
-		Sink.Icon = EStdIcons::Pause;
-		Sink.Attr = GetStdLogMsgAttr(EStdLogMsgAttr::Stop);
-		Sink.AddHyperText("Port <15>%s<> closed", (char*) p);
+	case ListenerLogPacketCode.ClientDisconnected:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText ("Client disconnected");
 		break;
 
-	case ESerialMsg::BaudRateChange:
-		Sink.Icon = EStdIcons::Info;
-		Sink.Attr = GetStdLogMsgAttr(EStdLogMsgAttr::Info);
-		Sink.AddHyperText("Baud rate set to <15>%d<> bps", *(int*) p);
+	case ListenerLogPacketCode.Tx:
+		target.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Tx;
+		target.m_lineAttr.m_foreColor = gui.StdColor.Blue;
+		target.addBin (p, size);
 		break;
 
-	case ESerialMsg::DataBitsChange:
-		Sink.Icon = EStdIcons::Info;
-		Sink.Attr = GetStdLogMsgAttr(EStdLogMsgAttr::Info);
-		Sink.AddHyperText("Data bits set to <15>%s", ESerialDataBits.GetValueText(*(int*) p));
-		break;
-
-	case ESerialMsg::StopBitsChange:
-		Sink.Icon = EStdIcons::Info;
-		Sink.Attr = GetStdLogMsgAttr(EStdLogMsgAttr::Info);
-		Sink.AddHyperText("Stop bits set to <15>%s", ESerialStopBits.GetValueText(*(int*) p));
-		break;
-
-	case ESerialMsg::ParityChange:
-		Sink.Icon = EStdIcons::Info;
-		Sink.Attr = GetStdLogMsgAttr(EStdLogMsgAttr::Info);
-		Sink.AddHyperText("Parity set to <15>%s", ESerialParity.GetValueText(*(int*) p));
-		break;
-
-	case ESerialMsg::FlowControlChange:
-		Sink.Icon = EStdIcons::Info;
-		Sink.Attr = GetStdLogMsgAttr(EStdLogMsgAttr::Info);
-		Sink.AddHyperText("Flow control set to <15>%s", ESerialFlowControl.GetValueText(*(int*) p));
-		break;
-
-	case ESerialMsg::RTSChange:
-		Sink.Icon = EStdIcons::Info;
-		Sink.Attr = GetStdLogMsgAttr(EStdLogMsgAttr::Info);
-		Sink.AddHyperText("<15>RTS<> set to %s", GetLineStateString(*(bool*) p));
-		break;
-
-	case ESerialMsg::DTRChange:
-		Sink.Icon = EStdIcons::Info;
-		Sink.Attr = GetStdLogMsgAttr(EStdLogMsgAttr::Info);
-		Sink.AddHyperText("<15>DTR<> set to %s", GetLineStateString(*(bool*) p));
-		break;
-
-	case ESerialMsg::StatusLineChange:
-		ulong_t Mask = *(ulong_t*) p;
-		ulong_t Lines = *((ulong_t*) p + 1);
-
-		string Text = "Status line(s) changed:";
-
-		if (Mask & ESerialLine::DSR)
-			Text.AppendFormat(" <15>DSR<>:%s", GetLineStateString(Lines & ESerialLine::DSR));
-
-		if (Mask & ESerialLine::CTS)
-			Text.AppendFormat(" <15>CTS<>:%s", GetLineStateString(Lines & ESerialLine::CTS));
-
-		if (Mask & ESerialLine::DCD)
-			Text.AppendFormat(" <15>DCD<>:%s", GetLineStateString(Lines & ESerialLine::DCD));
-
-		Sink.Icon = EStdIcons::Info;
-		Sink.Attr = GetStdLogMsgAttr(EStdLogMsgAttr::Info);
-		Sink.AddHyperText(Text);
+	case ListenerLogPacketCode.Rx:
+		target.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Rx;
+		target.m_lineAttr.m_foreColor = gui.StdColor.Green;
+		target.addBin (p, size);
 		break;
 
 	default:
 		return false;
 	}
 
-	Sink.AddDelimiter(Delimiter);
 	return true;
 }
 
 //.............................................................................
-
-[
-	guid = GUID_SerialLog,
-]
-
-class CSerialLog: ILogDocument
-{
-	using CLogDocument;
-
-	IFilterLpp m_Filter;
-
-	void CSerialLog();
-};
-
-void CSerialLog::CSerialLog()
-{
-	Icon = GetIcon(PATH_SerialIcon);
-
-	m_Filter = new CSerialLogFilter;
-
-	LogCtrl.Representor = new CSerialLogRepresentor;
-	LogPostProcessor = m_Filter;
-
-	SetLogSettings(LogCtrl, g_LogDefaultSettings);
-	ShowPropertyCtrl(true);
-
-	m_Filter.AddProperties(PropertyCtrl);
-	AddLogPropGroup(PropertyCtrl, this);
-}
-
-//.............................................................................
-
