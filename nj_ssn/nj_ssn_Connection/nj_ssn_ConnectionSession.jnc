@@ -24,10 +24,7 @@ public:
 protected:
 	onConnect ();
 	onDisconnect ();
-
-	onConnectCompleted (jnc.Error const* error);
-	onDisconnected ();
-	onReadyRead ();
+	onSocketEvent (io.SocketEventParams const* params);
 
 	override size_t pitcher transmit (
 		void const* p,
@@ -41,13 +38,12 @@ ConnectionSession.construct (doc.DocumentHost* documentHost)
 {
 	basetype.construct (documentHost);
 
-	printf ("ConnectionSession.construct (this = %x, PID = %x)\n", this, jnc.getCurrentThreadId ());
+	printf ("ConnectionSession.construct (this = %x, TID = %x)\n", this, jnc.getCurrentThreadId ());
 
 	// transport & log
 
 	m_socket = io.createConnectionSocket ();
-	m_socket.m_onReadyRead += onReadyRead;
-	m_socket.m_onDisconnected += onDisconnected;
+	m_socket.m_onSocketEvent += onSocketEvent;
 
 	documentHost.m_log.m_representer = ConnectionLogRepresenter.getSingleton ();
 
@@ -87,25 +83,26 @@ ConnectionSession.onConnect ()
 {
 	onDisconnect ();
 
-	char const* text = m_addressCombo.m_editText;
+	char const* addressString = m_addressCombo.m_editText;
 
 	io.SocketAddress address;
-	bool result = try io.resolveSocketAddress (text, &address);
+	bool result = try io.resolveSocketAddress (addressString, &address);
 	if (!result)
 	{
-		printf ("invalid address '%s'\n", text);
+		printf ("invalid address '%s'\n", addressString);
 		return;
 	}
 
 	m_documentHost.m_log.write (
 		ConnectionLogPacketCode.Connecting,
-		text,
-		strlen (text) + 1
+		addressString,
+		strlen (addressString) + 1
 		);
+	m_disconnectAction.m_isEnabled = true;
 
-	m_remoteAddress = text;
+	m_remoteAddress = addressString;
 	try m_socket.open (); // any address
-	try m_socket.connect (&address, onConnectCompleted);
+	try m_socket.connect (&address);
 }
 
 ConnectionSession.onDisconnect ()
@@ -113,37 +110,45 @@ ConnectionSession.onDisconnect ()
 	m_socket.close ();
 }
 
-ConnectionSession.onConnectCompleted (jnc.Error const* error)
+ConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 {
-	printf ("ConnectionSession.onConnectCompleted (TID = %x)\n", jnc.getCurrentThreadId ());
-
-	if (error)
+	switch (params.m_eventKind)
 	{
-		m_documentHost.m_log.write (ConnectionLogPacketCode.ConnectError, error, error.m_size);
-	}
-	else
-	{
-		m_documentHost.m_log.write (ConnectionLogPacketCode.ConnectComplete);
+	case io.SocketEvent.ConnectCompleted:
+		m_documentHost.m_log.write (ConnectionLogPacketCode.ConnectCompleted);
 		m_disconnectAction.m_isEnabled = true;
+		break;
+
+	case io.SocketEvent.ConnectCancelled:
+		m_documentHost.m_log.write (ConnectionLogPacketCode.ConnectCancelled);
+		m_disconnectAction.m_isEnabled = false;
+		break;
+
+	case io.SocketEvent.ConnectError:
+		m_documentHost.m_log.write (
+			ConnectionLogPacketCode.ConnectError,
+			params.m_error,
+			params.m_error.m_size
+			);
+		m_disconnectAction.m_isEnabled = false;
+		break;
+
+	case io.SocketEvent.Disconnected:
+		m_documentHost.m_log.write (
+			ConnectionLogPacketCode.Disconnected,
+			$"$m_remoteAddress",
+			strlen (m_remoteAddress)
+			);
+		m_disconnectAction.m_isEnabled = false;
+		break;
+
+	case io.SocketEvent.IncomingData:
+		heap char buffer [512];
+		size_t result = try m_socket.read (buffer, sizeof (buffer));
+		if (result != -1)
+			m_documentHost.m_log.write (ConnectionLogPacketCode.Rx, buffer, result);
+		break;
 	}
-}
-
-ConnectionSession.onDisconnected ()
-{
-	m_documentHost.m_log.write (
-		ConnectionLogPacketCode.Disconnected,
-		$"$m_remoteAddress",
-		strlen (m_remoteAddress)
-		);
-	m_disconnectAction.m_isEnabled = false;
-}
-
-ConnectionSession.onReadyRead ()
-{
-	heap char buffer [512];
-	size_t result = try m_socket.read (buffer, sizeof (buffer));
-	if (result != -1)
-		m_documentHost.m_log.write (ConnectionLogPacketCode.Rx, buffer, result);
 }
 
 size_t ConnectionSession.transmit (

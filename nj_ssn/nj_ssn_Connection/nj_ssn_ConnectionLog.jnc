@@ -8,8 +8,8 @@
 enum ConnectionLogPacketCode
 {
 	Connecting       = 1 | log.PacketCodeFlags.Mergeable,
-	ConnectCancelled = 2 | log.PacketCodeFlags.Mergeable,
-	ConnectComplete  = 3 | log.PacketCodeFlags.Mergeable,
+	ConnectCompleted = 2 | log.PacketCodeFlags.Mergeable,
+	ConnectCancelled = 3 | log.PacketCodeFlags.Mergeable,
 	ConnectError     = 4 | log.PacketCodeFlags.Mergeable,
 	Disconnected     = 5,
 	Tx               = 6 | log.PacketCodeFlags.Mergeable,
@@ -19,9 +19,8 @@ enum ConnectionLogPacketCode
 enum ConnectionPartCode
 {
 	Connecting       = 1 | log.PacketCodeFlags.MergeableForward,
-	ConnectComplete  = 1 | log.PacketCodeFlags.MergeableBackward,
+	ConnectCompleted = 1 | log.PacketCodeFlags.MergeableBackward,
 }
-
 
 //.............................................................................
 
@@ -61,15 +60,15 @@ bool ConnectionLogRepresenter.represent (
 		target.addHyperText (ConnectionPartCode.Connecting, $"Connecting to <15>$address<>...");
 		break;
 
-	case ConnectionLogPacketCode.ConnectCancelled:
-		target.addHyperText (ConnectionPartCode.ConnectComplete, "cancelled");
-		break;
-
-	case ConnectionLogPacketCode.ConnectComplete:
+	case ConnectionLogPacketCode.ConnectCompleted:
 		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
-		target.addHyperText (ConnectionPartCode.ConnectComplete, "ok");
+		target.addHyperText (ConnectionPartCode.ConnectCompleted, "ok");
+		break;
+
+	case ConnectionLogPacketCode.ConnectCancelled:
+		target.addHyperText (ConnectionPartCode.ConnectCompleted, "cancelled");
 		break;
 
 	case ConnectionLogPacketCode.ConnectError:
@@ -78,14 +77,14 @@ bool ConnectionLogRepresenter.represent (
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
 
 		jnc.Error* Error = (jnc.Error*) p;
-		target.addHyperText (ConnectionPartCode.ConnectComplete, $"error ($(Error.m_description))");
+		target.addHyperText (ConnectionPartCode.ConnectCompleted, $"error ($(Error.m_description))");
 		break;
 
 	case ConnectionLogPacketCode.Disconnected:
 		char const* address = (char const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
-		target.addHyperText (ConnectionPartCode.ConnectComplete, $"Disconnected from <15>$address<>");
+		target.addHyperText ($"Disconnected from <15>$address<>");
 		break;
 
 	case ConnectionLogPacketCode.Tx:

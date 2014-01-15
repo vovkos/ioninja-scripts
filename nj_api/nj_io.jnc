@@ -183,6 +183,23 @@ enum SocketState
 	PeerDisconnected,
 }
 
+enum SocketEvent
+{
+	ConnectCompleted,
+	ConnectCancelled,
+	ConnectError,
+	Disconnected,
+	IncomingData,
+	IncomingConnection,
+}
+
+struct SocketEventParams
+{
+	SocketEvent m_eventKind;
+	Socket* m_sender;
+	jnc.Error const* m_error;
+}
+
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 class Socket
@@ -194,6 +211,8 @@ class Socket
 
 	bool pitcher open (nullable SocketAddress const* address = null);
 	void close ();
+
+	event m_onSocketEvent (SocketEventParams const* params);
 }
 
 //.............................................................................
@@ -202,10 +221,7 @@ opaque class ConnectionSocket: Socket
 {
 	SocketAddress const property m_peerAddress;
 
-	bool pitcher connect (
-		SocketAddress const* address,
-		nullable function* onCompleted (jnc.Error const* error)
-		);
+	bool pitcher connect (SocketAddress const* address);
 
 	size_t pitcher read (
 		void* p,
@@ -216,9 +232,6 @@ opaque class ConnectionSocket: Socket
 		void const* p,
 		size_t size
 		);
-
-	event m_onReadyRead ();
-	event m_onDisconnected ();
 }
 
 //.............................................................................
@@ -228,8 +241,6 @@ opaque class ListenerSocket: Socket
 	bool pitcher listen (size_t backLog = 0); // 0 -- default
 
 	ConnectionSocket* pitcher accept ();
-
-	event m_onReadyAccept ();
 }
 
 //.............................................................................
@@ -247,8 +258,6 @@ opaque class UdpSocket: Socket
 		size_t size,
 		SocketAddress const* address
 		);
-
-	event m_onReadyRead ();
 }
 
 //.............................................................................
