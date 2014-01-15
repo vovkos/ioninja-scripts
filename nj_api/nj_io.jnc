@@ -100,20 +100,20 @@ enum AddressFamily: uint16_t
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-struct SocketAddress_Ip4
+struct pack (2) SocketAddress_Ip4
 {
 	bigendian uint16_t m_port;
 
 	union
 	{
 		bigendian uint32_t m_ip32;
-		bigendian uint8_t m_ip8 [4];
+		uint8_t m_ip8 [4];
 	}
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-struct SocketAddress_Ip6
+struct pack (2) SocketAddress_Ip6
 {
 	bigendian uint16_t m_port;
 	bigendian uint32_t m_flow;
@@ -121,7 +121,7 @@ struct SocketAddress_Ip6
 	union
 	{
 		bigendian uint16_t m_ip16 [8];
-		bigendian uint8_t m_ip8 [16];
+		uint8_t m_ip8 [16];
 	}
 }
 
