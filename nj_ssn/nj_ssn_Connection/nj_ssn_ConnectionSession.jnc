@@ -38,7 +38,7 @@ ConnectionSession.construct (doc.DocumentHost* documentHost)
 	// transport & log
 
 	m_socket = io.createConnectionSocket ();
-	m_socket.m_onSocketEvent += onSocketEvent;
+	m_socket.m_onSocketEvent += onSocketEvent @ documentHost.m_mainThreadScheduler;
 
 	documentHost.m_log.m_representer = ConnectionLogRepresenter.getSingleton ();
 
@@ -107,6 +107,8 @@ ConnectionSession.onDisconnect ()
 
 ConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 {
+	printf ("ConnectionSession.onSocketEvent (TID = %x)\n", jnc.getCurrentThreadId ());
+
 	switch (params.m_eventKind)
 	{
 	case io.SocketEvent.ConnectCompleted:

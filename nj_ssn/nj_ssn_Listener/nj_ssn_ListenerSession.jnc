@@ -45,7 +45,7 @@ ListenerSession.construct (doc.DocumentHost* documentHost)
 	// transport & log
 
 	m_listenerSocket = io.createListenerSocket ();
-	m_listenerSocket.m_onSocketEvent += onListenerSocketEvent;
+	m_listenerSocket.m_onSocketEvent += onListenerSocketEvent @ documentHost.m_mainThreadScheduler;
 
 	documentHost.m_log.m_representer = ListenerLogRepresenter.getSingleton ();
 
@@ -97,6 +97,8 @@ ListenerSession.construct (doc.DocumentHost* documentHost)
 
 ListenerSession.onListen ()
 {
+	printf ("ListenerSession.onListen (TID = %x)\n", jnc.getCurrentThreadId ());
+
 	onStopListening ();
 
 	size_t index = m_ifaceCombo.m_currentIndex;
@@ -174,6 +176,8 @@ ListenerSession.onDisconnect ()
 
 ListenerSession.onListenerSocketEvent (io.SocketEventParams const* params)
 {
+	printf ("ListenerSession.onListenerSocketEvent (TID = %x)\n", jnc.getCurrentThreadId ());
+
 	switch (params.m_eventKind)
 	{
 	case io.SocketEvent.IncomingConnection:
@@ -183,7 +187,7 @@ ListenerSession.onListenerSocketEvent (io.SocketEventParams const* params)
 		if (m_connectionSocket)
 		{
 			m_documentHost.m_log.write (ListenerLogPacketCode.ClientConnected);
-			m_connectionSocket.m_onSocketEvent += onConnectionSocketEvent;
+			m_connectionSocket.m_onSocketEvent += onConnectionSocketEvent @ m_documentHost.m_mainThreadScheduler;
 			m_disconnectAction.m_isEnabled = true;
 		}
 		break;
@@ -192,7 +196,9 @@ ListenerSession.onListenerSocketEvent (io.SocketEventParams const* params)
 
 ListenerSession.onConnectionSocketEvent (io.SocketEventParams const* params)
 {
-	if (params.m_sender != (io.Socket*) m_connectionSocket) // curently this cast is needed :(
+	printf ("ListenerSession.onConnectionSocketEvent (TID = %x)\n", jnc.getCurrentThreadId ());
+
+	if (params.m_sender != (io.Socket*) m_connectionSocket) // curently cast is needed :(
 		return;
 
 	switch (params.m_eventKind)

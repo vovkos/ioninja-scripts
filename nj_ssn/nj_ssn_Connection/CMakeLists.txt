@@ -32,7 +32,7 @@ set (
 	nj_ssn_Connection.njini
 	connection.png
 	connect.png
-	pause.png
+	disconnect.png
 	)
 
 source_virtual_folder (

@@ -30,6 +30,7 @@ source_virtual_folder (
 set (
 	LISTENER_RES_LIST
 	nj_ssn_Listener.njini
+	disconnect.png
 	listener.png
 	listen.png
 	pause.png
