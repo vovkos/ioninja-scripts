@@ -98,8 +98,6 @@ ConnectionSession.onConnect ()
 	m_remoteAddress = addressString;
 	try m_socket.open (); // any address
 	try m_socket.connect (&address);
-	try m_socket.connect (&address);
-	try m_socket.connect (&address);
 }
 
 ConnectionSession.onDisconnect ()
