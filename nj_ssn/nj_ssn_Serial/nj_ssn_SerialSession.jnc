@@ -31,10 +31,10 @@ protected:
 	createFlowControlProp ();
 	createParityProp ();
 
-	override size_t pitcher transmit (
+	override size_t transmit (
 		void const* p,
 		size_t size
-		);
+		) throws;
 
 protected:
 	onOpen ();
@@ -277,7 +277,7 @@ SerialSession.onRts ()
 size_t SerialSession.transmit (
 	void const* p,
 	size_t size
-	)
+	) throws
 {
 	printf ("ConnectionSession.transmit (%d)\n", size);
 	return size;

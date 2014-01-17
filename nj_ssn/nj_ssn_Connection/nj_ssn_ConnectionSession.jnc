@@ -21,10 +21,10 @@ protected:
 	onDisconnect ();
 	onSocketEvent (io.SocketEventParams const* params);
 
-	override size_t pitcher transmit (
+	override size_t transmit (
 		void const* p,
 		size_t size
-		);
+		) throws;
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -151,7 +151,7 @@ ConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 size_t ConnectionSession.transmit (
 	void const* p,
 	size_t size
-	)
+	) throws
 {
 	if (m_socket.m_state != io.SocketState.Connected)
 		return -1;

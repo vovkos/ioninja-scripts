@@ -28,10 +28,10 @@ protected:
 	onListenerSocketEvent (io.SocketEventParams const* params);
 	onConnectionSocketEvent (io.SocketEventParams const* params);
 
-	override size_t pitcher transmit (
+	override size_t transmit (
 		void const* p,
 		size_t size
-		);
+		) throws;
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -230,7 +230,7 @@ ListenerSession.onConnectionSocketEvent (io.SocketEventParams const* params)
 size_t ListenerSession.transmit (
 	void const* p,
 	size_t size
-	)
+	) throws
 {
 	if (m_connectionSocket.m_state != io.SocketState.Connected)
 		return -1;

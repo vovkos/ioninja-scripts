@@ -63,18 +63,18 @@ opaque class Serial
 
 	bool dconst m_isOpen;
 
-	bool pitcher open (char const* name);
+	bool open (char const* name) throws;
 	void close ();
 
-	size_t pitcher read (
+	size_t read (
 		void* p,
 		size_t size
-		);
+		) throws;
 
-	size_t pitcher write (
+	size_t write (
 		void const* p,
 		size_t Size
-		);
+		) throws;
 
 	event m_onReadyRead ();
 	event m_onStatusLineChanged (SerialStatusLines mask);
@@ -142,20 +142,20 @@ struct SocketAddress
 
 //.............................................................................
 
-bool pitcher parseSocketAddress (
+bool parseSocketAddress (
 	char const* string,
 	SocketAddress* address
-	);
+	) throws;
 /*
 
 opaque class AsyncSocketAddressResolver
 {
 	// async resolve
 
-	uintptr_t pitcher resolve (
+	uintptr_t resolve (
 		char const* string,
 		function* onCompleted (SocketAddress const* address)
-		);
+		) throws;
 
 	cancel (uintptr_t cookie);
 }
@@ -208,7 +208,7 @@ class Socket
 	SocketAddress const property m_address;
 	SocketState dconst m_state;
 
-	bool pitcher open (nullable SocketAddress const* address = null);
+	bool open (nullable SocketAddress const* address = null) throws;
 	void close ();
 
 	event m_onSocketEvent (SocketEventParams const* params);
@@ -220,43 +220,43 @@ opaque class ConnectionSocket: Socket
 {
 	SocketAddress const property m_peerAddress;
 
-	bool pitcher connect (SocketAddress const* address);
+	bool connect (SocketAddress const* address) throws;
 
-	size_t pitcher read (
+	size_t read (
 		void* p,
 		size_t size
-		);
+		) throws;
 
-	size_t pitcher write (
+	size_t write (
 		void const* p,
 		size_t size
-		);
+		) throws;
 }
 
 //.............................................................................
 
 opaque class ListenerSocket: Socket
 {
-	bool pitcher listen (size_t backLog = 0); // 0 -- default
+	bool listen (size_t backLog = 0) throws; // 0 -- default
 
-	ConnectionSocket* pitcher accept ();
+	ConnectionSocket* accept () throws;
 }
 
 //.............................................................................
 
 opaque class UdpSocket: Socket
 {
-	size_t pitcher read (
+	size_t read (
 		void* p,
 		size_t size,
 		SocketAddress* address
-		);
+		) throws;
 
-	size_t pitcher write (
+	size_t write (
 		void const* p,
 		size_t size,
 		SocketAddress const* address
-		);
+		) throws;
 }
 
 //.............................................................................
