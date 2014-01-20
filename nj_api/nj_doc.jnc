@@ -23,6 +23,38 @@ class DocumentHost
 	gui.PropertyGrid* m_propertyGrid;
 	log.Log* m_log;
 	jnc.Scheduler* m_mainThreadScheduler;
+
+	gui.Action* createAction (
+		char const* text,
+		nullable char const* iconFileName = null
+		);
+
+	gui.Action* createCheckableAction (
+		char const* text,
+		bool isChecked = false
+		);
+
+	gui.BoolProperty* createBoolProperty (
+		char const* name,
+		char const* toolTipText
+		);
+
+	gui.IntProperty* createIntProperty (
+		char const* name,
+		char const* toolTipText
+		);
+
+	gui.StringProperty* createStringProperty (
+		char const* name,
+		char const* toolTipText
+		);
+
+	gui.EnumProperty* createEnumProperty (
+		char const* name,
+		char const* toolTipText,
+		gui.EnumPropertyOption const* optionArray,
+		size_t count
+		);
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -70,6 +102,81 @@ class StreamSession: Document
 		void const* p,
 		size_t size
 		);
+}
+
+//.............................................................................
+
+gui.Action* DocumentHost.createAction (
+	char const* text,
+	nullable char const* iconFileName
+	)
+{
+	gui.Icon* icon;
+	if (iconFileName)
+		icon = gui.loadIcon (iconFileName);
+
+	gui.Action* action = gui.createAction (text, icon);
+	m_menu.addAction (action);
+	m_toolbar.addAction (action);
+	return action;
+}
+
+gui.Action* DocumentHost.createCheckableAction (
+	char const* text,
+	bool isChecked
+	)
+{
+	gui.Action* action = createAction (text);
+	action.m_isCheckable = true;
+	action.m_isChecked = isChecked;
+	return action;
+}
+
+gui.BoolProperty* DocumentHost.createBoolProperty (
+	char const* name,
+	char const* toolTipText
+	)
+{
+	gui.BoolProperty* prop = gui.createBoolProperty (name);
+	prop.m_toolTipText = toolTipText;
+	m_propertyGrid.addProperty (prop);
+	return prop;
+}
+
+gui.IntProperty* DocumentHost.createIntProperty (
+	char const* name,
+	char const* toolTipText
+	)
+{
+	gui.IntProperty* prop = gui.createIntProperty (name);
+	prop.m_toolTipText = toolTipText;
+	m_propertyGrid.addProperty (prop);
+	return prop;
+}
+
+gui.StringProperty* DocumentHost.createStringProperty (
+	char const* name,
+	char const* toolTipText
+	)
+{
+	gui.StringProperty* prop = gui.createStringProperty (name);
+	prop.m_toolTipText = toolTipText;
+	m_propertyGrid.addProperty (prop);
+	return prop;
+}
+
+gui.EnumProperty* DocumentHost.createEnumProperty (
+	char const* name,
+	char const* toolTipText,
+	gui.EnumPropertyOption const* optionArray,
+	size_t count
+	)
+{
+	gui.EnumProperty* prop = gui.createEnumProperty (name);
+	prop.m_toolTipText = toolTipText;
+	prop.setOptions (optionArray, count);
+	m_propertyGrid.addProperty (prop);
+	return prop;
 }
 
 //.............................................................................

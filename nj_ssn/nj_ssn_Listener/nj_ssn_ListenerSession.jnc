@@ -8,12 +8,24 @@
 class ListenerSession: doc.StreamSession
 {
 protected:
+	enum ActionId
+	{
+		Listen,
+		StopListen,
+		Disconnect,
+		_Count,
+	};
+
+protected:
 	io.ListenerSocket* m_listenerSocket;
 	io.ConnectionSocket* m_connectionSocket;
+	gui.Action* m_actionTable [ActionId._Count];
+	gui.BoolProperty* m_abruptiveDisconnectProp;
+	gui.BoolProperty* m_overrideOldConnectionProp;
+	gui.BoolProperty* m_useAcceptFilterProp;
+	gui.StringProperty* m_acceptFilterProp;
 	gui.ComboBox* m_ifaceCombo;
 	gui.ComboBox* m_portCombo;
-	gui.Action* m_stopListeningAction;
-	gui.Action* m_disconnectAction;
 
 	char const* m_localAddress;
 	char const* m_remoteAddress;
@@ -21,17 +33,22 @@ protected:
 public:
 	construct (doc.DocumentHost* documentHost);
 
-protected:
-	onListen ();
-	onStopListening ();
-	onDisconnect ();
-	onListenerSocketEvent (io.SocketEventParams const* params);
-	onConnectionSocketEvent (io.SocketEventParams const* params);
+	bool listen () throws;
+	stopListen ();
+	disconnect ();
 
 	override size_t transmit (
 		void const* p,
 		size_t size
 		) throws;
+
+protected:
+	createUi ();
+
+	onListenerSocketEvent (io.SocketEventParams const* params);
+	onConnectionSocketEvent (io.SocketEventParams const* params);
+
+	reactor m_uiReactor ();
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -42,64 +59,67 @@ ListenerSession.construct (doc.DocumentHost* documentHost)
 
 	printf ("ListenerSession.construct (this = %x, TID = %x)\n", this, jnc.getCurrentThreadId ());
 
-	// transport & log
-
+	documentHost.m_log.m_representer = ListenerLogRepresenter.getSingleton ();
 	m_listenerSocket = io.createListenerSocket ();
 	m_listenerSocket.m_onSocketEvent += onListenerSocketEvent @ documentHost.m_mainThreadScheduler;
-
-	documentHost.m_log.m_representer = ListenerLogRepresenter.getSingleton ();
-
-	// toolbar & menu
-
-	gui.Icon* icon;
-	gui.Action* action;
-	gui.ComboBox* combo;
-
-	documentHost.m_toolbar.addLabel ("Interface: ");
-	combo = documentHost.m_toolbar.addComboBox (-1);
-	combo.addItem ("0.0.0.0");
-	m_ifaceCombo = combo;
-
-	documentHost.m_toolbar.addLabel ("Port: ");
-	combo = documentHost.m_toolbar.addComboBox ();
-	combo.m_isEditable = true;
-	combo.m_editText = "1024";
-	m_portCombo = combo;
-
-	icon = gui.loadIcon ("listen.png");
-	action = gui.createAction ("Listen", icon);
-	action.m_onTriggered += onListen;
-	documentHost.m_menu.addAction (action);
-	documentHost.m_toolbar.addAction (action);
-
-	icon = gui.loadIcon ("pause.png");
-	action = gui.createAction ("Stop listening", icon);
-	action.m_onTriggered += onStopListening;
-	action.m_isEnabled = false;
-	documentHost.m_menu.addAction (action);
-	documentHost.m_toolbar.addAction (action);
-
-	m_stopListeningAction = action;
-
-	icon = gui.loadIcon ("disconnect.png");
-	action = gui.createAction ("Disconnect", icon);
-	action.m_onTriggered += onDisconnect;
-	action.m_isEnabled = false;
-	documentHost.m_menu.addAction (action);
-	documentHost.m_toolbar.addAction (action);
-
-	m_disconnectAction = action;
-
-	// no properties
-
-	documentHost.m_propertyGrid.m_isVisible = false;
+	createUi ();
 }
 
-ListenerSession.onListen ()
+ListenerSession.createUi ()
+{
+	// toolbar
+
+	m_documentHost.m_toolbar.addLabel ("Interface: ");
+	m_ifaceCombo = m_documentHost.m_toolbar.addComboBox (-1);
+	m_ifaceCombo.addItem ("0.0.0.0");
+
+	m_documentHost.m_toolbar.addLabel ("Port: ");
+	m_portCombo = m_documentHost.m_toolbar.addComboBox ();
+	m_portCombo.m_isEditable = true;
+	m_portCombo.m_editText = "1024";
+
+	m_actionTable [ActionId.Listen] = m_documentHost.createAction ("Listen", "listen.png");
+	m_actionTable [ActionId.Listen].m_onTriggered += listen;
+
+	m_actionTable [ActionId.StopListen] = m_documentHost.createAction ("Stop listening", "pause.png");
+	m_actionTable [ActionId.StopListen].m_onTriggered += stopListen;
+	m_actionTable [ActionId.StopListen].m_isEnabled = false;
+
+	m_actionTable [ActionId.Disconnect] = m_documentHost.createAction ("Disconnect", "disconnect.png");
+	m_actionTable [ActionId.Disconnect].m_onTriggered += disconnect;
+	m_actionTable [ActionId.Disconnect].m_isEnabled = false;
+
+	m_abruptiveDisconnectProp = m_documentHost.createBoolProperty (
+		"Reset Connections",
+		"Use TCP RST to terminate connections (instead of TCP graceful disconnect)"
+		);
+
+	m_overrideOldConnectionProp = m_documentHost.createBoolProperty (
+		"Override Connections",
+		"Accept incoming connection even if already connected"
+		);
+	m_overrideOldConnectionProp.m_value = true;
+
+	m_useAcceptFilterProp = m_documentHost.createBoolProperty (
+		"Use IP Filter",
+		"Reject incoming connection if IP address does not pass IP filter"
+		);
+
+	m_acceptFilterProp = m_documentHost.createStringProperty (
+		"IP Filter",
+		"Specify filter for incoming IP addresses"
+		);
+
+	m_acceptFilterProp.m_value = "192.168.*.7*";
+
+	m_uiReactor.start ();
+}
+
+bool ListenerSession.listen () throws
 {
 	printf ("ListenerSession.onListen (TID = %x)\n", jnc.getCurrentThreadId ());
 
-	onStopListening ();
+	stopListen ();
 
 	size_t index = m_ifaceCombo.m_currentIndex;
 	char const* ifaceString = m_ifaceCombo.m_itemText [index];
@@ -107,29 +127,9 @@ ListenerSession.onListen ()
 	char const* addressString = $"$ifaceString:$portString";
 
 	io.SocketAddress address;
-	bool result = try io.parseSocketAddress (addressString, &address);
-	if (!result)
-	{
-		printf ("invalid address '%s'\n", addressString);
-		return;
-	}
-
-	result = try m_listenerSocket.open (&address);
-	if (!result)
-	{
-		printf ("cannot open address '%s'\n", addressString);
-
-		jnc.Error const* error = jnc.getLastError ();
-		m_documentHost.m_log.write (
-			ListenerLogPacketCode.ListenError,
-			error,
-			error.m_size
-			);
-
-		return;
-	}
-
-	result = try m_listenerSocket.listen (); // should normally succeed
+	io.parseSocketAddress (addressString, &address);
+	m_listenerSocket.open (&address);
+	m_listenerSocket.listen ();
 
 	m_documentHost.m_log.write (
 		ListenerLogPacketCode.Listening,
@@ -138,10 +138,21 @@ ListenerSession.onListen ()
 		);
 
 	m_localAddress = addressString;
-	m_stopListeningAction.m_isEnabled = true;
+	m_actionTable [ActionId.StopListen].m_isEnabled = true;
+	return true;
+
+catch:
+	jnc.Error const* error = jnc.getLastError ();
+	m_documentHost.m_log.write (
+		ListenerLogPacketCode.ListenError,
+		error,
+		error.m_size
+		);
+
+	return false;
 }
 
-ListenerSession.onStopListening ()
+ListenerSession.stopListen ()
 {
 	if (m_listenerSocket.m_state != io.SocketState.Listening)
 		return;
@@ -153,13 +164,11 @@ ListenerSession.onStopListening ()
 		$"$m_localAddress",
 		strlen (m_localAddress)
 		);
-	m_stopListeningAction.m_isEnabled = false;
+	m_actionTable [ActionId.StopListen].m_isEnabled = false;
 }
 
-ListenerSession.onDisconnect ()
+ListenerSession.disconnect ()
 {
-	printf ("ListenerSession.onDisconnect ()\n");
-
 	if (m_connectionSocket)
 	{
 		m_documentHost.m_log.write (
@@ -170,8 +179,23 @@ ListenerSession.onDisconnect ()
 
 		m_connectionSocket.close ();
 		m_connectionSocket = null;
-		m_disconnectAction.m_isEnabled = false;
+		m_actionTable [ActionId.Disconnect].m_isEnabled = false;
 	}
+}
+
+size_t ListenerSession.transmit (
+	void const* p,
+	size_t size
+	) throws
+{
+	if (m_connectionSocket.m_state != io.SocketState.Connected)
+		return -1;
+
+	size_t result = try m_connectionSocket.write (p, size);
+	if (result != -1)
+		m_documentHost.m_log.write (ListenerLogPacketCode.Tx, p, result);
+
+	return result;
 }
 
 ListenerSession.onListenerSocketEvent (io.SocketEventParams const* params)
@@ -188,7 +212,7 @@ ListenerSession.onListenerSocketEvent (io.SocketEventParams const* params)
 		{
 			m_documentHost.m_log.write (ListenerLogPacketCode.ClientConnected);
 			m_connectionSocket.m_onSocketEvent += onConnectionSocketEvent @ m_documentHost.m_mainThreadScheduler;
-			m_disconnectAction.m_isEnabled = true;
+			m_actionTable [ActionId.Disconnect].m_isEnabled = true;
 		}
 		break;
 	}
@@ -213,7 +237,7 @@ ListenerSession.onConnectionSocketEvent (io.SocketEventParams const* params)
 			);
 		m_connectionSocket.close ();
 		m_connectionSocket = null;
-		m_disconnectAction.m_isEnabled = false;
+		m_actionTable [ActionId.Disconnect].m_isEnabled = false;
 		break;
 
 	case io.SocketEvent.IncomingData:
@@ -227,19 +251,9 @@ ListenerSession.onConnectionSocketEvent (io.SocketEventParams const* params)
 	}
 }
 
-size_t ListenerSession.transmit (
-	void const* p,
-	size_t size
-	) throws
+reactor ListenerSession.m_uiReactor ()
 {
-	if (m_connectionSocket.m_state != io.SocketState.Connected)
-		return -1;
-
-	size_t result = try m_connectionSocket.write (p, size);
-	if (result != -1)
-		m_documentHost.m_log.write (ListenerLogPacketCode.Tx, p, result);
-
-	return result;
+	m_acceptFilterProp.m_isEnabled = m_useAcceptFilterProp.m_value;
 }
 
 //.............................................................................

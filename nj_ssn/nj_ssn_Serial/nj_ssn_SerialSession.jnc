@@ -8,28 +8,31 @@
 class SerialSession: doc.StreamSession
 {
 protected:
-	io.Serial* m_serial;
-	gui.ComboBox* m_portCombo;
-	gui.Action* m_dtrAction;
-	gui.Action* m_rtsAction;
+	enum ActionId
+	{
+		Open,
+		Close,
+		Dtr,
+		Rts,
+		_Count,
+	};
 
+protected:
+	io.Serial* m_serial;
+	gui.Action* m_actionTable [ActionId._Count];
 	gui.EnumProperty* m_baudRateProp;
 	gui.EnumProperty* m_dataBitsProp;
 	gui.EnumProperty* m_stopBitsProp;
 	gui.EnumProperty* m_parityProp;
 	gui.EnumProperty* m_flowControlProp;
-
+	gui.ComboBox* m_portCombo;
 	char const* m_portName;
 
 public:
 	construct (doc.DocumentHost* documentHost);
 
-protected:
-	createBaudRateProp ();
-	createDataBitsProp ();
-	createStopBitsProp ();
-	createFlowControlProp ();
-	createParityProp ();
+	bool open () throws;
+	close ();
 
 	override size_t transmit (
 		void const* p,
@@ -37,13 +40,8 @@ protected:
 		) throws;
 
 protected:
-	onOpen ();
-	onClose ();
-
-	onDtr ();
-	onRts ();
-
-	reactor m_uiReactor ();
+	createUi ();
+	reactor m_portUiReactor ();
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -51,69 +49,40 @@ protected:
 SerialSession.construct (doc.DocumentHost* documentHost)
 {
 	basetype.construct (documentHost);
-
-	// transport & log
-
-	m_serial = io.createSerial ();
 	documentHost.m_log.m_representer = SerialLogRepresenter.getSingleton ();
+	m_serial = io.createSerial ();
+	createUi ();
+}
 
-	// toolbar & menu
+SerialSession.createUi ()
+{
+	// toolbar
 
-	gui.Icon* icon;
-	gui.Action* action;
-	gui.ComboBox* combo;
+	m_documentHost.m_toolbar.addLabel ("Port: ");
+	m_portCombo = m_documentHost.m_toolbar.addComboBox ();
+	m_portCombo.addItem ("COM1");
+	m_portCombo.addItem ("COM2");
+	m_portCombo.addItem ("COM3");
+	m_portCombo.addItem ("COM4");
+	m_portCombo.m_currentIndex = 0;
 
-	documentHost.m_toolbar.addLabel ("Port: ");
-	combo = documentHost.m_toolbar.addComboBox ();
-	combo.addItem ("COM1");
-	combo.addItem ("COM2");
-	combo.addItem ("COM3");
-	combo.m_currentIndex = 2;
-	m_portCombo = combo;
+	m_actionTable [ActionId.Open]  = m_documentHost.createAction ("Open", "connect.png");
+	m_actionTable [ActionId.Open].m_onTriggered += open;
 
-	icon = gui.loadIcon ("connect.png");
-	action = gui.createAction ("Open", icon);
-	action.m_onTriggered += onOpen;
-	documentHost.m_menu.addAction (action);
-	documentHost.m_toolbar.addAction (action);
+	m_actionTable [ActionId.Close] = m_documentHost.createAction ("Close", "pause.png");
+	m_actionTable [ActionId.Close].m_isEnabled = false;
 
-	icon = gui.loadIcon ("pause.png");
-	action = gui.createAction ("Close", icon);
-	action.m_onTriggered += onClose;
-	documentHost.m_menu.addAction (action);
-	documentHost.m_toolbar.addAction (action);
+	m_documentHost.m_menu.addSeparator ();
+	m_documentHost.m_toolbar.addSeparator ();
 
-	documentHost.m_menu.addSeparator ();
-	documentHost.m_toolbar.addSeparator ();
-
-	action = gui.createAction ("DTR");
-	action.m_isCheckable = true;
-	action.m_isChecked = m_serial.m_dtr;
-	action.m_onTriggered += onDtr;
-	documentHost.m_menu.addAction (action);
-	documentHost.m_toolbar.addAction (action);
-	m_dtrAction = action;
-
-	action = gui.createAction ("RTS");
-	action.m_isCheckable = true;
-	action.m_isChecked = m_serial.m_rts;
-	action.m_onTriggered += onRts;
-	documentHost.m_menu.addAction (action);
-	documentHost.m_toolbar.addAction (action);
-	m_rtsAction = action;
+	m_actionTable [ActionId.Dtr] = m_documentHost.createCheckableAction ("DTR", true);
+	m_actionTable [ActionId.Rts] = m_documentHost.createCheckableAction ("RTS", false);
 
 	// property grid
 
-	createBaudRateProp ();
-	createDataBitsProp ();
-	createStopBitsProp ();
-	createParityProp ();
-	createFlowControlProp ();
-}
+	// baud
 
-SerialSession.createBaudRateProp ()
-{
-	static gui.EnumPropertyOption optionArray [] =
+	static gui.EnumPropertyOption baudRateTable [] =
 	{
 		{ "9600 bps",   9600 },
 		{ "19200 bps",  19200 },
@@ -121,53 +90,53 @@ SerialSession.createBaudRateProp ()
 		{ "115200 bps", 115200 },
 	};
 
-	gui.EnumProperty* prop = gui.createEnumProperty ("Baud rate");
-	prop.setOptions (optionArray, countof (optionArray));
-	prop.m_toolTipText = "Serial baud rate";
-	prop.m_value = m_serial.m_baudRate;
-	m_documentHost.m_propertyGrid.addProperty (prop);
+	m_baudRateProp = m_documentHost.createEnumProperty (
+		"Baud rate",
+		"Serial baud rate",
+		baudRateTable,
+		countof (baudRateTable)
+		);
 
-	m_baudRateProp = prop;
-}
+	m_baudRateProp.m_value = 38400;
 
-SerialSession.createDataBitsProp ()
-{
-	static gui.EnumPropertyOption optionArray [] =
+	// data bits
+
+	static gui.EnumPropertyOption dataBitsTable [] =
 	{
 		{ "7 bits", 7 },
 		{ "8 bits", 8 },
 	};
 
-	gui.EnumProperty* prop = gui.createEnumProperty ("Data bits");
-	prop.setOptions (optionArray, countof (optionArray));
-	prop.m_toolTipText = "Serial data bit count (word size)";
-	prop.m_value = m_serial.m_dataBits;
-	m_documentHost.m_propertyGrid.addProperty (prop);
+	m_dataBitsProp = m_documentHost.createEnumProperty (
+		"Data bits",
+		"Serial data bit count (word size)",
+		dataBitsTable,
+		countof (dataBitsTable)
+		);
 
-	m_dataBitsProp = prop;
-}
+	m_dataBitsProp.m_value = 8;
 
-SerialSession.createStopBitsProp ()
-{
-	static gui.EnumPropertyOption optionArray [] =
+	// stop bits
+
+	static gui.EnumPropertyOption stopBitsTable [] =
 	{
 		{ "1 bit",    io.SerialStopBits._1 },
 		{ "1.5 bits", io.SerialStopBits._15 },
 		{ "2 bits",   io.SerialStopBits._2 },
 	};
 
-	gui.EnumProperty* prop = gui.createEnumProperty ("Stop bits");
-	prop.setOptions (optionArray, countof (optionArray));
-	prop.m_toolTipText = "Serial stop bit count";
-	prop.m_value = m_serial.m_stopBits;
-	m_documentHost.m_propertyGrid.addProperty (prop);
+	m_stopBitsProp = m_documentHost.createEnumProperty (
+		"Stop bits",
+		"Serial stop bit count",
+		stopBitsTable,
+		countof (stopBitsTable)
+		);
 
-	m_stopBitsProp = prop;
-}
+	m_stopBitsProp.m_value = io.SerialStopBits._1;
 
-SerialSession.createParityProp ()
-{
-	static gui.EnumPropertyOption optionArray [] =
+	// parity
+
+	static gui.EnumPropertyOption parityTable [] =
 	{
 		{ "None",  io.SerialParity.None },
 		{ "Odd",   io.SerialParity.Odd },
@@ -176,52 +145,44 @@ SerialSession.createParityProp ()
 		{ "Space", io.SerialParity.Space },
 	};
 
-	gui.EnumProperty* prop = gui.createEnumProperty ("Parity");
-	prop.setOptions (optionArray, countof (optionArray));
-	prop.m_toolTipText = "Serial parity check";
-	prop.m_value = m_serial.m_parity;
-	m_documentHost.m_propertyGrid.addProperty (prop);
+	m_parityProp = m_documentHost.createEnumProperty (
+		"Parity",
+		"Serial parity check",
+		parityTable,
+		countof (parityTable)
+		);
 
-	m_parityProp = prop;
-}
+	m_parityProp.m_value = io.SerialParity.None;
 
-SerialSession.createFlowControlProp ()
-{
-	static gui.EnumPropertyOption optionArray [] =
+	// flow control
+
+	static gui.EnumPropertyOption flowControlTable [] =
 	{
 		{ "None",                io.SerialFlowControl.None },
 		{ "Hardware (RTS/CTS)",  io.SerialFlowControl.RtsCts },
 		{ "Software (XON/XOFF)", io.SerialFlowControl.XOnXOff },
 	};
 
-	gui.EnumProperty* prop = gui.createEnumProperty ("Flow control");
-	prop.setOptions (optionArray, countof (optionArray));
-	prop.m_toolTipText = "Serial flow control";
-	prop.m_value = m_serial.m_flowControl;
-	m_documentHost.m_propertyGrid.addProperty (prop);
+	m_flowControlProp = m_documentHost.createEnumProperty (
+		"Flow control",
+		"Serial flow control",
+		flowControlTable,
+		countof (flowControlTable)
+		);
 
-	m_flowControlProp = prop;
+	m_flowControlProp.m_value = io.SerialFlowControl.None;
 }
 
-SerialSession.onOpen ()
+bool SerialSession.open () throws
 {
-	if (m_serial.m_isOpen)
-		return;
+	close ();
 
 	size_t index = m_portCombo.m_currentIndex;
 	char const* name = m_portCombo.m_itemText [index];
 
 	// open and configure
 
-	bool result = try m_serial.open (name);
-	if (!result)
-	{
-		char const* p = $"$name"; // TODO: add error to log packet
-		size_t size = jnc.getDataPtrSpan (p);
-
-		m_documentHost.m_log.write (SerialLogPacketCode.PortOpenError, p, size);
-		return;
-	}
+	m_serial.open (name);
 
 	m_serial.m_baudRate = m_baudRateProp.m_value;
 	m_serial.m_dataBits = m_dataBitsProp.m_value;
@@ -240,38 +201,36 @@ SerialSession.onOpen ()
 
 	char const* p = $"$(params,B)$name";
 	size_t size = jnc.getDataPtrSpan (p);
-
 	m_documentHost.m_log.write (SerialLogPacketCode.PortOpened, p, size);
-	m_uiReactor.start ();
+
+	m_actionTable [ActionId.Close].m_isEnabled = true;
+	m_portUiReactor.start ();
+	return true;
+
+catch:
+	jnc.Error const* error = jnc.getLastError ();
+	p = $"$name"; // TODO: add error to log packet
+	size = jnc.getDataPtrSpan (p);
+
+	m_documentHost.m_log.write (SerialLogPacketCode.PortOpenError, p, size);
+	return false;
 }
 
-SerialSession.onClose ()
+SerialSession.close ()
 {
 	if (!m_serial.m_isOpen)
 		return;
 
-	m_uiReactor.stop ();
 	m_serial.close ();
+
+	m_portUiReactor.stop ();
+	m_actionTable [ActionId.Close].m_isEnabled = false;
 
 	m_documentHost.m_log.write (
 		SerialLogPacketCode.PortClosed,
 		m_portName,
 		strlen (m_portName) + 1
 		);
-}
-
-SerialSession.onDtr ()
-{
-	bool value = m_dtrAction.m_isChecked;
-	m_serial.m_dtr = value;
-	m_documentHost.m_log.write (SerialLogPacketCode.DtrChanged, &value, sizeof (value));
-}
-
-SerialSession.onRts ()
-{
-	bool value = m_rtsAction.m_isChecked;
-	m_serial.m_rts = value;
-	m_documentHost.m_log.write (SerialLogPacketCode.RtsChanged, &value, sizeof (value));
 }
 
 size_t SerialSession.transmit (
@@ -283,50 +242,61 @@ size_t SerialSession.transmit (
 	return size;
 }
 
-reactor SerialSession.m_uiReactor ()
+reactor SerialSession.m_portUiReactor ()
 {
-	onchanged (m_baudRateProp.m_value)
+	onevent (bindingof (m_baudRateProp.m_value)) ()
 	{
 		uint_t value = m_baudRateProp.m_value;
 		m_serial.m_baudRate = value;
 		m_documentHost.m_log.write (SerialLogPacketCode.BaudRateChanged, &value, sizeof (value));
 	}
 
-	onchanged (m_dataBitsProp.m_value)
+	onevent (bindingof (m_dataBitsProp.m_value)) ()
 	{
 		uint_t value = m_dataBitsProp.m_value;
 		m_serial.m_dataBits = value;
 		m_documentHost.m_log.write (SerialLogPacketCode.DataBitsChanged, &value, sizeof (value));
 	}
 
-	onchanged (m_stopBitsProp.m_value)
+	onevent (bindingof (m_stopBitsProp.m_value)) ()
 	{
 		io.SerialStopBits value = (io.SerialStopBits) m_stopBitsProp.m_value;
 		m_serial.m_stopBits = value;
 		m_documentHost.m_log.write (SerialLogPacketCode.StopBitsChanged, &value, sizeof (value));
 	}
 
-	onchanged (m_parityProp.m_value)
+	onevent (bindingof (m_parityProp.m_value)) ()
 	{
 		io.SerialParity value = (io.SerialParity) m_parityProp.m_value;
 		m_serial.m_parity = value;
 		m_documentHost.m_log.write (SerialLogPacketCode.ParityChanged, &value, sizeof (value));
 	}
 
-	onchanged (m_flowControlProp.m_value)
+	onevent (bindingof (m_flowControlProp.m_value)) ()
 	{
 		io.SerialFlowControl value = (io.SerialFlowControl) m_flowControlProp.m_value;
 		m_serial.m_flowControl = value;
 		m_documentHost.m_log.write (SerialLogPacketCode.FlowControlChanged, &value, sizeof (value));
 	}
 
-	onevent m_actionTable [Action.Dtr].m_onTriggered ()
+	onevent m_actionTable [ActionId.Dtr].m_onTriggered ()
 	{
-		bool value = m_dtrAction.m_isChecked;
+		bool value = m_actionTable [ActionId.Dtr].m_isChecked;
 		m_serial.m_dtr = value;
 		m_documentHost.m_log.write (SerialLogPacketCode.DtrChanged, &value, sizeof (value));
+	}
+
+	onevent m_actionTable [ActionId.Rts].m_onTriggered ()
+	{
+		bool value = m_actionTable [ActionId.Rts].m_isChecked;
+		m_serial.m_rts = value;
+		m_documentHost.m_log.write (SerialLogPacketCode.RtsChanged, &value, sizeof (value));
+	}
+
+	onevent m_actionTable [ActionId.Close].m_onTriggered ()
+	{
+		close ();
 	}
 }
 
 //.............................................................................
-
