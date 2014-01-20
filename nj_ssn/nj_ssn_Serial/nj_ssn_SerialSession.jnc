@@ -319,6 +319,14 @@ reactor SerialSession.m_uiReactor ()
 		m_serial.m_flowControl = value;
 		m_documentHost.m_log.write (SerialLogPacketCode.FlowControlChanged, &value, sizeof (value));
 	}
+
+	onevent m_actionTable [Action.Dtr].m_onTriggered ()
+	{
+		bool value = m_dtrAction.m_isChecked;
+		m_serial.m_dtr = value;
+		m_documentHost.m_log.write (SerialLogPacketCode.DtrChanged, &value, sizeof (value));
+	}
 }
 
 //.............................................................................
+
