@@ -43,11 +43,12 @@ public:
 		) throws;
 
 protected:
-	createUi ();
-
+	closeListenerSocket ();
+	closeConnectionSocket ();
 	onListenerSocketEvent (io.SocketEventParams const* params);
 	onConnectionSocketEvent (io.SocketEventParams const* params);
 
+	createUi ();
 	reactor m_uiReactor ();
 }
 
@@ -60,8 +61,6 @@ ListenerSession.construct (doc.DocumentHost* documentHost)
 	printf ("ListenerSession.construct (this = %x, TID = %x)\n", this, jnc.getCurrentThreadId ());
 
 	documentHost.m_log.m_representer = ListenerLogRepresenter.getSingleton ();
-	m_listenerSocket = io.createListenerSocket ();
-	m_listenerSocket.m_onSocketEvent += onListenerSocketEvent @ documentHost.m_mainThreadScheduler;
 	createUi ();
 }
 
@@ -128,6 +127,9 @@ bool ListenerSession.listen () throws
 
 	io.SocketAddress address;
 	io.parseSocketAddress (addressString, &address);
+
+	m_listenerSocket = io.createListenerSocket ();
+	m_listenerSocket.m_onSocketEvent += onListenerSocketEvent @ m_documentHost.m_mainThreadScheduler;
 	m_listenerSocket.open (&address);
 	m_listenerSocket.listen ();
 
@@ -148,39 +150,34 @@ catch:
 		error,
 		error.m_size
 		);
-
+	m_listenerSocket = null;
 	return false;
 }
 
 ListenerSession.stopListen ()
 {
-	if (m_listenerSocket.m_state != io.SocketState.Listening)
+	if (!m_listenerSocket)
 		return;
-
-	m_listenerSocket.close ();
 
 	m_documentHost.m_log.write (
 		ListenerLogPacketCode.ListenStopped,
 		$"$m_localAddress",
 		strlen (m_localAddress)
 		);
-	m_actionTable [ActionId.StopListen].m_isEnabled = false;
+	closeListenerSocket ();
 }
 
 ListenerSession.disconnect ()
 {
-	if (m_connectionSocket)
-	{
-		m_documentHost.m_log.write (
-			ListenerLogPacketCode.ClientDisconnected,
-			$"$m_remoteAddress",
-			strlen (m_remoteAddress)
-			);
+	if (!m_connectionSocket)
+		return;
 
-		m_connectionSocket.close ();
-		m_connectionSocket = null;
-		m_actionTable [ActionId.Disconnect].m_isEnabled = false;
-	}
+	m_documentHost.m_log.write (
+		ListenerLogPacketCode.ClientDisconnected,
+		$"$m_remoteAddress",
+		strlen (m_remoteAddress)
+		);
+	closeConnectionSocket ();
 }
 
 size_t ListenerSession.transmit (
@@ -188,7 +185,7 @@ size_t ListenerSession.transmit (
 	size_t size
 	) throws
 {
-	if (m_connectionSocket.m_state != io.SocketState.Connected)
+	if (!m_connectionSocket)
 		return -1;
 
 	size_t result = try m_connectionSocket.write (p, size);
@@ -198,14 +195,31 @@ size_t ListenerSession.transmit (
 	return result;
 }
 
+ListenerSession.closeListenerSocket ()
+{
+	m_actionTable [ActionId.StopListen].m_isEnabled = false;
+	m_listenerSocket.close ();
+	m_listenerSocket = null;
+}
+
+ListenerSession.closeConnectionSocket ()
+{
+	m_actionTable [ActionId.Disconnect].m_isEnabled = false;
+	m_connectionSocket.close ();
+	m_connectionSocket = null;
+}
+
 ListenerSession.onListenerSocketEvent (io.SocketEventParams const* params)
 {
 	printf ("ListenerSession.onListenerSocketEvent (TID = %x)\n", jnc.getCurrentThreadId ());
 
+	if (params.m_sender != (io.Socket*) m_listenerSocket) // curently cast is needed :(
+		return;
+
 	switch (params.m_eventKind)
 	{
 	case io.SocketEvent.IncomingConnection:
-		printf ("io.SocketEvent.IncomingConnection\n");
+		disconnect ();
 
 		m_connectionSocket = try m_listenerSocket.accept ();
 		if (m_connectionSocket)
@@ -228,21 +242,15 @@ ListenerSession.onConnectionSocketEvent (io.SocketEventParams const* params)
 	switch (params.m_eventKind)
 	{
 	case io.SocketEvent.Disconnected:
-		printf ("io.SocketEvent.Disconnected\n");
-
 		m_documentHost.m_log.write (
 			ListenerLogPacketCode.ClientDisconnected,
 			$"$m_remoteAddress",
 			strlen (m_remoteAddress)
 			);
-		m_connectionSocket.close ();
-		m_connectionSocket = null;
-		m_actionTable [ActionId.Disconnect].m_isEnabled = false;
+		closeConnectionSocket ();
 		break;
 
 	case io.SocketEvent.IncomingData:
-		printf ("io.SocketEvent.IncomingData\n");
-
 		heap char buffer [512];
 		size_t result = try m_connectionSocket.read (buffer, sizeof (buffer));
 		if (result != -1)

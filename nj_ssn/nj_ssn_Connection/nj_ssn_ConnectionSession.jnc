@@ -37,10 +37,10 @@ public:
 		) throws;
 
 protected:
-	createUi ();
-
+	close ();
 	onSocketEvent (io.SocketEventParams const* params);
 
+	createUi ();
 	reactor m_uiReactor ();
 }
 
@@ -53,8 +53,6 @@ ConnectionSession.construct (doc.DocumentHost* documentHost)
 	printf ("ConnectionSession.construct (this = %x, TID = %x)\n", this, jnc.getCurrentThreadId ());
 
 	documentHost.m_log.m_representer = ConnectionLogRepresenter.getSingleton ();
-	m_socket = io.createConnectionSocket ();
-	m_socket.m_onSocketEvent += onSocketEvent @ documentHost.m_mainThreadScheduler;
 	createUi ();
 }
 
@@ -114,7 +112,6 @@ bool ConnectionSession.connect () throws
 	disconnect ();
 
 	char const* addressString = m_addressCombo.m_editText;
-
 	m_documentHost.m_log.write (
 		ConnectionLogPacketCode.Connecting,
 		addressString,
@@ -125,6 +122,9 @@ bool ConnectionSession.connect () throws
 	io.parseSocketAddress (addressString, &address);
 
 	m_remoteAddress = addressString;
+
+	m_socket = io.createConnectionSocket ();
+	m_socket.m_onSocketEvent += onSocketEvent @ m_documentHost.m_mainThreadScheduler;
 	m_socket.open (); // any address
 	m_socket.connect (&address);
 	m_actionTable [ActionId.Disconnect].m_isEnabled = true;
@@ -137,12 +137,21 @@ catch:
 		error,
 		error.m_size
 		);
+	m_socket = null;
 	return false;
 }
 
 ConnectionSession.disconnect ()
 {
-	m_socket.close ();
+	if (!m_socket)
+		return;
+
+	m_documentHost.m_log.write (
+		ConnectionLogPacketCode.Disconnected,
+		$"$m_remoteAddress",
+		strlen (m_remoteAddress)
+		);
+	close ();
 }
 
 size_t ConnectionSession.transmit (
@@ -150,7 +159,7 @@ size_t ConnectionSession.transmit (
 	size_t size
 	) throws
 {
-	if (m_socket.m_state != io.SocketState.Connected)
+	if (!m_socket)
 		return -1;
 
 	size_t result = try m_socket.write (p, size);
@@ -160,9 +169,19 @@ size_t ConnectionSession.transmit (
 	return result;
 }
 
+ConnectionSession.close ()
+{
+	m_actionTable [ActionId.Disconnect].m_isEnabled = false;
+	m_socket.close ();
+	m_socket = null;
+}
+
 ConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 {
 	printf ("ConnectionSession.onSocketEvent (TID = %x)\n", jnc.getCurrentThreadId ());
+
+	if (params.m_sender != (io.Socket*) m_socket) // curently cast is needed :(
+		return;
 
 	switch (params.m_eventKind)
 	{
@@ -173,7 +192,7 @@ ConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 
 	case io.SocketEvent.ConnectCancelled:
 		m_documentHost.m_log.write (ConnectionLogPacketCode.ConnectCancelled);
-		m_actionTable [ActionId.Disconnect].m_isEnabled = false;
+		close ();
 		break;
 
 	case io.SocketEvent.ConnectError:
@@ -182,7 +201,7 @@ ConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 			params.m_error,
 			params.m_error.m_size
 			);
-		m_actionTable [ActionId.Disconnect].m_isEnabled = false;
+		close ();
 		break;
 
 	case io.SocketEvent.Disconnected:
@@ -191,7 +210,7 @@ ConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 			$"$m_remoteAddress",
 			strlen (m_remoteAddress)
 			);
-		m_actionTable [ActionId.Disconnect].m_isEnabled = false;
+		close ();
 		break;
 
 	case io.SocketEvent.IncomingData:
