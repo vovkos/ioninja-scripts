@@ -54,10 +54,10 @@ bool ConnectionLogRepresenter.represent (
 	switch (packetCode)
 	{
 	case ConnectionLogPacketCode.Connecting:
-		char const* address = (char const*) p;
+		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText (ConnectionPartCode.Connecting, $"Connecting to <15>$address<>...");
+		target.addHyperText (ConnectionPartCode.Connecting, $"Connecting to <15>$addressString<>...");
 		break;
 
 	case ConnectionLogPacketCode.ConnectCompleted:
@@ -81,10 +81,10 @@ bool ConnectionLogRepresenter.represent (
 		break;
 
 	case ConnectionLogPacketCode.Disconnected:
-		char const* address = (char const*) p;
+		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
-		target.addHyperText ($"Disconnected from <15>$address<>");
+		target.addHyperText ($"Disconnected from <15>$addressString<>");
 		break;
 
 	case ConnectionLogPacketCode.Tx:

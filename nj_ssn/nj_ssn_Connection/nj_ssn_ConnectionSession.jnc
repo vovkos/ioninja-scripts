@@ -23,7 +23,7 @@ protected:
 	gui.EnumProperty* m_ifaceProp;
 	gui.IntProperty* m_localPortProp;
 	gui.ComboBox* m_addressCombo;
-	char const* m_remoteAddress;
+	io.SocketAddress m_remoteAddress;
 
 public:
 	construct (doc.DocumentHost* documentHost);
@@ -112,21 +112,22 @@ bool ConnectionSession.connect () throws
 	disconnect ();
 
 	char const* addressString = m_addressCombo.m_editText;
-	m_documentHost.m_log.write (
-		ConnectionLogPacketCode.Connecting,
-		addressString,
-		strlen (addressString) + 1
-		);
 
 	io.SocketAddress address;
 	io.parseSocketAddress (addressString, &address);
 
-	m_remoteAddress = addressString;
+	m_documentHost.m_log.write (
+		ConnectionLogPacketCode.Connecting,
+		&address,
+		sizeof (address)
+		);
 
 	m_socket = io.createConnectionSocket ();
 	m_socket.m_onSocketEvent += onSocketEvent @ m_documentHost.m_mainThreadScheduler;
 	m_socket.open (); // any address
 	m_socket.connect (&address);
+
+	m_remoteAddress = address;
 	m_actionTable [ActionId.Disconnect].m_isEnabled = true;
 	return true;
 
@@ -148,8 +149,8 @@ ConnectionSession.disconnect ()
 
 	m_documentHost.m_log.write (
 		ConnectionLogPacketCode.Disconnected,
-		$"$m_remoteAddress",
-		strlen (m_remoteAddress)
+		&m_remoteAddress,
+		sizeof (m_remoteAddress)
 		);
 	close ();
 }
@@ -207,8 +208,8 @@ ConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 	case io.SocketEvent.Disconnected:
 		m_documentHost.m_log.write (
 			ConnectionLogPacketCode.Disconnected,
-			$"$m_remoteAddress",
-			strlen (m_remoteAddress)
+			&m_remoteAddress,
+			sizeof (m_remoteAddress)
 			);
 		close ();
 		break;

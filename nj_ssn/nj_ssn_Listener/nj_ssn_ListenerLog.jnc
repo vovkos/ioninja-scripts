@@ -48,10 +48,10 @@ bool ListenerLogRepresenter.represent (
 	switch (packetCode)
 	{
 	case ListenerLogPacketCode.Listening:
-		char const* address = (char const*) p;
+		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
-		target.addHyperText ($"Listening on <15>$address<>...");
+		target.addHyperText ($"Listening on <15>$addressString<>");
 		break;
 
 	case ListenerLogPacketCode.ListenError:
@@ -64,22 +64,24 @@ bool ListenerLogRepresenter.represent (
 		break;
 
 	case ListenerLogPacketCode.ListenStopped:
-		char const* address = (char const*) p;
+		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
-		target.addHyperText ($"Stopped listening on <15>$address<>");
+		target.addHyperText ($"Stopped listening on <15>$addressString<>");
 		break;
 
 	case ListenerLogPacketCode.ClientConnected:
+		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText ("Client connected");
+		target.addHyperText ($"Client connected from <15>$addressString<>");
 		break;
 
 	case ListenerLogPacketCode.ClientDisconnected:
+		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText ("Client disconnected");
+		target.addHyperText ($"Client <15>$addressString<> disconnected");
 		break;
 
 	case ListenerLogPacketCode.Tx:

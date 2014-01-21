@@ -27,8 +27,8 @@ protected:
 	gui.StringProperty* m_acceptFilterProp;
 	gui.ComboBox* m_portCombo;
 
-	char const* m_localAddress;
-	char const* m_remoteAddress;
+	io.SocketAddress m_localAddress;
+	io.SocketAddress m_remoteAddress;
 
 public:
 	construct (doc.DocumentHost* documentHost);
@@ -57,9 +57,7 @@ protected:
 ListenerSession.construct (doc.DocumentHost* documentHost)
 {
 	basetype.construct (documentHost);
-
 	printf ("ListenerSession.construct (this = %x, TID = %x)\n", this, jnc.getCurrentThreadId ());
-
 	documentHost.m_log.m_representer = ListenerLogRepresenter.getSingleton ();
 	createUi ();
 }
@@ -143,11 +141,11 @@ bool ListenerSession.listen () throws
 
 	m_documentHost.m_log.write (
 		ListenerLogPacketCode.Listening,
-		addressString,
-		strlen (addressString) + 1
+		&address,
+		sizeof (address)
 		);
 
-	m_localAddress = addressString;
+	m_localAddress = address;
 	m_actionTable [ActionId.StopListen].m_isEnabled = true;
 	return true;
 
@@ -169,8 +167,8 @@ ListenerSession.stopListen ()
 
 	m_documentHost.m_log.write (
 		ListenerLogPacketCode.ListenStopped,
-		$"$m_localAddress",
-		strlen (m_localAddress)
+		&m_localAddress,
+		sizeof (m_localAddress)
 		);
 	closeListenerSocket ();
 }
@@ -182,8 +180,8 @@ ListenerSession.disconnect ()
 
 	m_documentHost.m_log.write (
 		ListenerLogPacketCode.ClientDisconnected,
-		$"$m_remoteAddress",
-		strlen (m_remoteAddress)
+		&m_remoteAddress,
+		sizeof (m_remoteAddress)
 		);
 	closeConnectionSocket ();
 }
@@ -229,13 +227,20 @@ ListenerSession.onListenerSocketEvent (io.SocketEventParams const* params)
 	case io.SocketEvent.IncomingConnection:
 		disconnect ();
 
-		m_connectionSocket = try m_listenerSocket.accept ();
-		if (m_connectionSocket)
-		{
-			m_documentHost.m_log.write (ListenerLogPacketCode.ClientConnected);
-			m_connectionSocket.m_onSocketEvent += onConnectionSocketEvent @ m_documentHost.m_mainThreadScheduler;
-			m_actionTable [ActionId.Disconnect].m_isEnabled = true;
-		}
+		io.SocketAddress address;
+		m_connectionSocket = try m_listenerSocket.accept (&address);
+		if (!m_connectionSocket)
+			break;
+
+		m_documentHost.m_log.write (
+			ListenerLogPacketCode.ClientConnected,
+			&address,
+			sizeof (address)
+			);
+
+		m_connectionSocket.m_onSocketEvent += onConnectionSocketEvent @ m_documentHost.m_mainThreadScheduler;
+		m_remoteAddress = address;
+		m_actionTable [ActionId.Disconnect].m_isEnabled = true;
 		break;
 	}
 }
@@ -252,8 +257,8 @@ ListenerSession.onConnectionSocketEvent (io.SocketEventParams const* params)
 	case io.SocketEvent.Disconnected:
 		m_documentHost.m_log.write (
 			ListenerLogPacketCode.ClientDisconnected,
-			$"$m_remoteAddress",
-			strlen (m_remoteAddress)
+			&m_remoteAddress,
+			sizeof (m_remoteAddress)
 			);
 		closeConnectionSocket ();
 		break;

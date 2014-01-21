@@ -146,6 +146,9 @@ bool parseSocketAddress (
 	char const* string,
 	SocketAddress* address
 	) throws;
+
+char const* formatSocketAddress (SocketAddress const* address) throws;
+
 /*
 
 opaque class AsyncSocketAddressResolver
@@ -239,7 +242,7 @@ opaque class ListenerSocket: Socket
 {
 	bool listen (size_t backLog = 0) throws; // 0 -- default
 
-	ConnectionSocket* accept () throws;
+	ConnectionSocket* accept (nullable SocketAddress* address = null) throws;
 }
 
 //.............................................................................
