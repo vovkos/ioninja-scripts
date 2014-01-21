@@ -32,7 +32,7 @@ enum PartKind
 
 enum StdLogIcon
 {
-	Info,
+	Info = 0,
 	Warning,
 	Error,
 	Play,
@@ -42,6 +42,7 @@ enum StdLogIcon
 	Packet,
 	Tx,
 	Rx,
+	_Count,
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -141,7 +142,9 @@ class Representer
 
 opaque class Log
 {
-	object* autoget property m_representer;
+	Representer* autoget property m_representer;
+	// Colorizer* autoget property m_colorizer;
+	gui.Icon* indexed property m_iconTable (size_t i);
 
 	writeEx (
 		uint64_t timestamp,

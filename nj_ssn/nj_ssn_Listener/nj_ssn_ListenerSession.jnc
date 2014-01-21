@@ -20,11 +20,11 @@ protected:
 	io.ListenerSocket* m_listenerSocket;
 	io.ConnectionSocket* m_connectionSocket;
 	gui.Action* m_actionTable [ActionId._Count];
+	gui.EnumProperty* m_ifaceProp;
 	gui.BoolProperty* m_abruptiveDisconnectProp;
 	gui.BoolProperty* m_overrideOldConnectionProp;
 	gui.BoolProperty* m_useAcceptFilterProp;
 	gui.StringProperty* m_acceptFilterProp;
-	gui.ComboBox* m_ifaceCombo;
 	gui.ComboBox* m_portCombo;
 
 	char const* m_localAddress;
@@ -68,12 +68,8 @@ ListenerSession.createUi ()
 {
 	// toolbar
 
-	m_documentHost.m_toolbar.addLabel ("Interface: ");
-	m_ifaceCombo = m_documentHost.m_toolbar.addComboBox (-1);
-	m_ifaceCombo.addItem ("0.0.0.0");
-
-	m_documentHost.m_toolbar.addLabel ("Port: ");
-	m_portCombo = m_documentHost.m_toolbar.addComboBox ();
+	m_documentHost.m_toolBar.addLabel ("Port: ");
+	m_portCombo = m_documentHost.m_toolBar.addComboBox ();
 	m_portCombo.m_isEditable = true;
 	m_portCombo.m_editText = "1024";
 
@@ -87,6 +83,21 @@ ListenerSession.createUi ()
 	m_actionTable [ActionId.Disconnect] = m_documentHost.createAction ("Disconnect", "disconnect.png");
 	m_actionTable [ActionId.Disconnect].m_onTriggered += disconnect;
 	m_actionTable [ActionId.Disconnect].m_isEnabled = false;
+
+	static gui.EnumPropertyOption ifaceTable [] =
+	{
+		{ "0.0.0.0",   0x00000000 },
+		{ "127.0.0.1", 0x7f000001 },
+	};
+
+	m_ifaceProp = m_documentHost.createEnumProperty (
+		"Interface",
+		"Interface to bind to before connect",
+		ifaceTable,
+		countof (ifaceTable)
+		);
+
+	m_ifaceProp.m_value = 0;
 
 	m_abruptiveDisconnectProp = m_documentHost.createBoolProperty (
 		"Reset Connections",
@@ -120,10 +131,7 @@ bool ListenerSession.listen () throws
 
 	stopListen ();
 
-	size_t index = m_ifaceCombo.m_currentIndex;
-	char const* ifaceString = m_ifaceCombo.m_itemText [index];
-	char const* portString = m_portCombo.m_editText;
-	char const* addressString = $"$ifaceString:$portString";
+	char const* addressString = $"0.0.0.0:$(m_portCombo.m_editText)";
 
 	io.SocketAddress address;
 	io.parseSocketAddress (addressString, &address);

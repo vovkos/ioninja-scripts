@@ -58,8 +58,8 @@ SerialSession.createUi ()
 {
 	// toolbar
 
-	m_documentHost.m_toolbar.addLabel ("Port: ");
-	m_portCombo = m_documentHost.m_toolbar.addComboBox ();
+	m_documentHost.m_toolBar.addLabel ("Port: ");
+	m_portCombo = m_documentHost.m_toolBar.addComboBox ();
 	m_portCombo.addItem ("COM1");
 	m_portCombo.addItem ("COM2");
 	m_portCombo.addItem ("COM3");
@@ -73,7 +73,7 @@ SerialSession.createUi ()
 	m_actionTable [ActionId.Close].m_isEnabled = false;
 
 	m_documentHost.m_menu.addSeparator ();
-	m_documentHost.m_toolbar.addSeparator ();
+	m_documentHost.m_toolBar.addSeparator ();
 
 	m_actionTable [ActionId.Dtr] = m_documentHost.createCheckableAction ("DTR", true);
 	m_actionTable [ActionId.Rts] = m_documentHost.createCheckableAction ("RTS", false);

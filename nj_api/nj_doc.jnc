@@ -19,7 +19,7 @@ enum DocumentKind
 class DocumentHost
 {
 	gui.Menu* m_menu;
-	gui.ToolBar* m_toolbar;
+	gui.ToolBar* m_toolBar;
 	gui.PropertyGrid* m_propertyGrid;
 	log.Log* m_log;
 	jnc.Scheduler* m_mainThreadScheduler;
@@ -117,7 +117,7 @@ gui.Action* DocumentHost.createAction (
 
 	gui.Action* action = gui.createAction (text, icon);
 	m_menu.addAction (action);
-	m_toolbar.addAction (action);
+	m_toolBar.addAction (action);
 	return action;
 }
 
