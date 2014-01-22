@@ -49,7 +49,11 @@ protected:
 	onConnectionSocketEvent (io.SocketEventParams const* params);
 
 	createUi ();
-	reactor m_uiReactor ();
+
+	reactor m_uiReactor ()
+	{
+		m_acceptFilterProp.m_isEnabled = m_useAcceptFilterProp.m_value;
+	}
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -225,12 +229,25 @@ ListenerSession.onListenerSocketEvent (io.SocketEventParams const* params)
 	switch (params.m_eventKind)
 	{
 	case io.SocketEvent.IncomingConnection:
-		disconnect ();
-
 		io.SocketAddress address;
-		m_connectionSocket = try m_listenerSocket.accept (&address);
-		if (!m_connectionSocket)
+		io.ConnectionSocket* socket = try m_listenerSocket.accept (&address);
+		if (!socket)
 			break;
+
+		if (m_connectionSocket)
+			if (!m_overrideOldConnectionProp.m_value)
+			{
+				socket.close ();
+				m_documentHost.m_log.write (
+					ListenerLogPacketCode.ClientRejected,
+					&address,
+					sizeof (address)
+					);
+
+				break;
+			}
+
+		disconnect ();
 
 		m_documentHost.m_log.write (
 			ListenerLogPacketCode.ClientConnected,
@@ -238,6 +255,7 @@ ListenerSession.onListenerSocketEvent (io.SocketEventParams const* params)
 			sizeof (address)
 			);
 
+		m_connectionSocket = socket;
 		m_connectionSocket.m_onSocketEvent += onConnectionSocketEvent @ m_documentHost.m_mainThreadScheduler;
 		m_remoteAddress = address;
 		m_actionTable [ActionId.Disconnect].m_isEnabled = true;
@@ -270,11 +288,6 @@ ListenerSession.onConnectionSocketEvent (io.SocketEventParams const* params)
 			m_documentHost.m_log.write (ListenerLogPacketCode.Rx, buffer, result);
 		break;
 	}
-}
-
-reactor ListenerSession.m_uiReactor ()
-{
-	m_acceptFilterProp.m_isEnabled = m_useAcceptFilterProp.m_value;
 }
 
 //.............................................................................

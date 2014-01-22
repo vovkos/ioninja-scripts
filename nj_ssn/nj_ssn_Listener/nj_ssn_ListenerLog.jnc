@@ -12,8 +12,9 @@ enum ListenerLogPacketCode
 	ListenStopped      = 3,
 	ClientConnected    = 4,
 	ClientDisconnected = 5,
-	Tx                 = 6 | log.PacketCodeFlags.Mergeable,
-	Rx                 = 7 | log.PacketCodeFlags.Mergeable,
+	ClientRejected     = 6,
+	Tx                 = 7 | log.PacketCodeFlags.Mergeable,
+	Rx                 = 8 | log.PacketCodeFlags.Mergeable,
 }
 
 //.............................................................................
@@ -82,6 +83,13 @@ bool ListenerLogRepresenter.represent (
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText ($"Client <15>$addressString<> disconnected");
+		break;
+
+	case ListenerLogPacketCode.ClientRejected:
+		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Warning;
+		target.addHyperText ($"Client <15>$addressString<> is rejected ");
 		break;
 
 	case ListenerLogPacketCode.Tx:

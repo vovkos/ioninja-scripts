@@ -111,10 +111,8 @@ bool ConnectionSession.connect () throws
 {
 	disconnect ();
 
-	char const* addressString = m_addressCombo.m_editText;
-
 	io.SocketAddress address;
-	io.parseSocketAddress (addressString, &address);
+	io.parseSocketAddress (m_addressCombo.m_editText, &address);
 
 	m_documentHost.m_log.write (
 		ConnectionLogPacketCode.Connecting,
@@ -124,7 +122,18 @@ bool ConnectionSession.connect () throws
 
 	m_socket = io.createConnectionSocket ();
 	m_socket.m_onSocketEvent += onSocketEvent @ m_documentHost.m_mainThreadScheduler;
-	m_socket.open (); // any address
+
+	if (!m_useLocalAddressProp.m_value)
+	{
+		m_socket.open (); // any address
+	}
+	else
+	{
+		io.SocketAddress localAddress;
+		io.parseSocketAddress ($"0.0.0.0:$(m_localPortProp.m_value)", &localAddress);
+		m_socket.open (&localAddress);
+	}
+
 	m_socket.connect (&address);
 
 	m_remoteAddress = address;
