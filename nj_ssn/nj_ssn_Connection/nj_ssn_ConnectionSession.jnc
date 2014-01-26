@@ -16,7 +16,7 @@ protected:
 	};
 
 protected:
-	io.ConnectionSocket* m_socket;
+	io.Socket* m_socket;
 	gui.Action* m_actionTable [ActionId._Count];
 	gui.BoolProperty* m_abruptiveDisconnectProp;
 	gui.BoolProperty* m_useLocalAddressProp;
@@ -120,18 +120,18 @@ bool ConnectionSession.connect () throws
 		sizeof (address)
 		);
 
-	m_socket = io.createConnectionSocket ();
+	m_socket = io.createSocket ();
 	m_socket.m_onSocketEvent += onSocketEvent @ m_documentHost.m_mainThreadScheduler;
 
 	if (!m_useLocalAddressProp.m_value)
 	{
-		m_socket.open (); // any address
+		m_socket.open (io.Protocol.Tcp); // any address
 	}
 	else
 	{
 		io.SocketAddress localAddress;
 		io.parseSocketAddress ($"0.0.0.0:$(m_localPortProp.m_value)", &localAddress);
-		m_socket.open (&localAddress);
+		m_socket.open (io.Protocol.Tcp, &localAddress);
 	}
 
 	m_socket.connect (&address);
@@ -172,7 +172,7 @@ size_t ConnectionSession.transmit (
 	if (!m_socket)
 		return -1;
 
-	size_t result = try m_socket.write (p, size);
+	size_t result = try m_socket.send (p, size);
 	if (result != -1)
 		m_documentHost.m_log.write (ConnectionLogPacketCode.Tx, p, result);
 
@@ -225,7 +225,7 @@ ConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 
 	case io.SocketEvent.IncomingData:
 		heap char buffer [512];
-		size_t result = try m_socket.read (buffer, sizeof (buffer));
+		size_t result = try m_socket.recv (buffer, sizeof (buffer));
 		if (result != -1)
 			m_documentHost.m_log.write (ConnectionLogPacketCode.Rx, buffer, result);
 		break;

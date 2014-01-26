@@ -17,8 +17,8 @@ protected:
 	};
 
 protected:
-	io.ListenerSocket* m_listenerSocket;
-	io.ConnectionSocket* m_connectionSocket;
+	io.Socket* m_listenerSocket;
+	io.Socket* m_connectionSocket;
 	gui.Action* m_actionTable [ActionId._Count];
 	gui.EnumProperty* m_ifaceProp;
 	gui.BoolProperty* m_abruptiveDisconnectProp;
@@ -138,9 +138,9 @@ bool ListenerSession.listen () throws
 	io.SocketAddress address;
 	io.parseSocketAddress (addressString, &address);
 
-	m_listenerSocket = io.createListenerSocket ();
+	m_listenerSocket = io.createSocket ();
 	m_listenerSocket.m_onSocketEvent += onListenerSocketEvent @ m_documentHost.m_mainThreadScheduler;
-	m_listenerSocket.open (&address);
+	m_listenerSocket.open (io.Protocol.Tcp, &address);
 	m_listenerSocket.listen ();
 
 	m_documentHost.m_log.write (
@@ -198,7 +198,7 @@ size_t ListenerSession.transmit (
 	if (!m_connectionSocket)
 		return -1;
 
-	size_t result = try m_connectionSocket.write (p, size);
+	size_t result = try m_connectionSocket.send (p, size);
 	if (result != -1)
 		m_documentHost.m_log.write (ListenerLogPacketCode.Tx, p, result);
 
@@ -230,7 +230,7 @@ ListenerSession.onListenerSocketEvent (io.SocketEventParams const* params)
 	{
 	case io.SocketEvent.IncomingConnection:
 		io.SocketAddress address;
-		io.ConnectionSocket* socket = try m_listenerSocket.accept (&address);
+		io.Socket* socket = try m_listenerSocket.accept (&address);
 		if (!socket)
 			break;
 
@@ -283,7 +283,7 @@ ListenerSession.onConnectionSocketEvent (io.SocketEventParams const* params)
 
 	case io.SocketEvent.IncomingData:
 		heap char buffer [512];
-		size_t result = try m_connectionSocket.read (buffer, sizeof (buffer));
+		size_t result = try m_connectionSocket.recv (buffer, sizeof (buffer));
 		if (result != -1)
 			m_documentHost.m_log.write (ListenerLogPacketCode.Rx, buffer, result);
 		break;

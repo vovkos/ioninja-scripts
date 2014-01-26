@@ -61,8 +61,6 @@ opaque class Serial
 	bool autoget property m_dtr;
 	bool autoget property m_rts;
 
-	bool dconst m_isOpen;
-
 	bool open (char const* name) throws;
 	void close ();
 
@@ -167,24 +165,6 @@ opaque class AsyncSocketAddressResolver
 
 //.............................................................................
 
-enum SocketKind
-{
-	Connection = 0,
-	Listener,
-	Udp
-}
-
-enum SocketState
-{
-	Closed = 0,
-	Opened,
-	Zombie,
-	Listening,
-	Connecting,
-	Connected,
-	PeerDisconnected,
-}
-
 enum SocketEvent
 {
 	ConnectCompleted,
@@ -206,60 +186,69 @@ struct SocketEventParams
 
 class Socket
 {
-	intptr dconst m_fd;
-	SocketKind dconst m_socketKind;
 	SocketAddress const property m_address;
-	SocketState dconst m_state;
+	SocketAddress const property m_peerAddress;
 
-	bool open (nullable SocketAddress const* address = null) throws;
+	bool open (
+		Protocol protocol,
+		nullable SocketAddress const* address = null
+		) throws;
+
 	void close ();
+
+	bool connect (
+		SocketAddress const* address,
+		bool isSync = false
+		) throws;
+
+	bool listen (size_t backLog = 0) throws; // 0 -- default
+	Socket* accept (nullable SocketAddress* address = null) throws;
+
+	size_t send (
+		void const* p,
+		size_t size
+		) throws;
+
+	size_t recv (
+		void* p,
+		size_t size
+		) throws;
+
+	size_t sendTo (
+		void const* p,
+		size_t size,
+		SocketAddress const* address
+		) throws;
+
+	size_t recvFrom (
+		void* p,
+		size_t size,
+		SocketAddress* address
+		) throws;
 
 	event m_onSocketEvent (SocketEventParams const* params);
 }
 
 //.............................................................................
 
-opaque class ConnectionSocket: Socket
+opaque class PCap
 {
-	SocketAddress const property m_peerAddress;
+	char const* autoget property m_filter;
 
-	bool connect (SocketAddress const* address) throws;
+	bool open (char const* ifaceName) throws;
+	void close ();
+
+	size_t write (
+		void const* p,
+		size_t size
+		) throws;
 
 	size_t read (
 		void* p,
 		size_t size
 		) throws;
 
-	size_t write (
-		void const* p,
-		size_t size
-		) throws;
-}
-
-//.............................................................................
-
-opaque class ListenerSocket: Socket
-{
-	bool listen (size_t backLog = 0) throws; // 0 -- default
-
-	ConnectionSocket* accept (nullable SocketAddress* address = null) throws;
-}
-
-//.............................................................................
-
-opaque class UdpSocket: Socket
-{
-	size_t read (
-		void* p,
-		size_t size,
-		SocketAddress* address
-		) throws;
-
-	size_t write (
-		void const* p,
-		size_t size,
-		SocketAddress const* address
-		) throws;
+	event m_onReadyRead ();
 }
 
 //.............................................................................
@@ -267,11 +256,9 @@ opaque class UdpSocket: Socket
 // create functions (to be removed after 'new operator' for opaque classes is implemented )
 
 Serial* createSerial ();
-ConnectionSocket* createConnectionSocket ();
-ListenerSocket* createListenerSocket ();
-UdpSocket* createUdpSocket ();
+Socket* createSocket ();
+PCap* createPCap ();
 
 //.............................................................................
 
 } // namespace io {
-
