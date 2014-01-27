@@ -235,7 +235,7 @@ opaque class PCap
 {
 	char const* autoget property m_filter;
 
-	bool open (char const* ifaceName) throws;
+	bool open (char const* deviceName) throws;
 	void close ();
 
 	size_t write (
