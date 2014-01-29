@@ -231,11 +231,36 @@ class Socket
 
 //.............................................................................
 
+struct PCapAddress
+{
+	PCapAddress const* m_next;
+	char const* m_name;
+	char const* m_description;
+	uint_t m_flags;
+}
+
+struct PCapDevice
+{
+	PCapDevice const* m_next;
+	char const* m_name;
+	char const* m_description;
+	PCapAddress const* m_addressList;
+	uint_t m_flags;
+}
+
+PCapDevice const* createPCapDeviceList ();
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
 opaque class PCap
 {
 	char const* autoget property m_filter;
 
-	bool open (char const* deviceName) throws;
+	bool open (
+		char const* deviceName,
+		bool isPromiscious = false
+		) throws;
+
 	void close ();
 
 	size_t write (

@@ -1,311 +1,171 @@
-#include "Serial.h"
-#include "SerialSession.h"
-#include "SerialSettings.h"
-#include "SerialUI.h"
-#include "SerialLog.h"
-#include "SerialPropGroup.h"
-#include "LogPropGroup.h"
-#include "LogSettings.h"
-#include "TransmitPropGroup.h"
-#include "TransmitSettings.h"
-
-#pragma once
-
-#include "Document.h"
+//.............................................................................
+//
+// Sniffer session
+//
 
 //.............................................................................
 
-#define GUID_SerialSession (CDE306D8-4147-497d-B24D-27107E48172B)
-#define PATH_SerialIcon    __PATH__ "Serial.ico"
-
-class CSerialSession: ITransportSession;
-
-//.............................................................................
-
-
-//.............................................................................
-
-[
-	guid = GUID_SerialSession,
-	icon = PATH_SerialIcon,
-	name = "Serial",
-	description = "Serial communication using one of the installed COM ports on your PC",
-]
-
-class CSerialSession: ITransportSession
+class SnifferSession: doc.StreamSession
 {
-	using CTransportSession;
+protected:
+	enum ActionId
+	{
+		Capture,
+		StopCapture,
+		_Count,
+	};
 
-	override OnActivate;
-	override OnDeactivate;
-	override Load;
-	override Save;
-	override Transmit;
+protected:
+	io.PCap* m_pcap;
+	gui.Action* m_actionTable [ActionId._Count];
+	gui.ComboBox* m_deviceCombo;
+	gui.BoolProperty* m_promisciousProp;
+	gui.StringProperty* m_liveFilterProp;
+	gui.StringProperty* m_postFilterProp;
+	gui.IntProperty* m_snapshotSizeProp;
 
-	ISerial m_Serial;
-	IFilterLpp m_Filter;
+public:
+	construct (doc.DocumentHost* documentHost);
 
-	void CSerialSession();
+	bool capture () throws;
+	stopCapture ();
 
-	void UpdateDigest();
+	override size_t transmit (
+		void const* p,
+		size_t size
+		) throws;
 
-	void OnSerialOpen();
-	void OnSerialOpenError(TError* pError);
-	void OnSerialClose();
+protected:
+	onReadyRead (io.PCap* sender);
 
-	void OnSerialPortNameChange(const char* pName);
-	void OnSerialBaudRateChange(uint_t Value);
-	void OnSerialFlowControlChange(uint_t Value);
-	void OnSerialParityChange(uint_t Value);
-	void OnSerialDataBitsChange(uint_t Value);
-	void OnSerialStopBitsChange(uint_t Value);
-	void OnSerialDTRChange(bool Value);
-	void OnSerialRTSChange(bool Value);
-	void OnSerialStatusLineChange(int Mask);
-	void OnSerialTransmit(const void* p, size_t Size);
-	void OnSerialReceive(const void* p, size_t Size);
-};
-
-//.............................................................................
-
-void CSerialSession::CSerialSession()
-{
-	Caption = "Serial";
-	Icon = GetIcon(PATH_SerialIcon);
-
-	m_Serial = new CSerial;
-	m_Filter = new CSerialLogFilter;
-	m_Filter.m_Filter = g_SerialDefaultSettings.m_Filter;
-
-	SetSerialSettings(m_Serial, g_SerialDefaultSettings);
-	SetLogSettings(LogCtrl, g_LogDefaultSettings);
-	SetTransmitSettings(this, g_TransmitDefaultSettings);
-
-	LogCtrl.MessageFile.ClassGuid = GUID_SerialLog;
-	LogCtrl.Representor = new CSerialLogRepresentor;
-	LogPostProcessor = m_Filter;
-
-	m_Serial.OnOpen = OnSerialOpen;
-	m_Serial.OnOpenError = OnSerialOpenError;
-	m_Serial.OnClose = OnSerialClose;
-	m_Serial.OnStatusLineChange = OnSerialStatusLineChange;
-	m_Serial.OnReceive = OnSerialReceive;
-	m_Serial.OnTransmit = OnSerialTransmit;
-
-	onchange(m_Serial.PortName) = OnSerialPortNameChange;
-	onchange(m_Serial.BaudRate) = OnSerialBaudRateChange;
-	onchange(m_Serial.FlowControl) = OnSerialFlowControlChange;
-	onchange(m_Serial.Parity) = OnSerialParityChange;
-	onchange(m_Serial.DataBits) = OnSerialDataBitsChange;
-	onchange(m_Serial.StopBits) = OnSerialStopBitsChange;
-	onchange(m_Serial.DTR) = OnSerialDTRChange;
-	onchange(m_Serial.RTS) = OnSerialRTSChange;
-
-	// property groups
-
-	AddSerialPropGroup(PropertyCtrl, m_Serial);
-	
-	m_Filter.AddProperties(PropertyCtrl);
-
-	AddLogPropGroup(PropertyCtrl, this);
-	AddTransmitPropGroup(PropertyCtrl, this);
-
-	SetStdPropertyGroupExpandCollapseState(PropertyCtrl);
-	ShowPropertyCtrl(true);
-
-	g_SerialUI.ShowUI(true);
-	g_SerialUI.UpdateUI(m_Serial, ESerialUpdateUI::All);
-
-	UpdateDigest();
+	createUi ();
 }
 
-void CSerialSession::UpdateDigest()
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+SnifferSession.construct (doc.DocumentHost* documentHost)
 {
-	Caption = FormatString("%s %d bps", m_Serial.PortName, m_Serial.BaudRate);
+	basetype.construct (documentHost);
+
+	printf ("SnifferSession.construct (this = %x, TID = %x)\n", this, jnc.getCurrentThreadId ());
+
+	documentHost.m_log.m_representer = SnifferLogRepresenter.getSingleton ();
+	createUi ();
 }
 
-void CSerialSession::OnActivate()
+SnifferSession.createUi ()
 {
-	g_SerialDefaultSettings.m_Filter = m_Filter.m_Filter;
+	// toolbar
 
-	GetSerialSettings(m_Serial, g_SerialDefaultSettings);
-	GetLogSettings(LogCtrl, g_LogDefaultSettings);
-	GetTransmitSettings(this, g_TransmitDefaultSettings);
-	GetStdPropertyGroupExpandCollapseState(PropertyCtrl);
+	m_documentHost.m_toolBar.addLabel ("Device: ");
+	m_deviceCombo = m_documentHost.m_toolBar.addComboBox (-1);
 
-	g_SerialUI.ShowUI(true);
-	g_SerialUI.UpdateUI(m_Serial, ESerialUpdateUI::All);
+	io.PCapDevice const* device = io.createPCapDeviceList ();
+
+	printf ("create device list...\n");
+
+	for (; device; device = device->m_next)
+	{
+		char const* itemName = $"$(device.m_name) - $(device.m_description)";
+		object <io.PCapDevice const*>* data = new object <io.PCapDevice const*>;
+		data.m_value = device;
+		m_deviceCombo.addItem (itemName, data);
+	}
+
+	m_actionTable [ActionId.Capture] = m_documentHost.createAction ("Capture", "capture.png");
+	m_actionTable [ActionId.Capture].m_onTriggered += capture;
+
+	m_actionTable [ActionId.StopCapture] = m_documentHost.createAction ("Stop", "pause.png");
+	m_actionTable [ActionId.StopCapture].m_onTriggered += stopCapture;
+	m_actionTable [ActionId.StopCapture].m_isEnabled = false;
+
+	// property grid
+
+	m_promisciousProp = m_documentHost.createBoolProperty (
+		"Promiscious Mode",
+		"Put the capturing interface into promiscious mode"
+		);
+
+	m_liveFilterProp = m_documentHost.createStringProperty (
+		"Live Filter",
+		"Capture only the packets which have passed this filter"
+		);
+
+	m_postFilterProp = m_documentHost.createStringProperty (
+		"Post Filter",
+		"Apply secondary filter to captured packets"
+		);
+
+	m_snapshotSizeProp = m_documentHost.createIntProperty (
+		"Snapshot Size",
+		"Adjust the buffer size used by pcap"
+		);
 }
 
-void CSerialSession::OnDeactivate()
+bool SnifferSession.capture () throws
 {
-	g_SerialDefaultSettings.m_Filter = m_Filter.m_Filter;
+	stopCapture ();
 
-	GetSerialSettings(m_Serial, g_SerialDefaultSettings);
-	GetLogSettings(LogCtrl, g_LogDefaultSettings);
-	GetTransmitSettings(this, g_TransmitDefaultSettings);
-	GetStdPropertyGroupExpandCollapseState(PropertyCtrl);
+	object <io.PCapDevice const*>* data = (object <io.PCapDevice const*>*) m_deviceCombo.m_itemData [m_deviceCombo.m_currentIndex];
+	io.PCapDevice const* device = data.m_value;
 
-	g_SerialUI.ShowUI(false);
-}
+	m_pcap = io.createPCap ();
+	m_pcap.m_onReadyRead += onReadyRead ~(m_pcap) @ m_documentHost.m_mainThreadScheduler;
+	m_pcap.open (device.m_name, m_promisciousProp.m_value);
 
-bool CSerialSession::Load(IIniFile File)
-{
-	File.Read("Serial", g_SerialDefaultSettings);
-	File.Read("Log", g_LogDefaultSettings);
-	File.Read("Transmit", g_TransmitDefaultSettings);
-
-	m_Filter.m_Filter = g_SerialDefaultSettings.m_Filter;
-
-	SetSerialSettings(m_Serial, g_SerialDefaultSettings);
-	SetLogSettings(LogCtrl, g_LogDefaultSettings);
-	SetTransmitSettings(this, g_TransmitDefaultSettings);
-
-	PropertyCtrl.UpdateAllLines();
-
+	m_documentHost.m_log.write (SnifferLogPacketCode.CaptureStarted);
+	m_actionTable [ActionId.StopCapture].m_isEnabled = true;
 	return true;
+
+catch:
+	jnc.Error const* error = jnc.getLastError ();
+	m_documentHost.m_log.write (
+		SnifferLogPacketCode.CaptureError,
+		error,
+		error.m_size
+		);
+	m_pcap = null;
+	return false;
 }
 
-bool CSerialSession::Save(IIniFile File)
+SnifferSession.stopCapture ()
 {
-	g_SerialDefaultSettings.m_Filter = m_Filter.m_Filter;
+	if (!m_pcap)
+		return;
 
-	GetSerialSettings(m_Serial, g_SerialDefaultSettings);
-	GetLogSettings(LogCtrl, g_LogDefaultSettings);
-	GetTransmitSettings(this, g_TransmitDefaultSettings);
+	m_documentHost.m_log.write (SnifferLogPacketCode.CaptureStopped);
 
-	File.Write("Serial", g_SerialDefaultSettings);
-	File.Write("Log", g_LogDefaultSettings);
-	File.Write("Transmit", g_TransmitDefaultSettings);
-
-	return true;
+	m_actionTable [ActionId.StopCapture].m_isEnabled = false;
+	m_pcap.close ();
+	m_pcap = null;
 }
 
-void CSerialSession::OnSerialPortNameChange(const char* pName)
+size_t SnifferSession.transmit (
+	void const* p,
+	size_t size
+	) throws
 {
-	UpdateDigest();
+	if (!m_pcap)
+		return -1;
+
+	size_t result = try m_pcap.write (p, size);
+	if (result != -1)
+		m_documentHost.m_log.write (SnifferLogPacketCode.InjectedPacket, p, result);
+
+	return result;
 }
 
-void CSerialSession::OnSerialBaudRateChange(uint_t Value)
-{ 
-	if (m_Serial.IsOpen)
-		WriteLog(ESerialMsg::BaudRateChange, &Value, sizeof(int));
-
-	UpdateDigest();
-}
-
-void CSerialSession::OnSerialFlowControlChange(uint_t Value)
-{ 
-	if (m_Serial.IsOpen)
-		WriteLog(ESerialMsg::FlowControlChange, &Value, sizeof(int));
-}
-
-void CSerialSession::OnSerialParityChange(uint_t Value)
-{ 
-	if (m_Serial.IsOpen)
-		WriteLog(ESerialMsg::ParityChange, &Value, sizeof(int));
-}
-
-void CSerialSession::OnSerialDataBitsChange(uint_t Value)
-{ 
-	if (m_Serial.IsOpen)
-		WriteLog(ESerialMsg::DataBitsChange, &Value, sizeof(int));
-}
-
-void CSerialSession::OnSerialStopBitsChange(uint_t Value)
-{ 
-	if (m_Serial.IsOpen)
-		WriteLog(ESerialMsg::StopBitsChange, &Value, sizeof(int));
-}
-
-void CSerialSession::OnSerialDTRChange(bool Value)
-{ 
-	if (m_Serial.IsOpen)
-		WriteLog(ESerialMsg::DTRChange, &Value, sizeof(int));
-
-	if (IsActive)
-		g_SerialUI.UpdateUI(m_Serial, ESerialUpdateUI::DTR);
-}
-
-void CSerialSession::OnSerialRTSChange(bool Value)
-{ 
-	if (m_Serial.IsOpen)
-		WriteLog(ESerialMsg::RTSChange, &Value, sizeof(int));
-
-	if (IsActive)
-		g_SerialUI.UpdateUI(m_Serial, ESerialUpdateUI::RTS);
-}
-
-void CSerialSession::OnSerialOpen()
+SnifferSession.onReadyRead (io.PCap* sender)
 {
-	TSerialOpenParams Params;
-	Params.m_BaudRate = m_Serial.BaudRate;
-	Params.m_FlowControl = m_Serial.FlowControl;
-	Params.m_Parity = m_Serial.Parity;
-	Params.m_DataBits = m_Serial.DataBits;
-	Params.m_StopBits = m_Serial.StopBits;
+	printf ("SnifferSession.onReadyRead (TID = %x)\n", jnc.getCurrentThreadId ());
 
-	WriteFormatLog(ESerialMsg::PortOpen, "%P%s", &Params, sizeof(Params), m_Serial.PortName);
-	
-	if (IsActive)
-		g_SerialUI.UpdateUI(m_Serial, ESerialUpdateUI::OpenState);
-}
+	if (sender != m_pcap)
+		return;
 
-void CSerialSession::OnSerialOpenError(TError* pError)
-{
-	WriteFormatLog(ESerialMsg::PortOpenError, "%P%s", pError, sizeof(TError) + pError->m_DataSize, m_Serial.PortName);
-}
-
-void CSerialSession::OnSerialClose()
-{
-	WriteFormatLog(ESerialMsg::PortClose, "%s", m_Serial.PortName);
-
-	if (IsActive)
-		g_SerialUI.UpdateUI(m_Serial, ESerialUpdateUI::OpenState);
-}
-
-void CSerialSession::OnSerialStatusLineChange(int Mask)
-{
-	int Lines = 0;
-
-	if (m_Serial.DSR)
-		Lines |= ESerialLine::DSR;
-
-	if (m_Serial.CTS)
-		Lines |= ESerialLine::CTS;
-
-	if (m_Serial.DCD)
-		Lines |= ESerialLine::DCD;
-
-	WriteFormatLog(ESerialMsg::StatusLineChange, "%d%d", Mask, Lines);
-	
-	if (IsActive)
-		g_SerialUI.UpdateUI(m_Serial, Mask);
-}
-
-bool CSerialSession::Transmit(const void* p, size_t Size)
-{
-	return m_Serial.Transmit(p, Size);
-}
-
-void CSerialSession::OnSerialTransmit(const void* p, size_t Size)
-{
-	WriteLog(EStdLogMsg::Tx, p, Size);
-	OnTransmit(p, Size);
-}
-
-void CSerialSession::OnSerialReceive(const void* p, size_t Size)
-{
-	WriteLog(EStdLogMsg::Rx, p, Size);
-	OnReceive(p, Size);
-}
-
-//.............................................................................
-
-static bool main()
-{
-	g_SessionClassList.InsertTail(CSerialSession);
-	return true;
+	heap char buffer [512];
+	size_t result = try m_pcap.read (buffer, sizeof (buffer));
+	if (result != -1)
+		m_documentHost.m_log.write (SnifferLogPacketCode.Packet, buffer, result);
 }
 
 //.............................................................................

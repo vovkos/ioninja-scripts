@@ -6,12 +6,14 @@
 [session]
 
 name        = "Network Sniffer"
-description = "WinPCap-based network traffic sniffer\nProvides basic WinDump functionality for TCP/UDP/ICMP protocols"
+description = "pcap-based network traffic sniffer\nProvides basic tcpdump functionality for TCP/UDP/ICMP protocols"
 id          = sniffer
 guid        = b0a872b3-de4b-4f15-88bd-8de55eba7a78
 icon        = sniffer.png
-representer = CSnifferLogRepresenter
-session     = CSnifferSession
+admin       = true
+
+session-class         = SnifferSession
+log-representer-class = SnifferLogRepresenter
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
@@ -19,4 +21,3 @@ session     = CSnifferSession
 
 nj_ssn_SnifferLog.jnc
 nj_ssn_SnifferSession.jnc
-

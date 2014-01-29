@@ -60,7 +60,7 @@ ConnectionSession.createUi ()
 {
 	// toolbar
 
-	m_documentHost.m_toolBar.addLabel ("Address: ");
+	m_documentHost.m_toolBar.addAction ("Address: ");
 	m_addressCombo = m_documentHost.m_toolBar.addComboBox (-1);
 	m_addressCombo.m_isEditable = true;
 	m_addressCombo.m_editText = "192.168.1.11:1001"; // "127.0.0.1:1024";
