@@ -61,6 +61,8 @@ opaque class Serial
 	bool autoget property m_dtr;
 	bool autoget property m_rts;
 
+	bool dconst m_isOpen;
+
 	bool open (char const* name) throws;
 	void close ();
 
@@ -189,6 +191,8 @@ class Socket
 	SocketAddress const property m_address;
 	SocketAddress const property m_peerAddress;
 
+	bool dconst m_isOpen;
+
 	bool open (
 		Protocol protocol,
 		nullable SocketAddress const* address = null
@@ -255,9 +259,12 @@ PCapDevice const* createPCapDeviceList ();
 opaque class PCap
 {
 	char const* autoget property m_filter;
+	bool dconst m_isPromiscious;
+	bool dconst m_isOpen;
 
 	bool open (
 		char const* deviceName,
+		nullable char const* filter = null,
 		bool isPromiscious = false
 		) throws;
 

@@ -20,8 +20,8 @@ protected:
 	gui.Action* m_actionTable [ActionId._Count];
 	gui.ComboBox* m_deviceCombo;
 	gui.BoolProperty* m_promisciousProp;
-	gui.StringProperty* m_liveFilterProp;
-	gui.StringProperty* m_postFilterProp;
+	gui.StringProperty* m_captureFilterProp;
+	gui.StringProperty* m_displayFilterProp;
 	gui.IntProperty* m_snapshotSizeProp;
 
 public:
@@ -86,14 +86,14 @@ SnifferSession.createUi ()
 		"Put the capturing interface into promiscious mode"
 		);
 
-	m_liveFilterProp = m_documentHost.createStringProperty (
-		"Live Filter",
-		"Capture only the packets which have passed this filter"
+	m_captureFilterProp = m_documentHost.createStringProperty (
+		"Capture Filter",
+		"Capture only the packets which have passed this primary filter"
 		);
 
-	m_postFilterProp = m_documentHost.createStringProperty (
-		"Post Filter",
-		"Apply secondary filter to captured packets"
+	m_displayFilterProp = m_documentHost.createStringProperty (
+		"Display Filter",
+		"Apply the secondary filter to captured packets"
 		);
 
 	m_snapshotSizeProp = m_documentHost.createIntProperty (
@@ -111,7 +111,11 @@ bool SnifferSession.capture () throws
 
 	m_pcap = io.createPCap ();
 	m_pcap.m_onReadyRead += onReadyRead ~(m_pcap) @ m_documentHost.m_mainThreadScheduler;
-	m_pcap.open (device.m_name, m_promisciousProp.m_value);
+	m_pcap.open (
+		device.m_name, 
+		m_captureFilterProp.m_value,
+		m_promisciousProp.m_value
+		);
 
 	m_documentHost.m_log.write (SnifferLogPacketCode.CaptureStarted);
 	m_actionTable [ActionId.StopCapture].m_isEnabled = true;
