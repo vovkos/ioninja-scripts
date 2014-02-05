@@ -1,0 +1,68 @@
+//.............................................................................
+//
+// Pcap (packet-capture) class
+//
+
+namespace io {
+
+//.............................................................................
+
+struct PCapAddress
+{
+	PCapAddress const* m_next;
+	char const* m_name;
+	char const* m_description;
+	uint_t m_flags;
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+struct PCapDevice
+{
+	PCapDevice const* m_next;
+	char const* m_name;
+	char const* m_description;
+	PCapAddress const* m_addressList;
+	uint_t m_flags;
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+PCapDevice const* createPCapDeviceList ();
+
+//.............................................................................
+
+opaque class PCap
+{
+	char const* autoget property m_filter;
+	bool dconst m_isPromiscious;
+	bool dconst m_isOpen;
+
+	bool open (
+		char const* deviceName,
+		nullable char const* filter = null,
+		bool isPromiscious = false
+		) throws;
+
+	void close ();
+
+	size_t write (
+		void const* p,
+		size_t size
+		) throws;
+
+	size_t read (
+		void* p,
+		size_t size
+		) throws;
+
+	event m_onReadyRead ();
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+PCap* createPCap ();
+
+//.............................................................................
+
+} // namespace io {

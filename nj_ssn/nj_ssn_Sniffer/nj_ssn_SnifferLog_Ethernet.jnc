@@ -1,0 +1,80 @@
+//.............................................................................
+//
+// Sniffer log ethernet packets handling 
+//
+
+//.............................................................................
+
+char const* formatEthernetString (uint8_t const* ethernet)
+{
+	return jnc.format (
+		"%02X:%02X:%02X:%02X:%02X:%02X", 
+		ethernet [0], ethernet [1], ethernet [2], 
+		ethernet [3], ethernet [4], ethernet [5]
+		);
+}
+
+representEthernet (
+	log.RepresenterTarget* target,
+	void const* p,
+	size_t size,
+	uint64_t foldFlags
+	)
+{
+	io.EthernetHdr const* ethernetHdr = (io.EthernetHdr*) p;
+
+	target.m_lineAttr.m_iconIdx = log.StdLogIcon.Packet;
+	target.m_lineAttr.m_backColor = gui.StdColor.PastelGray;
+
+	if (foldFlags)
+	{
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Packet;
+		target.m_lineAttr.m_backColor = gui.StdColor.PastelGray;
+
+		target.addHyperText (jnc.format (
+			"[<#0000ff=-1>-<>]\n"
+			"<+b>ETHERNET<>\n"
+			"   <#808080+i>TYPE:<> <=!%d,%d>%04Xh<>\n"
+			"   <#808080+i>SRC:<>  <=!%d,%d>%s<>\n"
+			"   <#808080+i>DST:<>  <=!%d,%d>%s<>",
+	
+			offsetof (ethernetHdr.m_type), 
+			sizeof (ethernetHdr.m_type), 
+			ethernetHdr.m_type,
+
+			offsetof (ethernetHdr.m_srcAddress), 
+			sizeof (ethernetHdr.m_srcAddress), 
+			formatEthernetString (ethernetHdr.m_srcAddress),
+
+			offsetof (ethernetHdr.m_dstAddress), 
+			sizeof (ethernetHdr.m_dstAddress), 
+			formatEthernetString (ethernetHdr.m_dstAddress)
+			));
+
+		if (ethernetHdr->m_type == io.EthernetType.Ip)
+			representIpHdr (target, p, size, sizeof (io.EthernetHdr));
+
+		target.m_lineAttr.m_textColor = gui.StdColor.Gray;
+		target.m_lineAttr.m_backColor = gui.ColorFlags.Transparent;
+		target.addBin (p, size);
+	}
+	else
+	{
+		if (ethernetHdr->m_type == io.EthernetType.Ip)
+		{
+			representIp (target, p, size, sizeof (io.EthernetHdr));
+			return;
+		}
+
+		target.addHyperText (jnc.format (
+			"[<#0000ff=+1>+<>] <+b>ETHERNET<> %s > %s [TYPE:%04Xh]",
+			formatEthernetString (ethernetHdr->m_srcAddress),
+			formatEthernetString (ethernetHdr->m_dstAddress),
+			ethernetHdr->m_type
+			));	 	
+
+		representPacketData (target, p, size, sizeof (io.EthernetHdr), -1);
+	}
+}
+
+//.............................................................................

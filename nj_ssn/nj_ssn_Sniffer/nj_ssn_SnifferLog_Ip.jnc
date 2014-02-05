@@ -1,0 +1,144 @@
+//.............................................................................
+//
+// Sniffer log IP packets handling 
+//
+
+//.............................................................................
+
+char const* formatIpString (uint32_t ip32)
+{
+	uint8_t const* ip8 = (uint8_t const*) &ip32;
+	return jnc.format (
+		"%d.%d.%d.%d", 
+		ip8 [0], ip8 [1], ip8 [2], ip8 [3]
+		);
+}
+
+representIpHdr (
+	log.RepresenterTarget* target,
+	const void* p,
+	size_t size,
+	size_t baseOffset
+	)
+{
+	io.IpHdr* ipHdr = (io.IpHdr*) (p + baseOffset);
+
+	target.addHyperText (jnc.format (
+		"<+b>IP<>\n"
+		"   <#808080+i>VERSION:<>  <=!%d,%d>%d<>\n"
+		"   <#808080+i>HLENGTH:<>  <=!%d,%d>%d<>\n"
+		"   <#808080+i>TOS:<>      <=!%d,%d>%d<>\n"
+		"   <#808080+i>TLENGTH:<>  <=!%d,%d>%d<>\n"
+		"   <#808080+i>ID:<>       <=!%d,%d>%d<>\n"
+		"   <#808080+i>FLAGS:<>    <=!%d,%d>%d<>\n"
+		"   <#808080+i>TTL:<>      <=!%d,%d>%d<>\n"
+		"   <#808080+i>PROTO:<>    <=!%d,%d>%d<>\n"
+		"   <#808080+i>CHECKSUM:<> <=!%d,%d>%04Xh<>\n"
+		"   <#808080+i>SRC:<>      <=!%d,%d>%s<>\n"
+		"   <#808080+i>DST:<>      <=!%d,%d>%s<>",
+		
+		baseOffset + offsetof (ipHdr.m_version), 
+		sizeof (ipHdr.m_version), 
+		ipHdr.m_version,
+
+		baseOffset + offsetof (ipHdr.m_headerLength), 
+		sizeof (ipHdr.m_headerLength), 
+		ipHdr.m_headerLength * 4,
+
+		baseOffset + offsetof (ipHdr.m_typeOfService), 
+		sizeof (ipHdr.m_typeOfService), 
+		ipHdr.m_typeOfService,
+
+		baseOffset + offsetof (ipHdr.m_totalLength), 
+		sizeof (ipHdr.m_totalLength), 
+		ipHdr.m_totalLength,
+
+		baseOffset + offsetof (ipHdr.m_identification), 
+		sizeof (ipHdr.m_identification), 
+		ipHdr.m_identification,
+
+		baseOffset + offsetof (ipHdr.m_flags), 
+		sizeof (ipHdr.m_flags), 
+		ipHdr.m_flags,
+
+		baseOffset + offsetof (ipHdr.m_timeToLive), 
+		sizeof (ipHdr.m_timeToLive), 
+		ipHdr.m_timeToLive,
+
+		baseOffset + offsetof (ipHdr.m_protocol), 
+		sizeof (ipHdr.m_protocol), 
+		ipHdr.m_protocol,
+
+		baseOffset + offsetof (ipHdr.m_headerChecksum), 
+		sizeof (ipHdr.m_headerChecksum), 
+		ipHdr.m_headerChecksum,
+
+		baseOffset + offsetof (ipHdr.m_srcAddress), 
+		sizeof (ipHdr.m_srcAddress), 
+		formatIpString (ipHdr.m_srcAddress),
+
+		baseOffset + offsetof (ipHdr.m_dstAddress), 
+		sizeof (ipHdr.m_dstAddress), 
+		formatIpString (ipHdr.m_dstAddress)
+		));
+
+	switch (ipHdr.m_protocol)
+	{
+	case io.IpProtocol.Icmp:
+		representIcmpHdr(target, p, size, baseOffset + sizeof (io.IpHdr));
+		break;
+
+	case io.IpProtocol.Tcp:
+		representTcpHdr(target, p, size, baseOffset + sizeof (io.IpHdr));
+		break;
+
+	case io.IpProtocol.Udp:
+		representUdpHdr(target, p, size, baseOffset + sizeof (io.IpHdr));
+		break;
+	}
+}
+
+representIp(
+	log.RepresenterTarget* target,
+	const void* p,
+	size_t size, 
+	size_t baseOffset
+	)
+{
+	if (baseOffset + sizeof (io.IpHdr) > size)
+	{
+		target.addHyperText (jnc.format ("[<#0000ff=+1>+<>] <+b>IP<> [INVALID SIZE:%d]", size));
+		return;
+	}
+
+	io.IpHdr* ipHdr = (io.IpHdr*) (p + baseOffset);
+	
+	switch (ipHdr.m_protocol)
+	{
+	case io.IpProtocol.Icmp:
+		representIcmp (target, ipHdr, p, size, baseOffset + sizeof (io.IpHdr));
+		break;
+
+	case io.IpProtocol.Tcp:
+		representTcp (target, ipHdr, p, size, baseOffset + sizeof (io.IpHdr));
+		break;
+
+	case io.IpProtocol.Udp:
+		representUdp (target, ipHdr, p, size, baseOffset + sizeof (io.IpHdr));
+		break;
+		
+	default:
+		target.addHyperText (jnc.format (
+			"[<#0000ff=+1>+<>] <+b>IP<> %s > %s [PROTO:%d]",
+			formatIpString (ipHdr.m_srcAddress), 
+			formatIpString (ipHdr.m_dstAddress),
+			ipHdr.m_protocol
+			));
+
+		size_t dataSize = ipHdr.m_totalLength - sizeof (io.IpHdr);
+		representPacketData (target, p, size, baseOffset + sizeof (io.IpHdr), dataSize);
+	}
+}
+
+//.............................................................................
+

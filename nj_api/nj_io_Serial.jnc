@@ -1,0 +1,89 @@
+//.............................................................................
+//
+// Serial class
+//
+
+namespace io {
+
+//.............................................................................
+
+// serial
+
+enum SerialStopBits
+{
+	_1  = 0,
+	_15 = 1,
+	_2  = 2
+};
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+enum SerialParity
+{
+	None = 0,
+	Odd,
+	Even,
+	Mark,
+	Space,
+};
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+enum SerialFlowControl
+{
+	None = 0,
+	RtsCts,
+	XOnXOff,
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+fenum SerialStatusLines
+{
+	Dsr,
+	Cts,
+	Dcd,
+	Ring,
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+opaque class Serial
+{
+	uint_t autoget property m_baudRate;
+	uint_t autoget property m_dataBits; // typically 5..8
+	SerialStopBits autoget property m_stopBits;
+	SerialParity autoget property m_parity;
+	SerialFlowControl autoget property m_flowControl;
+
+	SerialStatusLines const property m_statusLines;
+
+	bool autoget property m_dtr;
+	bool autoget property m_rts;
+
+	bool dconst m_isOpen;
+
+	bool open (char const* name) throws;
+	void close ();
+
+	size_t read (
+		void* p,
+		size_t size
+		) throws;
+
+	size_t write (
+		void const* p,
+		size_t Size
+		) throws;
+
+	event m_onReadyRead ();
+	event m_onStatusLineChanged (SerialStatusLines mask);
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+Serial* createSerial ();
+
+//.............................................................................
+
+} // namespace io {

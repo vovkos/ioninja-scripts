@@ -129,7 +129,7 @@ class CSerialLogRepresentor: ILogRepresentor
 };
 
 bool CSerialLogRepresentor::Represent(
-	ILogRepresentSink Sink,
+	log.RepresenterTarget* target,
 	ulong_t Code, 
 	const void* p, 
 	size_t Size,
@@ -144,18 +144,18 @@ bool CSerialLogRepresentor::Represent(
 	switch (Code)
 	{
 	case EStdLogMsg::Tx:
-		Sink.Icon = EStdIcons::Tx;
+		Sink.Icon = log.StdLogIcon.Tx;
 		Sink.TileIcon = true;
 		Sink.Attr = GetStdLogMsgAttr(EStdLogMsgAttr::Tx);
-		Sink.AddBin(p, Size);
+		target.addBin (p, Size);
 		Delimiter = ELogLineDelimiter::Light;
 		break;
 
 	case EStdLogMsg::Rx:
-		Sink.Icon = EStdIcons::Rx;
+		Sink.Icon = log.StdLogIcon.Rx;
 		Sink.TileIcon = true;
 		Sink.Attr = GetStdLogMsgAttr(EStdLogMsgAttr::Rx);
-		Sink.AddBin(p, Size);
+		target.addBin (p, Size);
 		Delimiter = ELogLineDelimiter::Light;
 		break;
 
@@ -163,14 +163,14 @@ bool CSerialLogRepresentor::Represent(
 		TSerialOpenParams* pParams = (TSerialOpenParams*) p;
 		const char* pPortName = (const char*) (pParams + 1);
 
-		Sink.Icon = EStdIcons::Play;
+		Sink.Icon = log.StdLogIcon.Play;
 		Sink.Attr = GetStdLogMsgAttr(EStdLogMsgAttr::Start);
 
 		if (!(VolatileFlags & ESerialMsgFlags::Verbose))
-			Sink.AddHyperText("[<#0000ff=+2>+<>] Opened port <15>%s<> at <15>%d<> bps", pPortName, pParams->m_BaudRate);
+			target.addHyperText ("[<#0000ff=+1>+<>] Opened port <15>%s<> at <15>%d<> bps", pPortName, pParams->m_BaudRate);
 		else
-			Sink.AddHyperText(
-				"[<#0000ff=-2>-<>] Opened port <15>%s<>\n"
+			target.addHyperText (
+				"[<#0000ff=-1>-<>] Opened port <15>%s<>\n"
 				"    <#808080+i>Baud rate:<>    %d bps\n"
 				"    <#808080+i>Data bits:<>    %s\n"
 				"    <#808080+i>Stop bits:<>    %s\n"
@@ -190,57 +190,57 @@ bool CSerialLogRepresentor::Represent(
 		TError* pError = (TError*) p;
 		char* pPortName = (char*) (pError + 1) + pError->m_DataSize;
 
-		Sink.Icon = EStdIcons::Error;
+		Sink.Icon = log.StdLogIcon.Error;
 		Sink.Attr = GetStdLogMsgAttr(EStdLogMsgAttr::Error);
-		Sink.AddHyperText("Unable to open port <5>%s<> (%s)", pPortName, GetErrorString(pError));
+		target.addHyperText ("Unable to open port <5>%s<> (%s)", pPortName, GetErrorString(pError));
 		break;
 
 	case ESerialMsg::PortClose:
-		Sink.Icon = EStdIcons::Pause;
+		Sink.Icon = log.StdLogIcon.Pause;
 		Sink.Attr = GetStdLogMsgAttr(EStdLogMsgAttr::Stop);
-		Sink.AddHyperText("Port <15>%s<> closed", (char*) p);
+		target.addHyperText ("Port <15>%s<> closed", (char*) p);
 		break;
 
 	case ESerialMsg::BaudRateChange:
-		Sink.Icon = EStdIcons::Info;
+		Sink.Icon = log.StdLogIcon.Info;
 		Sink.Attr = GetStdLogMsgAttr(EStdLogMsgAttr::Info);
-		Sink.AddHyperText("Baud rate set to <15>%d<> bps", *(int*) p);
+		target.addHyperText ("Baud rate set to <15>%d<> bps", *(int*) p);
 		break;
 
 	case ESerialMsg::DataBitsChange:
-		Sink.Icon = EStdIcons::Info;
+		Sink.Icon = log.StdLogIcon.Info;
 		Sink.Attr = GetStdLogMsgAttr(EStdLogMsgAttr::Info);
-		Sink.AddHyperText("Data bits set to <15>%s", ESerialDataBits.GetValueText(*(int*) p));
+		target.addHyperText ("Data bits set to <15>%s", ESerialDataBits.GetValueText(*(int*) p));
 		break;
 
 	case ESerialMsg::StopBitsChange:
-		Sink.Icon = EStdIcons::Info;
+		Sink.Icon = log.StdLogIcon.Info;
 		Sink.Attr = GetStdLogMsgAttr(EStdLogMsgAttr::Info);
-		Sink.AddHyperText("Stop bits set to <15>%s", ESerialStopBits.GetValueText(*(int*) p));
+		target.addHyperText ("Stop bits set to <15>%s", ESerialStopBits.GetValueText(*(int*) p));
 		break;
 
 	case ESerialMsg::ParityChange:
-		Sink.Icon = EStdIcons::Info;
+		Sink.Icon = log.StdLogIcon.Info;
 		Sink.Attr = GetStdLogMsgAttr(EStdLogMsgAttr::Info);
-		Sink.AddHyperText("Parity set to <15>%s", ESerialParity.GetValueText(*(int*) p));
+		target.addHyperText ("Parity set to <15>%s", ESerialParity.GetValueText(*(int*) p));
 		break;
 
 	case ESerialMsg::FlowControlChange:
-		Sink.Icon = EStdIcons::Info;
+		Sink.Icon = log.StdLogIcon.Info;
 		Sink.Attr = GetStdLogMsgAttr(EStdLogMsgAttr::Info);
-		Sink.AddHyperText("Flow control set to <15>%s", ESerialFlowControl.GetValueText(*(int*) p));
+		target.addHyperText ("Flow control set to <15>%s", ESerialFlowControl.GetValueText(*(int*) p));
 		break;
 
 	case ESerialMsg::RTSChange:
-		Sink.Icon = EStdIcons::Info;
+		Sink.Icon = log.StdLogIcon.Info;
 		Sink.Attr = GetStdLogMsgAttr(EStdLogMsgAttr::Info);
-		Sink.AddHyperText("<15>RTS<> set to %s", GetLineStateString(*(bool*) p));
+		target.addHyperText ("<15>RTS<> set to %s", GetLineStateString(*(bool*) p));
 		break;
 
 	case ESerialMsg::DTRChange:
-		Sink.Icon = EStdIcons::Info;
+		Sink.Icon = log.StdLogIcon.Info;
 		Sink.Attr = GetStdLogMsgAttr(EStdLogMsgAttr::Info);
-		Sink.AddHyperText("<15>DTR<> set to %s", GetLineStateString(*(bool*) p));
+		target.addHyperText ("<15>DTR<> set to %s", GetLineStateString(*(bool*) p));
 		break;
 
 	case ESerialMsg::StatusLineChange:
@@ -258,16 +258,15 @@ bool CSerialLogRepresentor::Represent(
 		if (Mask & ESerialLine::DCD)
 			Text.AppendFormat(" <15>DCD<>:%s", GetLineStateString(Lines & ESerialLine::DCD));
 
-		Sink.Icon = EStdIcons::Info;
+		Sink.Icon = log.StdLogIcon.Info;
 		Sink.Attr = GetStdLogMsgAttr(EStdLogMsgAttr::Info);
-		Sink.AddHyperText(Text);
+		target.addHyperText (Text);
 		break;
 
 	default:
 		return false;
 	}
 
-	Sink.AddDelimiter(Delimiter);
 	return true;
 }
 

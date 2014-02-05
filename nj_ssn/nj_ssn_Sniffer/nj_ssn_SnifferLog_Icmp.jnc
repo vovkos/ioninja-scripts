@@ -1,0 +1,77 @@
+//.............................................................................
+//
+// Sniffer log ICMP packets handling 
+//
+
+//.............................................................................
+
+representIcmpHdr(
+	log.RepresenterTarget* target,
+	const void* p, 
+	size_t size,
+	size_t baseOffset
+	)
+{
+	io.IcmpHdr const* icmpHdr = (io.IcmpHdr const*) (p + baseOffset);
+	
+	target.addHyperText (jnc.format (
+		"<+b>ICMP<>\n"
+		"   <#808080+i>TYPE:<>     <=!%d,%d>%d<>\n"
+		"   <#808080+i>CODE:<>     <=!%d,%d>%d<>\n"
+		"   <#808080+i>CHECKSUM:<> <=!%d,%d>%04Xh<>\n" 
+		"   <#808080+i>ID:<>       <=!%d,%d>%d<>\n" 
+		"   <#808080+i>SEQ:<>      <=!%d,%d>%d<>",
+
+		baseOffset + offsetof (icmpHdr.m_type), 
+		sizeof (icmpHdr.m_type), 
+		icmpHdr.m_type,
+
+		baseOffset + offsetof (icmpHdr.m_code), 
+		sizeof (icmpHdr.m_code), 
+		icmpHdr.m_code,
+
+		baseOffset + offsetof (icmpHdr.m_checksum), 
+		sizeof (icmpHdr.m_checksum), 
+		icmpHdr.m_checksum,
+
+		baseOffset + offsetof (icmpHdr.m_id), 
+		sizeof (icmpHdr.m_id), 
+		icmpHdr.m_id,
+
+		baseOffset + offsetof (icmpHdr.m_seqNumber), 
+		sizeof (icmpHdr.m_seqNumber), 
+		icmpHdr.m_seqNumber
+		));
+}
+
+representIcmp (
+	log.RepresenterTarget* target,
+	io.IpHdr* ipHdr,
+	const void* p, 
+	size_t size,
+	size_t baseOffset
+	)
+{
+	if (baseOffset + sizeof (io.IcmpHdr) > size)
+	{
+		target.addHyperText (jnc.format (
+			"[<#0000ff=+1>+<>] <+b>ICMP<> %s > %s [INVALID SIZE:%d]",
+			formatIpString (ipHdr.m_srcAddress), 
+			formatIpString (ipHdr.m_dstAddress),
+			size
+			));
+
+		return;
+	}
+
+	io.IcmpHdr* icmpHdr = (io.IcmpHdr*) (p + baseOffset);
+	target.addHyperText (jnc.format (
+		"[<#0000ff=+1>+<>] <+b>ICMP<> %s > %s [TYPE:%d CODE:%d]",
+		formatIpString (ipHdr.m_srcAddress), 
+		formatIpString (ipHdr.m_dstAddress), 
+		icmpHdr.m_type,
+		icmpHdr.m_code
+		));
+}
+
+//.............................................................................

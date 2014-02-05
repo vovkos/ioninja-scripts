@@ -14,6 +14,11 @@ project_virtual_folder (nj_ssn_Sniffer)
 set (
 	SNIFFER_JNC_LIST
 	nj_ssn_SnifferLog.jnc
+	nj_ssn_SnifferLog_Ethernet.jnc
+	nj_ssn_SnifferLog_Ip.jnc
+	nj_ssn_SnifferLog_Icmp.jnc
+	nj_ssn_SnifferLog_Tcp.jnc
+	nj_ssn_SnifferLog_Udp.jnc
 	nj_ssn_SnifferSession.jnc
 	)
 

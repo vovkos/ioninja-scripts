@@ -47,14 +47,6 @@ enum StdColor
 	PastelPurple = 0xe2dafd,
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-struct ColorAttr
-{
-	uint_t m_foreColor;
-	uint_t m_backColor;
-}
-
 //.............................................................................
 
 // text
@@ -73,8 +65,10 @@ fenum FontFlags
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-struct TextAttr: ColorAttr
+struct TextAttr
 {
+	uint_t m_textColor;
+	uint_t m_backColor;
 	FontFlags m_fontFlags;
 }
 

@@ -7,9 +7,9 @@
 
 enum SnifferLogPacketCode
 {
-	Packet,
-	InjectedPacket,
-	CaptureStarted,
+	Packet         = log.PacketCodeFlags.Foldable | 1,
+	InjectedPacket = log.PacketCodeFlags.Foldable | 2,
+	CaptureStarted = 3,
 	CaptureError,
 	CaptureStopped,
 	FilterChanged,
@@ -49,12 +49,12 @@ bool SnifferLogRepresenter.represent (
 	{
 	case SnifferLogPacketCode.Packet:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Packet;
-		target.addBin (p, size);
+		representPacket (target, p, size, foldFlags);
 		break;
 
 	case SnifferLogPacketCode.InjectedPacket:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.TxPacket;
-		target.addBin (p, size);
+		representPacket (target, p, size, foldFlags);
 		break;
 
 	case SnifferLogPacketCode.CaptureStarted:
@@ -95,6 +95,39 @@ bool SnifferLogRepresenter.represent (
 	}
 
 	return true;
+}
+
+//.............................................................................
+
+representPacket (
+	log.RepresenterTarget* target,
+	void const* p,
+	size_t size,
+	uint64_t foldFlags
+	)
+{
+	// TODO: add data link switch, currently we support ethernet only
+
+	representEthernet (target, p, size, foldFlags);
+}
+
+representPacketData (
+	log.RepresenterTarget* target,
+	void const* p,
+	size_t size,
+	size_t baseOffset,
+	size_t length
+	)
+{
+	if (baseOffset >= size)
+		return;
+
+	if (length == -1 || baseOffset + length >= size)
+		length = size - baseOffset;
+
+	target.m_lineAttr.m_textColor = gui.StdColor.Gray;
+	target.m_lineAttr.m_backColor = gui.ColorFlags.Transparent;
+	target.addBin (p + baseOffset, length);
 }
 
 //.............................................................................

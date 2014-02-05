@@ -1,0 +1,119 @@
+//.............................................................................
+//
+// Sniffer log TCP packets handling 
+//
+
+//.............................................................................
+
+char const* formatTcpFlagString (io.TcpFlags flags)
+{
+	return jnc.format (
+		"%c%c%c%c%c%c%c",
+		(flags & io.TcpFlags.Fin) ? 'F' : '.',
+		(flags & io.TcpFlags.Syn) ? 'S' : '.',
+		(flags & io.TcpFlags.Rst) ? 'R' : '.',
+		(flags & io.TcpFlags.Psh) ? 'P' : '.',
+		(flags & io.TcpFlags.Ack) ? 'A' : '.',
+		(flags & io.TcpFlags.Urg) ? 'U' : '.',
+		(flags & io.TcpFlags.Bog) ? 'B' : '.'
+		);
+}
+
+representTcpHdr (
+	log.RepresenterTarget* target,
+	const void* p, 
+	size_t size,
+	size_t baseOffset
+	)
+{
+	io.TcpHdr* tcpHdr = (io.TcpHdr*) (p + baseOffset);
+
+	target.addHyperText (jnc.format (
+		"<+b>TCP<>\n" 
+		"   <#808080+i>SRC:<>      <=!%d,%d>%d<>\n"
+		"   <#808080+i>DST:<>      <=!%d,%d>%d<>\n"
+		"   <#808080+i>SEQ:<>      <=!%d,%d>%08x<>\n"
+		"   <#808080+i>ACK:<>      <=!%d,%d>%08x<>\n"
+		"   <#808080+i>DATAOFFS:<> <=!%d,%d>%d<>\n"
+		"   <#808080+i>FLAGS:<>    <=!%d,%d>%s<>\n"
+		"   <#808080+i>WINDOW:<>   <=!%d,%d>%d<>\n"
+		"   <#808080+i>CHECKSUM:<> <=!%d,%d>%04Xh<>\n"
+		"   <#808080+i>URGENT:<>   <=!%d,%d>%d<>",
+		
+		baseOffset + offsetof (tcpHdr.m_srcPort), 
+		sizeof (tcpHdr.m_srcPort), 
+		tcpHdr.m_srcPort,
+
+		baseOffset + offsetof (tcpHdr.m_dstPort), 
+		sizeof (tcpHdr.m_dstPort), 
+		tcpHdr.m_dstPort,
+
+		baseOffset + offsetof (tcpHdr.m_seqNumber), 
+		sizeof (tcpHdr.m_seqNumber), 
+		tcpHdr.m_seqNumber,
+
+		baseOffset + offsetof (tcpHdr.m_ackNumber), 
+		sizeof (tcpHdr.m_ackNumber), 
+		tcpHdr.m_ackNumber,
+
+		baseOffset + offsetof (tcpHdr.m_dataOffset), 
+		sizeof (tcpHdr.m_dataOffset), 
+		tcpHdr.m_dataOffset,
+
+		baseOffset + offsetof (tcpHdr.m_flags), 
+		sizeof (tcpHdr.m_flags), 
+		formatTcpFlagString (tcpHdr.m_flags),
+
+		baseOffset + offsetof (tcpHdr.m_window), 
+		sizeof (tcpHdr.m_window), 
+		tcpHdr.m_window,
+
+		baseOffset + offsetof (tcpHdr.m_checksum), 
+		sizeof (tcpHdr.m_checksum), 
+		tcpHdr.m_checksum,
+
+		baseOffset + offsetof (tcpHdr.m_urgentData), 
+		sizeof (tcpHdr.m_urgentData), 
+		tcpHdr.m_urgentData
+		));
+}
+
+representTcp (
+	log.RepresenterTarget* target,
+	io.IpHdr* ipHdr,
+	const void* p, 
+	size_t size,
+	size_t baseOffset
+	)
+{
+	if (baseOffset + sizeof(io.TcpHdr) > size)
+	{
+		target.addHyperText (jnc.format (
+			"[<#0000ff=+1>+<>] <+b>TCP<> %s > %s [INVALID SIZE:%d]",
+			formatIpString (ipHdr.m_srcAddress), 
+			formatIpString (ipHdr.m_dstAddress),
+			size
+			));
+
+		return;
+	}
+
+	io.TcpHdr* tcpHdr = (io.TcpHdr*) (p + baseOffset);
+
+	size_t dataOffset = tcpHdr.m_dataOffset * 4;
+	size_t dataSize = ipHdr->m_totalLength - sizeof (io.IpHdr) - dataOffset;
+
+	target.addHyperText (jnc.format (
+		"[<#0000ff=+1>+<>] <+b>TCP<> %s:%d > %s:%d [%s] (%d bytes)",
+		formatIpString (ipHdr.m_srcAddress), 
+		tcpHdr.m_srcPort,
+		formatIpString (ipHdr.m_dstAddress), 
+		tcpHdr.m_dstPort,
+		formatTcpFlagString (tcpHdr.m_flags),
+		dataSize
+		));
+
+	representPacketData (target, p, size, baseOffset + dataOffset, dataSize);
+}
+
+//.............................................................................

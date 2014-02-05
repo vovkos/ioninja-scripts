@@ -90,14 +90,14 @@ bool ConnectionLogRepresenter.represent (
 	case ConnectionLogPacketCode.Tx:
 		target.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Tx;
-		target.m_lineAttr.m_foreColor = gui.StdColor.Blue;
+		target.m_lineAttr.m_textColor = gui.StdColor.Blue;
 		target.addBin (p, size);
 		break;
 
 	case ConnectionLogPacketCode.Rx:
 		target.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Rx;
-		target.m_lineAttr.m_foreColor = gui.StdColor.Green;
+		target.m_lineAttr.m_textColor = gui.StdColor.Green;
 		target.addBin (p, size);
 		break;
 
