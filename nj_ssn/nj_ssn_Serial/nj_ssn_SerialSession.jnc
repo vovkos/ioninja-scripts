@@ -48,7 +48,8 @@ protected:
 	
 	onStatusLineChanged (
 		io.Serial* serial,
-		uint_t mask
+		io.SerialStatusLines lines,
+		io.SerialStatusLines mask
 		);
 
 	reactor m_portUiReactor ();
@@ -276,14 +277,16 @@ SerialSession.onReadyRead (io.Serial* serial)
 	
 SerialSession.onStatusLineChanged (
 	io.Serial* serial,
-	uint_t mask
+	io.SerialStatusLines lines,
+	io.SerialStatusLines mask
 	)
 {
 	if (serial != m_serial)
 		return;
 
-	io.SerialStatusLines lines = m_serial.m_statusLines;	
-	printf ("SerialSession.onStatusLineChanged (lines = %x, mask = %x)\n", lines, mask);
+	char const* p = $"$(lines, B)$(mask, B)";
+	size_t size = jnc.getDataPtrSpan (p);
+	m_documentHost.m_log.write (SerialLogPacketCode.StatusLineChanged, p, size);
 }
 
 reactor SerialSession.m_portUiReactor ()

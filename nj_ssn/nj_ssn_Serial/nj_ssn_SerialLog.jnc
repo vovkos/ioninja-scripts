@@ -20,7 +20,14 @@ enum SerialLogPacketCode
 	StatusLineChanged,
 	Tx               = 100 | log.PacketCodeFlags.Mergeable,
 	Rx               = 101 | log.PacketCodeFlags.Mergeable,
-};
+}
+
+enum StatusLinePartCode
+{
+	Prefix = 1 | log.PacketCodeFlags.MergeableForward,
+	Suffix = 1 | log.PacketCodeFlags.MergeableBackward,
+}
+
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
@@ -64,15 +71,11 @@ bool SerialLogRepresenter.represent (
 	uint64_t foldFlags
 	)
 {
-	printf ("SerialLogRepresenter.represent (%x)\n", packetCode);
-
 	switch (packetCode)
 	{
 	case SerialLogPacketCode.PortOpened:
 		SerialOpenParams const* params = (SerialOpenParams const*) p;
 		char const* name = (char const*) (params + 1);
-
-		printf ("SerialLogPacketCode.PortOpened (%s, %d)\n", name, params.m_baudRate);
 
 		target.m_lineAttr.m_iconIdx = StdLogIcon.Play;
 		target.m_lineAttr.m_backColor = StdLogColor.Start;
@@ -165,36 +168,34 @@ bool SerialLogRepresenter.represent (
 		target.m_lineAttr.m_backColor = StdLogColor.Info;
 		target.addHyperText ($"<15>DTR<> set to $dtr");
 		break;
-/*
+
 	case SerialLogPacketCode.StatusLineChanged:
-		uint_t mask = *(uint_t*) p;
-		uint_t lines = *((uint_t*) p + 1);
-
-		jnc.String text = "Status line(s) changed:";
-
-		if (mask & SerialLines.Dsr)
-		{
-			bool dsr = (lines & SerialLines.Dsr) != 0;
-			text += " <15>DSR<>:$dsr";
-		}
-
-		if (Mask & SerialLines.Cts)
-		{
-			bool cts = (lines & SerialLines.Cts) != 0;
-			text += " <15>CTS<>:$cts";
-		}
-
-		if (Mask & SerialLines.Dcd)
-		{
-			bool dcd = (lines & SerialLines.Dcd) != 0;
-			text += " <15>DCD<>:$dcd";
-		}
+		uint_t lines = ((uint_t*) p) [0];
+		uint_t mask = ((uint_t*) p) [1];
 
 		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = StdLogColor.Info;
-		target.addHyperText (text);
+		target.addHyperText (StatusLinePartCode.Prefix, "Status line(s) changed:");
+
+		if (mask & io.SerialStatusLines.Dsr)
+		{
+			bool dsr = (lines & io.SerialStatusLines.Dsr) != 0;
+			target.addHyperText (StatusLinePartCode.Suffix, $" <15>DSR<>:$dsr");
+		}
+
+		if (mask & io.SerialStatusLines.Cts)
+		{
+			bool cts = (lines & io.SerialStatusLines.Cts) != 0;
+			target.addHyperText (StatusLinePartCode.Suffix, $" <15>CTS<>:$cts");
+		}
+
+		if (mask & io.SerialStatusLines.Dcd)
+		{
+			bool dcd = (lines & io.SerialStatusLines.Dcd) != 0;
+			target.addHyperText (StatusLinePartCode.Suffix, $" <15>DCD<>:$dcd");
+		}
+
 		break;
-*/
 
 	case SerialLogPacketCode.Tx:
 		target.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;

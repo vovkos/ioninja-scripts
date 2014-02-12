@@ -77,7 +77,11 @@ opaque class Serial
 		) throws;
 
 	event m_onReadyRead ();
-	event m_onStatusLineChanged (SerialStatusLines mask);
+
+	event m_onStatusLineChanged (
+		SerialStatusLines lines,
+		SerialStatusLines mask
+		);
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
