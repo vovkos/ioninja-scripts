@@ -128,6 +128,7 @@ catch:
 		error,
 		error.m_size
 		);
+	m_pcap.close ();
 	m_pcap = null;
 	return false;
 }

@@ -40,10 +40,10 @@ enum SerialFlowControl
 
 fenum SerialStatusLines
 {
-	Dsr,
 	Cts,
-	Dcd,
+	Dsr,
 	Ring,
+	Dcd,
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .

@@ -19,6 +19,8 @@ protected:
 
 protected:
 	io.Serial* m_serial;
+	uint_t m_syncId;
+
 	gui.Action* m_actionTable [ActionId._Count];
 	gui.EnumProperty* m_baudRateProp;
 	gui.EnumProperty* m_dataBitsProp;
@@ -41,6 +43,14 @@ public:
 
 protected:
 	createUi ();
+
+	onReadyRead (io.Serial* sender);
+	
+	onStatusLineChanged (
+		io.Serial* serial,
+		uint_t mask
+		);
+
 	reactor m_portUiReactor ();
 }
 
@@ -50,7 +60,6 @@ SerialSession.construct (doc.DocumentHost* documentHost)
 {
 	basetype.construct (documentHost);
 	documentHost.m_log.m_representer = SerialLogRepresenter.getSingleton ();
-	m_serial = io.createSerial ();
 	createUi ();
 }
 
@@ -182,15 +191,13 @@ bool SerialSession.open () throws
 
 	// open and configure
 
+	m_serial = io.createSerial ();
 	m_serial.open (name);
-
 	m_serial.m_baudRate = m_baudRateProp.m_value;
 	m_serial.m_dataBits = m_dataBitsProp.m_value;
 	m_serial.m_stopBits = (io.SerialStopBits) m_stopBitsProp.m_value;
 	m_serial.m_parity = (io.SerialParity) m_parityProp.m_value;
 	m_serial.m_flowControl = (io.SerialFlowControl) m_flowControlProp.m_value;
-
-	m_portName = name;
 
 	SerialOpenParams params;
 	params.m_baudRate = m_serial.m_baudRate;
@@ -203,11 +210,17 @@ bool SerialSession.open () throws
 	size_t size = jnc.getDataPtrSpan (p);
 	m_documentHost.m_log.write (SerialLogPacketCode.PortOpened, p, size);
 
+	m_serial.m_onReadyRead += onReadyRead ~(m_serial) @ m_documentHost.m_mainThreadScheduler;
+	m_serial.m_onStatusLineChanged += onStatusLineChanged ~(m_serial) @ m_documentHost.m_mainThreadScheduler;
+	m_portName = name;
 	m_actionTable [ActionId.Close].m_isEnabled = true;
 	m_portUiReactor.start ();
 	return true;
 
 catch:
+	m_serial.close ();
+	m_serial = null;
+
 	jnc.Error const* error = jnc.getLastError ();
 	p = $"$name"; // TODO: add error to log packet
 	size = jnc.getDataPtrSpan (p);
@@ -218,10 +231,8 @@ catch:
 
 SerialSession.close ()
 {
-	if (!m_serial.m_isOpen)
+	if (!m_serial)
 		return;
-
-	m_serial.close ();
 
 	m_portUiReactor.stop ();
 	m_actionTable [ActionId.Close].m_isEnabled = false;
@@ -231,6 +242,10 @@ SerialSession.close ()
 		m_portName,
 		strlen (m_portName) + 1
 		);
+
+	m_serial.close ();	
+	m_serial = null;
+	m_portName = null;
 }
 
 size_t SerialSession.transmit (
@@ -238,8 +253,37 @@ size_t SerialSession.transmit (
 	size_t size
 	) throws
 {
-	printf ("ConnectionSession.transmit (%d)\n", size);
-	return size;
+	if (!m_serial)
+		return -1;
+
+	size_t result = try m_serial.write (p, size);
+	if (result != -1)
+		m_documentHost.m_log.write (SerialLogPacketCode.Tx, p, result);
+
+	return result;
+}
+
+SerialSession.onReadyRead (io.Serial* serial)
+{
+	if (serial != m_serial)
+		return;
+
+	heap char buffer [512];
+	size_t result = try m_serial.read (buffer, sizeof (buffer));
+	if (result != -1)
+		m_documentHost.m_log.write (SerialLogPacketCode.Rx, buffer, result);
+}
+	
+SerialSession.onStatusLineChanged (
+	io.Serial* serial,
+	uint_t mask
+	)
+{
+	if (serial != m_serial)
+		return;
+
+	io.SerialStatusLines lines = m_serial.m_statusLines;	
+	printf ("SerialSession.onStatusLineChanged (lines = %x, mask = %x)\n", lines, mask);
 }
 
 reactor SerialSession.m_portUiReactor ()
