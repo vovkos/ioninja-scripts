@@ -56,11 +56,9 @@ bool ListenerLogRepresenter.represent (
 		break;
 
 	case ListenerLogPacketCode.ListenError:
-		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
+		jnc.Error const* Error = (jnc.Error const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-
-		jnc.Error* Error = (jnc.Error*) p;
 		target.addHyperText ($"Cannot listen ($(Error.m_description))");
 		break;
 

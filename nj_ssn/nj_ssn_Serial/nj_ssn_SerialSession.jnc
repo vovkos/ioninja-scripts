@@ -45,7 +45,7 @@ protected:
 	createUi ();
 
 	onReadyRead (io.Serial* sender);
-	
+
 	onStatusLineChanged (
 		io.Serial* serial,
 		io.SerialStatusLines lines,
@@ -74,7 +74,10 @@ SerialSession.createUi ()
 	m_portCombo.addItem ("COM2");
 	m_portCombo.addItem ("COM3");
 	m_portCombo.addItem ("COM4");
-	m_portCombo.m_currentIndex = 0;
+	m_portCombo.addItem ("/dev/ttyS0");
+	m_portCombo.addItem ("/dev/ttyS1");
+	m_portCombo.addItem ("/dev/ttyS2");
+	m_portCombo.addItem ("/dev/ttyS3");
 
 	m_actionTable [ActionId.Open]  = m_documentHost.createAction ("Open", "connect.png");
 	m_actionTable [ActionId.Open].m_onTriggered += open;
@@ -194,11 +197,11 @@ bool SerialSession.open () throws
 
 	m_serial = io.createSerial ();
 	m_serial.open (name);
-	m_serial.m_baudRate = m_baudRateProp.m_value;
-	m_serial.m_dataBits = m_dataBitsProp.m_value;
-	m_serial.m_stopBits = (io.SerialStopBits) m_stopBitsProp.m_value;
-	m_serial.m_parity = (io.SerialParity) m_parityProp.m_value;
-	m_serial.m_flowControl = (io.SerialFlowControl) m_flowControlProp.m_value;
+//	m_serial.m_baudRate = m_baudRateProp.m_value;
+//	m_serial.m_dataBits = m_dataBitsProp.m_value;
+//	m_serial.m_stopBits = (io.SerialStopBits) m_stopBitsProp.m_value;
+//	m_serial.m_parity = (io.SerialParity) m_parityProp.m_value;
+//	m_serial.m_flowControl = (io.SerialFlowControl) m_flowControlProp.m_value;
 
 	SerialOpenParams params;
 	params.m_baudRate = m_serial.m_baudRate;
@@ -219,14 +222,18 @@ bool SerialSession.open () throws
 	return true;
 
 catch:
-	m_serial.close ();
-	m_serial = null;
+	if (m_serial)
+	{
+		m_serial.close ();
+		m_serial = null;
+	}
 
 	jnc.Error const* error = jnc.getLastError ();
-	p = $"$name"; // TODO: add error to log packet
-	size = jnc.getDataPtrSpan (p);
-
-	m_documentHost.m_log.write (SerialLogPacketCode.PortOpenError, p, size);
+	m_documentHost.m_log.write (
+		SerialLogPacketCode.PortOpenError,
+		error,
+		error.m_size
+		);
 	return false;
 }
 
@@ -244,7 +251,7 @@ SerialSession.close ()
 		strlen (m_portName) + 1
 		);
 
-	m_serial.close ();	
+	m_serial.close ();
 	m_serial = null;
 	m_portName = null;
 }
@@ -274,7 +281,7 @@ SerialSession.onReadyRead (io.Serial* serial)
 	if (result != -1)
 		m_documentHost.m_log.write (SerialLogPacketCode.Rx, buffer, result);
 }
-	
+
 SerialSession.onStatusLineChanged (
 	io.Serial* serial,
 	io.SerialStatusLines lines,

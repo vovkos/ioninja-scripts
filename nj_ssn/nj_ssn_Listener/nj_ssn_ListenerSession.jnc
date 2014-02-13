@@ -154,13 +154,18 @@ bool ListenerSession.listen () throws
 	return true;
 
 catch:
+	if (m_listenerSocket)
+	{
+		m_listenerSocket.close ();
+		m_listenerSocket = null;
+	}
+
 	jnc.Error const* error = jnc.getLastError ();
 	m_documentHost.m_log.write (
 		ListenerLogPacketCode.ListenError,
 		error,
 		error.m_size
 		);
-	m_listenerSocket = null;
 	return false;
 }
 

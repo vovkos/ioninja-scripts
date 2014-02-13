@@ -96,21 +96,16 @@ bool SerialLogRepresenter.represent (
 
 	case SerialLogPacketCode.PortClosed:
 		char const* name = (char const*) p;
-
 		target.m_lineAttr.m_iconIdx = StdLogIcon.Pause;
 		target.m_lineAttr.m_backColor = StdLogColor.Stop;
 		target.addHyperText ($"Port <15>$name<> closed");
 		break;
 
 	case SerialLogPacketCode.PortOpenError:
-		char const* name = (char const*) p;
-
-		// TError* pError = (TError*) p;
-		// char* pPortName = (char*) (pError + 1) + pError->m_DataSize;
-
+		jnc.Error const* Error = (jnc.Error const*) p;
 		target.m_lineAttr.m_iconIdx = StdLogIcon.Error;
-		target.m_lineAttr.m_backColor = StdLogColor.Stop;
-		target.addHyperText ($"Unable to open port <5>$name<>");
+		target.m_lineAttr.m_backColor = StdLogColor.Error;
+		target.addHyperText ($"Unable to open port ($(Error.m_description))");
 		break;
 
 	case SerialLogPacketCode.BaudRateChanged:
