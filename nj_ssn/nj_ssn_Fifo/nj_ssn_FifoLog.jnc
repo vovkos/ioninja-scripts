@@ -1,0 +1,90 @@
+//.............................................................................
+//
+// File log packet declarations and representer
+//
+
+//.............................................................................
+
+enum FifoLogPacketCode
+{
+	Opened    = 1,
+	OpenError = 2,
+	Closed    = 3,
+	Tx        = 6 | log.PacketCodeFlags.Mergeable,
+	Rx        = 7 | log.PacketCodeFlags.Mergeable,
+}
+
+//.............................................................................
+
+class FifoLogRepresenter: log.Representer
+{
+	override bool represent (
+		log.RepresenterTarget* target,
+		uint_t packetCode,
+		void const* p,
+		size_t size,
+		uint64_t foldFlags
+		);
+
+	static FifoLogRepresenter* getSingleton ()
+	{
+		static FifoLogRepresenter singleton;
+		return &singleton;
+	}
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+bool FifoLogRepresenter.represent (
+	log.RepresenterTarget* target,
+	uint_t packetCode,
+	void const* p,
+	size_t size,
+	uint64_t foldFlags
+	)
+{
+	switch (packetCode)
+	{
+	case FifoLogPacketCode.Opened:
+		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText ($"Opened <15>$addressString<>...");
+		break;
+
+	case FifoLogPacketCode.OpenError:
+		jnc.Error const* Error = (jnc.Error const*) p;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
+		target.addHyperText ($"Cannot open ($(Error.m_description))");
+		break;
+
+	case FifoLogPacketCode.Closed:
+		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
+		target.addHyperText ($"Closed file pair <15>$addressString<>");
+		break;
+
+	case FifoLogPacketCode.Tx:
+		target.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Tx;
+		target.m_lineAttr.m_textColor = gui.StdColor.Blue;
+		target.addBin (p, size);
+		break;
+
+	case FifoLogPacketCode.Rx:
+		target.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Rx;
+		target.m_lineAttr.m_textColor = gui.StdColor.Green;
+		target.addBin (p, size);
+		break;
+
+	default:
+		return false;
+	}
+
+	return true;
+}
+
+//.............................................................................
