@@ -44,7 +44,7 @@ public:
 protected:
 	createUi ();
 
-	onReadyRead (io.Serial* sender);
+	onReadyRead (io.Serial* serial);
 
 	onStatusLineChanged (
 		io.Serial* serial,

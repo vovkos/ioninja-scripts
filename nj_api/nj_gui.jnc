@@ -88,6 +88,7 @@ Icon* loadIcon (char const* fileName);
 
 opaque class Action
 {
+	bool autoget property m_isVisible;
 	bool autoget property m_isEnabled;
 	bool autoget property m_isCheckable;
 	bool autoget property m_isChecked;
@@ -109,8 +110,11 @@ opaque class Menu
 
 opaque class ComboBox
 {
+	bool autoget property m_isVisible;
+	bool autoget property m_isEnabled;
 	bool autoget property m_isEditable;
 	char const* autoget bindable property m_editText;
+	char const* autoget property m_toolTipText;
 
 	size_t addItem (
 		char const* text,

@@ -1,0 +1,66 @@
+//.............................................................................
+//
+// File and memory-mapped file classes
+//
+
+namespace io {
+
+//.............................................................................
+
+fenum FileOpenFlags
+{
+	ReadOnly,
+	Exclusive,
+	NoCreate,
+	DeleteOnClose,
+}
+
+opaque class File
+{
+	bool dconst m_isOpen;
+
+	bool open (
+		char const* name,
+		FileOpenFlags flags = 0
+		) throws;
+
+	void close ();
+
+	size_t write (
+		void const* p,
+		size_t size
+		) throws;
+
+	size_t read (
+		void* p,
+		size_t size
+		) throws;
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+opaque class MappedFile
+{
+	bool dconst m_isOpen;
+
+	bool open (
+		char const* name,
+		FileOpenFlags flags = 0
+		) throws;
+
+	void close ();
+
+	void* view (
+		size_t offset,
+		size_t size
+		) throws;
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+File* createFile ();
+MappedFile* createMappedFile ();
+
+//.............................................................................
+
+} // namespace io {

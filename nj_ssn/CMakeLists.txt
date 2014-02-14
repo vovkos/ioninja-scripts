@@ -5,10 +5,11 @@
 #..............................................................................
 
 add_subdirectory (nj_ssn_Connection)
+add_subdirectory (nj_ssn_FilePair)
 add_subdirectory (nj_ssn_Listener)
 add_subdirectory (nj_ssn_Serial)
 add_subdirectory (nj_ssn_SerialMon)
 add_subdirectory (nj_ssn_Sniffer)
 add_subdirectory (nj_ssn_Udp)
- 
+
 #..............................................................................

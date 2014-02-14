@@ -15,10 +15,12 @@ set (
 	API_JNC_LIST
 	nj_doc.jnc
 	nj_gui.jnc
-	nj_io_Serial.jnc
-	nj_io_Socket.jnc
+	nj_io_Fifo.jnc
+	nj_io_File.jnc
 	nj_io_PCap.jnc
 	nj_io_Packet.jnc
+	nj_io_Serial.jnc
+	nj_io_Socket.jnc
 	nj_log.jnc
 	nj_std.jnc
 	)
