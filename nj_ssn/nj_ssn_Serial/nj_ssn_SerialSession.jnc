@@ -266,7 +266,7 @@ size_t SerialSession.transmit (
 
 	size_t result = try m_serial.write (p, size);
 	if (result != -1)
-		m_documentHost.m_log.write (SerialLogPacketCode.Tx, p, result);
+		m_documentHost.m_log.write (log.StdPacketCode.Tx, p, result);
 
 	return result;
 }
@@ -279,7 +279,7 @@ SerialSession.onReadyRead (io.Serial* serial)
 	heap char buffer [512];
 	size_t result = try m_serial.read (buffer, sizeof (buffer));
 	if (result != -1)
-		m_documentHost.m_log.write (SerialLogPacketCode.Rx, buffer, result);
+		m_documentHost.m_log.write (log.StdPacketCode.Rx, buffer, result);
 }
 
 SerialSession.onStatusLineChanged (

@@ -18,8 +18,6 @@ enum SerialLogPacketCode
 	RtsChanged,
 	DtrChanged,
 	StatusLineChanged,
-	Tx               = 100 | log.PacketCodeFlags.Mergeable,
-	Rx               = 101 | log.PacketCodeFlags.Mergeable,
 }
 
 enum StatusLinePartCode
@@ -190,20 +188,6 @@ bool SerialLogRepresenter.represent (
 			target.addHyperText (StatusLinePartCode.Suffix, $" <15>DCD<>:$dcd");
 		}
 
-		break;
-
-	case SerialLogPacketCode.Tx:
-		target.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Tx;
-		target.m_lineAttr.m_textColor = gui.StdColor.Blue;
-		target.addBin (p, size);
-		break;
-
-	case SerialLogPacketCode.Rx:
-		target.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Rx;
-		target.m_lineAttr.m_textColor = gui.StdColor.Green;
-		target.addBin (p, size);
 		break;
 
 	default:

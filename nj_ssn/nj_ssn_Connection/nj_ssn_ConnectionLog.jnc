@@ -12,8 +12,6 @@ enum ConnectionLogPacketCode
 	ConnectCancelled = 3 | log.PacketCodeFlags.Mergeable,
 	ConnectError     = 4 | log.PacketCodeFlags.Mergeable,
 	Disconnected     = 5,
-	Tx               = 6 | log.PacketCodeFlags.Mergeable,
-	Rx               = 7 | log.PacketCodeFlags.Mergeable,
 }
 
 enum ConnectionPartCode
@@ -85,20 +83,6 @@ bool ConnectionLogRepresenter.represent (
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
 		target.addHyperText ($"Disconnected from <15>$addressString<>");
-		break;
-
-	case ConnectionLogPacketCode.Tx:
-		target.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Tx;
-		target.m_lineAttr.m_textColor = gui.StdColor.Blue;
-		target.addBin (p, size);
-		break;
-
-	case ConnectionLogPacketCode.Rx:
-		target.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Rx;
-		target.m_lineAttr.m_textColor = gui.StdColor.Green;
-		target.addBin (p, size);
 		break;
 
 	default:

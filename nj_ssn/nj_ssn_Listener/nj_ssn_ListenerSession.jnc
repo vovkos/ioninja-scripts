@@ -205,7 +205,7 @@ size_t ListenerSession.transmit (
 
 	size_t result = try m_connectionSocket.send (p, size);
 	if (result != -1)
-		m_documentHost.m_log.write (ListenerLogPacketCode.Tx, p, result);
+		m_documentHost.m_log.write (log.StdPacketCode.Tx, p, result);
 
 	return result;
 }
@@ -290,7 +290,7 @@ ListenerSession.onConnectionSocketEvent (io.SocketEventParams const* params)
 		heap char buffer [512];
 		size_t result = try m_connectionSocket.recv (buffer, sizeof (buffer));
 		if (result != -1)
-			m_documentHost.m_log.write (ListenerLogPacketCode.Rx, buffer, result);
+			m_documentHost.m_log.write (log.StdPacketCode.Rx, buffer, result);
 		break;
 	}
 }

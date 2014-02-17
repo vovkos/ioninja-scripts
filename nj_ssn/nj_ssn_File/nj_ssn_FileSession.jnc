@@ -151,7 +151,7 @@ FileSession.onReadyRead ()
 		break;
 
 	default:
-		m_documentHost.m_log.write (FileLogPacketCode.Rx, buffer, result);
+		m_documentHost.m_log.write (log.StdPacketCode.Rx, buffer, result);
 	}
 }
 
@@ -165,7 +165,7 @@ size_t FileSession.transmit (
 
 	size_t result = try m_txFile.write (p, size);
 	if (result != -1)
-		m_documentHost.m_log.write (FileLogPacketCode.Tx, p, result);
+		m_documentHost.m_log.write (log.StdPacketCode.Tx, p, result);
 
 	return result;
 }

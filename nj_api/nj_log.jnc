@@ -26,6 +26,14 @@ enum PartKind
 	Bin,
 }
 
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+enum StdPacketCode
+{
+	Tx = 0x01000000 | PacketCodeFlags.Mergeable,
+	Rx = 0x02000000 | PacketCodeFlags.Mergeable,
+}
+
 //.............................................................................
 
 // visual attributes
