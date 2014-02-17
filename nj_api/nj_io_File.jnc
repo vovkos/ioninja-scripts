@@ -68,12 +68,6 @@ opaque class MappedFile
 		) throws;
 }
 */
-//.............................................................................
-
-// work on POSIX only
-
-bool createFifoFile (char const* name);
-bool unlinkFifoFile (char const* name);
 
 //.............................................................................
 

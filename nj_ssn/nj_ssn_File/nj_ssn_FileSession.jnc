@@ -69,17 +69,15 @@ FileSession.createUi ()
 
 	m_rxNameCombo = m_documentHost.m_toolBar.addComboBox (-1);
 	m_rxNameCombo.m_isEditable = true;
-	m_rxNameCombo.m_editText = "/tmp/testFifo_rx";
-	m_rxNameCombo.m_toolTipText = "RX fifo name";
+	m_rxNameCombo.m_editText = "c:/1.txt"; // "/tmp/testFifo_rx";
 
 	m_actionTable [ActionId.ToggleTx] = m_documentHost.createAction ("TX");
 	m_actionTable [ActionId.ToggleTx].m_isCheckable = true;
-	m_actionTable [ActionId.ToggleTx].m_isChecked = true;
+	m_actionTable [ActionId.ToggleTx].m_isChecked = false;
 
 	m_txNameCombo = m_documentHost.m_toolBar.addComboBox (-1);
 	m_txNameCombo.m_isEditable = true;
-	m_txNameCombo.m_editText = "/tmp/testFifo_tx";
-	m_txNameCombo.m_toolTipText = "TX fifo name";
+	m_txNameCombo.m_editText = "c:/2.txt"; // "/tmp/testFifo_tx";
 
 	m_actionTable [ActionId.Open] = m_documentHost.createAction ("Open", "open.png");
 	m_actionTable [ActionId.Open].m_onTriggered += open;
@@ -89,7 +87,7 @@ FileSession.createUi ()
 	m_actionTable [ActionId.Close].m_isEnabled = false;
 
 	m_createIfNotExistProp = gui.createBoolProperty ("Create TX file");
-	m_createIfNotExistProp.m_toolTipText = "Create TX file (if not exists)";
+	m_createIfNotExistProp.m_toolTipText = "If not exists, TX file will be created";
 	m_createIfNotExistProp.m_value = true;
 
 	m_documentHost.m_propertyGrid.addProperty (m_createIfNotExistProp);
@@ -135,6 +133,7 @@ FileSession.close ()
 	m_documentHost.m_log.write (FileLogPacketCode.Closed);
 	m_rxFile.close ();
 	m_txFile.close ();
+	m_isOpen = false;
 }
 
 FileSession.onReadyRead ()
