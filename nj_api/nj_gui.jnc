@@ -91,7 +91,7 @@ opaque class Action
 	bool autoget property m_isVisible;
 	bool autoget property m_isEnabled;
 	bool autoget property m_isCheckable;
-	bool autoget property m_isChecked;
+	bool autoget bindable property m_isChecked;
 
 	event m_onTriggered ();
 }

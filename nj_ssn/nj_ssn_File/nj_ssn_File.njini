@@ -1,0 +1,21 @@
+//.............................................................................
+//
+// Generic File session provider
+//
+
+[session]
+
+name        = Generic File
+description = "Perform reads or/and writes to a generic file"
+id          = file
+guid        = 1dfd5eb0-9560-11e3-a5e2-0800200c9a66
+icon        = file.png
+
+session-class         = FileSession
+log-representer-class = FileLogRepresenter
+
+[scripts]
+
+nj_ssn_FileLog.jnc
+nj_ssn_FileSession.jnc
+

@@ -1,0 +1,183 @@
+//.............................................................................
+//
+// Generic file session
+//
+
+//.............................................................................
+
+class FileSession: doc.StreamSession
+{
+protected:
+	enum ActionId
+	{
+		ToggleRx,
+		ToggleTx,
+		Open,
+		Close,
+		_Count,
+	}
+
+protected:
+	io.File* m_rxFile;
+	io.File* m_txFile;
+
+	gui.Action* m_actionTable [ActionId._Count];
+	gui.ComboBox* m_rxNameCombo;
+	gui.ComboBox* m_txNameCombo;
+	gui.BoolProperty* m_createIfNotExistProp;
+
+	bool bindable m_isOpen;
+
+public:
+	construct (doc.DocumentHost* documentHost);
+
+	bool open () throws;
+	close ();
+
+	override size_t transmit (
+		void const* p,
+		size_t size
+		) throws;
+
+protected:
+	createUi ();
+	onReadyRead ();
+
+	reactor m_uiReactor ();
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+FileSession.construct (doc.DocumentHost* documentHost)
+{
+	basetype.construct (documentHost);
+	printf ("FileSession.construct (this = %x, TID = %x)\n", this, jnc.getCurrentThreadId ());
+
+	documentHost.m_log.m_representer = FileLogRepresenter.getSingleton ();
+	createUi ();
+
+	m_txFile = io.createFile ();
+	m_rxFile = io.createFile ();
+	m_rxFile.m_onReadyRead += onReadyRead @ m_documentHost.m_mainThreadScheduler;
+}
+
+FileSession.createUi ()
+{
+	m_actionTable [ActionId.ToggleRx] = m_documentHost.createAction ("RX");
+	m_actionTable [ActionId.ToggleRx].m_isCheckable = true;
+	m_actionTable [ActionId.ToggleRx].m_isChecked = true;
+
+	m_rxNameCombo = m_documentHost.m_toolBar.addComboBox (-1);
+	m_rxNameCombo.m_isEditable = true;
+	m_rxNameCombo.m_editText = "/tmp/testFifo_rx";
+	m_rxNameCombo.m_toolTipText = "RX fifo name";
+
+	m_actionTable [ActionId.ToggleTx] = m_documentHost.createAction ("TX");
+	m_actionTable [ActionId.ToggleTx].m_isCheckable = true;
+	m_actionTable [ActionId.ToggleTx].m_isChecked = true;
+
+	m_txNameCombo = m_documentHost.m_toolBar.addComboBox (-1);
+	m_txNameCombo.m_isEditable = true;
+	m_txNameCombo.m_editText = "/tmp/testFifo_tx";
+	m_txNameCombo.m_toolTipText = "TX fifo name";
+
+	m_actionTable [ActionId.Open] = m_documentHost.createAction ("Open", "open.png");
+	m_actionTable [ActionId.Open].m_onTriggered += open;
+
+	m_actionTable [ActionId.Close] = m_documentHost.createAction ("Close", "close.png");
+	m_actionTable [ActionId.Close].m_onTriggered += close;
+	m_actionTable [ActionId.Close].m_isEnabled = false;
+
+	m_createIfNotExistProp = gui.createBoolProperty ("Create TX file");
+	m_createIfNotExistProp.m_toolTipText = "Create TX file (if not exists)";
+	m_createIfNotExistProp.m_value = true;
+
+	m_documentHost.m_propertyGrid.addProperty (m_createIfNotExistProp);
+
+	m_uiReactor.start ();
+}
+
+bool FileSession.open () throws
+{
+	if (m_actionTable [ActionId.ToggleRx].m_isChecked)
+		m_rxFile.open (
+			m_rxNameCombo.m_editText,
+			io.FileOpenFlags.ReadOnly |
+			io.FileOpenFlags.OpenExisting |
+			io.FileOpenFlags.AsyncRead
+			);
+
+	if (m_actionTable [ActionId.ToggleTx].m_isChecked)
+		m_txFile.open (m_txNameCombo.m_editText);
+
+	m_documentHost.m_log.write (FileLogPacketCode.Opened);
+	m_isOpen = true;
+	return true;
+
+catch:
+	jnc.Error const* error = jnc.getLastError ();
+	m_documentHost.m_log.write (
+		FileLogPacketCode.OpenError,
+		error,
+		error.m_size
+		);
+
+	m_rxFile.close ();
+	m_txFile.close ();
+	return false;
+}
+
+FileSession.close ()
+{
+	if (!m_isOpen)
+		return;
+
+	m_documentHost.m_log.write (FileLogPacketCode.Closed);
+	m_rxFile.close ();
+	m_txFile.close ();
+}
+
+FileSession.onReadyRead ()
+{
+	heap char buffer [512];
+	size_t result = try m_rxFile.read (buffer, sizeof (buffer));
+	switch (result)
+	{
+	case -1:
+		// TODO: handle error
+
+	case 0:
+		m_documentHost.m_log.write (FileLogPacketCode.Eof);
+		close ();
+		break;
+
+	default:
+		m_documentHost.m_log.write (FileLogPacketCode.Rx, buffer, result);
+	}
+}
+
+size_t FileSession.transmit (
+	void const* p,
+	size_t size
+	) throws
+{
+	if (!m_txFile.m_isOpen)
+		return -1;
+
+	size_t result = try m_txFile.write (p, size);
+	if (result != -1)
+		m_documentHost.m_log.write (FileLogPacketCode.Tx, p, result);
+
+	return result;
+}
+
+reactor FileSession.m_uiReactor ()
+{
+	m_actionTable [ActionId.Close].m_isEnabled = m_isOpen;
+	m_rxNameCombo.m_isEnabled = m_actionTable [ActionId.ToggleRx].m_isChecked;
+	m_txNameCombo.m_isEnabled = m_actionTable [ActionId.ToggleTx].m_isChecked;
+	m_actionTable [ActionId.ToggleRx].m_isEnabled = m_actionTable [ActionId.ToggleTx].m_isChecked;
+	m_actionTable [ActionId.ToggleTx].m_isEnabled = m_actionTable [ActionId.ToggleRx].m_isChecked;
+}
+
+//.............................................................................

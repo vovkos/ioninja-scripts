@@ -1,22 +1,23 @@
 //.............................................................................
 //
-// File log packet declarations and representer
+// Generic file log packet declarations and representer
 //
 
 //.............................................................................
 
-enum FifoLogPacketCode
+enum FileLogPacketCode
 {
 	Opened    = 1,
 	OpenError = 2,
 	Closed    = 3,
+	Eof       = 4,
 	Tx        = 6 | log.PacketCodeFlags.Mergeable,
 	Rx        = 7 | log.PacketCodeFlags.Mergeable,
 }
 
 //.............................................................................
 
-class FifoLogRepresenter: log.Representer
+class FileLogRepresenter: log.Representer
 {
 	override bool represent (
 		log.RepresenterTarget* target,
@@ -26,16 +27,16 @@ class FifoLogRepresenter: log.Representer
 		uint64_t foldFlags
 		);
 
-	static FifoLogRepresenter* getSingleton ()
+	static FileLogRepresenter* getSingleton ()
 	{
-		static FifoLogRepresenter singleton;
+		static FileLogRepresenter singleton;
 		return &singleton;
 	}
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-bool FifoLogRepresenter.represent (
+bool FileLogRepresenter.represent (
 	log.RepresenterTarget* target,
 	uint_t packetCode,
 	void const* p,
@@ -45,35 +46,39 @@ bool FifoLogRepresenter.represent (
 {
 	switch (packetCode)
 	{
-	case FifoLogPacketCode.Opened:
-		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText ($"Opened <15>$addressString<>...");
+	case FileLogPacketCode.Opened:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
+		target.addHyperText ("Opened file");
 		break;
 
-	case FifoLogPacketCode.OpenError:
+	case FileLogPacketCode.OpenError:
 		jnc.Error const* Error = (jnc.Error const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		target.addHyperText ($"Cannot open ($(Error.m_description))");
+		target.addHyperText ($"Cannot open file ($(Error.m_description))");
 		break;
 
-	case FifoLogPacketCode.Closed:
-		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
+	case FileLogPacketCode.Closed:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
-		target.addHyperText ($"Closed file pair <15>$addressString<>");
+		target.addHyperText ("Closed file");
 		break;
 
-	case FifoLogPacketCode.Tx:
+	case FileLogPacketCode.Eof:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText ("EOF reached on RX file");
+		break;
+
+	case FileLogPacketCode.Tx:
 		target.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Tx;
 		target.m_lineAttr.m_textColor = gui.StdColor.Blue;
 		target.addBin (p, size);
 		break;
 
-	case FifoLogPacketCode.Rx:
+	case FileLogPacketCode.Rx:
 		target.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Rx;
 		target.m_lineAttr.m_textColor = gui.StdColor.Green;
