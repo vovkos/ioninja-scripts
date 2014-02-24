@@ -1,11 +1,11 @@
 //.............................................................................
 //
-// Listener log packet declarations and representer
+// TCP Listener log packet declarations and representer
 //
 
 //.............................................................................
 
-enum ListenerLogPacketCode
+enum TcpListenerLogPacketCode
 {
 	Listening          = 1,
 	ListenError        = 2,
@@ -17,7 +17,7 @@ enum ListenerLogPacketCode
 
 //.............................................................................
 
-class ListenerLogRepresenter: log.Representer
+class TcpListenerLogRepresenter: log.Representer
 {
 	override bool represent (
 		log.RepresenterTarget* target,
@@ -27,16 +27,16 @@ class ListenerLogRepresenter: log.Representer
 		uint64_t foldFlags
 		);
 
-	static ListenerLogRepresenter* getSingleton ()
+	static TcpListenerLogRepresenter* getSingleton ()
 	{
-		static ListenerLogRepresenter singleton;
+		static TcpListenerLogRepresenter singleton;
 		return &singleton;
 	}
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-bool ListenerLogRepresenter.represent (
+bool TcpListenerLogRepresenter.represent (
 	log.RepresenterTarget* target,
 	uint_t packetCode,
 	void const* p,
@@ -46,42 +46,42 @@ bool ListenerLogRepresenter.represent (
 {
 	switch (packetCode)
 	{
-	case ListenerLogPacketCode.Listening:
+	case TcpListenerLogPacketCode.Listening:
 		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
 		target.addHyperText ($"Listening on <15>$addressString<>");
 		break;
 
-	case ListenerLogPacketCode.ListenError:
+	case TcpListenerLogPacketCode.ListenError:
 		jnc.Error const* Error = (jnc.Error const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
 		target.addHyperText ($"Cannot listen ($(Error.m_description))");
 		break;
 
-	case ListenerLogPacketCode.ListenStopped:
+	case TcpListenerLogPacketCode.ListenStopped:
 		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
 		target.addHyperText ($"Stopped listening on <15>$addressString<>");
 		break;
 
-	case ListenerLogPacketCode.ClientConnected:
+	case TcpListenerLogPacketCode.ClientConnected:
 		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText ($"Client connected from <15>$addressString<>");
 		break;
 
-	case ListenerLogPacketCode.ClientDisconnected:
+	case TcpListenerLogPacketCode.ClientDisconnected:
 		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText ($"Client <15>$addressString<> disconnected");
 		break;
 
-	case ListenerLogPacketCode.ClientRejected:
+	case TcpListenerLogPacketCode.ClientRejected:
 		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Warning;

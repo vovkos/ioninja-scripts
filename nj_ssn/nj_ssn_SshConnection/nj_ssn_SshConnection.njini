@@ -1,0 +1,20 @@
+//.............................................................................
+//
+// SSH Connection session provider
+//
+
+[session]
+
+name        = SSH Client
+description = "Establishes SSH connection over TCP socket"
+id          = ssh-connection
+guid        = 8ec96e77-89df-4dd8-bc14-b995b85de45d
+icon        = connection.png
+
+session-class         = SshConnectionSession
+log-representer-class = SshConnectionLogRepresenter
+
+[scripts]
+
+nj_ssn_SshConnectionLog.jnc
+nj_ssn_SshConnectionSession.jnc

@@ -4,7 +4,7 @@
 
 #..............................................................................
 
-project_virtual_folder (nj_ssn_Serial)
+project_virtual_folder (nj_ssn_TcpListener)
 
 #..............................................................................
 #
@@ -12,14 +12,14 @@ project_virtual_folder (nj_ssn_Serial)
 #
 
 set (
-	SERIAL_JNC_LIST
-	nj_ssn_SerialLog.jnc
-	nj_ssn_SerialSession.jnc
+	SSN_JNC_LIST
+	nj_ssn_TcpListenerLog.jnc
+	nj_ssn_TcpListenerSession.jnc
 	)
 
 source_virtual_folder (
-	ssn
-	${SERIAL_JNC_LIST}
+	src
+	${SSN_JNC_LIST}
 	)
 
 #..............................................................................
@@ -28,34 +28,35 @@ source_virtual_folder (
 #
 
 set (
-	SERIAL_RES_LIST
-	nj_ssn_Serial.njini
-	serial.png
-	connect.png
+	SSN_RES_LIST
+	nj_ssn_TcpListener.njini
+	disconnect.png
+	listener.png
+	listen.png
 	pause.png
 	)
 
 source_virtual_folder (
 	res
-	${SERIAL_RES_LIST}
+	${SSN_RES_LIST}
 	)
 
 #..............................................................................
 #
-# nj_ssn_Serial script library
+# nj_ssn_TcpListener script library
 #
 
 add_library (
-	nj_ssn_Serial
+	nj_ssn_TcpListener
 	EXCLUDE_FROM_ALL
-	${SERIAL_JNC_LIST}
-	${SERIAL_RES_LIST}
+	${SSN_JNC_LIST}
+	${SSN_RES_LIST}
 	)
 
 set_target_properties (
-	nj_ssn_Serial
+	nj_ssn_TcpListener
 	PROPERTIES
-	FOLDER "scripts"
+	FOLDER scripts
 	LINKER_LANGUAGE C
 	)
 

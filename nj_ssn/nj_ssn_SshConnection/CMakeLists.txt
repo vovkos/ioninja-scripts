@@ -1,10 +1,10 @@
 # This file is part of IO Ninja project
-# Tibbo Technology Inc (C) 2004-2013. All rights reserved
+# Tibbo Technology Inc (C) 2004-2014. All rights reserved
 # Author: Vladimir Gladkov
 
 #..............................................................................
 
-project_virtual_folder (nj_ssn_Connection)
+project_virtual_folder (nj_ssn_SshConnection)
 
 #..............................................................................
 #
@@ -12,14 +12,14 @@ project_virtual_folder (nj_ssn_Connection)
 #
 
 set (
-	CONNECTION_JNC_LIST
-	nj_ssn_ConnectionLog.jnc
-	nj_ssn_ConnectionSession.jnc
+	SSN_JNC_LIST
+	nj_ssn_SshConnectionLog.jnc
+	nj_ssn_SshConnectionSession.jnc
 	)
 
 source_virtual_folder (
 	src
-	${CONNECTION_JNC_LIST}
+	${SSN_JNC_LIST}
 	)
 
 #..............................................................................
@@ -28,8 +28,8 @@ source_virtual_folder (
 #
 
 set (
-	CONNECTION_RES_LIST
-	nj_ssn_Connection.njini
+	SSN_RES_LIST
+	nj_ssn_SshConnection.njini
 	connection.png
 	connect.png
 	disconnect.png
@@ -37,23 +37,23 @@ set (
 
 source_virtual_folder (
 	res
-	${CONNECTION_RES_LIST}
+	${SSN_RES_LIST}
 	)
 
 #..............................................................................
 #
-# nj_ssn_Connection script library
+# nj_ssn_SshConnection script library
 #
 
 add_library (
-	nj_ssn_Connection
+	nj_ssn_SshConnection
 	EXCLUDE_FROM_ALL
-	${CONNECTION_JNC_LIST}
-	${CONNECTION_RES_LIST}
+	${SSN_JNC_LIST}
+	${SSN_RES_LIST}
 	)
 
 set_target_properties (
-	nj_ssn_Connection
+	nj_ssn_SshConnection
 	PROPERTIES
 	FOLDER scripts
 	LINKER_LANGUAGE C

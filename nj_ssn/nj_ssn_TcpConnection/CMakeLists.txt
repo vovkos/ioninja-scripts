@@ -1,10 +1,10 @@
 # This file is part of IO Ninja project
-# Tibbo Technology Inc (C) 2004-2013. All rights reserved
+# Tibbo Technology Inc (C) 2004-2014. All rights reserved
 # Author: Vladimir Gladkov
 
 #..............................................................................
 
-project_virtual_folder (nj_ssn_Listener)
+project_virtual_folder (nj_ssn_TcpConnection)
 
 #..............................................................................
 #
@@ -12,14 +12,14 @@ project_virtual_folder (nj_ssn_Listener)
 #
 
 set (
-	LISTENER_JNC_LIST
-	nj_ssn_ListenerLog.jnc
-	nj_ssn_ListenerSession.jnc
+	SSN_JNC_LIST
+	nj_ssn_TcpConnectionLog.jnc
+	nj_ssn_TcpConnectionSession.jnc
 	)
 
 source_virtual_folder (
 	src
-	${LISTENER_JNC_LIST}
+	${SSN_JNC_LIST}
 	)
 
 #..............................................................................
@@ -28,33 +28,32 @@ source_virtual_folder (
 #
 
 set (
-	LISTENER_RES_LIST
-	nj_ssn_Listener.njini
+	SSN_RES_LIST
+	nj_ssn_TcpConnection.njini
+	connection.png
+	connect.png
 	disconnect.png
-	listener.png
-	listen.png
-	pause.png
 	)
 
 source_virtual_folder (
 	res
-	${LISTENER_RES_LIST}
+	${SSN_RES_LIST}
 	)
 
 #..............................................................................
 #
-# nj_ssn_Listener script library
+# nj_ssn_TcpConnection script library
 #
 
 add_library (
-	nj_ssn_Listener
+	nj_ssn_TcpConnection
 	EXCLUDE_FROM_ALL
-	${LISTENER_JNC_LIST}
-	${LISTENER_RES_LIST}
+	${SSN_JNC_LIST}
+	${SSN_RES_LIST}
 	)
 
 set_target_properties (
-	nj_ssn_Listener
+	nj_ssn_TcpConnection
 	PROPERTIES
 	FOLDER scripts
 	LINKER_LANGUAGE C

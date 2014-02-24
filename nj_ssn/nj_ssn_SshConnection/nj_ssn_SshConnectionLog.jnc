@@ -1,11 +1,11 @@
 //.............................................................................
 //
-// Connection log packet declarations and representer
+// SSH Connection log packet declarations and representer
 //
 
 //.............................................................................
 
-enum ConnectionLogPacketCode
+enum SshConnectionLogPacketCode
 {
 	Connecting       = 1 | log.PacketCodeFlags.Mergeable,
 	ConnectCompleted = 2 | log.PacketCodeFlags.Mergeable,
@@ -14,7 +14,7 @@ enum ConnectionLogPacketCode
 	Disconnected     = 5,
 }
 
-enum ConnectionPartCode
+enum SshConnectionPartCode
 {
 	Connecting       = 1 | log.PacketCodeFlags.MergeableForward,
 	ConnectCompleted = 1 | log.PacketCodeFlags.MergeableBackward,
@@ -22,7 +22,7 @@ enum ConnectionPartCode
 
 //.............................................................................
 
-class ConnectionLogRepresenter: log.Representer
+class SshConnectionLogRepresenter: log.Representer
 {
 	override bool represent (
 		log.RepresenterTarget* target,
@@ -32,16 +32,16 @@ class ConnectionLogRepresenter: log.Representer
 		uint64_t foldFlags
 		);
 
-	static ConnectionLogRepresenter* getSingleton ()
+	static SshConnectionLogRepresenter* getSingleton ()
 	{
-		static ConnectionLogRepresenter singleton;
+		static SshConnectionLogRepresenter singleton;
 		return &singleton;
 	}
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-bool ConnectionLogRepresenter.represent (
+bool SshConnectionLogRepresenter.represent (
 	log.RepresenterTarget* target,
 	uint_t packetCode,
 	void const* p,
@@ -51,34 +51,34 @@ bool ConnectionLogRepresenter.represent (
 {
 	switch (packetCode)
 	{
-	case ConnectionLogPacketCode.Connecting:
+	case SshConnectionLogPacketCode.Connecting:
 		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText (ConnectionPartCode.Connecting, $"Connecting to <15>$addressString<>...");
+		target.addHyperText (SshConnectionPartCode.Connecting, $"Connecting to <15>$addressString<>...");
 		break;
 
-	case ConnectionLogPacketCode.ConnectCompleted:
+	case SshConnectionLogPacketCode.ConnectCompleted:
 		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
-		target.addHyperText (ConnectionPartCode.ConnectCompleted, "ok");
+		target.addHyperText (SshConnectionPartCode.ConnectCompleted, "ok");
 		break;
 
-	case ConnectionLogPacketCode.ConnectCancelled:
-		target.addHyperText (ConnectionPartCode.ConnectCompleted, "cancelled");
+	case SshConnectionLogPacketCode.ConnectCancelled:
+		target.addHyperText (SshConnectionPartCode.ConnectCompleted, "cancelled");
 		break;
 
-	case ConnectionLogPacketCode.ConnectError:
+	case SshConnectionLogPacketCode.ConnectError:
 		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
 
 		jnc.Error* Error = (jnc.Error*) p;
-		target.addHyperText (ConnectionPartCode.ConnectCompleted, $"error ($(Error.m_description))");
+		target.addHyperText (SshConnectionPartCode.ConnectCompleted, $"error ($(Error.m_description))");
 		break;
 
-	case ConnectionLogPacketCode.Disconnected:
+	case SshConnectionLogPacketCode.Disconnected:
 		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;

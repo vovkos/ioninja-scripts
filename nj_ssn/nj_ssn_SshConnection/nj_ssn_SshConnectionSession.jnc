@@ -1,11 +1,11 @@
 //.............................................................................
 //
-// Connection session
+// SSH Connection session
 //
 
 //.............................................................................
 
-class ConnectionSession: doc.StreamSession
+class SshConnectionSession: doc.StreamSession
 {
 protected:
 	enum ActionId
@@ -46,17 +46,17 @@ protected:
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-ConnectionSession.construct (doc.DocumentHost* documentHost)
+SshConnectionSession.construct (doc.DocumentHost* documentHost)
 {
 	basetype.construct (documentHost);
 
-	printf ("ConnectionSession.construct (this = %x, TID = %x)\n", this, jnc.getCurrentThreadId ());
+	printf ("SshConnectionSession.construct (this = %x, TID = %x)\n", this, jnc.getCurrentThreadId ());
 
-	documentHost.m_log.m_representer = ConnectionLogRepresenter.getSingleton ();
+	documentHost.m_log.m_representer = SshConnectionLogRepresenter.getSingleton ();
 	createUi ();
 }
 
-ConnectionSession.createUi ()
+SshConnectionSession.createUi ()
 {
 	// toolbar
 
@@ -75,8 +75,8 @@ ConnectionSession.createUi ()
 	// property grid
 
 	m_abruptiveDisconnectProp = m_documentHost.createBoolProperty (
-		"Reset Connections",
-		"Use TCP RST to terminate connections (instead of TCP graceful disconnect)"
+		"Reset SshConnections",
+		"Use TCP RST to terminate SshConnections (instead of TCP graceful disconnect)"
 		);
 
 	m_useLocalAddressProp = m_documentHost.createBoolProperty (
@@ -107,7 +107,7 @@ ConnectionSession.createUi ()
 	m_uiReactor.start ();
 }
 
-bool ConnectionSession.connect () throws
+bool SshConnectionSession.connect () throws
 {
 	disconnect ();
 
@@ -115,7 +115,7 @@ bool ConnectionSession.connect () throws
 	io.parseSocketAddress (m_addressCombo.m_editText, &address);
 
 	m_documentHost.m_log.write (
-		ConnectionLogPacketCode.Connecting,
+		SshConnectionLogPacketCode.Connecting,
 		&address,
 		sizeof (address)
 		);
@@ -143,7 +143,7 @@ bool ConnectionSession.connect () throws
 catch:
 	jnc.Error const* error = jnc.getLastError ();
 	m_documentHost.m_log.write (
-		ConnectionLogPacketCode.ConnectError,
+		SshConnectionLogPacketCode.ConnectError,
 		error,
 		error.m_size
 		);
@@ -151,20 +151,20 @@ catch:
 	return false;
 }
 
-ConnectionSession.disconnect ()
+SshConnectionSession.disconnect ()
 {
 	if (!m_socket)
 		return;
 
 	m_documentHost.m_log.write (
-		ConnectionLogPacketCode.Disconnected,
+		SshConnectionLogPacketCode.Disconnected,
 		&m_remoteAddress,
 		sizeof (m_remoteAddress)
 		);
 	close ();
 }
 
-size_t ConnectionSession.transmit (
+size_t SshConnectionSession.transmit (
 	void const* p,
 	size_t size
 	) throws
@@ -179,16 +179,16 @@ size_t ConnectionSession.transmit (
 	return result;
 }
 
-ConnectionSession.close ()
+SshConnectionSession.close ()
 {
 	m_actionTable [ActionId.Disconnect].m_isEnabled = false;
 	m_socket.close ();
 	m_socket = null;
 }
 
-ConnectionSession.onSocketEvent (io.SocketEventParams const* params)
+SshConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 {
-	printf ("ConnectionSession.onSocketEvent (TID = %x)\n", jnc.getCurrentThreadId ());
+	printf ("SshConnectionSession.onSocketEvent (TID = %x)\n", jnc.getCurrentThreadId ());
 
 	if (params.m_sender != (io.Socket*) m_socket) // curently cast is needed :(
 		return;
@@ -196,18 +196,18 @@ ConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 	switch (params.m_eventKind)
 	{
 	case io.SocketEvent.ConnectCompleted:
-		m_documentHost.m_log.write (ConnectionLogPacketCode.ConnectCompleted);
+		m_documentHost.m_log.write (SshConnectionLogPacketCode.ConnectCompleted);
 		m_actionTable [ActionId.Disconnect].m_isEnabled = true;
 		break;
 
 	case io.SocketEvent.ConnectCancelled:
-		m_documentHost.m_log.write (ConnectionLogPacketCode.ConnectCancelled);
+		m_documentHost.m_log.write (SshConnectionLogPacketCode.ConnectCancelled);
 		close ();
 		break;
 
 	case io.SocketEvent.ConnectError:
 		m_documentHost.m_log.write (
-			ConnectionLogPacketCode.ConnectError,
+			SshConnectionLogPacketCode.ConnectError,
 			params.m_error,
 			params.m_error.m_size
 			);
@@ -216,7 +216,7 @@ ConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 
 	case io.SocketEvent.Disconnected:
 		m_documentHost.m_log.write (
-			ConnectionLogPacketCode.Disconnected,
+			SshConnectionLogPacketCode.Disconnected,
 			&m_remoteAddress,
 			sizeof (m_remoteAddress)
 			);
@@ -232,7 +232,7 @@ ConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 	}
 }
 
-reactor ConnectionSession.m_uiReactor ()
+reactor SshConnectionSession.m_uiReactor ()
 {
 	m_ifaceProp.m_isEnabled = m_useLocalAddressProp.m_value;
 	m_localPortProp.m_isEnabled = m_useLocalAddressProp.m_value;

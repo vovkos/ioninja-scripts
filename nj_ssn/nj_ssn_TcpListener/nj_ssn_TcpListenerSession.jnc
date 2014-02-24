@@ -1,11 +1,11 @@
 //.............................................................................
 //
-// Listener session
+// TCP Listener session
 //
 
 //.............................................................................
 
-class ListenerSession: doc.StreamSession
+class TcpListenerSession: doc.StreamSession
 {
 protected:
 	enum ActionId
@@ -58,15 +58,15 @@ protected:
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-ListenerSession.construct (doc.DocumentHost* documentHost)
+TcpListenerSession.construct (doc.DocumentHost* documentHost)
 {
 	basetype.construct (documentHost);
-	printf ("ListenerSession.construct (this = %x, TID = %x)\n", this, jnc.getCurrentThreadId ());
-	documentHost.m_log.m_representer = ListenerLogRepresenter.getSingleton ();
+	printf ("TcpListenerSession.construct (this = %x, TID = %x)\n", this, jnc.getCurrentThreadId ());
+	documentHost.m_log.m_representer = TcpListenerLogRepresenter.getSingleton ();
 	createUi ();
 }
 
-ListenerSession.createUi ()
+TcpListenerSession.createUi ()
 {
 	// toolbar
 
@@ -127,9 +127,9 @@ ListenerSession.createUi ()
 	m_uiReactor.start ();
 }
 
-bool ListenerSession.listen () throws
+bool TcpListenerSession.listen () throws
 {
-	printf ("ListenerSession.onListen (TID = %x)\n", jnc.getCurrentThreadId ());
+	printf ("TcpListenerSession.onListen (TID = %x)\n", jnc.getCurrentThreadId ());
 
 	stopListen ();
 
@@ -144,7 +144,7 @@ bool ListenerSession.listen () throws
 	m_listenerSocket.listen ();
 
 	m_documentHost.m_log.write (
-		ListenerLogPacketCode.Listening,
+		TcpListenerLogPacketCode.Listening,
 		&address,
 		sizeof (address)
 		);
@@ -162,40 +162,40 @@ catch:
 
 	jnc.Error const* error = jnc.getLastError ();
 	m_documentHost.m_log.write (
-		ListenerLogPacketCode.ListenError,
+		TcpListenerLogPacketCode.ListenError,
 		error,
 		error.m_size
 		);
 	return false;
 }
 
-ListenerSession.stopListen ()
+TcpListenerSession.stopListen ()
 {
 	if (!m_listenerSocket)
 		return;
 
 	m_documentHost.m_log.write (
-		ListenerLogPacketCode.ListenStopped,
+		TcpListenerLogPacketCode.ListenStopped,
 		&m_localAddress,
 		sizeof (m_localAddress)
 		);
 	closeListenerSocket ();
 }
 
-ListenerSession.disconnect ()
+TcpListenerSession.disconnect ()
 {
 	if (!m_connectionSocket)
 		return;
 
 	m_documentHost.m_log.write (
-		ListenerLogPacketCode.ClientDisconnected,
+		TcpListenerLogPacketCode.ClientDisconnected,
 		&m_remoteAddress,
 		sizeof (m_remoteAddress)
 		);
 	closeConnectionSocket ();
 }
 
-size_t ListenerSession.transmit (
+size_t TcpListenerSession.transmit (
 	void const* p,
 	size_t size
 	) throws
@@ -210,23 +210,23 @@ size_t ListenerSession.transmit (
 	return result;
 }
 
-ListenerSession.closeListenerSocket ()
+TcpListenerSession.closeListenerSocket ()
 {
 	m_actionTable [ActionId.StopListen].m_isEnabled = false;
 	m_listenerSocket.close ();
 	m_listenerSocket = null;
 }
 
-ListenerSession.closeConnectionSocket ()
+TcpListenerSession.closeConnectionSocket ()
 {
 	m_actionTable [ActionId.Disconnect].m_isEnabled = false;
 	m_connectionSocket.close ();
 	m_connectionSocket = null;
 }
 
-ListenerSession.onListenerSocketEvent (io.SocketEventParams const* params)
+TcpListenerSession.onListenerSocketEvent (io.SocketEventParams const* params)
 {
-	printf ("ListenerSession.onListenerSocketEvent (TID = %x)\n", jnc.getCurrentThreadId ());
+	printf ("TcpListenerSession.onListenerSocketEvent (TID = %x)\n", jnc.getCurrentThreadId ());
 
 	if (params.m_sender != (io.Socket*) m_listenerSocket) // curently cast is needed :(
 		return;
@@ -244,7 +244,7 @@ ListenerSession.onListenerSocketEvent (io.SocketEventParams const* params)
 			{
 				socket.close ();
 				m_documentHost.m_log.write (
-					ListenerLogPacketCode.ClientRejected,
+					TcpListenerLogPacketCode.ClientRejected,
 					&address,
 					sizeof (address)
 					);
@@ -255,7 +255,7 @@ ListenerSession.onListenerSocketEvent (io.SocketEventParams const* params)
 		disconnect ();
 
 		m_documentHost.m_log.write (
-			ListenerLogPacketCode.ClientConnected,
+			TcpListenerLogPacketCode.ClientConnected,
 			&address,
 			sizeof (address)
 			);
@@ -268,9 +268,9 @@ ListenerSession.onListenerSocketEvent (io.SocketEventParams const* params)
 	}
 }
 
-ListenerSession.onConnectionSocketEvent (io.SocketEventParams const* params)
+TcpListenerSession.onConnectionSocketEvent (io.SocketEventParams const* params)
 {
-	printf ("ListenerSession.onConnectionSocketEvent (TID = %x)\n", jnc.getCurrentThreadId ());
+	printf ("TcpListenerSession.onConnectionSocketEvent (TID = %x)\n", jnc.getCurrentThreadId ());
 
 	if (params.m_sender != (io.Socket*) m_connectionSocket) // curently cast is needed :(
 		return;
@@ -279,7 +279,7 @@ ListenerSession.onConnectionSocketEvent (io.SocketEventParams const* params)
 	{
 	case io.SocketEvent.Disconnected:
 		m_documentHost.m_log.write (
-			ListenerLogPacketCode.ClientDisconnected,
+			TcpListenerLogPacketCode.ClientDisconnected,
 			&m_remoteAddress,
 			sizeof (m_remoteAddress)
 			);

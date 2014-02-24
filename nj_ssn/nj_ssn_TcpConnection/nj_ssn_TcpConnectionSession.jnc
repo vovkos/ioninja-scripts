@@ -1,0 +1,241 @@
+//.............................................................................
+//
+// TCP Connection session
+//
+
+//.............................................................................
+
+class TcpConnectionSession: doc.StreamSession
+{
+protected:
+	enum ActionId
+	{
+		Connect,
+		Disconnect,
+		_Count,
+	};
+
+protected:
+	io.Socket* m_socket;
+	gui.Action* m_actionTable [ActionId._Count];
+	gui.BoolProperty* m_abruptiveDisconnectProp;
+	gui.BoolProperty* m_useLocalAddressProp;
+	gui.EnumProperty* m_ifaceProp;
+	gui.IntProperty* m_localPortProp;
+	gui.ComboBox* m_addressCombo;
+	io.SocketAddress m_remoteAddress;
+
+public:
+	construct (doc.DocumentHost* documentHost);
+
+	bool connect () throws;
+	disconnect ();
+
+	override size_t transmit (
+		void const* p,
+		size_t size
+		) throws;
+
+protected:
+	close ();
+	onSocketEvent (io.SocketEventParams const* params);
+
+	createUi ();
+	reactor m_uiReactor ();
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+TcpConnectionSession.construct (doc.DocumentHost* documentHost)
+{
+	basetype.construct (documentHost);
+
+	printf ("TcpConnectionSession.construct (this = %x, TID = %x)\n", this, jnc.getCurrentThreadId ());
+
+	documentHost.m_log.m_representer = TcpConnectionLogRepresenter.getSingleton ();
+	createUi ();
+}
+
+TcpConnectionSession.createUi ()
+{
+	// toolbar
+
+	m_documentHost.m_toolBar.addLabel ("Address: ");
+	m_addressCombo = m_documentHost.m_toolBar.addComboBox (-1);
+	m_addressCombo.m_isEditable = true;
+	m_addressCombo.m_editText = "192.168.1.11:1001"; // "127.0.0.1:1024";
+
+	m_actionTable [ActionId.Connect] = m_documentHost.createAction ("Connect", "connect.png");
+	m_actionTable [ActionId.Connect].m_onTriggered += connect;
+
+	m_actionTable [ActionId.Disconnect] = m_documentHost.createAction ("Disconnect", "disconnect.png");
+	m_actionTable [ActionId.Disconnect].m_onTriggered += disconnect;
+	m_actionTable [ActionId.Disconnect].m_isEnabled = false;
+
+	// property grid
+
+	m_abruptiveDisconnectProp = m_documentHost.createBoolProperty (
+		"Reset Connections",
+		"Use TCP RST to terminate ñonnections (instead of TCP graceful disconnect)"
+		);
+
+	m_useLocalAddressProp = m_documentHost.createBoolProperty (
+		"Use Local Address",
+		"Bind socket to the specified local address before connect"
+		);
+
+	static gui.EnumPropertyOption ifaceTable [] =
+	{
+		{ "0.0.0.0",   0x00000000 },
+		{ "127.0.0.1", 0x7f000001 },
+	};
+
+	m_ifaceProp = m_documentHost.createEnumProperty (
+		"Interface",
+		"Interface to bind to before connect",
+		ifaceTable,
+		countof (ifaceTable)
+		);
+
+	m_ifaceProp.m_value = 0;
+
+	m_localPortProp = m_documentHost.createIntProperty (
+		"Local TCP Port",
+		"Local TCP port to bind to before connect"
+		);
+
+	m_uiReactor.start ();
+}
+
+bool TcpConnectionSession.connect () throws
+{
+	disconnect ();
+
+	io.SocketAddress address;
+	io.parseSocketAddress (m_addressCombo.m_editText, &address);
+
+	m_documentHost.m_log.write (
+		TcpConnectionLogPacketCode.Connecting,
+		&address,
+		sizeof (address)
+		);
+
+	m_socket = io.createSocket ();
+	m_socket.m_onSocketEvent += onSocketEvent @ m_documentHost.m_mainThreadScheduler;
+
+	if (!m_useLocalAddressProp.m_value)
+	{
+		m_socket.open (io.Protocol.Tcp); // any address
+	}
+	else
+	{
+		io.SocketAddress localAddress;
+		io.parseSocketAddress ($"0.0.0.0:$(m_localPortProp.m_value)", &localAddress);
+		m_socket.open (io.Protocol.Tcp, &localAddress);
+	}
+
+	m_socket.connect (&address);
+
+	m_remoteAddress = address;
+	m_actionTable [ActionId.Disconnect].m_isEnabled = true;
+	return true;
+
+catch:
+	jnc.Error const* error = jnc.getLastError ();
+	m_documentHost.m_log.write (
+		TcpConnectionLogPacketCode.ConnectError,
+		error,
+		error.m_size
+		);
+	m_socket = null;
+	return false;
+}
+
+TcpConnectionSession.disconnect ()
+{
+	if (!m_socket)
+		return;
+
+	m_documentHost.m_log.write (
+		TcpConnectionLogPacketCode.Disconnected,
+		&m_remoteAddress,
+		sizeof (m_remoteAddress)
+		);
+	close ();
+}
+
+size_t TcpConnectionSession.transmit (
+	void const* p,
+	size_t size
+	) throws
+{
+	if (!m_socket)
+		return -1;
+
+	size_t result = try m_socket.send (p, size);
+	if (result != -1)
+		m_documentHost.m_log.write (log.StdPacketCode.Tx, p, result);
+
+	return result;
+}
+
+TcpConnectionSession.close ()
+{
+	m_actionTable [ActionId.Disconnect].m_isEnabled = false;
+	m_socket.close ();
+	m_socket = null;
+}
+
+TcpConnectionSession.onSocketEvent (io.SocketEventParams const* params)
+{
+	printf ("TcpConnectionSession.onSocketEvent (TID = %x)\n", jnc.getCurrentThreadId ());
+
+	if (params.m_sender != (io.Socket*) m_socket) // curently cast is needed :(
+		return;
+
+	switch (params.m_eventKind)
+	{
+	case io.SocketEvent.ConnectCompleted:
+		m_documentHost.m_log.write (TcpConnectionLogPacketCode.ConnectCompleted);
+		m_actionTable [ActionId.Disconnect].m_isEnabled = true;
+		break;
+
+	case io.SocketEvent.ConnectCancelled:
+		m_documentHost.m_log.write (TcpConnectionLogPacketCode.ConnectCancelled);
+		close ();
+		break;
+
+	case io.SocketEvent.ConnectError:
+		m_documentHost.m_log.write (
+			TcpConnectionLogPacketCode.ConnectError,
+			params.m_error,
+			params.m_error.m_size
+			);
+		close ();
+		break;
+
+	case io.SocketEvent.Disconnected:
+		m_documentHost.m_log.write (
+			TcpConnectionLogPacketCode.Disconnected,
+			&m_remoteAddress,
+			sizeof (m_remoteAddress)
+			);
+		close ();
+		break;
+
+	case io.SocketEvent.IncomingData:
+		heap char buffer [512];
+		size_t result = try m_socket.recv (buffer, sizeof (buffer));
+		if (result != -1)
+			m_documentHost.m_log.write (log.StdPacketCode.Rx, buffer, result);
+		break;
+	}
+}
+
+reactor TcpConnectionSession.m_uiReactor ()
+{
+	m_ifaceProp.m_isEnabled = m_useLocalAddressProp.m_value;
+	m_localPortProp.m_isEnabled = m_useLocalAddressProp.m_value;
+}
+
+//.............................................................................

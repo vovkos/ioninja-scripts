@@ -4,12 +4,14 @@
 
 #..............................................................................
 
-add_subdirectory (nj_ssn_Connection)
 add_subdirectory (nj_ssn_File)
-add_subdirectory (nj_ssn_Listener)
+add_subdirectory (nj_ssn_PipeListener)
 add_subdirectory (nj_ssn_Serial)
 add_subdirectory (nj_ssn_SerialMon)
 add_subdirectory (nj_ssn_Sniffer)
+add_subdirectory (nj_ssn_SshConnection)
+add_subdirectory (nj_ssn_TcpConnection)
+add_subdirectory (nj_ssn_TcpListener)
 add_subdirectory (nj_ssn_Udp)
 
 #..............................................................................

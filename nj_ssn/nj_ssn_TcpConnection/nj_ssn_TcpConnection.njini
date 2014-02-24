@@ -1,0 +1,21 @@
+//.............................................................................
+//
+// TCP Connection session provider
+//
+
+[session]
+
+name        = TCP Connection Socket
+description = "Establishes connection over TCP socket"
+id          = tcp-connection
+guid        = db8c8923-a699-46cc-be7c-f0bcd523082b
+icon        = connection.png
+
+session-class         = TcpConnectionSession
+log-representer-class = TcpConnectionLogRepresenter
+
+[scripts]
+
+nj_ssn_TcpConnectionLog.jnc
+nj_ssn_TcpConnectionSession.jnc
+
