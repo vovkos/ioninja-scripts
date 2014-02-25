@@ -85,7 +85,7 @@ struct LineAttr: gui.TextAttr
 
 //.............................................................................
 
-// represnetor-target pair
+// represneter-target pair
 
 opaque class RepresenterTarget
 {

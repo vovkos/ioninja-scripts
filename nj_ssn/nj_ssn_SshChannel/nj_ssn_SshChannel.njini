@@ -1,0 +1,20 @@
+//.............................................................................
+//
+// SSH Channel session provider
+//
+
+[session]
+
+name        = SSH Channel
+description = "Establishes SSH channel over TCP socket"
+id          = ssh-channel
+guid        = 8ec96e77-89df-4dd8-bc14-b995b85de45d
+icon        = connection.png
+
+session-class         = SshChannelSession
+log-representer-class = SshChannelLogRepresenter
+
+[scripts]
+
+nj_ssn_SshChannelLog.jnc
+nj_ssn_SshChannelSession.jnc

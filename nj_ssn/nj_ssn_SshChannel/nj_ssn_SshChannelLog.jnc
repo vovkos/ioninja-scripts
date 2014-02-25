@@ -1,0 +1,129 @@
+//.............................................................................
+//
+// SSH Connection log packet declarations and representer
+//
+
+//.............................................................................
+
+enum SshChannelLogPacketCode
+{
+	TcpConnecting         = 1  | log.PacketCodeFlags.Mergeable,
+	TcpConnectCompleted   = 2  | log.PacketCodeFlags.Mergeable,
+	SshHandshakeCompleted = 3  | log.PacketCodeFlags.Mergeable,
+	SshAuthCompleted      = 4  | log.PacketCodeFlags.Mergeable,
+	SshChannelOpened      = 5  | log.PacketCodeFlags.Mergeable,
+	SshPtyRequested       = 6  | log.PacketCodeFlags.Mergeable,
+	SshShellStarted       = 7  | log.PacketCodeFlags.Mergeable,
+	ConnectCancelled      = 8  | log.PacketCodeFlags.Mergeable,
+	ConnectCompleted      = 9  | log.PacketCodeFlags.Mergeable,
+	ConnectError          = 10 | log.PacketCodeFlags.Mergeable,
+	Disconnected          = 11,
+}
+
+enum SshChannelLogPartCode
+{
+	Connecting       = 1 | log.PacketCodeFlags.MergeableForward,
+	ConnectCompleted = 1 | log.PacketCodeFlags.MergeableBackward,
+}
+
+//.............................................................................
+
+class SshChannelLogRepresenter: log.Representer
+{
+	override bool represent (
+		log.RepresenterTarget* target,
+		uint_t packetCode,
+		void const* p,
+		size_t size,
+		uint64_t foldFlags
+		);
+
+	static SshChannelLogRepresenter* getSingleton ()
+	{
+		static SshChannelLogRepresenter singleton;
+		return &singleton;
+	}
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+bool SshChannelLogRepresenter.represent (
+	log.RepresenterTarget* target,
+	uint_t packetCode,
+	void const* p,
+	size_t size,
+	uint64_t foldFlags
+	)
+{
+	switch (packetCode)
+	{
+	case SshChannelLogPacketCode.TcpConnecting:
+		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText (SshChannelLogPartCode.Connecting, $"Connecting to <15>$addressString<>...");
+		break;
+
+	case SshChannelLogPacketCode.TcpConnectCompleted:
+		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, "ok");
+		target.addHyperText (SshChannelLogPartCode.Connecting, "Performing SSH handshake...");
+		break;
+
+	case SshChannelLogPacketCode.SshHandshakeCompleted:
+		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, "ok");
+		target.addHyperText (SshChannelLogPartCode.Connecting, "Performing SSH authentification...");
+		break;
+
+	case SshChannelLogPacketCode.SshAuthCompleted:
+		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, "ok");
+		target.addHyperText (SshChannelLogPartCode.Connecting, "Opening SSH channel...");
+		break;
+
+	case SshChannelLogPacketCode.SshChannelOpened:
+		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, "ok");
+		target.addHyperText (SshChannelLogPartCode.Connecting, "Requesting PTY...");
+		break;
+
+	case SshChannelLogPacketCode.SshPtyRequested:
+		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, "ok");
+		target.addHyperText (SshChannelLogPartCode.Connecting, "Starting shell...");
+		break;
+
+	case SshChannelLogPacketCode.SshShellStarted:
+		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, "ok");
+		break;
+
+	case SshChannelLogPacketCode.ConnectCompleted:
+		target.m_lineAttr.m_iconIdx  = log.StdLogIcon.Play;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
+		target.addHyperText ("SSH channel established");
+		break;
+
+	case SshChannelLogPacketCode.ConnectCancelled:
+		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, "cancelled");
+		break;
+
+	case SshChannelLogPacketCode.ConnectError:
+		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
+
+		jnc.Error* Error = (jnc.Error*) p;
+		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, $"error ($(Error.m_description))");
+		break;
+
+	case SshChannelLogPacketCode.Disconnected:
+		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
+		target.addHyperText ($"Disconnected from <15>$addressString<>");
+		break;
+
+	default:
+		return false;
+	}
+
+	return true;
+}
+
+//.............................................................................

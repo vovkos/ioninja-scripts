@@ -5,7 +5,7 @@
 
 //.............................................................................
 
-class SshConnectionSession: doc.StreamSession
+class SshChannelSession: doc.StreamSession
 {
 protected:
 	enum ActionId
@@ -16,7 +16,7 @@ protected:
 	};
 
 protected:
-	io.Socket* m_socket;
+	io.SshChannel* m_channel;
 	gui.Action* m_actionTable [ActionId._Count];
 	gui.BoolProperty* m_abruptiveDisconnectProp;
 	gui.BoolProperty* m_useLocalAddressProp;
@@ -38,7 +38,7 @@ public:
 
 protected:
 	close ();
-	onSocketEvent (io.SocketEventParams const* params);
+	onSshEvent (io.SshEventParams const* params);
 
 	createUi ();
 	reactor m_uiReactor ();
@@ -46,24 +46,24 @@ protected:
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-SshConnectionSession.construct (doc.DocumentHost* documentHost)
+SshChannelSession.construct (doc.DocumentHost* documentHost)
 {
 	basetype.construct (documentHost);
 
-	printf ("SshConnectionSession.construct (this = %x, TID = %x)\n", this, jnc.getCurrentThreadId ());
+	printf ("SshChannelSession.construct (this = %x, TID = %x)\n", this, jnc.getCurrentThreadId ());
 
-	documentHost.m_log.m_representer = SshConnectionLogRepresenter.getSingleton ();
+	documentHost.m_log.m_representer = SshChannelLogRepresenter.getSingleton ();
 	createUi ();
 }
 
-SshConnectionSession.createUi ()
+SshChannelSession.createUi ()
 {
 	// toolbar
 
 	m_documentHost.m_toolBar.addLabel ("Address: ");
 	m_addressCombo = m_documentHost.m_toolBar.addComboBox (-1);
 	m_addressCombo.m_isEditable = true;
-	m_addressCombo.m_editText = "192.168.1.11:1001"; // "127.0.0.1:1024";
+	m_addressCombo.m_editText = "93.174.106.102:22"; // ls0.tibbo.net
 
 	m_actionTable [ActionId.Connect] = m_documentHost.createAction ("Connect", "connect.png");
 	m_actionTable [ActionId.Connect].m_onTriggered += connect;
@@ -75,8 +75,8 @@ SshConnectionSession.createUi ()
 	// property grid
 
 	m_abruptiveDisconnectProp = m_documentHost.createBoolProperty (
-		"Reset SshConnections",
-		"Use TCP RST to terminate SshConnections (instead of TCP graceful disconnect)"
+		"Reset SshChannels",
+		"Use TCP RST to terminate SshChannels (instead of TCP graceful disconnect)"
 		);
 
 	m_useLocalAddressProp = m_documentHost.createBoolProperty (
@@ -107,7 +107,7 @@ SshConnectionSession.createUi ()
 	m_uiReactor.start ();
 }
 
-bool SshConnectionSession.connect () throws
+bool SshChannelSession.connect () throws
 {
 	disconnect ();
 
@@ -115,26 +115,26 @@ bool SshConnectionSession.connect () throws
 	io.parseSocketAddress (m_addressCombo.m_editText, &address);
 
 	m_documentHost.m_log.write (
-		SshConnectionLogPacketCode.Connecting,
+		SshChannelLogPacketCode.TcpConnecting,
 		&address,
 		sizeof (address)
 		);
 
-	m_socket = io.createSocket ();
-	m_socket.m_onSocketEvent += onSocketEvent @ m_documentHost.m_mainThreadScheduler;
+	m_channel = io.createSshChannel  ();
+	m_channel.m_onSshEvent += onSshEvent @ m_documentHost.m_mainThreadScheduler;
 
 	if (!m_useLocalAddressProp.m_value)
 	{
-		m_socket.open (io.Protocol.Tcp); // any address
+		m_channel.open (); // any address
 	}
 	else
 	{
 		io.SocketAddress localAddress;
 		io.parseSocketAddress ($"0.0.0.0:$(m_localPortProp.m_value)", &localAddress);
-		m_socket.open (io.Protocol.Tcp, &localAddress);
+		m_channel.open (&localAddress);
 	}
 
-	m_socket.connect (&address);
+	m_channel.connect (&address, "vovkos", "doygvayri");
 
 	m_remoteAddress = address;
 	m_actionTable [ActionId.Disconnect].m_isEnabled = true;
@@ -143,96 +143,120 @@ bool SshConnectionSession.connect () throws
 catch:
 	jnc.Error const* error = jnc.getLastError ();
 	m_documentHost.m_log.write (
-		SshConnectionLogPacketCode.ConnectError,
+		SshChannelLogPacketCode.ConnectError,
 		error,
 		error.m_size
 		);
-	m_socket = null;
+	m_channel = null;
 	return false;
 }
 
-SshConnectionSession.disconnect ()
+SshChannelSession.disconnect ()
 {
-	if (!m_socket)
+	if (!m_channel)
 		return;
 
 	m_documentHost.m_log.write (
-		SshConnectionLogPacketCode.Disconnected,
+		SshChannelLogPacketCode.Disconnected,
 		&m_remoteAddress,
 		sizeof (m_remoteAddress)
 		);
 	close ();
 }
 
-size_t SshConnectionSession.transmit (
+size_t SshChannelSession.transmit (
 	void const* p,
 	size_t size
 	) throws
 {
-	if (!m_socket)
+	if (!m_channel)
 		return -1;
 
-	size_t result = try m_socket.send (p, size);
+	size_t result = try m_channel.write (p, size);
 	if (result != -1)
 		m_documentHost.m_log.write (log.StdPacketCode.Tx, p, result);
 
 	return result;
 }
 
-SshConnectionSession.close ()
+SshChannelSession.close ()
 {
 	m_actionTable [ActionId.Disconnect].m_isEnabled = false;
-	m_socket.close ();
-	m_socket = null;
+	m_channel.close ();
+	m_channel = null;
 }
 
-SshConnectionSession.onSocketEvent (io.SocketEventParams const* params)
+SshChannelSession.onSshEvent (io.SshEventParams const* params)
 {
-	printf ("SshConnectionSession.onSocketEvent (TID = %x)\n", jnc.getCurrentThreadId ());
+	printf ("SshChannelSession.onSshEvent (TID = %x)\n", jnc.getCurrentThreadId ());
 
-	if (params.m_sender != (io.Socket*) m_socket) // curently cast is needed :(
+	if (params.m_sender != m_channel)
 		return;
 
 	switch (params.m_eventKind)
 	{
-	case io.SocketEvent.ConnectCompleted:
-		m_documentHost.m_log.write (SshConnectionLogPacketCode.ConnectCompleted);
+	case io.SshEvent.TcpConnectCompleted:
+		m_documentHost.m_log.write (SshChannelLogPacketCode.TcpConnectCompleted);
+		break;
+
+	case io.SshEvent.SshHandshakeCompleted:
+		m_documentHost.m_log.write (SshChannelLogPacketCode.SshHandshakeCompleted);
+		break;
+
+	case io.SshEvent.SshAuthCompleted:
+		m_documentHost.m_log.write (SshChannelLogPacketCode.SshAuthCompleted);
+		break;
+
+	case io.SshEvent.SshChannelOpened:
+		m_documentHost.m_log.write (SshChannelLogPacketCode.SshChannelOpened);
+		break;
+
+	case io.SshEvent.SshPtyRequested:
+		m_documentHost.m_log.write (SshChannelLogPacketCode.TcpConnectCompleted);
+		break;
+
+	case io.SshEvent.SshShellStarted:
+		m_documentHost.m_log.write (SshChannelLogPacketCode.TcpConnectCompleted);
+		break;
+
+	case io.SshEvent.ConnectCompleted:
+		m_documentHost.m_log.write (SshChannelLogPacketCode.ConnectCompleted);
 		m_actionTable [ActionId.Disconnect].m_isEnabled = true;
 		break;
 
-	case io.SocketEvent.ConnectCancelled:
-		m_documentHost.m_log.write (SshConnectionLogPacketCode.ConnectCancelled);
+	case io.SshEvent.ConnectCancelled:
+		m_documentHost.m_log.write (SshChannelLogPacketCode.ConnectCancelled);
 		close ();
 		break;
 
-	case io.SocketEvent.ConnectError:
+	case io.SshEvent.ConnectError:
 		m_documentHost.m_log.write (
-			SshConnectionLogPacketCode.ConnectError,
+			SshChannelLogPacketCode.ConnectError,
 			params.m_error,
 			params.m_error.m_size
 			);
 		close ();
 		break;
 
-	case io.SocketEvent.Disconnected:
+	case io.SshEvent.Disconnected:
 		m_documentHost.m_log.write (
-			SshConnectionLogPacketCode.Disconnected,
+			SshChannelLogPacketCode.Disconnected,
 			&m_remoteAddress,
 			sizeof (m_remoteAddress)
 			);
 		close ();
 		break;
 
-	case io.SocketEvent.IncomingData:
+	case io.SshEvent.IncomingData:
 		heap char buffer [512];
-		size_t result = try m_socket.recv (buffer, sizeof (buffer));
+		size_t result = try m_channel.read (buffer, sizeof (buffer));
 		if (result != -1)
 			m_documentHost.m_log.write (log.StdPacketCode.Rx, buffer, result);
 		break;
 	}
 }
 
-reactor SshConnectionSession.m_uiReactor ()
+reactor SshChannelSession.m_uiReactor ()
 {
 	m_ifaceProp.m_isEnabled = m_useLocalAddressProp.m_value;
 	m_localPortProp.m_isEnabled = m_useLocalAddressProp.m_value;
