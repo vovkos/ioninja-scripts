@@ -18,6 +18,9 @@ protected:
 protected:
 	io.SshChannel* m_channel;
 	gui.Action* m_actionTable [ActionId._Count];
+	gui.StringProperty* m_userNameProp;
+	gui.StringProperty* m_passwordProp;
+	gui.StringProperty* m_ptyProp;
 	gui.BoolProperty* m_abruptiveDisconnectProp;
 	gui.BoolProperty* m_useLocalAddressProp;
 	gui.EnumProperty* m_ifaceProp;
@@ -74,9 +77,30 @@ SshChannelSession.createUi ()
 
 	// property grid
 
+	m_userNameProp = m_documentHost.createStringProperty (
+		"User Name",
+		"User name for SSH authentification"
+		);
+		
+	m_userNameProp.m_value = "vovkos";
+
+	m_passwordProp = m_documentHost.createStringProperty (
+		"Password",
+		"Password for SSH authentification"
+		);
+
+	m_passwordProp.m_value = "doygvayri";
+
+	m_ptyProp = m_documentHost.createStringProperty (
+		"Pseudoterminal",
+		"Type of requested pseudoterminal (PTY)"
+		);
+
+	m_ptyProp.m_value = "ansi";
+
 	m_abruptiveDisconnectProp = m_documentHost.createBoolProperty (
-		"Reset SshChannels",
-		"Use TCP RST to terminate SshChannels (instead of TCP graceful disconnect)"
+		"Reset TCP Connection",
+		"Use TCP RST to terminate connection (instead of TCP graceful disconnect)"
 		);
 
 	m_useLocalAddressProp = m_documentHost.createBoolProperty (
@@ -134,7 +158,14 @@ bool SshChannelSession.connect () throws
 		m_channel.open (&localAddress);
 	}
 
-	m_channel.connect (&address, "vovkos", "doygvayri");
+	m_channel.connect (
+		&address, 
+		m_userNameProp.m_value, 
+		m_passwordProp.m_value,
+		"session",
+		"shell",
+		m_ptyProp.m_value
+		);
 
 	m_remoteAddress = address;
 	m_actionTable [ActionId.Disconnect].m_isEnabled = true;
@@ -212,11 +243,11 @@ SshChannelSession.onSshEvent (io.SshEventParams const* params)
 		break;
 
 	case io.SshEvent.SshPtyRequested:
-		m_documentHost.m_log.write (SshChannelLogPacketCode.TcpConnectCompleted);
+		m_documentHost.m_log.write (SshChannelLogPacketCode.SshPtyRequested);
 		break;
 
 	case io.SshEvent.SshShellStarted:
-		m_documentHost.m_log.write (SshChannelLogPacketCode.TcpConnectCompleted);
+		m_documentHost.m_log.write (SshChannelLogPacketCode.SshShellStarted);
 		break;
 
 	case io.SshEvent.ConnectCompleted:

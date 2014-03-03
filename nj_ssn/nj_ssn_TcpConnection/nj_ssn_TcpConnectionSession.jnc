@@ -63,7 +63,7 @@ TcpConnectionSession.createUi ()
 	m_documentHost.m_toolBar.addLabel ("Address: ");
 	m_addressCombo = m_documentHost.m_toolBar.addComboBox (-1);
 	m_addressCombo.m_isEditable = true;
-	m_addressCombo.m_editText = "192.168.1.11:1001"; // "127.0.0.1:1024";
+	m_addressCombo.m_editText = "127.0.0.1:1001"; // "192.168.1.11:1001";
 
 	m_actionTable [ActionId.Connect] = m_documentHost.createAction ("Connect", "connect.png");
 	m_actionTable [ActionId.Connect].m_onTriggered += connect;

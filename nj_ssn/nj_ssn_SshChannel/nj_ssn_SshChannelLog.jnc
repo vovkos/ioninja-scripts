@@ -61,31 +61,45 @@ bool SshChannelLogRepresenter.represent (
 		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText (SshChannelLogPartCode.Connecting, $"Connecting to <15>$addressString<>...");
+		target.addHyperText (SshChannelLogPartCode.Connecting, $"Establishing TCP connection to <15>$addressString<>...");
 		break;
 
 	case SshChannelLogPacketCode.TcpConnectCompleted:
 		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, "ok");
+
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText (SshChannelLogPartCode.Connecting, "Performing SSH handshake...");
 		break;
 
 	case SshChannelLogPacketCode.SshHandshakeCompleted:
 		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, "ok");
+		
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText (SshChannelLogPartCode.Connecting, "Performing SSH authentification...");
 		break;
 
 	case SshChannelLogPacketCode.SshAuthCompleted:
 		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, "ok");
+
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText (SshChannelLogPartCode.Connecting, "Opening SSH channel...");
 		break;
 
 	case SshChannelLogPacketCode.SshChannelOpened:
 		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, "ok");
+		
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText (SshChannelLogPartCode.Connecting, "Requesting PTY...");
 		break;
 
 	case SshChannelLogPacketCode.SshPtyRequested:
 		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, "ok");
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText (SshChannelLogPartCode.Connecting, "Starting shell...");
 		break;
 
