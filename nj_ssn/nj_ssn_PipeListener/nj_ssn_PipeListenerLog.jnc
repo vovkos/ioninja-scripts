@@ -47,10 +47,10 @@ bool PipeListenerLogRepresenter.represent (
 	switch (packetCode)
 	{
 	case PipeListenerLogPacketCode.Listening:
-		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
+		char const* name = (char const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
-		target.addHyperText ($"Listening on <15>$addressString<>");
+		target.addHyperText ($"Listening on <15>$name<>");
 		break;
 
 	case PipeListenerLogPacketCode.ListenError:
@@ -61,31 +61,28 @@ bool PipeListenerLogRepresenter.represent (
 		break;
 
 	case PipeListenerLogPacketCode.ListenStopped:
-		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
+		char const* name = (char const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
-		target.addHyperText ($"Stopped listening on <15>$addressString<>");
+		target.addHyperText ($"Stopped listening on <15>$name<>");
 		break;
 
 	case PipeListenerLogPacketCode.ClientConnected:
-		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText ($"Client connected from <15>$addressString<>");
+		target.addHyperText ("Client connected");
 		break;
 
 	case PipeListenerLogPacketCode.ClientDisconnected:
-		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText ($"Client <15>$addressString<> disconnected");
+		target.addHyperText ("Client disconnected");
 		break;
 
 	case PipeListenerLogPacketCode.ClientRejected:
-		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Warning;
-		target.addHyperText ($"Client <15>$addressString<> is rejected ");
+		target.addHyperText ("Client connected and rejected ");
 		break;
 
 	default:

@@ -17,18 +17,14 @@ protected:
 	};
 
 protected:
-	io.Socket* m_listenerSocket;
-	io.Socket* m_connectionSocket;
+	io.NamedPipe* m_listenerPipe;
+	io.FileStream* m_connectionPipe;
+	
 	gui.Action* m_actionTable [ActionId._Count];
-	gui.EnumProperty* m_ifaceProp;
-	gui.BoolProperty* m_abruptiveDisconnectProp;
 	gui.BoolProperty* m_overrideOldConnectionProp;
-	gui.BoolProperty* m_useAcceptFilterProp;
-	gui.StringProperty* m_acceptFilterProp;
-	gui.ComboBox* m_portCombo;
-
-	io.SocketAddress m_localAddress;
-	io.SocketAddress m_remoteAddress;
+	gui.ComboBox* m_nameCombo;
+	
+	char const* m_pipeName;
 
 public:
 	construct (doc.DocumentHost* documentHost);
@@ -43,17 +39,12 @@ public:
 		) throws;
 
 protected:
-	closePipeListenerSocket ();
-	closeConnectionSocket ();
-	onListenerSocketEvent (io.SocketEventParams const* params);
-	onConnectionSocketEvent (io.SocketEventParams const* params);
+	closeListenerPipe ();
+	closeConnectionPipe ();
+	onIncomingConnection ();
+	onConnectionPipeEvent (io.FileStreamEventParams const* params);
 
 	createUi ();
-
-	reactor m_uiReactor ()
-	{
-		m_acceptFilterProp.m_isEnabled = m_useAcceptFilterProp.m_value;
-	}
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -61,8 +52,7 @@ protected:
 PipeListenerSession.construct (doc.DocumentHost* documentHost)
 {
 	basetype.construct (documentHost);
-	printf ("PipeListenerSession.construct (this = %x, TID = %x)\n", this, jnc.getCurrentThreadId ());
-	documentHost.m_log.m_representer = PipeListenerLogRepresenter.getSingleton ();
+	documentHost.m_log.m_representer = PipeListenerLogRepresenter.getSingleton ();	
 	createUi ();
 }
 
@@ -70,10 +60,10 @@ PipeListenerSession.createUi ()
 {
 	// toolbar
 
-	m_documentHost.m_toolBar.addLabel ("Port: ");
-	m_portCombo = m_documentHost.m_toolBar.addComboBox ();
-	m_portCombo.m_isEditable = true;
-	m_portCombo.m_editText = "1024";
+	m_documentHost.m_toolBar.addLabel ("Name: ");
+	m_nameCombo = m_documentHost.m_toolBar.addComboBox (-1);
+	m_nameCombo.m_isEditable = true;
+	m_nameCombo.m_editText = "\\\\.\\pipe\\mypipe0";
 
 	m_actionTable [ActionId.Listen] = m_documentHost.createAction ("Listen", "listen.png");
 	m_actionTable [ActionId.Listen].m_onTriggered += listen;
@@ -92,72 +82,38 @@ PipeListenerSession.createUi ()
 		{ "127.0.0.1", 0x7f000001 },
 	};
 
-	m_ifaceProp = m_documentHost.createEnumProperty (
-		"Interface",
-		"Interface to bind to before connect",
-		ifaceTable,
-		countof (ifaceTable)
-		);
-
-	m_ifaceProp.m_value = 0;
-
-	m_abruptiveDisconnectProp = m_documentHost.createBoolProperty (
-		"Reset Connections",
-		"Use TCP RST to terminate connections (instead of TCP graceful disconnect)"
-		);
-
 	m_overrideOldConnectionProp = m_documentHost.createBoolProperty (
 		"Override Connections",
 		"Accept incoming connection even if already connected"
 		);
 	m_overrideOldConnectionProp.m_value = true;
-
-	m_useAcceptFilterProp = m_documentHost.createBoolProperty (
-		"Use IP Filter",
-		"Reject incoming connection if IP address does not pass IP filter"
-		);
-
-	m_acceptFilterProp = m_documentHost.createStringProperty (
-		"IP Filter",
-		"Specify filter for incoming IP addresses"
-		);
-
-	m_acceptFilterProp.m_value = "192.168.*.7*";
-
-	m_uiReactor.start ();
 }
 
 bool PipeListenerSession.listen () throws
 {
-	printf ("PipeListenerSession.onListen (TID = %x)\n", jnc.getCurrentThreadId ());
-
 	stopListen ();
 
-	char const* addressString = $"0.0.0.0:$(m_portCombo.m_editText)";
+	char const* name = m_nameCombo.m_editText;
 
-	io.SocketAddress address;
-	io.parseSocketAddress (addressString, &address);
-
-	m_listenerSocket = io.createSocket ();
-	m_listenerSocket.m_onSocketEvent += onListenerSocketEvent @ m_documentHost.m_mainThreadScheduler;
-	m_listenerSocket.open (io.Protocol.Tcp, &address);
-	m_listenerSocket.listen ();
+	m_listenerPipe = io.createNamedPipe ();
+	m_listenerPipe.m_onIncomingConnection += onIncomingConnection @ m_documentHost.m_mainThreadScheduler;
+	m_listenerPipe.open (name);
 
 	m_documentHost.m_log.write (
 		PipeListenerLogPacketCode.Listening,
-		&address,
-		sizeof (address)
+		name,
+		strlen (name)
 		);
 
-	m_localAddress = address;
+	m_pipeName = name;
 	m_actionTable [ActionId.StopListen].m_isEnabled = true;
 	return true;
 
 catch:
-	if (m_listenerSocket)
+	if (m_listenerPipe)
 	{
-		m_listenerSocket.close ();
-		m_listenerSocket = null;
+		m_listenerPipe.close ();
+		m_listenerPipe = null;
 	}
 
 	jnc.Error const* error = jnc.getLastError ();
@@ -171,28 +127,25 @@ catch:
 
 PipeListenerSession.stopListen ()
 {
-	if (!m_listenerSocket)
+	if (!m_listenerPipe)
 		return;
 
 	m_documentHost.m_log.write (
 		PipeListenerLogPacketCode.ListenStopped,
-		&m_localAddress,
-		sizeof (m_localAddress)
+		m_pipeName,
+		strlen (m_pipeName)
 		);
-	closePipeListenerSocket ();
+	
+	closeListenerPipe ();
 }
 
 PipeListenerSession.disconnect ()
 {
-	if (!m_connectionSocket)
+	if (!m_connectionPipe)
 		return;
 
-	m_documentHost.m_log.write (
-		PipeListenerLogPacketCode.ClientDisconnected,
-		&m_remoteAddress,
-		sizeof (m_remoteAddress)
-		);
-	closeConnectionSocket ();
+	m_documentHost.m_log.write (PipeListenerLogPacketCode.ClientDisconnected);
+	closeConnectionPipe ();
 }
 
 size_t PipeListenerSession.transmit (
@@ -200,95 +153,70 @@ size_t PipeListenerSession.transmit (
 	size_t size
 	) throws
 {
-	if (!m_connectionSocket)
+	if (!m_connectionPipe)
 		return -1;
 
-	size_t result = try m_connectionSocket.send (p, size);
+	size_t result = try m_connectionPipe.write (p, size);
 	if (result != -1)
 		m_documentHost.m_log.write (log.StdPacketCode.Tx, p, result);
 
 	return result;
 }
 
-PipeListenerSession.closePipeListenerSocket ()
+PipeListenerSession.closeListenerPipe ()
 {
 	m_actionTable [ActionId.StopListen].m_isEnabled = false;
-	m_listenerSocket.close ();
-	m_listenerSocket = null;
+	m_listenerPipe.close ();
+	m_listenerPipe = null;
 }
 
-PipeListenerSession.closeConnectionSocket ()
+PipeListenerSession.closeConnectionPipe ()
 {
 	m_actionTable [ActionId.Disconnect].m_isEnabled = false;
-	m_connectionSocket.close ();
-	m_connectionSocket = null;
+	m_connectionPipe.close ();
+	m_connectionPipe = null;
 }
 
-PipeListenerSession.onListenerSocketEvent (io.SocketEventParams const* params)
+PipeListenerSession.onIncomingConnection ()
 {
-	printf ("PipeListenerSession.onListenerSocketEvent (TID = %x)\n", jnc.getCurrentThreadId ());
+	io.FileStream* pipe = try m_listenerPipe.accept ();
+	if (!pipe)
+		return;
 
-	if (params.m_sender != (io.Socket*) m_listenerSocket) // curently cast is needed :(
+	if (m_connectionPipe)
+		if (!m_overrideOldConnectionProp.m_value)
+		{
+			pipe.close ();
+			m_documentHost.m_log.write (PipeListenerLogPacketCode.ClientRejected);
+			return;
+		}
+
+	disconnect ();
+
+	m_documentHost.m_log.write (PipeListenerLogPacketCode.ClientConnected);
+
+	m_connectionPipe = pipe;
+	m_connectionPipe.m_onFileStreamEvent += onConnectionPipeEvent @ m_documentHost.m_mainThreadScheduler;
+	
+	m_actionTable [ActionId.Disconnect].m_isEnabled = true;
+}
+
+PipeListenerSession.onConnectionPipeEvent (io.FileStreamEventParams const* params)
+{
+	if (params.m_sender != m_connectionPipe)
 		return;
 
 	switch (params.m_eventKind)
 	{
-	case io.SocketEvent.IncomingConnection:
-		io.SocketAddress address;
-		io.Socket* socket = try m_listenerSocket.accept (&address);
-		if (!socket)
-			break;
-
-		if (m_connectionSocket)
-			if (!m_overrideOldConnectionProp.m_value)
-			{
-				socket.close ();
-				m_documentHost.m_log.write (
-					PipeListenerLogPacketCode.ClientRejected,
-					&address,
-					sizeof (address)
-					);
-
-				break;
-			}
-
-		disconnect ();
-
-		m_documentHost.m_log.write (
-			PipeListenerLogPacketCode.ClientConnected,
-			&address,
-			sizeof (address)
-			);
-
-		m_connectionSocket = socket;
-		m_connectionSocket.m_onSocketEvent += onConnectionSocketEvent @ m_documentHost.m_mainThreadScheduler;
-		m_remoteAddress = address;
-		m_actionTable [ActionId.Disconnect].m_isEnabled = true;
-		break;
-	}
-}
-
-PipeListenerSession.onConnectionSocketEvent (io.SocketEventParams const* params)
-{
-	printf ("PipeListenerSession.onConnectionSocketEvent (TID = %x)\n", jnc.getCurrentThreadId ());
-
-	if (params.m_sender != (io.Socket*) m_connectionSocket) // curently cast is needed :(
-		return;
-
-	switch (params.m_eventKind)
-	{
-	case io.SocketEvent.Disconnected:
-		m_documentHost.m_log.write (
-			PipeListenerLogPacketCode.ClientDisconnected,
-			&m_remoteAddress,
-			sizeof (m_remoteAddress)
-			);
-		closeConnectionSocket ();
+	case io.FileStreamEvent.Eof:
+	case io.FileStreamEvent.ReadError:
+		m_documentHost.m_log.write (PipeListenerLogPacketCode.ClientDisconnected);
+		closeConnectionPipe ();
 		break;
 
-	case io.SocketEvent.IncomingData:
+	case io.FileStreamEvent.IncomingData:
 		heap char buffer [512];
-		size_t result = try m_connectionSocket.recv (buffer, sizeof (buffer));
+		size_t result = try m_connectionPipe.read (buffer, sizeof (buffer));
 		if (result != -1)
 			m_documentHost.m_log.write (log.StdPacketCode.Rx, buffer, result);
 		break;

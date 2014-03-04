@@ -15,7 +15,9 @@ set (
 	API_JNC_LIST
 	nj_doc.jnc
 	nj_gui.jnc
-	nj_io_File.jnc
+	nj_io_FileStream.jnc
+	nj_io_MappedFile.jnc
+	nj_io_NamedPipe.jnc
 	nj_io_PCap.jnc
 	nj_io_Packet.jnc
 	nj_io_Serial.jnc

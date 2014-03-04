@@ -1,0 +1,32 @@
+//.............................................................................
+//
+// Named pipe class
+//
+
+namespace io {
+
+//.............................................................................
+
+class NamedPipe
+{
+	bool dconst m_isOpen;
+
+	bool open (
+		char const* name,
+		size_t BackLog = 0		
+		) throws;
+
+	void close ();
+
+	FileStream* accept ();
+
+	event m_onIncomingConnection ();
+}
+
+//.............................................................................
+
+NamedPipe* createNamedPipe ();
+
+//.............................................................................
+
+} // namespace io {
