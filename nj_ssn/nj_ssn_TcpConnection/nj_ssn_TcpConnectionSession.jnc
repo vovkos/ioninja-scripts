@@ -99,7 +99,7 @@ TcpConnectionSession.createUi ()
 
 	m_abruptiveDisconnectProp = m_documentHost.createBoolProperty (
 		"Reset Connections",
-		"Use TCP RST to terminate ñonnections (instead of TCP graceful disconnect)"
+		"Use TCP RST to terminate connections (instead of TCP graceful disconnect)"
 		);
 
 	m_useLocalAddressProp = m_documentHost.createBoolProperty (
