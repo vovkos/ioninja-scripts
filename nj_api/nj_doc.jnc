@@ -18,6 +18,8 @@ enum DocumentKind
 
 class DocumentHost
 {
+	char const* autoget property m_title;
+	
 	gui.Menu* m_menu;
 	gui.ToolBar* m_toolBar;
 	gui.PropertyGrid* m_propertyGrid;

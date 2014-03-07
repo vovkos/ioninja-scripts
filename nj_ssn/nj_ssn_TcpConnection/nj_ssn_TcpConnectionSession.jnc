@@ -93,17 +93,17 @@ TcpConnectionSession.createUi ()
 	// property grid
 
 	m_remoteAddressProp = m_documentHost.createStringProperty (
-		"Address",
+		"Remote address",
 		"Remote address to connect to (IP-address or host-name followed by ':' port)"
 		);
 
 	m_abruptiveDisconnectProp = m_documentHost.createBoolProperty (
-		"Reset Connections",
+		"Reset connections",
 		"Use TCP RST to terminate connections (instead of TCP graceful disconnect)"
 		);
 
 	m_useLocalAddressProp = m_documentHost.createBoolProperty (
-		"Use Local Address",
+		"Use local address",
 		"Bind socket to the specified local address before connect"
 		);
 
@@ -123,7 +123,7 @@ TcpConnectionSession.createUi ()
 	m_ifaceProp.m_value = 0;
 
 	m_localPortProp = m_documentHost.createIntProperty (
-		"Local TCP Port",
+		"Local TCP port",
 		"Local TCP port to bind to before connect"
 		);
 
@@ -249,6 +249,11 @@ TcpConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 
 reactor TcpConnectionSession.m_uiReactor ()
 {
+	onevent m_addressCombo.m_onChanged ()
+	{
+		m_documentHost.m_title = $"TCP $(m_addressCombo.m_editText)";
+	}
+	
 	m_actionTable [ActionId.Disconnect].m_isEnabled = m_state != State.Closed;
 	m_ifaceProp.m_isEnabled = m_useLocalAddressProp.m_value;
 	m_localPortProp.m_isEnabled = m_useLocalAddressProp.m_value;

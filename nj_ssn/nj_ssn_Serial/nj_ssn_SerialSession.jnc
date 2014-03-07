@@ -101,10 +101,10 @@ SerialSession.createUi ()
 	m_baudRateCombo.addItem ("115200 bps");
 
 	m_documentHost.m_toolBar.addLabel (" Flow control: ");
-	m_portNameCombo = m_documentHost.m_toolBar.addComboBox ();
-	m_portNameCombo.addItem ("None");
-	m_portNameCombo.addItem ("RTS/CTS");
-	m_portNameCombo.addItem ("XON/XOFF");
+	m_flowControlCombo = m_documentHost.m_toolBar.addComboBox ();
+	m_flowControlCombo.addItem ("None");
+	m_flowControlCombo.addItem ("RTS/CTS");
+	m_flowControlCombo.addItem ("XON/XOFF");
 
 	m_actionTable [ActionId.Open]  = m_documentHost.createAction ("Open", "connect.png");
 	m_actionTable [ActionId.Open].m_onTriggered += open;
@@ -322,7 +322,12 @@ SerialSession.onSerialEvent (io.SerialEventParams const* params)
 }
 
 reactor SerialSession.m_uiReactor ()
-{
+{	
+	onevent (m_portNameCombo.m_onChanged, m_baudRateCombo.m_onChanged) ()
+	{
+		m_documentHost.m_title = $"$(m_portNameCombo.m_currentText) $(m_baudRateCombo.m_currentText)";
+	}
+	
 	m_actionTable [ActionId.Close].m_isEnabled = m_state == State.Opened;
 }
 
