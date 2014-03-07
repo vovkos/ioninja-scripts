@@ -9,7 +9,7 @@ namespace log {
 
 // packet flags
 
-fenum PacketCodeFlags
+fenum RecordCodeFlags
 {
 	Foldable          = 0x80000000,
 	MergeableBackward = 0x40000000,
@@ -28,10 +28,10 @@ enum PartKind
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-enum StdPacketCode
+enum StdRecordCode
 {
-	Tx = 0x01000000 | PacketCodeFlags.Mergeable,
-	Rx = 0x02000000 | PacketCodeFlags.Mergeable,
+	Tx = 0x01000000 | RecordCodeFlags.Mergeable,
+	Rx = 0x02000000 | RecordCodeFlags.Mergeable,
 }
 
 //.............................................................................
@@ -90,7 +90,7 @@ struct LineAttr: gui.TextAttr
 opaque class RepresenterTarget
 {
 	uint64_t dconst m_timestamp;
-	uint_t dconst m_packetCode;
+	uint_t dconst m_recordCode;
 	LineAttr m_lineAttr;
 
 	abstract void addPart (
@@ -110,7 +110,7 @@ opaque class RepresenterTarget
 
 	void addHyperText (char const* text)
 	{
-		addPart (PartKind.HyperText, m_packetCode, text, strlen (text));
+		addPart (PartKind.HyperText, m_recordCode, text, strlen (text));
 	}
 
 	void addBin (
@@ -127,7 +127,7 @@ opaque class RepresenterTarget
 		size_t size
 		)
 	{
-		addPart (PartKind.Bin, m_packetCode, p, size);
+		addPart (PartKind.Bin, m_recordCode, p, size);
 	}
 }
 
@@ -137,7 +137,7 @@ class Representer
 {
 	abstract bool represent (
 		RepresenterTarget* target,
-		uint_t packetCode,
+		uint_t recordCode,
 		void const* p,
 		size_t size,
 		uint64_t foldFlags
@@ -156,23 +156,23 @@ opaque class Log
 
 	writeEx (
 		uint64_t timestamp,
-		uint_t packetCode,
+		uint_t recordCode,
 		nullable void const* p,
 		size_t size
 		);
 
 	write (
-		uint_t packetCode,
+		uint_t recordCode,
 		nullable void const* p,
 		size_t size
 		)
 	{
-		writeEx (jnc.getTimestamp (), packetCode, p, size);
+		writeEx (jnc.getTimestamp (), recordCode, p, size);
 	}
 
-	write (uint_t packetCode)
+	write (uint_t recordCode)
 	{
-		writeEx (jnc.getTimestamp (), packetCode, null, 0);
+		writeEx (jnc.getTimestamp (), recordCode, null, 0);
 	}
 }
 

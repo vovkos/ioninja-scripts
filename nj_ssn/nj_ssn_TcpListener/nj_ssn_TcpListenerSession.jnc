@@ -8,27 +8,47 @@
 class TcpListenerSession: doc.StreamSession
 {
 protected:
+	enum State
+	{
+		Closed,
+		Opened,
+	}
+
 	enum ActionId
 	{
 		Listen,
 		StopListen,
 		Disconnect,
 		_Count,
-	};
+	}
 
 protected:
+	// listener socket
+
+	State bindable m_listenerState;
 	io.Socket* m_listenerSocket;
+	io.SocketAddress m_localAddress;
+
+	// connection socket
+
+	State bindable m_connectionState;
+	uint_t m_connectionSyncId;
 	io.Socket* m_connectionSocket;
+	io.SocketAddress m_remoteAddress;
+	
+	// toolbar & menu
+	
 	gui.Action* m_actionTable [ActionId._Count];
+	gui.ComboBox* m_portCombo;
+
+	// property grid
+
 	gui.EnumProperty* m_ifaceProp;
+	gui.IntProperty* m_portProp;
 	gui.BoolProperty* m_abruptiveDisconnectProp;
 	gui.BoolProperty* m_overrideOldConnectionProp;
 	gui.BoolProperty* m_useAcceptFilterProp;
 	gui.StringProperty* m_acceptFilterProp;
-	gui.ComboBox* m_portCombo;
-
-	io.SocketAddress m_localAddress;
-	io.SocketAddress m_remoteAddress;
 
 public:
 	construct (doc.DocumentHost* documentHost);
@@ -43,17 +63,11 @@ public:
 		) throws;
 
 protected:
-	closeListenerSocket ();
-	closeConnectionSocket ();
 	onListenerSocketEvent (io.SocketEventParams const* params);
 	onConnectionSocketEvent (io.SocketEventParams const* params);
 
 	createUi ();
-
-	reactor m_uiReactor ()
-	{
-		m_acceptFilterProp.m_isEnabled = m_useAcceptFilterProp.m_value;
-	}
+	reactor m_uiReactor ();
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -61,8 +75,14 @@ protected:
 TcpListenerSession.construct (doc.DocumentHost* documentHost)
 {
 	basetype.construct (documentHost);
-	printf ("TcpListenerSession.construct (this = %x, TID = %x)\n", this, jnc.getCurrentThreadId ());
-	documentHost.m_log.m_representer = TcpListenerLogRepresenter.getSingleton ();
+
+	documentHost.m_log.m_representer = static new TcpListenerLogRepresenter;
+
+	m_connectionState = State.Closed;
+	m_listenerState = State.Closed;
+	m_listenerSocket = io.createSocket ();
+	m_listenerSocket.m_onSocketEvent += onListenerSocketEvent @ m_documentHost.m_mainThreadScheduler;
+
 	createUi ();
 }
 
@@ -80,11 +100,11 @@ TcpListenerSession.createUi ()
 
 	m_actionTable [ActionId.StopListen] = m_documentHost.createAction ("Stop listening", "pause.png");
 	m_actionTable [ActionId.StopListen].m_onTriggered += stopListen;
-	m_actionTable [ActionId.StopListen].m_isEnabled = false;
 
 	m_actionTable [ActionId.Disconnect] = m_documentHost.createAction ("Disconnect", "disconnect.png");
 	m_actionTable [ActionId.Disconnect].m_onTriggered += disconnect;
-	m_actionTable [ActionId.Disconnect].m_isEnabled = false;
+
+	// property grid
 
 	static gui.EnumPropertyOption ifaceTable [] =
 	{
@@ -94,12 +114,19 @@ TcpListenerSession.createUi ()
 
 	m_ifaceProp = m_documentHost.createEnumProperty (
 		"Interface",
-		"Interface to bind to before connect",
+		"Interface to bind to listen on",
 		ifaceTable,
 		countof (ifaceTable)
 		);
 
 	m_ifaceProp.m_value = 0;
+
+	m_portProp = m_documentHost.createIntProperty (
+		"Port",
+		"Port to listen on"
+		);
+
+	m_portProp.m_value = 1024;
 
 	m_abruptiveDisconnectProp = m_documentHost.createBoolProperty (
 		"Reset Connections",
@@ -138,61 +165,59 @@ bool TcpListenerSession.listen () throws
 	io.SocketAddress address;
 	io.parseSocketAddress (addressString, &address);
 
-	m_listenerSocket = io.createSocket ();
-	m_listenerSocket.m_onSocketEvent += onListenerSocketEvent @ m_documentHost.m_mainThreadScheduler;
 	m_listenerSocket.open (io.Protocol.Tcp, &address);
 	m_listenerSocket.listen ();
 
 	m_documentHost.m_log.write (
-		TcpListenerLogPacketCode.Listening,
+		TcpListenerLogRecordCode.Listening,
 		&address,
 		sizeof (address)
 		);
 
 	m_localAddress = address;
-	m_actionTable [ActionId.StopListen].m_isEnabled = true;
+	m_listenerState = State.Opened;
 	return true;
 
 catch:
-	if (m_listenerSocket)
-	{
-		m_listenerSocket.close ();
-		m_listenerSocket = null;
-	}
-
 	jnc.Error const* error = jnc.getLastError ();
 	m_documentHost.m_log.write (
-		TcpListenerLogPacketCode.ListenError,
+		TcpListenerLogRecordCode.ListenError,
 		error,
 		error.m_size
 		);
+		
+	m_listenerSocket.close ();
 	return false;
 }
 
 TcpListenerSession.stopListen ()
 {
-	if (!m_listenerSocket)
+	if (m_listenerState != State.Opened)
 		return;
 
 	m_documentHost.m_log.write (
-		TcpListenerLogPacketCode.ListenStopped,
+		TcpListenerLogRecordCode.ListenStopped,
 		&m_localAddress,
 		sizeof (m_localAddress)
 		);
-	closeListenerSocket ();
+	m_listenerSocket.close ();
+	m_listenerState = State.Closed;
 }
 
 TcpListenerSession.disconnect ()
 {
-	if (!m_connectionSocket)
+	if (m_connectionState != State.Opened)
 		return;
 
 	m_documentHost.m_log.write (
-		TcpListenerLogPacketCode.ClientDisconnected,
+		TcpListenerLogRecordCode.ClientDisconnected,
 		&m_remoteAddress,
 		sizeof (m_remoteAddress)
 		);
-	closeConnectionSocket ();
+	m_connectionSocket.close ();
+	m_connectionSocket = null;
+	m_connectionState = State.Closed;
+	m_connectionSyncId++;
 }
 
 size_t TcpListenerSession.transmit (
@@ -200,35 +225,19 @@ size_t TcpListenerSession.transmit (
 	size_t size
 	) throws
 {
-	if (!m_connectionSocket)
+	if (m_connectionState != State.Opened)
 		return -1;
 
 	size_t result = try m_connectionSocket.send (p, size);
 	if (result != -1)
-		m_documentHost.m_log.write (log.StdPacketCode.Tx, p, result);
+		m_documentHost.m_log.write (log.StdRecordCode.Tx, p, result);
 
 	return result;
 }
 
-TcpListenerSession.closeListenerSocket ()
-{
-	m_actionTable [ActionId.StopListen].m_isEnabled = false;
-	m_listenerSocket.close ();
-	m_listenerSocket = null;
-}
-
-TcpListenerSession.closeConnectionSocket ()
-{
-	m_actionTable [ActionId.Disconnect].m_isEnabled = false;
-	m_connectionSocket.close ();
-	m_connectionSocket = null;
-}
-
 TcpListenerSession.onListenerSocketEvent (io.SocketEventParams const* params)
 {
-	printf ("TcpListenerSession.onListenerSocketEvent (TID = %x)\n", jnc.getCurrentThreadId ());
-
-	if (params.m_sender != (io.Socket*) m_listenerSocket) // curently cast is needed :(
+	if (params.m_syncId != m_listenerSocket.m_syncId)
 		return;
 
 	switch (params.m_eventKind)
@@ -239,60 +248,70 @@ TcpListenerSession.onListenerSocketEvent (io.SocketEventParams const* params)
 		if (!socket)
 			break;
 
-		if (m_connectionSocket)
-			if (!m_overrideOldConnectionProp.m_value)
-			{
-				socket.close ();
-				m_documentHost.m_log.write (
-					TcpListenerLogPacketCode.ClientRejected,
-					&address,
-					sizeof (address)
-					);
+		if (m_connectionState == State.Opened && !m_overrideOldConnectionProp.m_value)
+		{
+			socket.close ();
+			m_documentHost.m_log.write (
+				TcpListenerLogRecordCode.ClientRejected,
+				&address,
+				sizeof (address)
+				);
 
-				break;
-			}
+			break;
+		}
 
 		disconnect ();
 
 		m_documentHost.m_log.write (
-			TcpListenerLogPacketCode.ClientConnected,
+			TcpListenerLogRecordCode.ClientConnected,
 			&address,
 			sizeof (address)
 			);
 
-		m_connectionSocket = socket;
-		m_connectionSocket.m_onSocketEvent += onConnectionSocketEvent @ m_documentHost.m_mainThreadScheduler;
+		socket.m_syncId = m_connectionSyncId;
+		socket.m_onSocketEvent += onConnectionSocketEvent @ m_documentHost.m_mainThreadScheduler;
+
 		m_remoteAddress = address;
-		m_actionTable [ActionId.Disconnect].m_isEnabled = true;
+		m_connectionSocket = socket;
+		m_connectionState = State.Opened;		
+		
+		socket.firePendingEvents ();
 		break;
 	}
 }
 
 TcpListenerSession.onConnectionSocketEvent (io.SocketEventParams const* params)
 {
-	printf ("TcpListenerSession.onConnectionSocketEvent (TID = %x)\n", jnc.getCurrentThreadId ());
-
-	if (params.m_sender != (io.Socket*) m_connectionSocket) // curently cast is needed :(
+	if (params.m_syncId != m_connectionSyncId)
 		return;
 
 	switch (params.m_eventKind)
 	{
 	case io.SocketEvent.Disconnected:
 		m_documentHost.m_log.write (
-			TcpListenerLogPacketCode.ClientDisconnected,
+			TcpListenerLogRecordCode.ClientDisconnected,
 			&m_remoteAddress,
 			sizeof (m_remoteAddress)
 			);
-		closeConnectionSocket ();
+		m_connectionSocket = null;
+		m_connectionState = State.Closed;
+		m_connectionSyncId++;
 		break;
 
 	case io.SocketEvent.IncomingData:
 		heap char buffer [512];
 		size_t result = try m_connectionSocket.recv (buffer, sizeof (buffer));
 		if (result != -1)
-			m_documentHost.m_log.write (log.StdPacketCode.Rx, buffer, result);
+			m_documentHost.m_log.write (log.StdRecordCode.Rx, buffer, result);
 		break;
 	}
+}
+
+reactor TcpListenerSession.m_uiReactor ()
+{
+	m_acceptFilterProp.m_isEnabled = m_useAcceptFilterProp.m_value;
+	m_actionTable [ActionId.StopListen].m_isEnabled = m_listenerState != State.Closed;
+	m_actionTable [ActionId.Disconnect].m_isEnabled = m_connectionState != State.Closed;
 }
 
 //.............................................................................

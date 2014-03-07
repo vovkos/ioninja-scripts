@@ -18,11 +18,12 @@ class UdpSession: doc.StreamSession
 	construct (doc.DocumentHost* documentHost)
 	{
 		basetype.construct(documentHost);
+
+		documentHost.m_log.m_representer = static new UdpLogRepresenter;
 		
-		printf ("UdpSession.construct (this = %x, TID = %x)\n", this, jnc.getCurrentThreadId ());
-		
-		documentHost.m_log.m_representer = new UdpLogRepresenter;
-		
+		m_socket = io.createSocket ();
+		m_socket.m_onSocketEvent += onSocketEvent;
+
 		createGui ();
 	}
 
@@ -75,41 +76,35 @@ class UdpSession: doc.StreamSession
 		{
 			reportError ();
 			return;
-		}
-		
-		m_socket = io.createSocket ();
-		m_socket.m_onSocketEvent += onSocketEvent;
-				
+		}	
+			
 		if (!try m_socket.open (io.Protocol.Udp, &localAddress))
 		{
 			reportError ();
 			return;
 		}
 				
-		m_documentHost.m_log.write (PacketCode.Open, (void*) port, strlen (port));
+		m_documentHost.m_log.write (RecordCode.Open, port, strlen (port));
 		
 		m_isSocketOpen = true;
 	}
 	
 	void closeSocket ()
 	{
-		if (!m_socket)
+		if (!m_isSocketOpen)
 			return;
 	
 		m_socket.close ();
-		m_socket = null;
 	
 		char const* port = m_localPortCombo.m_editText;
-		m_documentHost.m_log.write (PacketCode.Close, (void*) port, sizeof (port));
+		m_documentHost.m_log.write (RecordCode.Close, port, strlen (port));
 		
 		m_isSocketOpen = false;
 	}
 
 	void onSocketEvent(io.SocketEventParams const* params)
 	{
-		printf ("UdpSession.onSocketEvent (TID = %x)\n", jnc.getCurrentThreadId ());
-
-		if (params.m_sender != (io.Socket*) m_socket)
+		if (params.m_syncId != m_socket.m_syncId)
 			return;
 			
 		switch (params.m_eventKind)
@@ -118,7 +113,7 @@ class UdpSession: doc.StreamSession
 				heap char buffer [512];
 				size_t size = try m_socket.recv (buffer, sizeof (buffer));
 				if (size != -1)
-					m_documentHost.m_log.write (PacketCode.Rx, buffer, size);
+					m_documentHost.m_log.write (RecordCode.Rx, buffer, size);
 				break;
 		}
 	}
@@ -137,7 +132,7 @@ class UdpSession: doc.StreamSession
 			if (try m_socket.sendTo (p, size, &remoteAddress))
 			{
 				const char* text = io.formatSocketAddress (&remoteAddress);
-				m_documentHost.m_log.write(PacketCode.Tx, p, size);
+				m_documentHost.m_log.write(RecordCode.Tx, p, size);
 			}
 			else
 			{
@@ -151,6 +146,6 @@ class UdpSession: doc.StreamSession
 	void reportError()
 	{
 		jnc.Error const* error = jnc.getLastError ();
-		m_documentHost.m_log.write (PacketCode.Error, error, error.m_size);
+		m_documentHost.m_log.write (RecordCode.Error, error, error.m_size);
 	}
 }

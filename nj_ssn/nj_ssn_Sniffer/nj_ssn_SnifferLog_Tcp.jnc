@@ -21,12 +21,12 @@ char const* formatTcpFlagString (io.TcpFlags flags)
 
 representTcpHdr (
 	log.RepresenterTarget* target,
-	const void* p, 
+	void const* p, 
 	size_t size,
 	size_t baseOffset
 	)
 {
-	io.TcpHdr* tcpHdr = (io.TcpHdr*) (p + baseOffset);
+	io.TcpHdr const* tcpHdr = (io.TcpHdr const*) (p + baseOffset);
 
 	target.addHyperText (jnc.format (
 		"<+b>TCP<>\n" 
@@ -80,8 +80,8 @@ representTcpHdr (
 
 representTcp (
 	log.RepresenterTarget* target,
-	io.IpHdr* ipHdr,
-	const void* p, 
+	io.IpHdr const* ipHdr,
+	void const* p, 
 	size_t size,
 	size_t baseOffset
 	)
@@ -98,7 +98,7 @@ representTcp (
 		return;
 	}
 
-	io.TcpHdr* tcpHdr = (io.TcpHdr*) (p + baseOffset);
+	io.TcpHdr const* tcpHdr = (io.TcpHdr const*) (p + baseOffset);
 
 	size_t dataOffset = tcpHdr.m_dataOffset * 4;
 	size_t dataSize = ipHdr->m_totalLength - sizeof (io.IpHdr) - dataOffset;

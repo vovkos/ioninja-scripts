@@ -7,7 +7,7 @@
 
 representIcmpHdr(
 	log.RepresenterTarget* target,
-	const void* p, 
+	void const* p, 
 	size_t size,
 	size_t baseOffset
 	)
@@ -46,8 +46,8 @@ representIcmpHdr(
 
 representIcmp (
 	log.RepresenterTarget* target,
-	io.IpHdr* ipHdr,
-	const void* p, 
+	io.IpHdr const* ipHdr,
+	void const* p, 
 	size_t size,
 	size_t baseOffset
 	)
@@ -64,7 +64,7 @@ representIcmp (
 		return;
 	}
 
-	io.IcmpHdr* icmpHdr = (io.IcmpHdr*) (p + baseOffset);
+	io.IcmpHdr const* icmpHdr = (io.IcmpHdr const*) (p + baseOffset);
 	target.addHyperText (jnc.format (
 		"[<#0000ff=+1>+<>] <+b>ICMP<> %s > %s [TYPE:%d CODE:%d]",
 		formatIpString (ipHdr.m_srcAddress), 

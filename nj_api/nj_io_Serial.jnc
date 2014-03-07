@@ -9,6 +9,15 @@ namespace io {
 
 // serial
 
+enum SerialFlowControl
+{
+	None = 0,
+	RtsCts,
+	XOnXOff,
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
 enum SerialStopBits
 {
 	_1  = 0,
@@ -29,15 +38,6 @@ enum SerialParity
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-enum SerialFlowControl
-{
-	None = 0,
-	RtsCts,
-	XOnXOff,
-}
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
 fenum SerialStatusLines
 {
 	Cts,
@@ -46,15 +46,39 @@ fenum SerialStatusLines
 	Dcd,
 }
 
+//.............................................................................
+
+enum SerialEvent
+{
+	IncomingData,
+	StatusLineChanged
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+struct SerialEventParams
+{
+	SerialEvent m_eventKind;
+	uint_t m_syncId;
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+struct SerialStatusLineEventParams: SerialEventParams
+{
+	SerialStatusLines m_lines;
+	SerialStatusLines m_mask;
+}
+
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 opaque class Serial
 {
 	uint_t autoget property m_baudRate;
+	SerialFlowControl autoget property m_flowControl;
 	uint_t autoget property m_dataBits; // typically 5..8
 	SerialStopBits autoget property m_stopBits;
 	SerialParity autoget property m_parity;
-	SerialFlowControl autoget property m_flowControl;
 
 	SerialStatusLines const property m_statusLines;
 
@@ -62,6 +86,7 @@ opaque class Serial
 	bool autoget property m_rts;
 
 	bool dconst m_isOpen;
+	uint_t m_syncId;
 
 	bool open (char const* name) throws;
 	void close ();
@@ -76,12 +101,7 @@ opaque class Serial
 		size_t Size
 		) throws;
 
-	event m_onReadyRead ();
-
-	event m_onStatusLineChanged (
-		SerialStatusLines lines,
-		SerialStatusLines mask
-		);
+	event m_onSerialEvent (SerialEventParams const* params);
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .

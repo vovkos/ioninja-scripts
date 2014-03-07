@@ -102,10 +102,18 @@ enum SocketEvent
 	IncomingConnection,
 }
 
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
 struct SocketEventParams
 {
 	SocketEvent m_eventKind;
-	Socket* m_sender;
+	uint_t m_syncId;
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+struct SocketErrorEventParams: SocketEventParams
+{
 	jnc.Error const* m_error;
 }
 
@@ -117,6 +125,7 @@ class Socket
 	SocketAddress const property m_peerAddress;
 
 	bool dconst m_isOpen;
+	uint_t m_syncId;
 
 	bool open (
 		Protocol protocol,

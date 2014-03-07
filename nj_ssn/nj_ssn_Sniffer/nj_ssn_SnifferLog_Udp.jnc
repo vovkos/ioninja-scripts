@@ -7,12 +7,12 @@
 
 representUdpHdr (
 	log.RepresenterTarget* target,
-	const void* p, 
+	void const* p, 
 	size_t size,
 	size_t baseOffset
 	)
 {
-	io.UdpHdr* udpHdr = (io.UdpHdr*) (p + baseOffset);
+	io.UdpHdr const* udpHdr = (io.UdpHdr const*) (p + baseOffset);
 
 	target.addHyperText (jnc.format (
 		"<+b>UDP<>\n" 
@@ -41,8 +41,8 @@ representUdpHdr (
 
 representUdp (
 	log.RepresenterTarget* target,
-	io.IpHdr* ipHdr,
-	const void* p, 
+	io.IpHdr const* ipHdr,
+	void const* p, 
 	size_t size, 
 	size_t baseOffset
 	)
@@ -59,7 +59,7 @@ representUdp (
 		return;
 	}
 
-	io.UdpHdr* udpHdr = (io.UdpHdr*) (p + baseOffset);
+	io.UdpHdr const* udpHdr = (io.UdpHdr const*) (p + baseOffset);
 	size_t dataSize = udpHdr.m_length - sizeof (io.UdpHdr);
 
 	target.addHyperText (jnc.format (

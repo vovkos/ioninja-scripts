@@ -16,12 +16,12 @@ char const* formatIpString (uint32_t ip32)
 
 representIpHdr (
 	log.RepresenterTarget* target,
-	const void* p,
+	void const* p,
 	size_t size,
 	size_t baseOffset
 	)
 {
-	io.IpHdr* ipHdr = (io.IpHdr*) (p + baseOffset);
+	io.IpHdr const* ipHdr = (io.IpHdr const*) (p + baseOffset);
 
 	target.addHyperText (jnc.format (
 		"<+b>IP<>\n"
@@ -100,7 +100,7 @@ representIpHdr (
 
 representIp(
 	log.RepresenterTarget* target,
-	const void* p,
+	void const* p,
 	size_t size, 
 	size_t baseOffset
 	)
@@ -111,7 +111,7 @@ representIp(
 		return;
 	}
 
-	io.IpHdr* ipHdr = (io.IpHdr*) (p + baseOffset);
+	io.IpHdr const* ipHdr = (io.IpHdr const*) (p + baseOffset);
 	
 	switch (ipHdr.m_protocol)
 	{

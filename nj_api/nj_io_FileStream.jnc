@@ -30,7 +30,7 @@ enum FileStreamEvent
 struct FileStreamEventParams
 {
 	SocketEvent m_eventKind;
-	FileStream* m_sender;
+	uint_t m_syncId;
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -38,6 +38,7 @@ struct FileStreamEventParams
 opaque class FileStream
 {
 	bool dconst m_isOpen;
+	uint_t m_syncId;
 
 	bool open (
 		char const* name,

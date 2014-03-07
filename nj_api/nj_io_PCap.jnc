@@ -37,6 +37,7 @@ opaque class PCap
 	char const* autoget property m_filter;
 	bool dconst m_isPromiscious;
 	bool dconst m_isOpen;
+	uint_t m_syncId;
 
 	bool open (
 		char const* deviceName,
@@ -56,7 +57,7 @@ opaque class PCap
 		size_t size
 		) throws;
 
-	event m_onReadyRead ();
+	event m_onReadyRead (uint_t syncId);
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .

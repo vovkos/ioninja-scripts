@@ -10,6 +10,7 @@ namespace io {
 class NamedPipe
 {
 	bool dconst m_isOpen;
+	uint_t m_syncId;
 
 	bool open (
 		char const* name,
@@ -20,7 +21,7 @@ class NamedPipe
 
 	FileStream* accept ();
 
-	event m_onIncomingConnection ();
+	event m_onIncomingConnection (uint_t syncId);
 }
 
 //.............................................................................

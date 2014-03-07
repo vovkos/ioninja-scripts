@@ -5,19 +5,19 @@
 
 //.............................................................................
 
-enum TcpConnectionLogPacketCode
+enum TcpConnectionLogRecordCode
 {
-	Connecting       = 1 | log.PacketCodeFlags.Mergeable,
-	ConnectCompleted = 2 | log.PacketCodeFlags.Mergeable,
-	ConnectCancelled = 3 | log.PacketCodeFlags.Mergeable,
-	ConnectError     = 4 | log.PacketCodeFlags.Mergeable,
+	Connecting       = 1 | log.RecordCodeFlags.Mergeable,
+	ConnectCompleted = 2 | log.RecordCodeFlags.Mergeable,
+	ConnectCancelled = 3 | log.RecordCodeFlags.Mergeable,
+	ConnectError     = 4 | log.RecordCodeFlags.Mergeable,
 	Disconnected     = 5,
 }
 
 enum TcpConnectionPartCode
 {
-	Connecting       = 1 | log.PacketCodeFlags.MergeableForward,
-	ConnectCompleted = 1 | log.PacketCodeFlags.MergeableBackward,
+	Connecting       = 1 | log.RecordCodeFlags.MergeableForward,
+	ConnectCompleted = 1 | log.RecordCodeFlags.MergeableBackward,
 }
 
 //.............................................................................
@@ -26,59 +26,53 @@ class TcpConnectionLogRepresenter: log.Representer
 {
 	override bool represent (
 		log.RepresenterTarget* target,
-		uint_t packetCode,
+		uint_t recordCode,
 		void const* p,
 		size_t size,
 		uint64_t foldFlags
 		);
-
-	static TcpConnectionLogRepresenter* getSingleton ()
-	{
-		static TcpConnectionLogRepresenter singleton;
-		return &singleton;
-	}
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 bool TcpConnectionLogRepresenter.represent (
 	log.RepresenterTarget* target,
-	uint_t packetCode,
+	uint_t recordCode,
 	void const* p,
 	size_t size,
 	uint64_t foldFlags
 	)
 {
-	switch (packetCode)
+	switch (recordCode)
 	{
-	case TcpConnectionLogPacketCode.Connecting:
+	case TcpConnectionLogRecordCode.Connecting:
 		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText (TcpConnectionPartCode.Connecting, $"Connecting to <15>$addressString<>...");
 		break;
 
-	case TcpConnectionLogPacketCode.ConnectCompleted:
+	case TcpConnectionLogRecordCode.ConnectCompleted:
 		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
 		target.addHyperText (TcpConnectionPartCode.ConnectCompleted, "ok");
 		break;
 
-	case TcpConnectionLogPacketCode.ConnectCancelled:
+	case TcpConnectionLogRecordCode.ConnectCancelled:
 		target.addHyperText (TcpConnectionPartCode.ConnectCompleted, "cancelled");
 		break;
 
-	case TcpConnectionLogPacketCode.ConnectError:
+	case TcpConnectionLogRecordCode.ConnectError:
 		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
 
-		jnc.Error* Error = (jnc.Error*) p;
+		jnc.Error const* Error = (jnc.Error const*) p;
 		target.addHyperText (TcpConnectionPartCode.ConnectCompleted, $"error ($(Error.m_description))");
 		break;
 
-	case TcpConnectionLogPacketCode.Disconnected:
+	case TcpConnectionLogRecordCode.Disconnected:
 		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;

@@ -5,7 +5,7 @@
 
 //.............................................................................
 
-enum FileLogPacketCode
+enum FileLogRecordCode
 {
 	Opened    = 1,
 	OpenError = 2,
@@ -19,51 +19,47 @@ class FileLogRepresenter: log.Representer
 {
 	override bool represent (
 		log.RepresenterTarget* target,
-		uint_t packetCode,
+		uint_t recordCode,
 		void const* p,
 		size_t size,
 		uint64_t foldFlags
 		);
-
-	static FileLogRepresenter* getSingleton ()
-	{
-		static FileLogRepresenter singleton;
-		return &singleton;
-	}
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 bool FileLogRepresenter.represent (
 	log.RepresenterTarget* target,
-	uint_t packetCode,
+	uint_t recordCode,
 	void const* p,
 	size_t size,
 	uint64_t foldFlags
 	)
 {
-	switch (packetCode)
+	switch (recordCode)
 	{
-	case FileLogPacketCode.Opened:
+	case FileLogRecordCode.Opened:
+		char const* fileName = (char const*) p;		
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
-		target.addHyperText ("Opened file");
+		target.addHyperText ($"Opened file <15>$fileName");
 		break;
 
-	case FileLogPacketCode.OpenError:
+	case FileLogRecordCode.OpenError:
 		jnc.Error const* Error = (jnc.Error const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
 		target.addHyperText ($"Cannot open file ($(Error.m_description))");
 		break;
 
-	case FileLogPacketCode.Closed:
+	case FileLogRecordCode.Closed:
+		char const* fileName = (char const*) p;		
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
-		target.addHyperText ("Closed file");
+		target.addHyperText ($"Closed file <15>$fileName");
 		break;
 
-	case FileLogPacketCode.Eof:
+	case FileLogRecordCode.Eof:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText ("EOF reached on RX file");

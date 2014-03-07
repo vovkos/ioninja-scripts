@@ -21,7 +21,7 @@ representEthernet (
 	uint64_t foldFlags
 	)
 {
-	io.EthernetHdr const* ethernetHdr = (io.EthernetHdr*) p;
+	io.EthernetHdr const* ethernetHdr = (io.EthernetHdr const*) p;
 
 	target.m_lineAttr.m_iconIdx = log.StdLogIcon.Packet;
 	target.m_lineAttr.m_backColor = gui.StdColor.PastelGray;

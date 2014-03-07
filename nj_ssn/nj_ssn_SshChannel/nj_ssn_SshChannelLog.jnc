@@ -5,25 +5,25 @@
 
 //.............................................................................
 
-enum SshChannelLogPacketCode
+enum SshChannelLogRecordCode
 {
-	TcpConnecting         = 1  | log.PacketCodeFlags.Mergeable,
-	TcpConnectCompleted   = 2  | log.PacketCodeFlags.Mergeable,
-	SshHandshakeCompleted = 3  | log.PacketCodeFlags.Mergeable,
-	SshAuthCompleted      = 4  | log.PacketCodeFlags.Mergeable,
-	SshChannelOpened      = 5  | log.PacketCodeFlags.Mergeable,
-	SshPtyRequested       = 6  | log.PacketCodeFlags.Mergeable,
-	SshShellStarted       = 7  | log.PacketCodeFlags.Mergeable,
-	ConnectCancelled      = 8  | log.PacketCodeFlags.Mergeable,
-	ConnectCompleted      = 9  | log.PacketCodeFlags.Mergeable,
-	ConnectError          = 10 | log.PacketCodeFlags.Mergeable,
+	TcpConnecting         = 1  | log.RecordCodeFlags.Mergeable,
+	TcpConnectCompleted   = 2  | log.RecordCodeFlags.Mergeable,
+	SshHandshakeCompleted = 3  | log.RecordCodeFlags.Mergeable,
+	SshAuthCompleted      = 4  | log.RecordCodeFlags.Mergeable,
+	SshChannelOpened      = 5  | log.RecordCodeFlags.Mergeable,
+	SshPtyRequested       = 6  | log.RecordCodeFlags.Mergeable,
+	SshShellStarted       = 7  | log.RecordCodeFlags.Mergeable,
+	ConnectCancelled      = 8  | log.RecordCodeFlags.Mergeable,
+	ConnectCompleted      = 9  | log.RecordCodeFlags.Mergeable,
+	ConnectError          = 10 | log.RecordCodeFlags.Mergeable,
 	Disconnected          = 11,
 }
 
 enum SshChannelLogPartCode
 {
-	Connecting       = 1 | log.PacketCodeFlags.MergeableForward,
-	ConnectCompleted = 1 | log.PacketCodeFlags.MergeableBackward,
+	Connecting       = 1 | log.RecordCodeFlags.MergeableForward,
+	ConnectCompleted = 1 | log.RecordCodeFlags.MergeableBackward,
 }
 
 //.............................................................................
@@ -32,39 +32,34 @@ class SshChannelLogRepresenter: log.Representer
 {
 	override bool represent (
 		log.RepresenterTarget* target,
-		uint_t packetCode,
+		uint_t recordCode,
 		void const* p,
 		size_t size,
 		uint64_t foldFlags
 		);
 
-	static SshChannelLogRepresenter* getSingleton ()
-	{
-		static SshChannelLogRepresenter singleton;
-		return &singleton;
-	}
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 bool SshChannelLogRepresenter.represent (
 	log.RepresenterTarget* target,
-	uint_t packetCode,
+	uint_t recordCode,
 	void const* p,
 	size_t size,
 	uint64_t foldFlags
 	)
 {
-	switch (packetCode)
+	switch (recordCode)
 	{
-	case SshChannelLogPacketCode.TcpConnecting:
+	case SshChannelLogRecordCode.TcpConnecting:
 		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText (SshChannelLogPartCode.Connecting, $"Establishing TCP connection to <15>$addressString<>...");
 		break;
 
-	case SshChannelLogPacketCode.TcpConnectCompleted:
+	case SshChannelLogRecordCode.TcpConnectCompleted:
 		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, "ok");
 
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
@@ -72,7 +67,7 @@ bool SshChannelLogRepresenter.represent (
 		target.addHyperText (SshChannelLogPartCode.Connecting, "Performing SSH handshake...");
 		break;
 
-	case SshChannelLogPacketCode.SshHandshakeCompleted:
+	case SshChannelLogRecordCode.SshHandshakeCompleted:
 		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, "ok");
 		
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
@@ -80,7 +75,7 @@ bool SshChannelLogRepresenter.represent (
 		target.addHyperText (SshChannelLogPartCode.Connecting, "Performing SSH authentification...");
 		break;
 
-	case SshChannelLogPacketCode.SshAuthCompleted:
+	case SshChannelLogRecordCode.SshAuthCompleted:
 		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, "ok");
 
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
@@ -88,7 +83,7 @@ bool SshChannelLogRepresenter.represent (
 		target.addHyperText (SshChannelLogPartCode.Connecting, "Opening SSH channel...");
 		break;
 
-	case SshChannelLogPacketCode.SshChannelOpened:
+	case SshChannelLogRecordCode.SshChannelOpened:
 		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, "ok");
 		
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
@@ -96,37 +91,37 @@ bool SshChannelLogRepresenter.represent (
 		target.addHyperText (SshChannelLogPartCode.Connecting, "Requesting PTY...");
 		break;
 
-	case SshChannelLogPacketCode.SshPtyRequested:
+	case SshChannelLogRecordCode.SshPtyRequested:
 		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, "ok");
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText (SshChannelLogPartCode.Connecting, "Starting shell...");
 		break;
 
-	case SshChannelLogPacketCode.SshShellStarted:
+	case SshChannelLogRecordCode.SshShellStarted:
 		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, "ok");
 		break;
 
-	case SshChannelLogPacketCode.ConnectCompleted:
+	case SshChannelLogRecordCode.ConnectCompleted:
 		target.m_lineAttr.m_iconIdx  = log.StdLogIcon.Play;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
 		target.addHyperText ("SSH channel established");
 		break;
 
-	case SshChannelLogPacketCode.ConnectCancelled:
+	case SshChannelLogRecordCode.ConnectCancelled:
 		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, "cancelled");
 		break;
 
-	case SshChannelLogPacketCode.ConnectError:
+	case SshChannelLogRecordCode.ConnectError:
 		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
 
-		jnc.Error* Error = (jnc.Error*) p;
+		jnc.Error const* Error = (jnc.Error const*) p;
 		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, $"error ($(Error.m_description))");
 		break;
 
-	case SshChannelLogPacketCode.Disconnected:
+	case SshChannelLogRecordCode.Disconnected:
 		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;

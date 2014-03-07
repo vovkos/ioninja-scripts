@@ -1,4 +1,4 @@
-enum PacketCode
+enum RecordCode
 {
 	Error,
 	Open,
@@ -11,7 +11,7 @@ class UdpLogRepresenter: log.Representer
 {
 	override bool represent (
 		log.RepresenterTarget* target,
-		uint_t packetCode,
+		uint_t recordCode,
 		void const* p,
 		size_t size,
 		uint64_t foldFlags
@@ -22,44 +22,44 @@ class UdpLogRepresenter: log.Representer
 
 bool UdpLogRepresenter.represent (
 	log.RepresenterTarget* target,
-	uint_t packetCode,
+	uint_t recordCode,
 	void const* p,
 	size_t size,
 	uint64_t foldFlags
 	)
 {
-	switch (packetCode)
+	switch (recordCode)
 	{
-		case PacketCode.Error:
+		case RecordCode.Error:
 			target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
 			target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 			target.m_lineAttr.m_backColor = log.StdLogColor.Error;
 
-			jnc.Error* Error = (jnc.Error*) p;
-			target.addHyperText (0, $"error ($(Error.m_description))");
+			jnc.Error const* Error = (jnc.Error const*) p;
+			target.addHyperText ($"error ($(Error.m_description))");
 			break;
 			
-		case PacketCode.Open:
+		case RecordCode.Open:
 			target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
 			target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
 			target.m_lineAttr.m_backColor = log.StdLogColor.Start;
-			target.addHyperText(0, $"Opened socket at <#0000FF>$((char*) p)<>");
+			target.addHyperText($"Opened socket at <#0000FF>$((char const*) p)<>");
 			break;
 			
-		case PacketCode.Close:
+		case RecordCode.Close:
 			target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
 			target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
-			target.addHyperText(0, $"Socket at <#0000FF>$((char*) p)<> closed");
+			target.addHyperText($"Socket at <#0000FF>$((char const*) p)<> closed");
 			break;
 			
-		case PacketCode.Tx:
+		case RecordCode.Tx:
 			target.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
 			target.m_lineAttr.m_iconIdx = log.StdLogIcon.Tx;
 			target.m_lineAttr.m_textColor = gui.StdColor.Blue;
 			target.addBin (p, size);
 			break;
 			
-		case PacketCode.Rx:
+		case RecordCode.Rx:
 			target.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
 			target.m_lineAttr.m_iconIdx = log.StdLogIcon.Rx;
 			target.m_lineAttr.m_textColor = gui.StdColor.Green;
@@ -67,7 +67,7 @@ bool UdpLogRepresenter.represent (
 			break;
 			
 		default:
-			target.addHyperText(0, (char*) p);
+			target.addHyperText((char const*) p);
 	}
 	
 	return true;

@@ -5,10 +5,10 @@
 
 //.............................................................................
 
-enum SnifferLogPacketCode
+enum SnifferLogRecordCode
 {
-	Packet         = log.PacketCodeFlags.Foldable | 1,
-	InjectedPacket = log.PacketCodeFlags.Foldable | 2,
+	Packet         = log.RecordCodeFlags.Foldable | 1,
+	InjectedPacket = log.RecordCodeFlags.Foldable | 2,
 	CaptureStarted = 3,
 	CaptureError,
 	CaptureStopped,
@@ -22,68 +22,62 @@ class SnifferLogRepresenter: log.Representer
 {
 	override bool represent (
 		log.RepresenterTarget* target,
-		uint_t packetCode,
+		uint_t recordCode,
 		void const* p,
 		size_t size,
 		uint64_t foldFlags
 		);
-
-	static SnifferLogRepresenter* getSingleton ()
-	{
-		static SnifferLogRepresenter singleton;
-		return &singleton;
-	}
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 bool SnifferLogRepresenter.represent (
 	log.RepresenterTarget* target,
-	uint_t packetCode,
+	uint_t recordCode,
 	void const* p,
 	size_t size,
 	uint64_t foldFlags
 	)
 {
-	switch (packetCode)
+	switch (recordCode)
 	{
-	case SnifferLogPacketCode.Packet:
+	case SnifferLogRecordCode.Packet:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Packet;
 		representPacket (target, p, size, foldFlags);
 		break;
 
-	case SnifferLogPacketCode.InjectedPacket:
+	case SnifferLogRecordCode.InjectedPacket:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.TxPacket;
 		representPacket (target, p, size, foldFlags);
 		break;
 
-	case SnifferLogPacketCode.CaptureStarted:
+	case SnifferLogRecordCode.CaptureStarted:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
 		target.addHyperText ("Capture started");
 		break;
 
-	case SnifferLogPacketCode.CaptureError:
+	case SnifferLogRecordCode.CaptureError:
 		jnc.Error const* error = (jnc.Error const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
 		target.addHyperText ($"Capture error ($(error.m_description))");
 		break;
 
-	case SnifferLogPacketCode.CaptureStopped:
+	case SnifferLogRecordCode.CaptureStopped:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
 		target.addHyperText ("Capture stopped");
 		break;
 
-	case SnifferLogPacketCode.FilterChanged:
+	case SnifferLogRecordCode.FilterChanged:
 		char const* filter = (char const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText ($"Capture filter set to '$filter'");
 		break;
 
-	case SnifferLogPacketCode.FilterError:
+	case SnifferLogRecordCode.FilterError:
 		jnc.Error const* error = (jnc.Error const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;

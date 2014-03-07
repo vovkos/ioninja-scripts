@@ -27,7 +27,13 @@ enum SshEvent
 struct SshEventParams
 {
 	SshEvent m_eventKind;
-	SshChannel* m_sender;
+	uint_t m_syncId;
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+struct SshErrorEventParams
+{
 	jnc.Error const* m_error;
 }
 
@@ -39,6 +45,7 @@ class SshChannel
 	SocketAddress const property m_peerAddress;
 
 	bool dconst m_isOpen;
+	uint_t m_syncId;
 
 	bool open (nullable SocketAddress const* address = null) throws;
 	void close ();

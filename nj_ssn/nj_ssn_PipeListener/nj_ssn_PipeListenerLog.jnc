@@ -5,7 +5,7 @@
 
 //.............................................................................
 
-enum PipeListenerLogPacketCode
+enum PipeListenerLogRecordCode
 {
 	Listening          = 1,
 	ListenError        = 2,
@@ -21,65 +21,59 @@ class PipeListenerLogRepresenter: log.Representer
 {
 	override bool represent (
 		log.RepresenterTarget* target,
-		uint_t packetCode,
+		uint_t recordCode,
 		void const* p,
 		size_t size,
 		uint64_t foldFlags
 		);
-
-	static PipeListenerLogRepresenter* getSingleton ()
-	{
-		static PipeListenerLogRepresenter singleton;
-		return &singleton;
-	}
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 bool PipeListenerLogRepresenter.represent (
 	log.RepresenterTarget* target,
-	uint_t packetCode,
+	uint_t recordCode,
 	void const* p,
 	size_t size,
 	uint64_t foldFlags
 	)
 {
-	switch (packetCode)
+	switch (recordCode)
 	{
-	case PipeListenerLogPacketCode.Listening:
+	case PipeListenerLogRecordCode.Listening:
 		char const* name = (char const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
 		target.addHyperText ($"Listening on <15>$name<>");
 		break;
 
-	case PipeListenerLogPacketCode.ListenError:
+	case PipeListenerLogRecordCode.ListenError:
 		jnc.Error const* Error = (jnc.Error const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
 		target.addHyperText ($"Cannot listen ($(Error.m_description))");
 		break;
 
-	case PipeListenerLogPacketCode.ListenStopped:
+	case PipeListenerLogRecordCode.ListenStopped:
 		char const* name = (char const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
 		target.addHyperText ($"Stopped listening on <15>$name<>");
 		break;
 
-	case PipeListenerLogPacketCode.ClientConnected:
+	case PipeListenerLogRecordCode.ClientConnected:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText ("Client connected");
 		break;
 
-	case PipeListenerLogPacketCode.ClientDisconnected:
+	case PipeListenerLogRecordCode.ClientDisconnected:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText ("Client disconnected");
 		break;
 
-	case PipeListenerLogPacketCode.ClientRejected:
+	case PipeListenerLogRecordCode.ClientRejected:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Warning;
 		target.addHyperText ("Client connected and rejected ");
