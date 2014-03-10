@@ -110,10 +110,16 @@ class UdpSession: doc.StreamSession
 		switch (params.m_eventKind)
 		{
 			case io.SocketEvent.IncomingData:
+				io.SocketAddress remoteAddress;
 				heap char buffer [512];
-				size_t size = try m_socket.recv (buffer, sizeof (buffer));
+				size_t size = try m_socket.recvFrom (buffer, sizeof (buffer), &remoteAddress);
 				if (size != -1)
-					m_documentHost.m_log.write (RecordCode.Rx, buffer, size);
+				{
+					void* data = memcat (&remoteAddress, sizeof (io.SocketAddress), buffer, size);
+					size_t dataSize = sizeof (io.SocketAddress) + size;
+					
+					m_documentHost.m_log.write (RecordCode.Rx, data, dataSize);
+				}
 				break;
 		}
 	}
@@ -131,8 +137,10 @@ class UdpSession: doc.StreamSession
 		
 			if (try m_socket.sendTo (p, size, &remoteAddress))
 			{
-				const char* text = io.formatSocketAddress (&remoteAddress);
-				m_documentHost.m_log.write(RecordCode.Tx, p, size);
+				void* data = memcat (&remoteAddress, sizeof (io.SocketAddress), p, size);
+				size_t dataSize = sizeof (io.SocketAddress) + size;
+
+				m_documentHost.m_log.write(RecordCode.Tx, data, dataSize);
 			}
 			else
 			{
