@@ -194,11 +194,7 @@ SnifferSession.onReadyRead (uint_t syncId)
 
 reactor SnifferSession.m_uiReactor ()
 {
-	onevent (m_deviceCombo.m_onChanged) ()
-	{
-		m_documentHost.m_title = $"PCap $(m_deviceCombo.m_currentText)";
-	}
-	
+	m_documentHost.m_title = $"PCap $(m_deviceCombo.m_currentText)";
 	m_actionTable [ActionId.StopCapture].m_isEnabled = m_state == State.Opened;
 }
 

@@ -113,7 +113,14 @@ opaque class ComboBox
 	bool autoget property m_isVisible;
 	bool autoget property m_isEnabled;
 	bool autoget property m_isEditable;
-	char const* autoget property m_editText;
+
+	property m_editText
+	{
+		char const* autoget m_value;
+		set (char const* value);
+		bindable event m_onPropChanged () => m_onChanged;
+	}
+
 	char const* autoget property m_toolTipText;
 
 	size_t addItem (
@@ -124,8 +131,18 @@ opaque class ComboBox
 	char const* indexed property m_itemText (size_t index);
 	object* indexed property m_itemData (size_t index);
 
-	size_t autoget property m_currentIndex;
-	char const* const property m_currentText;
+	property m_currentIndex
+	{	
+		size_t autoget m_value;
+		set (size_t value);
+		bindable event m_onPropChanged () => m_onChanged;
+	}
+
+	property m_currentText
+	{		
+		char const* get ();
+		bindable event m_onPropChanged () => m_onChanged;
+	}
 	
 	event m_onChanged ();
 }

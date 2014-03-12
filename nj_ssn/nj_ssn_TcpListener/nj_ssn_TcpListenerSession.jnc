@@ -309,11 +309,7 @@ TcpListenerSession.onConnectionSocketEvent (io.SocketEventParams const* params)
 
 reactor TcpListenerSession.m_uiReactor ()
 {
-	onevent (m_portCombo.m_onChanged) ()
-	{
-		m_documentHost.m_title = $"TCP @ $(m_portCombo.m_currentText)";
-	}
-	
+	m_documentHost.m_title = $"TCP @ $(m_portCombo.m_editText)";
 	m_acceptFilterProp.m_isEnabled = m_useAcceptFilterProp.m_value;
 	m_actionTable [ActionId.StopListen].m_isEnabled = m_listenerState != State.Closed;
 	m_actionTable [ActionId.Disconnect].m_isEnabled = m_connectionState != State.Closed;

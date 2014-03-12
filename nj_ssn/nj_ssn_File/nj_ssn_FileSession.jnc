@@ -197,11 +197,7 @@ size_t FileSession.transmit (
 
 reactor FileSession.m_uiReactor ()
 {
-	onevent (m_fileNameCombo.m_onChanged) ()
-	{
-		m_documentHost.m_title = $"File $(m_fileNameCombo.m_currentText)";
-	}
-
+	m_documentHost.m_title = $"File $(m_fileNameCombo.m_editText)";
 	m_actionTable [ActionId.Close].m_isEnabled = m_state == State.Opened;
 }
 

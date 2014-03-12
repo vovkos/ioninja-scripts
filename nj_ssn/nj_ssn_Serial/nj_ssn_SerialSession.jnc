@@ -323,11 +323,7 @@ SerialSession.onSerialEvent (io.SerialEventParams const* params)
 
 reactor SerialSession.m_uiReactor ()
 {	
-	onevent (m_portNameCombo.m_onChanged, m_baudRateCombo.m_onChanged) ()
-	{
-		m_documentHost.m_title = $"$(m_portNameCombo.m_currentText) $(m_baudRateCombo.m_currentText)";
-	}
-	
+	m_documentHost.m_title = $"$(m_portNameCombo.m_currentText) $(m_baudRateCombo.m_currentText)";
 	m_actionTable [ActionId.Close].m_isEnabled = m_state == State.Opened;
 }
 

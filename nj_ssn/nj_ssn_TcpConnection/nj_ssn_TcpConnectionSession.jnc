@@ -249,11 +249,7 @@ TcpConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 
 reactor TcpConnectionSession.m_uiReactor ()
 {
-	onevent m_addressCombo.m_onChanged ()
-	{
-		m_documentHost.m_title = $"TCP $(m_addressCombo.m_editText)";
-	}
-	
+	m_documentHost.m_title = $"TCP $(m_addressCombo.m_editText)";
 	m_actionTable [ActionId.Disconnect].m_isEnabled = m_state != State.Closed;
 	m_ifaceProp.m_isEnabled = m_useLocalAddressProp.m_value;
 	m_localPortProp.m_isEnabled = m_useLocalAddressProp.m_value;
