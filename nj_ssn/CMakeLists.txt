@@ -12,6 +12,7 @@ add_subdirectory (nj_ssn_Sniffer)
 add_subdirectory (nj_ssn_SshChannel)
 add_subdirectory (nj_ssn_TcpConnection)
 add_subdirectory (nj_ssn_TcpListener)
+add_subdirectory (nj_ssn_TcpProxy)
 add_subdirectory (nj_ssn_Udp)
 
 #..............................................................................
