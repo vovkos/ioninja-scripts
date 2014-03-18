@@ -1,16 +1,10 @@
-class UdpSession: doc.StreamSession
+class UdpSession: doc.Session
 {
-	gui.EnumPropertyOption m_ifaceTable [] =
-	{
-		{ "0.0.0.0",   0 },
-		{ "127.0.0.1", 1 },
-	};
-
 	gui.ComboBox* m_localPortCombo;
 	gui.Action* m_openSocketAction;
 	gui.Action* m_closeSocketAction;
 	gui.ComboBox* m_remoteAddressCombo;
-	gui.EnumProperty* m_ifaceProp;
+	gui.EnumProperty* m_adapterProp;
 	
 	io.Socket* m_socket;
 	bindable bool m_isSocketOpen;
@@ -47,11 +41,11 @@ class UdpSession: doc.StreamSession
 		m_remoteAddressCombo.m_isEditable = true;
 		m_remoteAddressCombo.addItem("192.168.1.11:12345");
 		
-		m_ifaceProp = m_documentHost.createEnumProperty (
-			"Interface",
-			"Interface",
-			m_ifaceTable,
-			countof (m_ifaceTable));
+		m_adapterProp = m_documentHost.createNetworkAdapterProperty (
+			"Adapter",
+			"Adapter to bind socket to"
+			);
+		m_adapterProp.m_value = 0;
 		
 		m_uiReactor.start();
 	}
@@ -61,31 +55,26 @@ class UdpSession: doc.StreamSession
 		m_openSocketAction.m_isEnabled = !m_isSocketOpen;
 		m_closeSocketAction.m_isEnabled = m_isSocketOpen;
 		m_localPortCombo.m_isEnabled = !m_isSocketOpen;
-		m_ifaceProp.m_isEnabled = !m_isSocketOpen;
+		m_adapterProp.m_isEnabled = !m_isSocketOpen;
 	}
 	
 	void openSocket ()
 	{
 		closeSocket ();
 		
-		const char* iface = m_ifaceTable [m_ifaceProp.m_value].m_text;
-		const char* port = m_localPortCombo.m_editText;
-
 		io.SocketAddress localAddress;
-		if (!try io.parseSocketAddress ($"$iface:$port", &localAddress))
-		{
-			reportError ();
-			return;
-		}	
-			
+		localAddress.m_family = io.AddressFamily.Ip4;
+		localAddress.m_ip4.m_address.m_i32 = m_adapterProp.m_value;
+		localAddress.m_ip4.m_port = (uint16_t) atoi (m_localPortCombo.m_editText);
+		
 		if (!try m_socket.open (io.Protocol.Udp, &localAddress))
 		{
 			reportError ();
 			return;
 		}
 				
-		m_documentHost.m_log.write (RecordCode.Open, port, strlen (port));
-		
+		m_documentHost.m_log.write (RecordCode.Open, &localAddress, sizeof (localAddress));
+	
 		m_isSocketOpen = true;
 	}
 	

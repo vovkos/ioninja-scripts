@@ -10,9 +10,8 @@ namespace io {
 struct PCapAddress
 {
 	PCapAddress const* m_next;
-	char const* m_name;
-	char const* m_description;
-	uint_t m_flags;
+	
+	// currently not used
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -22,13 +21,13 @@ struct PCapDevice
 	PCapDevice const* m_next;
 	char const* m_name;
 	char const* m_description;
-	PCapAddress const* m_addressList;
+	PCapAddress m_address;
 	uint_t m_flags;
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-PCapDevice const* createPCapDeviceList ();
+PCapDevice const* createPCapDeviceList (nullable size_t* count = null);
 
 //.............................................................................
 

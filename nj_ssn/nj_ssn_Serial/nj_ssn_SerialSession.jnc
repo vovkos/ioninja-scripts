@@ -5,7 +5,7 @@
 
 //.............................................................................
 
-class SerialSession: doc.StreamSession
+class SerialSession: doc.Session
 {
 protected:
 	enum State
@@ -52,6 +52,9 @@ public:
 	bool open () throws;
 	close ();
 
+	override void loadProperties ();
+	override bool applyProperties () throws;
+
 	override size_t transmit (
 		void const* p,
 		size_t size
@@ -84,6 +87,7 @@ SerialSession.createUi ()
 
 	m_documentHost.m_toolBar.addLabel ("Port: ");
 	m_portNameCombo = m_documentHost.m_toolBar.addComboBox ();
+	m_portNameCombo.m_isEditable = true;
 	m_portNameCombo.addItem ("COM1");
 	m_portNameCombo.addItem ("COM2");
 	m_portNameCombo.addItem ("COM3");
@@ -224,8 +228,7 @@ bool SerialSession.open () throws
 {
 	close ();
 
-	size_t index = m_portNameCombo.m_currentIndex;
-	char const* name = m_portNameCombo.m_itemText [index];
+	char const* name = m_portNameCombo.m_currentText;
 
 	// open and configure
 
@@ -280,6 +283,21 @@ SerialSession.close ()
 
 	m_serial.close ();
 	m_state = State.Closed;
+}
+
+void SerialSession.loadProperties ()
+{
+	m_portNameProp.m_value = m_portNameCombo.m_currentText;
+	m_baudRateProp.m_currentIndex = m_baudRateCombo.m_currentIndex;
+	m_flowControlProp.m_currentIndex = m_flowControlCombo.m_currentIndex;
+}
+
+bool SerialSession.applyProperties () throws
+{
+	m_portNameCombo.m_editText = m_portNameProp.m_value;
+	m_baudRateCombo.m_currentIndex = m_baudRateProp.m_currentIndex;
+	m_flowControlCombo.m_currentIndex = m_flowControlProp.m_currentIndex;
+	return true;
 }
 
 size_t SerialSession.transmit (

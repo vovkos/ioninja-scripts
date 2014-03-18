@@ -1,0 +1,386 @@
+//.............................................................................
+//
+// TCP Proxy session
+//
+
+//.............................................................................
+
+class TcpProxySession: doc.MonitorSession
+{
+protected:	
+	enum State
+	{
+		Closed,
+		Opened,
+	}
+	
+	enum TargetState
+	{
+		Closed,
+		Connecting,
+		Connected,
+	}
+	
+	enum ActionId
+	{
+		Listen,
+		StopListen,
+		Disconnect,
+		_Count,
+	}
+	
+protected:
+	// listener socket
+	
+	State bindable m_listenerState;
+	io.Socket* m_listenerSocket;
+	io.SocketAddress m_localAddress;
+	
+	// connection socket
+	
+	State bindable m_connectionState;
+	uint_t m_connectionSyncId;
+	io.Socket* m_connectionSocket;
+	io.SocketAddress m_remoteAddress;
+	
+	// target connection socket
+	
+	TargetState bindable m_targetState;
+	io.Socket* m_targetSocket;
+	io.SocketAddress m_targetAddress;
+	
+	// toolbar & menu
+	
+	gui.Action* m_actionTable [ActionId._Count];
+	gui.ComboBox* m_portCombo;
+	gui.ComboBox* m_targetAddressCombo;
+	
+public:
+	construct (doc.DocumentHost* documentHost);
+	
+	bool listen () throws;
+	stopListen ();
+	disconnect ();
+	
+	bool connectTarget () throws;
+	disconnectTarget ();
+
+protected:
+	onListenerSocketEvent (io.SocketEventParams const* params);
+	onConnectionSocketEvent (io.SocketEventParams const* params);
+	onTargetSocketEvent (io.SocketEventParams const* params);
+	
+	createUi ();
+	reactor m_uiReactor ();
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+TcpProxySession.construct (doc.DocumentHost* documentHost)
+{
+	basetype.construct (documentHost);
+
+	documentHost.m_log.m_representer = static new TcpProxyLogRepresenter;
+		
+	m_listenerState = State.Closed;
+	m_listenerSocket = io.createSocket ();
+	m_listenerSocket.m_onSocketEvent += onListenerSocketEvent @ m_documentHost.m_mainThreadScheduler;
+	
+	m_connectionState = State.Closed;
+	
+	m_targetState = TargetState.Closed;
+	m_targetSocket = io.createSocket ();
+	m_targetSocket.m_onSocketEvent += onTargetSocketEvent @ m_documentHost.m_mainThreadScheduler;
+	
+	createUi ();
+}
+
+TcpProxySession.createUi ()
+{
+	// toolbar
+	
+	m_documentHost.m_toolBar.addLabel ("Listen on: ");
+	m_portCombo = m_documentHost.m_toolBar.addComboBox ();
+	m_portCombo.m_isEditable = true;
+	m_portCombo.m_editText = "1001";
+	
+	m_documentHost.m_toolBar.addSeparator ();
+	
+	m_documentHost.m_toolBar.addLabel ("Connect to: ");
+	m_targetAddressCombo = m_documentHost.m_toolBar.addComboBox (-1);
+	m_targetAddressCombo.m_isEditable = true;
+	m_targetAddressCombo.m_editText = "127.0.0.1:1002";
+	
+	m_documentHost.m_toolBar.addSeparator ();
+	
+	m_actionTable [ActionId.Listen] = m_documentHost.createAction ("Listen", "listen.png");
+	m_actionTable [ActionId.Listen].m_onTriggered += listen;
+
+	m_actionTable [ActionId.StopListen] = m_documentHost.createAction ("Stop listening", "pause.png");
+	m_actionTable [ActionId.StopListen].m_onTriggered += stopListen;
+
+	m_actionTable [ActionId.Disconnect] = m_documentHost.createAction ("Disconnect", "disconnect.png");
+	m_actionTable [ActionId.Disconnect].m_onTriggered += disconnect;
+		
+	m_uiReactor.start ();
+}
+
+bool TcpProxySession.listen () throws
+{
+	printf ("TcpProxySession.listen (TID = %x)\n", jnc.getCurrentThreadId ());
+
+	stopListen ();
+
+	char const* addressString = $"0.0.0.0:$(m_portCombo.m_editText)";
+
+	io.SocketAddress address;
+	io.parseSocketAddress (addressString, &address);
+
+	m_listenerSocket.open (io.Protocol.Tcp, &address);
+	m_listenerSocket.listen ();
+
+	m_documentHost.m_log.write (
+		TcpProxyLogRecordCode.Listening,
+		&address,
+		sizeof (address)
+		);
+
+	m_localAddress = address;
+	m_listenerState = State.Opened;
+	return true;
+
+catch:
+	jnc.Error const* error = jnc.getLastError ();
+	m_documentHost.m_log.write (
+		TcpProxyLogRecordCode.ListenError,
+		error,
+		error.m_size
+		);
+		
+	m_listenerSocket.close ();
+	return false;
+}
+
+TcpProxySession.stopListen ()
+{
+	if (m_listenerState != State.Opened)
+		return;
+
+	m_documentHost.m_log.write (
+		TcpProxyLogRecordCode.ListenStopped,
+		&m_localAddress,
+		sizeof (m_localAddress)
+		);
+		
+	m_listenerSocket.close ();
+	m_listenerState = State.Closed;
+}
+
+TcpProxySession.disconnect ()
+{
+	//disconnectTarget ();
+	
+	if (m_connectionState != State.Opened)
+		return;
+
+	m_documentHost.m_log.write (
+		TcpProxyLogRecordCode.ClientDisconnected,
+		&m_remoteAddress,
+		sizeof (m_remoteAddress)
+		);
+
+	printf ("TcpProxySession.disconnect () - 1\n");
+
+	m_connectionSocket.close ();
+
+	printf ("TcpProxySession.disconnect () - 2\n");
+	
+	m_connectionSocket = null;
+
+	printf ("TcpProxySession.disconnect () - 3\n");
+
+	m_connectionState = State.Closed;
+	
+	printf ("TcpProxySession.disconnect () - 4\n");
+	
+	m_connectionSyncId++;
+}
+
+bool TcpProxySession.connectTarget () throws
+{
+	//disconnectTarget ();
+	
+	/*
+	io.SocketAddress address;
+	io.parseSocketAddress (m_targetAddressCombo.m_editText, &address);
+	
+	m_documentHost.m_log.write (
+		TcpProxyLogRecordCode.TargetConnecting,
+		&address,
+		sizeof (address)
+		);
+		
+	m_targetSocket.open (io.Protocol.Tcp);
+	
+	m_targetSocket.connect (&address);
+	
+	m_targetAddress = address;
+	m_targetState = TargetState.Connecting;
+	return true;
+	*/
+	
+	return false;
+}
+
+TcpProxySession.disconnectTarget ()
+{
+	if (m_targetState != TargetState.Connected)
+		return;
+	
+	m_documentHost.m_log.write (
+		TcpProxyLogRecordCode.TargetDisconnected,
+		&m_targetAddress,
+		sizeof (m_targetAddress)
+		);
+
+	m_targetSocket.close ();
+	m_targetState = TargetState.Closed;
+}
+
+TcpProxySession.onListenerSocketEvent (io.SocketEventParams const* params)
+{
+	if (params.m_syncId != m_listenerSocket.m_syncId)
+		return;
+
+	switch (params.m_eventKind)
+	{
+	case io.SocketEvent.IncomingConnection:
+		io.SocketAddress address;
+		io.Socket* socket = try m_listenerSocket.accept (&address);
+		if (!socket)
+			break;
+
+		if (m_connectionState == State.Opened)
+		{
+			socket.close ();
+			m_documentHost.m_log.write (
+				TcpProxyLogRecordCode.ClientRejected,
+				&address,
+				sizeof (address)
+				);
+
+			break;
+		}
+
+		m_documentHost.m_log.write (
+			TcpProxyLogRecordCode.ClientConnected,
+			&address,
+			sizeof (address)
+			);
+
+		socket.m_syncId = m_connectionSyncId;
+		socket.m_onSocketEvent += onConnectionSocketEvent @ m_documentHost.m_mainThreadScheduler;
+
+		m_remoteAddress = address;
+		m_connectionSocket = socket;
+		m_connectionState = State.Opened;		
+		
+		bool result = try connectTarget ();
+		if (!result)
+		{
+			disconnect ();
+			break;
+		}
+
+		socket.firePendingEvents ();
+		break;
+	}
+}
+
+TcpProxySession.onConnectionSocketEvent (io.SocketEventParams const* params)
+{
+	if (params.m_syncId != m_connectionSyncId)
+		return;
+
+	switch (params.m_eventKind)
+	{
+	case io.SocketEvent.Disconnected:
+		m_documentHost.m_log.write (
+			TcpProxyLogRecordCode.ClientDisconnected,
+			&m_remoteAddress,
+			sizeof (m_remoteAddress)
+			);
+			
+		m_connectionSocket = null;
+		m_connectionState = State.Closed;
+		m_connectionSyncId++;
+		break;
+
+	case io.SocketEvent.IncomingData:
+		heap char buffer [512];
+		size_t result = try m_connectionSocket.recv (buffer, sizeof (buffer));
+		if (result != -1)
+			m_documentHost.m_log.write (log.StdRecordCode.Rx, buffer, result);
+		
+		// send to target socket...
+		
+		break;
+	}
+}
+
+TcpProxySession.onTargetSocketEvent (io.SocketEventParams const* params)
+{
+	if (params.m_syncId != m_targetSocket.m_syncId)
+		return;
+	
+	switch (params.m_eventKind)
+	{
+	case io.SocketEvent.ConnectCompleted:
+		m_documentHost.m_log.write (TcpProxyLogRecordCode.TargetConnectCompleted);
+		m_targetState = TargetState.Connected;
+		break;
+
+	case io.SocketEvent.ConnectCancelled:
+		m_documentHost.m_log.write (TcpProxyLogRecordCode.TargetConnectCancelled);
+		m_targetState = TargetState.Closed;
+		break;
+
+	case io.SocketEvent.ConnectError:
+		io.SocketErrorEventParams const* errorParams = (io.SocketErrorEventParams const*) params;
+		m_documentHost.m_log.write (
+			TcpProxyLogRecordCode.TargetConnectError,
+			errorParams.m_error,
+			errorParams.m_error.m_size
+			);
+		m_targetState = TargetState.Closed;
+		break;
+
+	case io.SocketEvent.Disconnected:
+		m_documentHost.m_log.write (
+			TcpProxyLogRecordCode.TargetDisconnected,
+			&m_targetAddress,
+			sizeof (m_remoteAddress)
+			);
+		m_targetState = TargetState.Closed;
+		break;
+
+	case io.SocketEvent.IncomingData:
+		heap char buffer [512];
+		size_t result = try m_targetSocket.recv (buffer, sizeof (buffer));
+		if (result != -1)
+			m_documentHost.m_log.write (log.StdRecordCode.Rx, buffer, result);
+		
+		// send to connection socket...
+		
+		break;
+	}
+}
+
+reactor TcpProxySession.m_uiReactor ()
+{
+	m_documentHost.m_title = $"TCP @ $(m_portCombo.m_editText) -> ...";
+	m_actionTable [ActionId.StopListen].m_isEnabled = m_listenerState != State.Closed;
+	m_actionTable [ActionId.Disconnect].m_isEnabled = m_connectionState != State.Closed;
+}
+
+//.............................................................................

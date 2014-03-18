@@ -143,7 +143,13 @@ opaque class ComboBox
 		char const* get ();
 		bindable event m_onPropChanged () => m_onChanged;
 	}
-	
+
+	property m_currentData
+	{		
+		object* get ();
+		bindable event m_onPropChanged () => m_onChanged;
+	}
+
 	event m_onChanged ();
 }
 
@@ -195,12 +201,26 @@ struct EnumPropertyOption
 
 opaque class EnumProperty: Property
 {
-	int autoget bindable property m_value;
+	property m_value
+	{
+		int autoget m_value;
+		set (int value);
+		bindable event m_onPropChanged () => m_onChanged;
+	}
+
+	property m_currentIndex
+	{
+		size_t autoget m_value;
+		set (size_t value);
+		bindable event m_onPropChanged () => m_onChanged;
+	}
 
 	setOptions (
 		EnumPropertyOption const* optionArray,
 		size_t count
 		);
+
+	event m_onChanged ();
 }
 
 opaque class GroupProperty

@@ -5,7 +5,7 @@
 
 //.............................................................................
 
-class SnifferSession: doc.StreamSession
+class SnifferSession: doc.Session
 {
 protected:
 	enum State
@@ -38,13 +38,15 @@ protected:
 	gui.BoolProperty* m_promisciousProp;
 	gui.StringProperty* m_captureFilterProp;
 	gui.StringProperty* m_displayFilterProp;
-	gui.IntProperty* m_snapshotSizeProp;
 
 public:
 	construct (doc.DocumentHost* documentHost);
 
 	bool capture () throws;
 	stopCapture ();
+
+	override void loadProperties ();
+	override bool applyProperties () throws;
 
 	override size_t transmit (
 		void const* p,
@@ -118,12 +120,7 @@ SnifferSession.createUi ()
 		"Display Filter",
 		"Apply the secondary filter to captured packets"
 		);
-
-	m_snapshotSizeProp = m_documentHost.createIntProperty (
-		"Snapshot Size",
-		"Adjust the buffer size used by pcap"
-		);
-		
+	
 	m_uiReactor.start ();
 }
 
@@ -164,6 +161,17 @@ SnifferSession.stopCapture ()
 	m_documentHost.m_log.write (SnifferLogRecordCode.CaptureStopped);
 	m_pcap.close ();
 	m_state = State.Closed;
+}
+
+void SnifferSession.loadProperties ()
+{
+	m_deviceProp.m_value = m_deviceCombo.m_currentText;
+}
+
+bool SnifferSession.applyProperties () throws
+{
+	// m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
+	return true;
 }
 
 size_t SnifferSession.transmit (

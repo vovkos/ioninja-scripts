@@ -5,7 +5,7 @@
 
 //.............................................................................
 
-class TcpConnectionSession: doc.StreamSession
+class TcpConnectionSession: doc.Session
 {
 protected:
 	enum State
@@ -36,10 +36,10 @@ protected:
 
 	// property grid
 
-	gui.StringProperty* m_remoteAddressProp;
+	gui.StringProperty* m_addressProp;
 	gui.BoolProperty* m_abruptiveDisconnectProp;
 	gui.BoolProperty* m_useLocalAddressProp;
-	gui.EnumProperty* m_ifaceProp;
+	gui.EnumProperty* m_adapterProp;
 	gui.IntProperty* m_localPortProp;
 
 public:
@@ -47,6 +47,9 @@ public:
 
 	bool connect () throws;
 	disconnect ();
+
+	override void loadProperties ();
+	override bool applyProperties () throws;
 
 	override size_t transmit (
 		void const* p,
@@ -92,14 +95,14 @@ TcpConnectionSession.createUi ()
 
 	// property grid
 
-	m_remoteAddressProp = m_documentHost.createStringProperty (
+	m_addressProp = m_documentHost.createStringProperty (
 		"Remote address",
 		"Remote address to connect to (IP-address or host-name followed by ':' port)"
 		);
 
 	m_abruptiveDisconnectProp = m_documentHost.createBoolProperty (
-		"Reset connections",
-		"Use TCP RST to terminate connections (instead of TCP graceful disconnect)"
+		"Reset connection",
+		"Use TCP reset to terminate connections (instead of TCP graceful disconnect)"
 		);
 
 	m_useLocalAddressProp = m_documentHost.createBoolProperty (
@@ -107,20 +110,12 @@ TcpConnectionSession.createUi ()
 		"Bind socket to the specified local address before connect"
 		);
 
-	static gui.EnumPropertyOption ifaceTable [] =
-	{
-		{ "0.0.0.0",   0x00000000 },
-		{ "127.0.0.1", 0x7f000001 },
-	};
-
-	m_ifaceProp = m_documentHost.createEnumProperty (
-		"Interface",
-		"Interface to bind to before connect",
-		ifaceTable,
-		countof (ifaceTable)
+	m_adapterProp = m_documentHost.createNetworkAdapterProperty (
+		"Adapter",
+		"Adapter to bind to before connect"
 		);
 
-	m_ifaceProp.m_value = 0;
+	m_adapterProp.m_value = 0;
 
 	m_localPortProp = m_documentHost.createIntProperty (
 		"Local TCP port",
@@ -187,6 +182,17 @@ TcpConnectionSession.disconnect ()
 	m_state = State.Closed;
 }
 
+void TcpConnectionSession.loadProperties ()
+{
+	m_addressProp.m_value = m_addressCombo.m_editText;
+}
+
+bool TcpConnectionSession.applyProperties () throws
+{
+	m_addressCombo.m_editText = m_addressProp.m_value;
+	return true;
+}
+
 size_t TcpConnectionSession.transmit (
 	void const* p,
 	size_t size
@@ -251,7 +257,7 @@ reactor TcpConnectionSession.m_uiReactor ()
 {
 	m_documentHost.m_title = $"TCP $(m_addressCombo.m_editText)";
 	m_actionTable [ActionId.Disconnect].m_isEnabled = m_state != State.Closed;
-	m_ifaceProp.m_isEnabled = m_useLocalAddressProp.m_value;
+	m_adapterProp.m_isEnabled = m_useLocalAddressProp.m_value;
 	m_localPortProp.m_isEnabled = m_useLocalAddressProp.m_value;
 }
 

@@ -40,10 +40,11 @@ bool UdpLogRepresenter.represent (
 			break;
 			
 		case RecordCode.Open:
+			char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 			target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
 			target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
 			target.m_lineAttr.m_backColor = log.StdLogColor.Start;
-			target.addHyperText($"Opened socket at <#0000FF>$((char const*) p)<>");
+			target.addHyperText($"Opened socket at <#0000FF>$addressString<>");
 			break;
 			
 		case RecordCode.Close:

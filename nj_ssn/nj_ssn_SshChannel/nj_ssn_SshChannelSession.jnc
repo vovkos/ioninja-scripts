@@ -5,7 +5,7 @@
 
 //.............................................................................
 
-class SshChannelSession: doc.StreamSession
+class SshChannelSession: doc.Session
 {
 protected:
 	enum State
@@ -36,12 +36,13 @@ protected:
 
 	// property grid
 
+	gui.StringProperty* m_addressProp;
 	gui.StringProperty* m_userNameProp;
 	gui.StringProperty* m_passwordProp;
 	gui.StringProperty* m_ptyProp;
 	gui.BoolProperty* m_abruptiveDisconnectProp;
 	gui.BoolProperty* m_useLocalAddressProp;
-	gui.EnumProperty* m_ifaceProp;
+	gui.EnumProperty* m_adapterProp;
 	gui.IntProperty* m_localPortProp;
 
 public:
@@ -49,6 +50,9 @@ public:
 
 	bool connect () throws;
 	disconnect ();
+
+	override void loadProperties ();
+	override bool applyProperties () throws;
 
 	override size_t transmit (
 		void const* p,
@@ -92,6 +96,13 @@ SshChannelSession.createUi ()
 
 	// property grid
 
+	m_addressProp = m_documentHost.createStringProperty (
+		"Remote address",
+		"Remote address to connect to (IP-address or host-name followed by ':' port)"
+		);
+
+	m_addressProp.m_value = "93.174.106.102:22";
+
 	m_userNameProp = m_documentHost.createStringProperty (
 		"User Name",
 		"User name for SSH authentification"
@@ -123,20 +134,12 @@ SshChannelSession.createUi ()
 		"Bind socket to the specified local address before connect"
 		);
 
-	static gui.EnumPropertyOption ifaceTable [] =
-	{
-		{ "0.0.0.0",   0x00000000 },
-		{ "127.0.0.1", 0x7f000001 },
-	};
-
-	m_ifaceProp = m_documentHost.createEnumProperty (
-		"Interface",
-		"Interface to bind to before connect",
-		ifaceTable,
-		countof (ifaceTable)
+	m_adapterProp = m_documentHost.createNetworkAdapterProperty (
+		"Adapter",
+		"Adapter to bind to before connect"
 		);
 
-	m_ifaceProp.m_value = 0;
+	m_adapterProp.m_value = 0;
 
 	m_localPortProp = m_documentHost.createIntProperty (
 		"Local TCP Port",
@@ -207,6 +210,17 @@ SshChannelSession.disconnect ()
 		);
 	m_channel.close ();
 	m_state = State.Closed;
+}
+
+void SshChannelSession.loadProperties ()
+{
+	m_addressProp.m_value = m_addressCombo.m_editText;
+}
+
+bool SshChannelSession.applyProperties () throws
+{
+	m_addressCombo.m_editText = m_addressProp.m_value;
+	return true;
 }
 
 size_t SshChannelSession.transmit (
@@ -296,7 +310,7 @@ SshChannelSession.onSshEvent (io.SshEventParams const* params)
 reactor SshChannelSession.m_uiReactor ()
 {
 	m_documentHost.m_title = $"SSH $(m_addressCombo.m_currentText)";
-	m_ifaceProp.m_isEnabled = m_useLocalAddressProp.m_value;
+	m_adapterProp.m_isEnabled = m_useLocalAddressProp.m_value;
 	m_localPortProp.m_isEnabled = m_useLocalAddressProp.m_value;
 	m_actionTable [ActionId.Disconnect].m_isEnabled = m_state != State.Closed;
 }

@@ -10,8 +10,7 @@ namespace doc {
 enum DocumentKind
 {
 	Log,
-	MonitorSession,
-	StreamSession,
+	Session,
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -57,9 +56,14 @@ class DocumentHost
 		gui.EnumPropertyOption const* optionArray,
 		size_t count
 		);
+
+	gui.EnumProperty* createNetworkAdapterProperty (
+		char const* name,
+		char const* toolTipText
+		);
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+//.............................................................................
 
 class Document
 {
@@ -74,36 +78,43 @@ class Document
 		m_documentKind = documentKind;
 		m_documentHost = documentHost;
 	}
-}
-
-//.............................................................................
-
-class MonitorSession: Document
-{
-	construct (DocumentHost* documentHost)
+	
+	virtual void loadProperties ()
+	{		
+	}
+		
+	virtual bool applyProperties () throws
 	{
-		basetype.construct (DocumentKind.MonitorSession, documentHost);
+		return true;
 	}
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-class StreamSession: Document
+class Log: Document
 {
 	construct (DocumentHost* documentHost)
 	{
-		basetype.construct (DocumentKind.StreamSession, documentHost);
+		basetype.construct (DocumentKind.Log, documentHost);
+	}
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+class Session: Document
+{
+	construct (DocumentHost* documentHost)
+	{
+		basetype.construct (DocumentKind.Session, documentHost);
 	}
 
-	abstract size_t transmit (
+	virtual size_t transmit (
 		void const* p,
 		size_t size
-		);
-
-	event m_onReceived (
-		void const* p,
-		size_t size
-		);
+		) throws
+	{
+		return 0;
+	}
 }
 
 //.............................................................................
@@ -179,6 +190,46 @@ gui.EnumProperty* DocumentHost.createEnumProperty (
 	prop.setOptions (optionArray, count);
 	m_propertyGrid.addProperty (prop);
 	return prop;
+}
+
+gui.EnumProperty* DocumentHost.createNetworkAdapterProperty (
+	char const* name,
+	char const* toolTipText
+	)
+{
+	size_t adapterCount;
+	io.NetworkAdapter const* adapterList = io.createNetworkAdapterList (&adapterCount);
+
+	adapterCount += 2; // include 'All adapters' and 'Loopback adapter'
+	gui.EnumPropertyOption* adapterOptionArray = new gui.EnumPropertyOption [adapterCount];
+
+	gui.EnumPropertyOption* adapterOption = adapterOptionArray;	
+	adapterOption.m_text = "0.0.0.0 (All adapters)"; 
+	adapterOption.m_value = 0;
+	adapterOption++;	
+
+	adapterOption.m_text = "127.0.0.1 (Loopback adapter)"; 
+	adapterOption.m_value = 0x7f000001;
+	adapterOption++;	
+
+	io.NetworkAdapter const* adapter = adapterList;
+	for (; adapter; adapter = adapter->m_next, adapterOption++)
+	{
+		adapterOption.m_text = jnc.format (
+			"%s (%s)", 
+			io.formatAddress_Ip4 (&adapter->m_address.m_address),
+			adapter->m_description
+			);
+
+		adapterOption.m_value = adapter->m_address.m_address.m_i32;
+	}
+
+	return createEnumProperty (
+		name,
+		toolTipText,
+		adapterOptionArray,
+		adapterCount
+		);
 }
 
 //.............................................................................

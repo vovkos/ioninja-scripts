@@ -4,7 +4,7 @@
 
 #..............................................................................
 
-project_virtual_folder (nj_api_Script)
+project_virtual_folder (nj_ssn_TcpProxy)
 
 #..............................................................................
 #
@@ -12,40 +12,48 @@ project_virtual_folder (nj_api_Script)
 #
 
 set (
-	API_JNC_LIST
-	nj_doc.jnc
-	nj_gui.jnc
-	nj_io_FileStream.jnc
-	nj_io_MappedFile.jnc
-	nj_io_NamedPipe.jnc
-	nj_io_NetworkAdapter.jnc
-	nj_io_PCap.jnc
-	nj_io_Packet.jnc
-	nj_io_Serial.jnc
-	nj_io_Socket.jnc
-	nj_io_Ssh.jnc
-	nj_log.jnc
-	nj_std.jnc
+	SSN_JNC_LIST
+	nj_ssn_TcpProxyLog.jnc
+	nj_ssn_TcpProxySession.jnc
 	)
 
 source_virtual_folder (
-	api
-	${API_JNC_LIST}
+	src
+	${SSN_JNC_LIST}
 	)
 
 #..............................................................................
 #
-# nj_api script library
+# res folder
+#
+
+set (
+	SSN_RES_LIST
+	nj_ssn_TcpProxy.njini
+	disconnect.png
+	listen.png
+	proxy.png
+	)
+
+source_virtual_folder (
+	res
+	${SSN_RES_LIST}
+	)
+
+#..............................................................................
+#
+# nj_ssn_TcpProxy script library
 #
 
 add_library (
-	nj_api_Script
+	nj_ssn_TcpProxy
 	EXCLUDE_FROM_ALL
-	${API_JNC_LIST}
+	${SSN_JNC_LIST}
+	${SSN_RES_LIST}
 	)
 
 set_target_properties (
-	nj_api_Script
+	nj_ssn_TcpProxy
 	PROPERTIES
 	FOLDER scripts
 	LINKER_LANGUAGE C

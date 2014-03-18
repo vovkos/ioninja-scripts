@@ -1,0 +1,60 @@
+//.............................................................................
+//
+// Network adapter info 
+//
+
+namespace io {
+
+//.............................................................................
+
+enum NetworkAdapterType
+{
+	Unknown = 0,
+	Loopback,
+	Ethernet,
+	Wireless,
+	Ppp,
+	TokenRing,
+	Slip,
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+fenum NetworkAdapterFlags
+{
+	MediaDisconnected,
+	DhcpEnabled,
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+struct NetworkAdapterAddress
+{
+	NetworkAdapterAddress const* m_next;
+	Address_Ip4 m_address;
+	Address_Ip4 m_mask;
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+struct NetworkAdapter
+{
+	NetworkAdapter const* m_next;
+	NetworkAdapterType m_type;
+	NetworkAdapterFlags m_flags;
+	char const* m_name;
+	char const* m_description;
+	uint8_t m_mac [6];
+
+	NetworkAdapterAddress m_address;
+	NetworkAdapterAddress m_gateway;
+	NetworkAdapterAddress m_dhcpServer;
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+NetworkAdapter const* createNetworkAdapterList (nullable size_t* count = null);
+
+//.............................................................................
+
+} // namespace io {
