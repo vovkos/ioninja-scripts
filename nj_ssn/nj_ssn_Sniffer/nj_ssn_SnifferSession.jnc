@@ -45,8 +45,11 @@ public:
 	bool capture () throws;
 	stopCapture ();
 
-	override void loadProperties ();
+	override void load (doc.Storage* storage);
+	override void save (doc.Storage* storage);
+	override void updateProperties ();
 	override bool applyProperties () throws;
+	override void restoreDefaultProperties ();
 
 	override size_t transmit (
 		void const* p,
@@ -163,7 +166,23 @@ SnifferSession.stopCapture ()
 	m_state = State.Closed;
 }
 
-void SnifferSession.loadProperties ()
+void SnifferSession.load (doc.Storage* storage)
+{
+	m_deviceCombo.m_currentIndex = storage.readInt ("device");
+	m_promisciousProp.m_value = storage.readBool ("promiscious");
+	m_captureFilterProp.m_value = storage.readString ("captureFilter");
+	m_displayFilterProp.m_value = storage.readString ("displayFilter");
+}
+
+void SnifferSession.save (doc.Storage* storage)
+{
+	storage.writeInt ("device", m_deviceCombo.m_currentIndex);
+	storage.writeBool ("promiscious", m_promisciousProp.m_value);
+	storage.writeString ("captureFilter", m_captureFilterProp.m_value);
+	storage.writeString ("displayFilter", m_displayFilterProp.m_value);
+}
+
+void SnifferSession.updateProperties ()
 {
 	m_deviceProp.m_value = m_deviceCombo.m_currentText;
 }
@@ -172,6 +191,14 @@ bool SnifferSession.applyProperties () throws
 {
 	// m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
 	return true;
+}
+
+void SnifferSession.restoreDefaultProperties ()
+{
+	m_deviceProp.m_value = m_deviceCombo.m_itemText [0];
+	m_promisciousProp.m_value = false;
+	m_captureFilterProp.m_value = "";
+	m_displayFilterProp.m_value = "";
 }
 
 size_t SnifferSession.transmit (

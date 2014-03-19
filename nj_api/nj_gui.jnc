@@ -128,6 +128,8 @@ opaque class ComboBox
 		nullable object* data = null
 		);
 
+	void addHistoryItem (char const* text);
+
 	char const* indexed property m_itemText (size_t index);
 	object* indexed property m_itemData (size_t index);
 

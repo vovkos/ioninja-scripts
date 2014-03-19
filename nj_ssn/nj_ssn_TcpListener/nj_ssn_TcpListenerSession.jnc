@@ -55,8 +55,11 @@ public:
 	stopListen ();
 	disconnect ();
 
-	override void loadProperties ();
+	override void load (doc.Storage* storage);
+	override void save (doc.Storage* storage);
+	override void updateProperties ();
 	override bool applyProperties () throws;
+	override void restoreDefaultProperties ();
 
 	override size_t transmit (
 		void const* p,
@@ -94,7 +97,6 @@ TcpListenerSession.createUi ()
 	m_documentHost.m_toolBar.addLabel ("Port: ");	
 	m_portCombo = m_documentHost.m_toolBar.addComboBox ();
 	m_portCombo.m_isEditable = true;
-	m_portCombo.m_editText = "1024";
 
 	// action buttons
 
@@ -114,21 +116,15 @@ TcpListenerSession.createUi ()
 		"TCP port to listen on"
 		);
 
-	m_portProp.m_value = 1024;
-
 	m_adapterProp = m_documentHost.createNetworkAdapterProperty (
 		"Adapter",
 		"Network adapter to listen on"
 		);
 
-	m_adapterProp.m_value = 0;
-
 	m_overrideOldConnectionProp = m_documentHost.createBoolProperty (
 		"Override connections",
 		"Accept incoming connection even if already connected"
 		);
-
-	m_overrideOldConnectionProp.m_value = true;
 
 	m_abruptiveDisconnectProp = m_documentHost.createBoolProperty (
 		"Use TCP reset",
@@ -155,6 +151,8 @@ bool TcpListenerSession.listen () throws
 		&address,
 		sizeof (address)
 		);
+
+	m_portCombo.addHistoryItem (m_portCombo.m_editText);
 
 	m_localAddress = address;
 	m_listenerState = State.Opened;
@@ -202,7 +200,23 @@ TcpListenerSession.disconnect ()
 	m_connectionSyncId++;
 }
 
-void TcpListenerSession.loadProperties ()
+void TcpListenerSession.load (doc.Storage* storage)
+{
+	m_portCombo.m_editText = storage.readString ("port");
+	m_adapterProp.m_value = storage.readInt ("adapterIp");
+	m_overrideOldConnectionProp.m_value = storage.readBool ("overrideOldConnection");
+	m_abruptiveDisconnectProp.m_value = storage.readBool ("abruptiveDisconnect");
+}
+
+void TcpListenerSession.save (doc.Storage* storage)
+{
+	storage.writeString ("port", m_portCombo.m_editText);
+	storage.writeInt ("adapterIp", m_adapterProp.m_value);
+	storage.writeBool ("overrideOldConnection", m_overrideOldConnectionProp.m_value);
+	storage.writeBool ("abruptiveDisconnect", m_abruptiveDisconnectProp.m_value);
+}
+
+void TcpListenerSession.updateProperties ()
 {
 	m_portProp.m_value = atoi (m_portCombo.m_editText);
 }
@@ -211,6 +225,14 @@ bool TcpListenerSession.applyProperties () throws
 {
 	m_portCombo.m_editText = $"$(m_portProp.m_value)";
 	return true;
+}
+
+void TcpListenerSession.restoreDefaultProperties ()
+{
+	m_portProp.m_value = 1001;
+	m_adapterProp.m_value = 0;
+	m_overrideOldConnectionProp.m_value = true;
+	m_abruptiveDisconnectProp.m_value = false;
 }
 
 size_t TcpListenerSession.transmit (

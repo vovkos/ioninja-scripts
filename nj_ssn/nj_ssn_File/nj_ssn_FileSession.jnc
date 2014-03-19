@@ -16,9 +16,9 @@ protected:
 
 	enum Access
 	{
+		ReadWrite,
 		ReadOnly,
 		WriteOnly,
-		ReadWrite,
 	}
 
 	enum ActionId
@@ -52,8 +52,11 @@ public:
 	bool open () throws;
 	close ();
 
-	override void loadProperties ();
+	override void load (doc.Storage* storage);
+	override void save (doc.Storage* storage);
+	override void updateProperties ();
 	override bool applyProperties () throws;
+	override void restoreDefaultProperties ();
 
 	override size_t transmit (
 		void const* p,
@@ -89,7 +92,6 @@ FileSession.createUi ()
 	m_documentHost.m_toolBar.addLabel ("File:");
 	m_fileNameCombo = m_documentHost.m_toolBar.addComboBox (-1);
 	m_fileNameCombo.m_isEditable = true;
-	m_fileNameCombo.m_editText = "\\\\.\\pipe\\mypipe0"; // "/tmp/testFifo_rx";
 
 	m_actionTable [ActionId.Open] = m_documentHost.createAction ("Open", "open.png");
 	m_actionTable [ActionId.Open].m_onTriggered += open;
@@ -105,9 +107,9 @@ FileSession.createUi ()
 
 	static gui.EnumPropertyOption ifaceTable [] =
 	{
-		{ "Read-only",   Access.ReadOnly },
-		{ "Write-only",  Access.WriteOnly },
 		{ "Read/Write",  Access.ReadWrite },
+		{ "Read-only",   Access.ReadOnly  },
+		{ "Write-only",  Access.WriteOnly },
 	};
 
 	m_accessProp = m_documentHost.createEnumProperty (
@@ -117,8 +119,6 @@ FileSession.createUi ()
 		countof (ifaceTable)
 		);
 
-	m_accessProp.m_value = Access.ReadWrite;
-
 	m_uiReactor.start ();
 }
 
@@ -126,8 +126,9 @@ bool FileSession.open () throws
 {
 	char const* fileName = m_fileNameCombo.m_editText;
 	
-	m_file.open (m_fileNameCombo.m_editText);
+	m_file.open (fileName);
 	m_documentHost.m_log.write (FileLogRecordCode.Opened, fileName, strlen (fileName));
+	m_fileNameCombo.addHistoryItem (fileName);
 	
 	m_fileName = fileName;
 	m_state = State.Opened;
@@ -155,7 +156,19 @@ FileSession.close ()
 	m_state = State.Opened;
 }
 
-void FileSession.loadProperties ()
+void FileSession.load (doc.Storage* storage)
+{
+	m_fileNameCombo.m_editText = storage.readString ("fileName");
+	m_accessProp.m_value = storage.readInt ("access");
+}
+
+void FileSession.save (doc.Storage* storage)
+{
+	storage.writeString ("fileName", m_fileNameCombo.m_editText);
+	storage.writeInt ("access", m_accessProp.m_value);
+}
+
+void FileSession.updateProperties ()
 {
 	m_fileNameProp.m_value = m_fileNameCombo.m_editText;
 }
@@ -164,6 +177,12 @@ bool FileSession.applyProperties () throws
 {
 	m_fileNameCombo.m_editText = m_fileNameProp.m_value;
 	return true;
+}
+
+void FileSession.restoreDefaultProperties ()
+{
+	m_fileNameProp.m_value = "\\\\.\\pipe\\mypipe0";
+	m_accessProp.m_value = Access.ReadWrite;
 }
 
 size_t FileSession.transmit (

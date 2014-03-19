@@ -7,13 +7,41 @@ namespace doc {
 
 //.............................................................................
 
-enum DocumentKind
+opaque class Storage
 {
-	Log,
-	Session,
+	char const* autoget property m_directory;
+
+	void clear ();
+
+	bool readBool (char const* name)
+	{
+		return readInt (name) != 0;
+	}
+
+	void writeBool (
+		char const* name, 
+		bool value
+		)
+	{
+		return writeInt (name, value);
+	}
+
+	int readInt (char const* name);
+
+	void writeInt (
+		char const* name, 
+		int value
+		);
+
+	char const* readString (char const* name);
+
+	void writeString (
+		char const* name, 
+		nullable char const* value
+		);
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+//.............................................................................
 
 class DocumentHost
 {
@@ -65,6 +93,14 @@ class DocumentHost
 
 //.............................................................................
 
+enum DocumentKind
+{
+	Log,
+	Session,
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
 class Document
 {
 	DocumentKind dconst m_documentKind;
@@ -79,14 +115,27 @@ class Document
 		m_documentHost = documentHost;
 	}
 	
-	virtual void loadProperties ()
+	virtual void load (Storage* storage)
 	{		
 	}
-		
+
+	virtual void save (Storage* storage)
+	{		
+	}
+
+	virtual void updateProperties ()
+	{		
+	}
+
 	virtual bool applyProperties () throws
 	{
 		return true;
 	}
+
+	virtual void restoreDefaultProperties ()
+	{		
+	}
+
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .

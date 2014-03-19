@@ -48,8 +48,11 @@ public:
 	bool connect () throws;
 	disconnect ();
 
-	override void loadProperties ();
+	override void load (doc.Storage* storage);
+	override void save (doc.Storage* storage);
+	override void updateProperties ();
 	override bool applyProperties () throws;
+	override void restoreDefaultProperties ();
 
 	override size_t transmit (
 		void const* p,
@@ -85,7 +88,6 @@ TcpConnectionSession.createUi ()
 	m_documentHost.m_toolBar.addLabel ("Address: ");
 	m_addressCombo = m_documentHost.m_toolBar.addComboBox (-1);
 	m_addressCombo.m_isEditable = true;
-	m_addressCombo.m_editText = "127.0.0.1:1001"; // "192.168.1.11:1001";
 
 	m_actionTable [ActionId.Connect] = m_documentHost.createAction ("Connect", "connect.png");
 	m_actionTable [ActionId.Connect].m_onTriggered += connect;
@@ -115,8 +117,6 @@ TcpConnectionSession.createUi ()
 		"Adapter to bind to before connect"
 		);
 
-	m_adapterProp.m_value = 0;
-
 	m_localPortProp = m_documentHost.createIntProperty (
 		"Local TCP port",
 		"Local TCP port to bind to before connect"
@@ -137,6 +137,8 @@ bool TcpConnectionSession.connect () throws
 		&address,
 		sizeof (address)
 		);
+
+	m_addressCombo.addHistoryItem (m_addressCombo.m_editText);
 
 	if (!m_useLocalAddressProp.m_value)
 	{
@@ -182,7 +184,25 @@ TcpConnectionSession.disconnect ()
 	m_state = State.Closed;
 }
 
-void TcpConnectionSession.loadProperties ()
+void TcpConnectionSession.load (doc.Storage* storage)
+{
+	m_addressCombo.m_editText = storage.readString ("address");
+	m_abruptiveDisconnectProp.m_value = storage.readBool ("abruptiveDisconnect");
+	m_useLocalAddressProp.m_value = storage.readBool ("useLocalAddress");
+	m_adapterProp.m_value = storage.readInt ("adapterIp");
+	m_localPortProp.m_value = storage.readInt ("localPort");
+}
+
+void TcpConnectionSession.save (doc.Storage* storage)
+{
+	storage.writeString ("address", m_addressCombo.m_editText);
+	storage.writeBool ("abruptiveDisconnect", m_abruptiveDisconnectProp.m_value);
+	storage.writeBool ("useLocalAddress", m_useLocalAddressProp.m_value);
+	storage.writeInt ("adapterIp", m_adapterProp.m_value);
+	storage.writeInt ("localPort", m_localPortProp.m_value);
+}
+
+void TcpConnectionSession.updateProperties ()
 {
 	m_addressProp.m_value = m_addressCombo.m_editText;
 }
@@ -191,6 +211,15 @@ bool TcpConnectionSession.applyProperties () throws
 {
 	m_addressCombo.m_editText = m_addressProp.m_value;
 	return true;
+}
+
+void TcpConnectionSession.restoreDefaultProperties ()
+{
+	m_addressProp.m_value = "127.0.0.1:1001";
+	m_abruptiveDisconnectProp.m_value = false;
+	m_useLocalAddressProp.m_value = false;
+	m_adapterProp.m_value = 0;
+	m_localPortProp.m_value = 0;
 }
 
 size_t TcpConnectionSession.transmit (

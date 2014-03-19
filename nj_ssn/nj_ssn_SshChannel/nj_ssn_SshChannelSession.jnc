@@ -51,7 +51,7 @@ public:
 	bool connect () throws;
 	disconnect ();
 
-	override void loadProperties ();
+	override void updateProperties ();
 	override bool applyProperties () throws;
 
 	override size_t transmit (
@@ -212,7 +212,7 @@ SshChannelSession.disconnect ()
 	m_state = State.Closed;
 }
 
-void SshChannelSession.loadProperties ()
+void SshChannelSession.updateProperties ()
 {
 	m_addressProp.m_value = m_addressCombo.m_editText;
 }

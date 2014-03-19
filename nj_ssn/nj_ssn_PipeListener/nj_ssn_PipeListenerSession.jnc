@@ -52,8 +52,11 @@ public:
 	stopListen ();
 	disconnect ();
 
-	override void loadProperties ();
+	override void load (doc.Storage* storage);
+	override void save (doc.Storage* storage);
+	override void updateProperties ();
 	override bool applyProperties () throws;
+	override void restoreDefaultProperties ();
 
 	override size_t transmit (
 		void const* p,
@@ -91,7 +94,6 @@ PipeListenerSession.createUi ()
 	m_documentHost.m_toolBar.addLabel ("Name: ");
 	m_pipeNameCombo = m_documentHost.m_toolBar.addComboBox (-1);
 	m_pipeNameCombo.m_isEditable = true;
-	m_pipeNameCombo.m_editText = "\\\\.\\pipe\\mypipe0";
 
 	m_actionTable [ActionId.Listen] = m_documentHost.createAction ("Listen", "listen.png");
 	m_actionTable [ActionId.Listen].m_onTriggered += listen;
@@ -115,7 +117,6 @@ PipeListenerSession.createUi ()
 		"Override connections",
 		"Accept incoming connection even if already connected"
 		);
-	m_overrideOldConnectionProp.m_value = true;
 
 	m_uiReactor.start ();
 }
@@ -132,6 +133,8 @@ bool PipeListenerSession.listen () throws
 		name,
 		strlen (name)
 		);
+
+	m_pipeNameCombo.addHistoryItem (name);
 
 	m_pipeName = name;
 	m_listenerState = State.Opened;
@@ -176,7 +179,19 @@ PipeListenerSession.disconnect ()
 	m_connectionSyncId++;
 }
 
-void PipeListenerSession.loadProperties ()
+void PipeListenerSession.load (doc.Storage* storage)
+{
+	m_pipeNameCombo.m_editText = storage.readString ("pipeName");
+	m_overrideOldConnectionProp.m_value = storage.readBool ("overrideOldConnection");
+}
+
+void PipeListenerSession.save (doc.Storage* storage)
+{
+	storage.writeString ("pipeName", m_pipeNameCombo.m_editText);
+	storage.writeBool ("overrideOldConnection", m_overrideOldConnectionProp.m_value);
+}
+
+void PipeListenerSession.updateProperties ()
 {
 	m_pipeNameProp.m_value = m_pipeNameCombo.m_editText;
 }
@@ -185,6 +200,12 @@ bool PipeListenerSession.applyProperties () throws
 {
 	m_pipeNameCombo.m_editText = m_pipeNameProp.m_value;
 	return true;
+}
+
+void PipeListenerSession.restoreDefaultProperties ()
+{
+	m_pipeNameProp.m_value = "\\\\.\\pipe\\mypipe0";
+	m_overrideOldConnectionProp.m_value = true;
 }
 
 size_t PipeListenerSession.transmit (

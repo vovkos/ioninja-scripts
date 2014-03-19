@@ -52,8 +52,11 @@ public:
 	bool open () throws;
 	close ();
 
-	override void loadProperties ();
+	override void load (doc.Storage* storage);
+	override void save (doc.Storage* storage);
+	override void updateProperties ();
 	override bool applyProperties () throws;
+	override void restoreDefaultProperties ();
 
 	override size_t transmit (
 		void const* p,
@@ -285,7 +288,27 @@ SerialSession.close ()
 	m_state = State.Closed;
 }
 
-void SerialSession.loadProperties ()
+void SerialSession.load (doc.Storage* storage)
+{
+	m_portNameCombo.m_editText = storage.readString ("portName");
+	m_baudRateCombo.m_currentIndex = storage.readInt ("baudRate");
+	m_flowControlCombo.m_currentIndex = storage.readInt ("flowControl");
+	m_dataBitsProp.m_value = storage.readInt ("dataBits");
+	m_stopBitsProp.m_value = storage.readInt ("stopBits");
+	m_parityProp.m_value = storage.readInt ("parity");
+}
+
+void SerialSession.save (doc.Storage* storage)
+{
+	storage.writeString ("portName", m_portNameCombo.m_editText);
+	storage.writeInt ("baudRate", m_baudRateCombo.m_currentIndex);
+	storage.writeInt ("flowControl", m_flowControlCombo.m_currentIndex);
+	storage.writeInt ("dataBits", m_dataBitsProp.m_value);
+	storage.writeInt ("stopBits", m_stopBitsProp.m_value);
+	storage.writeInt ("parity", m_parityProp.m_value);
+}
+
+void SerialSession.updateProperties ()
 {
 	m_portNameProp.m_value = m_portNameCombo.m_currentText;
 	m_baudRateProp.m_currentIndex = m_baudRateCombo.m_currentIndex;
@@ -298,6 +321,16 @@ bool SerialSession.applyProperties () throws
 	m_baudRateCombo.m_currentIndex = m_baudRateProp.m_currentIndex;
 	m_flowControlCombo.m_currentIndex = m_flowControlProp.m_currentIndex;
 	return true;
+}
+
+void SerialSession.restoreDefaultProperties ()
+{
+	m_portNameProp.m_value = "COM1";
+	m_baudRateProp.m_value = 38400;
+	m_flowControlProp.m_value = io.SerialFlowControl.None;
+	m_dataBitsProp.m_value = 8;
+	m_stopBitsProp.m_value = io.SerialStopBits._1;
+	m_parityProp.m_value = io.SerialParity.None;
 }
 
 size_t SerialSession.transmit (
