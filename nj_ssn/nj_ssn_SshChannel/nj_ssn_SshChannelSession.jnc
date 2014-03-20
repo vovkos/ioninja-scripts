@@ -87,6 +87,7 @@ SshChannelSession.createUi ()
 	m_addressCombo = m_documentHost.m_toolBar.addComboBox (-1);
 	m_addressCombo.m_isEditable = true;
 	m_addressCombo.m_editText = "93.174.106.102:22"; // ls0.tibbo.net
+	m_addressCombo.m_onEnter += connect;
 
 	m_actionTable [ActionId.Connect] = m_documentHost.createAction ("Connect", "connect.png");
 	m_actionTable [ActionId.Connect].m_onTriggered += connect;

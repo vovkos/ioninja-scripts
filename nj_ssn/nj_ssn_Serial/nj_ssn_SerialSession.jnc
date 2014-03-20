@@ -91,6 +91,8 @@ SerialSession.createUi ()
 	m_documentHost.m_toolBar.addLabel ("Port: ");
 	m_portNameCombo = m_documentHost.m_toolBar.addComboBox ();
 	m_portNameCombo.m_isEditable = true;
+	m_portNameCombo.m_onEnter += open;
+	
 	m_portNameCombo.addItem ("COM1");
 	m_portNameCombo.addItem ("COM2");
 	m_portNameCombo.addItem ("COM3");

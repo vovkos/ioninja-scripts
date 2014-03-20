@@ -94,6 +94,7 @@ PipeListenerSession.createUi ()
 	m_documentHost.m_toolBar.addLabel ("Name: ");
 	m_pipeNameCombo = m_documentHost.m_toolBar.addComboBox (-1);
 	m_pipeNameCombo.m_isEditable = true;
+	m_pipeNameCombo.m_onEnter += listen;
 
 	m_actionTable [ActionId.Listen] = m_documentHost.createAction ("Listen", "listen.png");
 	m_actionTable [ActionId.Listen].m_onTriggered += listen;
@@ -125,6 +126,8 @@ bool PipeListenerSession.listen () throws
 {
 	stopListen ();
 
+	m_pipeNameCombo.addEditTextToHistory ();
+
 	char const* name = m_pipeNameCombo.m_editText;
 	m_listenerPipe.open (name);
 
@@ -133,8 +136,6 @@ bool PipeListenerSession.listen () throws
 		name,
 		strlen (name)
 		);
-
-	m_pipeNameCombo.addHistoryItem (name);
 
 	m_pipeName = name;
 	m_listenerState = State.Opened;

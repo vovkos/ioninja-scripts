@@ -84,6 +84,7 @@ SnifferSession.createUi ()
 
 	m_documentHost.m_toolBar.addLabel ("Device: ");
 	m_deviceCombo = m_documentHost.m_toolBar.addComboBox (-1);
+	m_deviceCombo.m_onEnter += capture;
 
 	io.PCapDevice const* device = io.createPCapDeviceList ();
 

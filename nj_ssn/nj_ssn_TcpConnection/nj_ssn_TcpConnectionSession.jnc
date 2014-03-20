@@ -88,6 +88,7 @@ TcpConnectionSession.createUi ()
 	m_documentHost.m_toolBar.addLabel ("Address: ");
 	m_addressCombo = m_documentHost.m_toolBar.addComboBox (-1);
 	m_addressCombo.m_isEditable = true;
+	m_addressCombo.m_onEnter += connect;
 
 	m_actionTable [ActionId.Connect] = m_documentHost.createAction ("Connect", "connect.png");
 	m_actionTable [ActionId.Connect].m_onTriggered += connect;
@@ -129,6 +130,8 @@ bool TcpConnectionSession.connect () throws
 {
 	disconnect ();
 
+	m_addressCombo.addEditTextToHistory ();
+
 	io.SocketAddress address;
 	io.parseSocketAddress (m_addressCombo.m_editText, &address);
 
@@ -138,8 +141,6 @@ bool TcpConnectionSession.connect () throws
 		sizeof (address)
 		);
 
-	m_addressCombo.addHistoryItem (m_addressCombo.m_editText);
-
 	if (!m_useLocalAddressProp.m_value)
 	{
 		m_socket.open (io.Protocol.Tcp); // any address
@@ -147,7 +148,10 @@ bool TcpConnectionSession.connect () throws
 	else
 	{
 		io.SocketAddress localAddress;
-		io.parseSocketAddress ($"0.0.0.0:$(m_localPortProp.m_value)", &localAddress);
+		localAddress.m_family = io.AddressFamily.Ip4;
+		localAddress.m_ip4.m_address.m_i32 = m_adapterProp.m_value;
+		localAddress.m_ip4.m_port = (uint16_t) m_localPortProp.m_value;
+
 		m_socket.open (io.Protocol.Tcp, &localAddress);
 	}
 
@@ -241,7 +245,9 @@ TcpConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 {
 	if (params.m_syncId != m_socket.m_syncId)
 		return;
-		
+
+	printf ("TcpConnectionSession.onSocketEvent (code = %d, syncId = %d)\n", params.m_eventKind, params.m_syncId);
+
 	switch (params.m_eventKind)
 	{
 	case io.SocketEvent.ConnectCompleted:
