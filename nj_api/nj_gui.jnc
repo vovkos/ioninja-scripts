@@ -118,7 +118,7 @@ opaque class ComboBox
 	{
 		char const* autoget m_value;
 		set (char const* value);
-		bindable event m_onPropChanged () => m_onChanged;
+		alias bindable event m_onPropChanged () = m_onChanged;
 	}
 
 	char const* autoget property m_toolTipText;
@@ -137,19 +137,19 @@ opaque class ComboBox
 	{	
 		size_t autoget m_value;
 		set (size_t value);
-		bindable event m_onPropChanged () => m_onChanged;
+		alias bindable event m_onPropChanged () = m_onChanged;
 	}
 
 	property m_currentText
 	{		
 		char const* get ();
-		bindable event m_onPropChanged () => m_onChanged;
+		alias bindable event m_onPropChanged () = m_onChanged;
 	}
 
 	property m_currentData
 	{		
 		object* get ();
-		bindable event m_onPropChanged () => m_onChanged;
+		alias bindable event m_onPropChanged () = m_onChanged;
 	}
 
 	event m_onChanged ();
@@ -208,14 +208,14 @@ opaque class EnumProperty: Property
 	{
 		int autoget m_value;
 		set (int value);
-		bindable event m_onPropChanged () => m_onChanged;
+		alias bindable event m_onPropChanged () = m_onChanged;
 	}
 
 	property m_currentIndex
 	{
 		size_t autoget m_value;
 		set (size_t value);
-		bindable event m_onPropChanged () => m_onChanged;
+		alias bindable event m_onPropChanged () = m_onChanged;
 	}
 
 	setOptions (
