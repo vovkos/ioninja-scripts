@@ -11,6 +11,7 @@ id          = sniffer
 guid        = b0a872b3-de4b-4f15-88bd-8de55eba7a78
 icon        = sniffer.png
 admin       = true
+terminal    = false
 
 session-class         = SnifferSession
 log-representer-class = SnifferLogRepresenter

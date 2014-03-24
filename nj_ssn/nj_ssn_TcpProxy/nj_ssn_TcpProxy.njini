@@ -10,6 +10,7 @@ description	= ""
 id			= tcp-proxy
 guid		= 83857838-f1ad-46b1-94f4-7883a1415368
 icon		= proxy.png
+monitor     = true
 
 session-class			= TcpProxySession
 log-representer-class	= TcpProxyLogRepresenter

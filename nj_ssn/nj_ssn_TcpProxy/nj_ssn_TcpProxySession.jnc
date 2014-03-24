@@ -5,7 +5,7 @@
 
 //.............................................................................
 
-class TcpProxySession: doc.MonitorSession
+class TcpProxySession: doc.Session
 {
 protected:	
 	enum State
@@ -120,9 +120,7 @@ TcpProxySession.createUi ()
 	m_portCombo.m_isEditable = true;
 	m_portCombo.m_editText = "1001";
 	
-	m_documentHost.m_toolBar.addSeparator ();
-	
-	m_documentHost.m_toolBar.addLabel ("Connect to: ");
+	m_documentHost.m_toolBar.addLabel (" Connect to: ");
 	m_targetAddressCombo = m_documentHost.m_toolBar.addComboBox (-1);
 	m_targetAddressCombo.m_isEditable = true;
 	m_targetAddressCombo.m_editText = "127.0.0.1:1002";
@@ -443,7 +441,7 @@ TcpProxySession.onTargetSocketEvent (io.SocketEventParams const* params)
 				try m_listenerConnectionSocket.send (buffer, result);
 		}
 		break;
-	}
+	} 
 }
 
 reactor TcpProxySession.m_uiReactor ()
@@ -451,9 +449,9 @@ reactor TcpProxySession.m_uiReactor ()
 	m_documentHost.m_title = $"TCP @ $(m_portCombo.m_editText) -> $(m_targetAddressCombo.m_editText)";
 	m_listenerFilterProp.m_isEnabled = m_useListenerFilterProp.m_value;
 	m_actionTable [ActionId.StopListen].m_isEnabled = m_listenerState != State.Closed;
-	m_actionTable [ActionId.Disconnect].m_isEnabled =
-		m_listenerConnectionState != State.Closed ||
-		m_targetState != TargetState.Closed;
+//	m_actionTable [ActionId.Disconnect].m_isEnabled = 
+//		m_listenerConnectionState != State.Closed ||
+//		m_targetState != TargetState.Closed;
 }
 
 //.............................................................................
