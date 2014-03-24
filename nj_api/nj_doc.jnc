@@ -37,7 +37,7 @@ opaque class Storage
 
 	void writeString (
 		char const* name, 
-		nullable char const* value
+		char const* value
 		);
 }
 
@@ -55,7 +55,7 @@ class DocumentHost
 
 	gui.Action* createAction (
 		char const* text,
-		nullable char const* iconFileName = null
+		char const* iconFileName = null
 		);
 
 	gui.Action* createCheckableAction (
@@ -170,7 +170,7 @@ class Session: Document
 
 gui.Action* DocumentHost.createAction (
 	char const* text,
-	nullable char const* iconFileName
+	char const* iconFileName
 	)
 {
 	gui.Icon* icon;

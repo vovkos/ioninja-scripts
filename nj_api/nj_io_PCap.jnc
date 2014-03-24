@@ -27,7 +27,7 @@ struct PCapDevice
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-PCapDevice const* createPCapDeviceList (nullable size_t* count = null);
+PCapDevice const* createPCapDeviceList (size_t* count = null);
 
 //.............................................................................
 
@@ -40,7 +40,7 @@ opaque class PCap
 
 	bool open (
 		char const* deviceName,
-		nullable char const* filter = null,
+		char const* filter = null,
 		bool isPromiscious = false
 		) throws;
 

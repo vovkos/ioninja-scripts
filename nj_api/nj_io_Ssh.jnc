@@ -47,7 +47,7 @@ class SshChannel
 	bool dconst m_isOpen;
 	uint_t m_syncId;
 
-	bool open (nullable SocketAddress const* address = null) throws;
+	bool open (SocketAddress const* address = null) throws;
 	void close ();
 
 	bool connect (

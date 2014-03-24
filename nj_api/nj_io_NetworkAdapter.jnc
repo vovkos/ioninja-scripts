@@ -53,7 +53,7 @@ struct NetworkAdapter
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-NetworkAdapter const* createNetworkAdapterList (nullable size_t* count = null);
+NetworkAdapter const* createNetworkAdapterList (size_t* count = null);
 
 //.............................................................................
 

@@ -159,7 +159,7 @@ class Socket
 
 	bool open (
 		Protocol protocol,
-		nullable SocketAddress const* address = null
+		SocketAddress const* address = null
 		) throws;
 
 	void close ();
@@ -170,7 +170,7 @@ class Socket
 		) throws;
 
 	bool listen (size_t backLog = 0) throws; // 0 -- default
-	Socket* accept (nullable SocketAddress* address = null) throws;
+	Socket* accept (SocketAddress* address = null) throws;
 
 	size_t send (
 		void const* p,

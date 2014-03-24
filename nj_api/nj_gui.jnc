@@ -127,7 +127,7 @@ opaque class ComboBox
 
 	size_t addItem (
 		char const* text,
-		nullable object* data = null
+		object* data = null
 		);
 
 	char const* indexed property m_itemText (size_t index);
@@ -248,7 +248,7 @@ opaque class PropertyGrid
 
 Action* createAction (
 	char const* text,
-	nullable Icon* icon = null
+	Icon* icon = null
 	);
 
 BoolProperty* createBoolProperty (char const* name);

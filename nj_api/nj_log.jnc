@@ -157,13 +157,13 @@ opaque class Log
 	writeEx (
 		uint64_t timestamp,
 		uint_t recordCode,
-		nullable void const* p,
+		void const* p,
 		size_t size
 		);
 
 	write (
 		uint_t recordCode,
-		nullable void const* p,
+		void const* p,
 		size_t size
 		)
 	{
