@@ -4,6 +4,8 @@ class UdpSession: doc.Session
 	gui.Action* m_openSocketAction;
 	gui.Action* m_closeSocketAction;
 	gui.ComboBox* m_remoteAddressCombo;
+	gui.IntProperty* m_localPortProp;
+	gui.StringProperty* m_remoteAddressProp;
 	gui.EnumProperty* m_adapterProp;
 	
 	io.Socket* m_socket;
@@ -26,7 +28,6 @@ class UdpSession: doc.Session
 		m_documentHost.m_toolBar.addLabel ("Local port: ");
 		m_localPortCombo = m_documentHost.m_toolBar.addComboBox ();
 		m_localPortCombo.m_isEditable = true;
-		m_localPortCombo.addItem ("12345");
 
 		m_openSocketAction = m_documentHost.createAction("Open socket", "open.png");
 		m_openSocketAction.m_onTriggered += openSocket;
@@ -39,7 +40,18 @@ class UdpSession: doc.Session
 		m_documentHost.m_toolBar.addLabel ("Remote address: ");
 		m_remoteAddressCombo = m_documentHost.m_toolBar.addComboBox (-1);
 		m_remoteAddressCombo.m_isEditable = true;
-		m_remoteAddressCombo.addItem("192.168.1.11:12345");
+		
+		// property grid
+		
+		m_localPortProp = m_documentHost.createIntProperty (
+			"Local UDP port",
+			"Local UDP port to listen to"
+			);
+		
+		m_remoteAddressProp = m_documentHost.createStringProperty (
+			"Remote address",
+			"Remote address to send to (IP-address or host-name followed by ':' port)"
+			);
 		
 		m_adapterProp = m_documentHost.createNetworkAdapterProperty (
 			"Adapter",
@@ -52,6 +64,7 @@ class UdpSession: doc.Session
 	
 	reactor m_uiReactor ()
 	{
+		m_documentHost.m_title = $"UDP @ $(m_localPortCombo.m_editText) -> $(m_remoteAddressCombo.m_editText)";
 		m_openSocketAction.m_isEnabled = !m_isSocketOpen;
 		m_closeSocketAction.m_isEnabled = m_isSocketOpen;
 		m_localPortCombo.m_isEnabled = !m_isSocketOpen;
@@ -144,5 +157,39 @@ class UdpSession: doc.Session
 	{
 		jnc.Error const* error = jnc.getLastError ();
 		m_documentHost.m_log.write (RecordCode.Error, error, error.m_size);
+	}
+	
+	override void load (doc.Storage* storage)
+	{	
+		m_localPortCombo.m_editText = storage.readString ("localPort");
+		m_remoteAddressCombo.m_editText = storage.readString ("remoteAddress");	
+		m_adapterProp.m_value = storage.readInt ("adapterIp");
+	}
+	
+	override void save (doc.Storage* storage)
+	{
+		storage.writeString ("localPort", m_localPortCombo.m_editText);
+		storage.writeString ("remoteAddress", m_remoteAddressCombo.m_editText);
+		storage.writeInt ("adapterIp", m_adapterProp.m_value);
+	}
+	
+	override void updateProperties ()
+	{
+		m_localPortProp.m_value = atoi (m_localPortCombo.m_editText);
+		m_remoteAddressProp.m_value = m_remoteAddressCombo.m_editText;
+	}
+	
+	override bool applyProperties () throws
+	{
+		m_localPortCombo.m_editText = $"$(m_localPortProp.m_value)";
+		m_remoteAddressCombo.m_editText = m_remoteAddressProp.m_value;
+		return true;
+	}
+	
+	override void restoreDefaultProperties ()
+	{
+		m_localPortProp.m_value = 1001;
+		m_remoteAddressProp.m_value = "127.0.0.1:1002";
+		m_adapterProp.m_value = 0;
 	}
 }
