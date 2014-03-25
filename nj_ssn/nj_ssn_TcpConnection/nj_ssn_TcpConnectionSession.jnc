@@ -175,14 +175,23 @@ catch:
 
 TcpConnectionSession.disconnect ()
 {
-	if (m_state != State.Connected)
+	switch (m_state)
+	{
+	case State.Closed:
 		return;
 
-	m_documentHost.m_log.write (
-		TcpConnectionLogRecordCode.Disconnected,
-		&m_remoteAddress,
-		sizeof (m_remoteAddress)
-		);
+	case State.Connecting:
+		m_documentHost.m_log.write (TcpConnectionLogRecordCode.ConnectCancelled);
+		break;
+
+	case State.Connected:
+		m_documentHost.m_log.write (
+			TcpConnectionLogRecordCode.Disconnected,
+			&m_remoteAddress,
+			sizeof (m_remoteAddress)
+			);
+		break;
+	}
 		
 	m_socket.close ();
 	m_state = State.Closed;
@@ -251,11 +260,6 @@ TcpConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 	case io.SocketEvent.ConnectCompleted:
 		m_documentHost.m_log.write (TcpConnectionLogRecordCode.ConnectCompleted);
 		m_state = State.Connected;
-		break;
-
-	case io.SocketEvent.ConnectCancelled:
-		m_documentHost.m_log.write (TcpConnectionLogRecordCode.ConnectCancelled);
-		m_state = State.Closed;
 		break;
 
 	case io.SocketEvent.ConnectError:
