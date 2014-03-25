@@ -116,6 +116,7 @@ SshChannelSession.createUi ()
 		"Password for SSH authentification"
 		);
 
+	m_passwordProp.m_isPassword = true;
 	m_passwordProp.m_value = "doygvayri";
 
 	m_ptyProp = m_documentHost.createStringProperty (
