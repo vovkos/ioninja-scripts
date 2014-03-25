@@ -391,7 +391,7 @@ TcpProxySession.onListenerConnectionSocketEvent (io.SocketEventParams const* par
 		size_t result = try m_listenerConnectionSocket.recv (buffer, sizeof (buffer));
 		if (result != -1)
 		{
-			m_documentHost.m_log.write (log.StdRecordCode.Rx, buffer, result);
+			m_documentHost.m_log.write (log.StdRecordCode.Tx, buffer, result);
 		
 			if (m_targetState == TargetState.Connected)
 				try m_targetSocket.send (buffer, result);
@@ -456,7 +456,7 @@ TcpProxySession.onTargetSocketEvent (io.SocketEventParams const* params)
 		size_t result = try m_targetSocket.recv (buffer, sizeof (buffer));
 		if (result != -1)
 		{
-			m_documentHost.m_log.write (log.StdRecordCode.Tx, buffer, result);
+			m_documentHost.m_log.write (log.StdRecordCode.Rx, buffer, result);
 		
 			if (m_listenerConnectionState == State.Opened)
 				try m_listenerConnectionSocket.send (buffer, result);
