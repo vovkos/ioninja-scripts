@@ -449,9 +449,9 @@ reactor TcpProxySession.m_uiReactor ()
 	m_documentHost.m_title = $"TCP @ $(m_portCombo.m_editText) -> $(m_targetAddressCombo.m_editText)";
 	m_listenerFilterProp.m_isEnabled = m_useListenerFilterProp.m_value;
 	m_actionTable [ActionId.StopListen].m_isEnabled = m_listenerState != State.Closed;
-//	m_actionTable [ActionId.Disconnect].m_isEnabled = 
-//		m_listenerConnectionState != State.Closed ||
-//		m_targetState != TargetState.Closed;
+	m_actionTable [ActionId.Disconnect].m_isEnabled = 
+		m_listenerConnectionState != State.Closed ||
+		m_targetState != TargetState.Closed;
 }
 
 //.............................................................................
