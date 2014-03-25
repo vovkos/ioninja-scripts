@@ -194,6 +194,7 @@ opaque class IntProperty: Property
 opaque class StringProperty: Property
 {
 	char const* autoget bindable property m_value;
+	bool autoget property m_isPassword;
 }
 
 struct EnumPropertyOption
