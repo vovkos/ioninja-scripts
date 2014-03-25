@@ -52,18 +52,16 @@ protected:
 	// toolbar & menu
 	
 	gui.Action* m_actionTable [ActionId._Count];
-	gui.ComboBox* m_portCombo;
+	gui.ComboBox* m_listenerPortCombo;
 	gui.ComboBox* m_targetAddressCombo;
 	
 	// property grid
 	
-	gui.EnumProperty* m_ifaceProp;
-	gui.IntProperty* m_listenerPortProp;
 	gui.StringProperty* m_targetAddressProp;
-	gui.BoolProperty* m_resetConnectionProp;
+	gui.IntProperty* m_listenerPortProp;
+	gui.EnumProperty* m_adapterProp;
 	gui.BoolProperty* m_overrideConnectionProp;
-	gui.BoolProperty* m_useListenerFilterProp;
-	gui.StringProperty* m_listenerFilterProp;
+	gui.BoolProperty* m_resetConnectionProp;
 	
 public:
 	construct (doc.DocumentHost* documentHost);
@@ -74,6 +72,12 @@ public:
 	
 	bool connectTarget () throws;
 	disconnectTarget ();
+
+	override void load (doc.Storage* storage);
+	override void save (doc.Storage* storage);
+	override void updateProperties ();
+	override bool applyProperties () throws;
+	override void restoreDefaultProperties ();
 
 protected:
 	onListenerSocketEvent (io.SocketEventParams const* params);
@@ -116,9 +120,9 @@ TcpProxySession.createUi ()
 	// toolbar
 	
 	m_documentHost.m_toolBar.addLabel ("Listen on: ");
-	m_portCombo = m_documentHost.m_toolBar.addComboBox ();
-	m_portCombo.m_isEditable = true;
-	m_portCombo.m_editText = "1001";
+	m_listenerPortCombo = m_documentHost.m_toolBar.addComboBox ();
+	m_listenerPortCombo.m_isEditable = true;
+	m_listenerPortCombo.m_editText = "1001";
 	
 	m_documentHost.m_toolBar.addLabel (" Connect to: ");
 	m_targetAddressCombo = m_documentHost.m_toolBar.addComboBox (-1);
@@ -137,67 +141,44 @@ TcpProxySession.createUi ()
 	m_actionTable [ActionId.Disconnect].m_onTriggered += disconnect;
 		
 	// property grid
-	
-	static gui.EnumPropertyOption ifaceTable [] =
-	{
-		{ "0.0.0.0",   0x00000000 },
-		{ "127.0.0.1", 0x7f000001 },
-	};
-	
-	m_ifaceProp = m_documentHost.createEnumProperty (
-		"Interface",
-		"Interface to bind to listen on and for target connection",
-		ifaceTable,
-		countof (ifaceTable)
-		);
-		
-	m_ifaceProp.m_value = 0;
-	
+			
 	m_listenerPortProp = m_documentHost.createIntProperty (
 		"Port",
 		"Port to listen on"
 		);
-		
-	m_listenerPortProp.m_value = 1001;
-	
-	m_resetConnectionProp = m_documentHost.createBoolProperty (
-		"Reset Connections",
-		"Use TCP RST to terminate connections (instead of TCP graceful disconnect)"
+
+	m_targetAddressProp = m_documentHost.createStringProperty (
+		"Target Address",
+		"Address to connect to"
 		);
-		
+
+	m_adapterProp = m_documentHost.createNetworkAdapterProperty (
+		"Interface",
+		"Interface to bind to and to listen on for target connection"
+		);
+
 	m_overrideConnectionProp = m_documentHost.createBoolProperty (
 		"Override Connections",
 		"Accept incoming connection even if already connected"
 		);
-		
-	m_overrideConnectionProp.m_value = true;
-		
-	m_useListenerFilterProp = m_documentHost.createBoolProperty (
-		"Use IP Filter",
-		"Reject incoming connection if IP address does not pass IP filter"
+
+	m_resetConnectionProp = m_documentHost.createBoolProperty (
+		"Reset Connections",
+		"Use TCP RST to terminate connections (instead of TCP graceful disconnect)"
 		);
 
-	m_listenerFilterProp = m_documentHost.createStringProperty (
-		"IP Filter",
-		"Specify filter for incoming IP addresses"
-		);
-		
-	m_listenerFilterProp.m_value = "192.168.*.7*";
-		
 	m_uiReactor.start ();
 }
 
 bool TcpProxySession.listen () throws
 {
-	printf ("TcpProxySession.listen (TID = %x)\n", jnc.getCurrentThreadId ());
-
 	stopListen ();
 
-	char const* addressString = $"0.0.0.0:$(m_portCombo.m_editText)";
-
 	io.SocketAddress address;
-	io.parseSocketAddress (addressString, &address);
-
+	address.m_family = io.AddressFamily.Ip4;
+	address.m_ip4.m_address.m_i32 = m_adapterProp.m_value;
+	address.m_ip4.m_port = (uint16_t) atoi (m_listenerPortCombo.m_editText);
+	
 	m_listenerSocket.open (io.Protocol.Tcp, &address);
 	m_listenerSocket.listen ();
 
@@ -292,6 +273,46 @@ TcpProxySession.disconnectTarget ()
 
 	m_targetSocket.close ();
 	m_targetState = TargetState.Closed;
+}
+
+override void TcpProxySession.load (doc.Storage* storage)
+{
+	m_listenerPortCombo.m_editText = storage.readString ("port");
+	m_targetAddressCombo.m_editText = storage.readString ("targetAddress");
+	m_adapterProp.m_value = storage.readInt ("adapterIp");
+	m_overrideConnectionProp.m_value = storage.readBool ("overrideConnection");
+	m_resetConnectionProp.m_value = storage.readBool ("resetConnection");
+}
+
+override void TcpProxySession.save (doc.Storage* storage)
+{
+	storage.writeString ("port", m_listenerPortCombo.m_editText);
+	storage.writeString ("targetAddress", m_targetAddressCombo.m_editText);
+	storage.writeInt ("adapterIp", m_adapterProp.m_value);
+	storage.writeBool ("overrideConnection", m_overrideConnectionProp.m_value);
+	storage.writeBool ("resetConnection", m_resetConnectionProp.m_value);
+}
+
+override void TcpProxySession.updateProperties ()
+{
+	m_listenerPortProp.m_value = atoi (m_listenerPortCombo.m_editText);
+	m_targetAddressProp.m_value = m_targetAddressCombo.m_editText;
+}
+
+override bool TcpProxySession.applyProperties () throws
+{
+	m_listenerPortCombo.m_editText = $"$(m_listenerPortProp.m_value)";
+	m_targetAddressCombo.m_editText = m_targetAddressProp.m_value;
+	return true;
+}
+
+override void TcpProxySession.restoreDefaultProperties ()
+{
+	m_listenerPortProp.m_value = 1001;
+	m_targetAddressProp.m_value = "127.0.0.1:1002";
+	m_adapterProp.m_value = 0;
+	m_overrideConnectionProp.m_value = true;
+	m_resetConnectionProp.m_value = false;
 }
 
 TcpProxySession.onListenerSocketEvent (io.SocketEventParams const* params)
@@ -446,8 +467,7 @@ TcpProxySession.onTargetSocketEvent (io.SocketEventParams const* params)
 
 reactor TcpProxySession.m_uiReactor ()
 {
-	m_documentHost.m_title = $"TCP @ $(m_portCombo.m_editText) -> $(m_targetAddressCombo.m_editText)";
-	m_listenerFilterProp.m_isEnabled = m_useListenerFilterProp.m_value;
+	m_documentHost.m_title = $"TCP @ $(m_listenerPortCombo.m_editText) -> $(m_targetAddressCombo.m_editText)";
 	m_actionTable [ActionId.StopListen].m_isEnabled = m_listenerState != State.Closed;
 //	m_actionTable [ActionId.Disconnect].m_isEnabled = 
 //		m_listenerConnectionState != State.Closed ||
