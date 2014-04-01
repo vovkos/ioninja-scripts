@@ -4,7 +4,7 @@
 
 #..............................................................................
 
-project_virtual_folder (nj_ssn_SshChannel)
+project_virtual_folder (nj_ssp_TcpConnection)
 
 #..............................................................................
 #
@@ -12,14 +12,14 @@ project_virtual_folder (nj_ssn_SshChannel)
 #
 
 set (
-	SSN_JNC_LIST
-	nj_ssn_SshChannelLog.jnc
-	nj_ssn_SshChannelSession.jnc
+	SSP_JNC_LIST
+	nj_ssp_TcpConnectionLog.jnc
+	nj_ssp_TcpConnectionSession.jnc
 	)
 
 source_virtual_folder (
 	src
-	${SSN_JNC_LIST}
+	${SSP_JNC_LIST}
 	)
 
 #..............................................................................
@@ -28,8 +28,8 @@ source_virtual_folder (
 #
 
 set (
-	SSN_RES_LIST
-	nj_ssn_SshChannel.njini
+	SSP_RES_LIST
+	nj_ssp_TcpConnection.njssp
 	connection.png
 	connect.png
 	disconnect.png
@@ -37,23 +37,23 @@ set (
 
 source_virtual_folder (
 	res
-	${SSN_RES_LIST}
+	${SSP_RES_LIST}
 	)
 
 #..............................................................................
 #
-# nj_ssn_SshChannel script library
+# nj_ssp_TcpConnection script library
 #
 
 add_library (
-	nj_ssn_SshChannel
+	nj_ssp_TcpConnection
 	EXCLUDE_FROM_ALL
-	${SSN_JNC_LIST}
-	${SSN_RES_LIST}
+	${SSP_JNC_LIST}
+	${SSP_RES_LIST}
 	)
 
 set_target_properties (
-	nj_ssn_SshChannel
+	nj_ssp_TcpConnection
 	PROPERTIES
 	FOLDER scripts
 	LINKER_LANGUAGE C

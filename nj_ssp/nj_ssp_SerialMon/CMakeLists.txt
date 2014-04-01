@@ -4,7 +4,7 @@
 
 #..............................................................................
 
-project_virtual_folder (nj_ssn_TcpProxy)
+project_virtual_folder (nj_ssp_SerialMon)
 
 #..............................................................................
 #
@@ -12,14 +12,14 @@ project_virtual_folder (nj_ssn_TcpProxy)
 #
 
 set (
-	SSN_JNC_LIST
-	nj_ssn_TcpProxyLog.jnc
-	nj_ssn_TcpProxySession.jnc
+	SSP_JNC_LIST
+	nj_ssp_SerialMonLog.jnc
+	nj_ssp_SerialMonSession.jnc
 	)
 
 source_virtual_folder (
 	src
-	${SSN_JNC_LIST}
+	${SSP_JNC_LIST}
 	)
 
 #..............................................................................
@@ -28,32 +28,30 @@ source_virtual_folder (
 #
 
 set (
-	SSN_RES_LIST
-	nj_ssn_TcpProxy.njini
-	disconnect.png
-	listen.png
-	proxy.png
+	SSP_RES_LIST
+	nj_ssp_SerialMon.njssp
+	serialmon.png
 	)
 
 source_virtual_folder (
 	res
-	${SSN_RES_LIST}
+	${SSP_RES_LIST}
 	)
 
 #..............................................................................
 #
-# nj_ssn_TcpProxy script library
+# nj_ssp_SerialMon script library
 #
 
 add_library (
-	nj_ssn_TcpProxy
+	nj_ssp_SerialMon
 	EXCLUDE_FROM_ALL
-	${SSN_JNC_LIST}
-	${SSN_RES_LIST}
+	${SSP_JNC_LIST}
+	${SSP_RES_LIST}
 	)
 
 set_target_properties (
-	nj_ssn_TcpProxy
+	nj_ssp_SerialMon
 	PROPERTIES
 	FOLDER scripts
 	LINKER_LANGUAGE C

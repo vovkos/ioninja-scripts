@@ -4,7 +4,7 @@
 
 #..............................................................................
 
-project_virtual_folder (nj_ssn_Udp)
+project_virtual_folder (nj_ssp_PipeListener)
 
 #..............................................................................
 #
@@ -12,14 +12,14 @@ project_virtual_folder (nj_ssn_Udp)
 #
 
 set (
-	UDP_JNC_LIST
-	nj_ssn_UdpLog.jnc
-	nj_ssn_UdpSession.jnc
+	SSP_JNC_LIST
+	nj_ssp_PipeListenerLog.jnc
+	nj_ssp_PipeListenerSession.jnc
 	)
 
 source_virtual_folder (
 	src
-	${UDP_JNC_LIST}
+	${SSP_JNC_LIST}
 	)
 
 #..............................................................................
@@ -28,30 +28,33 @@ source_virtual_folder (
 #
 
 set (
-	UDP_RES_LIST
-	nj_ssn_Udp.njini
-	udp.png
+	SSP_RES_LIST
+	nj_ssp_PipeListener.njssp
+	disconnect.png
+	listener.png
+	listen.png
+	pause.png
 	)
 
 source_virtual_folder (
 	res
-	${UDP_RES_LIST}
+	${SSP_RES_LIST}
 	)
 
 #..............................................................................
 #
-# nj_ssn_Udp script library
+# nj_ssp_PipeListener script library
 #
 
 add_library (
-	nj_ssn_Udp
+	nj_ssp_PipeListener
 	EXCLUDE_FROM_ALL
-	${UDP_JNC_LIST}
-	${UDP_RES_LIST}
+	${SSP_JNC_LIST}
+	${SSP_RES_LIST}
 	)
 
 set_target_properties (
-	nj_ssn_Udp
+	nj_ssp_PipeListener
 	PROPERTIES
 	FOLDER scripts
 	LINKER_LANGUAGE C

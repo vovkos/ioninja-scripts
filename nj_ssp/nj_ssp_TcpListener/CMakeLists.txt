@@ -4,7 +4,7 @@
 
 #..............................................................................
 
-project_virtual_folder (nj_ssn_TcpListener)
+project_virtual_folder (nj_ssp_TcpListener)
 
 #..............................................................................
 #
@@ -12,14 +12,14 @@ project_virtual_folder (nj_ssn_TcpListener)
 #
 
 set (
-	SSN_JNC_LIST
-	nj_ssn_TcpListenerLog.jnc
-	nj_ssn_TcpListenerSession.jnc
+	SSP_JNC_LIST
+	nj_ssp_TcpListenerLog.jnc
+	nj_ssp_TcpListenerSession.jnc
 	)
 
 source_virtual_folder (
 	src
-	${SSN_JNC_LIST}
+	${SSP_JNC_LIST}
 	)
 
 #..............................................................................
@@ -28,8 +28,8 @@ source_virtual_folder (
 #
 
 set (
-	SSN_RES_LIST
-	nj_ssn_TcpListener.njini
+	SSP_RES_LIST
+	nj_ssp_TcpListener.njssp
 	disconnect.png
 	listener.png
 	listen.png
@@ -38,23 +38,23 @@ set (
 
 source_virtual_folder (
 	res
-	${SSN_RES_LIST}
+	${SSP_RES_LIST}
 	)
 
 #..............................................................................
 #
-# nj_ssn_TcpListener script library
+# nj_ssp_TcpListener script library
 #
 
 add_library (
-	nj_ssn_TcpListener
+	nj_ssp_TcpListener
 	EXCLUDE_FROM_ALL
-	${SSN_JNC_LIST}
-	${SSN_RES_LIST}
+	${SSP_JNC_LIST}
+	${SSP_RES_LIST}
 	)
 
 set_target_properties (
-	nj_ssn_TcpListener
+	nj_ssp_TcpListener
 	PROPERTIES
 	FOLDER scripts
 	LINKER_LANGUAGE C

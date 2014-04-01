@@ -4,7 +4,7 @@
 
 #..............................................................................
 
-project_virtual_folder (nj_ssn_TcpConnection)
+project_virtual_folder (nj_ssp_Udp)
 
 #..............................................................................
 #
@@ -12,14 +12,14 @@ project_virtual_folder (nj_ssn_TcpConnection)
 #
 
 set (
-	SSN_JNC_LIST
-	nj_ssn_TcpConnectionLog.jnc
-	nj_ssn_TcpConnectionSession.jnc
+	SSP_JNC_LIST
+	nj_ssp_UdpLog.jnc
+	nj_ssp_UdpSession.jnc
 	)
 
 source_virtual_folder (
 	src
-	${SSN_JNC_LIST}
+	${SSP_JNC_LIST}
 	)
 
 #..............................................................................
@@ -28,32 +28,30 @@ source_virtual_folder (
 #
 
 set (
-	SSN_RES_LIST
-	nj_ssn_TcpConnection.njini
-	connection.png
-	connect.png
-	disconnect.png
+	SSP_RES_LIST
+	nj_ssp_Udp.njssp
+	udp.png
 	)
 
 source_virtual_folder (
 	res
-	${SSN_RES_LIST}
+	${SSP_RES_LIST}
 	)
 
 #..............................................................................
 #
-# nj_ssn_TcpConnection script library
+# nj_ssp_Udp script library
 #
 
 add_library (
-	nj_ssn_TcpConnection
+	nj_ssp_Udp
 	EXCLUDE_FROM_ALL
-	${SSN_JNC_LIST}
-	${SSN_RES_LIST}
+	${SSP_JNC_LIST}
+	${SSP_RES_LIST}
 	)
 
 set_target_properties (
-	nj_ssn_TcpConnection
+	nj_ssp_Udp
 	PROPERTIES
 	FOLDER scripts
 	LINKER_LANGUAGE C

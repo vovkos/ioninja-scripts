@@ -4,7 +4,7 @@
 
 #..............................................................................
 
-project_virtual_folder (nj_ssn_Sniffer)
+project_virtual_folder (nj_ssp_Serial)
 
 #..............................................................................
 #
@@ -12,19 +12,14 @@ project_virtual_folder (nj_ssn_Sniffer)
 #
 
 set (
-	SNIFFER_JNC_LIST
-	nj_ssn_SnifferLog.jnc
-	nj_ssn_SnifferLog_Ethernet.jnc
-	nj_ssn_SnifferLog_Ip.jnc
-	nj_ssn_SnifferLog_Icmp.jnc
-	nj_ssn_SnifferLog_Tcp.jnc
-	nj_ssn_SnifferLog_Udp.jnc
-	nj_ssn_SnifferSession.jnc
+	SSP_JNC_LIST
+	nj_ssp_SerialLog.jnc
+	nj_ssp_SerialSession.jnc
 	)
 
 source_virtual_folder (
-	src
-	${SNIFFER_JNC_LIST}
+	ssp
+	${SSP_JNC_LIST}
 	)
 
 #..............................................................................
@@ -33,32 +28,34 @@ source_virtual_folder (
 #
 
 set (
-	SNIFFER_RES_LIST
-	nj_ssn_Sniffer.njini
-	sniffer.png
+	SSP_RES_LIST
+	nj_ssp_Serial.njssp
+	serial.png
+	connect.png
+	pause.png
 	)
 
 source_virtual_folder (
 	res
-	${SNIFFER_RES_LIST}
+	${SSP_RES_LIST}
 	)
 
 #..............................................................................
 #
-# nj_ssn_Sniffer script library
+# nj_ssp_Serial script library
 #
 
 add_library (
-	nj_ssn_Sniffer
+	nj_ssp_Serial
 	EXCLUDE_FROM_ALL
-	${SNIFFER_JNC_LIST}
-	${SNIFFER_RES_LIST}
+	${SSP_JNC_LIST}
+	${SSP_RES_LIST}
 	)
 
 set_target_properties (
-	nj_ssn_Sniffer
+	nj_ssp_Serial
 	PROPERTIES
-	FOLDER scripts
+	FOLDER "scripts"
 	LINKER_LANGUAGE C
 	)
 
