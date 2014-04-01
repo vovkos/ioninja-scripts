@@ -16,5 +16,5 @@ log-representer-class = SerialLogRepresenter
 
 [scripts]
 
-nj_ssn_SerialSession.jnc
-nj_ssn_SerialLog.jnc
+nj_ssp_SerialSession.jnc
+nj_ssp_SerialLog.jnc

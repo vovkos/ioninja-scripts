@@ -16,6 +16,6 @@ log-representer-class = PipeListenerLogRepresenter
 
 [scripts]
 
-nj_ssn_PipeListenerLog.jnc
-nj_ssn_PipeListenerSession.jnc
+nj_ssp_PipeListenerLog.jnc
+nj_ssp_PipeListenerSession.jnc
 

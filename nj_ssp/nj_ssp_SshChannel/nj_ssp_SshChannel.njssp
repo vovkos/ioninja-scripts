@@ -16,5 +16,5 @@ log-representer-class = SshChannelLogRepresenter
 
 [scripts]
 
-nj_ssn_SshChannelLog.jnc
-nj_ssn_SshChannelSession.jnc
+nj_ssp_SshChannelLog.jnc
+nj_ssp_SshChannelSession.jnc

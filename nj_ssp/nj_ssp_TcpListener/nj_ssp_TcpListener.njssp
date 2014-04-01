@@ -16,6 +16,6 @@ log-representer-class = TcpListenerLogRepresenter
 
 [scripts]
 
-nj_ssn_TcpListenerLog.jnc
-nj_ssn_TcpListenerSession.jnc
+nj_ssp_TcpListenerLog.jnc
+nj_ssp_TcpListenerSession.jnc
 

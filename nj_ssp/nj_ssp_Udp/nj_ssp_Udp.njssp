@@ -12,12 +12,12 @@ guid        = 7827807e-2ea8-4e86-9344-f016aa77621e
 icon        = udp.png
 terminal    = false
 
-session-class     		= UdpSession
-log-representer-class 	= UdpLogRepresenter
+session-class         = UdpSession
+log-representer-class = UdpLogRepresenter
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 [scripts]
 
-nj_ssn_UdpLog.jnc
-nj_ssn_UdpSession.jnc
+nj_ssp_UdpLog.jnc
+nj_ssp_UdpSession.jnc

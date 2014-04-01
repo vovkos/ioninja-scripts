@@ -16,6 +16,6 @@ log-representer-class = FileLogRepresenter
 
 [scripts]
 
-nj_ssn_FileLog.jnc
-nj_ssn_FileSession.jnc
+nj_ssp_FileLog.jnc
+nj_ssp_FileSession.jnc
 

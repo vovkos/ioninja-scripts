@@ -19,5 +19,5 @@ log-representer-class = SerialMonLogRepresenter
 
 [scripts]
 
-nj_ssn_SerialMonLog.jnc
-nj_ssn_SerialMonSession.jnc
+nj_ssp_SerialMonLog.jnc
+nj_ssp_SerialMonSession.jnc

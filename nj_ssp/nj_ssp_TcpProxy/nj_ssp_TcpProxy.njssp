@@ -17,5 +17,5 @@ log-representer-class = TcpProxyLogRepresenter
 
 [scripts]
 
-nj_ssn_TcpProxyLog.jnc
-nj_ssn_TcpProxySession.jnc
+nj_ssp_TcpProxyLog.jnc
+nj_ssp_TcpProxySession.jnc
