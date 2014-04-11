@@ -151,7 +151,6 @@ class Representer
 opaque class Log
 {
 	Representer* autoget property m_representer;
-	// Colorizer* autoget property m_colorizer;
 	gui.Icon* indexed property m_iconTable (size_t i);
 
 	writeEx (
