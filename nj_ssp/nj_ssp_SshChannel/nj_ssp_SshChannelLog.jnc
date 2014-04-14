@@ -22,7 +22,8 @@ enum SshChannelLogRecordCode
 
 enum SshChannelLogPartCode
 {
-	Connecting       = 1 | log.RecordCodeFlags.MergeableForward,
+	ConnectStarted   = 1 | log.RecordCodeFlags.MergeableForward,
+	ConnectStage     = 1 | log.RecordCodeFlags.Mergeable,
 	ConnectCompleted = 1 | log.RecordCodeFlags.MergeableBackward,
 }
 
@@ -56,46 +57,37 @@ bool SshChannelLogRepresenter.represent (
 		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText (SshChannelLogPartCode.Connecting, $"Establishing TCP connection to <15>$addressString<>...");
+		target.addHyperText (SshChannelLogPartCode.ConnectStarted, $"Establishing TCP connection to <15>$addressString<>...");
 		break;
 
 	case SshChannelLogRecordCode.TcpConnectCompleted:
-		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, "ok");
-
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText (SshChannelLogPartCode.Connecting, "Performing SSH handshake...");
+		target.addHyperText (SshChannelLogPartCode.ConnectStage, "ok\nPerforming SSH handshake...");
 		break;
 
 	case SshChannelLogRecordCode.SshHandshakeCompleted:
-		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, "ok");
-		
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText (SshChannelLogPartCode.Connecting, "Performing SSH authentification...");
+		target.addHyperText (SshChannelLogPartCode.ConnectStage, "ok\nPerforming SSH authentification...");
 		break;
 
 	case SshChannelLogRecordCode.SshAuthCompleted:
-		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, "ok");
-
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText (SshChannelLogPartCode.Connecting, "Opening SSH channel...");
+		target.addHyperText (SshChannelLogPartCode.ConnectStage, "ok\nOpening SSH channel...");
 		break;
 
 	case SshChannelLogRecordCode.SshChannelOpened:
-		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, "ok");
-		
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText (SshChannelLogPartCode.Connecting, "Requesting PTY...");
+		target.addHyperText (SshChannelLogPartCode.ConnectStage, "ok\nRequesting PTY...");
 		break;
 
 	case SshChannelLogRecordCode.SshPtyRequested:
-		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, "ok");
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText (SshChannelLogPartCode.Connecting, "Starting shell...");
+		target.addHyperText (SshChannelLogPartCode.ConnectStage, "ok\nStarting shell...");
 		break;
 
 	case SshChannelLogRecordCode.SshShellStarted:
