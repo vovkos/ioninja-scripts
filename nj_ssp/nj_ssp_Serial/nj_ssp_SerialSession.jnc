@@ -260,11 +260,7 @@ bool SerialSession.open () throws
 	return true;
 
 catch:
-	if (m_serial)
-	{
-		m_serial.close ();
-		m_serial = null;
-	}
+	m_serial.close ();
 
 	jnc.Error const* error = jnc.getLastError ();
 	m_documentHost.m_log.write (
@@ -377,6 +373,7 @@ SerialSession.onSerialEvent (io.SerialEventParams const* params)
 reactor SerialSession.m_uiReactor ()
 {	
 	m_documentHost.m_title = $"$(m_portNameCombo.m_currentText) $(m_baudRateCombo.m_currentText)";
+	m_documentHost.m_isTransmitEnabled = m_state == State.Opened;
 	m_actionTable [ActionId.Close].m_isEnabled = m_state == State.Opened;
 }
 

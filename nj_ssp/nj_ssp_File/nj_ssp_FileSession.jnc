@@ -227,6 +227,7 @@ FileSession.onFileStreamEvent (io.FileStreamEventParams const* params)
 reactor FileSession.m_uiReactor ()
 {
 	m_documentHost.m_title = $"File $(m_fileNameCombo.m_editText)";
+	m_documentHost.m_isTransmitEnabled = m_state == State.Opened;
 	m_actionTable [ActionId.Close].m_isEnabled = m_state == State.Opened;
 }
 

@@ -43,9 +43,10 @@ opaque class Storage
 
 //.............................................................................
 
-class DocumentHost
+opaque class DocumentHost
 {
 	char const* autoget property m_title;
+	bool autoget property m_isTransmitEnabled;
 	
 	gui.Menu* m_menu;
 	gui.ToolBar* m_toolBar;
