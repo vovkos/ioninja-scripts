@@ -37,7 +37,8 @@ protected:
 	// property grid
 
 	gui.StringProperty* m_addressProp;
-	gui.BoolProperty* m_abruptiveDisconnectProp;
+	gui.EnumProperty* m_closeKindProp;
+	gui.BoolProperty* m_isNagleEnabledProp;
 	gui.BoolProperty* m_useLocalAddressProp;
 	gui.EnumProperty* m_adapterProp;
 	gui.IntProperty* m_localPortProp;
@@ -103,9 +104,22 @@ TcpConnectionSession.createUi ()
 		"Remote address to connect to (IP-address or host-name followed by ':' port)"
 		);
 
-	m_abruptiveDisconnectProp = m_documentHost.createBoolProperty (
-		"Reset connection",
-		"Use TCP reset to terminate connections (instead of TCP graceful disconnect)"
+	static gui.EnumPropertyOption closeKindTable [] =
+	{
+		{ "Reset",    io.SocketCloseKind.Reset },
+		{ "Graceful", io.SocketCloseKind.Graceful },
+	};
+
+	m_closeKindProp = m_documentHost.createEnumProperty (
+		"Close kind",
+		"How to close TCP connection (graceful / reset)", 
+		closeKindTable,
+		countof (closeKindTable)
+		);
+
+	m_isNagleEnabledProp = m_documentHost.createBoolProperty (
+		"Use TCP Nagle algorithm",
+		"Specify whether to reduce the number of small packets being sent"
 		);
 
 	m_useLocalAddressProp = m_documentHost.createBoolProperty (
@@ -155,6 +169,8 @@ bool TcpConnectionSession.connect () throws
 		m_socket.open (io.Protocol.Tcp, &localAddress);
 	}
 
+	m_socket.m_closeKind = (io.SocketCloseKind) m_closeKindProp.m_value;
+	m_socket.m_isNagleEnabled = m_isNagleEnabledProp.m_value;
 	m_socket.connect (&address);
 
 	m_remoteAddress = address;
@@ -200,7 +216,8 @@ TcpConnectionSession.disconnect ()
 void TcpConnectionSession.load (doc.Storage* storage)
 {
 	m_addressCombo.m_editText = storage.readString ("address");
-	m_abruptiveDisconnectProp.m_value = storage.readBool ("abruptiveDisconnect");
+	m_closeKindProp.m_value = storage.readInt ("closeKindProp");
+	m_isNagleEnabledProp.m_value = storage.readBool ("isNagleEnabledProp");
 	m_useLocalAddressProp.m_value = storage.readBool ("useLocalAddress");
 	m_adapterProp.m_value = storage.readInt ("adapterIp");
 	m_localPortProp.m_value = storage.readInt ("localPort");
@@ -209,7 +226,8 @@ void TcpConnectionSession.load (doc.Storage* storage)
 void TcpConnectionSession.save (doc.Storage* storage)
 {
 	storage.writeString ("address", m_addressCombo.m_editText);
-	storage.writeBool ("abruptiveDisconnect", m_abruptiveDisconnectProp.m_value);
+	storage.writeInt ("closeKindProp", m_closeKindProp.m_value);
+	storage.writeBool ("isNagleEnabledProp", m_isNagleEnabledProp.m_value);
 	storage.writeBool ("useLocalAddress", m_useLocalAddressProp.m_value);
 	storage.writeInt ("adapterIp", m_adapterProp.m_value);
 	storage.writeInt ("localPort", m_localPortProp.m_value);
@@ -223,13 +241,21 @@ void TcpConnectionSession.updateProperties ()
 bool TcpConnectionSession.applyProperties () throws
 {
 	m_addressCombo.m_editText = m_addressProp.m_value;
+
+	if (m_state)
+	{
+		m_socket.m_closeKind = (io.SocketCloseKind) m_closeKindProp.m_value;
+		m_socket.m_isNagleEnabled = m_isNagleEnabledProp.m_value;
+	}
+
 	return true;
 }
 
 void TcpConnectionSession.restoreDefaultProperties ()
 {
 	m_addressProp.m_value = "127.0.0.1:1001";
-	m_abruptiveDisconnectProp.m_value = false;
+	m_closeKindProp.m_value = io.SocketCloseKind.Graceful;
+	m_isNagleEnabledProp.m_value = true;
 	m_useLocalAddressProp.m_value = false;
 	m_adapterProp.m_value = 0;
 	m_localPortProp.m_value = 0;

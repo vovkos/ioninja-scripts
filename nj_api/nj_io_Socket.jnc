@@ -149,10 +149,22 @@ struct SocketErrorEventParams: SocketEventParams
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
+enum SocketCloseKind
+{
+	Reset = 0,
+	Graceful,
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
 class Socket
 {
 	SocketAddress const property m_address;
 	SocketAddress const property m_peerAddress;
+	
+	bool property m_isBroadcastEnabled;
+	bool property m_isNagleEnabled;
+	SocketCloseKind property m_closeKind;
 
 	bool dconst m_isOpen;
 	uint_t m_syncId;
