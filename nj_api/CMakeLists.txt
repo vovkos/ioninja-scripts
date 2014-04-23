@@ -23,6 +23,7 @@ set (
 	nj_io_Packet.jnc
 	nj_io_Serial.jnc
 	nj_io_Socket.jnc
+	nj_io_SocketAddress.jnc
 	nj_io_Ssh.jnc
 	nj_log.jnc
 	nj_std.jnc

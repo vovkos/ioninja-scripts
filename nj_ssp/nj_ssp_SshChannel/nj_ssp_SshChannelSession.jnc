@@ -282,11 +282,10 @@ SshChannelSession.onSshEvent (io.SshEventParams const* params)
 		break;
 
 	case io.SshEvent.ConnectError:
-		io.SshErrorEventParams const* errorParams = (io.SshErrorEventParams const*) params;
 		m_documentHost.m_log.write (
 			SshChannelLogRecordCode.ConnectError,
-			errorParams.m_error,
-			errorParams.m_error.m_size
+			params.m_error,
+			params.m_error.m_size
 			);
 		m_state = State.Closed;
 		break;

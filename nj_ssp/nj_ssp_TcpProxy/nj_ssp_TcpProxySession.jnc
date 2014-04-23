@@ -429,11 +429,10 @@ TcpProxySession.onTargetSocketEvent (io.SocketEventParams const* params)
 		break;
 
 	case io.SocketEvent.ConnectError:
-		io.SocketErrorEventParams const* errorParams = (io.SocketErrorEventParams const*) params;
 		m_documentHost.m_log.write (
 			TcpProxyLogRecordCode.TargetConnectError,
-			errorParams.m_error,
-			errorParams.m_error.m_size
+			params.m_error,
+			params.m_error.m_size
 			);
 		m_targetState = TargetState.Closed;
 		

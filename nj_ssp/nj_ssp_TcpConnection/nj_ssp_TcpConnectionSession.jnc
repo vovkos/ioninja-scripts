@@ -11,6 +11,7 @@ protected:
 	enum State
 	{
 		Closed,
+		Resolving,
 		Connecting,
 		Connected,
 	}
@@ -27,6 +28,7 @@ protected:
 
 	State bindable m_state;
 	io.Socket* m_socket;
+	io.SocketAddressResolver* m_resolver;
 	io.SocketAddress m_remoteAddress;
 
 	// toolbar & menu
@@ -61,7 +63,10 @@ public:
 		) throws;
 
 protected:
+	handleConnectError (jnc.Error const* error);
+
 	onSocketEvent (io.SocketEventParams const* params);
+	onResolverEvent (io.SocketAddressResolverEventParams const* params);
 
 	createUi ();
 	reactor m_uiReactor ();
@@ -78,6 +83,8 @@ TcpConnectionSession.construct (doc.DocumentHost* documentHost)
 	m_state = State.Closed;
 	m_socket = io.createSocket ();
 	m_socket.m_onSocketEvent += onSocketEvent @ m_documentHost.m_mainThreadScheduler;
+	m_resolver = io.createSocketAddressResolver ();
+	m_resolver.m_onResolverEvent += onResolverEvent @ m_documentHost.m_mainThreadScheduler;
 
 	createUi ();
 }
@@ -144,16 +151,30 @@ bool TcpConnectionSession.connect () throws
 {
 	disconnect ();
 
+	char const* addressString = m_addressCombo.m_editText;
 	m_addressCombo.addEditTextToHistory ();
 
 	io.SocketAddress address;
-	io.parseSocketAddress (m_addressCombo.m_editText, &address);
+	bool isDirectAddress = try io.parseSocketAddress (addressString, &address);
+	if (isDirectAddress)
+	{
+		m_documentHost.m_log.write (
+			TcpConnectionLogRecordCode.Connecting,
+			&address,
+			sizeof (address)
+			);
+	}
+	else
+	{
+		m_documentHost.m_log.write (
+			TcpConnectionLogRecordCode.Resolving,
+			addressString,
+			strlen (addressString)
+			);
 
-	m_documentHost.m_log.write (
-		TcpConnectionLogRecordCode.Connecting,
-		&address,
-		sizeof (address)
-		);
+		m_resolver.m_syncId = m_socket.m_syncId;
+		m_resolver.resolve (m_addressCombo.m_editText);
+	}
 
 	if (!m_useLocalAddressProp.m_value)
 	{
@@ -171,14 +192,27 @@ bool TcpConnectionSession.connect () throws
 
 	m_socket.m_closeKind = (io.SocketCloseKind) m_closeKindProp.m_value;
 	m_socket.m_isNagleEnabled = m_isNagleEnabledProp.m_value;
-	m_socket.connect (&address);
 
-	m_remoteAddress = address;
-	m_state = State.Connecting;
+	if (isDirectAddress)
+	{
+		m_socket.connect (&address);
+		m_remoteAddress = address;
+		m_state = State.Connecting;
+	}
+	else
+	{
+		m_state = State.Resolving;
+	}
+
 	return true;
 
 catch:
-	jnc.Error const* error = jnc.getLastError ();
+	handleConnectError (jnc.getLastError ());
+	return false;
+}
+
+TcpConnectionSession.handleConnectError (jnc.Error const* error)
+{
 	m_documentHost.m_log.write (
 		TcpConnectionLogRecordCode.ConnectError,
 		error,
@@ -186,7 +220,7 @@ catch:
 		);
 		
 	m_socket.close ();
-	return false;
+	m_state = State.Closed;
 }
 
 TcpConnectionSession.disconnect ()
@@ -196,6 +230,7 @@ TcpConnectionSession.disconnect ()
 	case State.Closed:
 		return;
 
+	case State.Resolving:
 	case State.Connecting:
 		m_documentHost.m_log.write (TcpConnectionLogRecordCode.ConnectCancelled);
 		break;
@@ -241,19 +276,12 @@ void TcpConnectionSession.updateProperties ()
 bool TcpConnectionSession.applyProperties () throws
 {
 	m_addressCombo.m_editText = m_addressProp.m_value;
-
-	if (m_state)
-	{
-		m_socket.m_closeKind = (io.SocketCloseKind) m_closeKindProp.m_value;
-		m_socket.m_isNagleEnabled = m_isNagleEnabledProp.m_value;
-	}
-
 	return true;
 }
 
 void TcpConnectionSession.restoreDefaultProperties ()
 {
-	m_addressProp.m_value = "127.0.0.1:1001";
+	m_addressProp.m_value = "tibbo.com:80";
 	m_closeKindProp.m_value = io.SocketCloseKind.Graceful;
 	m_isNagleEnabledProp.m_value = true;
 	m_useLocalAddressProp.m_value = false;
@@ -289,11 +317,10 @@ TcpConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 		break;
 
 	case io.SocketEvent.ConnectError:
-		io.SocketErrorEventParams const* errorParams = (io.SocketErrorEventParams const*) params;
 		m_documentHost.m_log.write (
 			TcpConnectionLogRecordCode.ConnectError,
-			errorParams.m_error,
-			errorParams.m_error.m_size
+			params.m_error,
+			params.m_error.m_size
 			);
 		m_state = State.Closed;
 		break;
@@ -314,6 +341,40 @@ TcpConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 			m_documentHost.m_log.write (log.StdRecordCode.Rx, buffer, result);
 		break;
 	}
+}
+
+TcpConnectionSession.onResolverEvent (io.SocketAddressResolverEventParams const* params)
+{
+	if (params.m_syncId != m_socket.m_syncId)
+		return;
+		
+	switch (params.m_eventKind)
+	{
+	case io.SocketAddressResolverEvent.ResolveCompleted:
+		m_documentHost.m_log.write (
+			TcpConnectionLogRecordCode.ResolveCompleted,
+			params.m_address,
+			sizeof (io.SocketAddress)
+			);
+
+		m_documentHost.m_log.write (
+			TcpConnectionLogRecordCode.Connecting,
+			params.m_address,
+			sizeof (io.SocketAddress)
+			);
+
+		m_socket.connect (params.m_address);
+		m_remoteAddress = *params.m_address;
+		m_state = State.Connecting;
+		break;
+
+	case io.SocketAddressResolverEvent.ResolveError:
+		handleConnectError (params.m_error);
+		break;
+	}
+
+catch:
+	handleConnectError (jnc.getLastError ());
 }
 
 reactor TcpConnectionSession.m_uiReactor ()

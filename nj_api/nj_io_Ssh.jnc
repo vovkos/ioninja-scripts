@@ -28,12 +28,6 @@ struct SshEventParams
 {
 	SshEvent m_eventKind;
 	uint_t m_syncId;
-}
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-struct SshErrorEventParams
-{
 	jnc.Error const* m_error;
 }
 
