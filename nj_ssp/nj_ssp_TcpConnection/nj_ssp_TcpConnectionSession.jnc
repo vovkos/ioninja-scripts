@@ -118,7 +118,7 @@ TcpConnectionSession.createUi ()
 	};
 
 	m_closeKindProp = m_documentHost.createEnumProperty (
-		"Close kind",
+		"TCP disconnect",
 		"How to close TCP connection (graceful / reset)", 
 		closeKindTable,
 		countof (closeKindTable)
@@ -126,7 +126,7 @@ TcpConnectionSession.createUi ()
 
 	m_isNagleEnabledProp = m_documentHost.createBoolProperty (
 		"Use TCP Nagle algorithm",
-		"Specify whether to reduce the number of small packets being sent"
+		"Specify whether to reduce the number of small TCP packets being sent"
 		);
 
 	m_useLocalAddressProp = m_documentHost.createBoolProperty (
@@ -173,7 +173,7 @@ bool TcpConnectionSession.connect () throws
 			);
 
 		m_resolver.m_syncId = m_socket.m_syncId;
-		m_resolver.resolve (m_addressCombo.m_editText);
+		m_resolver.resolve (addressString);
 	}
 
 	if (!m_useLocalAddressProp.m_value)
@@ -317,12 +317,7 @@ TcpConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 		break;
 
 	case io.SocketEvent.ConnectError:
-		m_documentHost.m_log.write (
-			TcpConnectionLogRecordCode.ConnectError,
-			params.m_error,
-			params.m_error.m_size
-			);
-		m_state = State.Closed;
+		handleConnectError (params.m_error);
 		break;
 
 	case io.SocketEvent.Disconnected:

@@ -14,7 +14,7 @@ enum SshEvent
 	SshAuthCompleted,
 	SshChannelOpened,
 	SshPtyRequested,
-	SshShellStarted,
+	SshProcessStarted,
 	ConnectCompleted,
 	ConnectCancelled,
 	ConnectError,

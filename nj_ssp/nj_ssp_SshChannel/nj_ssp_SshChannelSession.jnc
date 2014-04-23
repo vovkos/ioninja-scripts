@@ -11,6 +11,7 @@ protected:
 	enum State
 	{
 		Closed,
+		Resolving,
 		Connecting,
 		Connected
 	}
@@ -27,6 +28,7 @@ protected:
 	
 	State bindable m_state;
 	io.SshChannel* m_channel;
+	io.SocketAddressResolver* m_resolver;
 	io.SocketAddress m_remoteAddress;
 	
 	// toolbar & menu
@@ -39,8 +41,11 @@ protected:
 	gui.StringProperty* m_addressProp;
 	gui.StringProperty* m_userNameProp;
 	gui.StringProperty* m_passwordProp;
-	gui.StringProperty* m_ptyProp;
-	gui.BoolProperty* m_abruptiveDisconnectProp;
+	gui.StringProperty* m_channelTypeProp;
+	gui.StringProperty* m_processTypeProp;
+	gui.StringProperty* m_ptyTypeProp;
+	gui.EnumProperty* m_closeKindProp;
+	gui.BoolProperty* m_isNagleEnabledProp;
 	gui.BoolProperty* m_useLocalAddressProp;
 	gui.EnumProperty* m_adapterProp;
 	gui.IntProperty* m_localPortProp;
@@ -51,8 +56,11 @@ public:
 	bool connect () throws;
 	disconnect ();
 
+	override void load (doc.Storage* storage);
+	override void save (doc.Storage* storage);
 	override void updateProperties ();
 	override bool applyProperties () throws;
+	override void restoreDefaultProperties ();
 
 	override size_t transmit (
 		void const* p,
@@ -60,7 +68,10 @@ public:
 		) throws;
 
 protected:
+	handleConnectError (jnc.Error const* error);
+	
 	onSshEvent (io.SshEventParams const* params);
+	onResolverEvent (io.SocketAddressResolverEventParams const* params);
 
 	createUi ();	
 	reactor m_uiReactor ();
@@ -72,10 +83,14 @@ SshChannelSession.construct (doc.DocumentHost* documentHost)
 {
 	basetype.construct (documentHost);
 
+	documentHost.m_log.m_representer = static new SshChannelLogRepresenter;
+
+	m_state = State.Closed;
 	m_channel = io.createSshChannel  ();
 	m_channel.m_onSshEvent += onSshEvent @ m_documentHost.m_mainThreadScheduler;
+	m_resolver = io.createSocketAddressResolver ();
+	m_resolver.m_onResolverEvent += onResolverEvent @ m_documentHost.m_mainThreadScheduler;
 
-	documentHost.m_log.m_representer = static new SshChannelLogRepresenter;
 	createUi ();
 }
 
@@ -86,7 +101,6 @@ SshChannelSession.createUi ()
 	m_documentHost.m_toolBar.addLabel ("Address: ");
 	m_addressCombo = m_documentHost.m_toolBar.addComboBox (-1);
 	m_addressCombo.m_isEditable = true;
-	m_addressCombo.m_editText = "93.174.106.102:22"; // ls0.tibbo.net
 	m_addressCombo.m_onEnter += connect;
 
 	m_actionTable [ActionId.Connect] = m_documentHost.createAction ("Connect", "connect.png");
@@ -102,37 +116,53 @@ SshChannelSession.createUi ()
 		"Remote address to connect to (IP-address or host-name followed by ':' port)"
 		);
 
-	m_addressProp.m_value = "93.174.106.102:22";
-
 	m_userNameProp = m_documentHost.createStringProperty (
-		"User Name",
+		"User name",
 		"User name for SSH authentification"
 		);
 		
-	m_userNameProp.m_value = "vovkos";
-
 	m_passwordProp = m_documentHost.createStringProperty (
 		"Password",
 		"Password for SSH authentification"
 		);
 
 	m_passwordProp.m_isPassword = true;
-	m_passwordProp.m_value = "doygvayri";
 
-	m_ptyProp = m_documentHost.createStringProperty (
+	m_channelTypeProp = m_documentHost.createStringProperty (
+		"SSH channel",
+		"Type of requested SSH channel"
+		);
+
+	m_processTypeProp = m_documentHost.createStringProperty (
+		"SSH process",
+		"Type of requested SSH process"
+		);
+
+	m_ptyTypeProp = m_documentHost.createStringProperty (
 		"Pseudoterminal",
 		"Type of requested pseudoterminal (PTY)"
 		);
 
-	m_ptyProp.m_value = "ansi";
+	static gui.EnumPropertyOption closeKindTable [] =
+	{
+		{ "Reset",    io.SocketCloseKind.Reset },
+		{ "Graceful", io.SocketCloseKind.Graceful },
+	};
 
-	m_abruptiveDisconnectProp = m_documentHost.createBoolProperty (
-		"Reset TCP Connection",
-		"Use TCP RST to terminate connection (instead of TCP graceful disconnect)"
+	m_closeKindProp = m_documentHost.createEnumProperty (
+		"TCP disconnect",
+		"How to close TCP connection (graceful / reset)", 
+		closeKindTable,
+		countof (closeKindTable)
+		);
+
+	m_isNagleEnabledProp = m_documentHost.createBoolProperty (
+		"Use TCP Nagle algorithm",
+		"Specify whether to reduce the number of small TCP packets being sent"
 		);
 
 	m_useLocalAddressProp = m_documentHost.createBoolProperty (
-		"Use Local Address",
+		"Use local TCP address",
 		"Bind socket to the specified local address before connect"
 		);
 
@@ -141,10 +171,8 @@ SshChannelSession.createUi ()
 		"Adapter to bind to before connect"
 		);
 
-	m_adapterProp.m_value = 0;
-
 	m_localPortProp = m_documentHost.createIntProperty (
-		"Local TCP Port",
+		"Local TCP port",
 		"Local TCP port to bind to before connect"
 		);
 
@@ -155,14 +183,30 @@ bool SshChannelSession.connect () throws
 {
 	disconnect ();
 
-	io.SocketAddress address;
-	io.parseSocketAddress (m_addressCombo.m_editText, &address);
+	char const* addressString = m_addressCombo.m_editText;
+	m_addressCombo.addEditTextToHistory ();
 
-	m_documentHost.m_log.write (
-		SshChannelLogRecordCode.TcpConnecting,
-		&address,
-		sizeof (address)
-		);
+	io.SocketAddress address;
+	bool isDirectAddress = try io.parseSocketAddress (addressString, &address);
+	if (isDirectAddress)
+	{
+		m_documentHost.m_log.write (
+			SshChannelLogRecordCode.TcpConnecting,
+			&address,
+			sizeof (address)
+			);
+	}
+	else
+	{
+		m_documentHost.m_log.write (
+			SshChannelLogRecordCode.Resolving,
+			addressString,
+			strlen (addressString)
+			);
+
+		m_resolver.m_syncId = m_channel.m_syncId;
+		m_resolver.resolve (addressString);
+	}	
 
 	if (!m_useLocalAddressProp.m_value)
 	{
@@ -171,25 +215,41 @@ bool SshChannelSession.connect () throws
 	else
 	{
 		io.SocketAddress localAddress;
-		io.parseSocketAddress ($"0.0.0.0:$(m_localPortProp.m_value)", &localAddress);
+		localAddress.m_family = io.AddressFamily.Ip4;
+		localAddress.m_ip4.m_address.m_i32 = m_adapterProp.m_value;
+		localAddress.m_ip4.m_port = (uint16_t) m_localPortProp.m_value;
+
 		m_channel.open (&localAddress);
 	}
 
-	m_channel.connect (
-		&address, 
-		m_userNameProp.m_value, 
-		m_passwordProp.m_value,
-		"session",
-		"shell",
-		m_ptyProp.m_value
-		);
+	if (isDirectAddress)
+	{
+		m_channel.connect (
+			&address, 
+			m_userNameProp.m_value, 
+			m_passwordProp.m_value,
+			m_channelTypeProp.m_value,
+			m_processTypeProp.m_value,
+			m_ptyTypeProp.m_value
+			);
 
-	m_remoteAddress = address;
-	m_state = State.Connecting;
+		m_remoteAddress = address;
+		m_state = State.Connecting;
+	}
+	else
+	{
+		m_state = State.Resolving;
+	}		
+	
 	return true;
 
 catch:
-	jnc.Error const* error = jnc.getLastError ();
+	handleConnectError (jnc.getLastError ());
+	return false;
+}
+
+SshChannelSession.handleConnectError (jnc.Error const* error)
+{
 	m_documentHost.m_log.write (
 		SshChannelLogRecordCode.ConnectError,
 		error,
@@ -197,21 +257,60 @@ catch:
 		);
 		
 	m_channel.close ();
-	return false;
+	m_state = State.Closed;
 }
 
 SshChannelSession.disconnect ()
 {
-	if (m_state != State.Connected)
+	switch (m_state)
+	{
+	case State.Closed:
 		return;
 
-	m_documentHost.m_log.write (
-		SshChannelLogRecordCode.Disconnected,
-		&m_remoteAddress,
-		sizeof (m_remoteAddress)
-		);
+	case State.Resolving:
+	case State.Connecting:
+		m_documentHost.m_log.write (SshChannelLogRecordCode.ConnectCancelled);
+		break;
+
+	case State.Connected:
+		m_documentHost.m_log.write (
+			SshChannelLogRecordCode.Disconnected,
+			&m_remoteAddress,
+			sizeof (m_remoteAddress)
+			);
+		break;
+	}
+	
 	m_channel.close ();
 	m_state = State.Closed;
+}
+
+void SshChannelSession.load (doc.Storage* storage)
+{
+	m_addressCombo.m_editText = storage.readString ("address");
+	m_userNameProp.m_value = storage.readString ("userName");
+	m_channelTypeProp.m_value = storage.readString ("channelType");
+	m_processTypeProp.m_value = storage.readString ("processType");
+	m_ptyTypeProp.m_value = storage.readString ("ptyType");
+	m_closeKindProp.m_value = storage.readInt ("closeKindProp");
+	m_isNagleEnabledProp.m_value = storage.readBool ("isNagleEnabledProp");
+	m_useLocalAddressProp.m_value = storage.readBool ("useLocalAddress");
+	m_adapterProp.m_value = storage.readInt ("adapterIp");
+	m_localPortProp.m_value = storage.readInt ("localPort");
+}
+
+void SshChannelSession.save (doc.Storage* storage)
+{
+	storage.writeString ("address", m_addressCombo.m_editText);
+	storage.writeString ("userName", m_userNameProp.m_value);
+	storage.writeString ("channelType", m_channelTypeProp.m_value);
+	storage.writeString ("processType", m_processTypeProp.m_value);
+	storage.writeString ("ptyType", m_ptyTypeProp.m_value);
+	storage.writeInt ("closeKindProp", m_closeKindProp.m_value);
+	storage.writeBool ("isNagleEnabledProp", m_isNagleEnabledProp.m_value);
+	storage.writeBool ("useLocalAddress", m_useLocalAddressProp.m_value);
+	storage.writeInt ("adapterIp", m_adapterProp.m_value);
+	storage.writeInt ("localPort", m_localPortProp.m_value);
 }
 
 void SshChannelSession.updateProperties ()
@@ -223,6 +322,20 @@ bool SshChannelSession.applyProperties () throws
 {
 	m_addressCombo.m_editText = m_addressProp.m_value;
 	return true;
+}
+
+void SshChannelSession.restoreDefaultProperties ()
+{
+	m_addressProp.m_value = "ls0.tibbo.net:22";
+	m_userNameProp.m_value = "vovkos";
+	m_channelTypeProp.m_value = "session";
+	m_processTypeProp.m_value = "shell";
+	m_ptyTypeProp.m_value = "ansi";
+	m_closeKindProp.m_value = io.SocketCloseKind.Graceful;
+	m_isNagleEnabledProp.m_value = true;
+	m_useLocalAddressProp.m_value = false;
+	m_adapterProp.m_value = 0;
+	m_localPortProp.m_value = 0;
 }
 
 size_t SshChannelSession.transmit (
@@ -267,8 +380,8 @@ SshChannelSession.onSshEvent (io.SshEventParams const* params)
 		m_documentHost.m_log.write (SshChannelLogRecordCode.SshPtyRequested);
 		break;
 
-	case io.SshEvent.SshShellStarted:
-		m_documentHost.m_log.write (SshChannelLogRecordCode.SshShellStarted);
+	case io.SshEvent.SshProcessStarted:
+		m_documentHost.m_log.write (SshChannelLogRecordCode.SshProcessStarted);
 		break;
 
 	case io.SshEvent.ConnectCompleted:
@@ -282,12 +395,7 @@ SshChannelSession.onSshEvent (io.SshEventParams const* params)
 		break;
 
 	case io.SshEvent.ConnectError:
-		m_documentHost.m_log.write (
-			SshChannelLogRecordCode.ConnectError,
-			params.m_error,
-			params.m_error.m_size
-			);
-		m_state = State.Closed;
+		handleConnectError (params.m_error);
 		break;
 
 	case io.SshEvent.Disconnected:
@@ -306,6 +414,42 @@ SshChannelSession.onSshEvent (io.SshEventParams const* params)
 			m_documentHost.m_log.write (log.StdRecordCode.Rx, buffer, result);
 		break;
 	}
+}
+
+SshChannelSession.onResolverEvent (io.SocketAddressResolverEventParams const* params)
+{
+	if (params.m_syncId != m_channel.m_syncId)
+		return;
+		
+	switch (params.m_eventKind)
+	{
+	case io.SocketAddressResolverEvent.ResolveCompleted:
+		m_documentHost.m_log.write (
+			SshChannelLogRecordCode.ResolveCompleted,
+			params.m_address,
+			sizeof (io.SocketAddress)
+			);
+
+		m_channel.connect (
+			params.m_address,
+			m_userNameProp.m_value, 
+			m_passwordProp.m_value,
+			m_channelTypeProp.m_value,
+			m_processTypeProp.m_value,
+			m_ptyTypeProp.m_value			
+			);
+
+		m_remoteAddress = *params.m_address;
+		m_state = State.Connecting;
+		break;
+
+	case io.SocketAddressResolverEvent.ResolveError:
+		handleConnectError (params.m_error);
+		break;
+	}
+
+catch:
+	handleConnectError (jnc.getLastError ());
 }
 
 reactor SshChannelSession.m_uiReactor ()
