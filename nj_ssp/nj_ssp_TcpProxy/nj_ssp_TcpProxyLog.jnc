@@ -18,6 +18,8 @@ enum TcpProxyLogRecordCode
 	TargetConnectCancelled  = 9  | log.RecordCodeFlags.Mergeable,
 	TargetConnectError      = 10 | log.RecordCodeFlags.Mergeable,
 	TargetDisconnected      = 11,
+	TargetResolving         = 12 | log.RecordCodeFlags.Mergeable,
+	TargetResolveCompleted  = 13 | log.RecordCodeFlags.Mergeable,
 }
 
 enum TcpProxyPartCode
@@ -125,6 +127,18 @@ bool TcpProxyLogRepresenter.represent (
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
 		target.addHyperText ($"Disconnected from <15>$addressString<>");
+		break;
+		
+	case TcpProxyLogRecordCode.TargetResolving:
+		char const* addressString = (char const*) p;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText (TcpProxyPartCode.TargetConnecting, $"Resolving <15>$addressString<>...");
+		break;
+		
+	case TcpProxyLogRecordCode.TargetResolveCompleted:
+		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
+		target.addHyperText (TcpProxyPartCode.TargetConnectCompleted, $"ok (<15>$addressString<>)");
 		break;
 
 	default:
