@@ -73,6 +73,7 @@ public:
 protected:
 	void reportError();
 	
+	onLocalPortChanged ();
 	onRemoteAddressChanged ();
 	onSocketEvent (io.SocketEventParams const* params);
 	onResolverEvent (io.SocketAddressResolverEventParams const* params);
@@ -107,6 +108,7 @@ UdpSession.createGui()
 	m_documentHost.m_toolBar.addLabel ("Local port: ");
 	m_localPortCombo = m_documentHost.m_toolBar.addComboBox ();
 	m_localPortCombo.m_isEditable = true;
+	m_localPortCombo.m_onChanged += onLocalPortChanged;
 
 	m_actionTable [ActionId.Open] = m_documentHost.createAction("Open socket", "open.png");
 	m_actionTable [ActionId.Open].m_onTriggered += openSocket;
@@ -168,6 +170,8 @@ UdpSession.closeSocket ()
 		return;
 
 	m_socket.close ();
+
+	m_localPortCombo.m_backgroundColor = gui.StdColor.White;
 
 	char const* port = m_localPortCombo.m_editText;
 	m_documentHost.m_log.write (UdpRecordCode.Close, port, strlen (port));
@@ -270,6 +274,12 @@ UdpSession.reportError()
 	m_documentHost.m_log.write (UdpRecordCode.Error, error, error.m_size);
 }
 
+UdpSession.onLocalPortChanged ()
+{
+	if (m_state == State.Opened)
+		m_localPortCombo.m_backgroundColor = gui.StdColor.PastelOrange;
+}
+
 UdpSession.onRemoteAddressChanged ()
 {
 	m_resolveState = m_resolveState == ResolveState.Resolving ?
@@ -349,10 +359,7 @@ reactor UdpSession.m_uiReactor ()
 {
 	m_documentHost.m_title = $"UDP @ $(m_localPortCombo.m_editText) -> $(m_remoteAddressCombo.m_editText)";
 	m_documentHost.m_isTransmitEnabled = m_state == State.Opened;
-	m_actionTable [ActionId.Open].m_isEnabled = m_state == State.Closed;
 	m_actionTable [ActionId.Close].m_isEnabled = m_state == State.Opened;
-	m_localPortCombo.m_isEnabled = m_state == State.Closed;
-	m_localPortProp.m_isEnabled = m_state == State.Closed;
 	m_adapterProp.m_isEnabled = m_state == State.Closed;
 }
 
