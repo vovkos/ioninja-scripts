@@ -1,11 +1,29 @@
-enum RecordCode
+//.............................................................................
+//
+// UDP log packet declarations and representer
+//
+
+//.............................................................................
+
+
+enum UdpRecordCode
 {
-	Error,
-	Open,
-	Close,
-	Tx,
-	Rx,
+	Open               = 1,
+	Close              = 2,
+	Tx                 = 3,
+	Rx                 = 4,
+	Error		       = 5 | log.RecordCodeFlags.Mergeable,
+	Resolving          = 6 | log.RecordCodeFlags.Mergeable,
+	ResolveCompleted   = 7 | log.RecordCodeFlags.Mergeable,
 }
+
+enum UdpRecordPartCode
+{
+	Resolving         = 1 | log.RecordCodeFlags.MergeableForward,
+	ResolveCompleted  = 1 | log.RecordCodeFlags.MergeableBackward,
+}
+
+//.............................................................................
 
 class UdpLogRepresenter: log.Representer
 {
@@ -29,17 +47,8 @@ bool UdpLogRepresenter.represent (
 	)
 {
 	switch (recordCode)
-	{
-		case RecordCode.Error:
-			target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
-			target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
-			target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-
-			jnc.Error const* Error = (jnc.Error const*) p;
-			target.addHyperText ($"error ($(Error.m_description))");
-			break;
-			
-		case RecordCode.Open:
+	{	
+		case UdpRecordCode.Open:
 			char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 			target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
 			target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
@@ -47,13 +56,13 @@ bool UdpLogRepresenter.represent (
 			target.addHyperText($"Opened socket at <#0000FF>$addressString<>");
 			break;
 			
-		case RecordCode.Close:
+		case UdpRecordCode.Close:
 			target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
 			target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
 			target.addHyperText($"Socket at <#0000FF>$((char const*) p)<> closed");
 			break;
 			
-		case RecordCode.Tx:
+		case UdpRecordCode.Tx:
 			char const* remoteAddress = try io.formatSocketAddress ((io.SocketAddress const*) p);
 			void const* data = p + sizeof (io.SocketAddress);
 						
@@ -69,7 +78,7 @@ bool UdpLogRepresenter.represent (
 			target.addBin (data, size - sizeof (io.SocketAddress));
 			break;
 			
-		case RecordCode.Rx:
+		case UdpRecordCode.Rx:
 			char const* remoteAddress = try io.formatSocketAddress ((io.SocketAddress const*) p);
 			void const* data = p + sizeof (io.SocketAddress);
 			
@@ -85,8 +94,29 @@ bool UdpLogRepresenter.represent (
 			target.addBin (data, size - sizeof (io.SocketAddress));
 			break;
 			
+		case UdpRecordCode.Error:
+			target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
+			target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+			target.m_lineAttr.m_backColor = log.StdLogColor.Error;
+
+			jnc.Error const* Error = (jnc.Error const*) p;
+			target.addHyperText (UdpRecordPartCode.ResolveCompleted, $"error ($(Error.m_description))");
+			break;
+			
+		case UdpRecordCode.Resolving:
+			char const* addressString = (char const*) p;
+			target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+			target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+			target.addHyperText (UdpRecordPartCode.Resolving, $"Resolving <15>$addressString<>...");
+			break;
+			
+		case UdpRecordCode.ResolveCompleted:
+			char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
+			target.addHyperText (UdpRecordPartCode.ResolveCompleted, $"ok (<15>$addressString<>)");
+			break;
+			
 		default:
-			target.addHyperText((char const*) p);
+			return false;
 	}
 	
 	return true;
