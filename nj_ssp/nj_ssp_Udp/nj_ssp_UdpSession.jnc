@@ -1,196 +1,249 @@
 class UdpSession: doc.Session
 {
+protected:
+	enum State
+	{
+		Closed,
+		Opened,
+	}
+	
+	enum ActionId
+	{
+		Open,
+		Close,
+		_Count,
+	}
+	
+protected:
+	// socket
+		
+	State bindable m_state;
+	io.Socket* m_socket;
+	
+	// toolbar & menu
+	
+	gui.Action* m_actionTable [ActionId._Count];
 	gui.ComboBox* m_localPortCombo;
-	gui.Action* m_openSocketAction;
-	gui.Action* m_closeSocketAction;
 	gui.ComboBox* m_remoteAddressCombo;
+	
+	// property grid
+	
 	gui.IntProperty* m_localPortProp;
 	gui.StringProperty* m_remoteAddressProp;
 	gui.EnumProperty* m_adapterProp;
+		
+public:
+	construct (doc.DocumentHost* documentHost);
+
+	openSocket ();
+	closeSocket ();
+
+	override void load (doc.Storage* storage);
+	override void save (doc.Storage* storage);
+	override void updateProperties ();
+	override bool applyProperties () throws;
+	override void restoreDefaultProperties ();
+
+	override size_t transmit (
+		void const* p,
+		size_t size
+		) throws;
+
+protected:
+	void reportError();
 	
-	io.Socket* m_socket;
-	bindable bool m_isSocketOpen;
-		
-	construct (doc.DocumentHost* documentHost)
+	onSocketEvent (io.SocketEventParams const* params);
+	
+	createGui ();
+	reactor m_uiReactor ();
+}
+
+UdpSession.construct (doc.DocumentHost* documentHost)
+{
+	basetype.construct(documentHost);
+
+	documentHost.m_log.m_representer = static new UdpLogRepresenter;
+
+	m_state = State.Closed;
+	m_socket = io.createSocket ();
+	m_socket.m_onSocketEvent += onSocketEvent;
+
+	createGui ();
+}
+
+UdpSession.createGui()
+{
+	// toolbar
+	
+	m_documentHost.m_toolBar.addLabel ("Local port: ");
+	m_localPortCombo = m_documentHost.m_toolBar.addComboBox ();
+	m_localPortCombo.m_isEditable = true;
+
+	m_actionTable [ActionId.Open] = m_documentHost.createAction("Open socket", "open.png");
+	m_actionTable [ActionId.Open].m_onTriggered += openSocket;
+
+	m_actionTable [ActionId.Close] = m_documentHost.createAction("Close socket", "close.png");
+	m_actionTable [ActionId.Close].m_onTriggered += closeSocket;
+
+	m_documentHost.m_toolBar.addSeparator ();
+
+	m_documentHost.m_toolBar.addLabel ("Remote address: ");
+	m_remoteAddressCombo = m_documentHost.m_toolBar.addComboBox (-1);
+	m_remoteAddressCombo.m_isEditable = true;
+
+	// property grid
+
+	m_remoteAddressProp = m_documentHost.createStringProperty (
+		"Remote address",
+		"Remote address to send to (IP-address or host-name followed by ':' port)"
+		);
+
+	m_localPortProp = m_documentHost.createIntProperty (
+		"Local UDP port",
+		"Local UDP port to listen to"
+		);
+
+	m_adapterProp = m_documentHost.createNetworkAdapterProperty (
+		"Adapter",
+		"Adapter to bind socket to"
+		);
+	m_adapterProp.m_value = 0;
+
+	m_uiReactor.start();
+}
+
+UdpSession.openSocket ()
+{
+	closeSocket ();
+
+	io.SocketAddress localAddress;
+	localAddress.m_family = io.AddressFamily.Ip4;
+	localAddress.m_ip4.m_address.m_i32 = m_adapterProp.m_value;
+	localAddress.m_ip4.m_port = (uint16_t) atoi (m_localPortCombo.m_editText);
+
+	if (!try m_socket.open (io.Protocol.Udp, &localAddress))
 	{
-		basetype.construct(documentHost);
-
-		documentHost.m_log.m_representer = static new UdpLogRepresenter;
-		
-		m_socket = io.createSocket ();
-		m_socket.m_onSocketEvent += onSocketEvent;
-
-		createGui ();
+		reportError ();
+		return;
 	}
 
-	void createGui()
-	{
-		m_documentHost.m_toolBar.addLabel ("Local port: ");
-		m_localPortCombo = m_documentHost.m_toolBar.addComboBox ();
-		m_localPortCombo.m_isEditable = true;
+	m_documentHost.m_log.write (RecordCode.Open, &localAddress, sizeof (localAddress));
 
-		m_openSocketAction = m_documentHost.createAction("Open socket", "open.png");
-		m_openSocketAction.m_onTriggered += openSocket;
-		
-		m_closeSocketAction = m_documentHost.createAction("Close socket", "close.png");
-		m_closeSocketAction.m_onTriggered += closeSocket;
+	m_state = State.Opened;
+}
 
-		m_documentHost.m_toolBar.addSeparator ();
+UdpSession.closeSocket ()
+{
+	if (m_state == State.Closed)
+		return;
 
-		m_documentHost.m_toolBar.addLabel ("Remote address: ");
-		m_remoteAddressCombo = m_documentHost.m_toolBar.addComboBox (-1);
-		m_remoteAddressCombo.m_isEditable = true;
-		
-		// property grid
-		
-		m_localPortProp = m_documentHost.createIntProperty (
-			"Local UDP port",
-			"Local UDP port to listen to"
-			);
-		
-		m_remoteAddressProp = m_documentHost.createStringProperty (
-			"Remote address",
-			"Remote address to send to (IP-address or host-name followed by ':' port)"
-			);
-		
-		m_adapterProp = m_documentHost.createNetworkAdapterProperty (
-			"Adapter",
-			"Adapter to bind socket to"
-			);
-		m_adapterProp.m_value = 0;
-		
-		m_uiReactor.start();
-	}
-	
-	reactor m_uiReactor ()
+	m_socket.close ();
+
+	char const* port = m_localPortCombo.m_editText;
+	m_documentHost.m_log.write (RecordCode.Close, port, strlen (port));
+
+	m_state = State.Closed;
+}
+
+UdpSession.load (doc.Storage* storage)
+{	
+	m_localPortCombo.m_editText = storage.readString ("localPort");
+	m_remoteAddressCombo.m_editText = storage.readString ("remoteAddress");	
+	m_adapterProp.m_value = storage.readInt ("adapterIp");
+}
+
+UdpSession.save (doc.Storage* storage)
+{
+	storage.writeString ("localPort", m_localPortCombo.m_editText);
+	storage.writeString ("remoteAddress", m_remoteAddressCombo.m_editText);
+	storage.writeInt ("adapterIp", m_adapterProp.m_value);
+}
+
+UdpSession.updateProperties ()
+{
+	m_localPortProp.m_value = atoi (m_localPortCombo.m_editText);
+	m_remoteAddressProp.m_value = m_remoteAddressCombo.m_editText;
+}
+
+bool UdpSession.applyProperties () throws
+{
+	m_localPortCombo.m_editText = $"$(m_localPortProp.m_value)";
+	m_remoteAddressCombo.m_editText = m_remoteAddressProp.m_value;
+	return true;
+}
+
+UdpSession.restoreDefaultProperties ()
+{
+	m_localPortProp.m_value = 1001;
+	m_remoteAddressProp.m_value = "127.0.0.1:1002";
+	m_adapterProp.m_value = 0;
+}
+
+size_t UdpSession.transmit (
+	void const* p,
+	size_t size
+	) throws
+{
+	if (m_state == State.Opened)
 	{
-		m_documentHost.m_title = $"UDP @ $(m_localPortCombo.m_editText) -> $(m_remoteAddressCombo.m_editText)";
-		m_documentHost.m_isTransmitEnabled = m_isSocketOpen;
-		m_openSocketAction.m_isEnabled = !m_isSocketOpen;
-		m_closeSocketAction.m_isEnabled = m_isSocketOpen;
-		m_localPortCombo.m_isEnabled = !m_isSocketOpen;
-		m_adapterProp.m_isEnabled = !m_isSocketOpen;
-	}
-	
-	void openSocket ()
-	{
-		closeSocket ();
-		
-		io.SocketAddress localAddress;
-		localAddress.m_family = io.AddressFamily.Ip4;
-		localAddress.m_ip4.m_address.m_i32 = m_adapterProp.m_value;
-		localAddress.m_ip4.m_port = (uint16_t) atoi (m_localPortCombo.m_editText);
-		
-		if (!try m_socket.open (io.Protocol.Udp, &localAddress))
+		io.SocketAddress remoteAddress;
+		if (!try io.parseSocketAddress (m_remoteAddressCombo.m_editText, &remoteAddress))
 		{
 			reportError ();
-			return;
+			return 0;
 		}
-				
-		m_documentHost.m_log.write (RecordCode.Open, &localAddress, sizeof (localAddress));
-	
-		m_isSocketOpen = true;
-	}
-	
-	void closeSocket ()
-	{
-		if (!m_isSocketOpen)
-			return;
-	
-		m_socket.close ();
-	
-		char const* port = m_localPortCombo.m_editText;
-		m_documentHost.m_log.write (RecordCode.Close, port, strlen (port));
-		
-		m_isSocketOpen = false;
+
+		if (try m_socket.sendTo (p, size, &remoteAddress))
+		{
+			void* data = memcat (&remoteAddress, sizeof (io.SocketAddress), p, size);
+			size_t dataSize = sizeof (io.SocketAddress) + size;
+
+			m_documentHost.m_log.write(RecordCode.Tx, data, dataSize);
+		}
+		else
+		{
+			reportError ();
+		}
 	}
 
-	void onSocketEvent(io.SocketEventParams const* params)
+	return 0;
+}
+
+UdpSession.reportError()
+{
+	jnc.Error const* error = jnc.getLastError ();
+	m_documentHost.m_log.write (RecordCode.Error, error, error.m_size);
+}
+
+UdpSession.onSocketEvent(io.SocketEventParams const* params)
+{
+	if (params.m_syncId != m_socket.m_syncId)
+		return;
+
+	switch (params.m_eventKind)
 	{
-		if (params.m_syncId != m_socket.m_syncId)
-			return;
-			
-		switch (params.m_eventKind)
-		{
-			case io.SocketEvent.IncomingData:
-				io.SocketAddress remoteAddress;
-				heap char buffer [512];
-				size_t size = try m_socket.recvFrom (buffer, sizeof (buffer), &remoteAddress);
-				if (size != -1)
-				{
-					void* data = memcat (&remoteAddress, sizeof (io.SocketAddress), buffer, size);
-					size_t dataSize = sizeof (io.SocketAddress) + size;
-					
-					m_documentHost.m_log.write (RecordCode.Rx, data, dataSize);
-				}
-				break;
-		}
-	}
-	
-	override size_t transmit (void const* p, size_t size) throws
-	{
-		if (m_isSocketOpen)
-		{
+		case io.SocketEvent.IncomingData:
 			io.SocketAddress remoteAddress;
-			if (!try io.parseSocketAddress (m_remoteAddressCombo.m_editText, &remoteAddress))
+			heap char buffer [512];
+			size_t size = try m_socket.recvFrom (buffer, sizeof (buffer), &remoteAddress);
+			if (size != -1)
 			{
-				reportError ();
-				return 0;
-			}
-		
-			if (try m_socket.sendTo (p, size, &remoteAddress))
-			{
-				void* data = memcat (&remoteAddress, sizeof (io.SocketAddress), p, size);
+				void* data = memcat (&remoteAddress, sizeof (io.SocketAddress), buffer, size);
 				size_t dataSize = sizeof (io.SocketAddress) + size;
 
-				m_documentHost.m_log.write(RecordCode.Tx, data, dataSize);
+				m_documentHost.m_log.write (RecordCode.Rx, data, dataSize);
 			}
-			else
-			{
-				reportError ();
-			}
-		}
-		
-		return 0;
+			break;
 	}
-		
-	void reportError()
-	{
-		jnc.Error const* error = jnc.getLastError ();
-		m_documentHost.m_log.write (RecordCode.Error, error, error.m_size);
-	}
-	
-	override void load (doc.Storage* storage)
-	{	
-		m_localPortCombo.m_editText = storage.readString ("localPort");
-		m_remoteAddressCombo.m_editText = storage.readString ("remoteAddress");	
-		m_adapterProp.m_value = storage.readInt ("adapterIp");
-	}
-	
-	override void save (doc.Storage* storage)
-	{
-		storage.writeString ("localPort", m_localPortCombo.m_editText);
-		storage.writeString ("remoteAddress", m_remoteAddressCombo.m_editText);
-		storage.writeInt ("adapterIp", m_adapterProp.m_value);
-	}
-	
-	override void updateProperties ()
-	{
-		m_localPortProp.m_value = atoi (m_localPortCombo.m_editText);
-		m_remoteAddressProp.m_value = m_remoteAddressCombo.m_editText;
-	}
-	
-	override bool applyProperties () throws
-	{
-		m_localPortCombo.m_editText = $"$(m_localPortProp.m_value)";
-		m_remoteAddressCombo.m_editText = m_remoteAddressProp.m_value;
-		return true;
-	}
-	
-	override void restoreDefaultProperties ()
-	{
-		m_localPortProp.m_value = 1001;
-		m_remoteAddressProp.m_value = "127.0.0.1:1002";
-		m_adapterProp.m_value = 0;
-	}
+}
+
+reactor UdpSession.m_uiReactor ()
+{
+	m_documentHost.m_title = $"UDP @ $(m_localPortCombo.m_editText) -> $(m_remoteAddressCombo.m_editText)";
+	m_documentHost.m_isTransmitEnabled = m_state == State.Opened;
+	m_actionTable [ActionId.Open].m_isEnabled = m_state == State.Closed;
+	m_actionTable [ActionId.Close].m_isEnabled = m_state == State.Opened;
+	m_localPortCombo.m_isEnabled = m_state == State.Closed;
+	m_localPortProp.m_isEnabled = m_state == State.Closed;
+	m_adapterProp.m_isEnabled = m_state == State.Closed;
 }
