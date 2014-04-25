@@ -163,7 +163,7 @@ class Session: Document
 		size_t size
 		) throws
 	{
-		return 0;
+		return size;
 	}
 }
 

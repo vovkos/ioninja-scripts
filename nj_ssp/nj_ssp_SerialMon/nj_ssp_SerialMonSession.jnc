@@ -1,311 +1,231 @@
-#include "Serial.h"
-#include "SerialSession.h"
-#include "SerialSettings.h"
-#include "SerialUI.h"
-#include "SerialLog.h"
-#include "SerialPropGroup.h"
-#include "LogPropGroup.h"
-#include "LogSettings.h"
-#include "TransmitPropGroup.h"
-#include "TransmitSettings.h"
-
-#pragma once
-
-#include "Document.h"
+//.............................................................................
+//
+// Serial session
+//
 
 //.............................................................................
 
-#define GUID_SerialSession (CDE306D8-4147-497d-B24D-27107E48172B)
-#define PATH_SerialIcon    __PATH__ "Serial.ico"
-
-class CSerialSession: ITransportSession;
-
-//.............................................................................
-
-
-//.............................................................................
-
-[
-	guid = GUID_SerialSession,
-	icon = PATH_SerialIcon,
-	name = "Serial",
-	description = "Serial communication using one of the installed COM ports on your PC",
-]
-
-class CSerialSession: ITransportSession
+class SerialMonSession: doc.Session
 {
-	using CTransportSession;
+protected:
+	enum State
+	{
+		Closed,
+		Opened,
+	}
 
-	override OnActivate;
-	override OnDeactivate;
-	override Load;
-	override Save;
-	override Transmit;
+	enum ActionId
+	{
+		Capture,
+		StopCapture,
+		_Count,
+	}
 
-	ISerial m_Serial;
-	IFilterLpp m_Filter;
+protected:
+	// serial port
 
-	void CSerialSession();
+	State bindable m_state;
+	io.SerialMon* m_serialMon;
+	char const* m_portName;
 
-	void UpdateDigest();
+	// toolbar & menu
 
-	void OnSerialOpen();
-	void OnSerialOpenError(TError* pError);
-	void OnSerialClose();
+	gui.Action* m_actionTable [ActionId._Count];
+	gui.ComboBox* m_portNameCombo;
 
-	void OnSerialPortNameChange(const char* pName);
-	void OnSerialBaudRateChange(uint_t Value);
-	void OnSerialFlowControlChange(uint_t Value);
-	void OnSerialParityChange(uint_t Value);
-	void OnSerialDataBitsChange(uint_t Value);
-	void OnSerialStopBitsChange(uint_t Value);
-	void OnSerialDTRChange(bool Value);
-	void OnSerialRTSChange(bool Value);
-	void OnSerialStatusLineChange(int Mask);
-	void OnSerialTransmit(const void* p, size_t Size);
-	void OnSerialReceive(const void* p, size_t Size);
-};
+	// property grid
 
-//.............................................................................
+	gui.StringProperty* m_portNameProp;
 
-void CSerialSession::CSerialSession()
+public:
+	construct (doc.DocumentHost* documentHost);
+
+	bool capture () throws;
+	stopCapture ();
+
+	override void load (doc.Storage* storage);
+	override void save (doc.Storage* storage);
+	override void updateProperties ();
+	override bool applyProperties () throws;
+	override void restoreDefaultProperties ();
+
+protected:
+	onReadyRead (uint_t syncId);
+
+	createUi ();
+	reactor m_uiReactor ();
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+SerialMonSession.construct (doc.DocumentHost* documentHost)
 {
-	Caption = "Serial";
-	Icon = GetIcon(PATH_SerialIcon);
+	basetype.construct (documentHost);
+	documentHost.m_log.m_representer = static new SerialMonLogRepresenter;
 
-	m_Serial = new CSerial;
-	m_Filter = new CSerialLogFilter;
-	m_Filter.m_Filter = g_SerialDefaultSettings.m_Filter;
+	m_state = State.Closed;
+	m_serialMon = io.createSerialMon ();
+	m_serialMon.m_onReadyRead += onReadyRead @ m_documentHost.m_mainThreadScheduler;
 
-	SetSerialSettings(m_Serial, g_SerialDefaultSettings);
-	SetLogSettings(LogCtrl, g_LogDefaultSettings);
-	SetTransmitSettings(this, g_TransmitDefaultSettings);
+	createUi ();
+}
 
-	LogCtrl.MessageFile.ClassGuid = GUID_SerialLog;
-	LogCtrl.Representor = new CSerialLogRepresentor;
-	LogPostProcessor = m_Filter;
+SerialMonSession.createUi ()
+{
+	// toolbar
 
-	m_Serial.OnOpen = OnSerialOpen;
-	m_Serial.OnOpenError = OnSerialOpenError;
-	m_Serial.OnClose = OnSerialClose;
-	m_Serial.OnStatusLineChange = OnSerialStatusLineChange;
-	m_Serial.OnReceive = OnSerialReceive;
-	m_Serial.OnTransmit = OnSerialTransmit;
-
-	onchange(m_Serial.PortName) = OnSerialPortNameChange;
-	onchange(m_Serial.BaudRate) = OnSerialBaudRateChange;
-	onchange(m_Serial.FlowControl) = OnSerialFlowControlChange;
-	onchange(m_Serial.Parity) = OnSerialParityChange;
-	onchange(m_Serial.DataBits) = OnSerialDataBitsChange;
-	onchange(m_Serial.StopBits) = OnSerialStopBitsChange;
-	onchange(m_Serial.DTR) = OnSerialDTRChange;
-	onchange(m_Serial.RTS) = OnSerialRTSChange;
-
-	// property groups
-
-	AddSerialPropGroup(PropertyCtrl, m_Serial);
+	m_documentHost.m_toolBar.addLabel ("Port: ");
+	m_portNameCombo = m_documentHost.m_toolBar.addComboBox ();
+	m_portNameCombo.m_isEditable = true;
+	m_portNameCombo.m_onEnter += capture;
 	
-	m_Filter.AddProperties(PropertyCtrl);
+	m_portNameCombo.addItem ("COM1");
+	m_portNameCombo.addItem ("COM2");
+	m_portNameCombo.addItem ("COM3");
+	m_portNameCombo.addItem ("COM4");
+	m_portNameCombo.addItem ("/dev/ttyS0");
+	m_portNameCombo.addItem ("/dev/ttyS1");
+	m_portNameCombo.addItem ("/dev/ttyS2");
+	m_portNameCombo.addItem ("/dev/ttyS3");
 
-	AddLogPropGroup(PropertyCtrl, this);
-	AddTransmitPropGroup(PropertyCtrl, this);
+	m_actionTable [ActionId.Capture]  = m_documentHost.createAction ("Capture", "capture.png");
+	m_actionTable [ActionId.Capture].m_onTriggered += capture;
 
-	SetStdPropertyGroupExpandCollapseState(PropertyCtrl);
-	ShowPropertyCtrl(true);
+	m_actionTable [ActionId.StopCapture] = m_documentHost.createAction ("Stop", "pause.png");
+	m_actionTable [ActionId.StopCapture].m_onTriggered += stopCapture;
 
-	g_SerialUI.ShowUI(true);
-	g_SerialUI.UpdateUI(m_Serial, ESerialUpdateUI::All);
+	// property grid
 
-	UpdateDigest();
+	m_portNameProp = m_documentHost.createStringProperty (
+		"Port name",
+		"Specify serial port name to use"
+		);
+	
+	m_uiReactor.start ();
 }
 
-void CSerialSession::UpdateDigest()
+bool SerialMonSession.capture () throws
 {
-	Caption = FormatString("%s %d bps", m_Serial.PortName, m_Serial.BaudRate);
+	stopCapture ();
+
+	char const* name = m_portNameCombo.m_currentText;
+
+	m_serialMon.capture (name);
+	m_documentHost.m_log.write (SerialMonLogRecordCode.CaptureStarted, name, strlen (name));
+
+	m_portName = name;
+	m_state = State.Opened;
+	return true;
+
+catch:
+	m_serialMon.close ();
+
+	jnc.Error const* error = jnc.getLastError ();
+	m_documentHost.m_log.write (
+		SerialMonLogRecordCode.CaptureError,
+		error,
+		error.m_size
+		);
+	return false;
 }
 
-void CSerialSession::OnActivate()
+SerialMonSession.stopCapture ()
 {
-	g_SerialDefaultSettings.m_Filter = m_Filter.m_Filter;
+	if (m_state != State.Opened)
+		return;
 
-	GetSerialSettings(m_Serial, g_SerialDefaultSettings);
-	GetLogSettings(LogCtrl, g_LogDefaultSettings);
-	GetTransmitSettings(this, g_TransmitDefaultSettings);
-	GetStdPropertyGroupExpandCollapseState(PropertyCtrl);
+	m_documentHost.m_log.write (
+		SerialMonLogRecordCode.CaptureStopped,
+		m_portName,
+		strlen (m_portName) + 1
+		);
 
-	g_SerialUI.ShowUI(true);
-	g_SerialUI.UpdateUI(m_Serial, ESerialUpdateUI::All);
+	m_serialMon.close ();
+	m_state = State.Closed;
 }
 
-void CSerialSession::OnDeactivate()
+void SerialMonSession.load (doc.Storage* storage)
 {
-	g_SerialDefaultSettings.m_Filter = m_Filter.m_Filter;
-
-	GetSerialSettings(m_Serial, g_SerialDefaultSettings);
-	GetLogSettings(LogCtrl, g_LogDefaultSettings);
-	GetTransmitSettings(this, g_TransmitDefaultSettings);
-	GetStdPropertyGroupExpandCollapseState(PropertyCtrl);
-
-	g_SerialUI.ShowUI(false);
+	m_portNameCombo.m_editText = storage.readString ("portName");
 }
 
-bool CSerialSession::Load(IIniFile File)
+void SerialMonSession.save (doc.Storage* storage)
 {
-	File.Read("Serial", g_SerialDefaultSettings);
-	File.Read("Log", g_LogDefaultSettings);
-	File.Read("Transmit", g_TransmitDefaultSettings);
+	storage.writeString ("portName", m_portNameCombo.m_editText);
+}
 
-	m_Filter.m_Filter = g_SerialDefaultSettings.m_Filter;
+void SerialMonSession.updateProperties ()
+{
+	m_portNameProp.m_value = m_portNameCombo.m_currentText;
+}
 
-	SetSerialSettings(m_Serial, g_SerialDefaultSettings);
-	SetLogSettings(LogCtrl, g_LogDefaultSettings);
-	SetTransmitSettings(this, g_TransmitDefaultSettings);
-
-	PropertyCtrl.UpdateAllLines();
-
+bool SerialMonSession.applyProperties () throws
+{
+	m_portNameCombo.m_editText = m_portNameProp.m_value;
 	return true;
 }
 
-bool CSerialSession::Save(IIniFile File)
+void SerialMonSession.restoreDefaultProperties ()
 {
-	g_SerialDefaultSettings.m_Filter = m_Filter.m_Filter;
-
-	GetSerialSettings(m_Serial, g_SerialDefaultSettings);
-	GetLogSettings(LogCtrl, g_LogDefaultSettings);
-	GetTransmitSettings(this, g_TransmitDefaultSettings);
-
-	File.Write("Serial", g_SerialDefaultSettings);
-	File.Write("Log", g_LogDefaultSettings);
-	File.Write("Transmit", g_TransmitDefaultSettings);
-
-	return true;
+	m_portNameProp.m_value = "COM1";
 }
 
-void CSerialSession::OnSerialPortNameChange(const char* pName)
+SerialMonSession.onReadyRead (uint_t syncId)
 {
-	UpdateDigest();
+	if (syncId != m_serialMon.m_syncId)
+		return;
+		
+	io.SerialMonEventParams params;
+	try m_serialMon.read (&params);
+		
+	switch (params.m_eventKind)
+	{
+	case io.SerialMonEvent.DeviceOpened:
+		m_documentHost.m_log.write (SerialMonLogRecordCode.DeviceOpened);
+		break;	
+		
+	case io.SerialMonEvent.DeviceClosed:		
+		m_documentHost.m_log.write (SerialMonLogRecordCode.DeviceClosed);
+		break;
+		
+	case io.SerialMonEvent.RxData:
+		m_documentHost.m_log.write (log.StdRecordCode.Rx, params.m_data, params.m_dataSize);
+		break;
+
+	case io.SerialMonEvent.TxData:
+		m_documentHost.m_log.write (log.StdRecordCode.Tx, params.m_data, params.m_dataSize);
+		break;
+
+	case io.SerialMonEvent.BaudRateChanged:
+		break;
+
+	case io.SerialMonEvent.FlowControlChanged:
+		break;
+
+	case io.SerialMonEvent.DataBitsChanged:
+		break;
+
+	case io.SerialMonEvent.StopBitsChanged:
+		break;
+
+	case io.SerialMonEvent.ParityChanged:
+		break;
+
+	case io.SerialMonEvent.StatusLineChanged:
+		break;
+
+	case io.SerialMonEvent.DtrChanged:
+		break;
+
+	case io.SerialMonEvent.RtsChanged:
+		break;
+	}
 }
 
-void CSerialSession::OnSerialBaudRateChange(uint_t Value)
-{ 
-	if (m_Serial.IsOpen)
-		WriteLog(ESerialMsg::BaudRateChange, &Value, sizeof(int));
-
-	UpdateDigest();
-}
-
-void CSerialSession::OnSerialFlowControlChange(uint_t Value)
-{ 
-	if (m_Serial.IsOpen)
-		WriteLog(ESerialMsg::FlowControlChange, &Value, sizeof(int));
-}
-
-void CSerialSession::OnSerialParityChange(uint_t Value)
-{ 
-	if (m_Serial.IsOpen)
-		WriteLog(ESerialMsg::ParityChange, &Value, sizeof(int));
-}
-
-void CSerialSession::OnSerialDataBitsChange(uint_t Value)
-{ 
-	if (m_Serial.IsOpen)
-		WriteLog(ESerialMsg::DataBitsChange, &Value, sizeof(int));
-}
-
-void CSerialSession::OnSerialStopBitsChange(uint_t Value)
-{ 
-	if (m_Serial.IsOpen)
-		WriteLog(ESerialMsg::StopBitsChange, &Value, sizeof(int));
-}
-
-void CSerialSession::OnSerialDTRChange(bool Value)
-{ 
-	if (m_Serial.IsOpen)
-		WriteLog(ESerialMsg::DTRChange, &Value, sizeof(int));
-
-	if (IsActive)
-		g_SerialUI.UpdateUI(m_Serial, ESerialUpdateUI::DTR);
-}
-
-void CSerialSession::OnSerialRTSChange(bool Value)
-{ 
-	if (m_Serial.IsOpen)
-		WriteLog(ESerialMsg::RTSChange, &Value, sizeof(int));
-
-	if (IsActive)
-		g_SerialUI.UpdateUI(m_Serial, ESerialUpdateUI::RTS);
-}
-
-void CSerialSession::OnSerialOpen()
-{
-	TSerialOpenParams Params;
-	Params.m_BaudRate = m_Serial.BaudRate;
-	Params.m_FlowControl = m_Serial.FlowControl;
-	Params.m_Parity = m_Serial.Parity;
-	Params.m_DataBits = m_Serial.DataBits;
-	Params.m_StopBits = m_Serial.StopBits;
-
-	WriteFormatLog(ESerialMsg::PortOpen, "%P%s", &Params, sizeof(Params), m_Serial.PortName);
-	
-	if (IsActive)
-		g_SerialUI.UpdateUI(m_Serial, ESerialUpdateUI::OpenState);
-}
-
-void CSerialSession::OnSerialOpenError(TError* pError)
-{
-	WriteFormatLog(ESerialMsg::PortOpenError, "%P%s", pError, sizeof(TError) + pError->m_DataSize, m_Serial.PortName);
-}
-
-void CSerialSession::OnSerialClose()
-{
-	WriteFormatLog(ESerialMsg::PortClose, "%s", m_Serial.PortName);
-
-	if (IsActive)
-		g_SerialUI.UpdateUI(m_Serial, ESerialUpdateUI::OpenState);
-}
-
-void CSerialSession::OnSerialStatusLineChange(int Mask)
-{
-	int Lines = 0;
-
-	if (m_Serial.DSR)
-		Lines |= ESerialLine::DSR;
-
-	if (m_Serial.CTS)
-		Lines |= ESerialLine::CTS;
-
-	if (m_Serial.DCD)
-		Lines |= ESerialLine::DCD;
-
-	WriteFormatLog(ESerialMsg::StatusLineChange, "%d%d", Mask, Lines);
-	
-	if (IsActive)
-		g_SerialUI.UpdateUI(m_Serial, Mask);
-}
-
-bool CSerialSession::Transmit(const void* p, size_t Size)
-{
-	return m_Serial.Transmit(p, Size);
-}
-
-void CSerialSession::OnSerialTransmit(const void* p, size_t Size)
-{
-	WriteLog(EStdLogMsg::Tx, p, Size);
-	OnTransmit(p, Size);
-}
-
-void CSerialSession::OnSerialReceive(const void* p, size_t Size)
-{
-	WriteLog(EStdLogMsg::Rx, p, Size);
-	OnReceive(p, Size);
-}
-
-//.............................................................................
-
-static bool main()
-{
-	g_SessionClassList.InsertTail(CSerialSession);
-	return true;
+reactor SerialMonSession.m_uiReactor ()
+{	
+	m_documentHost.m_title = $"Mon $(m_portNameCombo.m_currentText)";
+	m_actionTable [ActionId.StopCapture].m_isEnabled = m_state == State.Opened;
 }
 
 //.............................................................................

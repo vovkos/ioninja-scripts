@@ -1,0 +1,87 @@
+//.............................................................................
+//
+// SerialMon class
+//
+
+namespace io {
+
+//.............................................................................
+
+enum SerialMonEvent
+{
+	DeviceOpened,
+	DeviceClosed,
+	RxData,
+	TxData,
+	BaudRateChanged,
+	FlowControlChanged,
+	DataBitsChanged,
+	StopBitsChanged,
+	ParityChanged,
+	StatusLineChanged,
+	DtrChanged,
+	RtsChanged,
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+struct SerialMonEventParams
+{
+	SerialMonEvent m_eventKind;
+
+	void const* m_data;
+
+	union
+	{
+		size_t m_dataSize;
+
+		uint_t m_baudRate;
+		SerialFlowControl m_flowControl;
+		uint_t m_dataBits;
+		SerialStopBits m_stopBits;
+		SerialParity m_parity;
+
+		struct
+		{
+			SerialStatusLines m_lines;
+			SerialStatusLines m_mask;
+		}
+
+		bool m_dtr;
+		bool m_rts;
+	}
+}
+
+//.............................................................................
+
+class SerialMon
+{
+	uint_t dconst m_baudRate;
+	SerialFlowControl dconst m_flowControl;
+	uint_t dconst m_dataBits;
+	SerialStopBits dconst m_stopBits;
+	SerialParity dconst m_parity;
+
+	SerialStatusLines dconst m_statusLines;
+
+	bool dconst m_dtr;
+	bool dconst m_rts;
+
+	bool dconst m_isOpen;
+	uint_t m_syncId;
+
+	bool capture (char const* name) throws;
+	void close ();
+
+	bool read (SerialMonEventParams* params) throws;
+	
+	event m_onReadyRead (uint_t syncId);
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+SerialMon* createSerialMon ();
+
+//.............................................................................
+
+} // namespace io {

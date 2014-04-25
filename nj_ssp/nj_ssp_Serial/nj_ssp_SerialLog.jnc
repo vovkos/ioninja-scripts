@@ -94,10 +94,10 @@ bool SerialLogRepresenter.represent (
 		break;
 
 	case SerialLogRecordCode.PortOpenError:
-		jnc.Error const* Error = (jnc.Error const*) p;
+		jnc.Error const* error = (jnc.Error const*) p;
 		target.m_lineAttr.m_iconIdx = StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = StdLogColor.Error;
-		target.addHyperText ($"Unable to open port ($(Error.m_description))");
+		target.addHyperText ($"Unable to open port ($(error.m_description))");
 		break;
 
 	case SerialLogRecordCode.BaudRateChanged:

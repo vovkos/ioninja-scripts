@@ -30,6 +30,8 @@ source_virtual_folder (
 set (
 	SSP_RES_LIST
 	nj_ssp_SerialMon.njssp
+	capture.png
+	pause.png
 	serialmon.png
 	)
 

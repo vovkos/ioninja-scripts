@@ -22,6 +22,7 @@ set (
 	nj_io_PCap.jnc
 	nj_io_Packet.jnc
 	nj_io_Serial.jnc
+	nj_io_SerialMon.jnc
 	nj_io_Socket.jnc
 	nj_io_SocketAddress.jnc
 	nj_io_Ssh.jnc
