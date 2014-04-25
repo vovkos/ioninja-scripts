@@ -177,13 +177,13 @@ SerialMonSession.onReadyRead (uint_t syncId)
 		
 	io.SerialMonEventParams params;
 	try m_serialMon.read (&params);
-		
+	
 	switch (params.m_eventKind)
 	{
 	case io.SerialMonEvent.DeviceOpened:
 		m_documentHost.m_log.write (SerialMonLogRecordCode.DeviceOpened);
 		break;	
-		
+
 	case io.SerialMonEvent.DeviceClosed:		
 		m_documentHost.m_log.write (SerialMonLogRecordCode.DeviceClosed);
 		break;
@@ -197,29 +197,39 @@ SerialMonSession.onReadyRead (uint_t syncId)
 		break;
 
 	case io.SerialMonEvent.BaudRateChanged:
+		m_documentHost.m_log.write (SerialLogRecordCode.BaudRateChanged, &params.m_baudRate, sizeof (params.m_baudRate));
 		break;
 
 	case io.SerialMonEvent.FlowControlChanged:
+		m_documentHost.m_log.write (SerialLogRecordCode.FlowControlChanged, &params.m_flowControl, sizeof (params.m_flowControl));
 		break;
 
 	case io.SerialMonEvent.DataBitsChanged:
+		m_documentHost.m_log.write (SerialLogRecordCode.DataBitsChanged, &params.m_dataBits, sizeof (params.m_dataBits));
 		break;
 
 	case io.SerialMonEvent.StopBitsChanged:
+		m_documentHost.m_log.write (SerialLogRecordCode.StopBitsChanged, &params.m_stopBits, sizeof (params.m_stopBits));
 		break;
 
 	case io.SerialMonEvent.ParityChanged:
+		m_documentHost.m_log.write (SerialLogRecordCode.ParityChanged, &params.m_parity, sizeof (params.m_parity));
 		break;
 
 	case io.SerialMonEvent.StatusLineChanged:
+		char const* p = $"$(params.m_lines, B)$(params.m_mask, B)";
+		size_t size = jnc.getDataPtrSpan (p);
+		m_documentHost.m_log.write (SerialLogRecordCode.StatusLineChanged, p, size);
 		break;
 
 	case io.SerialMonEvent.DtrChanged:
+		m_documentHost.m_log.write (SerialLogRecordCode.DtrChanged, &params.m_dtr, sizeof (params.m_dtr));
 		break;
 
 	case io.SerialMonEvent.RtsChanged:
+		m_documentHost.m_log.write (SerialLogRecordCode.RtsChanged, &params.m_rts, sizeof (params.m_rts));
 		break;
-	}
+	} 
 }
 
 reactor SerialMonSession.m_uiReactor ()

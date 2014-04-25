@@ -21,3 +21,4 @@ log-representer-class = SerialMonLogRepresenter
 
 nj_ssp_SerialMonLog.jnc
 nj_ssp_SerialMonSession.jnc
+../nj_ssp_Serial/nj_ssp_SerialLog.jnc

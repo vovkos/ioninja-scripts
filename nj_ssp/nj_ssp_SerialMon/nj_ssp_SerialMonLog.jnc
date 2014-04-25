@@ -7,7 +7,7 @@
 
 enum SerialMonLogRecordCode
 {
-	CaptureStarted = 0x100,
+	CaptureStarted = 0x100, // don't mix with SerialLogRecordCode
 	CaptureStopped,
 	CaptureError,
 	DeviceOpened, 
@@ -16,7 +16,7 @@ enum SerialMonLogRecordCode
 
 //.............................................................................
 
-class SerialMonLogRepresenter: log.Representer
+class SerialMonLogRepresenter: SerialLogRepresenter
 {
 	override bool represent (
 		log.RepresenterTarget* target,
@@ -72,7 +72,7 @@ bool SerialMonLogRepresenter.represent (
 		break;
 
 	default:
-		return false;
+		return basetype.represent (target, recordCode, p, size, foldFlags);
 	}
 
 	return true;
