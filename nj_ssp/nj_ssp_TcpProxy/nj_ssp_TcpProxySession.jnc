@@ -12,12 +12,12 @@ protected:
 	{
 		Closed,
 		Opened,
+		Resolving,
 	}
 
 	enum TargetState
 	{
 		Closed,
-		Resolving,
 		Connecting,
 		Connected,
 	}
@@ -50,9 +50,10 @@ protected:
 	io.Socket* m_targetSocket;
 	io.SocketAddress m_targetAddress;
 	io.SocketAddressResolver* m_resolver;
+	uint_t m_resolverSyncId;
 	bool m_isTargetAddressResolved;
 	bool m_wasTargetAddressChangedWhileResolving;
-	
+		
 	// toolbar & menu
 	
 	gui.Action* m_actionTable [ActionId._Count];
@@ -84,8 +85,10 @@ public:
 	override void restoreDefaultProperties ();
 
 protected:
+	handleListenerConnectError (jnc.Error const* error);
 	handleTargetConnectError (jnc.Error const* error);
 	
+	onListenerPortChanged ();
 	onTargetAddressChanged ();
 	onListenerSocketEvent (io.SocketEventParams const* params);
 	onListenerConnectionSocketEvent (io.SocketEventParams const* params);
@@ -121,6 +124,7 @@ TcpProxySession.construct (doc.DocumentHost* documentHost)
 	m_targetSocket.m_onSocketEvent += onTargetSocketEvent @ m_documentHost.m_mainThreadScheduler;
 	m_resolver = io.createSocketAddressResolver ();
 	m_resolver.m_onResolverEvent += onResolverEvent @ m_documentHost.m_mainThreadScheduler;
+	m_resolverSyncId = 0;
 	m_isTargetAddressResolved = false;
 	m_wasTargetAddressChangedWhileResolving = false;
 	
@@ -135,6 +139,7 @@ TcpProxySession.createUi ()
 	m_listenerPortCombo = m_documentHost.m_toolBar.addComboBox ();
 	m_listenerPortCombo.m_isEditable = true;
 	m_listenerPortCombo.m_editText = "1001";
+	m_listenerPortCombo.m_onChanged += onListenerPortChanged;
 	
 	m_documentHost.m_toolBar.addLabel (" Connect to: ");
 	m_targetAddressCombo = m_documentHost.m_toolBar.addComboBox (-1);
@@ -187,47 +192,82 @@ bool TcpProxySession.listen () throws
 {
 	stopListen ();
 
-	io.SocketAddress address;
-	address.m_family = io.AddressFamily.Ip4;
-	address.m_ip4.m_address.m_i32 = m_adapterProp.m_value;
-	address.m_ip4.m_port = (uint16_t) atoi (m_listenerPortCombo.m_editText);
-	
-	m_listenerSocket.open (io.Protocol.Tcp, &address);
-	m_listenerSocket.listen ();
+	//m_addressCombo.addEditTextToHistory ();
+	//m_listenerPortCombo.addEditTextToHistory ();
 
-	m_documentHost.m_log.write (
-		TcpProxyLogRecordCode.Listening,
-		&address,
-		sizeof (address)
-		);
+	char const* targetAddressString = m_targetAddressCombo.m_editText;
 
-	m_localAddress = address;
-	m_listenerState = State.Opened;
+	io.SocketAddress targetAddress;
+	bool isDirectAddress = try io.parseSocketAddress (targetAddressString, &targetAddress);
+	if (isDirectAddress || m_isTargetAddressResolved)
+	{
+		if (isDirectAddress)
+			m_targetAddress = targetAddress;
+		
+		io.SocketAddress address;
+		address.m_family = io.AddressFamily.Ip4;
+		address.m_ip4.m_address.m_i32 = m_adapterProp.m_value;
+		address.m_ip4.m_port = (uint16_t) atoi (m_listenerPortCombo.m_editText);
+
+		m_listenerSocket.open (io.Protocol.Tcp, &address);
+		m_listenerSocket.listen ();
+
+		m_documentHost.m_log.write (
+			TcpProxyLogRecordCode.Listening,
+			&address,
+			sizeof (address)
+			);
+
+		m_localAddress = address;
+		m_listenerState = State.Opened;
+	}
+	else
+	{
+		m_documentHost.m_log.write (
+			TcpProxyLogRecordCode.TargetResolving,
+			targetAddressString,
+			strlen (targetAddressString)
+			);
+
+		m_resolver.m_syncId = ++m_resolverSyncId;
+		m_resolver.resolve (targetAddressString);
+		
+		m_listenerState = State.Resolving;
+		m_isTargetAddressResolved = false;
+		m_wasTargetAddressChangedWhileResolving = false;
+	}
+
 	return true;
 
 catch:
-	jnc.Error const* error = jnc.getLastError ();
-	m_documentHost.m_log.write (
-		TcpProxyLogRecordCode.ListenError,
-		error,
-		error.m_size
-		);
-		
-	m_listenerSocket.close ();
+	handleListenerConnectError (jnc.getLastError ());
 	return false;
 }
 
 TcpProxySession.stopListen ()
 {
-	if (m_listenerState != State.Opened)
-		return;
-
-	m_documentHost.m_log.write (
-		TcpProxyLogRecordCode.ListenStopped,
-		&m_localAddress,
-		sizeof (m_localAddress)
-		);
+	m_listenerPortCombo.m_backgroundColor = gui.StdColor.White;
+	m_targetAddressCombo.m_backgroundColor = gui.StdColor.White;
+	
+	switch (m_listenerState)
+	{
+		case State.Closed:
+			return;
 		
+		case State.Resolving:
+			m_documentHost.m_log.write (TcpProxyLogRecordCode.ListenCanceled);
+			m_resolverSyncId++;
+			break;
+			
+		case State.Opened:
+			m_documentHost.m_log.write (
+				TcpProxyLogRecordCode.ListenStopped,
+				&m_localAddress,
+				sizeof (m_localAddress)
+				);
+			break;
+	}
+
 	m_listenerSocket.close ();
 	m_listenerState = State.Closed;
 }
@@ -235,7 +275,7 @@ TcpProxySession.stopListen ()
 TcpProxySession.disconnect ()
 {
 	disconnectTarget ();
-	
+
 	if (m_listenerConnectionState != State.Opened)
 		return;
 
@@ -255,45 +295,17 @@ bool TcpProxySession.connectTarget ()
 {
 	disconnectTarget ();
 	
-	char const* addressString = m_targetAddressCombo.m_editText;
-	//m_addressCombo.addEditTextToHistory ();
+	m_documentHost.m_log.write (
+		TcpProxyLogRecordCode.TargetConnecting,
+		&m_targetAddress,
+		sizeof (m_targetAddress)
+		);
+
+	m_targetSocket.open (io.Protocol.Tcp);
+	m_targetSocket.connect (&m_targetAddress);
+
+	m_targetState = TargetState.Connecting;
 	
-	io.SocketAddress address;
-	bool isDirectAddress = try io.parseSocketAddress (m_targetAddressCombo.m_editText, &address);
-	if (isDirectAddress || m_isTargetAddressResolved)
-	{
-		if (isDirectAddress)
-			m_targetAddress = address;
-		else
-			address = m_targetAddress; // resolved address
-		
-		m_documentHost.m_log.write (
-			TcpProxyLogRecordCode.TargetConnecting,
-			&address,
-			sizeof (address)
-			);
-			
-		m_targetSocket.open (io.Protocol.Tcp);
-		m_targetSocket.connect (&address);
-		
-		m_targetState = TargetState.Connecting;
-	}
-	else
-	{
-		m_documentHost.m_log.write (
-			TcpProxyLogRecordCode.TargetResolving,
-			addressString,
-			strlen (addressString)
-			);
-
-		m_resolver.m_syncId = m_targetSocket.m_syncId;
-		m_resolver.resolve (addressString);
-		
-		m_targetState = TargetState.Resolving;
-		m_isTargetAddressResolved = false;
-		m_wasTargetAddressChangedWhileResolving = false;
-	}
-
 	return true;
 	
 catch:
@@ -356,12 +368,26 @@ override void TcpProxySession.restoreDefaultProperties ()
 	m_resetConnectionProp.m_value = false;
 }
 
+TcpProxySession.onListenerPortChanged ()
+{
+	switch (m_listenerState)
+	{
+		case State.Opened:
+		case State.Resolving:
+			m_listenerPortCombo.m_backgroundColor = gui.StdColor.PastelOrange;
+			break;
+	}	
+}
+
 TcpProxySession.onTargetAddressChanged ()
 {
-	if (m_targetState == TargetState.Resolving)
+	m_isTargetAddressResolved = false;
+
+	if (m_listenerState == State.Resolving)
 		m_wasTargetAddressChangedWhileResolving = true;
-	else
-		m_isTargetAddressResolved = false;
+	
+	if (m_listenerState != State.Closed)
+		m_targetAddressCombo.m_backgroundColor = gui.StdColor.PastelOrange;
 }
 
 TcpProxySession.onListenerSocketEvent (io.SocketEventParams const* params)
@@ -516,7 +542,7 @@ TcpProxySession.onTargetSocketEvent (io.SocketEventParams const* params)
 
 TcpProxySession.onResolverEvent (io.SocketAddressResolverEventParams const* params)
 {
-	if (params.m_syncId != m_targetSocket.m_syncId)
+	if (params.m_syncId != m_resolverSyncId)
 		return;
 	
 	switch (params.m_eventKind)
@@ -527,31 +553,56 @@ TcpProxySession.onResolverEvent (io.SocketAddressResolverEventParams const* para
 			params.m_address,
 			sizeof (io.SocketAddress)
 			);
-
-		m_documentHost.m_log.write (
-			TcpProxyLogRecordCode.TargetConnecting,
-			params.m_address,
-			sizeof (io.SocketAddress)
-			);
-			
-		m_targetSocket.open (io.Protocol.Tcp);
-		m_targetSocket.connect (params.m_address);
-		m_targetState = TargetState.Connecting;
 		
 		m_targetAddress = *params.m_address;
 		
 		if (!m_wasTargetAddressChangedWhileResolving)
 			m_isTargetAddressResolved = true;
+				
+		// start listening
 		
+		io.SocketAddress address;
+		address.m_family = io.AddressFamily.Ip4;
+		address.m_ip4.m_address.m_i32 = m_adapterProp.m_value;
+		address.m_ip4.m_port = (uint16_t) atoi (m_listenerPortCombo.m_editText);
+
+		m_listenerSocket.open (io.Protocol.Tcp, &address);
+		m_listenerSocket.listen ();
+
+		m_documentHost.m_log.write (
+			TcpProxyLogRecordCode.Listening,
+			&address,
+			sizeof (address)
+			);
+
+		m_localAddress = address;
+		m_listenerState = State.Opened;
 		break;
 
 	case io.SocketAddressResolverEvent.ResolveError:
-		handleTargetConnectError (params.m_error);
+		m_documentHost.m_log.write (
+			TcpProxyLogRecordCode.TargetResolvingError,
+			params.m_error,
+			params.m_error.m_size
+			);
+		m_listenerState = State.Closed;
 		break;
 	}
 
 catch:
-	handleTargetConnectError (jnc.getLastError ());
+	handleListenerConnectError (jnc.getLastError ());
+}
+
+TcpProxySession.handleListenerConnectError (jnc.Error const* error)
+{
+	m_documentHost.m_log.write (
+		TcpProxyLogRecordCode.ListenError,
+		error,
+		error.m_size
+		);
+		
+	m_listenerSocket.close ();
+	m_listenerState = State.Closed;
 }
 
 TcpProxySession.handleTargetConnectError (jnc.Error const* error)

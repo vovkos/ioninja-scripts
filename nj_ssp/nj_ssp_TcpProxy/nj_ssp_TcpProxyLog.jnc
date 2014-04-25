@@ -10,16 +10,18 @@ enum TcpProxyLogRecordCode
 	Listening               = 1,
 	ListenError             = 2,
 	ListenStopped           = 3,
-	ClientConnected         = 4,
-	ClientDisconnected      = 5,
-	ClientRejected          = 6,
-	TargetConnecting        = 7  | log.RecordCodeFlags.Mergeable,
-	TargetConnectCompleted  = 8  | log.RecordCodeFlags.Mergeable,
-	TargetConnectCancelled  = 9  | log.RecordCodeFlags.Mergeable,
-	TargetConnectError      = 10 | log.RecordCodeFlags.Mergeable,
-	TargetDisconnected      = 11,
-	TargetResolving         = 12 | log.RecordCodeFlags.Mergeable,
-	TargetResolveCompleted  = 13 | log.RecordCodeFlags.Mergeable,
+	ListenCanceled			= 4   | log.RecordCodeFlags.Mergeable,
+	ClientConnected         = 5,
+	ClientDisconnected      = 6,
+	ClientRejected          = 7,
+	TargetConnecting        = 8   | log.RecordCodeFlags.Mergeable,
+	TargetConnectCompleted  = 9   | log.RecordCodeFlags.Mergeable,
+	TargetConnectCancelled  = 10  | log.RecordCodeFlags.Mergeable,
+	TargetConnectError      = 11  | log.RecordCodeFlags.Mergeable,
+	TargetDisconnected      = 12,
+	TargetResolving         = 13  | log.RecordCodeFlags.Mergeable,
+	TargetResolveCompleted  = 14  | log.RecordCodeFlags.Mergeable,
+	TargetResolvingError    = 15  | log.RecordCodeFlags.Mergeable,
 }
 
 enum TcpProxyPartCode
@@ -64,7 +66,7 @@ bool TcpProxyLogRepresenter.represent (
 		jnc.Error const* Error = (jnc.Error const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		target.addHyperText ($"Cannot listen ($(Error.m_description))");
+		target.addHyperText (TcpProxyPartCode.TargetConnectCompleted, $"Cannot listen ($(Error.m_description))");
 		break;
 
 	case TcpProxyLogRecordCode.ListenStopped:
@@ -72,6 +74,10 @@ bool TcpProxyLogRepresenter.represent (
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
 		target.addHyperText ($"Stopped listening on <15>$addressString<>");
+		break;
+
+	case TcpProxyLogRecordCode.ListenCanceled:
+		target.addHyperText (TcpProxyPartCode.TargetConnectCompleted, "cancelled");
 		break;
 
 	case TcpProxyLogRecordCode.ClientConnected:
@@ -139,6 +145,15 @@ bool TcpProxyLogRepresenter.represent (
 	case TcpProxyLogRecordCode.TargetResolveCompleted:
 		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.addHyperText (TcpProxyPartCode.TargetConnectCompleted, $"ok (<15>$addressString<>)");
+		break;
+		
+	case TcpProxyLogRecordCode.TargetResolvingError:
+		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
+
+		jnc.Error const* Error = (jnc.Error const*) p;
+		target.addHyperText (TcpProxyPartCode.TargetConnectCompleted, $"error ($(Error.m_description))");
 		break;
 
 	default:
