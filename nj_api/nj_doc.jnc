@@ -90,6 +90,13 @@ opaque class DocumentHost
 		char const* name,
 		char const* toolTipText
 		);
+
+	gui.EnumProperty* createSerialPortProperty (
+		char const* name,
+		char const* toolTipText,
+		io.SerialPort const* portList,
+		size_t portCount
+		);
 }
 
 //.............................................................................
@@ -279,6 +286,31 @@ gui.EnumProperty* DocumentHost.createNetworkAdapterProperty (
 		toolTipText,
 		adapterOptionArray,
 		adapterCount
+		);
+}
+
+gui.EnumProperty* DocumentHost.createSerialPortProperty (
+		char const* name,
+		char const* toolTipText,
+		io.SerialPort const* portList,
+		size_t portCount
+		)
+{
+	gui.EnumPropertyOption* portOptionArray = new gui.EnumPropertyOption [portCount];
+	gui.EnumPropertyOption* portOption = portOptionArray;
+
+	io.SerialPort const* port = portList;
+	for (; port; port = port->m_next, portOption++)
+	{
+		portOption.m_text = port->m_name;
+		portOption.m_value = 0;
+	}
+
+	return createEnumProperty (
+		name,
+		toolTipText,
+		portOptionArray,
+		portCount
 		);
 }
 

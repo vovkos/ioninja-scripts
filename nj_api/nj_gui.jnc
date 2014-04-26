@@ -122,6 +122,7 @@ opaque class ComboBox
 	}
 
 	char const* autoget property m_toolTipText;
+	uint_t autoget property m_backgroundColor;
 
 	void addEditTextToHistory ();
 

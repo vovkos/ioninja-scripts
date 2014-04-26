@@ -108,6 +108,19 @@ opaque class Serial
 
 Serial* createSerial ();
 
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+struct SerialPort
+{
+	SerialPort const* m_next;
+	char const* m_name;
+	char const* m_description;
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+SerialPort const* createSerialPortList (size_t* count = null);
+
 //.............................................................................
 
 } // namespace io {
