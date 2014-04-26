@@ -23,7 +23,7 @@ enum SerialLogRecordCode
 enum StatusLinePartCode
 {
 	Prefix = 1 | log.RecordCodeFlags.MergeableForward,
-	Suffix = 1 | log.RecordCodeFlags.MergeableBackward,
+	Suffix = 1 | log.RecordCodeFlags.Mergeable,
 }
 
 

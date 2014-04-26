@@ -217,7 +217,8 @@ SerialMonSession.onReadyRead (uint_t syncId)
 		break;
 
 	case io.SerialMonEvent.StatusLineChanged:
-		char const* p = $"$(params.m_lines, B)$(params.m_mask, B)";
+		uint_t mask = -1;
+		char const* p = $"$(params.m_statusLines, B)$(mask, B)";
 		size_t size = jnc.getDataPtrSpan (p);
 		m_documentHost.m_log.write (SerialLogRecordCode.StatusLineChanged, p, size);
 		break;

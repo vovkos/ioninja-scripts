@@ -40,12 +40,7 @@ struct SerialMonEventParams
 		uint_t m_dataBits;
 		SerialStopBits m_stopBits;
 		SerialParity m_parity;
-
-		struct
-		{
-			SerialStatusLines m_lines;
-			SerialStatusLines m_mask;
-		}
+		SerialStatusLines m_statusLines;
 
 		bool m_dtr;
 		bool m_rts;
@@ -56,17 +51,6 @@ struct SerialMonEventParams
 
 class SerialMon
 {
-	uint_t dconst m_baudRate;
-	SerialFlowControl dconst m_flowControl;
-	uint_t dconst m_dataBits;
-	SerialStopBits dconst m_stopBits;
-	SerialParity dconst m_parity;
-
-	SerialStatusLines dconst m_statusLines;
-
-	bool dconst m_dtr;
-	bool dconst m_rts;
-
 	bool dconst m_isOpen;
 	uint_t m_syncId;
 
