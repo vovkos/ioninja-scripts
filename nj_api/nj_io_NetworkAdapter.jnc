@@ -37,9 +37,9 @@ struct NetworkAdapterAddress
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-struct NetworkAdapter
+struct NetworkAdapterDesc
 {
-	NetworkAdapter const* m_next;
+	NetworkAdapterDesc const* m_next;
 	NetworkAdapterType m_type;
 	NetworkAdapterFlags m_flags;
 	char const* m_name;
@@ -53,7 +53,7 @@ struct NetworkAdapter
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-NetworkAdapter const* createNetworkAdapterList (size_t* count = null);
+NetworkAdapterDesc const* createNetworkAdapterDescList (size_t* count = null);
 
 //.............................................................................
 

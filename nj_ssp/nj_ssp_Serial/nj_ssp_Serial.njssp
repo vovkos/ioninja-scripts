@@ -13,6 +13,7 @@ icon        = serial.png
 
 session-class         = SerialSession
 log-representer-class = SerialLogRepresenter
+log-filter-class      = SerialLogFilter
 
 [scripts]
 

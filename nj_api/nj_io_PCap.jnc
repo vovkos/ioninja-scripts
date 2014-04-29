@@ -7,30 +7,6 @@ namespace io {
 
 //.............................................................................
 
-struct PCapAddress
-{
-	PCapAddress const* m_next;
-	
-	// currently not used
-}
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-struct PCapDevice
-{
-	PCapDevice const* m_next;
-	char const* m_name;
-	char const* m_description;
-	PCapAddress m_address;
-	uint_t m_flags;
-}
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-PCapDevice const* createPCapDeviceList (size_t* count = null);
-
-//.............................................................................
-
 opaque class PCap
 {
 	char const* autoget property m_filter;
@@ -62,6 +38,32 @@ opaque class PCap
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 PCap* createPCap ();
+
+//.............................................................................
+
+// pcap device enumeration
+
+struct PCapAddress
+{
+	PCapAddress const* m_next;
+	
+	// currently not used
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+struct PCapDeviceDesc
+{
+	PCapDeviceDesc const* m_next;
+	char const* m_name;
+	char const* m_description;
+	PCapAddress m_address;
+	uint_t m_flags;
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+PCapDeviceDesc const* createPCapDeviceDescList (size_t* count = null);
 
 //.............................................................................
 

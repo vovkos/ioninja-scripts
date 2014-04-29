@@ -93,7 +93,7 @@ opaque class RepresenterTarget
 	uint_t dconst m_recordCode;
 	LineAttr m_lineAttr;
 
-	abstract void addPart (
+	void addPart (
 		PartKind partKind,
 		uint_t partCode,
 		void const* p,
@@ -146,19 +146,64 @@ class Representer
 
 //.............................................................................
 
-// log engine
-
-opaque class Log
+opaque class Writer
 {
-	Representer* autoget property m_representer;
-	gui.Icon* indexed property m_iconTable (size_t i);
-
-	writeEx (
+	write (
 		uint64_t timestamp,
 		uint_t recordCode,
 		void const* p,
 		size_t size
 		);
+}
+
+//.............................................................................
+
+class Filter
+{
+	abstract bool filter (
+		Writer* writer,
+		uint64_t timestamp,
+		uint_t recordCode,
+		void const* p,
+		size_t size
+		);
+
+	virtual reset ()
+	{
+	}
+}
+
+//.............................................................................
+
+// log engine
+
+opaque class Log
+{
+	gui.Icon* indexed property m_iconTable (size_t i);
+
+	Writer* dconst m_writer;
+	Representer* autoget property m_representer;
+
+	size_t dconst m_filterCount;
+	Filter* indexed property m_filterStack (size_t i);
+
+	size_t appendFilter (
+		Filter* filter,
+		Representer* representer = null
+		);
+		
+	removeFilter (size_t i);
+	removeAllFilters ();
+
+	write (
+		uint64_t timestamp,
+		uint_t recordCode,
+		void const* p,
+		size_t size
+		)
+	{
+		m_writer.write (timestamp, recordCode, p, size);
+	}
 
 	write (
 		uint_t recordCode,
@@ -166,12 +211,12 @@ opaque class Log
 		size_t size
 		)
 	{
-		writeEx (jnc.getTimestamp (), recordCode, p, size);
+		m_writer.write (jnc.getTimestamp (), recordCode, p, size);
 	}
 
 	write (uint_t recordCode)
 	{
-		writeEx (jnc.getTimestamp (), recordCode, null, 0);
+		m_writer.write (jnc.getTimestamp (), recordCode, null, 0);
 	}
 }
 

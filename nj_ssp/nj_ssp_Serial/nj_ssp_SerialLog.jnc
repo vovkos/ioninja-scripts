@@ -26,7 +26,6 @@ enum StatusLinePartCode
 	Suffix = 1 | log.RecordCodeFlags.Mergeable,
 }
 
-
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 struct SerialOpenParams
@@ -181,6 +180,74 @@ bool SerialLogRepresenter.represent (
 			bool dcd = (lines & io.SerialStatusLines.Dcd) != 0;
 			target.addHyperText (StatusLinePartCode.Suffix, $" <15>DCD<>:$dcd");
 		}
+
+		break;
+
+	default:
+		return false;
+	}
+
+	return true;
+}
+
+//.............................................................................
+
+class SerialLogFilter: log.Filter
+{
+	bool m_isSettingChangedVisible;
+	bool m_isControlLineChangedVisible;
+	bool m_isStatusLineChangedVisible;
+
+	construct ();
+
+	override bool filter (
+		log.Writer* writer,
+		uint64_t timestamp,
+		uint_t recordCode,
+		void const* p,
+		size_t size
+		);
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+SerialLogFilter.construct ()
+{
+	m_isSettingChangedVisible = true;
+	m_isControlLineChangedVisible = true;
+	m_isStatusLineChangedVisible = true;
+}
+
+bool SerialLogFilter.filter (
+	log.Writer* writer,
+	uint64_t timestamp,
+	uint_t recordCode,
+	void const* p,
+	size_t size
+	)
+{
+	switch (recordCode)
+	{
+	case SerialLogRecordCode.BaudRateChanged:
+	case SerialLogRecordCode.DataBitsChanged:
+	case SerialLogRecordCode.StopBitsChanged:
+	case SerialLogRecordCode.ParityChanged:
+	case SerialLogRecordCode.FlowControlChanged:
+		if (m_isSettingChangedVisible)
+			writer.write (timestamp, recordCode, p, size);
+
+		break;
+
+	case SerialLogRecordCode.RtsChanged:
+	case SerialLogRecordCode.DtrChanged:
+		if (m_isControlLineChangedVisible)
+			writer.write (timestamp, recordCode, p, size);
+
+		break;
+
+	case SerialLogRecordCode.StatusLineChanged:
+		if (m_isControlLineChangedVisible)
+			writer.write (timestamp, recordCode, p, size);
 
 		break;
 

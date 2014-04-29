@@ -86,12 +86,12 @@ SnifferSession.createUi ()
 	m_deviceCombo = m_documentHost.m_toolBar.addComboBox (-1);
 	m_deviceCombo.m_onEnter += capture;
 
-	io.PCapDevice const* device = io.createPCapDeviceList ();
+	io.PCapDeviceDesc const* device = io.createPCapDeviceDescList ();
 
 	for (; device; device = device->m_next)
 	{
 		char const* itemName = $"$(device.m_name) - $(device.m_description)";
-		object <io.PCapDevice const*>* data = new object <io.PCapDevice const*>;
+		object <io.PCapDeviceDesc const*>* data = new object <io.PCapDeviceDesc const*>;
 		data.m_value = device;
 		m_deviceCombo.addItem (itemName, data);
 	}
@@ -132,8 +132,8 @@ bool SnifferSession.capture () throws
 {
 	stopCapture ();
 
-	object <io.PCapDevice const*>* data = (object <io.PCapDevice const*>*) m_deviceCombo.m_itemData [m_deviceCombo.m_currentIndex];
-	io.PCapDevice const* device = data.m_value;
+	object <io.PCapDeviceDesc const*>* data = (object <io.PCapDeviceDesc const*>*) m_deviceCombo.m_itemData [m_deviceCombo.m_currentIndex];
+	io.PCapDeviceDesc const* device = data.m_value;
 
 	m_pcap.open (
 		device.m_name, 

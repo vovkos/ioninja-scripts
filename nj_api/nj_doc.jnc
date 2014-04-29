@@ -94,7 +94,7 @@ opaque class DocumentHost
 	gui.EnumProperty* createSerialPortProperty (
 		char const* name,
 		char const* toolTipText,
-		io.SerialPort const* portList,
+		io.SerialPortDesc const* portList,
 		size_t portCount
 		);
 }
@@ -103,8 +103,8 @@ opaque class DocumentHost
 
 enum DocumentKind
 {
-	Log,
 	Session,
+	Filter,
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -142,17 +142,6 @@ class Document
 
 	virtual void restoreDefaultProperties ()
 	{		
-	}
-
-}
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-class Log: Document
-{
-	construct (DocumentHost* documentHost)
-	{
-		basetype.construct (DocumentKind.Log, documentHost);
 	}
 }
 
@@ -255,7 +244,7 @@ gui.EnumProperty* DocumentHost.createNetworkAdapterProperty (
 	)
 {
 	size_t adapterCount;
-	io.NetworkAdapter const* adapterList = io.createNetworkAdapterList (&adapterCount);
+	io.NetworkAdapterDesc const* adapterList = io.createNetworkAdapterDescList (&adapterCount);
 
 	adapterCount += 2; // include 'All adapters' and 'Loopback adapter'
 	gui.EnumPropertyOption* adapterOptionArray = new gui.EnumPropertyOption [adapterCount];
@@ -269,7 +258,7 @@ gui.EnumProperty* DocumentHost.createNetworkAdapterProperty (
 	adapterOption.m_value = 0x7f000001;
 	adapterOption++;	
 
-	io.NetworkAdapter const* adapter = adapterList;
+	io.NetworkAdapterDesc const* adapter = adapterList;
 	for (; adapter; adapter = adapter->m_next, adapterOption++)
 	{
 		adapterOption.m_text = jnc.format (
@@ -292,14 +281,14 @@ gui.EnumProperty* DocumentHost.createNetworkAdapterProperty (
 gui.EnumProperty* DocumentHost.createSerialPortProperty (
 		char const* name,
 		char const* toolTipText,
-		io.SerialPort const* portList,
+		io.SerialPortDesc const* portList,
 		size_t portCount
 		)
 {
 	gui.EnumPropertyOption* portOptionArray = new gui.EnumPropertyOption [portCount];
 	gui.EnumPropertyOption* portOption = portOptionArray;
 
-	io.SerialPort const* port = portList;
+	io.SerialPortDesc const* port = portList;
 	for (; port; port = port->m_next, portOption++)
 	{
 		portOption.m_text = port->m_name;

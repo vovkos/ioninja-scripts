@@ -7,8 +7,6 @@ namespace io {
 
 //.............................................................................
 
-// serial
-
 enum SerialFlowControl
 {
 	None = 0,
@@ -46,7 +44,7 @@ fenum SerialStatusLines
 	Dcd,
 }
 
-//.............................................................................
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 enum SerialEvent
 {
@@ -108,18 +106,20 @@ opaque class Serial
 
 Serial* createSerial ();
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+//.............................................................................
 
-struct SerialPort
+// serial port enumeration
+
+struct SerialPortDesc
 {
-	SerialPort const* m_next;
+	SerialPortDesc const* m_next;
 	char const* m_name;
 	char const* m_description;
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-SerialPort const* createSerialPortList (size_t* count = null);
+SerialPortDesc const* createSerialPortDescList (size_t* count = null);
 
 //.............................................................................
 

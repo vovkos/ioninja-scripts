@@ -29,6 +29,7 @@ protected:
 	State bindable m_state;
 	io.Serial* m_serial;
 	char const* m_portName;
+	SerialLogFilter m_logFilter;
 
 	// toolbar & menu
 
@@ -37,7 +38,7 @@ protected:
 	gui.ComboBox* m_baudRateCombo;
 	gui.ComboBox* m_flowControlCombo;
 
-	// property grid
+	// serial property grid
 
 	gui.EnumProperty* m_portProp;
 	gui.EnumProperty* m_baudRateProp;
@@ -45,6 +46,12 @@ protected:
 	gui.EnumProperty* m_dataBitsProp;
 	gui.EnumProperty* m_stopBitsProp;
 	gui.EnumProperty* m_parityProp;
+
+	// filter property grid
+
+	gui.BoolProperty* m_settingChangedVisibleProp;
+	gui.BoolProperty* m_controlLineChangedVisibleProp;
+	gui.BoolProperty* m_statusLineChangedVisibleProp;
 
 public:
 	construct (doc.DocumentHost* documentHost);
@@ -79,7 +86,9 @@ protected:
 SerialSession.construct (doc.DocumentHost* documentHost)
 {
 	basetype.construct (documentHost);
+
 	documentHost.m_log.m_representer = static new SerialLogRepresenter;
+	documentHost.m_log.appendFilter (m_logFilter);
 
 	m_state = State.Closed;
 	m_serial = io.createSerial ();
@@ -93,14 +102,14 @@ SerialSession.createUi ()
 	// toolbar
 
 	size_t portCount;
-	io.SerialPort const* portList = io.createSerialPortList (&portCount);
+	io.SerialPortDesc const* portList = io.createSerialPortDescList (&portCount);
 
 	m_documentHost.m_toolBar.addLabel ("Port: ");
 	m_portCombo = m_documentHost.m_toolBar.addComboBox ();
 	m_portCombo.m_isEditable = true;
 	m_portCombo.m_onEnter += open;
 	
-	io.SerialPort const* port = portList;
+	io.SerialPortDesc const* port = portList;
 	for (; port; port = port.m_next)
 		m_portCombo.addItem (port.m_name, null);
 	
@@ -236,7 +245,24 @@ SerialSession.createUi ()
 		);
 
 	m_parityProp.m_value = io.SerialParity.None;
-	
+
+	// filter 
+
+	m_settingChangedVisibleProp = m_documentHost.createBoolProperty (
+		"Show setting changes",
+		"Display setting change log records (or filter them out)"
+		);
+
+	m_controlLineChangedVisibleProp = m_documentHost.createBoolProperty (
+		"Show control line changes",
+		"Display control line change log records (or filter them out)"
+		);
+
+	m_statusLineChangedVisibleProp = m_documentHost.createBoolProperty (
+		"Show status line changes",
+		"Display status line change log records (or filter them out)"
+		);
+
 	m_uiReactor.start ();
 }
 
@@ -306,6 +332,9 @@ void SerialSession.load (doc.Storage* storage)
 	m_dataBitsProp.m_value = storage.readInt ("dataBits");
 	m_stopBitsProp.m_value = storage.readInt ("stopBits");
 	m_parityProp.m_value = storage.readInt ("parity");
+	m_logFilter.m_isSettingChangedVisible = storage.readBool ("isSettingChangedVisible");
+	m_logFilter.m_isControlLineChangedVisible = storage.readBool ("isControlLineChangedVisible");
+	m_logFilter.m_isStatusLineChangedVisible = storage.readBool ("isStatusLineChangedVisible");
 }
 
 void SerialSession.save (doc.Storage* storage)
@@ -316,6 +345,9 @@ void SerialSession.save (doc.Storage* storage)
 	storage.writeInt ("dataBits", m_dataBitsProp.m_value);
 	storage.writeInt ("stopBits", m_stopBitsProp.m_value);
 	storage.writeInt ("parity", m_parityProp.m_value);
+	storage.writeBool ("isSettingChangedVisible", m_logFilter.m_isSettingChangedVisible);
+	storage.writeBool ("isControlLineChangedVisible", m_logFilter.m_isControlLineChangedVisible);
+	storage.writeBool ("isStatusLineChangedVisible", m_logFilter.m_isStatusLineChangedVisible);
 }
 
 void SerialSession.updateProperties ()
@@ -323,6 +355,9 @@ void SerialSession.updateProperties ()
 	m_portProp.m_currentIndex = m_portCombo.m_currentIndex;
 	m_baudRateProp.m_currentIndex = m_baudRateCombo.m_currentIndex;
 	m_flowControlProp.m_currentIndex = m_flowControlCombo.m_currentIndex;
+	m_settingChangedVisibleProp.m_value = m_logFilter.m_isSettingChangedVisible;
+	m_controlLineChangedVisibleProp.m_value = m_logFilter.m_isControlLineChangedVisible;
+	m_statusLineChangedVisibleProp.m_value = m_logFilter.m_isStatusLineChangedVisible;
 }
 
 bool SerialSession.applyProperties () throws
@@ -330,7 +365,10 @@ bool SerialSession.applyProperties () throws
 	m_portCombo.m_currentIndex = m_portProp.m_currentIndex;
 	m_baudRateCombo.m_currentIndex = m_baudRateProp.m_currentIndex;
 	m_flowControlCombo.m_currentIndex = m_flowControlProp.m_currentIndex;
-	
+	m_logFilter.m_isSettingChangedVisible = m_settingChangedVisibleProp.m_value;
+	m_logFilter.m_isControlLineChangedVisible = m_controlLineChangedVisibleProp.m_value;
+	m_logFilter.m_isStatusLineChangedVisible = m_statusLineChangedVisibleProp.m_value;
+
 	if (m_state == State.Opened)
 	{
 		uint_t dataBitsValue = m_dataBitsProp.m_value;
@@ -368,6 +406,10 @@ void SerialSession.restoreDefaultProperties ()
 	m_dataBitsProp.m_value = 8;
 	m_stopBitsProp.m_value = io.SerialStopBits._1;
 	m_parityProp.m_value = io.SerialParity.None;
+
+	m_settingChangedVisibleProp.m_value = true;
+	m_controlLineChangedVisibleProp.m_value = true;
+	m_statusLineChangedVisibleProp.m_value = true;
 }
 
 size_t SerialSession.transmit (
