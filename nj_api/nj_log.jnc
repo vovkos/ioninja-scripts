@@ -158,6 +158,15 @@ opaque class Writer
 
 //.............................................................................
 
+enum FilterRole
+{
+	Filter,   // default -- generates secondary log (writer is non-null)
+	Sink,     // no secondary log (writer is null), filter is invoked on log rebuild
+	LiveSink, // no secondary log (writer is null), filter is invoked on live records only
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
 class Filter
 {
 	abstract bool filter (
@@ -184,16 +193,10 @@ opaque class Log
 	Writer* dconst m_writer;
 	Representer* autoget property m_representer;
 
-	size_t dconst m_filterCount;
-	Filter* indexed property m_filterStack (size_t i);
-
-	size_t appendFilter (
+	attachFilter (
 		Filter* filter,
-		Representer* representer = null
+		FilterRole role = FilterRole.Filter
 		);
-		
-	removeFilter (size_t i);
-	removeAllFilters ();
 
 	write (
 		uint64_t timestamp,

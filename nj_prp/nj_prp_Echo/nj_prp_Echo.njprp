@@ -1,0 +1,19 @@
+//.............................................................................
+//
+// Echo protocol provider
+//
+
+[protocol]
+
+name        = Echo
+description = "Immediatly transmits back received data"
+id          = echo
+guid        = 4a6e988d-8479-4103-8e84-c72e7055d1b9
+icon        = echo.png
+
+protocol-class = EchoProtocol
+
+[scripts]
+
+nj_prp_EchoProtocol.jnc
+

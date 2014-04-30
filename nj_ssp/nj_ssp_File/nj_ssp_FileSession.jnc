@@ -47,7 +47,7 @@ protected:
 	gui.EnumProperty* m_accessProp;
 
 public:
-	construct (doc.DocumentHost* documentHost);
+	construct (doc.PluginHost* pluginHost);
 
 	bool open () throws;
 	close ();
@@ -73,35 +73,35 @@ protected:
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-FileSession.construct (doc.DocumentHost* documentHost)
+FileSession.construct (doc.PluginHost* pluginHost)
 {
-	basetype.construct (documentHost);
+	basetype.construct (pluginHost);
 	
-	documentHost.m_log.m_representer = static new FileLogRepresenter;
+	pluginHost.m_log.m_representer = static new FileLogRepresenter;
 
 	m_state = State.Closed;
 	m_access = Access.ReadWrite;
 	m_file = io.createFileStream ();
-	m_file.m_onFileStreamEvent += onFileStreamEvent @ m_documentHost.m_mainThreadScheduler;
+	m_file.m_onFileStreamEvent += onFileStreamEvent @ m_pluginHost.m_mainThreadScheduler;
 
 	createUi ();
 }
 
 FileSession.createUi ()
 {
-	m_documentHost.m_toolBar.addLabel ("File:");
-	m_fileNameCombo = m_documentHost.m_toolBar.addComboBox (-1);
+	m_pluginHost.m_toolBar.addLabel ("File:");
+	m_fileNameCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_fileNameCombo.m_isEditable = true;
 	m_fileNameCombo.m_onEnter += open;
 
-	m_actionTable [ActionId.Open] = m_documentHost.createAction ("Open", "open.png");
+	m_actionTable [ActionId.Open] = m_pluginHost.createAction ("Open", "open.png");
 	m_actionTable [ActionId.Open].m_onTriggered += open;
 
-	m_actionTable [ActionId.Close] = m_documentHost.createAction ("Close", "close.png");
+	m_actionTable [ActionId.Close] = m_pluginHost.createAction ("Close", "close.png");
 	m_actionTable [ActionId.Close].m_onTriggered += close;
 	m_actionTable [ActionId.Close].m_isEnabled = false;
 
-	m_fileNameProp = m_documentHost.createStringProperty (
+	m_fileNameProp = m_pluginHost.createStringProperty (
 		"File name",
 		"Specify the file name to open"
 		);
@@ -113,7 +113,7 @@ FileSession.createUi ()
 		{ "Write-only",  Access.WriteOnly },
 	};
 
-	m_accessProp = m_documentHost.createEnumProperty (
+	m_accessProp = m_pluginHost.createEnumProperty (
 		"Access mode",
 		"Access mode for the file",
 		ifaceTable,
@@ -129,7 +129,7 @@ bool FileSession.open () throws
 
 	char const* fileName = m_fileNameCombo.m_editText;
 	m_file.open (fileName);
-	m_documentHost.m_log.write (FileLogRecordCode.Opened, fileName, strlen (fileName));
+	m_pluginHost.m_log.write (FileLogRecordCode.Opened, fileName, strlen (fileName));
 	
 	m_fileName = fileName;
 	m_state = State.Opened;
@@ -137,7 +137,7 @@ bool FileSession.open () throws
 
 catch:
 	jnc.Error const* error = jnc.getLastError ();
-	m_documentHost.m_log.write (
+	m_pluginHost.m_log.write (
 		FileLogRecordCode.OpenError,
 		error,
 		error.m_size
@@ -152,7 +152,7 @@ FileSession.close ()
 	if (m_state != State.Opened)
 		return;
 
-	m_documentHost.m_log.write (FileLogRecordCode.Closed, m_fileName, strlen (m_fileName));
+	m_pluginHost.m_log.write (FileLogRecordCode.Closed, m_fileName, strlen (m_fileName));
 	m_file.close ();
 	m_state = State.Opened;
 }
@@ -196,7 +196,7 @@ size_t FileSession.transmit (
 
 	size_t result = try m_file.write (p, size);
 	if (result != -1)
-		m_documentHost.m_log.write (log.StdRecordCode.Tx, p, result);
+		m_pluginHost.m_log.write (log.StdRecordCode.Tx, p, result);
 
 	return result;
 }
@@ -210,7 +210,7 @@ FileSession.onFileStreamEvent (io.FileStreamEventParams const* params)
 	{
 	case io.FileStreamEvent.Eof:
 	case io.FileStreamEvent.ReadError:
-		m_documentHost.m_log.write (FileLogRecordCode.Eof);
+		m_pluginHost.m_log.write (FileLogRecordCode.Eof);
 		m_file.close ();
 		m_state = State.Closed;
 		break;
@@ -219,15 +219,15 @@ FileSession.onFileStreamEvent (io.FileStreamEventParams const* params)
 		heap char buffer [512];
 		size_t result = try m_file.read (buffer, sizeof (buffer));
 		if (result != -1)
-			m_documentHost.m_log.write (log.StdRecordCode.Rx, buffer, result);
+			m_pluginHost.m_log.write (log.StdRecordCode.Rx, buffer, result);
 		break;	
 	}
 }
 
 reactor FileSession.m_uiReactor ()
 {
-	m_documentHost.m_title = $"File $(m_fileNameCombo.m_editText)";
-	m_documentHost.m_isTransmitEnabled = m_state == State.Opened;
+	m_title = $"File $(m_fileNameCombo.m_editText)";
+	m_isTransmitEnabled = m_state == State.Opened;
 	m_actionTable [ActionId.Close].m_isEnabled = m_state == State.Opened;
 }
 

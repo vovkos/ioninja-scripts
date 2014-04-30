@@ -4,7 +4,7 @@
 
 #..............................................................................
 
-project_virtual_folder (nj_api_Script)
+project_virtual_folder (nj_prp_Echo)
 
 #..............................................................................
 #
@@ -12,44 +12,45 @@ project_virtual_folder (nj_api_Script)
 #
 
 set (
-	API_JNC_LIST
-	nj_doc_Plugin.jnc
-	nj_doc_PluginHost.jnc
-	nj_doc_Storage.jnc
-	nj_gui.jnc
-	nj_io_FileStream.jnc
-	nj_io_MappedFile.jnc
-	nj_io_NamedPipe.jnc
-	nj_io_NetworkAdapter.jnc
-	nj_io_PCap.jnc
-	nj_io_Packet.jnc
-	nj_io_Serial.jnc
-	nj_io_SerialMon.jnc
-	nj_io_Socket.jnc
-	nj_io_SocketAddress.jnc
-	nj_io_Ssh.jnc
-	nj_log.jnc
-	nj_std.jnc
+	PRP_JNC_LIST
+	nj_prp_EchoProtocol.jnc
 	)
 
 source_virtual_folder (
-	api
-	${API_JNC_LIST}
+	src
+	${PRP_JNC_LIST}
 	)
 
 #..............................................................................
 #
-# nj_api script library
+# res folder
+#
+
+set (
+	PRP_RES_LIST
+	nj_prp_Echo.njprp
+	echo.png
+	)
+
+source_virtual_folder (
+	res
+	${PRP_RES_LIST}
+	)
+
+#..............................................................................
+#
+# nj_prp_Echo script library
 #
 
 add_library (
-	nj_api_Script
+	nj_prp_Echo
 	EXCLUDE_FROM_ALL
-	${API_JNC_LIST}
+	${PRP_JNC_LIST}
+	${PRP_RES_LIST}
 	)
 
 set_target_properties (
-	nj_api_Script
+	nj_prp_Echo
 	PROPERTIES
 	FOLDER scripts
 	LINKER_LANGUAGE C

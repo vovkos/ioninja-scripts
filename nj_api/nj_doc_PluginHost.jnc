@@ -1,58 +1,19 @@
 //.............................................................................
 //
-// Ninja document model
+// Ninja document model: plugin host
 //
 
 namespace doc {
 
 //.............................................................................
 
-opaque class Storage
+opaque class PluginHost
 {
-	char const* autoget property m_directory;
-
-	void clear ();
-
-	bool readBool (char const* name)
-	{
-		return readInt (name) != 0;
-	}
-
-	void writeBool (
-		char const* name, 
-		bool value
-		)
-	{
-		return writeInt (name, value);
-	}
-
-	int readInt (char const* name);
-
-	void writeInt (
-		char const* name, 
-		int value
-		);
-
-	char const* readString (char const* name);
-
-	void writeString (
-		char const* name, 
-		char const* value
-		);
-}
-
-//.............................................................................
-
-opaque class DocumentHost
-{
-	char const* autoget property m_title;
-	bool autoget property m_isTransmitEnabled;
-	
-	gui.Menu* m_menu;
-	gui.ToolBar* m_toolBar;
-	gui.PropertyGrid* m_propertyGrid;
-	log.Log* m_log;
-	jnc.Scheduler* m_mainThreadScheduler;
+	gui.Menu* dconst m_menu;
+	gui.ToolBar* dconst m_toolBar;
+	gui.PropertyGrid* dconst m_propertyGrid;
+	log.Log* dconst m_log;
+	jnc.Scheduler* dconst m_mainThreadScheduler;
 
 	gui.Action* createAction (
 		char const* text,
@@ -99,73 +60,9 @@ opaque class DocumentHost
 		);
 }
 
-//.............................................................................
-
-enum DocumentKind
-{
-	Session,
-	Filter,
-}
-
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-class Document
-{
-	DocumentKind dconst m_documentKind;
-	DocumentHost* dconst m_documentHost;
-
-	construct (
-		DocumentKind documentKind,
-		DocumentHost* documentHost
-		)
-	{
-		m_documentKind = documentKind;
-		m_documentHost = documentHost;
-	}
-	
-	virtual void load (Storage* storage)
-	{		
-	}
-
-	virtual void save (Storage* storage)
-	{		
-	}
-
-	virtual void updateProperties ()
-	{		
-	}
-
-	virtual bool applyProperties () throws
-	{
-		return true;
-	}
-
-	virtual void restoreDefaultProperties ()
-	{		
-	}
-}
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-class Session: Document
-{
-	construct (DocumentHost* documentHost)
-	{
-		basetype.construct (DocumentKind.Session, documentHost);
-	}
-
-	virtual size_t transmit (
-		void const* p,
-		size_t size
-		) throws
-	{
-		return size;
-	}
-}
-
-//.............................................................................
-
-gui.Action* DocumentHost.createAction (
+gui.Action* PluginHost.createAction (
 	char const* text,
 	char const* iconFileName
 	)
@@ -180,7 +77,7 @@ gui.Action* DocumentHost.createAction (
 	return action;
 }
 
-gui.Action* DocumentHost.createCheckableAction (
+gui.Action* PluginHost.createCheckableAction (
 	char const* text,
 	bool isChecked
 	)
@@ -191,7 +88,7 @@ gui.Action* DocumentHost.createCheckableAction (
 	return action;
 }
 
-gui.BoolProperty* DocumentHost.createBoolProperty (
+gui.BoolProperty* PluginHost.createBoolProperty (
 	char const* name,
 	char const* toolTipText
 	)
@@ -202,7 +99,7 @@ gui.BoolProperty* DocumentHost.createBoolProperty (
 	return prop;
 }
 
-gui.IntProperty* DocumentHost.createIntProperty (
+gui.IntProperty* PluginHost.createIntProperty (
 	char const* name,
 	char const* toolTipText
 	)
@@ -213,7 +110,7 @@ gui.IntProperty* DocumentHost.createIntProperty (
 	return prop;
 }
 
-gui.StringProperty* DocumentHost.createStringProperty (
+gui.StringProperty* PluginHost.createStringProperty (
 	char const* name,
 	char const* toolTipText
 	)
@@ -224,7 +121,7 @@ gui.StringProperty* DocumentHost.createStringProperty (
 	return prop;
 }
 
-gui.EnumProperty* DocumentHost.createEnumProperty (
+gui.EnumProperty* PluginHost.createEnumProperty (
 	char const* name,
 	char const* toolTipText,
 	gui.EnumPropertyOption const* optionArray,
@@ -238,7 +135,7 @@ gui.EnumProperty* DocumentHost.createEnumProperty (
 	return prop;
 }
 
-gui.EnumProperty* DocumentHost.createNetworkAdapterProperty (
+gui.EnumProperty* PluginHost.createNetworkAdapterProperty (
 	char const* name,
 	char const* toolTipText
 	)
@@ -278,7 +175,7 @@ gui.EnumProperty* DocumentHost.createNetworkAdapterProperty (
 		);
 }
 
-gui.EnumProperty* DocumentHost.createSerialPortProperty (
+gui.EnumProperty* PluginHost.createSerialPortProperty (
 		char const* name,
 		char const* toolTipText,
 		io.SerialPortDesc const* portList,

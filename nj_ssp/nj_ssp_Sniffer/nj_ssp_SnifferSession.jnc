@@ -40,7 +40,7 @@ protected:
 	gui.StringProperty* m_displayFilterProp;
 
 public:
-	construct (doc.DocumentHost* documentHost);
+	construct (doc.PluginHost* pluginHost);
 
 	bool capture () throws;
 	stopCapture ();
@@ -65,15 +65,15 @@ protected:
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-SnifferSession.construct (doc.DocumentHost* documentHost)
+SnifferSession.construct (doc.PluginHost* pluginHost)
 {
-	basetype.construct (documentHost);
+	basetype.construct (pluginHost);
 
-	documentHost.m_log.m_representer = static new SnifferLogRepresenter;
+	pluginHost.m_log.m_representer = static new SnifferLogRepresenter;
 
 	m_state = State.Closed;
 	m_pcap = io.createPCap ();
-	m_pcap.m_onReadyRead += onReadyRead @ m_documentHost.m_mainThreadScheduler;
+	m_pcap.m_onReadyRead += onReadyRead @ m_pluginHost.m_mainThreadScheduler;
 
 	createUi ();
 }
@@ -82,8 +82,8 @@ SnifferSession.createUi ()
 {
 	// toolbar
 
-	m_documentHost.m_toolBar.addLabel ("Device: ");
-	m_deviceCombo = m_documentHost.m_toolBar.addComboBox (-1);
+	m_pluginHost.m_toolBar.addLabel ("Device: ");
+	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_deviceCombo.m_onEnter += capture;
 
 	io.PCapDeviceDesc const* device = io.createPCapDeviceDescList ();
@@ -96,31 +96,31 @@ SnifferSession.createUi ()
 		m_deviceCombo.addItem (itemName, data);
 	}
 
-	m_actionTable [ActionId.Capture] = m_documentHost.createAction ("Capture", "capture.png");
+	m_actionTable [ActionId.Capture] = m_pluginHost.createAction ("Capture", "capture.png");
 	m_actionTable [ActionId.Capture].m_onTriggered += capture;
 
-	m_actionTable [ActionId.StopCapture] = m_documentHost.createAction ("Stop", "pause.png");
+	m_actionTable [ActionId.StopCapture] = m_pluginHost.createAction ("Stop", "pause.png");
 	m_actionTable [ActionId.StopCapture].m_onTriggered += stopCapture;
 	m_actionTable [ActionId.StopCapture].m_isEnabled = false;
 
 	// property grid
 
-	m_deviceProp = m_documentHost.createStringProperty (
+	m_deviceProp = m_pluginHost.createStringProperty (
 		"Device",
 		"Specify the device to capture on"
 		);
 
-	m_promisciousProp = m_documentHost.createBoolProperty (
+	m_promisciousProp = m_pluginHost.createBoolProperty (
 		"Promiscious Mode",
 		"Put the capturing interface into promiscious mode"
 		);
 
-	m_captureFilterProp = m_documentHost.createStringProperty (
+	m_captureFilterProp = m_pluginHost.createStringProperty (
 		"Capture Filter",
 		"Capture only the packets which have passed this primary filter"
 		);
 
-	m_displayFilterProp = m_documentHost.createStringProperty (
+	m_displayFilterProp = m_pluginHost.createStringProperty (
 		"Display Filter",
 		"Apply the secondary filter to captured packets"
 		);
@@ -141,13 +141,13 @@ bool SnifferSession.capture () throws
 		m_promisciousProp.m_value
 		);
 
-	m_documentHost.m_log.write (SnifferLogRecordCode.CaptureStarted);
+	m_pluginHost.m_log.write (SnifferLogRecordCode.CaptureStarted);
 	m_state = State.Opened;
 	return true;
 
 catch:
 	jnc.Error const* error = jnc.getLastError ();
-	m_documentHost.m_log.write (
+	m_pluginHost.m_log.write (
 		SnifferLogRecordCode.CaptureError,
 		error,
 		error.m_size
@@ -162,7 +162,7 @@ SnifferSession.stopCapture ()
 	if (m_state != State.Opened)
 		return;
 
-	m_documentHost.m_log.write (SnifferLogRecordCode.CaptureStopped);
+	m_pluginHost.m_log.write (SnifferLogRecordCode.CaptureStopped);
 	m_pcap.close ();
 	m_state = State.Closed;
 }
@@ -212,7 +212,7 @@ size_t SnifferSession.transmit (
 
 	size_t result = try m_pcap.write (p, size);
 	if (result != -1)
-		m_documentHost.m_log.write (SnifferLogRecordCode.InjectedPacket, p, result);
+		m_pluginHost.m_log.write (SnifferLogRecordCode.InjectedPacket, p, result);
 
 	return result;
 }
@@ -225,13 +225,13 @@ SnifferSession.onReadyRead (uint_t syncId)
 	heap char buffer [512];
 	size_t result = try m_pcap.read (buffer, sizeof (buffer));
 	if (result != -1)
-		m_documentHost.m_log.write (SnifferLogRecordCode.Packet, buffer, result);
+		m_pluginHost.m_log.write (SnifferLogRecordCode.Packet, buffer, result);
 }
 
 reactor SnifferSession.m_uiReactor ()
 {
-	m_documentHost.m_title = $"PCap $(m_deviceCombo.m_currentText)";
-	m_documentHost.m_isTransmitEnabled = m_state == State.Opened;
+	m_title = $"PCap $(m_deviceCombo.m_currentText)";
+	m_isTransmitEnabled = m_state == State.Opened;
 	m_actionTable [ActionId.StopCapture].m_isEnabled = m_state == State.Opened;
 }
 

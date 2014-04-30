@@ -38,7 +38,7 @@ protected:
 	gui.StringProperty* m_portNameProp;
 
 public:
-	construct (doc.DocumentHost* documentHost);
+	construct (doc.PluginHost* pluginHost);
 
 	bool capture () throws;
 	stopCapture ();
@@ -58,14 +58,14 @@ protected:
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-SerialMonSession.construct (doc.DocumentHost* documentHost)
+SerialMonSession.construct (doc.PluginHost* pluginHost)
 {
-	basetype.construct (documentHost);
-	documentHost.m_log.m_representer = static new SerialMonLogRepresenter;
+	basetype.construct (pluginHost);
+	pluginHost.m_log.m_representer = static new SerialMonLogRepresenter;
 
 	m_state = State.Closed;
 	m_serialMon = io.createSerialMon ();
-	m_serialMon.m_onReadyRead += onReadyRead @ m_documentHost.m_mainThreadScheduler;
+	m_serialMon.m_onReadyRead += onReadyRead @ m_pluginHost.m_mainThreadScheduler;
 
 	createUi ();
 }
@@ -74,8 +74,8 @@ SerialMonSession.createUi ()
 {
 	// toolbar
 
-	m_documentHost.m_toolBar.addLabel ("Port: ");
-	m_portNameCombo = m_documentHost.m_toolBar.addComboBox ();
+	m_pluginHost.m_toolBar.addLabel ("Port: ");
+	m_portNameCombo = m_pluginHost.m_toolBar.addComboBox ();
 	m_portNameCombo.m_isEditable = true;
 	m_portNameCombo.m_onEnter += capture;
 	
@@ -88,15 +88,15 @@ SerialMonSession.createUi ()
 	m_portNameCombo.addItem ("/dev/ttyS2");
 	m_portNameCombo.addItem ("/dev/ttyS3");
 
-	m_actionTable [ActionId.Capture]  = m_documentHost.createAction ("Capture", "capture.png");
+	m_actionTable [ActionId.Capture]  = m_pluginHost.createAction ("Capture", "capture.png");
 	m_actionTable [ActionId.Capture].m_onTriggered += capture;
 
-	m_actionTable [ActionId.StopCapture] = m_documentHost.createAction ("Stop", "pause.png");
+	m_actionTable [ActionId.StopCapture] = m_pluginHost.createAction ("Stop", "pause.png");
 	m_actionTable [ActionId.StopCapture].m_onTriggered += stopCapture;
 
 	// property grid
 
-	m_portNameProp = m_documentHost.createStringProperty (
+	m_portNameProp = m_pluginHost.createStringProperty (
 		"Port name",
 		"Specify serial port name to use"
 		);
@@ -111,7 +111,7 @@ bool SerialMonSession.capture () throws
 	char const* name = m_portNameCombo.m_currentText;
 
 	m_serialMon.capture (name);
-	m_documentHost.m_log.write (SerialMonLogRecordCode.CaptureStarted, name, strlen (name));
+	m_pluginHost.m_log.write (SerialMonLogRecordCode.CaptureStarted, name, strlen (name));
 
 	m_portName = name;
 	m_state = State.Opened;
@@ -121,7 +121,7 @@ catch:
 	m_serialMon.close ();
 
 	jnc.Error const* error = jnc.getLastError ();
-	m_documentHost.m_log.write (
+	m_pluginHost.m_log.write (
 		SerialMonLogRecordCode.CaptureError,
 		error,
 		error.m_size
@@ -134,7 +134,7 @@ SerialMonSession.stopCapture ()
 	if (m_state != State.Opened)
 		return;
 
-	m_documentHost.m_log.write (
+	m_pluginHost.m_log.write (
 		SerialMonLogRecordCode.CaptureStopped,
 		m_portName,
 		strlen (m_portName) + 1
@@ -181,61 +181,61 @@ SerialMonSession.onReadyRead (uint_t syncId)
 	switch (params.m_eventKind)
 	{
 	case io.SerialMonEvent.DeviceOpened:
-		m_documentHost.m_log.write (SerialMonLogRecordCode.DeviceOpened);
+		m_pluginHost.m_log.write (SerialMonLogRecordCode.DeviceOpened);
 		break;	
 
 	case io.SerialMonEvent.DeviceClosed:		
-		m_documentHost.m_log.write (SerialMonLogRecordCode.DeviceClosed);
+		m_pluginHost.m_log.write (SerialMonLogRecordCode.DeviceClosed);
 		break;
 		
 	case io.SerialMonEvent.RxData:
-		m_documentHost.m_log.write (log.StdRecordCode.Rx, params.m_data, params.m_dataSize);
+		m_pluginHost.m_log.write (log.StdRecordCode.Rx, params.m_data, params.m_dataSize);
 		break;
 
 	case io.SerialMonEvent.TxData:
-		m_documentHost.m_log.write (log.StdRecordCode.Tx, params.m_data, params.m_dataSize);
+		m_pluginHost.m_log.write (log.StdRecordCode.Tx, params.m_data, params.m_dataSize);
 		break;
 
 	case io.SerialMonEvent.BaudRateChanged:
-		m_documentHost.m_log.write (SerialLogRecordCode.BaudRateChanged, &params.m_baudRate, sizeof (params.m_baudRate));
+		m_pluginHost.m_log.write (SerialLogRecordCode.BaudRateChanged, &params.m_baudRate, sizeof (params.m_baudRate));
 		break;
 
 	case io.SerialMonEvent.FlowControlChanged:
-		m_documentHost.m_log.write (SerialLogRecordCode.FlowControlChanged, &params.m_flowControl, sizeof (params.m_flowControl));
+		m_pluginHost.m_log.write (SerialLogRecordCode.FlowControlChanged, &params.m_flowControl, sizeof (params.m_flowControl));
 		break;
 
 	case io.SerialMonEvent.DataBitsChanged:
-		m_documentHost.m_log.write (SerialLogRecordCode.DataBitsChanged, &params.m_dataBits, sizeof (params.m_dataBits));
+		m_pluginHost.m_log.write (SerialLogRecordCode.DataBitsChanged, &params.m_dataBits, sizeof (params.m_dataBits));
 		break;
 
 	case io.SerialMonEvent.StopBitsChanged:
-		m_documentHost.m_log.write (SerialLogRecordCode.StopBitsChanged, &params.m_stopBits, sizeof (params.m_stopBits));
+		m_pluginHost.m_log.write (SerialLogRecordCode.StopBitsChanged, &params.m_stopBits, sizeof (params.m_stopBits));
 		break;
 
 	case io.SerialMonEvent.ParityChanged:
-		m_documentHost.m_log.write (SerialLogRecordCode.ParityChanged, &params.m_parity, sizeof (params.m_parity));
+		m_pluginHost.m_log.write (SerialLogRecordCode.ParityChanged, &params.m_parity, sizeof (params.m_parity));
 		break;
 
 	case io.SerialMonEvent.StatusLineChanged:
 		uint_t mask = -1;
 		char const* p = $"$(params.m_statusLines, B)$(mask, B)";
 		size_t size = jnc.getDataPtrSpan (p);
-		m_documentHost.m_log.write (SerialLogRecordCode.StatusLineChanged, p, size);
+		m_pluginHost.m_log.write (SerialLogRecordCode.StatusLineChanged, p, size);
 		break;
 
 	case io.SerialMonEvent.DtrChanged:
-		m_documentHost.m_log.write (SerialLogRecordCode.DtrChanged, &params.m_dtr, sizeof (params.m_dtr));
+		m_pluginHost.m_log.write (SerialLogRecordCode.DtrChanged, &params.m_dtr, sizeof (params.m_dtr));
 		break;
 
 	case io.SerialMonEvent.RtsChanged:
-		m_documentHost.m_log.write (SerialLogRecordCode.RtsChanged, &params.m_rts, sizeof (params.m_rts));
+		m_pluginHost.m_log.write (SerialLogRecordCode.RtsChanged, &params.m_rts, sizeof (params.m_rts));
 		break;
 	} 
 }
 
 reactor SerialMonSession.m_uiReactor ()
 {	
-	m_documentHost.m_title = $"Mon $(m_portNameCombo.m_currentText)";
+	m_title = $"Mon $(m_portNameCombo.m_currentText)";
 	m_actionTable [ActionId.StopCapture].m_isEnabled = m_state == State.Opened;
 }
 

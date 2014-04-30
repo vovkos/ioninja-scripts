@@ -54,7 +54,7 @@ protected:
 	gui.EnumProperty* m_adapterProp;
 		
 public:
-	construct (doc.DocumentHost* documentHost);
+	construct (doc.PluginHost* pluginHost);
 
 	openSocket ();
 	closeSocket ();
@@ -84,17 +84,17 @@ protected:
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-UdpSession.construct (doc.DocumentHost* documentHost)
+UdpSession.construct (doc.PluginHost* pluginHost)
 {
-	basetype.construct(documentHost);
+	basetype.construct(pluginHost);
 
-	documentHost.m_log.m_representer = static new UdpLogRepresenter;
+	pluginHost.m_log.m_representer = static new UdpLogRepresenter;
 
 	m_state = State.Closed;
 	m_socket = io.createSocket ();
-	m_socket.m_onSocketEvent += onSocketEvent @ m_documentHost.m_mainThreadScheduler;
+	m_socket.m_onSocketEvent += onSocketEvent @ m_pluginHost.m_mainThreadScheduler;
 	m_resolver = io.createSocketAddressResolver ();
-	m_resolver.m_onResolverEvent += onResolverEvent @ m_documentHost.m_mainThreadScheduler;
+	m_resolver.m_onResolverEvent += onResolverEvent @ m_pluginHost.m_mainThreadScheduler;
 	m_resolveState = ResolveState.Unresolved;
 	m_remoteAddressChanged = false;
 
@@ -105,37 +105,37 @@ UdpSession.createGui()
 {
 	// toolbar
 	
-	m_documentHost.m_toolBar.addLabel ("Local port: ");
-	m_localPortCombo = m_documentHost.m_toolBar.addComboBox ();
+	m_pluginHost.m_toolBar.addLabel ("Local port: ");
+	m_localPortCombo = m_pluginHost.m_toolBar.addComboBox ();
 	m_localPortCombo.m_isEditable = true;
 	m_localPortCombo.m_onChanged += onLocalPortChanged;
 
-	m_actionTable [ActionId.Open] = m_documentHost.createAction("Open socket", "open.png");
+	m_actionTable [ActionId.Open] = m_pluginHost.createAction("Open socket", "open.png");
 	m_actionTable [ActionId.Open].m_onTriggered += openSocket;
 
-	m_actionTable [ActionId.Close] = m_documentHost.createAction("Close socket", "close.png");
+	m_actionTable [ActionId.Close] = m_pluginHost.createAction("Close socket", "close.png");
 	m_actionTable [ActionId.Close].m_onTriggered += closeSocket;
 
-	m_documentHost.m_toolBar.addSeparator ();
+	m_pluginHost.m_toolBar.addSeparator ();
 
-	m_documentHost.m_toolBar.addLabel ("Remote address: ");
-	m_remoteAddressCombo = m_documentHost.m_toolBar.addComboBox (-1);
+	m_pluginHost.m_toolBar.addLabel ("Remote address: ");
+	m_remoteAddressCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_remoteAddressCombo.m_isEditable = true;
 	m_remoteAddressCombo.m_onChanged += onRemoteAddressChanged;
 
 	// property grid
 
-	m_remoteAddressProp = m_documentHost.createStringProperty (
+	m_remoteAddressProp = m_pluginHost.createStringProperty (
 		"Remote address",
 		"Remote address to send to (IP-address or host-name followed by ':' port)"
 		);
 
-	m_localPortProp = m_documentHost.createIntProperty (
+	m_localPortProp = m_pluginHost.createIntProperty (
 		"Local UDP port",
 		"Local UDP port to listen to"
 		);
 
-	m_adapterProp = m_documentHost.createNetworkAdapterProperty (
+	m_adapterProp = m_pluginHost.createNetworkAdapterProperty (
 		"Adapter",
 		"Adapter to bind socket to"
 		);
@@ -159,7 +159,7 @@ UdpSession.openSocket ()
 		return;
 	}
 
-	m_documentHost.m_log.write (UdpRecordCode.Open, &localAddress, sizeof (localAddress));
+	m_pluginHost.m_log.write (UdpRecordCode.Open, &localAddress, sizeof (localAddress));
 
 	m_state = State.Opened;
 }
@@ -174,7 +174,7 @@ UdpSession.closeSocket ()
 	m_localPortCombo.m_backgroundColor = gui.StdColor.White;
 
 	char const* port = m_localPortCombo.m_editText;
-	m_documentHost.m_log.write (UdpRecordCode.Close, port, strlen (port));
+	m_pluginHost.m_log.write (UdpRecordCode.Close, port, strlen (port));
 
 	m_state = State.Closed;
 }
@@ -238,7 +238,7 @@ size_t UdpSession.transmit (
 		void* data = memcat (&remoteAddress, sizeof (io.SocketAddress), p, size);
 		size_t dataSize = sizeof (io.SocketAddress) + size;
 
-		m_documentHost.m_log.write(UdpRecordCode.Tx, data, dataSize);
+		m_pluginHost.m_log.write(UdpRecordCode.Tx, data, dataSize);
 	}
 	else
 	{
@@ -248,7 +248,7 @@ size_t UdpSession.transmit (
 		
 		if (m_resolveState == ResolveState.Unresolved)
 		{
-			m_documentHost.m_log.write (
+			m_pluginHost.m_log.write (
 				UdpRecordCode.Resolving,
 				addressString,
 				strlen (addressString)
@@ -271,7 +271,7 @@ catch:
 UdpSession.reportError()
 {
 	jnc.Error const* error = jnc.getLastError ();
-	m_documentHost.m_log.write (UdpRecordCode.Error, error, error.m_size);
+	m_pluginHost.m_log.write (UdpRecordCode.Error, error, error.m_size);
 }
 
 UdpSession.onLocalPortChanged ()
@@ -303,7 +303,7 @@ UdpSession.onSocketEvent(io.SocketEventParams const* params)
 				void* data = memcat (&remoteAddress, sizeof (io.SocketAddress), buffer, size);
 				size_t dataSize = sizeof (io.SocketAddress) + size;
 
-				m_documentHost.m_log.write (UdpRecordCode.Rx, data, dataSize);
+				m_pluginHost.m_log.write (UdpRecordCode.Rx, data, dataSize);
 			}
 			break;
 	}
@@ -317,7 +317,7 @@ UdpSession.onResolverEvent (io.SocketAddressResolverEventParams const* params)
 	switch (params.m_eventKind)
 	{
 	case io.SocketAddressResolverEvent.ResolveCompleted:
-		m_documentHost.m_log.write (
+		m_pluginHost.m_log.write (
 			UdpRecordCode.ResolveCompleted,
 			params.m_address,
 			sizeof (io.SocketAddress)
@@ -333,7 +333,7 @@ UdpSession.onResolverEvent (io.SocketAddressResolverEventParams const* params)
 		{
 			void* data = memcat (&m_remoteAddress, sizeof (io.SocketAddress), m_pendingData, m_pendingDataSize);
 			size_t dataSize = sizeof (io.SocketAddress) + m_pendingDataSize;
-			m_documentHost.m_log.write(UdpRecordCode.Tx, data, dataSize);
+			m_pluginHost.m_log.write(UdpRecordCode.Tx, data, dataSize);
 			
 			m_pendingData = null;
 			m_pendingDataSize = 0;
@@ -345,7 +345,7 @@ UdpSession.onResolverEvent (io.SocketAddressResolverEventParams const* params)
 		break;
 
 	case io.SocketAddressResolverEvent.ResolveError:
-		m_documentHost.m_log.write (UdpRecordCode.Error, params.m_error, params.m_error.m_size);
+		m_pluginHost.m_log.write (UdpRecordCode.Error, params.m_error, params.m_error.m_size);
 		m_resolveState = ResolveState.Unresolved;
 		break;
 		
@@ -357,8 +357,8 @@ UdpSession.onResolverEvent (io.SocketAddressResolverEventParams const* params)
 
 reactor UdpSession.m_uiReactor ()
 {
-	m_documentHost.m_title = $"UDP @ $(m_localPortCombo.m_editText) -> $(m_remoteAddressCombo.m_editText)";
-	m_documentHost.m_isTransmitEnabled = m_state == State.Opened;
+	m_title = $"UDP @ $(m_localPortCombo.m_editText) -> $(m_remoteAddressCombo.m_editText)";
+	m_isTransmitEnabled = m_state == State.Opened;
 	m_actionTable [ActionId.Close].m_isEnabled = m_state == State.Opened;
 	m_adapterProp.m_isEnabled = m_state == State.Closed;
 }

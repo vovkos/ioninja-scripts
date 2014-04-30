@@ -49,7 +49,7 @@ protected:
 	gui.BoolProperty* m_abruptiveDisconnectProp;
 
 public:
-	construct (doc.DocumentHost* documentHost);
+	construct (doc.PluginHost* pluginHost);
 
 	bool listen () throws;
 	stopListen ();
@@ -76,16 +76,16 @@ protected:
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-TcpListenerSession.construct (doc.DocumentHost* documentHost)
+TcpListenerSession.construct (doc.PluginHost* pluginHost)
 {
-	basetype.construct (documentHost);
+	basetype.construct (pluginHost);
 
-	documentHost.m_log.m_representer = static new TcpListenerLogRepresenter;
+	pluginHost.m_log.m_representer = static new TcpListenerLogRepresenter;
 
 	m_connectionState = State.Closed;
 	m_listenerState = State.Closed;
 	m_listenerSocket = io.createSocket ();
-	m_listenerSocket.m_onSocketEvent += onListenerSocketEvent @ m_documentHost.m_mainThreadScheduler;
+	m_listenerSocket.m_onSocketEvent += onListenerSocketEvent @ m_pluginHost.m_mainThreadScheduler;
 
 	createUi ();
 }
@@ -94,40 +94,40 @@ TcpListenerSession.createUi ()
 {
 	// toolbar
 
-	m_documentHost.m_toolBar.addLabel ("Port: ");	
-	m_portCombo = m_documentHost.m_toolBar.addComboBox ();
+	m_pluginHost.m_toolBar.addLabel ("Port: ");	
+	m_portCombo = m_pluginHost.m_toolBar.addComboBox ();
 	m_portCombo.m_isEditable = true;
 	m_portCombo.m_onEnter += listen;
 
 	// action buttons
 
-	m_actionTable [ActionId.Listen] = m_documentHost.createAction ("Listen", "listen.png");
+	m_actionTable [ActionId.Listen] = m_pluginHost.createAction ("Listen", "listen.png");
 	m_actionTable [ActionId.Listen].m_onTriggered += listen;
 
-	m_actionTable [ActionId.StopListen] = m_documentHost.createAction ("Stop listening", "pause.png");
+	m_actionTable [ActionId.StopListen] = m_pluginHost.createAction ("Stop listening", "pause.png");
 	m_actionTable [ActionId.StopListen].m_onTriggered += stopListen;
 
-	m_actionTable [ActionId.Disconnect] = m_documentHost.createAction ("Disconnect", "disconnect.png");
+	m_actionTable [ActionId.Disconnect] = m_pluginHost.createAction ("Disconnect", "disconnect.png");
 	m_actionTable [ActionId.Disconnect].m_onTriggered += disconnect;
 
 	// property grid
 
-	m_portProp = m_documentHost.createIntProperty (
+	m_portProp = m_pluginHost.createIntProperty (
 		"TCP Port",
 		"TCP port to listen on"
 		);
 
-	m_adapterProp = m_documentHost.createNetworkAdapterProperty (
+	m_adapterProp = m_pluginHost.createNetworkAdapterProperty (
 		"Adapter",
 		"Network adapter to listen on"
 		);
 
-	m_overrideOldConnectionProp = m_documentHost.createBoolProperty (
+	m_overrideOldConnectionProp = m_pluginHost.createBoolProperty (
 		"Override connections",
 		"Accept incoming connection even if already connected"
 		);
 
-	m_abruptiveDisconnectProp = m_documentHost.createBoolProperty (
+	m_abruptiveDisconnectProp = m_pluginHost.createBoolProperty (
 		"Use TCP reset",
 		"Use TCP reset to terminate connections (instead of TCP graceful disconnect)"
 		);
@@ -149,7 +149,7 @@ bool TcpListenerSession.listen () throws
 	m_listenerSocket.open (io.Protocol.Tcp, &address);
 	m_listenerSocket.listen ();
 
-	m_documentHost.m_log.write (
+	m_pluginHost.m_log.write (
 		TcpListenerLogRecordCode.Listening,
 		&address,
 		sizeof (address)
@@ -161,7 +161,7 @@ bool TcpListenerSession.listen () throws
 
 catch:
 	jnc.Error const* error = jnc.getLastError ();
-	m_documentHost.m_log.write (
+	m_pluginHost.m_log.write (
 		TcpListenerLogRecordCode.ListenError,
 		error,
 		error.m_size
@@ -176,7 +176,7 @@ TcpListenerSession.stopListen ()
 	if (m_listenerState != State.Opened)
 		return;
 
-	m_documentHost.m_log.write (
+	m_pluginHost.m_log.write (
 		TcpListenerLogRecordCode.ListenStopped,
 		&m_localAddress,
 		sizeof (m_localAddress)
@@ -190,7 +190,7 @@ TcpListenerSession.disconnect ()
 	if (m_connectionState != State.Opened)
 		return;
 
-	m_documentHost.m_log.write (
+	m_pluginHost.m_log.write (
 		TcpListenerLogRecordCode.ClientDisconnected,
 		&m_remoteAddress,
 		sizeof (m_remoteAddress)
@@ -246,7 +246,7 @@ size_t TcpListenerSession.transmit (
 
 	size_t result = try m_connectionSocket.send (p, size);
 	if (result != -1)
-		m_documentHost.m_log.write (log.StdRecordCode.Tx, p, result);
+		m_pluginHost.m_log.write (log.StdRecordCode.Tx, p, result);
 
 	return result;
 }
@@ -267,7 +267,7 @@ TcpListenerSession.onListenerSocketEvent (io.SocketEventParams const* params)
 		if (m_connectionState == State.Opened && !m_overrideOldConnectionProp.m_value)
 		{
 			socket.close ();
-			m_documentHost.m_log.write (
+			m_pluginHost.m_log.write (
 				TcpListenerLogRecordCode.ClientRejected,
 				&address,
 				sizeof (address)
@@ -278,14 +278,14 @@ TcpListenerSession.onListenerSocketEvent (io.SocketEventParams const* params)
 
 		disconnect ();
 
-		m_documentHost.m_log.write (
+		m_pluginHost.m_log.write (
 			TcpListenerLogRecordCode.ClientConnected,
 			&address,
 			sizeof (address)
 			);
 
 		socket.m_syncId = m_connectionSyncId;
-		socket.m_onSocketEvent += onConnectionSocketEvent @ m_documentHost.m_mainThreadScheduler;
+		socket.m_onSocketEvent += onConnectionSocketEvent @ m_pluginHost.m_mainThreadScheduler;
 
 		m_remoteAddress = address;
 		m_connectionSocket = socket;
@@ -304,7 +304,7 @@ TcpListenerSession.onConnectionSocketEvent (io.SocketEventParams const* params)
 	switch (params.m_eventKind)
 	{
 	case io.SocketEvent.Disconnected:
-		m_documentHost.m_log.write (
+		m_pluginHost.m_log.write (
 			TcpListenerLogRecordCode.ClientDisconnected,
 			&m_remoteAddress,
 			sizeof (m_remoteAddress)
@@ -318,15 +318,15 @@ TcpListenerSession.onConnectionSocketEvent (io.SocketEventParams const* params)
 		heap char buffer [512];
 		size_t result = try m_connectionSocket.recv (buffer, sizeof (buffer));
 		if (result != -1)
-			m_documentHost.m_log.write (log.StdRecordCode.Rx, buffer, result);
+			m_pluginHost.m_log.write (log.StdRecordCode.Rx, buffer, result);
 		break;
 	}
 }
 
 reactor TcpListenerSession.m_uiReactor ()
 {
-	m_documentHost.m_title = $"TCP @ $(m_portCombo.m_editText)";
-	m_documentHost.m_isTransmitEnabled = m_connectionState == State.Opened;
+	m_title = $"TCP @ $(m_portCombo.m_editText)";
+	m_isTransmitEnabled = m_connectionState == State.Opened;
 	m_actionTable [ActionId.StopListen].m_isEnabled = m_listenerState != State.Closed;
 	m_actionTable [ActionId.Disconnect].m_isEnabled = m_connectionState != State.Closed;
 }

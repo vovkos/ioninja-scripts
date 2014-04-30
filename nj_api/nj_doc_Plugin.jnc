@@ -1,0 +1,92 @@
+//.............................................................................
+//
+// Ninja document model: plugins (sessions and protocols)
+//
+
+namespace doc {
+
+//.............................................................................
+
+class Plugin
+{
+	PluginHost* dconst m_pluginHost;
+
+	construct (PluginHost* host)
+	{
+		m_pluginHost = host;
+	}
+	
+	virtual void load (Storage* storage)
+	{		
+	}
+
+	virtual void save (Storage* storage)
+	{		
+	}
+
+	virtual void updateProperties ()
+	{		
+	}
+
+	virtual bool applyProperties () throws
+	{
+		return true;
+	}
+
+	virtual void restoreDefaultProperties ()
+	{		
+	}
+
+	abstract size_t transmit (
+		void const* p,
+		size_t size
+		) throws;
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+class Session: Plugin
+{
+	char const* autoget property m_title;
+	bool autoget property m_isTransmitEnabled;
+
+	construct (PluginHost* host)
+	{
+		basetype.construct (host);
+	}
+
+	override size_t transmit (
+		void const* p,
+		size_t size
+		) throws
+	{
+		return size;
+	}
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+class Protocol: Plugin
+{
+	construct (PluginHost* host)
+	{
+		basetype.construct (host);
+	}
+
+	override size_t transmit (
+		void const* p,
+		size_t size
+		) throws
+	{
+		return transmitNext (p, size);
+	}
+
+	size_t transmitNext (
+		void const* p,
+		size_t size
+		);
+}
+
+//.............................................................................
+
+} // namespace doc {

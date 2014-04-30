@@ -1,0 +1,34 @@
+//.............................................................................
+//
+// Echo protocol
+//
+
+//.............................................................................
+
+class EchoProtocol: 
+	doc.Protocol,
+	log.Filter
+{
+public:
+	construct (doc.PluginHost* pluginHost)
+	{
+		basetype1.construct (pluginHost);	
+		pluginHost.m_log.attachFilter (this, log.FilterRole.LiveSink);
+	}
+
+	override bool filter (
+		Writer* writer,
+		uint64_t timestamp,
+		uint_t recordCode,
+		void const* p,
+		size_t size
+		)
+	{
+		if (recordCode == log.StdRecordCode.Rx)
+			transmit (p, size);
+		
+		return true;
+	}
+}
+
+//.............................................................................

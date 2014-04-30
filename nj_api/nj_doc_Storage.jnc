@@ -1,0 +1,46 @@
+//.............................................................................
+//
+// Ninja document model: structured storage for plugin serialization
+//
+
+namespace doc {
+
+//.............................................................................
+
+opaque class Storage
+{
+	char const* autoget property m_directory;
+
+	void clear ();
+
+	bool readBool (char const* name)
+	{
+		return readInt (name) != 0;
+	}
+
+	void writeBool (
+		char const* name, 
+		bool value
+		)
+	{
+		return writeInt (name, value);
+	}
+
+	int readInt (char const* name);
+
+	void writeInt (
+		char const* name, 
+		int value
+		);
+
+	char const* readString (char const* name);
+
+	void writeString (
+		char const* name, 
+		char const* value
+		);
+}
+
+//.............................................................................
+
+} // namespace doc {
