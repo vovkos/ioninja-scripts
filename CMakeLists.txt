@@ -7,7 +7,7 @@
 root_virtual_folder (${CMAKE_CURRENT_BINARY_DIR}/scripts.virtual)
 
 add_subdirectory (nj_api)
-add_subdirectory (nj_prp)
+add_subdirectory (nj_lap)
 add_subdirectory (nj_ssp)
  
 #..............................................................................

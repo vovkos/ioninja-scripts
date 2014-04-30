@@ -1,9 +1,9 @@
 //.............................................................................
 //
-// SSH Channel session provider
+// SSH Channel session plugin
 //
 
-[session]
+[plugin]
 
 name        = SSH Channel
 description = "Establishes SSH channel over TCP socket"

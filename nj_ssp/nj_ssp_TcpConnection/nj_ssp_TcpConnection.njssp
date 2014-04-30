@@ -1,9 +1,9 @@
 //.............................................................................
 //
-// TCP Connection session provider
+// TCP Connection session plugin
 //
 
-[session]
+[plugin]
 
 name        = TCP Connection Socket
 description = "Establishes connection over TCP socket"

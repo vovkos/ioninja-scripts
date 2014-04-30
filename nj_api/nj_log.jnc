@@ -158,15 +158,6 @@ opaque class Writer
 
 //.............................................................................
 
-enum FilterRole
-{
-	Filter,   // default -- generates secondary log (writer is non-null)
-	Sink,     // no secondary log (writer is null), filter is invoked on log rebuild
-	LiveSink, // no secondary log (writer is null), filter is invoked on live records only
-}
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
 class Filter
 {
 	abstract bool filter (
@@ -184,6 +175,26 @@ class Filter
 
 //.............................................................................
 
+fenum ListenerSensitivity
+{
+	AllRecords,
+	LiveRecordsOnly,	
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+class Listener
+{
+	abstract void notify (
+		uint64_t timestamp,
+		uint_t recordCode,
+		void const* p,
+		size_t size
+		);
+}
+
+//.............................................................................
+
 // log engine
 
 opaque class Log
@@ -193,9 +204,11 @@ opaque class Log
 	Writer* dconst m_writer;
 	Representer* autoget property m_representer;
 
-	attachFilter (
-		Filter* filter,
-		FilterRole role = FilterRole.Filter
+	attachFilter (Filter* filter);
+	
+	attachListener (
+		Listener* listener,
+		ListenerSensitivity sensitivity = ListenerSensitivity.LiveRecordsOnly
 		);
 
 	write (

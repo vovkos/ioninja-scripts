@@ -1,23 +1,22 @@
 //.............................................................................
 //
-// Echo protocol
+// Echo layer
 //
 
 //.............................................................................
 
-class EchoProtocol: 
-	doc.Protocol,
-	log.Filter
+class EchoLayer: 
+	doc.Layer,
+	log.Listener
 {
 public:
 	construct (doc.PluginHost* pluginHost)
 	{
 		basetype1.construct (pluginHost);	
-		pluginHost.m_log.attachFilter (this, log.FilterRole.LiveSink);
+		pluginHost.m_log.attachListener (this, log.ListenerSensitivity.LiveOnly);
 	}
 
-	override bool filter (
-		Writer* writer,
+	override notify (
 		uint64_t timestamp,
 		uint_t recordCode,
 		void const* p,
@@ -26,8 +25,6 @@ public:
 	{
 		if (recordCode == log.StdRecordCode.Rx)
 			transmit (p, size);
-		
-		return true;
 	}
 }
 

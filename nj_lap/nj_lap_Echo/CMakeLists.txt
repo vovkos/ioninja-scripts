@@ -4,7 +4,7 @@
 
 #..............................................................................
 
-project_virtual_folder (nj_prp_Echo)
+project_virtual_folder (nj_lap_Echo)
 
 #..............................................................................
 #
@@ -12,13 +12,13 @@ project_virtual_folder (nj_prp_Echo)
 #
 
 set (
-	PRP_JNC_LIST
-	nj_prp_EchoProtocol.jnc
+	LAP_JNC_LIST
+	nj_lap_EchoLayer.jnc
 	)
 
 source_virtual_folder (
 	src
-	${PRP_JNC_LIST}
+	${LAP_JNC_LIST}
 	)
 
 #..............................................................................
@@ -27,30 +27,30 @@ source_virtual_folder (
 #
 
 set (
-	PRP_RES_LIST
-	nj_prp_Echo.njprp
+	LAP_RES_LIST
+	nj_lap_Echo.njlap
 	echo.png
 	)
 
 source_virtual_folder (
 	res
-	${PRP_RES_LIST}
+	${LAP_RES_LIST}
 	)
 
 #..............................................................................
 #
-# nj_prp_Echo script library
+# nj_lap_Echo script library
 #
 
 add_library (
-	nj_prp_Echo
+	nj_lap_Echo
 	EXCLUDE_FROM_ALL
-	${PRP_JNC_LIST}
-	${PRP_RES_LIST}
+	${LAP_JNC_LIST}
+	${LAP_RES_LIST}
 	)
 
 set_target_properties (
-	nj_prp_Echo
+	nj_lap_Echo
 	PROPERTIES
 	FOLDER scripts
 	LINKER_LANGUAGE C

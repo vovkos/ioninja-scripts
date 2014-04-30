@@ -1,9 +1,9 @@
 //.............................................................................
 //
-// Serial session provider
+// Serial session plugin
 //
 
-[session]
+[plugin]
 
 name        = Serial
 description = "Serial communication using one of the installed COM ports on your PC"

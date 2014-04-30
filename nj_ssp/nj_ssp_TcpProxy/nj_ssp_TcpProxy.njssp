@@ -1,9 +1,9 @@
 //.............................................................................
 //
-// TCP Proxy session provider
+// TCP Proxy session plugin
 //
 
-[session]
+[plugin]
 
 name         = TCP Proxy
 description  = "Passes-through data between a TCP client and a TCP server"

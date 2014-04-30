@@ -1,9 +1,9 @@
 //.............................................................................
 //
-// Serial Monitor session provider
+// Serial Monitor session plugin
 //
 
-[session]
+[plugin]
 
 name        = "Serial Monitor"
 description = "Monitor serial communication through one of the installed COM ports on your PC"

@@ -1,9 +1,9 @@
 //.............................................................................
 //
-// Generic File session provider
+// Generic File session plugin
 //
 
-[session]
+[plugin]
 
 name        = Generic File
 description = "Perform reads or/and writes to a generic file"

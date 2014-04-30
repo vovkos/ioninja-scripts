@@ -1,9 +1,9 @@
 //.............................................................................
 //
-// TCP Listener Socket session provider
+// TCP Listener Socket session plugin
 //
 
-[session]
+[plugin]
 
 name        = TCP Listener Socket
 description = "Listens for connection over TCP socket"

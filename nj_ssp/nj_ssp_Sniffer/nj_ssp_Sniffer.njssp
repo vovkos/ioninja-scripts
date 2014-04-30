@@ -1,9 +1,9 @@
 //.............................................................................
 //
-// Network Sniffer session provider
+// Network Sniffer session plugin
 //
 
-[session]
+[plugin]
 
 name        = "Network Sniffer"
 description = "pcap-based network traffic sniffer\nProvides basic tcpdump functionality for TCP/UDP/ICMP protocols"

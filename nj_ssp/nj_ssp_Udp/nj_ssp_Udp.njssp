@@ -1,9 +1,9 @@
 //.............................................................................
 //
-//  UDP Socket session provider
+//  UDP Socket session plugin
 //
 
-[session]
+[plugin]
 
 name        = UDP Socket
 description = "UDP socket without \"connection\" notation"

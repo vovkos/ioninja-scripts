@@ -1,9 +1,9 @@
 //.............................................................................
 //
-// Pipe Listener session provider
+// Pipe Listener session plugin
 //
 
-[session]
+[plugin]
 
 name        = Pipe Listener
 description = "Listens for connection over named pipe"
