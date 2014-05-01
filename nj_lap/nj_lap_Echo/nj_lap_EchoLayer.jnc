@@ -9,7 +9,6 @@ class EchoLayer:
 	doc.Layer,
 	log.Listener
 {
-public:
 	construct (doc.PluginHost* pluginHost)
 	{
 		basetype1.construct (pluginHost);	

@@ -15,5 +15,5 @@ layer-class = EchoLayer
 
 [scripts]
 
-nj_prp_EchoLayer.jnc
+nj_lap_EchoLayer.jnc
 
