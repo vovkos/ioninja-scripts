@@ -1,0 +1,334 @@
+//.............................................................................
+//
+// TCP Listener session
+//
+
+//.............................................................................
+
+class TcpListenerSession: doc.Session
+{
+protected:
+	enum State
+	{
+		Closed,
+		Opened,
+	}
+
+	enum ActionId
+	{
+		Listen,
+		StopListen,
+		Disconnect,
+		_Count,
+	}
+
+protected:
+	// listener socket
+
+	State bindable m_listenerState;
+	io.Socket* m_listenerSocket;
+	io.SocketAddress m_localAddress;
+
+	// connection socket
+
+	State bindable m_connectionState;
+	uint_t m_connectionSyncId;
+	io.Socket* m_connectionSocket;
+	io.SocketAddress m_remoteAddress;
+	
+	// toolbar & menu
+	
+	gui.Action* m_actionTable [ActionId._Count];
+	gui.ComboBox* m_portCombo;
+
+	// property grid
+
+	gui.IntProperty* m_portProp;
+	gui.EnumProperty* m_adapterProp;
+	gui.BoolProperty* m_overrideOldConnectionProp;
+	gui.BoolProperty* m_abruptiveDisconnectProp;
+
+public:
+	construct (doc.PluginHost* pluginHost);
+
+	bool listen () throws;
+	stopListen ();
+	disconnect ();
+
+	override void load (doc.Storage* storage);
+	override void save (doc.Storage* storage);
+	override void updateProperties ();
+	override bool applyProperties () throws;
+	override void restoreDefaultProperties ();
+
+	override size_t transmit (
+		void const* p,
+		size_t size
+		) throws;
+
+protected:
+	onListenerSocketEvent (io.SocketEventParams const* params);
+	onConnectionSocketEvent (io.SocketEventParams const* params);
+
+	createUi ();
+	reactor m_uiReactor ();
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+TcpListenerSession.construct (doc.PluginHost* pluginHost)
+{
+	basetype.construct (pluginHost);
+
+	pluginHost.m_log.m_representer = static new TcpListenerLogRepresenter;
+
+	m_connectionState = State.Closed;
+	m_listenerState = State.Closed;
+	m_listenerSocket = io.createSocket ();
+	m_listenerSocket.m_onSocketEvent += onListenerSocketEvent @ m_pluginHost.m_mainThreadScheduler;
+
+	createUi ();
+}
+
+TcpListenerSession.createUi ()
+{
+	// toolbar
+
+	m_pluginHost.m_toolBar.addLabel ("Port: ");	
+	m_portCombo = m_pluginHost.m_toolBar.addComboBox ();
+	m_portCombo.m_isEditable = true;
+	m_portCombo.m_onEnter += listen;
+
+	// action buttons
+
+	m_actionTable [ActionId.Listen] = m_pluginHost.createAction ("Listen", "images/listen.png");
+	m_actionTable [ActionId.Listen].m_onTriggered += listen;
+
+	m_actionTable [ActionId.StopListen] = m_pluginHost.createAction ("Stop listening", "images/pause.png");
+	m_actionTable [ActionId.StopListen].m_onTriggered += stopListen;
+
+	m_actionTable [ActionId.Disconnect] = m_pluginHost.createAction ("Disconnect", "images/disconnect.png");
+	m_actionTable [ActionId.Disconnect].m_onTriggered += disconnect;
+
+	// property grid
+
+	m_portProp = m_pluginHost.createIntProperty (
+		"TCP Port",
+		"TCP port to listen on"
+		);
+
+	m_adapterProp = m_pluginHost.createNetworkAdapterProperty (
+		"Adapter",
+		"Network adapter to listen on"
+		);
+
+	m_overrideOldConnectionProp = m_pluginHost.createBoolProperty (
+		"Override connections",
+		"Accept incoming connection even if already connected"
+		);
+
+	m_abruptiveDisconnectProp = m_pluginHost.createBoolProperty (
+		"Use TCP reset",
+		"Use TCP reset to terminate connections (instead of TCP graceful disconnect)"
+		);
+
+	m_uiReactor.start ();
+}
+
+bool TcpListenerSession.listen () throws
+{
+	stopListen ();
+
+	m_portCombo.addEditTextToHistory ();
+
+	io.SocketAddress address;
+	address.m_family = io.AddressFamily.Ip4;
+	address.m_ip4.m_address.m_i32 = m_adapterProp.m_value;
+	address.m_ip4.m_port = (uint16_t) atoi (m_portCombo.m_editText);
+	
+	m_listenerSocket.open (io.Protocol.Tcp, &address);
+	m_listenerSocket.listen ();
+
+	m_pluginHost.m_log.write (
+		TcpListenerLogRecordCode.Listening,
+		&address,
+		sizeof (address)
+		);
+
+	m_localAddress = address;
+	m_listenerState = State.Opened;
+	return true;
+
+catch:
+	jnc.Error const* error = jnc.getLastError ();
+	m_pluginHost.m_log.write (
+		TcpListenerLogRecordCode.ListenError,
+		error,
+		error.m_size
+		);
+		
+	m_listenerSocket.close ();
+	return false;
+}
+
+TcpListenerSession.stopListen ()
+{
+	if (m_listenerState != State.Opened)
+		return;
+
+	m_pluginHost.m_log.write (
+		TcpListenerLogRecordCode.ListenStopped,
+		&m_localAddress,
+		sizeof (m_localAddress)
+		);
+	m_listenerSocket.close ();
+	m_listenerState = State.Closed;
+}
+
+TcpListenerSession.disconnect ()
+{
+	if (m_connectionState != State.Opened)
+		return;
+
+	m_pluginHost.m_log.write (
+		TcpListenerLogRecordCode.ClientDisconnected,
+		&m_remoteAddress,
+		sizeof (m_remoteAddress)
+		);
+	m_connectionSocket.close ();
+	m_connectionSocket = null;
+	m_connectionState = State.Closed;
+	m_connectionSyncId++;
+}
+
+void TcpListenerSession.load (doc.Storage* storage)
+{
+	m_portCombo.m_editText = storage.readString ("port");
+	m_adapterProp.m_value = storage.readInt ("adapterIp");
+	m_overrideOldConnectionProp.m_value = storage.readBool ("overrideOldConnection");
+	m_abruptiveDisconnectProp.m_value = storage.readBool ("abruptiveDisconnect");
+}
+
+void TcpListenerSession.save (doc.Storage* storage)
+{
+	storage.writeString ("port", m_portCombo.m_editText);
+	storage.writeInt ("adapterIp", m_adapterProp.m_value);
+	storage.writeBool ("overrideOldConnection", m_overrideOldConnectionProp.m_value);
+	storage.writeBool ("abruptiveDisconnect", m_abruptiveDisconnectProp.m_value);
+}
+
+void TcpListenerSession.updateProperties ()
+{
+	m_portProp.m_value = atoi (m_portCombo.m_editText);
+}
+
+bool TcpListenerSession.applyProperties () throws
+{
+	m_portCombo.m_editText = $"$(m_portProp.m_value)";
+	return true;
+}
+
+void TcpListenerSession.restoreDefaultProperties ()
+{
+	m_portProp.m_value = 1001;
+	m_adapterProp.m_value = 0;
+	m_overrideOldConnectionProp.m_value = true;
+	m_abruptiveDisconnectProp.m_value = false;
+}
+
+size_t TcpListenerSession.transmit (
+	void const* p,
+	size_t size
+	) throws
+{
+	if (m_connectionState != State.Opened)
+		return -1;
+
+	size_t result = try m_connectionSocket.send (p, size);
+	if (result != -1)
+		m_pluginHost.m_log.write (log.StdRecordCode.Tx, p, result);
+
+	return result;
+}
+
+TcpListenerSession.onListenerSocketEvent (io.SocketEventParams const* params)
+{
+	if (params.m_syncId != m_listenerSocket.m_syncId)
+		return;
+
+	switch (params.m_eventKind)
+	{
+	case io.SocketEvent.IncomingConnection:
+		io.SocketAddress address;
+		io.Socket* socket = try m_listenerSocket.accept (&address);
+		if (!socket)
+			break;
+
+		if (m_connectionState == State.Opened && !m_overrideOldConnectionProp.m_value)
+		{
+			socket.close ();
+			m_pluginHost.m_log.write (
+				TcpListenerLogRecordCode.ClientRejected,
+				&address,
+				sizeof (address)
+				);
+
+			break;
+		}
+
+		disconnect ();
+
+		m_pluginHost.m_log.write (
+			TcpListenerLogRecordCode.ClientConnected,
+			&address,
+			sizeof (address)
+			);
+
+		socket.m_syncId = m_connectionSyncId;
+		socket.m_onSocketEvent += onConnectionSocketEvent @ m_pluginHost.m_mainThreadScheduler;
+
+		m_remoteAddress = address;
+		m_connectionSocket = socket;
+		m_connectionState = State.Opened;		
+		
+		socket.firePendingEvents ();
+		break;
+	}
+}
+
+TcpListenerSession.onConnectionSocketEvent (io.SocketEventParams const* params)
+{
+	if (params.m_syncId != m_connectionSyncId)
+		return;
+
+	switch (params.m_eventKind)
+	{
+	case io.SocketEvent.Disconnected:
+		m_pluginHost.m_log.write (
+			TcpListenerLogRecordCode.ClientDisconnected,
+			&m_remoteAddress,
+			sizeof (m_remoteAddress)
+			);
+		m_connectionSocket = null;
+		m_connectionState = State.Closed;
+		m_connectionSyncId++;
+		break;
+
+	case io.SocketEvent.IncomingData:
+		heap char buffer [512];
+		size_t result = try m_connectionSocket.recv (buffer, sizeof (buffer));
+		if (result != -1)
+			m_pluginHost.m_log.write (log.StdRecordCode.Rx, buffer, result);
+		break;
+	}
+}
+
+reactor TcpListenerSession.m_uiReactor ()
+{
+	m_title = $"TCP @ $(m_portCombo.m_editText)";
+	m_isTransmitEnabled = m_connectionState == State.Opened;
+	m_actionTable [ActionId.StopListen].m_isEnabled = m_listenerState != State.Closed;
+	m_actionTable [ActionId.Disconnect].m_isEnabled = m_connectionState != State.Closed;
+}
+
+//.............................................................................
