@@ -29,7 +29,7 @@ source_virtual_folder (
 
 set (
 	PLG_PRJ_LIST
-	Udp.njssp
+	Udp.njplg
 	)
 
 source_virtual_folder (

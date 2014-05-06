@@ -29,7 +29,7 @@ source_virtual_folder (
 
 set (
 	PLG_PRJ_LIST
-	TcpProxy.njssp
+	TcpProxy.njplg
 	)
 
 source_virtual_folder (

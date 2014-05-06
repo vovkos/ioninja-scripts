@@ -1,0 +1,107 @@
+//.............................................................................
+//
+// Ppp layer
+//
+
+//.............................................................................
+
+class PppLayer: 
+	doc.Layer,
+	log.Filter
+{
+protected:
+	enum State
+	{
+		Normal,
+		Escape,
+	}
+	
+	State m_state;
+	
+public:
+	construct (doc.PluginHost* pluginHost);
+
+	override bool filter (
+		log.Writer* writer,
+		uint64_t timestamp,
+		uint_t recordCode,
+		void const* p,
+		size_t size
+		);
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+PppLayer.construct (doc.PluginHost* pluginHost)
+{
+	basetype1.construct (pluginHost);	
+	pluginHost.m_log.attachFilter (this);
+	pluginHost.m_log.m_representer = static new PppLogRepresenter;
+	
+	m_state = State.Normal;
+}
+
+bool PppLayer.filter (
+	log.Writer* writer,
+	uint64_t timestamp,
+	uint_t recordCode,
+	void const* p,
+	size_t size
+	)
+{
+	if (recordCode != log.StdRecordCode.Tx)
+		return false;
+
+	void const* p0 = p;
+	void const* end = p + size;	
+
+	for (; p < end; p++)
+	{
+		char c = *(char const*) p;		
+		if (m_state != State.Escape)
+		{
+			if (c == '\\')
+			{
+				if (p > p0)
+					writer.write (timestamp, recordCode, p0, p - p0);
+				
+				m_state = State.Escape;
+			}
+		}
+		else
+		{
+			p0 = p + 1;
+
+			switch (c)
+			{
+			case 'o':
+				writer.write (timestamp, PppLogRecordCode.Open, null, 0);
+				break;
+
+			case 'c':
+				writer.write (timestamp, PppLogRecordCode.Close, null, 0);
+				break;
+
+			case 'e':
+				writer.write (timestamp, PppLogRecordCode.Connect, null, 0);
+				break;
+
+			case 'd':
+				writer.write (timestamp, PppLogRecordCode.Disconnect, null, 0);
+				break;
+				
+			default:
+				p0 = p;
+			}
+			
+			m_state = State.Normal;
+		}
+	}
+
+	if (p > p0)
+		writer.write (timestamp, recordCode, p0, p - p0);
+	
+	return true;
+}
+
+//.............................................................................

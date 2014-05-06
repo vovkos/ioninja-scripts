@@ -1,0 +1,74 @@
+//.............................................................................
+//
+// Ppp log packet declarations and representer
+//
+
+//.............................................................................
+
+enum PppLogRecordCode
+{
+	Open,
+	Close,
+	Connect,
+	Disconnect,
+}
+
+//.............................................................................
+
+class PppLogRepresenter: log.Representer
+{
+	override bool represent (
+		log.RepresenterTarget* target,
+		uint_t recordCode,
+		void const* p,
+		size_t size,
+		uint64_t foldFlags
+		);
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+bool PppLogRepresenter.represent (
+	log.RepresenterTarget* target,
+	uint_t recordCode,
+	void const* p,
+	size_t size,
+	uint64_t foldFlags
+	)
+{
+	printf ("PppLogRepresenter.represent ()\n");
+
+	switch (recordCode)
+	{
+	case PppLogRecordCode.Open:
+		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = StdLogColor.Info;
+		target.addHyperText ("Open in-band command");
+		break;
+
+	case PppLogRecordCode.Close:
+		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = StdLogColor.Info;
+		target.addHyperText ("Close in-band command");
+		break;
+
+	case PppLogRecordCode.Connect:
+		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = StdLogColor.Info;
+		target.addHyperText ("Connect in-band command");
+		break;
+
+	case PppLogRecordCode.Disconnect:
+		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = StdLogColor.Info;
+		target.addHyperText ("Disconnect in-band command");
+		break;
+
+	default:
+		return false;
+	}
+
+	return true;
+}
+
+//.............................................................................

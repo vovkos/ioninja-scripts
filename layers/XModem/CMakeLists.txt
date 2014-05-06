@@ -4,7 +4,7 @@
 
 #..............................................................................
 
-project_virtual_folder (nj_plg_Sniffer)
+project_virtual_folder (nj_plg_XModem)
 
 #..............................................................................
 #
@@ -13,13 +13,9 @@ project_virtual_folder (nj_plg_Sniffer)
 
 set (
 	PLG_JNC_LIST
-	SnifferLog.jnc
-	SnifferLog_Ethernet.jnc
-	SnifferLog_Ip.jnc
-	SnifferLog_Icmp.jnc
-	SnifferLog_Tcp.jnc
-	SnifferLog_Udp.jnc
-	SnifferSession.jnc
+	XModemLayer.jnc
+	XModemTransmit.jnc
+	XModemReceive.jnc
 	)
 
 source_virtual_folder (
@@ -34,7 +30,7 @@ source_virtual_folder (
 
 set (
 	PLG_PRJ_LIST
-	Sniffer.njplg
+	XModem.njplg
 	)
 
 source_virtual_folder (
@@ -49,9 +45,7 @@ source_virtual_folder (
 
 set (
 	PLG_IMG_LIST
-	images/sniffer.png
-	images/capture.png
-	images/pause.png
+	images/xmodem.png
 	)
 
 source_virtual_folder (
@@ -61,11 +55,11 @@ source_virtual_folder (
 
 #..............................................................................
 #
-# nj_plg_Sniffer script library
+# nj_PLG_XModem script library
 #
 
 add_library (
-	nj_plg_Sniffer
+	nj_plg_XModem
 	EXCLUDE_FROM_ALL
 	${PLG_JNC_LIST}
 	${PLG_PRJ_LIST}
@@ -73,7 +67,7 @@ add_library (
 	)
 
 set_target_properties (
-	nj_plg_Sniffer
+	nj_plg_XModem
 	PROPERTIES
 	FOLDER scripts
 	LINKER_LANGUAGE C

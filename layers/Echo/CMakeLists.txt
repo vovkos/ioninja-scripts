@@ -28,7 +28,7 @@ source_virtual_folder (
 
 set (
 	PLG_PRJ_LIST
-	Echo.njssp
+	Echo.njplg
 	)
 
 source_virtual_folder (

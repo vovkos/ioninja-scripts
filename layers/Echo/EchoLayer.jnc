@@ -12,7 +12,7 @@ class EchoLayer:
 	construct (doc.PluginHost* pluginHost)
 	{
 		basetype1.construct (pluginHost);	
-		pluginHost.m_log.attachListener (this, log.ListenerSensitivity.LiveRecordsOnly);
+		pluginHost.m_log.attachListener (this);
 	}
 
 	override notify (

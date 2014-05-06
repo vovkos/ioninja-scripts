@@ -29,7 +29,7 @@ source_virtual_folder (
 
 set (
 	PLG_PRJ_LIST
-	TcpListener.njssp
+	TcpListener.njplg
 	)
 
 source_virtual_folder (

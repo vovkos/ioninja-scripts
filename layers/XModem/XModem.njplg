@@ -1,0 +1,20 @@
+//.............................................................................
+//
+// XModem layer plugin
+//
+
+[plugin]
+
+name        = XModem
+description = "Implements XModem protocol for file transmit/receive"
+id          = xmodem
+guid        = 16f59fa1-177a-48ae-a8e3-190c9be0821e
+icon        = images/xmodem.png
+
+layer-class = XModemLayer
+
+[scripts]
+
+XModemLayer.jnc
+XModemTransmit.jnc
+XModemReceive.jnc

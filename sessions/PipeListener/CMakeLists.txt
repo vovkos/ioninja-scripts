@@ -29,7 +29,7 @@ source_virtual_folder (
 
 set (
 	PLG_PRJ_LIST
-	PipeListener.njssp
+	PipeListener.njplg
 	)
 
 source_virtual_folder (

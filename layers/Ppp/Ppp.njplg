@@ -1,0 +1,20 @@
+//.............................................................................
+//
+// PPP layer plugin
+//
+
+[plugin]
+
+name        = PPP
+description = "Analyzes PPP protocol"
+id          = ppp
+guid        = c57def07-21cb-4a77-a0d4-4d9e1224d38a
+icon        = images/ppp.png
+
+layer-class = PppLayer
+
+[scripts]
+
+PppLayer.jnc
+PppLog.jnc
+

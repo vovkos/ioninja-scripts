@@ -222,17 +222,25 @@ opaque class Log
 	}
 
 	write (
+		uint64_t timestamp,
+		uint_t recordCode
+		)
+	{
+		m_writer.write (timestamp, recordCode, null, 0);
+	}
+
+	write (uint_t recordCode)
+	{
+		m_writer.write (jnc.getTimestamp (), recordCode, null, 0);
+	}
+
+	write (
 		uint_t recordCode,
 		void const* p,
 		size_t size
 		)
 	{
 		m_writer.write (jnc.getTimestamp (), recordCode, p, size);
-	}
-
-	write (uint_t recordCode)
-	{
-		m_writer.write (jnc.getTimestamp (), recordCode, null, 0);
 	}
 }
 
