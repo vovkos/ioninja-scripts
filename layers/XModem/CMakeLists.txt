@@ -13,9 +13,10 @@ project_virtual_folder (nj_plg_XModem)
 
 set (
 	PLG_JNC_LIST
+	XModem.jnc
 	XModemLayer.jnc
-	XModemTransmit.jnc
-	XModemReceive.jnc
+	XModemTransmitter.jnc
+	XModemReceiver.jnc
 	)
 
 source_virtual_folder (

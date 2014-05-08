@@ -1,0 +1,234 @@
+//.............................................................................
+
+class XModemReceiver
+{
+protected:
+	enum State
+	{
+		Idle,
+		SendNak,
+		Data,
+		Eot,
+	}	
+	
+	State m_state;
+	XModemLayer* m_parent;
+	io.MappedFile* m_file;
+	
+public:
+	construct (XModemLayer* parent);
+	
+	start  ();
+	cancel ();
+	
+	onRx (
+		void const* p,
+		size_t size
+		);
+	
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+XModemReceiver.construct (XModemLayer* parent)
+{		
+	m_state = State.Idle;
+	m_parent = parent;
+}
+
+XModemReceiver.start ()
+{
+}
+
+XModemReceiver.cancel ()
+{
+}
+
+XModemReceiver.onRx (
+	void const* p,
+	size_t size
+	)
+{
+}
+
+//.............................................................................
+
+/*
+// xmodem transfer (receiving side implementation)
+
+class XModemReceiver: IReceiveTransfer
+{
+	// fields
+
+	int m_State;
+
+	ulong_t m_RetransmitInterval;
+	size_t m_CanCount;
+
+	string m_Status;
+	bool m_TransferResult;
+	uchar_t m_BlockNum;
+
+	ITransport m_Transport;
+	ITimer m_NakTimer;
+
+	// constructor
+
+	void XModemReceiver();
+
+	void OnRx(const void* p, size_t Size);
+	void OnRx_Block(TXModemBlock* pBlock);
+
+	void SendPacket(uchar_t Code);
+	void Release();
+	void OnNakTimer();
+
+	void Complete(bool Result);
+	void SetStatus(const char* pStatus);
+};
+
+void XModemReceiver::XModemReceiver()
+{
+	m_State = EState::Idle;
+	m_RetransmitInterval = 1000;
+	m_CanCount = 8;
+	m_BlockNum = 0;
+
+	m_NakTimer = new CTimer;
+	m_NakTimer.OnTimer = OnNakTimer;
+}
+
+void XModemReceiver::Release()
+{
+	m_State = EState::Idle;
+
+	if (m_Transport)
+	{
+		m_Transport.OnReceive -= OnRx;
+		m_Transport = NULL;
+	}
+
+	m_NakTimer.Cancel();
+}
+
+// property getters
+
+const char* XModemReceiver::Status::get()
+	{ return (const char*) m_Status; }
+
+bool XModemReceiver::TransferResult::get()
+	{ return m_TransferResult; }
+
+// set property + fire notification
+
+void XModemReceiver::SetStatus(const char* pStatus)
+{ 
+	m_Status = pStatus;
+	propchange(Status); 
+}
+
+void XModemReceiver::Complete(bool Result)
+{ 
+	m_TransferResult = Result;
+	Release();
+	OnComplete(); 
+}
+
+// public interface methods
+
+bool XModemReceiver::StartReceive(ITransport Transport)
+{
+	Cancel();
+
+	m_Transport = Transport;
+
+	m_BlockNum = 0;
+
+	m_Transport.OnReceive += OnRx;
+
+	m_State = EState::SendNak;
+	SetStatus("Waiting for the peer to start XModem transfer...");
+	
+	SendPacket(EXModem::Nak);
+	m_NakTimer.Set(m_RetransmitInterval, true);
+	return true;
+}
+
+void XModemReceiver::Cancel()
+{
+	if (m_State == EState::Idle)
+		return;
+
+	static uchar_t _Can = EXModem::Can;
+	for (int i = 0; i < m_CanCount; i++)
+		m_Transport.Transmit(&_Can, sizeof(uchar_t));
+
+	SetStatus("XModem transfer cancelled by user");
+	Complete(false);
+}
+
+// implementation
+
+void XModemReceiver::SendPacket(uchar_t Code)
+	{ m_Transport.Transmit(&Code, sizeof(uchar_t)); }
+
+void XModemReceiver::OnNakTimer()
+	{ SendPacket(EXModem::Nak); }
+
+void XModemReceiver::OnRx(const void* p, size_t Size)
+{
+	char Code = *(char*) p;
+
+	switch (Code)
+	{
+	case EXModem::Soh:
+		if (m_State == EState::SendNak)
+		{
+			m_State = EState::Data;
+			m_NakTimer.Cancel();
+			SetStatus("Receiving XModem data blocks...");
+		}
+
+		if (m_State == EState::Data && Size == sizeof(TXModemBlock))
+			OnRx_Block((TXModemBlock*) p);
+
+		break;
+
+	case EXModem::Can: 
+		SetStatus("XModem transfer cancelled by remote node.");
+		Complete(false);
+		break;
+
+	case EXModem::Eot:
+		SendPacket(EXModem::Ack);
+		SetStatus("XModem transfer completed successfully");
+		Complete(true);
+		break;
+	}
+}
+
+void XModemReceiver::OnRx_Block(TXModemBlock* pBlock)
+{
+	if (pBlock->m_BlockNum != m_BlockNum)
+	{
+		SendPacket(EXModem::Nak);
+		SetStatus("Out-of-sequence XModem block");
+		return;
+	}
+
+	if (pBlock->m_Checksum != CalcXModemChecksum(pBlock->m_Data))
+	{
+		SendPacket(EXModem::Nak);
+		SetStatus("Bad checksum of XModem block");
+		return;
+	}
+
+	// OK!
+
+	SendPacket(EXModem::Ack);
+	m_BlockNum++;
+	OnData(pBlock->m_Data, sizeof(pBlock->m_Data));
+}
+
+//.............................................................................
+*/

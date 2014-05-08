@@ -1,0 +1,86 @@
+//.............................................................................
+//
+// Ninja standard dialogs
+//
+
+namespace gui {
+
+//.............................................................................
+
+enum StdDlgIcon
+{
+	None,
+	Info,
+	Warning,
+	Error,
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+enum StdDlgButton
+{
+	Ok,
+	Cancel,
+	Yes,
+	No,
+	Abort,
+	Retry,
+	Close,
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+fenum StdDlgButtons
+{
+	Ok,
+	Cancel,
+	Yes,
+	No,
+	Abort,
+	Retry,
+	Close,
+}
+
+//.............................................................................
+
+enum FileDlgKind
+{
+	Open,
+	Save,
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+opaque class FileDlg
+{
+	FileDlgKind autoget property m_kind;
+	char const* autoget property m_title;
+	char const* autoget property m_filter;
+	char const* autoget property m_filePath;
+
+	StdDlgButton dconst m_result;
+
+	event m_onCompleted ();
+
+	show ();
+}
+
+//.............................................................................
+
+opaque class ProgressDlg
+{
+	char const* autoget property m_title;
+	char const* autoget property m_status;
+	int autoget property m_progress;
+	StdDlgIcon autoget property m_icon;
+	StdDlgButtons autoget property m_buttons;
+
+	show ();
+	hide ();
+
+	event m_onButtonClicked (StdDlgButton button);
+}
+
+//.............................................................................
+
+} // namespace gui {

@@ -12,6 +12,8 @@ opaque class PluginHost
 	gui.Menu* dconst m_menu;
 	gui.ToolBar* dconst m_toolBar;
 	gui.PropertyGrid* dconst m_propertyGrid;
+	gui.FileDlg* dconst m_fileDlg;
+	gui.ProgressDlg* dconst m_progressDlg;
 	log.Log* dconst m_log;
 	jnc.Scheduler* dconst m_mainThreadScheduler;
 

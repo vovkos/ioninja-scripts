@@ -16,7 +16,9 @@ set (
 	doc_Plugin.jnc
 	doc_PluginHost.jnc
 	doc_Storage.jnc
-	gui.jnc
+	gui_Base.jnc
+	gui_Dialog.jnc
+	gui_PropertyGrid.jnc
 	io_FileStream.jnc
 	io_MappedFile.jnc
 	io_NamedPipe.jnc

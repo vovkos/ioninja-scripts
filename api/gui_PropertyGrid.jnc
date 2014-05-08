@@ -1,0 +1,113 @@
+//.............................................................................
+//
+// Ninja property grid
+//
+
+namespace gui {
+
+//.............................................................................
+
+class Property
+{
+	protected uint_t m_id; // <-- tmp solution
+
+	char const* autoget property m_name;
+	char const* autoget property m_toolTipText;
+	bool autoget property m_isEnabled;
+}
+
+//.............................................................................
+
+opaque class BoolProperty: Property
+{
+	bool autoget bindable property m_value;
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+BoolProperty* createBoolProperty (char const* name);
+
+//.............................................................................
+
+opaque class IntProperty: Property
+{
+	int autoget bindable property m_value;
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+IntProperty* createIntProperty (char const* name);
+
+//.............................................................................
+
+opaque class StringProperty: Property
+{
+	char const* autoget bindable property m_value;
+	bool autoget property m_isPassword;
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+StringProperty* createStringProperty (char const* name);
+
+//.............................................................................
+
+struct EnumPropertyOption
+{
+	char const* m_text;
+	int m_value;
+};
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+opaque class EnumProperty: Property
+{
+	property m_value
+	{
+		int autoget m_value;
+		set (int value);
+		alias bindable event m_onPropChanged () = m_onChanged;
+	}
+
+	property m_currentIndex
+	{
+		size_t autoget m_value;
+		set (size_t value);
+		alias bindable event m_onPropChanged () = m_onChanged;
+	}
+
+	setOptions (
+		EnumPropertyOption const* optionArray,
+		size_t count
+		);
+
+	event m_onChanged ();
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+EnumProperty* createEnumProperty (char const* name);
+
+//.............................................................................
+
+opaque class GroupProperty
+{
+	addProperty (Property* prop);
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+GroupProperty* createGroupProperty (char const* name);
+
+//.............................................................................
+
+opaque class PropertyGrid
+{
+	bool autoget property m_isVisible;
+
+	addProperty (Property* prop);
+}
+
+//.............................................................................
+
+} // namespace gui {

@@ -1,6 +1,6 @@
 //.............................................................................
 //
-// Ninja GUI declarations
+// Ninja GUI base declarations
 //
 
 namespace gui {
@@ -80,9 +80,11 @@ opaque class Icon
 {
 }
 
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
 Icon* loadIcon (char const* fileName);
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+//.............................................................................
 
 // actions
 
@@ -98,13 +100,12 @@ opaque class Action
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-opaque class Menu
-{
-	addAction (Action* action);
-	addSeparator ();
-}
+Action* createAction (
+	char const* text,
+	Icon* icon = null
+	);
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+//.............................................................................
 
 // combo box
 
@@ -157,7 +158,7 @@ opaque class ComboBox
 	event m_onEnter ();
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+//.............................................................................
 
 // toolbar
 
@@ -169,95 +170,15 @@ opaque class ToolBar
 	addSeparator ();
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-// properties
-
-class Property
-{
-	protected uint_t m_id; // <-- tmp solution
-
-	char const* autoget property m_name;
-	char const* autoget property m_toolTipText;
-	bool autoget property m_isEnabled;
-}
-
-opaque class BoolProperty: Property
-{
-	bool autoget bindable property m_value;
-}
-
-opaque class IntProperty: Property
-{
-	int autoget bindable property m_value;
-}
-
-opaque class StringProperty: Property
-{
-	char const* autoget bindable property m_value;
-	bool autoget property m_isPassword;
-}
-
-struct EnumPropertyOption
-{
-	char const* m_text;
-	int m_value;
-};
-
-opaque class EnumProperty: Property
-{
-	property m_value
-	{
-		int autoget m_value;
-		set (int value);
-		alias bindable event m_onPropChanged () = m_onChanged;
-	}
-
-	property m_currentIndex
-	{
-		size_t autoget m_value;
-		set (size_t value);
-		alias bindable event m_onPropChanged () = m_onChanged;
-	}
-
-	setOptions (
-		EnumPropertyOption const* optionArray,
-		size_t count
-		);
-
-	event m_onChanged ();
-}
-
-opaque class GroupProperty
-{
-	addProperty (Property* prop);
-}
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-// property grid
-
-opaque class PropertyGrid
-{
-	bool autoget property m_isVisible;
-
-	addProperty (Property* prop);
-}
-
 //.............................................................................
 
-// create functions (to be removed after 'new operator' for opaque classes is implemented )
+// menu
 
-Action* createAction (
-	char const* text,
-	Icon* icon = null
-	);
-
-BoolProperty* createBoolProperty (char const* name);
-IntProperty* createIntProperty (char const* name);
-StringProperty* createStringProperty (char const* name);
-EnumProperty* createEnumProperty (char const* name);
-GroupProperty* createGroupProperty (char const* name);
+opaque class Menu
+{
+	addAction (Action* action);
+	addSeparator ();
+}
 
 //.............................................................................
 

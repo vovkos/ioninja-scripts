@@ -15,6 +15,7 @@ layer-class = XModemLayer
 
 [scripts]
 
+XModem.jnc
 XModemLayer.jnc
-XModemTransmit.jnc
-XModemReceive.jnc
+XModemTransmitter.jnc
+XModemReceiver.jnc

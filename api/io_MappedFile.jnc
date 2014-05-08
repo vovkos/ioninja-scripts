@@ -9,10 +9,10 @@ namespace io {
 
 opaque class MappedFile
 {
-	size_t autoget property m_permanentViewCount;
 	size_t autoget property m_dynamicViewLimit;
 
 	bool dconst m_isOpen;
+	uint64_t autoget property m_size;
 
 	bool open (
 		char const* name,
@@ -22,7 +22,7 @@ opaque class MappedFile
 	void close ();
 
 	void* view (
-		size_t offset,
+		uint64_t offset,
 		size_t size,
 		bool isPermanent = false
 		) throws;
