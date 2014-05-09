@@ -32,6 +32,7 @@ protected:
 	onRx_Data (char c);
 	onRx_Eot (char c);
 
+	complete ();
 	sendNextDataBlock ();
 }
 
@@ -52,6 +53,14 @@ XModemTransmitter.start  ()
 	m_offset = 0;
 }		
 
+XModemTransmitter.complete ()
+{
+	m_state = State.Idle;
+	m_offset = 0;
+	m_parent.m_pluginHost.m_progressDlg.m_buttons = gui.StdDlgButtons.Ok;
+	m_parent.m_file.close ();
+}
+
 XModemTransmitter.cancel ()
 {
 	if (m_state == State.Idle)
@@ -63,12 +72,36 @@ XModemTransmitter.cancel ()
 	for (size_t i = 0; i < XModemCanCount; i++)
 		try m_parent.transmit (&c, sizeof (c));
 
-	m_state = State.Idle;
-	m_offset = 0;
+	complete ();
 }
 
 XModemTransmitter.sendNextDataBlock ()
 {
+	if (m_offset > m_parent.m_file.m_size)
+		return;
+
+	size_t size = (size_t) (m_parent.m_file.m_size - m_offset);
+	if (size > XModemBlockSize)
+		size = XModemBlockSize;
+	
+	void const* p = m_parent.m_file.view (m_offset, size);
+
+	XModemBlock block;
+	block.m_blockNumber = (uchar_t) (m_offset / XModemBlockSize + 1);
+	block.m_code = XModemChar.Soh;
+	block.m_complement = (uchar_t) (block.m_blockNumber ^ 0xff);
+
+	memcpy (block.m_data, p, size);
+	block.m_checksum = calcXModemChecksum (block.m_data);
+	
+	m_parent.transmit (&block, sizeof (block));
+
+	m_parent.m_pluginHost.m_progressDlg.m_progress = (int) ((m_offset + size / 2) * 100 / m_parent.m_file.m_size);
+	m_offset += size;	
+
+catch:
+	m_parent.m_pluginHost.m_progressDlg.m_status = jnc.getLastError ().m_description;
+	complete ();
 }
 
 XModemTransmitter.onRx (
@@ -94,12 +127,18 @@ XModemTransmitter.onRx (
 
 XModemTransmitter.onRx_WaitNak (char c)
 {
-	if (c != XModemChar.Nak)
-		return;
-
-	m_parent.m_pluginHost.m_progressDlg.m_status = "Transferring XModem data blocks...";
-	m_state = State.Data;
-	sendNextDataBlock ();
+	switch (c)
+	{
+	case XModemChar.Nak:
+		m_parent.m_pluginHost.m_progressDlg.m_status = "Transferring XModem data blocks...";
+		m_state = State.Data;
+		sendNextDataBlock ();
+		break;
+		
+	default:
+		m_parent.m_pluginHost.m_progressDlg.m_status = "Invalid XModem transfer request";
+		// and ignore it
+	}
 }
 
  XModemTransmitter.onRx_Data (char c)
@@ -107,40 +146,34 @@ XModemTransmitter.onRx_WaitNak (char c)
 	switch (c)
 	{
 	case XModemChar.Ack:
-/*		m_TransferSize += EXModem::BlockSize;
-		propchange(TransferSize);
+		m_parent.m_pluginHost.m_progressDlg.m_progress = (int) (m_offset * 100 / m_parent.m_file.m_size);
 
-		if (m_TransferSize < m_Size)
+		if (m_offset < m_parent.m_file.m_size)
 		{
-			PrepareDataBlock();
-			RetransmitPacket();
+			sendNextDataBlock ();
+			break;
 		}
-		else
-		{
-			m_State = EState::Eot;
-			SetStatus("Ending XModem tranfer");
 
-			static uchar_t _Eot = EXModem::Eot;
-			m_pPacket = &_Eot;
-			m_PacketSize = sizeof(uchar_t);
+		m_parent.m_pluginHost.m_progressDlg.m_status = "Ending XModem transfer...";
+		m_state = State.Eot;
 
-			RetransmitPacket();
-		}
-*/
+		static char c = XModemChar.Eot;
+		try m_parent.transmit (&c, sizeof (c));
 		break;
 
 	case XModemChar.Nak:
-//		SetStatus("Remote node reported out-of-sequence XModem block");
-//		Complete(false);
+		m_parent.m_pluginHost.m_progressDlg.m_status = "Remote node reported out-of-sequence XModem block";
+		complete ();
 		break;
 
 	case XModemChar.Can:
-//		SetStatus("XModem transfer cancelled by remote node");
-//		Complete(false);
+		m_parent.m_pluginHost.m_progressDlg.m_status = "XModem transfer cancelled by remote node";
+		complete ();
 		break;
 
 	default:
-//		SetStatus("Invalid response to XModem data block");
+		m_parent.m_pluginHost.m_progressDlg.m_status = "Invalid response to XModem data block";
+		// and ignore it
 	}
 }
 
@@ -149,167 +182,19 @@ XModemTransmitter.onRx_Eot (char c)
 	switch (c)
 	{
 	case XModemChar.Ack:
-//		SetStatus ("XModem transfer completed successfully");
-//		Complete (true);
+		m_parent.m_pluginHost.m_progressDlg.m_status = "XModem transfer completed successfully";
+		complete ();
 		break;
 
 	case XModemChar.Nak:
-//		RetransmitPacket ();
+		m_parent.m_pluginHost.m_progressDlg.m_status = "Remote node reported out-of-sequence XModem block";
+		complete ();
 		break;
 
 	default:
-//		SetStatus("Invalid response to XModem EOT command");
+		m_parent.m_pluginHost.m_progressDlg.m_status = "Invalid response to XModem EOT command";
+		// and ignore it
 	}
 }
 
-
 //.............................................................................
-
-/*
-// xmodem transfer (sending side implementation)
-
-class XModemTransmitter: ISendTransfer
-{
-	// fields
-
-	int m_State;
-
-	ulong_t m_RetransmitInterval;
-	size_t m_CanCount;
-
-	string m_Status;
-	bool m_TransferResult;
-	size_t m_TransferSize;
-
-	TXModemBlock m_Block;	
-	void* m_pPacket;
-	size_t m_PacketSize;
-
-	char* m_p;
-	size_t m_Size;
-
-	ITransport m_Transport;
-	ITimer m_Timer;
-
-	// constructor
-
-	void XModemTransmitter();
-
-	void OnRx(const void* p, size_t Size);
-	void OnRx_WaitNak(char Code);
-	void OnRx_Data(char Code);
-	void OnRx_Eot(char Code);
-
-	void Release();
-	bool PrepareDataBlock();
-	void RetransmitPacket();
-
-	void Complete(bool Result);
-	void SetStatus(const char* pStatus);
-};
-
-void XModemTransmitter::XModemTransmitter()
-{
-	m_State = EState::Idle;
-	m_RetransmitInterval = 1000;
-	m_CanCount = 8;
-
-	memset(&m_Block, 0, sizeof(TXModemBlock));
-	m_pPacket = NULL;
-	m_PacketSize = 0;
-
-	m_p = NULL;
-	m_Size = 0;
-	m_TransferSize = 0;
-
-	m_Timer = new CTimer;
-	m_Timer.OnTimer = RetransmitPacket;
-}
-
-void XModemTransmitter::Release()
-{
-	m_State = EState::Idle;
-
-	if (m_Transport)
-	{
-		m_Transport.OnReceive -= OnRx;
-		m_Transport = NULL;
-	}
-
-	m_Timer.Cancel();
-}
-
-// property getters
-
-const char* XModemTransmitter::Status::get()
-	{ return (const char*) m_Status; }
-
-size_t XModemTransmitter::TransferSize::get()
-	{ return m_TransferSize; }
-
-bool XModemTransmitter::TransferResult::get()
-	{ return m_TransferResult; }
-
-// set property + fire notification
-
-void XModemTransmitter::SetStatus(const char* pStatus)
-{ 
-	m_Status = pStatus;
-	propchange(Status); 
-}
-
-void XModemTransmitter::Complete(bool Result)
-{ 
-	m_TransferResult = Result;
-	Release();
-	OnComplete();
-}
-
-// public interface methods
-
-bool XModemTransmitter::StartSend(
-	ITransport Transport, 
-	const void* p, 
-	size_t Size
-	)
-{
-}
-
-void XModemTransmitter::Cancel()
-{
-}
-
-// implementation
-
-bool XModemTransmitter::PrepareDataBlock()
-{
-	if (m_TransferSize >= m_Size)
-		return false;
-
-	size_t Size = m_Size - m_TransferSize;
-	if (Size > EXModem::BlockSize)
-		Size = EXModem::BlockSize;
-
-	memset(&m_Block, 0, sizeof(TXModemBlock));
-	m_Block.m_BlockNum = (uchar_t) (m_TransferSize / EXModem::BlockSize + 1);
-	m_Block.m_OpCode = EXModem::Soh;
-	m_Block.m_Complement = m_Block.m_BlockNum ^ 0xff;
-
-	memcpy(m_Block.m_Data, m_p + m_TransferSize, Size);
-
-	m_Block.m_Checksum = CalcXModemChecksum(m_Block.m_Data);
-
-	m_pPacket = &m_Block;
-	m_PacketSize = sizeof(TXModemBlock);
-
-	return true;
-}
-
-void XModemTransmitter::RetransmitPacket()
-{
-	m_Transport.Transmit(m_pPacket, m_PacketSize);
-	m_Timer.Set(m_RetransmitInterval);
-}
-
-//.............................................................................
-*/
