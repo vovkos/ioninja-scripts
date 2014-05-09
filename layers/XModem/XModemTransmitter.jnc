@@ -53,14 +53,6 @@ XModemTransmitter.start  ()
 	m_offset = 0;
 }		
 
-XModemTransmitter.complete ()
-{
-	m_state = State.Idle;
-	m_offset = 0;
-	m_parent.m_pluginHost.m_progressDlg.m_buttons = gui.StdDlgButtons.Ok;
-	m_parent.m_file.close ();
-}
-
 XModemTransmitter.cancel ()
 {
 	if (m_state == State.Idle)
@@ -73,6 +65,14 @@ XModemTransmitter.cancel ()
 		try m_parent.transmit (&c, sizeof (c));
 
 	complete ();
+}
+
+XModemTransmitter.complete ()
+{
+	m_state = State.Idle;
+	m_offset = 0;
+	m_parent.m_pluginHost.m_progressDlg.m_buttons = gui.StdDlgButtons.Ok;
+	m_parent.m_file.close ();
 }
 
 XModemTransmitter.sendNextDataBlock ()
