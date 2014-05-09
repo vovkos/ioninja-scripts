@@ -74,10 +74,10 @@ XModemLayer.createUi ()
 {
 	m_pluginHost.m_toolBar.addSeparator ();
 
-	m_actionTable [ActionId.Transmit]  = m_pluginHost.createAction ("Transmit File", "images/transmit.png");
+	m_actionTable [ActionId.Transmit]  = m_pluginHost.createAction ("Transmit File with XModem", "images/transmit.png");
 	m_actionTable [ActionId.Transmit].m_onTriggered += transmitFile;
 
-	m_actionTable [ActionId.Receive] = m_pluginHost.createAction ("Receive File", "images/receive.png");
+	m_actionTable [ActionId.Receive] = m_pluginHost.createAction ("Receive File with XModem", "images/receive.png");
 	m_actionTable [ActionId.Receive].m_onTriggered += receiveFile;
 }
 
