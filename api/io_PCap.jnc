@@ -46,8 +46,9 @@ PCap* createPCap ();
 struct PCapAddress
 {
 	PCapAddress const* m_next;
-	
-	// currently not used
+	Address_Ip4 m_address;
+	Address_Ip4 m_mask;
+	Address_Ip4 m_broadcast;
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .

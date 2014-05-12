@@ -90,7 +90,12 @@ SnifferSession.createUi ()
 
 	for (; device; device = device->m_next)
 	{
-		char const* itemName = $"$(device.m_name) - $(device.m_description)";
+		char const* itemName = jnc.format (
+			"%s (%s)", 
+			io.formatAddress_Ip4 (&device->m_address.m_address),
+			device->m_description
+			);
+
 		object <io.PCapDeviceDesc const*>* data = new object <io.PCapDeviceDesc const*>;
 		data.m_value = device;
 		m_deviceCombo.addItem (itemName, data);
@@ -132,7 +137,7 @@ bool SnifferSession.capture () throws
 {
 	stopCapture ();
 
-	object <io.PCapDeviceDesc const*>* data = (object <io.PCapDeviceDesc const*>*) m_deviceCombo.m_itemData [m_deviceCombo.m_currentIndex];
+	object <io.PCapDeviceDesc const*>* data = (object <io.PCapDeviceDesc const*>*) m_deviceCombo.m_currentData;
 	io.PCapDeviceDesc const* device = data.m_value;
 
 	m_pcap.open (
@@ -185,7 +190,10 @@ void SnifferSession.save (doc.Storage* storage)
 
 void SnifferSession.updateProperties ()
 {
-	m_deviceProp.m_value = m_deviceCombo.m_currentText;
+	object <io.PCapDeviceDesc const*>* data = (object <io.PCapDeviceDesc const*>*) m_deviceCombo.m_currentData;
+	io.PCapDeviceDesc const* device = data.m_value;
+	
+	m_deviceProp.m_value = device.m_name;
 }
 
 bool SnifferSession.applyProperties () throws
