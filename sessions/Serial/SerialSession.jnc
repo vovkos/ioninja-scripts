@@ -369,31 +369,31 @@ bool SerialSession.applyProperties () throws
 	m_logFilter.m_isControlLineChangedVisible = m_controlLineChangedVisibleProp.m_value;
 	m_logFilter.m_isStatusLineChangedVisible = m_statusLineChangedVisibleProp.m_value;
 
-	if (m_state == State.Opened)
-	{
-		uint_t dataBitsValue = m_dataBitsProp.m_value;
-		if (m_serial.m_dataBits != dataBitsValue)
-		{
-			m_serial.m_dataBits = dataBitsValue;
-			m_pluginHost.m_log.write (SerialLogRecordCode.DataBitsChanged, &dataBitsValue, sizeof (dataBitsValue));
-		}
-		
-		io.SerialStopBits stopBitsValue = (io.SerialStopBits) m_stopBitsProp.m_value;
-		if (m_serial.m_stopBits != stopBitsValue)
-		{
-			m_serial.m_stopBits = stopBitsValue;
-			m_pluginHost.m_log.write (SerialLogRecordCode.StopBitsChanged, &stopBitsValue, sizeof (stopBitsValue));
-		}
+	if (m_state != State.Opened)
+		return true;
 
-		io.SerialParity parityValue = (io.SerialParity) m_parityProp.m_value;
-		if (m_serial.m_parity != parityValue)
-		{
-			m_serial.m_parity = parityValue;
-			m_pluginHost.m_log.write (SerialLogRecordCode.ParityChanged, &parityValue, sizeof (parityValue));
-		}
-		
-		// baud rate and flow control setting changes are handled by their onChanged event handlers
+	uint_t dataBitsValue = m_dataBitsProp.m_value;
+	if (m_serial.m_dataBits != dataBitsValue)
+	{
+		m_serial.m_dataBits = dataBitsValue;
+		m_pluginHost.m_log.write (SerialLogRecordCode.DataBitsChanged, &dataBitsValue, sizeof (dataBitsValue));
 	}
+		
+	io.SerialStopBits stopBitsValue = (io.SerialStopBits) m_stopBitsProp.m_value;
+	if (m_serial.m_stopBits != stopBitsValue)
+	{
+		m_serial.m_stopBits = stopBitsValue;
+		m_pluginHost.m_log.write (SerialLogRecordCode.StopBitsChanged, &stopBitsValue, sizeof (stopBitsValue));
+	}
+
+	io.SerialParity parityValue = (io.SerialParity) m_parityProp.m_value;
+	if (m_serial.m_parity != parityValue)
+	{
+		m_serial.m_parity = parityValue;
+		m_pluginHost.m_log.write (SerialLogRecordCode.ParityChanged, &parityValue, sizeof (parityValue));
+	}
+		
+	// baud rate and flow control setting changes are handled by their onChanged event handlers
 	
 	return true;
 }
@@ -453,52 +453,50 @@ SerialSession.onSerialEvent (io.SerialEventParams const* params)
 
 SerialSession.onBaudRateChanged ()
 {
-	if (m_state == State.Opened)
-	{
-		m_baudRateProp.m_currentIndex = m_baudRateCombo.m_currentIndex;
-		uint_t value = m_baudRateProp.m_value;
+	if (m_state != State.Opened)
+		return;
+
+	m_baudRateProp.m_currentIndex = m_baudRateCombo.m_currentIndex;
+	uint_t value = m_baudRateProp.m_value;
 		
-		m_serial.m_baudRate = value;
-		m_pluginHost.m_log.write (SerialLogRecordCode.BaudRateChanged, &value, sizeof (value));
-	}
+	m_serial.m_baudRate = value;
+	m_pluginHost.m_log.write (SerialLogRecordCode.BaudRateChanged, &value, sizeof (value));
 }
 
 SerialSession.onFlowControlChanged ()
 {
-	if (m_state == State.Opened)
-	{
-		m_flowControlProp.m_currentIndex = m_flowControlCombo.m_currentIndex;
-		io.SerialFlowControl value = (io.SerialFlowControl) m_flowControlProp.m_value;
+	if (m_state != State.Opened)
+		return;
+
+	m_flowControlProp.m_currentIndex = m_flowControlCombo.m_currentIndex;
+	io.SerialFlowControl value = (io.SerialFlowControl) m_flowControlProp.m_value;
 		
-		m_serial.m_flowControl = value;
-		m_pluginHost.m_log.write (SerialLogRecordCode.FlowControlChanged, &value, sizeof (value));
-	}
+	m_serial.m_flowControl = value;
+	m_pluginHost.m_log.write (SerialLogRecordCode.FlowControlChanged, &value, sizeof (value));
 }
 
 SerialSession.onDtrChanged ()
 {
-	if (m_state == State.Opened)
-	{
-		bool value = m_actionTable [ActionId.Dtr].m_isChecked;
-		m_serial.m_dtr = value;
-		m_pluginHost.m_log.write (SerialLogRecordCode.DtrChanged, &value, sizeof (value));
-	}
+	if (m_state != State.Opened)
+		return;
+
+	bool value = m_actionTable [ActionId.Dtr].m_isChecked;
+	m_serial.m_dtr = value;
+	m_pluginHost.m_log.write (SerialLogRecordCode.DtrChanged, &value, sizeof (value));
 }
 
 SerialSession.onRtsChanged ()
 {
-	if (m_state == State.Opened)
-	{
-		bool value = m_actionTable [ActionId.Rts].m_isChecked;
-		m_serial.m_rts = value;
-		m_pluginHost.m_log.write (SerialLogRecordCode.RtsChanged, &value, sizeof (value));
-	}
+	if (m_state != State.Opened)
+		return;
+
+	bool value = m_actionTable [ActionId.Rts].m_isChecked;
+	m_serial.m_rts = value;
+	m_pluginHost.m_log.write (SerialLogRecordCode.RtsChanged, &value, sizeof (value));
 }
 
 reactor SerialSession.m_uiReactor ()
 {	
-	m_portProp.m_isEnabled = m_state == State.Closed;
-	m_portCombo.m_isEnabled = m_state == State.Closed;
 	m_actionTable [ActionId.Close].m_isEnabled = m_state == State.Opened;
 	m_title = $"$(m_portCombo.m_currentText) $(m_baudRateCombo.m_currentText)";
 	m_isTransmitEnabled = m_state == State.Opened;
