@@ -26,7 +26,7 @@ struct XModemBlock
 	uchar_t m_complement;
 	uchar_t m_data [XModemBlockSize];
 	uchar_t m_checksum;
-};
+}
 
 uchar_t calcXModemChecksum (void const* p)
 {

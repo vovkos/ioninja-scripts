@@ -7,10 +7,11 @@
 
 enum FileLogRecordCode
 {
-	Opened    = 1,
-	OpenError = 2,
-	Closed    = 3,
-	Eof       = 4,
+	Opened,
+	OpenError,
+	Closed,	
+	Eof,
+	ReadError
 }
 
 //.............................................................................
@@ -39,10 +40,11 @@ bool FileLogRepresenter.represent (
 	switch (recordCode)
 	{
 	case FileLogRecordCode.Opened:
-		char const* fileName = (char const*) p;		
+		io.FileStreamKind const* kind = (io.FileStreamKind const*) p;
+		char const* fileName = (char const*) (kind + 1);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
-		target.addHyperText ($"Opened file <15>$fileName");
+		target.addHyperText ($"Opened file <15>$fileName<> ($(io.getFileStreamKindString (*kind)))");
 		break;
 
 	case FileLogRecordCode.OpenError:
@@ -62,7 +64,14 @@ bool FileLogRepresenter.represent (
 	case FileLogRecordCode.Eof:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText ("EOF reached on RX file");
+		target.addHyperText ("EOF reached");
+		break;
+
+	case FileLogRecordCode.ReadError:
+		jnc.Error const* error = (jnc.Error const*) p;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
+		target.addHyperText ($"Read error ($(error.m_description))");
 		break;
 
 	default:

@@ -46,7 +46,7 @@ protected:
 	gui.BoolProperty* m_overrideOldConnectionProp;
 
 public:
-	construct (doc.DocumentHost* documentHost);
+	construct (doc.PluginHost* pluginHost);
 
 	bool listen () throws;
 	stopListen ();
@@ -73,16 +73,16 @@ protected:
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-PipeListenerSession.construct (doc.DocumentHost* documentHost)
+PipeListenerSession.construct (doc.PluginHost* pluginHost)
 {
-	basetype.construct (documentHost);
+	basetype.construct (pluginHost);
 	
-	documentHost.m_log.m_representer = static new PipeListenerLogRepresenter;
+	pluginHost.m_log.m_representer = static new PipeListenerLogRepresenter;
 	
 	m_connectionState = State.Closed;
 	m_listenerState = State.Closed;
 	m_listenerPipe = io.createNamedPipe ();
-	m_listenerPipe.m_onIncomingConnection += onIncomingConnection @ m_documentHost.m_mainThreadScheduler;	
+	m_listenerPipe.m_onIncomingConnection += onIncomingConnection @ m_pluginHost.m_mainThreadScheduler;	
 	
 	createUi ();
 }
@@ -91,30 +91,30 @@ PipeListenerSession.createUi ()
 {
 	// toolbar
 
-	m_documentHost.m_toolBar.addLabel ("Name: ");
-	m_pipeNameCombo = m_documentHost.m_toolBar.addComboBox (-1);
+	m_pluginHost.m_toolBar.addLabel ("Name: ");
+	m_pipeNameCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_pipeNameCombo.m_isEditable = true;
 	m_pipeNameCombo.m_onEnter += listen;
 
-	m_actionTable [ActionId.Listen] = m_documentHost.createAction ("Listen", "images/listen.png");
+	m_actionTable [ActionId.Listen] = m_pluginHost.createAction ("Listen", "images/listen.png");
 	m_actionTable [ActionId.Listen].m_onTriggered += listen;
 
-	m_actionTable [ActionId.StopListen] = m_documentHost.createAction ("Stop listening", "images/pause.png");
+	m_actionTable [ActionId.StopListen] = m_pluginHost.createAction ("Stop listening", "images/pause.png");
 	m_actionTable [ActionId.StopListen].m_onTriggered += stopListen;
 	m_actionTable [ActionId.StopListen].m_isEnabled = false;
 
-	m_actionTable [ActionId.Disconnect] = m_documentHost.createAction ("Disconnect", "images/disconnect.png");
+	m_actionTable [ActionId.Disconnect] = m_pluginHost.createAction ("Disconnect", "images/disconnect.png");
 	m_actionTable [ActionId.Disconnect].m_onTriggered += disconnect;
 	m_actionTable [ActionId.Disconnect].m_isEnabled = false;
 
 	// property grid
 
-	m_pipeNameProp = m_documentHost.createStringProperty (
+	m_pipeNameProp = m_pluginHost.createStringProperty (
 		"Pipe name",
 		"Specify pipe name to listen on"
 		);
 
-	m_overrideOldConnectionProp = m_documentHost.createBoolProperty (
+	m_overrideOldConnectionProp = m_pluginHost.createBoolProperty (
 		"Override connections",
 		"Accept incoming connection even if already connected"
 		);
@@ -131,7 +131,7 @@ bool PipeListenerSession.listen () throws
 	char const* name = m_pipeNameCombo.m_editText;
 	m_listenerPipe.open (name);
 
-	m_documentHost.m_log.write (
+	m_pluginHost.m_log.write (
 		PipeListenerLogRecordCode.Listening,
 		name,
 		strlen (name)
@@ -143,7 +143,7 @@ bool PipeListenerSession.listen () throws
 
 catch:
 	jnc.Error const* error = jnc.getLastError ();
-	m_documentHost.m_log.write (
+	m_pluginHost.m_log.write (
 		PipeListenerLogRecordCode.ListenError,
 		error,
 		error.m_size
@@ -158,7 +158,7 @@ PipeListenerSession.stopListen ()
 	if (m_listenerState != State.Opened)
 		return;
 
-	m_documentHost.m_log.write (
+	m_pluginHost.m_log.write (
 		PipeListenerLogRecordCode.ListenStopped,
 		m_pipeName,
 		strlen (m_pipeName)
@@ -173,7 +173,7 @@ PipeListenerSession.disconnect ()
 	if (m_connectionState != State.Opened)
 		return;
 
-	m_documentHost.m_log.write (PipeListenerLogRecordCode.ClientDisconnected);
+	m_pluginHost.m_log.write (PipeListenerLogRecordCode.ClientDisconnected);
 	m_connectionPipe.close ();
 	m_connectionPipe = null;
 	m_connectionState = State.Closed;
@@ -219,7 +219,7 @@ size_t PipeListenerSession.transmit (
 
 	size_t result = try m_connectionPipe.write (p, size);
 	if (result != -1)
-		m_documentHost.m_log.write (log.StdRecordCode.Tx, p, result);
+		m_pluginHost.m_log.write (log.StdRecordCode.Tx, p, result);
 
 	return result;
 }
@@ -236,16 +236,16 @@ PipeListenerSession.onIncomingConnection (uint_t syncId)
 	if (m_connectionState == State.Opened && !m_overrideOldConnectionProp.m_value)
 	{
 		pipe.close ();
-		m_documentHost.m_log.write (PipeListenerLogRecordCode.ClientRejected);
+		m_pluginHost.m_log.write (PipeListenerLogRecordCode.ClientRejected);
 		return;
 	}
 
 	disconnect ();
 
-	m_documentHost.m_log.write (PipeListenerLogRecordCode.ClientConnected);
+	m_pluginHost.m_log.write (PipeListenerLogRecordCode.ClientConnected);
 
 	pipe.m_syncId = m_connectionSyncId;
-	pipe.m_onFileStreamEvent += onConnectionPipeEvent @ m_documentHost.m_mainThreadScheduler;
+	pipe.m_onFileStreamEvent += onConnectionPipeEvent @ m_pluginHost.m_mainThreadScheduler;
 
 	m_connectionPipe = pipe;
 	m_connectionState = State.Opened;
@@ -262,7 +262,7 @@ PipeListenerSession.onConnectionPipeEvent (io.FileStreamEventParams const* param
 	{
 	case io.FileStreamEvent.Eof:
 	case io.FileStreamEvent.ReadError:
-		m_documentHost.m_log.write (PipeListenerLogRecordCode.ClientDisconnected);
+		m_pluginHost.m_log.write (PipeListenerLogRecordCode.ClientDisconnected);
 		m_connectionPipe = null;
 		m_connectionState = State.Closed;
 		m_connectionSyncId++;
@@ -272,15 +272,15 @@ PipeListenerSession.onConnectionPipeEvent (io.FileStreamEventParams const* param
 		heap char buffer [512];
 		size_t result = try m_connectionPipe.read (buffer, sizeof (buffer));
 		if (result != -1)
-			m_documentHost.m_log.write (log.StdRecordCode.Rx, buffer, result);
+			m_pluginHost.m_log.write (log.StdRecordCode.Rx, buffer, result);
 		break;
 	}
 }
 
 reactor PipeListenerSession.m_uiReactor ()
 {
-	m_documentHost.m_title = $"Pipe $(m_pipeNameCombo.m_editText)";
-	m_documentHost.m_isTransmitEnabled = m_connectionState == State.Opened;
+	m_title = $"Pipe $(m_pipeNameCombo.m_editText)";
+	m_isTransmitEnabled = m_connectionState == State.Opened;
 	m_actionTable [ActionId.StopListen].m_isEnabled = m_listenerState == State.Opened;
 	m_actionTable [ActionId.Disconnect].m_isEnabled = m_connectionState == State.Opened;
 }

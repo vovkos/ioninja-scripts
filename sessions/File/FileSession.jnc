@@ -25,6 +25,7 @@ protected:
 	{
 		Open,
 		Close,
+		Clear,
 		_Count,
 	}
 
@@ -51,6 +52,7 @@ public:
 
 	bool open () throws;
 	close ();
+	clear ();
 
 	override void load (doc.Storage* storage);
 	override void save (doc.Storage* storage);
@@ -101,12 +103,16 @@ FileSession.createUi ()
 	m_actionTable [ActionId.Close].m_onTriggered += close;
 	m_actionTable [ActionId.Close].m_isEnabled = false;
 
+	m_actionTable [ActionId.Clear] = m_pluginHost.createAction ("Clear", "images/clear.png");
+	m_actionTable [ActionId.Clear].m_onTriggered += clear;
+	m_actionTable [ActionId.Clear].m_isEnabled = false;
+
 	m_fileNameProp = m_pluginHost.createStringProperty (
 		"File name",
 		"Specify the file name to open"
 		);
 
-	static gui.EnumPropertyOption ifaceTable [] =
+	static gui.EnumPropertyOption accessModeTable [] =
 	{
 		{ "Read/Write",  Access.ReadWrite },
 		{ "Read-only",   Access.ReadOnly  },
@@ -116,8 +122,8 @@ FileSession.createUi ()
 	m_accessProp = m_pluginHost.createEnumProperty (
 		"Access mode",
 		"Access mode for the file",
-		ifaceTable,
-		countof (ifaceTable)
+		accessModeTable,
+		countof (accessModeTable)
 		);
 
 	m_uiReactor.start ();
@@ -129,8 +135,9 @@ bool FileSession.open () throws
 
 	char const* fileName = m_fileNameCombo.m_editText;
 	m_file.open (fileName);
-	m_pluginHost.m_log.write (FileLogRecordCode.Opened, fileName, strlen (fileName));
 	
+	char const* p = $"$(m_file.m_kind, B)$fileName";
+	m_pluginHost.m_log.write (FileLogRecordCode.Opened, p, jnc.getDataPtrSpan (p));
 	m_fileName = fileName;
 	m_state = State.Opened;
 	return true;
@@ -154,7 +161,15 @@ FileSession.close ()
 
 	m_pluginHost.m_log.write (FileLogRecordCode.Closed, m_fileName, strlen (m_fileName));
 	m_file.close ();
-	m_state = State.Opened;
+	m_state = State.Closed;
+}
+
+FileSession.clear ()
+{
+	if (m_state != State.Opened)
+		return;
+
+	try m_file.clear ();
 }
 
 void FileSession.load (doc.Storage* storage)
@@ -207,20 +222,25 @@ FileSession.onFileStreamEvent (io.FileStreamEventParams const* params)
 		return;
 
 	switch (params.m_eventKind)
-	{
-	case io.FileStreamEvent.Eof:
-	case io.FileStreamEvent.ReadError:
-		m_pluginHost.m_log.write (FileLogRecordCode.Eof);
-		m_file.close ();
-		m_state = State.Closed;
-		break;
-		
+	{	
 	case io.FileStreamEvent.IncomingData:
 		heap char buffer [512];
 		size_t result = try m_file.read (buffer, sizeof (buffer));
 		if (result != -1)
 			m_pluginHost.m_log.write (log.StdRecordCode.Rx, buffer, result);
 		break;	
+		
+	case io.FileStreamEvent.Eof:
+		m_pluginHost.m_log.write (FileLogRecordCode.Eof);
+
+		if (m_file.m_kind != io.FileStreamKind.Disk)
+			close ();
+		break;
+
+	case io.FileStreamEvent.ReadError:
+		m_pluginHost.m_log.write (FileLogRecordCode.ReadError, params.m_error, params.m_error.m_size);
+		close ();
+		break;		
 	}
 }
 
@@ -229,6 +249,9 @@ reactor FileSession.m_uiReactor ()
 	m_title = $"File $(m_fileNameCombo.m_editText)";
 	m_isTransmitEnabled = m_state == State.Opened;
 	m_actionTable [ActionId.Close].m_isEnabled = m_state == State.Opened;
+	m_actionTable [ActionId.Clear].m_isEnabled = 
+		m_state == State.Opened && 
+		m_file.m_kind == io.FileStreamKind.Disk;
 }
 
 //.............................................................................

@@ -1,12 +1,12 @@
 //.............................................................................
 //
-// Generic File session plugin
+// File Stream session plugin
 //
 
 [plugin]
 
-name        = Generic File
-description = "Perform reads or/and writes to a generic file"
+name        = File Stream
+description = "Perform reads or/and writes to a generic file stream"
 id          = file
 guid        = 1dfd5eb0-9560-11e3-a5e2-0800200c9a66
 icon        = images/file.png

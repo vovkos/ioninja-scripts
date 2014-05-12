@@ -18,6 +18,33 @@ fenum FileOpenFlags
 
 //.............................................................................
 
+enum FileStreamKind
+{
+	Unknown,
+	Disk,
+	Serial,
+	Pipe,
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+char const* getFileStreamKindString (FileStreamKind kind)
+{
+	static char const* stringTable [] = 
+	{
+		"unknown device", // FileStreamKind.Unknown,
+		"disk file",      // FileStreamKind.Disk,
+		"serial device",  // FileStreamKind.Serial,
+		"pipe",           // FileStreamKind.Pipe,
+	};
+
+	return kind < countof (stringTable) ? 
+		stringTable [kind] : 
+		stringTable [0];
+}
+
+//.............................................................................
+
 enum FileStreamEvent
 {
 	Eof,
@@ -31,6 +58,7 @@ struct FileStreamEventParams
 {
 	SocketEvent m_eventKind;
 	uint_t m_syncId;
+	jnc.Error* m_error;
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -39,6 +67,7 @@ opaque class FileStream
 {
 	bool dconst m_isOpen;
 	uint_t m_syncId;
+	FileStreamKind dconst m_kind;
 
 	bool open (
 		char const* name,
@@ -46,6 +75,8 @@ opaque class FileStream
 		) throws;
 
 	void close ();
+
+	bool clear () throws; // only for disk files
 
 	size_t read (
 		void* p,
