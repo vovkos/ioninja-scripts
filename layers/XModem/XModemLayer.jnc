@@ -1,8 +1,6 @@
 //.............................................................................
 
-class XModemLayer: 
-	doc.Layer,
-	log.Listener
+class XModemLayer: doc.Layer
 {
 protected:
 	enum State
@@ -38,16 +36,16 @@ public:
 	receiveFile ();
 	cancelFileTranfer  ();	
 
-	override notify (
+protected:
+	createUi ();	
+	
+	onLogRecord (
 		uint64_t timestamp,
 		uint_t recordCode,
 		void const* p,
 		size_t size
 		);
-	
-protected:
-	createUi ();	
-	
+
 	onFileDlgCompleted ();
 	onProgressDlgButtonClicked (gui.StdDlgButton button);
 }
@@ -62,7 +60,7 @@ XModemLayer.construct (doc.PluginHost* pluginHost)
 	
 	pluginHost.m_fileDlg.m_onCompleted += onFileDlgCompleted;
 	pluginHost.m_progressDlg.m_onButtonClicked += onProgressDlgButtonClicked;
-	pluginHost.m_log.attachListener (this);
+	pluginHost.m_log.attachListener (onLogRecord @ pluginHost.m_mainThreadScheduler);
 
 	m_state = State.Idle;
 	m_file = io.createMappedFile ();
@@ -179,7 +177,7 @@ XModemLayer.onProgressDlgButtonClicked (gui.StdDlgButton button)
 	}
 }
 
-XModemLayer.notify (
+XModemLayer.onLogRecord (
 	uint64_t timestamp,
 	uint_t recordCode,
 	void const* p,

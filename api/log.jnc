@@ -175,7 +175,7 @@ class Filter
 
 //.............................................................................
 
-fenum ListenerSensitivity
+enum ListenerSensitivity
 {
 	AllRecords,
 	LiveRecordsOnly,	
@@ -183,15 +183,12 @@ fenum ListenerSensitivity
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-class Listener
-{
-	abstract void notify (
-		uint64_t timestamp,
-		uint_t recordCode,
-		void const* p,
-		size_t size
-		);
-}
+typedef OnRecord (
+	uint64_t timestamp,
+	uint_t recordCode,
+	void const* p,
+	size_t size
+	);
 
 //.............................................................................
 
@@ -207,7 +204,7 @@ opaque class Log
 	attachFilter (Filter* filter);
 	
 	attachListener (
-		Listener* listener,
+		OnRecord* onRecord,
 		ListenerSensitivity sensitivity = ListenerSensitivity.LiveRecordsOnly
 		);
 
