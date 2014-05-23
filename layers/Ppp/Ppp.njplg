@@ -8,6 +8,7 @@
 name        = PPP
 description = "Analyzes PPP protocol"
 id          = ppp
+group       = protocol-analyzers
 guid        = c57def07-21cb-4a77-a0d4-4d9e1224d38a
 icon        = images/ppp.png
 

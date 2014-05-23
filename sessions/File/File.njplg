@@ -8,6 +8,7 @@
 name        = File Stream
 description = "Perform reads or/and writes to a generic file stream"
 id          = file
+group       = clients
 guid        = 1dfd5eb0-9560-11e3-a5e2-0800200c9a66
 icon        = images/file.png
 
