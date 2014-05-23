@@ -149,7 +149,7 @@ bool TcpListenerSession.listen () throws
 	m_listenerSocket.open (io.Protocol.Tcp, &address);
 	m_listenerSocket.listen ();
 
-	m_pluginHost.m_log.write (
+	m_pluginHost.writeLog (
 		TcpListenerLogRecordCode.Listening,
 		&address,
 		sizeof (address)
@@ -161,7 +161,7 @@ bool TcpListenerSession.listen () throws
 
 catch:
 	jnc.Error const* error = jnc.getLastError ();
-	m_pluginHost.m_log.write (
+	m_pluginHost.writeLog (
 		TcpListenerLogRecordCode.ListenError,
 		error,
 		error.m_size
@@ -176,7 +176,7 @@ TcpListenerSession.stopListen ()
 	if (m_listenerState != State.Opened)
 		return;
 
-	m_pluginHost.m_log.write (
+	m_pluginHost.writeLog (
 		TcpListenerLogRecordCode.ListenStopped,
 		&m_localAddress,
 		sizeof (m_localAddress)
@@ -190,7 +190,7 @@ TcpListenerSession.disconnect ()
 	if (m_connectionState != State.Opened)
 		return;
 
-	m_pluginHost.m_log.write (
+	m_pluginHost.writeLog (
 		TcpListenerLogRecordCode.ClientDisconnected,
 		&m_remoteAddress,
 		sizeof (m_remoteAddress)
@@ -246,7 +246,7 @@ size_t TcpListenerSession.transmit (
 
 	size_t result = try m_connectionSocket.send (p, size);
 	if (result != -1)
-		m_pluginHost.m_log.write (log.StdRecordCode.Tx, p, result);
+		m_pluginHost.writeLog (log.StdRecordCode.Tx, p, result);
 
 	return result;
 }
@@ -267,7 +267,7 @@ TcpListenerSession.onListenerSocketEvent (io.SocketEventParams const* params)
 		if (m_connectionState == State.Opened && !m_overrideOldConnectionProp.m_value)
 		{
 			socket.close ();
-			m_pluginHost.m_log.write (
+			m_pluginHost.writeLog (
 				TcpListenerLogRecordCode.ClientRejected,
 				&address,
 				sizeof (address)
@@ -278,7 +278,7 @@ TcpListenerSession.onListenerSocketEvent (io.SocketEventParams const* params)
 
 		disconnect ();
 
-		m_pluginHost.m_log.write (
+		m_pluginHost.writeLog (
 			TcpListenerLogRecordCode.ClientConnected,
 			&address,
 			sizeof (address)
@@ -304,7 +304,7 @@ TcpListenerSession.onConnectionSocketEvent (io.SocketEventParams const* params)
 	switch (params.m_eventKind)
 	{
 	case io.SocketEvent.Disconnected:
-		m_pluginHost.m_log.write (
+		m_pluginHost.writeLog (
 			TcpListenerLogRecordCode.ClientDisconnected,
 			&m_remoteAddress,
 			sizeof (m_remoteAddress)
@@ -318,7 +318,7 @@ TcpListenerSession.onConnectionSocketEvent (io.SocketEventParams const* params)
 		heap char buffer [512];
 		size_t result = try m_connectionSocket.recv (buffer, sizeof (buffer));
 		if (result != -1)
-			m_pluginHost.m_log.write (log.StdRecordCode.Rx, buffer, result);
+			m_pluginHost.writeLog (log.StdRecordCode.Rx, buffer, result);
 		break;
 	}
 }

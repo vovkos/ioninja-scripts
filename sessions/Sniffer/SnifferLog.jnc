@@ -7,8 +7,8 @@
 
 enum SnifferLogRecordCode
 {
-	Packet         = log.RecordCodeFlags.Foldable | 1,
-	InjectedPacket = log.RecordCodeFlags.Foldable | 2,
+	Packet         = 1 | log.RecordCodeFlags.Foldable,
+	InjectedPacket = 2 | log.RecordCodeFlags.Foldable,
 	CaptureStarted = 3,
 	CaptureError,
 	CaptureStopped,
@@ -25,7 +25,7 @@ class SnifferLogRepresenter: log.Representer
 		uint_t recordCode,
 		void const* p,
 		size_t size,
-		uint64_t foldFlags
+		uint_t foldFlags
 		);
 }
 
@@ -36,7 +36,7 @@ bool SnifferLogRepresenter.represent (
 	uint_t recordCode,
 	void const* p,
 	size_t size,
-	uint64_t foldFlags
+	uint_t foldFlags
 	)
 {
 	switch (recordCode)
@@ -97,7 +97,7 @@ representPacket (
 	log.RepresenterTarget* target,
 	void const* p,
 	size_t size,
-	uint64_t foldFlags
+	uint_t foldFlags
 	)
 {
 	// TODO: add data link switch, currently we support ethernet only

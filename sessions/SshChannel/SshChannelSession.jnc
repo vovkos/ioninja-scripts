@@ -190,7 +190,7 @@ bool SshChannelSession.connect () throws
 	bool isDirectAddress = try io.parseSocketAddress (addressString, &address);
 	if (isDirectAddress)
 	{
-		m_pluginHost.m_log.write (
+		m_pluginHost.writeLog (
 			SshChannelLogRecordCode.TcpConnecting,
 			&address,
 			sizeof (address)
@@ -198,7 +198,7 @@ bool SshChannelSession.connect () throws
 	}
 	else
 	{
-		m_pluginHost.m_log.write (
+		m_pluginHost.writeLog (
 			SshChannelLogRecordCode.Resolving,
 			addressString,
 			strlen (addressString)
@@ -250,7 +250,7 @@ catch:
 
 SshChannelSession.handleConnectError (jnc.Error const* error)
 {
-	m_pluginHost.m_log.write (
+	m_pluginHost.writeLog (
 		SshChannelLogRecordCode.ConnectError,
 		error,
 		error.m_size
@@ -269,11 +269,11 @@ SshChannelSession.disconnect ()
 
 	case State.Resolving:
 	case State.Connecting:
-		m_pluginHost.m_log.write (SshChannelLogRecordCode.ConnectCancelled);
+		m_pluginHost.writeLog (SshChannelLogRecordCode.ConnectCancelled);
 		break;
 
 	case State.Connected:
-		m_pluginHost.m_log.write (
+		m_pluginHost.writeLog (
 			SshChannelLogRecordCode.Disconnected,
 			&m_remoteAddress,
 			sizeof (m_remoteAddress)
@@ -348,7 +348,7 @@ size_t SshChannelSession.transmit (
 
 	size_t result = try m_channel.write (p, size);
 	if (result != -1)
-		m_pluginHost.m_log.write (log.StdRecordCode.Tx, p, result);
+		m_pluginHost.writeLog (log.StdRecordCode.Tx, p, result);
 
 	return result;
 }
@@ -361,36 +361,36 @@ SshChannelSession.onSshEvent (io.SshEventParams const* params)
 	switch (params.m_eventKind)
 	{
 	case io.SshEvent.TcpConnectCompleted:
-		m_pluginHost.m_log.write (SshChannelLogRecordCode.TcpConnectCompleted);
+		m_pluginHost.writeLog (SshChannelLogRecordCode.TcpConnectCompleted);
 		break;
 
 	case io.SshEvent.SshHandshakeCompleted:
-		m_pluginHost.m_log.write (SshChannelLogRecordCode.SshHandshakeCompleted);
+		m_pluginHost.writeLog (SshChannelLogRecordCode.SshHandshakeCompleted);
 		break;
 
 	case io.SshEvent.SshAuthCompleted:
-		m_pluginHost.m_log.write (SshChannelLogRecordCode.SshAuthCompleted);
+		m_pluginHost.writeLog (SshChannelLogRecordCode.SshAuthCompleted);
 		break;
 
 	case io.SshEvent.SshChannelOpened:
-		m_pluginHost.m_log.write (SshChannelLogRecordCode.SshChannelOpened);
+		m_pluginHost.writeLog (SshChannelLogRecordCode.SshChannelOpened);
 		break;
 
 	case io.SshEvent.SshPtyRequested:
-		m_pluginHost.m_log.write (SshChannelLogRecordCode.SshPtyRequested);
+		m_pluginHost.writeLog (SshChannelLogRecordCode.SshPtyRequested);
 		break;
 
 	case io.SshEvent.SshProcessStarted:
-		m_pluginHost.m_log.write (SshChannelLogRecordCode.SshProcessStarted);
+		m_pluginHost.writeLog (SshChannelLogRecordCode.SshProcessStarted);
 		break;
 
 	case io.SshEvent.ConnectCompleted:
-		m_pluginHost.m_log.write (SshChannelLogRecordCode.ConnectCompleted);
+		m_pluginHost.writeLog (SshChannelLogRecordCode.ConnectCompleted);
 		m_state = State.Connected;
 		break;
 
 	case io.SshEvent.ConnectCancelled:
-		m_pluginHost.m_log.write (SshChannelLogRecordCode.ConnectCancelled);
+		m_pluginHost.writeLog (SshChannelLogRecordCode.ConnectCancelled);
 		m_state = State.Closed;
 		break;
 
@@ -399,7 +399,7 @@ SshChannelSession.onSshEvent (io.SshEventParams const* params)
 		break;
 
 	case io.SshEvent.Disconnected:
-		m_pluginHost.m_log.write (
+		m_pluginHost.writeLog (
 			SshChannelLogRecordCode.Disconnected,
 			&m_remoteAddress,
 			sizeof (m_remoteAddress)
@@ -411,7 +411,7 @@ SshChannelSession.onSshEvent (io.SshEventParams const* params)
 		heap char buffer [512];
 		size_t result = try m_channel.read (buffer, sizeof (buffer));
 		if (result != -1)
-			m_pluginHost.m_log.write (log.StdRecordCode.Rx, buffer, result);
+			m_pluginHost.writeLog (log.StdRecordCode.Rx, buffer, result);
 		break;
 	}
 }
@@ -424,7 +424,7 @@ SshChannelSession.onResolverEvent (io.SocketAddressResolverEventParams const* pa
 	switch (params.m_eventKind)
 	{
 	case io.SocketAddressResolverEvent.ResolveCompleted:
-		m_pluginHost.m_log.write (
+		m_pluginHost.writeLog (
 			SshChannelLogRecordCode.ResolveCompleted,
 			params.m_address,
 			sizeof (io.SocketAddress)

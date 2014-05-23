@@ -22,7 +22,7 @@ class PppLogRepresenter: log.Representer
 		uint_t recordCode,
 		void const* p,
 		size_t size,
-		uint64_t foldFlags
+		uint_t foldFlags
 		);
 }
 
@@ -33,7 +33,7 @@ bool PppLogRepresenter.represent (
 	uint_t recordCode,
 	void const* p,
 	size_t size,
-	uint64_t foldFlags
+	uint_t foldFlags
 	)
 {
 	printf ("PppLogRepresenter.represent ()\n");

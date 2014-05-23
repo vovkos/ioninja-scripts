@@ -7,27 +7,27 @@
 
 enum TcpProxyLogRecordCode
 {
-	Listening               = 1,
-	ListenError             = 2,
-	ListenStopped           = 3,
-	ListenCanceled			= 4   | log.RecordCodeFlags.Mergeable,
-	ClientConnected         = 5,
-	ClientDisconnected      = 6,
-	ClientRejected          = 7,
-	TargetConnecting        = 8   | log.RecordCodeFlags.Mergeable,
-	TargetConnectCompleted  = 9   | log.RecordCodeFlags.Mergeable,
-	TargetConnectCancelled  = 10  | log.RecordCodeFlags.Mergeable,
-	TargetConnectError      = 11  | log.RecordCodeFlags.Mergeable,
-	TargetDisconnected      = 12,
-	TargetResolving         = 13  | log.RecordCodeFlags.Mergeable,
-	TargetResolveCompleted  = 14  | log.RecordCodeFlags.Mergeable,
-	TargetResolvingError    = 15  | log.RecordCodeFlags.Mergeable,
+	Listening,
+	ListenError,
+	ListenStopped,
+	ListenCanceled,
+	ClientConnected,
+	ClientDisconnected,
+	ClientRejected,
+	TargetConnecting,
+	TargetConnectCompleted,
+	TargetConnectCancelled,
+	TargetConnectError,
+	TargetDisconnected,
+	TargetResolving,
+	TargetResolveCompleted,
+	TargetResolvingError,
 }
 
 enum TcpProxyPartCode
 {
-	TargetConnecting       = 1 | log.RecordCodeFlags.MergeableForward,
-	TargetConnectCompleted = 1 | log.RecordCodeFlags.MergeableBackward,
+	TargetConnecting       = 1 | log.PartCodeFlags.MergeableForward,
+	TargetConnectCompleted = 1 | log.PartCodeFlags.MergeableBackward,
 }
 
 //.............................................................................
@@ -39,7 +39,7 @@ class TcpProxyLogRepresenter: log.Representer
 		uint_t recordCode,
 		void const* p,
 		size_t size,
-		uint64_t foldFlags
+		uint_t foldFlags
 		);
 }
 
@@ -50,7 +50,7 @@ bool TcpProxyLogRepresenter.represent (
 	uint_t recordCode,
 	void const* p,
 	size_t size,
-	uint64_t foldFlags
+	uint_t foldFlags
 	)
 {
 	switch (recordCode)

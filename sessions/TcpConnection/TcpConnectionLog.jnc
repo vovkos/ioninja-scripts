@@ -7,19 +7,19 @@
 
 enum TcpConnectionLogRecordCode
 {
-	Resolving        = 1 | log.RecordCodeFlags.Mergeable,
-	Connecting       = 2 | log.RecordCodeFlags.Mergeable,
-	ResolveCompleted = 3 | log.RecordCodeFlags.Mergeable,
-	ConnectCompleted = 4 | log.RecordCodeFlags.Mergeable,
-	ConnectCancelled = 5 | log.RecordCodeFlags.Mergeable,
-	ConnectError     = 6 | log.RecordCodeFlags.Mergeable,
-	Disconnected     = 7,
+	Resolving,
+	Connecting,
+	ResolveCompleted,
+	ConnectCompleted,
+	ConnectCancelled,
+	ConnectError,
+	Disconnected,
 }
 
 enum TcpConnectionPartCode
 {
-	Connecting       = 1 | log.RecordCodeFlags.MergeableForward,
-	ConnectCompleted = 1 | log.RecordCodeFlags.MergeableBackward,
+	Connecting       = 1 | log.PartCodeFlags.MergeableForward,
+	ConnectCompleted = 1 | log.PartCodeFlags.MergeableBackward,
 }
 
 //.............................................................................
@@ -31,7 +31,7 @@ class TcpConnectionLogRepresenter: log.Representer
 		uint_t recordCode,
 		void const* p,
 		size_t size,
-		uint64_t foldFlags
+		uint_t foldFlags
 		);
 }
 
@@ -42,7 +42,7 @@ bool TcpConnectionLogRepresenter.represent (
 	uint_t recordCode,
 	void const* p,
 	size_t size,
-	uint64_t foldFlags
+	uint_t foldFlags
 	)
 {
 	switch (recordCode)

@@ -18,7 +18,7 @@ representEthernet (
 	log.RepresenterTarget* target,
 	void const* p,
 	size_t size,
-	uint64_t foldFlags
+	uint_t foldFlags
 	)
 {
 	io.EthernetHdr const* ethernetHdr = (io.EthernetHdr const*) p;

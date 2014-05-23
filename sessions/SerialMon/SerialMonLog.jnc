@@ -23,7 +23,7 @@ class SerialMonLogRepresenter: SerialLogRepresenter
 		uint_t recordCode,
 		void const* p,
 		size_t size,
-		uint64_t foldFlags
+		uint_t foldFlags
 		);
 }
 
@@ -34,7 +34,7 @@ bool SerialMonLogRepresenter.represent (
 	uint_t recordCode,
 	void const* p,
 	size_t size,
-	uint64_t foldFlags
+	uint_t foldFlags
 	)
 {
 	switch (recordCode)

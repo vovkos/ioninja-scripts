@@ -8,19 +8,19 @@
 
 enum UdpRecordCode
 {
-	Open               = 1,
-	Close              = 2,
-	Tx                 = 3,
-	Rx                 = 4,
-	Error		       = 5 | log.RecordCodeFlags.Mergeable,
-	Resolving          = 6 | log.RecordCodeFlags.Mergeable,
-	ResolveCompleted   = 7 | log.RecordCodeFlags.Mergeable,
+	Open,
+	Close,
+	Tx,
+	Rx,
+	Error,
+	Resolving,
+	ResolveCompleted,
 }
 
 enum UdpRecordPartCode
 {
-	Resolving         = 1 | log.RecordCodeFlags.MergeableForward,
-	ResolveCompleted  = 1 | log.RecordCodeFlags.MergeableBackward,
+	Resolving         = 1 | log.PartCodeFlags.MergeableForward,
+	ResolveCompleted  = 1 | log.PartCodeFlags.MergeableBackward,
 }
 
 //.............................................................................
@@ -32,7 +32,7 @@ class UdpLogRepresenter: log.Representer
 		uint_t recordCode,
 		void const* p,
 		size_t size,
-		uint64_t foldFlags
+		uint_t foldFlags
 		);
 }
 
@@ -43,7 +43,7 @@ bool UdpLogRepresenter.represent (
 	uint_t recordCode,
 	void const* p,
 	size_t size,
-	uint64_t foldFlags
+	uint_t foldFlags
 	)
 {
 	switch (recordCode)

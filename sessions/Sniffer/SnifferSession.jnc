@@ -146,13 +146,13 @@ bool SnifferSession.capture () throws
 		m_promisciousProp.m_value
 		);
 
-	m_pluginHost.m_log.write (SnifferLogRecordCode.CaptureStarted);
+	m_pluginHost.writeLog (SnifferLogRecordCode.CaptureStarted);
 	m_state = State.Opened;
 	return true;
 
 catch:
 	jnc.Error const* error = jnc.getLastError ();
-	m_pluginHost.m_log.write (
+	m_pluginHost.writeLog (
 		SnifferLogRecordCode.CaptureError,
 		error,
 		error.m_size
@@ -167,7 +167,7 @@ SnifferSession.stopCapture ()
 	if (m_state != State.Opened)
 		return;
 
-	m_pluginHost.m_log.write (SnifferLogRecordCode.CaptureStopped);
+	m_pluginHost.writeLog (SnifferLogRecordCode.CaptureStopped);
 	m_pcap.close ();
 	m_state = State.Closed;
 }
@@ -220,7 +220,7 @@ size_t SnifferSession.transmit (
 
 	size_t result = try m_pcap.write (p, size);
 	if (result != -1)
-		m_pluginHost.m_log.write (SnifferLogRecordCode.InjectedPacket, p, result);
+		m_pluginHost.writeLog (SnifferLogRecordCode.InjectedPacket, p, result);
 
 	return result;
 }
@@ -233,7 +233,7 @@ SnifferSession.onReadyRead (uint_t syncId)
 	heap char buffer [512];
 	size_t result = try m_pcap.read (buffer, sizeof (buffer));
 	if (result != -1)
-		m_pluginHost.m_log.write (SnifferLogRecordCode.Packet, buffer, result);
+		m_pluginHost.writeLog (SnifferLogRecordCode.Packet, buffer, result);
 }
 
 reactor SnifferSession.m_uiReactor ()

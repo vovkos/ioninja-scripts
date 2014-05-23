@@ -7,12 +7,12 @@
 
 enum TcpListenerLogRecordCode
 {
-	Listening          = 1,
-	ListenError        = 2,
-	ListenStopped      = 3,
-	ClientConnected    = 4,
-	ClientDisconnected = 5,
-	ClientRejected     = 6,
+	Listening,
+	ListenError,
+	ListenStopped,
+	ClientConnected,
+	ClientDisconnected,
+	ClientRejected,
 }
 
 //.............................................................................
@@ -24,7 +24,7 @@ class TcpListenerLogRepresenter: log.Representer
 		uint_t recordCode,
 		void const* p,
 		size_t size,
-		uint64_t foldFlags
+		uint_t foldFlags
 		);
 }
 
@@ -35,7 +35,7 @@ bool TcpListenerLogRepresenter.represent (
 	uint_t recordCode,
 	void const* p,
 	size_t size,
-	uint64_t foldFlags
+	uint_t foldFlags
 	)
 {
 	switch (recordCode)

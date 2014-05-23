@@ -22,8 +22,8 @@ enum SerialLogRecordCode
 
 enum StatusLinePartCode
 {
-	Prefix = 1 | log.RecordCodeFlags.MergeableForward,
-	Suffix = 1 | log.RecordCodeFlags.Mergeable,
+	Prefix = 1 | log.PartCodeFlags.MergeableForward,
+	Suffix = 1 | log.PartCodeFlags.Mergeable,
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -48,7 +48,7 @@ class SerialLogRepresenter: log.Representer
 		uint_t recordCode,
 		void const* p,
 		size_t size,
-		uint64_t foldFlags
+		uint_t foldFlags
 		);
 }
 
@@ -59,7 +59,7 @@ bool SerialLogRepresenter.represent (
 	uint_t recordCode,
 	void const* p,
 	size_t size,
-	uint64_t foldFlags
+	uint_t foldFlags
 	)
 {
 	switch (recordCode)
@@ -201,8 +201,6 @@ class SerialLogFilter: log.Filter
 	construct ();
 
 	override bool filter (
-		log.Writer* writer,
-		uint64_t timestamp,
 		uint_t recordCode,
 		void const* p,
 		size_t size
@@ -219,8 +217,6 @@ SerialLogFilter.construct ()
 }
 
 bool SerialLogFilter.filter (
-	log.Writer* writer,
-	uint64_t timestamp,
 	uint_t recordCode,
 	void const* p,
 	size_t size
@@ -233,29 +229,18 @@ bool SerialLogFilter.filter (
 	case SerialLogRecordCode.StopBitsChanged:
 	case SerialLogRecordCode.ParityChanged:
 	case SerialLogRecordCode.FlowControlChanged:
-		if (m_isSettingChangedVisible)
-			writer.write (timestamp, recordCode, p, size);
-
-		break;
+		return m_isSettingChangedVisible;
 
 	case SerialLogRecordCode.RtsChanged:
 	case SerialLogRecordCode.DtrChanged:
-		if (m_isControlLineChangedVisible)
-			writer.write (timestamp, recordCode, p, size);
-
-		break;
+		return m_isControlLineChangedVisible;
 
 	case SerialLogRecordCode.StatusLineChanged:
-		if (m_isControlLineChangedVisible)
-			writer.write (timestamp, recordCode, p, size);
-
-		break;
+		return m_isControlLineChangedVisible;
 
 	default:
-		return false;
+		return true; // everything else is visible
 	}
-
-	return true;
 }
 
 //.............................................................................

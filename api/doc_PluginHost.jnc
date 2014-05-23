@@ -17,6 +17,20 @@ opaque class PluginHost
 	log.Log* dconst m_log;
 	jnc.Scheduler* dconst m_mainThreadScheduler;
 
+	writeLog (
+		uint_t recordCode,
+		void const* p,
+		size_t size
+		)
+	{
+		m_log.m_writer.write (recordCode, p, size);
+	}
+
+	writeLog (uint_t recordCode)
+	{
+		m_log.m_writer.write (recordCode, null, 0);
+	}
+
 	gui.Action* createAction (
 		char const* text,
 		char const* iconFileName = null

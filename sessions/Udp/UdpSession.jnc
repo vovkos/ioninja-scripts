@@ -159,7 +159,7 @@ UdpSession.openSocket ()
 		return;
 	}
 
-	m_pluginHost.m_log.write (UdpRecordCode.Open, &localAddress, sizeof (localAddress));
+	m_pluginHost.writeLog (UdpRecordCode.Open, &localAddress, sizeof (localAddress));
 
 	m_state = State.Opened;
 }
@@ -174,7 +174,7 @@ UdpSession.closeSocket ()
 	m_localPortCombo.m_backgroundColor = gui.StdColor.White;
 
 	char const* port = m_localPortCombo.m_editText;
-	m_pluginHost.m_log.write (UdpRecordCode.Close, port, strlen (port));
+	m_pluginHost.writeLog (UdpRecordCode.Close, port, strlen (port));
 
 	m_state = State.Closed;
 }
@@ -238,7 +238,7 @@ size_t UdpSession.transmit (
 		void* data = memcat (&remoteAddress, sizeof (io.SocketAddress), p, size);
 		size_t dataSize = sizeof (io.SocketAddress) + size;
 
-		m_pluginHost.m_log.write(UdpRecordCode.Tx, data, dataSize);
+		m_pluginHost.m_log.m_writer.write(UdpRecordCode.Tx, data, dataSize);
 	}
 	else
 	{
@@ -248,7 +248,7 @@ size_t UdpSession.transmit (
 		
 		if (m_resolveState == ResolveState.Unresolved)
 		{
-			m_pluginHost.m_log.write (
+			m_pluginHost.writeLog (
 				UdpRecordCode.Resolving,
 				addressString,
 				strlen (addressString)
@@ -271,7 +271,7 @@ catch:
 UdpSession.reportError()
 {
 	jnc.Error const* error = jnc.getLastError ();
-	m_pluginHost.m_log.write (UdpRecordCode.Error, error, error.m_size);
+	m_pluginHost.writeLog (UdpRecordCode.Error, error, error.m_size);
 }
 
 UdpSession.onLocalPortChanged ()
@@ -303,7 +303,7 @@ UdpSession.onSocketEvent(io.SocketEventParams const* params)
 				void* data = memcat (&remoteAddress, sizeof (io.SocketAddress), buffer, size);
 				size_t dataSize = sizeof (io.SocketAddress) + size;
 
-				m_pluginHost.m_log.write (UdpRecordCode.Rx, data, dataSize);
+				m_pluginHost.writeLog (UdpRecordCode.Rx, data, dataSize);
 			}
 			break;
 	}
@@ -317,7 +317,7 @@ UdpSession.onResolverEvent (io.SocketAddressResolverEventParams const* params)
 	switch (params.m_eventKind)
 	{
 	case io.SocketAddressResolverEvent.ResolveCompleted:
-		m_pluginHost.m_log.write (
+		m_pluginHost.writeLog (
 			UdpRecordCode.ResolveCompleted,
 			params.m_address,
 			sizeof (io.SocketAddress)
@@ -333,7 +333,7 @@ UdpSession.onResolverEvent (io.SocketAddressResolverEventParams const* params)
 		{
 			void* data = memcat (&m_remoteAddress, sizeof (io.SocketAddress), m_pendingData, m_pendingDataSize);
 			size_t dataSize = sizeof (io.SocketAddress) + m_pendingDataSize;
-			m_pluginHost.m_log.write(UdpRecordCode.Tx, data, dataSize);
+			m_pluginHost.m_log.m_writer.write(UdpRecordCode.Tx, data, dataSize);
 			
 			m_pendingData = null;
 			m_pendingDataSize = 0;
@@ -345,7 +345,7 @@ UdpSession.onResolverEvent (io.SocketAddressResolverEventParams const* params)
 		break;
 
 	case io.SocketAddressResolverEvent.ResolveError:
-		m_pluginHost.m_log.write (UdpRecordCode.Error, params.m_error, params.m_error.m_size);
+		m_pluginHost.writeLog (UdpRecordCode.Error, params.m_error, params.m_error.m_size);
 		m_resolveState = ResolveState.Unresolved;
 		break;
 		

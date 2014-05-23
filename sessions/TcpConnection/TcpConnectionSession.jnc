@@ -158,7 +158,7 @@ bool TcpConnectionSession.connect () throws
 	bool isDirectAddress = try io.parseSocketAddress (addressString, &address);
 	if (isDirectAddress)
 	{
-		m_pluginHost.m_log.write (
+		m_pluginHost.writeLog (
 			TcpConnectionLogRecordCode.Connecting,
 			&address,
 			sizeof (address)
@@ -166,7 +166,7 @@ bool TcpConnectionSession.connect () throws
 	}
 	else
 	{
-		m_pluginHost.m_log.write (
+		m_pluginHost.writeLog (
 			TcpConnectionLogRecordCode.Resolving,
 			addressString,
 			strlen (addressString)
@@ -213,7 +213,7 @@ catch:
 
 TcpConnectionSession.handleConnectError (jnc.Error const* error)
 {
-	m_pluginHost.m_log.write (
+	m_pluginHost.writeLog (
 		TcpConnectionLogRecordCode.ConnectError,
 		error,
 		error.m_size
@@ -232,11 +232,11 @@ TcpConnectionSession.disconnect ()
 
 	case State.Resolving:
 	case State.Connecting:
-		m_pluginHost.m_log.write (TcpConnectionLogRecordCode.ConnectCancelled);
+		m_pluginHost.writeLog (TcpConnectionLogRecordCode.ConnectCancelled);
 		break;
 
 	case State.Connected:
-		m_pluginHost.m_log.write (
+		m_pluginHost.writeLog (
 			TcpConnectionLogRecordCode.Disconnected,
 			&m_remoteAddress,
 			sizeof (m_remoteAddress)
@@ -299,7 +299,7 @@ size_t TcpConnectionSession.transmit (
 
 	size_t result = try m_socket.send (p, size);
 	if (result != -1)
-		m_pluginHost.m_log.write (log.StdRecordCode.Tx, p, result);
+		m_pluginHost.writeLog (log.StdRecordCode.Tx, p, result);
 
 	return result;
 }
@@ -312,7 +312,7 @@ TcpConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 	switch (params.m_eventKind)
 	{
 	case io.SocketEvent.ConnectCompleted:
-		m_pluginHost.m_log.write (TcpConnectionLogRecordCode.ConnectCompleted);
+		m_pluginHost.writeLog (TcpConnectionLogRecordCode.ConnectCompleted);
 		m_state = State.Connected;
 		break;
 
@@ -321,7 +321,7 @@ TcpConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 		break;
 
 	case io.SocketEvent.Disconnected:
-		m_pluginHost.m_log.write (
+		m_pluginHost.writeLog (
 			TcpConnectionLogRecordCode.Disconnected,
 			&m_remoteAddress,
 			sizeof (m_remoteAddress)
@@ -333,7 +333,7 @@ TcpConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 		heap char buffer [512];
 		size_t result = try m_socket.recv (buffer, sizeof (buffer));
 		if (result != -1)
-			m_pluginHost.m_log.write (log.StdRecordCode.Rx, buffer, result);
+			m_pluginHost.writeLog (log.StdRecordCode.Rx, buffer, result);
 		break;
 	}
 }
@@ -346,13 +346,13 @@ TcpConnectionSession.onResolverEvent (io.SocketAddressResolverEventParams const*
 	switch (params.m_eventKind)
 	{
 	case io.SocketAddressResolverEvent.ResolveCompleted:
-		m_pluginHost.m_log.write (
+		m_pluginHost.writeLog (
 			TcpConnectionLogRecordCode.ResolveCompleted,
 			params.m_address,
 			sizeof (io.SocketAddress)
 			);
 
-		m_pluginHost.m_log.write (
+		m_pluginHost.writeLog (
 			TcpConnectionLogRecordCode.Connecting,
 			params.m_address,
 			sizeof (io.SocketAddress)

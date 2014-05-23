@@ -7,7 +7,7 @@
 
 class PppLayer: 
 	doc.Layer,
-	log.Filter
+	log.Converter
 {
 protected:
 	enum State
@@ -21,7 +21,7 @@ protected:
 public:
 	construct (doc.PluginHost* pluginHost);
 
-	override bool filter (
+	override bool convert (
 		log.Writer* writer,
 		uint64_t timestamp,
 		uint_t recordCode,
@@ -41,7 +41,7 @@ PppLayer.construct (doc.PluginHost* pluginHost)
 	m_state = State.Normal;
 }
 
-bool PppLayer.filter (
+bool PppLayer.convert (
 	log.Writer* writer,
 	uint64_t timestamp,
 	uint_t recordCode,

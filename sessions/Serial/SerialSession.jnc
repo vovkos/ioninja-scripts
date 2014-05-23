@@ -290,7 +290,7 @@ bool SerialSession.open () throws
 
 	char const* p = $"$(params,B)$name";
 	size_t size = jnc.getDataPtrSpan (p);
-	m_pluginHost.m_log.write (SerialLogRecordCode.PortOpened, p, size);
+	m_pluginHost.writeLog (SerialLogRecordCode.PortOpened, p, size);
 
 	m_portName = name;
 	m_state = State.Opened;
@@ -301,7 +301,7 @@ catch:
 	m_serial.close ();
 
 	jnc.Error const* error = jnc.getLastError ();
-	m_pluginHost.m_log.write (
+	m_pluginHost.writeLog (
 		SerialLogRecordCode.PortOpenError,
 		error,
 		error.m_size
@@ -314,7 +314,7 @@ SerialSession.close ()
 	if (m_state != State.Opened)
 		return;
 
-	m_pluginHost.m_log.write (
+	m_pluginHost.writeLog (
 		SerialLogRecordCode.PortClosed,
 		m_portName,
 		strlen (m_portName) + 1
@@ -376,21 +376,21 @@ bool SerialSession.applyProperties () throws
 	if (m_serial.m_dataBits != dataBitsValue)
 	{
 		m_serial.m_dataBits = dataBitsValue;
-		m_pluginHost.m_log.write (SerialLogRecordCode.DataBitsChanged, &dataBitsValue, sizeof (dataBitsValue));
+		m_pluginHost.writeLog (SerialLogRecordCode.DataBitsChanged, &dataBitsValue, sizeof (dataBitsValue));
 	}
 		
 	io.SerialStopBits stopBitsValue = (io.SerialStopBits) m_stopBitsProp.m_value;
 	if (m_serial.m_stopBits != stopBitsValue)
 	{
 		m_serial.m_stopBits = stopBitsValue;
-		m_pluginHost.m_log.write (SerialLogRecordCode.StopBitsChanged, &stopBitsValue, sizeof (stopBitsValue));
+		m_pluginHost.writeLog (SerialLogRecordCode.StopBitsChanged, &stopBitsValue, sizeof (stopBitsValue));
 	}
 
 	io.SerialParity parityValue = (io.SerialParity) m_parityProp.m_value;
 	if (m_serial.m_parity != parityValue)
 	{
 		m_serial.m_parity = parityValue;
-		m_pluginHost.m_log.write (SerialLogRecordCode.ParityChanged, &parityValue, sizeof (parityValue));
+		m_pluginHost.writeLog (SerialLogRecordCode.ParityChanged, &parityValue, sizeof (parityValue));
 	}
 		
 	// baud rate and flow control setting changes are handled by their onChanged event handlers
@@ -422,7 +422,7 @@ size_t SerialSession.transmit (
 
 	size_t result = try m_serial.write (p, size);
 	if (result != -1)
-		m_pluginHost.m_log.write (log.StdRecordCode.Tx, p, result);
+		m_pluginHost.writeLog (log.StdRecordCode.Tx, p, result);
 
 	return result;
 }
@@ -438,7 +438,7 @@ SerialSession.onSerialEvent (io.SerialEventParams const* params)
 		heap char buffer [512];
 		size_t result = try m_serial.read (buffer, sizeof (buffer));
 		if (result != -1)
-			m_pluginHost.m_log.write (log.StdRecordCode.Rx, buffer, result);
+			m_pluginHost.writeLog (log.StdRecordCode.Rx, buffer, result);
 		break;
 		
 	case io.SerialEvent.StatusLineChanged:
@@ -446,7 +446,7 @@ SerialSession.onSerialEvent (io.SerialEventParams const* params)
 
 		char const* p = $"$(lineParams.m_lines, B)$(lineParams.m_mask, B)";
 		size_t size = jnc.getDataPtrSpan (p);
-		m_pluginHost.m_log.write (SerialLogRecordCode.StatusLineChanged, p, size);
+		m_pluginHost.writeLog (SerialLogRecordCode.StatusLineChanged, p, size);
 		break;
 	}
 }
@@ -460,7 +460,7 @@ SerialSession.onBaudRateChanged ()
 	uint_t value = m_baudRateProp.m_value;
 		
 	m_serial.m_baudRate = value;
-	m_pluginHost.m_log.write (SerialLogRecordCode.BaudRateChanged, &value, sizeof (value));
+	m_pluginHost.writeLog (SerialLogRecordCode.BaudRateChanged, &value, sizeof (value));
 }
 
 SerialSession.onFlowControlChanged ()
@@ -472,7 +472,7 @@ SerialSession.onFlowControlChanged ()
 	io.SerialFlowControl value = (io.SerialFlowControl) m_flowControlProp.m_value;
 		
 	m_serial.m_flowControl = value;
-	m_pluginHost.m_log.write (SerialLogRecordCode.FlowControlChanged, &value, sizeof (value));
+	m_pluginHost.writeLog (SerialLogRecordCode.FlowControlChanged, &value, sizeof (value));
 }
 
 SerialSession.onDtrChanged ()
@@ -482,7 +482,7 @@ SerialSession.onDtrChanged ()
 
 	bool value = m_actionTable [ActionId.Dtr].m_isChecked;
 	m_serial.m_dtr = value;
-	m_pluginHost.m_log.write (SerialLogRecordCode.DtrChanged, &value, sizeof (value));
+	m_pluginHost.writeLog (SerialLogRecordCode.DtrChanged, &value, sizeof (value));
 }
 
 SerialSession.onRtsChanged ()
@@ -492,7 +492,7 @@ SerialSession.onRtsChanged ()
 
 	bool value = m_actionTable [ActionId.Rts].m_isChecked;
 	m_serial.m_rts = value;
-	m_pluginHost.m_log.write (SerialLogRecordCode.RtsChanged, &value, sizeof (value));
+	m_pluginHost.writeLog (SerialLogRecordCode.RtsChanged, &value, sizeof (value));
 }
 
 reactor SerialSession.m_uiReactor ()
