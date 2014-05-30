@@ -44,9 +44,9 @@ source_virtual_folder (
 
 set (
 	PLG_IMG_LIST
-	images/connection.png
 	images/connect.png
 	images/disconnect.png
+	images/ssh.png
 	)
 
 source_virtual_folder (

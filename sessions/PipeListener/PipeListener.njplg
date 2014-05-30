@@ -11,6 +11,7 @@ id          = pipe-listener
 group       = servers
 guid        = d74419a1-789c-4d9a-8d92-bd44ee19c971
 icon        = images/pipe.png
+small-icon  = images/pipe-16x16.png
 
 session-class         = PipeListenerSession
 log-representer-class = PipeListenerLogRepresenter

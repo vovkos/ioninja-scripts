@@ -45,9 +45,9 @@ source_virtual_folder (
 set (
 	PLG_IMG_LIST
 	images/disconnect.png
-	images/listener.png
 	images/listen.png
 	images/pause.png
+	images/pipe.png
 	)
 
 source_virtual_folder (
