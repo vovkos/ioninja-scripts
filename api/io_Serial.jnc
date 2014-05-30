@@ -49,6 +49,8 @@ fenum SerialStatusLines
 enum SerialEvent
 {
 	IncomingData,
+	TransmitBufferOverflow,
+	TransmitBufferReady,
 	StatusLineChanged
 }
 
@@ -58,12 +60,6 @@ struct SerialEventParams
 {
 	SerialEvent m_eventKind;
 	uint_t m_syncId;
-}
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-struct SerialStatusLineEventParams: SerialEventParams
-{
 	SerialStatusLines m_lines;
 	SerialStatusLines m_mask;
 }

@@ -442,9 +442,7 @@ SerialSession.onSerialEvent (io.SerialEventParams const* params)
 		break;
 		
 	case io.SerialEvent.StatusLineChanged:
-		io.SerialStatusLineEventParams const* lineParams = (io.SerialStatusLineEventParams const*) params;
-
-		char const* p = $"$(lineParams.m_lines, B)$(lineParams.m_mask, B)";
+		char const* p = $"$(params.m_lines, B)$(params.m_mask, B)";
 		size_t size = jnc.getDataPtrSpan (p);
 		m_pluginHost.writeLog (SerialLogRecordCode.StatusLineChanged, p, size);
 		break;
