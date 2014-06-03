@@ -50,6 +50,8 @@ enum FileStreamEvent
 	Eof,
 	IncomingData,
 	ReadError,
+	TransmitBufferOverflow,
+	TransmitBufferReady,
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .

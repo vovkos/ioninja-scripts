@@ -49,9 +49,9 @@ fenum SerialStatusLines
 enum SerialEvent
 {
 	IncomingData,
+	StatusLineChanged,
 	TransmitBufferOverflow,
 	TransmitBufferReady,
-	StatusLineChanged
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .

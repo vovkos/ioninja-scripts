@@ -446,6 +446,14 @@ SerialSession.onSerialEvent (io.SerialEventParams const* params)
 		size_t size = jnc.getDataPtrSpan (p);
 		m_pluginHost.writeLog (SerialLogRecordCode.StatusLineChanged, p, size);
 		break;
+
+	case io.SerialEvent.TransmitBufferOverflow:
+		m_isTransmitEnabled = false;
+		break;
+
+	case io.SerialEvent.TransmitBufferReady:
+		m_isTransmitEnabled = true;
+		break;
 	}
 }
 
