@@ -236,7 +236,7 @@ bool SerialLogFilter.filter (
 		return m_isControlLineChangedVisible;
 
 	case SerialLogRecordCode.StatusLineChanged:
-		return m_isControlLineChangedVisible;
+		return m_isStatusLineChangedVisible;
 
 	default:
 		return true; // everything else is visible
