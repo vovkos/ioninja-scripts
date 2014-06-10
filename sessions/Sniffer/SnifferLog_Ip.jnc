@@ -85,15 +85,15 @@ representIpHdr (
 	switch (ipHdr.m_protocol)
 	{
 	case io.IpProtocol.Icmp:
-		representIcmpHdr(target, p, size, baseOffset + sizeof (io.IpHdr));
+		representIcmpHd r(target, p, size, baseOffset + sizeof (io.IpHdr));
 		break;
 
 	case io.IpProtocol.Tcp:
-		representTcpHdr(target, p, size, baseOffset + sizeof (io.IpHdr));
+		representTcpHdr (target, p, size, baseOffset + sizeof (io.IpHdr));
 		break;
 
 	case io.IpProtocol.Udp:
-		representUdpHdr(target, p, size, baseOffset + sizeof (io.IpHdr));
+		representUdpHdr (target, p, size, baseOffset + sizeof (io.IpHdr));
 		break;
 	}
 }

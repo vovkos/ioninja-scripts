@@ -326,6 +326,8 @@ TcpConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 			&m_remoteAddress,
 			sizeof (m_remoteAddress)
 			);
+
+		m_socket.close ();
 		m_state = State.Closed;
 		break;
 

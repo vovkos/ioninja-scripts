@@ -389,11 +389,6 @@ SshChannelSession.onSshEvent (io.SshEventParams const* params)
 		m_state = State.Connected;
 		break;
 
-	case io.SshEvent.ConnectCancelled:
-		m_pluginHost.writeLog (SshChannelLogRecordCode.ConnectCancelled);
-		m_state = State.Closed;
-		break;
-
 	case io.SshEvent.ConnectError:
 		handleConnectError (params.m_error);
 		break;
@@ -404,6 +399,8 @@ SshChannelSession.onSshEvent (io.SshEventParams const* params)
 			&m_remoteAddress,
 			sizeof (m_remoteAddress)
 			);
+		
+		m_channel.close ();
 		m_state = State.Closed;
 		break;
 

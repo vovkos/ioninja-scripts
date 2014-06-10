@@ -9,10 +9,7 @@ class EchoLayer: doc.Layer
 {
 	construct (doc.PluginHost* pluginHost)
 	{
-		basetype1.construct (pluginHost);	
-
-		printf ("EchoLayer.construct () TID = %x\n", jnc.getCurrentThreadId ());
-
+		basetype.construct (pluginHost);	
 		pluginHost.m_log.attachListener (onLogRecord @ pluginHost.m_mainThreadScheduler);
 
 	}
@@ -24,8 +21,6 @@ class EchoLayer: doc.Layer
 		size_t size
 		)
 	{
-		printf ("EchoLayer.onLogRecord () TID = %x\n", jnc.getCurrentThreadId ());
-
 		if (recordCode == log.StdRecordCode.Rx)
 			try transmit (p, size);
 	}
