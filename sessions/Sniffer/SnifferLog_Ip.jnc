@@ -85,7 +85,7 @@ representIpHdr (
 	switch (ipHdr.m_protocol)
 	{
 	case io.IpProtocol.Icmp:
-		representIcmpHd r(target, p, size, baseOffset + sizeof (io.IpHdr));
+		representIcmpHdr (target, p, size, baseOffset + sizeof (io.IpHdr));
 		break;
 
 	case io.IpProtocol.Tcp:
