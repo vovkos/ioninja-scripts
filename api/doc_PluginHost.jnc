@@ -38,6 +38,7 @@ opaque class PluginHost
 
 	gui.Action* createCheckableAction (
 		char const* text,
+		char const* iconFileName = null,
 		bool isChecked = false
 		);
 
@@ -95,10 +96,11 @@ gui.Action* PluginHost.createAction (
 
 gui.Action* PluginHost.createCheckableAction (
 	char const* text,
+	char const* iconFileName,
 	bool isChecked
 	)
 {
-	gui.Action* action = createAction (text);
+	gui.Action* action = createAction (text, iconFileName);
 	action.m_isCheckable = true;
 	action.m_isChecked = isChecked;
 	return action;

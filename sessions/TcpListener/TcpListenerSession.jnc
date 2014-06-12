@@ -112,14 +112,14 @@ TcpListenerSession.createUi ()
 
 	// property grid
 
-	m_portProp = m_pluginHost.createIntProperty (
-		"TCP Port",
-		"TCP port to listen on"
-		);
-
 	m_adapterProp = m_pluginHost.createNetworkAdapterProperty (
 		"Adapter",
 		"Network adapter to listen on"
+		);
+
+	m_portProp = m_pluginHost.createIntProperty (
+		"TCP Port",
+		"TCP port to listen on"
 		);
 
 	m_overrideOldConnectionProp = m_pluginHost.createBoolProperty (

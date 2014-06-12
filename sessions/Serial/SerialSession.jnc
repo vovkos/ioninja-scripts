@@ -137,10 +137,10 @@ SerialSession.createUi ()
 	m_pluginHost.m_menu.addSeparator ();
 	m_pluginHost.m_toolBar.addSeparator ();
 
-	m_actionTable [ActionId.Dtr] = m_pluginHost.createCheckableAction ("DTR", true);
+	m_actionTable [ActionId.Dtr] = m_pluginHost.createCheckableAction ("DTR", "images/dtr.png", true);
 	m_actionTable [ActionId.Dtr].m_onTriggered += onDtrChanged;
 	
-	m_actionTable [ActionId.Rts] = m_pluginHost.createCheckableAction ("RTS", false);
+	m_actionTable [ActionId.Rts] = m_pluginHost.createCheckableAction ("RTS", "images/rts.png", false);
 	m_actionTable [ActionId.Rts].m_onTriggered += onRtsChanged;
 
 	// property grid

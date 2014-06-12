@@ -187,8 +187,8 @@ XModemTransmitter.onRx_Eot (char c)
 		break;
 
 	case XModemChar.Nak:
-		m_parent.m_pluginHost.m_progressDlg.m_status = "Remote node reported out-of-sequence XModem block";
-		complete ();
+		static char c = XModemChar.Eot; // retransmit eot
+		try m_parent.transmit (&c, sizeof (c));
 		break;
 
 	default:
