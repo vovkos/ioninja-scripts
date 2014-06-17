@@ -3,6 +3,12 @@
 // TCP Connection session
 //
 
+int foo ()
+{
+	return 0;
+}
+
+/*
 //.............................................................................
 
 class TcpConnectionSession: doc.Session
@@ -79,7 +85,7 @@ TcpConnectionSession.construct (doc.PluginHost* pluginHost)
 	basetype.construct (pluginHost);
 
 	pluginHost.m_log.m_representer = static new TcpConnectionLogRepresenter;
-	
+
 	m_state = State.Closed;
 	m_socket = io.createSocket ();
 	m_socket.m_onSocketEvent += onSocketEvent @ m_pluginHost.m_mainThreadScheduler;
@@ -119,7 +125,7 @@ TcpConnectionSession.createUi ()
 
 	m_closeKindProp = m_pluginHost.createEnumProperty (
 		"TCP disconnect",
-		"How to close TCP connection (graceful / reset)", 
+		"How to close TCP connection (graceful / reset)",
 		closeKindTable,
 		countof (closeKindTable)
 		);
@@ -218,7 +224,7 @@ TcpConnectionSession.handleConnectError (jnc.Error const* error)
 		error,
 		error.m_size
 		);
-		
+
 	m_socket.close ();
 	m_state = State.Closed;
 }
@@ -243,7 +249,7 @@ TcpConnectionSession.disconnect ()
 			);
 		break;
 	}
-		
+
 	m_socket.close ();
 	m_state = State.Closed;
 }
@@ -308,7 +314,7 @@ TcpConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 {
 	if (params.m_syncId != m_socket.m_syncId)
 		return;
-		
+
 	switch (params.m_eventKind)
 	{
 	case io.SocketEvent.ConnectCompleted:
@@ -344,7 +350,7 @@ TcpConnectionSession.onResolverEvent (io.SocketAddressResolverEventParams const*
 {
 	if (params.m_syncId != m_socket.m_syncId)
 		return;
-		
+
 	switch (params.m_eventKind)
 	{
 	case io.SocketAddressResolverEvent.ResolveCompleted:
@@ -384,3 +390,5 @@ reactor TcpConnectionSession.m_uiReactor ()
 }
 
 //.............................................................................
+
+*/

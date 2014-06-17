@@ -103,8 +103,6 @@ GroupProperty* createGroupProperty (char const* name);
 
 opaque class PropertyGrid
 {
-	bool autoget property m_isVisible;
-
 	addProperty (Property* prop);
 }
 
