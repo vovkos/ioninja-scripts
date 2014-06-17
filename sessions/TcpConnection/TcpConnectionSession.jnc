@@ -3,12 +3,6 @@
 // TCP Connection session
 //
 
-int foo ()
-{
-	return 0;
-}
-
-/*
 //.............................................................................
 
 class TcpConnectionSession: doc.Session
@@ -390,5 +384,3 @@ reactor TcpConnectionSession.m_uiReactor ()
 }
 
 //.............................................................................
-
-*/

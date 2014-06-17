@@ -3,34 +3,219 @@
 // Ninja document model: plugin host
 //
 
-namespace ttt {
-
-class Hui
-{
-	int m_x;
-	int m_y;
-}
-
-}
-
 namespace doc {
 
 //.............................................................................
 
-class PluginHost
+opaque class PluginHost
 {
-	ttt.Hui* createNetworkAdapterProperty (
-		char const* name,
-		char const* toolTipText
+	gui.Menu* dconst m_menu;
+	gui.ToolBar* dconst m_toolBar;
+	gui.PropertyGrid* dconst m_propertyGrid;
+	gui.FileDlg* dconst m_fileDlg;
+	gui.ProgressDlg* dconst m_progressDlg;
+	log.Log* dconst m_log;
+	jnc.Scheduler* dconst m_mainThreadScheduler;
+
+	writeLog (
+		uint_t recordCode,
+		void const* p,
+		size_t size
 		)
 	{
-		return foo ();
+		m_log.m_writer.write (recordCode, p, size);
 	}
+
+	writeLog (uint_t recordCode)
+	{
+		m_log.m_writer.write (recordCode, null, 0);
+	}
+
+	gui.Action* createAction (
+		char const* text,
+		char const* iconFileName = null
+		);
+
+	gui.Action* createCheckableAction (
+		char const* text,
+		char const* iconFileName = null,
+		bool isChecked = false
+		);
+
+	gui.BoolProperty* createBoolProperty (
+		char const* name,
+		char const* toolTipText
+		);
+
+	gui.IntProperty* createIntProperty (
+		char const* name,
+		char const* toolTipText
+		);
+
+	gui.StringProperty* createStringProperty (
+		char const* name,
+		char const* toolTipText
+		);
+
+	gui.EnumProperty* createEnumProperty (
+		char const* name,
+		char const* toolTipText,
+		gui.EnumPropertyOption const* optionArray,
+		size_t count
+		);
+
+	gui.EnumProperty* createNetworkAdapterProperty (
+		char const* name,
+		char const* toolTipText
+		);
+
+	gui.EnumProperty* createSerialPortProperty (
+		char const* name,
+		char const* toolTipText,
+		io.SerialPortDesc const* portList,
+		size_t portCount
+		);
 }
 
-ttt.Hui* foo ()
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+gui.Action* PluginHost.createAction (
+	char const* text,
+	char const* iconFileName
+	)
 {
-	return null;
+	gui.Icon* icon;
+	if (iconFileName)
+		icon = gui.loadIcon (iconFileName);
+
+	gui.Action* action = gui.createAction (text, icon);
+	m_menu.addAction (action);
+	m_toolBar.addAction (action);
+	return action;
+}
+
+gui.Action* PluginHost.createCheckableAction (
+	char const* text,
+	char const* iconFileName,
+	bool isChecked
+	)
+{
+	gui.Action* action = createAction (text, iconFileName);
+	action.m_isCheckable = true;
+	action.m_isChecked = isChecked;
+	return action;
+}
+
+gui.BoolProperty* PluginHost.createBoolProperty (
+	char const* name,
+	char const* toolTipText
+	)
+{
+	gui.BoolProperty* prop = gui.createBoolProperty (name);
+	prop.m_toolTipText = toolTipText;
+	m_propertyGrid.addProperty (prop);
+	return prop;
+}
+
+gui.IntProperty* PluginHost.createIntProperty (
+	char const* name,
+	char const* toolTipText
+	)
+{
+	gui.IntProperty* prop = gui.createIntProperty (name);
+	prop.m_toolTipText = toolTipText;
+	m_propertyGrid.addProperty (prop);
+	return prop;
+}
+
+gui.StringProperty* PluginHost.createStringProperty (
+	char const* name,
+	char const* toolTipText
+	)
+{
+	gui.StringProperty* prop = gui.createStringProperty (name);
+	prop.m_toolTipText = toolTipText;
+	m_propertyGrid.addProperty (prop);
+	return prop;
+}
+
+gui.EnumProperty* PluginHost.createEnumProperty (
+	char const* name,
+	char const* toolTipText,
+	gui.EnumPropertyOption const* optionArray,
+	size_t count
+	)
+{
+	gui.EnumProperty* prop = gui.createEnumProperty (name);
+	prop.m_toolTipText = toolTipText;
+	prop.setOptions (optionArray, count);
+	m_propertyGrid.addProperty (prop);
+	return prop;
+}
+
+gui.EnumProperty* PluginHost.createNetworkAdapterProperty (
+	char const* name,
+	char const* toolTipText
+	)
+{
+	size_t adapterCount;
+	io.NetworkAdapterDesc const* adapterList = io.createNetworkAdapterDescList (&adapterCount);
+
+	adapterCount += 2; // include 'All adapters' and 'Loopback adapter'
+	gui.EnumPropertyOption* adapterOptionArray = new gui.EnumPropertyOption [adapterCount];
+
+	gui.EnumPropertyOption* adapterOption = adapterOptionArray;
+	adapterOption.m_text = "0.0.0.0 (All adapters)";
+	adapterOption.m_value = 0;
+	adapterOption++;
+
+	adapterOption.m_text = "127.0.0.1 (Loopback adapter)";
+	adapterOption.m_value = 0x7f000001;
+	adapterOption++;
+
+	io.NetworkAdapterDesc const* adapter = adapterList;
+	for (; adapter; adapter = adapter->m_next, adapterOption++)
+	{
+		adapterOption.m_text = jnc.format (
+			"%s (%s)",
+			io.formatAddress_Ip4 (&adapter->m_address.m_address),
+			adapter->m_description
+			);
+
+		adapterOption.m_value = adapter->m_address.m_address.m_i32;
+	}
+
+	return createEnumProperty (
+		name,
+		toolTipText,
+		adapterOptionArray,
+		adapterCount
+		);
+}
+
+gui.EnumProperty* PluginHost.createSerialPortProperty (
+		char const* name,
+		char const* toolTipText,
+		io.SerialPortDesc const* portList,
+		size_t portCount
+		)
+{
+	gui.EnumPropertyOption* portOptionArray = new gui.EnumPropertyOption [portCount];
+	gui.EnumPropertyOption* portOption = portOptionArray;
+
+	io.SerialPortDesc const* port = portList;
+	for (; port; port = port->m_next, portOption++)
+	{
+		portOption.m_text = port->m_name;
+		portOption.m_value = 0;
+	}
+
+	return createEnumProperty (
+		name,
+		toolTipText,
+		portOptionArray,
+		portCount
+		);
 }
 
 //.............................................................................
