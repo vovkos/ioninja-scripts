@@ -78,11 +78,8 @@ struct TextAttr
 
 opaque class Icon
 {
+	Icon* operator new (char const* fileName);
 }
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-Icon* loadIcon (char const* fileName);
 
 //.............................................................................
 
@@ -90,6 +87,11 @@ Icon* loadIcon (char const* fileName);
 
 opaque class Action
 {
+	Action* operator new (
+		char const* text,
+		Icon* icon = null
+		);
+
 	bool autoget property m_isVisible;
 	bool autoget property m_isEnabled;
 	bool autoget property m_isCheckable;
@@ -97,13 +99,6 @@ opaque class Action
 
 	event m_onTriggered ();
 }
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-Action* createAction (
-	char const* text,
-	Icon* icon = null
-	);
 
 //.............................................................................
 

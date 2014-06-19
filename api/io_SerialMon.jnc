@@ -49,10 +49,12 @@ struct SerialMonEventParams
 
 //.............................................................................
 
-class SerialMon
+opaque class SerialMon
 {
 	bool dconst m_isOpen;
 	uint_t m_syncId;
+
+	SerialMon* operator new ();
 
 	bool capture (char const* name) throws;
 	void close ();
@@ -61,10 +63,6 @@ class SerialMon
 	
 	event m_onReadyRead (uint_t syncId);
 }
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-SerialMon* createSerialMon ();
 
 //.............................................................................
 

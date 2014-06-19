@@ -64,7 +64,7 @@ SerialMonSession.construct (doc.PluginHost* pluginHost)
 	pluginHost.m_log.m_representer = static new SerialMonLogRepresenter;
 
 	m_state = State.Closed;
-	m_serialMon = io.createSerialMon ();
+	m_serialMon = new io.SerialMon ();
 	m_serialMon.m_onReadyRead += onReadyRead @ m_pluginHost.m_mainThreadScheduler;
 
 	createUi ();

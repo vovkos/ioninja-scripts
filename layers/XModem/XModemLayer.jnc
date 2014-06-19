@@ -63,7 +63,7 @@ XModemLayer.construct (doc.PluginHost* pluginHost)
 	pluginHost.m_log.attachListener (onLogRecord @ pluginHost.m_mainThreadScheduler);
 
 	m_state = State.Idle;
-	m_file = io.createMappedFile ();
+	m_file = new io.MappedFile ();
 
 	createUi ();
 }

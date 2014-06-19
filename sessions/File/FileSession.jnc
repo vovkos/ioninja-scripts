@@ -83,7 +83,7 @@ FileSession.construct (doc.PluginHost* pluginHost)
 
 	m_state = State.Closed;
 	m_access = Access.ReadWrite;
-	m_file = io.createFileStream ();
+	m_file = new io.FileStream ();
 	m_file.m_onFileStreamEvent += onFileStreamEvent @ m_pluginHost.m_mainThreadScheduler;
 
 	createUi ();

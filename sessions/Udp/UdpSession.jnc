@@ -91,9 +91,9 @@ UdpSession.construct (doc.PluginHost* pluginHost)
 	pluginHost.m_log.m_representer = static new UdpLogRepresenter;
 
 	m_state = State.Closed;
-	m_socket = io.createSocket ();
+	m_socket = new io.Socket ();
 	m_socket.m_onSocketEvent += onSocketEvent @ m_pluginHost.m_mainThreadScheduler;
-	m_resolver = io.createSocketAddressResolver ();
+	m_resolver = new io.SocketAddressResolver ();
 	m_resolver.m_onResolverEvent += onResolverEvent @ m_pluginHost.m_mainThreadScheduler;
 	m_resolveState = ResolveState.Unresolved;
 	m_remoteAddressChanged = false;

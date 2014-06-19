@@ -91,7 +91,7 @@ SerialSession.construct (doc.PluginHost* pluginHost)
 	pluginHost.m_log.attachFilter (m_logFilter);
 
 	m_state = State.Closed;
-	m_serial = io.createSerial ();
+	m_serial = new io.Serial ();
 	m_serial.m_onSerialEvent += onSerialEvent @ m_pluginHost.m_mainThreadScheduler;
 
 	createUi ();

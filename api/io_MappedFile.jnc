@@ -14,6 +14,8 @@ opaque class MappedFile
 	bool dconst m_isOpen;
 	uint64_t autoget property m_size;
 
+	MappedFile* operator new ();
+
 	bool open (
 		char const* name,
 		FileOpenFlags flags = 0
@@ -27,10 +29,6 @@ opaque class MappedFile
 		bool isPermanent = false
 		) throws;
 }
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-MappedFile* createMappedFile ();
 
 //.............................................................................
 

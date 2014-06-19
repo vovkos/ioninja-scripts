@@ -20,35 +20,29 @@ class Property
 
 opaque class BoolProperty: Property
 {
+	BoolProperty* operator new (char const* name);
+
 	bool autoget bindable property m_value;
 }
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-BoolProperty* createBoolProperty (char const* name);
 
 //.............................................................................
 
 opaque class IntProperty: Property
 {
+	IntProperty* operator new (char const* name);
+
 	int autoget bindable property m_value;
 }
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-IntProperty* createIntProperty (char const* name);
 
 //.............................................................................
 
 opaque class StringProperty: Property
 {
+	StringProperty* operator new (char const* name);
+
 	char const* autoget bindable property m_value;
 	bool autoget property m_isPassword;
 }
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-StringProperty* createStringProperty (char const* name);
 
 //.............................................................................
 
@@ -62,6 +56,8 @@ struct EnumPropertyOption
 
 opaque class EnumProperty: Property
 {
+	EnumProperty* operator new (char const* name);
+
 	property m_value
 	{
 		int autoget m_value;
@@ -84,20 +80,14 @@ opaque class EnumProperty: Property
 	event m_onChanged ();
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-EnumProperty* createEnumProperty (char const* name);
-
 //.............................................................................
 
 opaque class GroupProperty
 {
+	GroupProperty* operator new (char const* name);
+
 	addProperty (Property* prop);
 }
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-GroupProperty* createGroupProperty (char const* name);
 
 //.............................................................................
 

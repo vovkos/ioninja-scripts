@@ -86,9 +86,9 @@ SshChannelSession.construct (doc.PluginHost* pluginHost)
 	pluginHost.m_log.m_representer = static new SshChannelLogRepresenter;
 
 	m_state = State.Closed;
-	m_channel = io.createSshChannel  ();
+	m_channel = new io.SshChannel  ();
 	m_channel.m_onSshEvent += onSshEvent @ m_pluginHost.m_mainThreadScheduler;
-	m_resolver = io.createSocketAddressResolver ();
+	m_resolver = new io.SocketAddressResolver ();
 	m_resolver.m_onResolverEvent += onResolverEvent @ m_pluginHost.m_mainThreadScheduler;
 
 	createUi ();

@@ -35,13 +35,15 @@ struct SshEventParams
 
 //.............................................................................
 
-class SshChannel
+opaque class SshChannel
 {
 	SocketAddress const property m_address;
 	SocketAddress const property m_peerAddress;
 
 	bool dconst m_isOpen;
 	uint_t m_syncId;
+
+	SshChannel* operator new ();
 
 	bool open (SocketAddress const* address = null) throws;
 	void close ();
@@ -75,10 +77,6 @@ class SshChannel
 
 	event m_onSshEvent (SshEventParams const* params);
 }
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-SshChannel* createSshChannel ();
 
 //.............................................................................
 

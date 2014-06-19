@@ -14,6 +14,8 @@ opaque class PCap
 	bool dconst m_isOpen;
 	uint_t m_syncId;
 
+	PCap* operator new ();
+
 	bool open (
 		char const* deviceName,
 		char const* filter = null,
@@ -34,10 +36,6 @@ opaque class PCap
 
 	event m_onReadyRead (uint_t syncId);
 }
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-PCap* createPCap ();
 
 //.............................................................................
 

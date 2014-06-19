@@ -72,7 +72,7 @@ SnifferSession.construct (doc.PluginHost* pluginHost)
 	pluginHost.m_log.m_representer = static new SnifferLogRepresenter;
 
 	m_state = State.Closed;
-	m_pcap = io.createPCap ();
+	m_pcap = new io.PCap ();
 	m_pcap.m_onReadyRead += onReadyRead @ m_pluginHost.m_mainThreadScheduler;
 
 	createUi ();
@@ -86,7 +86,7 @@ SnifferSession.createUi ()
 	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_deviceCombo.m_onEnter += capture;
 
-	io.PCapDeviceDesc const* device = io.createPCapDeviceDescList ();
+	io.PCapDeviceDesc const* device = new io.PCapDeviceDescList ();
 
 	for (; device; device = device->m_next)
 	{

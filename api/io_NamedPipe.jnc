@@ -7,10 +7,12 @@ namespace io {
 
 //.............................................................................
 
-class NamedPipe
+opaque class NamedPipe
 {
 	bool dconst m_isOpen;
 	uint_t m_syncId;
+
+	NamedPipe* operator new ();
 
 	bool open (
 		char const* name,
@@ -23,10 +25,6 @@ class NamedPipe
 
 	event m_onIncomingConnection (uint_t syncId);
 }
-
-//.............................................................................
-
-NamedPipe* createNamedPipe ();
 
 //.............................................................................
 

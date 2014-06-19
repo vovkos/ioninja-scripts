@@ -84,7 +84,7 @@ TcpListenerSession.construct (doc.PluginHost* pluginHost)
 
 	m_connectionState = State.Closed;
 	m_listenerState = State.Closed;
-	m_listenerSocket = io.createSocket ();
+	m_listenerSocket = new io.Socket ();
 	m_listenerSocket.m_onSocketEvent += onListenerSocketEvent @ m_pluginHost.m_mainThreadScheduler;
 
 	createUi ();

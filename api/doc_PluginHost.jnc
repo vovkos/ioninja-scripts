@@ -86,9 +86,9 @@ gui.Action* PluginHost.createAction (
 {
 	gui.Icon* icon;
 	if (iconFileName)
-		icon = gui.loadIcon (iconFileName);
+		icon = new gui.Icon (iconFileName);
 
-	gui.Action* action = gui.createAction (text, icon);
+	gui.Action* action = new gui.Action (text, icon);
 	m_menu.addAction (action);
 	m_toolBar.addAction (action);
 	return action;
@@ -111,7 +111,7 @@ gui.BoolProperty* PluginHost.createBoolProperty (
 	char const* toolTipText
 	)
 {
-	gui.BoolProperty* prop = gui.createBoolProperty (name);
+	gui.BoolProperty* prop = new gui.BoolProperty (name);
 	prop.m_toolTipText = toolTipText;
 	m_propertyGrid.addProperty (prop);
 	return prop;
@@ -122,7 +122,7 @@ gui.IntProperty* PluginHost.createIntProperty (
 	char const* toolTipText
 	)
 {
-	gui.IntProperty* prop = gui.createIntProperty (name);
+	gui.IntProperty* prop = new gui.IntProperty (name);
 	prop.m_toolTipText = toolTipText;
 	m_propertyGrid.addProperty (prop);
 	return prop;
@@ -133,7 +133,7 @@ gui.StringProperty* PluginHost.createStringProperty (
 	char const* toolTipText
 	)
 {
-	gui.StringProperty* prop = gui.createStringProperty (name);
+	gui.StringProperty* prop = new gui.StringProperty (name);
 	prop.m_toolTipText = toolTipText;
 	m_propertyGrid.addProperty (prop);
 	return prop;
@@ -146,7 +146,7 @@ gui.EnumProperty* PluginHost.createEnumProperty (
 	size_t count
 	)
 {
-	gui.EnumProperty* prop = gui.createEnumProperty (name);
+	gui.EnumProperty* prop = new gui.EnumProperty (name);
 	prop.m_toolTipText = toolTipText;
 	prop.setOptions (optionArray, count);
 	m_propertyGrid.addProperty (prop);

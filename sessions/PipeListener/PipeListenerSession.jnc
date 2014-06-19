@@ -81,7 +81,7 @@ PipeListenerSession.construct (doc.PluginHost* pluginHost)
 	
 	m_connectionState = State.Closed;
 	m_listenerState = State.Closed;
-	m_listenerPipe = io.createNamedPipe ();
+	m_listenerPipe = new io.NamedPipe ();
 	m_listenerPipe.m_onIncomingConnection += onIncomingConnection @ m_pluginHost.m_mainThreadScheduler;	
 	
 	createUi ();

@@ -38,7 +38,7 @@ enum SocketCloseKind
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-class Socket
+opaque class Socket
 {
 	SocketAddress const property m_address;
 	SocketAddress const property m_peerAddress;
@@ -49,6 +49,8 @@ class Socket
 
 	bool dconst m_isOpen;
 	uint_t m_syncId;
+
+	Socket* operator new ();
 
 	bool open (
 		Protocol protocol,
@@ -91,10 +93,6 @@ class Socket
 
 	void firePendingEvents (); // to process events happened after accept () and before assiging event handler
 }
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-Socket* createSocket ();
 
 //.............................................................................
 

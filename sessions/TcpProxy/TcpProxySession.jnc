@@ -110,7 +110,7 @@ TcpProxySession.construct (doc.PluginHost* pluginHost)
 	// listener
 	
 	m_listenerState = State.Closed;
-	m_listenerSocket = io.createSocket ();
+	m_listenerSocket = new io.Socket ();
 	m_listenerSocket.m_onSocketEvent += onListenerSocketEvent @ m_pluginHost.m_mainThreadScheduler;
 	
 	// listener connection
@@ -120,9 +120,9 @@ TcpProxySession.construct (doc.PluginHost* pluginHost)
 	// target connection
 	
 	m_targetState = TargetState.Closed;
-	m_targetSocket = io.createSocket ();
+	m_targetSocket = new io.Socket ();
 	m_targetSocket.m_onSocketEvent += onTargetSocketEvent @ m_pluginHost.m_mainThreadScheduler;
-	m_resolver = io.createSocketAddressResolver ();
+	m_resolver = new io.SocketAddressResolver ();
 	m_resolver.m_onResolverEvent += onResolverEvent @ m_pluginHost.m_mainThreadScheduler;
 	m_resolverSyncId = 0;
 	m_isTargetAddressResolved = false;

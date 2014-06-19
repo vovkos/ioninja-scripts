@@ -82,6 +82,8 @@ opaque class Serial
 	bool dconst m_isOpen;
 	uint_t m_syncId;
 
+	Serial* operator new ();
+
 	bool open (char const* name) throws;
 	void close ();
 
@@ -97,10 +99,6 @@ opaque class Serial
 
 	event m_onSerialEvent (SerialEventParams const* params);
 }
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-Serial* createSerial ();
 
 //.............................................................................
 

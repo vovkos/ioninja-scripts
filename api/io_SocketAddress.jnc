@@ -136,16 +136,14 @@ opaque class SocketAddressResolver
 {
 	uint_t m_syncId;
 
+	SocketAddressResolver* operator new ();
+
 	bool resolve (char const* name) throws;
 	bool cancel (uint_t syncId);
 	cancelAll ();
 
 	event m_onResolverEvent (SocketAddressResolverEventParams const* params);
 }
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-SocketAddressResolver* createSocketAddressResolver ();
 
 //.............................................................................
 
