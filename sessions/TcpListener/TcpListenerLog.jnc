@@ -83,8 +83,8 @@ bool TcpListenerLogRepresenter.represent (
 	case TcpListenerLogRecordCode.ClientDisconnected:
 		TcpDisconnectLogRecordParams const* params = (TcpDisconnectLogRecordParams const*) p;
 		char const* addressString = try io.formatSocketAddress (&params->m_address);
-		char const* closeKind = (params.m_flags & TcpDisconnectLogRecordFlags.Reset) ? (char const*) "reset" : "closed";
-		char const* initiator = (params.m_flags & TcpDisconnectLogRecordFlags.Remote) ? (char const*) "remote" : "local";
+		char const* closeKind = (params.m_flags & TcpDisconnectLogRecordFlags.Reset) ? "reset" : "closed";
+		char const* initiator = (params.m_flags & TcpDisconnectLogRecordFlags.Remote) ? "remote" : "local";
 
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
