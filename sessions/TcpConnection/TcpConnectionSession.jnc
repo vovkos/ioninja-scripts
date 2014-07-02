@@ -12,6 +12,7 @@ protected:
 	{
 		Closed,
 		Resolving,
+		Opening,
 		Connecting,
 		Connected,
 	}
@@ -49,6 +50,7 @@ public:
 	construct (doc.PluginHost* pluginHost);
 
 	bool connect () throws;
+	bool connect (io.SocketAddress const* address) throws;
 	disconnect ();
 
 	override void load (doc.Storage* storage);
@@ -111,17 +113,9 @@ TcpConnectionSession.createUi ()
 		"Remote address to connect to (IP-address or host-name followed by ':' port)"
 		);
 
-	static gui.EnumPropertyOption closeKindTable [] =
-	{
-		{ "Reset",    io.SocketCloseKind.Reset },
-		{ "Graceful", io.SocketCloseKind.Graceful },
-	};
-
-	m_closeKindProp = m_pluginHost.createEnumProperty (
+	m_closeKindProp = m_pluginHost.createSocketCloseKindProperty (
 		"TCP disconnect",
-		"How to close TCP connection (graceful / reset)",
-		closeKindTable,
-		countof (closeKindTable)
+		"How to close TCP connection (graceful / reset)"
 		);
 
 	m_isNagleEnabledProp = m_pluginHost.createBoolProperty (
@@ -157,24 +151,29 @@ bool TcpConnectionSession.connect () throws
 	io.SocketAddress address;
 	bool isDirectAddress = try io.parseSocketAddress (addressString, &address);
 	if (isDirectAddress)
-	{
-		m_pluginHost.writeLog (
-			TcpConnectionLogRecordCode.Connecting,
-			&address,
-			sizeof (address)
-			);
-	}
-	else
-	{
-		m_pluginHost.writeLog (
-			TcpConnectionLogRecordCode.Resolving,
-			addressString,
-			strlen (addressString)
-			);
+		return try connect (&address);
 
-		m_resolver.m_syncId = m_socket.m_syncId;
-		m_resolver.resolve (addressString);
-	}
+	m_state = State.Resolving;
+
+	m_pluginHost.writeLog (
+		TcpConnectionLogRecordCode.Resolving,
+		addressString,
+		strlen (addressString)
+		);
+
+	m_resolver.m_syncId = m_socket.m_syncId;
+	m_resolver.resolve (addressString);
+
+	return true;
+
+catch:
+	handleConnectError (jnc.getLastError ());
+	return false;
+}
+
+bool TcpConnectionSession.connect (io.SocketAddress const* remoteAddress) throws
+{
+	io.SocketAddress localAddress;
 
 	if (!m_useLocalAddressProp.m_value)
 	{
@@ -182,7 +181,6 @@ bool TcpConnectionSession.connect () throws
 	}
 	else
 	{
-		io.SocketAddress localAddress;
 		localAddress.m_family = io.AddressFamily.Ip4;
 		localAddress.m_ip4.m_address.m_i32 = m_adapterProp.m_value;
 		localAddress.m_ip4.m_port = (uint16_t) m_localPortProp.m_value;
@@ -190,23 +188,32 @@ bool TcpConnectionSession.connect () throws
 		m_socket.open (io.Protocol.Tcp, &localAddress);
 	}
 
+	m_state = State.Connecting;
+
 	m_socket.m_closeKind = (io.SocketCloseKind) m_closeKindProp.m_value;
 	m_socket.m_isNagleEnabled = m_isNagleEnabledProp.m_value;
+	m_socket.connect (remoteAddress);
 
-	if (isDirectAddress)
-	{
-		m_socket.connect (&address);
-		m_remoteAddress = address;
-		m_state = State.Connecting;
-	}
-	else
-	{
-		m_state = State.Resolving;
-	}
+	m_remoteAddress = *remoteAddress;
+	localAddress = m_socket.m_address;
 
+	char const* p = $"$(*remoteAddress, B)$(localAddress, B)";
+	m_pluginHost.writeLog (TcpConnectionLogRecordCode.ConnectingFrom, p, jnc.getDataPtrSpan (p));
 	return true;
 
 catch:
+	// we haven't written "Connecting..." log prefix yet
+
+	if (!m_useLocalAddressProp.m_value)
+	{
+		m_pluginHost.writeLog (TcpConnectionLogRecordCode.Connecting, &remoteAddress, sizeof (io.SocketAddress));
+	}
+	else
+	{
+		char const* p = $"$(*remoteAddress, B)$(localAddress, B)";
+		m_pluginHost.writeLog (TcpConnectionLogRecordCode.ConnectingFrom, p, jnc.getDataPtrSpan (p));
+	}
+
 	handleConnectError (jnc.getLastError ());
 	return false;
 }
@@ -235,11 +242,18 @@ TcpConnectionSession.disconnect ()
 		m_pluginHost.writeLog (TcpConnectionLogRecordCode.ConnectCancelled);
 		break;
 
-	case State.Connected:
+	case State.Connected:		
+		TcpDisconnectLogRecordParams params;
+		params.m_address = m_remoteAddress;		
+		params.m_flags = 0;
+
+		if (m_closeKindProp.m_value == io.SocketCloseKind.Reset)
+			params.m_flags |= TcpDisconnectLogRecordFlags.Reset;
+		
 		m_pluginHost.writeLog (
 			TcpConnectionLogRecordCode.Disconnected,
-			&m_remoteAddress,
-			sizeof (m_remoteAddress)
+			&params,
+			sizeof (params)
 			);
 		break;
 	}
@@ -276,6 +290,13 @@ void TcpConnectionSession.updateProperties ()
 bool TcpConnectionSession.applyProperties () throws
 {
 	m_addressCombo.m_editText = m_addressProp.m_value;
+	
+	if (m_socket.m_isOpen)
+	{
+		m_socket.m_closeKind = (io.SocketCloseKind) m_closeKindProp.m_value;
+		m_socket.m_isNagleEnabled = m_isNagleEnabledProp.m_value;
+	}
+
 	return true;
 }
 
@@ -321,10 +342,17 @@ TcpConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 		break;
 
 	case io.SocketEvent.Disconnected:
+		TcpDisconnectLogRecordParams recordParams;
+		recordParams.m_address = m_remoteAddress;		
+		recordParams.m_flags = TcpDisconnectLogRecordFlags.Remote;
+		
+		if (params.m_flags & io.SocketDisconnectEventFlags.Reset)
+			recordParams.m_flags |= TcpDisconnectLogRecordFlags.Reset;			
+		
 		m_pluginHost.writeLog (
 			TcpConnectionLogRecordCode.Disconnected,
-			&m_remoteAddress,
-			sizeof (m_remoteAddress)
+			&recordParams,
+			sizeof (recordParams)
 			);
 
 		m_socket.close ();
@@ -354,24 +382,13 @@ TcpConnectionSession.onResolverEvent (io.SocketAddressResolverEventParams const*
 			sizeof (io.SocketAddress)
 			);
 
-		m_pluginHost.writeLog (
-			TcpConnectionLogRecordCode.Connecting,
-			params.m_address,
-			sizeof (io.SocketAddress)
-			);
-
-		m_socket.connect (params.m_address);
-		m_remoteAddress = *params.m_address;
-		m_state = State.Connecting;
+		try connect (params.m_address);
 		break;
 
 	case io.SocketAddressResolverEvent.ResolveError:
 		handleConnectError (params.m_error);
 		break;
 	}
-
-catch:
-	handleConnectError (jnc.getLastError ());
 }
 
 reactor TcpConnectionSession.m_uiReactor ()

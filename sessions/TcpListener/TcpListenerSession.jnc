@@ -46,7 +46,8 @@ protected:
 	gui.IntProperty* m_portProp;
 	gui.EnumProperty* m_adapterProp;
 	gui.BoolProperty* m_overrideOldConnectionProp;
-	gui.BoolProperty* m_abruptiveDisconnectProp;
+	gui.EnumProperty* m_closeKindProp;
+	gui.BoolProperty* m_isNagleEnabledProp;
 
 public:
 	construct (doc.PluginHost* pluginHost);
@@ -127,9 +128,14 @@ TcpListenerSession.createUi ()
 		"Accept incoming connection even if already connected"
 		);
 
-	m_abruptiveDisconnectProp = m_pluginHost.createBoolProperty (
-		"Use TCP reset",
-		"Use TCP reset to terminate connections (instead of TCP graceful disconnect)"
+	m_closeKindProp = m_pluginHost.createSocketCloseKindProperty (
+		"TCP disconnect",
+		"How to close TCP connection (graceful / reset)"
+		);
+
+	m_isNagleEnabledProp = m_pluginHost.createBoolProperty (
+		"Use TCP Nagle algorithm",
+		"Specify whether to reduce the number of small TCP packets being sent"
 		);
 
 	m_uiReactor.start ();
@@ -147,6 +153,8 @@ bool TcpListenerSession.listen () throws
 	address.m_ip4.m_port = (uint16_t) atoi (m_portCombo.m_editText);
 	
 	m_listenerSocket.open (io.Protocol.Tcp, &address);
+	m_listenerSocket.m_closeKind = (io.SocketCloseKind) m_closeKindProp.m_value;
+	m_listenerSocket.m_isNagleEnabled = m_isNagleEnabledProp.m_value;
 	m_listenerSocket.listen ();
 
 	m_pluginHost.writeLog (
@@ -190,11 +198,19 @@ TcpListenerSession.disconnect ()
 	if (m_connectionState != State.Opened)
 		return;
 
+	TcpDisconnectLogRecordParams params;
+	params.m_address = m_remoteAddress;		
+	params.m_flags = 0;
+
+	if (m_closeKindProp.m_value == io.SocketCloseKind.Reset)
+		params.m_flags |= TcpDisconnectLogRecordFlags.Reset;
+
 	m_pluginHost.writeLog (
 		TcpListenerLogRecordCode.ClientDisconnected,
-		&m_remoteAddress,
-		sizeof (m_remoteAddress)
+		&params,
+		sizeof (params)
 		);
+		
 	m_connectionSocket.close ();
 	m_connectionSocket = null;
 	m_connectionState = State.Closed;
@@ -206,7 +222,8 @@ void TcpListenerSession.load (doc.Storage* storage)
 	m_portCombo.m_editText = storage.readString ("port");
 	m_adapterProp.m_value = storage.readInt ("adapterIp");
 	m_overrideOldConnectionProp.m_value = storage.readBool ("overrideOldConnection");
-	m_abruptiveDisconnectProp.m_value = storage.readBool ("abruptiveDisconnect");
+	m_closeKindProp.m_value = storage.readInt ("closeKindProp");
+	m_isNagleEnabledProp.m_value = storage.readBool ("isNagleEnabledProp");
 }
 
 void TcpListenerSession.save (doc.Storage* storage)
@@ -214,7 +231,8 @@ void TcpListenerSession.save (doc.Storage* storage)
 	storage.writeString ("port", m_portCombo.m_editText);
 	storage.writeInt ("adapterIp", m_adapterProp.m_value);
 	storage.writeBool ("overrideOldConnection", m_overrideOldConnectionProp.m_value);
-	storage.writeBool ("abruptiveDisconnect", m_abruptiveDisconnectProp.m_value);
+	storage.writeInt ("closeKindProp", m_closeKindProp.m_value);
+	storage.writeBool ("isNagleEnabledProp", m_isNagleEnabledProp.m_value);
 }
 
 void TcpListenerSession.updateProperties ()
@@ -223,8 +241,15 @@ void TcpListenerSession.updateProperties ()
 }
 
 bool TcpListenerSession.applyProperties () throws
-{
+{	
 	m_portCombo.m_editText = $"$(m_portProp.m_value)";
+
+	if (m_connectionSocket)
+	{
+		m_connectionSocket.m_closeKind = (io.SocketCloseKind) m_closeKindProp.m_value;
+		m_connectionSocket.m_isNagleEnabled = m_isNagleEnabledProp.m_value;
+	}
+
 	return true;
 }
 
@@ -233,7 +258,8 @@ void TcpListenerSession.restoreDefaultProperties ()
 	m_portProp.m_value = 1001;
 	m_adapterProp.m_value = 0;
 	m_overrideOldConnectionProp.m_value = true;
-	m_abruptiveDisconnectProp.m_value = false;
+	m_closeKindProp.m_value = io.SocketCloseKind.Graceful;
+	m_isNagleEnabledProp.m_value = true;
 }
 
 size_t TcpListenerSession.transmit (
@@ -304,11 +330,19 @@ TcpListenerSession.onConnectionSocketEvent (io.SocketEventParams const* params)
 	switch (params.m_eventKind)
 	{
 	case io.SocketEvent.Disconnected:
+		TcpDisconnectLogRecordParams recordParams;
+		recordParams.m_address = m_remoteAddress;		
+		recordParams.m_flags = TcpDisconnectLogRecordFlags.Remote;
+		
+		if (params.m_flags & io.SocketDisconnectEventFlags.Reset)
+			recordParams.m_flags |= TcpDisconnectLogRecordFlags.Reset;			
+		
 		m_pluginHost.writeLog (
 			TcpListenerLogRecordCode.ClientDisconnected,
-			&m_remoteAddress,
-			sizeof (m_remoteAddress)
+			&recordParams,
+			sizeof (recordParams)
 			);
+			
 		m_connectionSocket = null;
 		m_connectionState = State.Closed;
 		m_connectionSyncId++;

@@ -15,6 +15,18 @@ enum TcpListenerLogRecordCode
 	ClientRejected,
 }
 
+fenum TcpDisconnectLogRecordFlags
+{
+	Remote,
+	Reset,	
+}
+
+struct TcpDisconnectLogRecordParams
+{
+	io.SocketAddress m_address;
+	uint_t m_flags;
+}
+
 //.............................................................................
 
 class TcpListenerLogRepresenter: log.Representer
@@ -69,10 +81,14 @@ bool TcpListenerLogRepresenter.represent (
 		break;
 
 	case TcpListenerLogRecordCode.ClientDisconnected:
-		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
+		TcpDisconnectLogRecordParams const* params = (TcpDisconnectLogRecordParams const*) p;
+		char const* addressString = try io.formatSocketAddress (&params->m_address);
+		char const* closeKind = (params.m_flags & TcpDisconnectLogRecordFlags.Reset) ? (char const*) "reset" : "closed";
+		char const* initiator = (params.m_flags & TcpDisconnectLogRecordFlags.Remote) ? (char const*) "remote" : "local";
+
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText ($"Client <15>$addressString<> disconnected");
+		target.addHyperText ($"Client <15>$addressString<> disconnected ($closeKind by $initiator node)");
 		break;
 
 	case TcpListenerLogRecordCode.ClientRejected:

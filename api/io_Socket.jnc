@@ -21,10 +21,18 @@ enum SocketEvent
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
+fenum SocketDisconnectEventFlags
+{
+	Reset,
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
 struct SocketEventParams
 {
 	SocketEvent m_eventKind;
 	uint_t m_syncId;
+	uint_t m_flags;
 	jnc.Error const* m_error;
 }
 

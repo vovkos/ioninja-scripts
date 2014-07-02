@@ -75,6 +75,11 @@ opaque class PluginHost
 		io.SerialPortDesc const* portList,
 		size_t portCount
 		);
+		
+	gui.EnumProperty* createSocketCloseKindProperty (
+		char const* name,
+		char const* toolTipText
+		);		
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -194,11 +199,11 @@ gui.EnumProperty* PluginHost.createNetworkAdapterProperty (
 }
 
 gui.EnumProperty* PluginHost.createSerialPortProperty (
-		char const* name,
-		char const* toolTipText,
-		io.SerialPortDesc const* portList,
-		size_t portCount
-		)
+	char const* name,
+	char const* toolTipText,
+	io.SerialPortDesc const* portList,
+	size_t portCount
+	)
 {
 	gui.EnumPropertyOption* portOptionArray = new gui.EnumPropertyOption [portCount];
 	gui.EnumPropertyOption* portOption = portOptionArray;
@@ -215,6 +220,25 @@ gui.EnumProperty* PluginHost.createSerialPortProperty (
 		toolTipText,
 		portOptionArray,
 		portCount
+		);
+}
+
+gui.EnumProperty* PluginHost.createSocketCloseKindProperty (
+	char const* name,
+	char const* toolTipText
+	)
+{
+	static gui.EnumPropertyOption closeKindTable [] =
+	{
+		{ "Graceful", io.SocketCloseKind.Graceful },
+		{ "Reset",    io.SocketCloseKind.Reset },
+	};
+
+	return createEnumProperty (
+		name,
+		toolTipText,
+		closeKindTable,
+		countof (closeKindTable)
 		);
 }
 
