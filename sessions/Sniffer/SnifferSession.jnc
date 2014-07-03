@@ -86,7 +86,7 @@ SnifferSession.createUi ()
 	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_deviceCombo.m_onEnter += capture;
 
-	io.PCapDeviceDesc const* device = new io.PCapDeviceDescList ();
+	io.PCapDeviceDesc const* device = io.createPCapDeviceDescList ();
 
 	for (; device; device = device->m_next)
 	{
