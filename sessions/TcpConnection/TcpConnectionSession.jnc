@@ -5,6 +5,15 @@
 
 //.............................................................................
 
+	static char const* m_stateStringTable [] = 
+	{
+		"Closed",
+		"Resolving...",
+		"Opening...",
+		"Connecting...",
+		"Connected",
+	};
+
 class TcpConnectionSession: doc.Session
 {
 protected:
@@ -24,7 +33,15 @@ protected:
 		_Count,
 	}
 
+	enum StatusPaneId
+	{
+		State,
+		RemoteAddress,
+		_Count,
+	}
+
 protected:
+
 	// socket
 
 	State bindable m_state;
@@ -32,9 +49,10 @@ protected:
 	io.SocketAddressResolver* m_resolver;
 	io.SocketAddress m_remoteAddress;
 
-	// toolbar & menu
+	// toolbar, status bar & menu
 
 	gui.Action* m_actionTable [ActionId._Count];
+	gui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
 	gui.ComboBox* m_addressCombo;
 
 	// property grid
@@ -106,6 +124,12 @@ TcpConnectionSession.createUi ()
 	m_actionTable [ActionId.Disconnect] = m_pluginHost.createAction ("Disconnect", "images/disconnect.png");
 	m_actionTable [ActionId.Disconnect].m_onTriggered += disconnect;
 
+	// status bar
+	
+	m_statusPaneTable [StatusPaneId.RemoteAddress] = m_pluginHost.m_statusBar.addPane (, 100);
+	m_statusPaneTable [StatusPaneId.RemoteAddress].m_color = gui.StdColor.Blue;
+	m_statusPaneTable [StatusPaneId.State] = m_pluginHost.m_statusBar.addPane (, 80);
+ 
 	// property grid
 
 	m_addressProp = m_pluginHost.createStringProperty (
@@ -188,13 +212,12 @@ bool TcpConnectionSession.connect (io.SocketAddress const* remoteAddress) throws
 		m_socket.open (io.Protocol.Tcp, &localAddress);
 	}
 
+	m_remoteAddress = *remoteAddress;
 	m_state = State.Connecting;
 
 	m_socket.m_closeKind = (io.SocketCloseKind) m_closeKindProp.m_value;
 	m_socket.m_isNagleEnabled = m_isNagleEnabledProp.m_value;
 	m_socket.connect (remoteAddress);
-
-	m_remoteAddress = *remoteAddress;
 	localAddress = m_socket.m_address;
 
 	char const* p = $"$(*remoteAddress, B)$(localAddress, B)";
@@ -398,6 +421,9 @@ reactor TcpConnectionSession.m_uiReactor ()
 	m_actionTable [ActionId.Disconnect].m_isEnabled = m_state != State.Closed;
 	m_adapterProp.m_isEnabled = m_useLocalAddressProp.m_value;
 	m_localPortProp.m_isEnabled = m_useLocalAddressProp.m_value;
+	m_statusPaneTable [StatusPaneId.State].m_text = m_stateStringTable [m_state];
+	m_statusPaneTable [StatusPaneId.RemoteAddress].m_text = m_state > State.Resolving ? try io.formatSocketAddress (&m_remoteAddress) : "<peer-address>";
+	m_statusPaneTable [StatusPaneId.RemoteAddress].m_isVisible = m_state == State.Connected;
 }
 
 //.............................................................................
