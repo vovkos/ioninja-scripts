@@ -14,11 +14,24 @@ protected:
 		Opened,
 	}
 
+	static char const* m_listenerStateStringTable [] = 
+	{
+		"Not listening",
+		"Listening",
+	};
+
 	enum ActionId
 	{
 		Listen,
 		StopListen,
 		Disconnect,
+		_Count,
+	}
+
+	enum StatusPaneId
+	{
+		RemoteAddress,
+		ListenerState,
 		_Count,
 	}
 
@@ -36,9 +49,10 @@ protected:
 	io.Socket* m_connectionSocket;
 	io.SocketAddress m_remoteAddress;
 	
-	// toolbar & menu
+	// toolbar, status bar & menu
 	
 	gui.Action* m_actionTable [ActionId._Count];
+	gui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
 	gui.ComboBox* m_portCombo;
 
 	// property grid
@@ -99,6 +113,12 @@ TcpListenerSession.createUi ()
 	m_portCombo = m_pluginHost.m_toolBar.addComboBox ();
 	m_portCombo.m_isEditable = true;
 	m_portCombo.m_onEnter += listen;
+
+	// status bar
+
+	m_statusPaneTable [StatusPaneId.RemoteAddress] = m_pluginHost.m_statusBar.addPane (, 100);
+	m_statusPaneTable [StatusPaneId.RemoteAddress].m_color = gui.StdColor.Blue;
+	m_statusPaneTable [StatusPaneId.ListenerState] = m_pluginHost.m_statusBar.addPane (, 80);
 
 	// action buttons
 
@@ -363,6 +383,9 @@ reactor TcpListenerSession.m_uiReactor ()
 	m_isTransmitEnabled = m_connectionState == State.Opened;
 	m_actionTable [ActionId.StopListen].m_isEnabled = m_listenerState != State.Closed;
 	m_actionTable [ActionId.Disconnect].m_isEnabled = m_connectionState != State.Closed;
+	m_statusPaneTable [StatusPaneId.ListenerState].m_text = m_listenerStateStringTable [m_listenerState];
+	m_statusPaneTable [StatusPaneId.RemoteAddress].m_text = m_connectionState != State.Closed ? try io.formatSocketAddress (&m_remoteAddress) : "<peer-address>";
+	m_statusPaneTable [StatusPaneId.RemoteAddress].m_isVisible = m_connectionState != State.Closed;
 }
 
 //.............................................................................

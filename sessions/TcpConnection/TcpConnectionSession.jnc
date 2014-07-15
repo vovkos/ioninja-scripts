@@ -5,15 +5,6 @@
 
 //.............................................................................
 
-	static char const* m_stateStringTable [] = 
-	{
-		"Closed",
-		"Resolving...",
-		"Opening...",
-		"Connecting...",
-		"Connected",
-	};
-
 class TcpConnectionSession: doc.Session
 {
 protected:
@@ -26,6 +17,15 @@ protected:
 		Connected,
 	}
 
+	static char const* m_stateStringTable [] = 
+	{
+		"Closed",
+		"Resolving...",
+		"Opening...",
+		"Connecting...",
+		"Connected",
+	};
+
 	enum ActionId
 	{
 		Connect,
@@ -35,8 +35,8 @@ protected:
 
 	enum StatusPaneId
 	{
-		State,
 		RemoteAddress,
+		State,
 		_Count,
 	}
 
