@@ -423,7 +423,7 @@ reactor TcpConnectionSession.m_uiReactor ()
 	m_localPortProp.m_isEnabled = m_useLocalAddressProp.m_value;
 	m_statusPaneTable [StatusPaneId.State].m_text = m_stateStringTable [m_state];
 	m_statusPaneTable [StatusPaneId.RemoteAddress].m_text = m_state > State.Resolving ? try io.formatSocketAddress (&m_remoteAddress) : "<peer-address>";
-	m_statusPaneTable [StatusPaneId.RemoteAddress].m_isVisible = m_state == State.Connected;
+	m_statusPaneTable [StatusPaneId.RemoteAddress].m_isVisible = m_state > State.Resolving;
 }
 
 //.............................................................................

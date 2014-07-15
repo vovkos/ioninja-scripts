@@ -16,10 +16,25 @@ protected:
 		Connected
 	}
 
+	static char const* m_stateStringTable [] = 
+	{
+		"Closed",
+		"Resolving...",
+		"Connecting...",
+		"Connected",
+	};
+
 	enum ActionId
 	{
 		Connect,
 		Disconnect,
+		_Count,
+	}
+	
+	enum StatusPaneId
+	{
+		RemoteAddress,
+		State,
 		_Count,
 	}
 
@@ -31,9 +46,10 @@ protected:
 	io.SocketAddressResolver* m_resolver;
 	io.SocketAddress m_remoteAddress;
 	
-	// toolbar & menu
+	// toolbar, status bar & menu
 	
 	gui.Action* m_actionTable [ActionId._Count];
+	gui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
 	gui.ComboBox* m_addressCombo;
 
 	// property grid
@@ -108,6 +124,12 @@ SshChannelSession.createUi ()
 
 	m_actionTable [ActionId.Disconnect] = m_pluginHost.createAction ("Disconnect", "images/disconnect.png");
 	m_actionTable [ActionId.Disconnect].m_onTriggered += disconnect;
+
+	// status bar
+	
+	m_statusPaneTable [StatusPaneId.RemoteAddress] = m_pluginHost.m_statusBar.addPane (, 100);
+	m_statusPaneTable [StatusPaneId.RemoteAddress].m_color = gui.StdColor.Blue;
+	m_statusPaneTable [StatusPaneId.State] = m_pluginHost.m_statusBar.addPane (, 80);
 
 	// property grid
 
@@ -456,6 +478,9 @@ reactor SshChannelSession.m_uiReactor ()
 	m_adapterProp.m_isEnabled = m_useLocalAddressProp.m_value;
 	m_localPortProp.m_isEnabled = m_useLocalAddressProp.m_value;
 	m_actionTable [ActionId.Disconnect].m_isEnabled = m_state != State.Closed;
+	m_statusPaneTable [StatusPaneId.State].m_text = m_stateStringTable [m_state];
+	m_statusPaneTable [StatusPaneId.RemoteAddress].m_text = m_state > State.Resolving ? try io.formatSocketAddress (&m_remoteAddress) : "<peer-address>";
+	m_statusPaneTable [StatusPaneId.RemoteAddress].m_isVisible = m_state > State.Resolving;
 }
 
 //.............................................................................
