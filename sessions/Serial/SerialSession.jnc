@@ -14,6 +14,12 @@ protected:
 		Opened,
 	}
 
+	static char const* m_stateStringTable [] = 
+	{
+		"Closed",
+		"Opened",
+	};
+
 	enum ActionId
 	{
 		Open,
@@ -23,17 +29,33 @@ protected:
 		_Count,
 	}
 
+	enum StatusPaneId
+	{
+		PortName,
+		State,
+		Dtr,
+		Rts,
+		Dsr,
+		Cts,
+		Dcd,
+		_Count,
+	}
+
 protected:
 	// serial port
 
 	State bindable m_state;
 	io.Serial* m_serial;
 	char const* m_portName;
+	uint_t bindable m_serialStatusLines;
+	bool bindable m_serialDtr;
+	bool bindable m_serialRts;
 	SerialLogFilter m_logFilter;
 
-	// toolbar & menu
+	// toolbar, status bar & menu
 
 	gui.Action* m_actionTable [ActionId._Count];
+	gui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
 	gui.ComboBox* m_portCombo;
 	gui.ComboBox* m_baudRateCombo;
 	gui.ComboBox* m_flowControlCombo;
@@ -142,6 +164,22 @@ SerialSession.createUi ()
 	
 	m_actionTable [ActionId.Rts] = m_pluginHost.createCheckableAction ("RTS", "images/rts.png", false);
 	m_actionTable [ActionId.Rts].m_onTriggered += onRtsChanged;
+
+	// status bar
+
+	m_statusPaneTable [StatusPaneId.PortName] = m_pluginHost.m_statusBar.addPane (, 50);
+	m_statusPaneTable [StatusPaneId.PortName].m_color = gui.StdColor.Blue;
+	m_statusPaneTable [StatusPaneId.State] = m_pluginHost.m_statusBar.addPane (, 80);
+	m_statusPaneTable [StatusPaneId.Dtr] = m_pluginHost.m_statusBar.addPane ("DTR", 32);
+	m_statusPaneTable [StatusPaneId.Dtr].m_color = gui.StdColor.Red;
+	m_statusPaneTable [StatusPaneId.Rts] = m_pluginHost.m_statusBar.addPane ("RTS", 32);
+	m_statusPaneTable [StatusPaneId.Rts].m_color = gui.StdColor.Red;
+	m_statusPaneTable [StatusPaneId.Dsr] = m_pluginHost.m_statusBar.addPane ("DSR", 32);
+	m_statusPaneTable [StatusPaneId.Dsr].m_color = gui.StdColor.Red;
+	m_statusPaneTable [StatusPaneId.Cts] = m_pluginHost.m_statusBar.addPane ("CTS", 32);
+	m_statusPaneTable [StatusPaneId.Cts].m_color = gui.StdColor.Red;
+	m_statusPaneTable [StatusPaneId.Dcd] = m_pluginHost.m_statusBar.addPane ("DCD", 32);
+	m_statusPaneTable [StatusPaneId.Dcd].m_color = gui.StdColor.Red;
 
 	// property grid
 
@@ -280,6 +318,8 @@ bool SerialSession.open () throws
 	m_serial.m_dataBits = m_dataBitsProp.m_value;
 	m_serial.m_stopBits = (io.SerialStopBits) m_stopBitsProp.m_value;
 	m_serial.m_parity = (io.SerialParity) m_parityProp.m_value;
+	m_serial.m_dtr = m_actionTable [ActionId.Dtr].m_isChecked;
+	m_serial.m_rts = m_actionTable [ActionId.Rts].m_isChecked;
 
 	SerialOpenParams params;
 	params.m_baudRate = m_serial.m_baudRate;
@@ -293,6 +333,9 @@ bool SerialSession.open () throws
 	m_pluginHost.writeLog (SerialLogRecordCode.PortOpened, p, size);
 
 	m_portName = name;
+	m_serialDtr = m_serial.m_dtr;
+	m_serialRts = m_serial.m_rts;
+	m_serialStatusLines = m_serial.m_statusLines;
 	m_state = State.Opened;
 
 	return true;
@@ -445,6 +488,7 @@ SerialSession.onSerialEvent (io.SerialEventParams const* params)
 		char const* p = $"$(params.m_lines, B)$(params.m_mask, B)";
 		size_t size = jnc.getDataPtrSpan (p);
 		m_pluginHost.writeLog (SerialLogRecordCode.StatusLineChanged, p, size);
+		m_serialStatusLines = params.m_lines;
 		break;
 
 	case io.SerialEvent.TransmitBufferOverflow:
@@ -488,6 +532,7 @@ SerialSession.onDtrChanged ()
 
 	bool value = m_actionTable [ActionId.Dtr].m_isChecked;
 	m_serial.m_dtr = value;
+	m_serialDtr = value;
 	m_pluginHost.writeLog (SerialLogRecordCode.DtrChanged, &value, sizeof (value));
 }
 
@@ -498,6 +543,7 @@ SerialSession.onRtsChanged ()
 
 	bool value = m_actionTable [ActionId.Rts].m_isChecked;
 	m_serial.m_rts = value;
+	m_serialRts = value;
 	m_pluginHost.writeLog (SerialLogRecordCode.RtsChanged, &value, sizeof (value));
 }
 
@@ -506,6 +552,14 @@ reactor SerialSession.m_uiReactor ()
 	m_actionTable [ActionId.Close].m_isEnabled = m_state == State.Opened;
 	m_title = $"$(m_portCombo.m_currentText) $(m_baudRateCombo.m_currentText)";
 	m_isTransmitEnabled = m_state == State.Opened;
+	m_statusPaneTable [StatusPaneId.PortName].m_text = m_portCombo.m_currentText;
+	m_statusPaneTable [StatusPaneId.PortName].m_isVisible = m_state != State.Closed;
+	m_statusPaneTable [StatusPaneId.State].m_text = m_stateStringTable [m_state]; 
+	m_statusPaneTable [StatusPaneId.Dtr].m_isEnabled = m_state && m_serialDtr;
+	m_statusPaneTable [StatusPaneId.Rts].m_isEnabled = m_state && m_serialRts;
+	m_statusPaneTable [StatusPaneId.Dsr].m_isEnabled = m_state && (m_serialStatusLines & io.SerialStatusLines.Dsr);
+	m_statusPaneTable [StatusPaneId.Cts].m_isEnabled = m_state && (m_serialStatusLines & io.SerialStatusLines.Cts);
+	m_statusPaneTable [StatusPaneId.Dcd].m_isEnabled = m_state && (m_serialStatusLines & io.SerialStatusLines.Dcd);
 }
 
 //.............................................................................
