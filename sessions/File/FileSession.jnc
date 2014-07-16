@@ -14,6 +14,12 @@ protected:
 		Opened,
 	}
 
+	static char const* m_stateStringTable [] = 
+	{
+		"Closed",
+		"Opened",
+	};
+
 	enum Access
 	{
 		ReadWrite,
@@ -29,6 +35,12 @@ protected:
 		_Count,
 	}
 
+	enum StatusPaneId
+	{
+		State,
+		_Count,
+	}
+
 protected:
 	// file
 
@@ -37,9 +49,10 @@ protected:
 	io.FileStream* m_file;
 	char const* m_fileName;
 
-	// toolbar & menu
+	// toolbar, status bar & menu
 
 	gui.Action* m_actionTable [ActionId._Count];
+	gui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
 	gui.ComboBox* m_fileNameCombo;
 	
 	// property grid
@@ -91,6 +104,8 @@ FileSession.construct (doc.PluginHost* pluginHost)
 
 FileSession.createUi ()
 {
+	// toolbar
+		
 	m_pluginHost.m_toolBar.addLabel ("File:");
 	m_fileNameCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_fileNameCombo.m_isEditable = true;
@@ -106,6 +121,12 @@ FileSession.createUi ()
 	m_actionTable [ActionId.Clear] = m_pluginHost.createAction ("Clear", "images/clear.png");
 	m_actionTable [ActionId.Clear].m_onTriggered += clear;
 	m_actionTable [ActionId.Clear].m_isEnabled = false;
+
+	// status bar
+
+	m_statusPaneTable [StatusPaneId.State] = m_pluginHost.m_statusBar.addPane (, 80);
+
+	// property grid
 
 	m_fileNameProp = m_pluginHost.createStringProperty (
 		"File name",
@@ -250,10 +271,9 @@ reactor FileSession.m_uiReactor ()
 {
 	m_title = $"File $(m_fileNameCombo.m_editText)";
 	m_isTransmitEnabled = m_state == State.Opened;
-	m_actionTable [ActionId.Close].m_isEnabled = m_state == State.Opened;
-	m_actionTable [ActionId.Clear].m_isEnabled = 
-		m_state == State.Opened && 
-		m_file.m_kind == io.FileStreamKind.Disk;
+	m_actionTable [ActionId.Close].m_isEnabled = m_state != State.Closed;
+	m_actionTable [ActionId.Clear].m_isEnabled = m_state && m_file.m_kind == io.FileStreamKind.Disk;
+	m_statusPaneTable [StatusPaneId.State].m_text = m_stateStringTable [m_state];
 }
 
 //.............................................................................

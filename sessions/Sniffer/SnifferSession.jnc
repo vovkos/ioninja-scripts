@@ -14,10 +14,22 @@ protected:
 		Opened,
 	}
 
+	static char const* m_stateStringTable [] = 
+	{
+		"Closed",
+		"Capturing",
+	};
+
 	enum ActionId
 	{
 		Capture,
 		StopCapture,
+		_Count,
+	}
+	
+	enum StatusPaneId
+	{
+		State,
 		_Count,
 	}
 
@@ -27,9 +39,10 @@ protected:
 	State bindable m_state;
 	io.PCap* m_pcap;	
 	
-	// toolbar & menu
+	// toolbar, status bar & menu
 	
 	gui.Action* m_actionTable [ActionId._Count];
+	gui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
 	gui.ComboBox* m_deviceCombo;
 	
 	// property grid
@@ -107,6 +120,10 @@ SnifferSession.createUi ()
 	m_actionTable [ActionId.StopCapture] = m_pluginHost.createAction ("Stop", "images/pause.png");
 	m_actionTable [ActionId.StopCapture].m_onTriggered += stopCapture;
 	m_actionTable [ActionId.StopCapture].m_isEnabled = false;
+
+	// status bar
+	
+	m_statusPaneTable [StatusPaneId.State] = m_pluginHost.m_statusBar.addPane (, 80);
 
 	// property grid
 
@@ -244,6 +261,7 @@ reactor SnifferSession.m_uiReactor ()
 	m_title = $"PCap $(m_deviceCombo.m_currentText)";
 	m_isTransmitEnabled = m_state == State.Opened;
 	m_actionTable [ActionId.StopCapture].m_isEnabled = m_state == State.Opened;
+	m_statusPaneTable [StatusPaneId.State].m_text = m_stateStringTable [m_state];
 }
 
 //.............................................................................

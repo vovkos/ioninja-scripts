@@ -8,10 +8,16 @@
 class TcpListenerSession: doc.Session
 {
 protected:
-	enum State
+	enum ListenerState
 	{
 		Closed,
-		Opened,
+		Listening,
+	}
+
+	enum ConnectionState
+	{
+		Closed,
+		Connected,
 	}
 
 	static char const* m_listenerStateStringTable [] = 
@@ -38,13 +44,13 @@ protected:
 protected:
 	// listener socket
 
-	State bindable m_listenerState;
+	ListenerState bindable m_listenerState;
 	io.Socket* m_listenerSocket;
 	io.SocketAddress m_localAddress;
 
 	// connection socket
 
-	State bindable m_connectionState;
+	ConnectionState bindable m_connectionState;
 	uint_t m_connectionSyncId;
 	io.Socket* m_connectionSocket;
 	io.SocketAddress m_remoteAddress;
@@ -97,8 +103,8 @@ TcpListenerSession.construct (doc.PluginHost* pluginHost)
 
 	pluginHost.m_log.m_representer = static new TcpListenerLogRepresenter;
 
-	m_connectionState = State.Closed;
-	m_listenerState = State.Closed;
+	m_connectionState = ConnectionState.Closed;
+	m_listenerState = ListenerState.Closed;
 	m_listenerSocket = new io.Socket ();
 	m_listenerSocket.m_onSocketEvent += onListenerSocketEvent @ m_pluginHost.m_mainThreadScheduler;
 
@@ -184,7 +190,7 @@ bool TcpListenerSession.listen () throws
 		);
 
 	m_localAddress = address;
-	m_listenerState = State.Opened;
+	m_listenerState = ListenerState.Listening;
 	return true;
 
 catch:
@@ -201,7 +207,7 @@ catch:
 
 TcpListenerSession.stopListen ()
 {
-	if (m_listenerState != State.Opened)
+	if (m_listenerState != ListenerState.Listening)
 		return;
 
 	m_pluginHost.writeLog (
@@ -210,12 +216,12 @@ TcpListenerSession.stopListen ()
 		sizeof (m_localAddress)
 		);
 	m_listenerSocket.close ();
-	m_listenerState = State.Closed;
+	m_listenerState = ListenerState.Closed;
 }
 
 TcpListenerSession.disconnect ()
 {
-	if (m_connectionState != State.Opened)
+	if (m_connectionState != ConnectionState.Connected)
 		return;
 
 	TcpDisconnectLogRecordParams params;
@@ -233,7 +239,7 @@ TcpListenerSession.disconnect ()
 		
 	m_connectionSocket.close ();
 	m_connectionSocket = null;
-	m_connectionState = State.Closed;
+	m_connectionState = ConnectionState.Closed;
 	m_connectionSyncId++;
 }
 
@@ -287,7 +293,7 @@ size_t TcpListenerSession.transmit (
 	size_t size
 	) throws
 {
-	if (m_connectionState != State.Opened)
+	if (m_connectionState != ConnectionState.Connected)
 		return -1;
 
 	size_t result = try m_connectionSocket.send (p, size);
@@ -310,7 +316,7 @@ TcpListenerSession.onListenerSocketEvent (io.SocketEventParams const* params)
 		if (!socket)
 			break;
 
-		if (m_connectionState == State.Opened && !m_overrideOldConnectionProp.m_value)
+		if (m_connectionState == ConnectionState.Connected && !m_overrideOldConnectionProp.m_value)
 		{
 			socket.close ();
 			m_pluginHost.writeLog (
@@ -335,7 +341,7 @@ TcpListenerSession.onListenerSocketEvent (io.SocketEventParams const* params)
 
 		m_remoteAddress = address;
 		m_connectionSocket = socket;
-		m_connectionState = State.Opened;		
+		m_connectionState = ConnectionState.Connected;		
 		
 		socket.firePendingEvents ();
 		break;
@@ -364,7 +370,7 @@ TcpListenerSession.onConnectionSocketEvent (io.SocketEventParams const* params)
 			);
 			
 		m_connectionSocket = null;
-		m_connectionState = State.Closed;
+		m_connectionState = ConnectionState.Closed;
 		m_connectionSyncId++;
 		break;
 
@@ -380,12 +386,12 @@ TcpListenerSession.onConnectionSocketEvent (io.SocketEventParams const* params)
 reactor TcpListenerSession.m_uiReactor ()
 {
 	m_title = $"TCP @ $(m_portCombo.m_editText)";
-	m_isTransmitEnabled = m_connectionState == State.Opened;
-	m_actionTable [ActionId.StopListen].m_isEnabled = m_listenerState != State.Closed;
-	m_actionTable [ActionId.Disconnect].m_isEnabled = m_connectionState != State.Closed;
+	m_isTransmitEnabled = m_connectionState == ConnectionState.Connected;
+	m_actionTable [ActionId.StopListen].m_isEnabled = m_listenerState != ListenerState.Closed;
+	m_actionTable [ActionId.Disconnect].m_isEnabled = m_connectionState != ConnectionState.Closed;
 	m_statusPaneTable [StatusPaneId.ListenerState].m_text = m_listenerStateStringTable [m_listenerState];
-	m_statusPaneTable [StatusPaneId.RemoteAddress].m_text = m_connectionState != State.Closed ? try io.formatSocketAddress (&m_remoteAddress) : "<peer-address>";
-	m_statusPaneTable [StatusPaneId.RemoteAddress].m_isVisible = m_connectionState != State.Closed;
+	m_statusPaneTable [StatusPaneId.RemoteAddress].m_text = m_connectionState ? try io.formatSocketAddress (&m_remoteAddress) : "<peer>";
+	m_statusPaneTable [StatusPaneId.RemoteAddress].m_isVisible = m_connectionState != ConnectionState.Closed;
 }
 
 //.............................................................................

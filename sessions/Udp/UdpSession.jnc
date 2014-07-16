@@ -13,7 +13,13 @@ protected:
 		Closed,
 		Opened,
 	}
-	
+
+	static char const* m_stateStringTable [] = 
+	{
+		"Closed",
+		"Opened",
+	};
+
 	enum ResolveState
 	{
 		Unresolved,
@@ -29,6 +35,12 @@ protected:
 		_Count,
 	}
 	
+	enum StatusPaneId
+	{
+		State,
+		_Count,
+	}
+	
 protected:
 	// socket
 		
@@ -41,9 +53,10 @@ protected:
 	size_t m_pendingDataSize;
 	bool m_remoteAddressChanged;
 	
-	// toolbar & menu
+	// toolbar, status bar & menu
 	
 	gui.Action* m_actionTable [ActionId._Count];
+	gui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
 	gui.ComboBox* m_localPortCombo;
 	gui.ComboBox* m_remoteAddressCombo;
 	
@@ -122,6 +135,10 @@ UdpSession.createGui()
 	m_remoteAddressCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_remoteAddressCombo.m_isEditable = true;
 	m_remoteAddressCombo.m_onChanged += onRemoteAddressChanged;
+
+	// status bar
+
+	m_statusPaneTable [StatusPaneId.State] = m_pluginHost.m_statusBar.addPane (, 80);
 
 	// property grid
 
@@ -361,6 +378,7 @@ reactor UdpSession.m_uiReactor ()
 	m_isTransmitEnabled = m_state == State.Opened;
 	m_actionTable [ActionId.Close].m_isEnabled = m_state == State.Opened;
 	m_adapterProp.m_isEnabled = m_state == State.Closed;
+	m_statusPaneTable [StatusPaneId.State].m_text = m_stateStringTable [m_state];
 }
 
 //.............................................................................

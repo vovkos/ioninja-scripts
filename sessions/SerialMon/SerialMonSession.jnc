@@ -14,10 +14,22 @@ protected:
 		Opened,
 	}
 
+	static char const* m_stateStringTable [] = 
+	{
+		"Closed",
+		"Capturing",
+	};
+
 	enum ActionId
 	{
 		Capture,
 		StopCapture,
+		_Count,
+	}
+
+	enum StatusPaneId
+	{
+		State,
 		_Count,
 	}
 
@@ -28,9 +40,10 @@ protected:
 	io.SerialMon* m_serialMon;
 	char const* m_portName;
 
-	// toolbar & menu
+	// toolbar, status bar & menu
 
 	gui.Action* m_actionTable [ActionId._Count];
+	gui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
 	gui.ComboBox* m_portNameCombo;
 
 	// property grid
@@ -94,7 +107,11 @@ SerialMonSession.createUi ()
 	m_actionTable [ActionId.StopCapture] = m_pluginHost.createAction ("Stop", "images/pause.png");
 	m_actionTable [ActionId.StopCapture].m_onTriggered += stopCapture;
 
-	// property grid
+	// status bar
+	
+	m_statusPaneTable [StatusPaneId.State] = m_pluginHost.m_statusBar.addPane (, 80);
+
+	// property grid	
 
 	m_portNameProp = m_pluginHost.createStringProperty (
 		"Port name",
@@ -237,6 +254,7 @@ reactor SerialMonSession.m_uiReactor ()
 {	
 	m_title = $"Mon $(m_portNameCombo.m_currentText)";
 	m_actionTable [ActionId.StopCapture].m_isEnabled = m_state == State.Opened;
+	m_statusPaneTable [StatusPaneId.State].m_text = m_stateStringTable [m_state];
 }
 
 //.............................................................................
