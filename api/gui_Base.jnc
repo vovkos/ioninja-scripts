@@ -96,6 +96,9 @@ opaque class Action
 	bool autoget property m_isEnabled;
 	bool autoget property m_isCheckable;
 	bool autoget bindable property m_isChecked;
+	
+	char const* autoget property m_text;
+	Icon* autoget property m_icon;
 
 	event m_onTriggered ();
 }
