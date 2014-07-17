@@ -45,11 +45,18 @@ protected:
 	enum ActionId
 	{
 		Listen,
+		Disconnect,
+		_Count,
+	}
+
+	enum IconId
+	{
+		Listen,
 		StopListen,
 		Disconnect,
 		_Count,
 	}
-	
+
 	enum StatusPaneId
 	{
 		ServerRemoteAddress,
@@ -85,6 +92,7 @@ protected:
 	// toolbar, status bar & menu
 	
 	gui.Action* m_actionTable [ActionId._Count];
+	gui.Icon* m_iconTable [IconId._Count];
 	gui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
 	gui.ComboBox* m_serverPortCombo;
 	gui.ComboBox* m_clientAddressCombo;
@@ -117,6 +125,7 @@ protected:
 	handleListenerConnectError (jnc.Error const* error);
 	handleTargetConnectError (jnc.Error const* error);
 	
+	onListen ();
 	onListenerPortChanged ();
 	onTargetAddressChanged ();
 	onListenerSocketEvent (io.SocketEventParams const* params);
@@ -175,16 +184,15 @@ TcpProxySession.createUi ()
 	m_clientAddressCombo.m_isEditable = true;
 	m_clientAddressCombo.m_editText = "127.0.0.1:1002";
 	m_clientAddressCombo.m_onChanged += onTargetAddressChanged;
-	
-	m_pluginHost.m_toolBar.addSeparator ();
-	
-	m_actionTable [ActionId.Listen] = m_pluginHost.createAction ("Listen", "images/listen.png");
-	m_actionTable [ActionId.Listen].m_onTriggered += listen;
 
-	m_actionTable [ActionId.StopListen] = m_pluginHost.createAction ("Stop listening", "images/pause.png");
-	m_actionTable [ActionId.StopListen].m_onTriggered += stopListen;
+	m_iconTable [IconId.Listen] = new gui.Icon ("images/listen.png");
+	m_iconTable [IconId.StopListen] = new gui.Icon ("images/pause.png");
+	m_iconTable [IconId.Disconnect] = new gui.Icon ("images/disconnect.png");
+	
+	m_actionTable [ActionId.Listen] = m_pluginHost.createAction ("Listen", m_iconTable [IconId.Listen]);
+	m_actionTable [ActionId.Listen].m_onTriggered += onListen;
 
-	m_actionTable [ActionId.Disconnect] = m_pluginHost.createAction ("Disconnect", "images/disconnect.png");
+	m_actionTable [ActionId.Disconnect] = m_pluginHost.createAction ("Disconnect", m_iconTable [IconId.Disconnect]);
 	m_actionTable [ActionId.Disconnect].m_onTriggered += disconnect;
 		
 	// status bar
@@ -222,6 +230,14 @@ TcpProxySession.createUi ()
 		);
 
 	m_uiReactor.start ();
+}
+
+TcpProxySession.onListen ()
+{
+	if (m_listenerState)
+		stopListen ();
+	else 
+		try listen ();
 }
 
 bool TcpProxySession.listen () throws
@@ -656,7 +672,8 @@ TcpProxySession.handleTargetConnectError (jnc.Error const* error)
 reactor TcpProxySession.m_uiReactor ()
 {
 	m_title = $"TCP @ $(m_serverPortCombo.m_editText) -> $(m_clientAddressCombo.m_editText)";
-	m_actionTable [ActionId.StopListen].m_isEnabled = m_listenerState != ListenerState.Closed;
+	m_actionTable [ActionId.Listen].m_text = m_listenerState ? "Stop Listening" : "Listen";
+	m_actionTable [ActionId.Listen].m_icon = m_iconTable [m_listenerState ? IconId.StopListen : IconId.Listen];
 	m_actionTable [ActionId.Disconnect].m_isEnabled = m_serverConnectionState || m_clientConnectionState;
 	m_statusPaneTable [StatusPaneId.ServerRemoteAddress].m_text = m_serverConnectionState ? try io.formatSocketAddress (&m_serverRemoteAddress) : "<server-peer>";
 	m_statusPaneTable [StatusPaneId.ServerRemoteAddress].m_isVisible = m_serverConnectionState != ServerConnectionState.Closed;

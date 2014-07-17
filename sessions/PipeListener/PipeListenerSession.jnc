@@ -13,20 +13,15 @@ protected:
 		Closed,
 		Opened,
 	}
-	
-	static char const* m_listenerStateStringTable [] = 
-	{
-		"Not listening",
-		"Listening",
-	};	
-
-	static char const* m_connectionStateStringTable [] = 
-	{
-		"Not connected",
-		"Connected",
-	};	
 
 	enum ActionId
+	{
+		Listen,
+		Disconnect,
+		_Count,
+	}
+	
+	enum IconId
 	{
 		Listen,
 		StopListen,
@@ -57,6 +52,7 @@ protected:
 	// toolbar, status bar & menu
 	
 	gui.Action* m_actionTable [ActionId._Count];
+	gui.Icon* m_iconTable [IconId._Count];
 	gui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
 	gui.ComboBox* m_pipeNameCombo;
 
@@ -84,6 +80,7 @@ public:
 		) throws;
 
 protected:
+	onListen ();
 	onIncomingConnection (uint_t syncId);
 	onConnectionPipeEvent (io.FileStreamEventParams const* params);
 
@@ -116,16 +113,15 @@ PipeListenerSession.createUi ()
 	m_pipeNameCombo.m_isEditable = true;
 	m_pipeNameCombo.m_onEnter += listen;
 
-	m_actionTable [ActionId.Listen] = m_pluginHost.createAction ("Listen", "images/listen.png");
-	m_actionTable [ActionId.Listen].m_onTriggered += listen;
+	m_iconTable [IconId.Listen] = new gui.Icon ("images/listen.png");
+	m_iconTable [IconId.StopListen] = new gui.Icon ("images/pause.png");
+	m_iconTable [IconId.Disconnect] = new gui.Icon ("images/disconnect.png");
 
-	m_actionTable [ActionId.StopListen] = m_pluginHost.createAction ("Stop listening", "images/pause.png");
-	m_actionTable [ActionId.StopListen].m_onTriggered += stopListen;
-	m_actionTable [ActionId.StopListen].m_isEnabled = false;
+	m_actionTable [ActionId.Listen] = m_pluginHost.createAction ("Listen", m_iconTable [IconId.Listen]);
+	m_actionTable [ActionId.Listen].m_onTriggered += onListen;
 
-	m_actionTable [ActionId.Disconnect] = m_pluginHost.createAction ("Disconnect", "images/disconnect.png");
+	m_actionTable [ActionId.Disconnect] = m_pluginHost.createAction ("Disconnect", m_iconTable [IconId.Disconnect]);
 	m_actionTable [ActionId.Disconnect].m_onTriggered += disconnect;
-	m_actionTable [ActionId.Disconnect].m_isEnabled = false;
 
 	// status bar
 	
@@ -145,6 +141,14 @@ PipeListenerSession.createUi ()
 		);
 
 	m_uiReactor.start ();
+}
+
+PipeListenerSession.onListen ()
+{
+	if (m_listenerState)
+		stopListen ();
+	else 
+		try listen ();
 }
 
 bool PipeListenerSession.listen () throws
@@ -306,10 +310,11 @@ reactor PipeListenerSession.m_uiReactor ()
 {
 	m_title = $"Pipe $(m_pipeNameCombo.m_editText)";
 	m_isTransmitEnabled = m_connectionState == State.Opened;
-	m_actionTable [ActionId.StopListen].m_isEnabled = m_listenerState == State.Opened;
+	m_actionTable [ActionId.Listen].m_text = m_listenerState ? "Stop Listening" : "Listen";
+	m_actionTable [ActionId.Listen].m_icon = m_iconTable [m_listenerState ? IconId.StopListen : IconId.Listen];
 	m_actionTable [ActionId.Disconnect].m_isEnabled = m_connectionState == State.Opened;
-	m_statusPaneTable [StatusPaneId.ListenerState].m_text = m_listenerStateStringTable [m_listenerState];
-	m_statusPaneTable [StatusPaneId.ConnectionState].m_text = m_connectionStateStringTable [m_connectionState];
+	m_statusPaneTable [StatusPaneId.ListenerState].m_text = m_listenerState  ? "Listening" : "Not listening";
+	m_statusPaneTable [StatusPaneId.ConnectionState].m_text = m_connectionState  ? "Connected" : "Not connected";
 }
 
 //.............................................................................

@@ -34,14 +34,20 @@ opaque class PluginHost
 
 	gui.Action* createAction (
 		char const* text,
-		char const* iconFileName = null
+		gui.Icon* icon = null,
+		bool isCheckable = false,
+		bool isChecked = false		
 		);
 
-	gui.Action* createCheckableAction (
+	gui.Action* createAction (
 		char const* text,
-		char const* iconFileName = null,
-		bool isChecked = false
-		);
+		char const* iconFileName,
+		bool isCheckable = false,
+		bool isChecked = false		
+		)
+	{
+		return createAction (text, new gui.Icon (iconFileName), isCheckable, isChecked);
+	}
 
 	gui.BoolProperty* createBoolProperty (
 		char const* name,
@@ -87,28 +93,18 @@ opaque class PluginHost
 
 gui.Action* PluginHost.createAction (
 	char const* text,
-	char const* iconFileName
-	)
-{
-	gui.Icon* icon;
-	if (iconFileName)
-		icon = new gui.Icon (iconFileName);
-
-	gui.Action* action = new gui.Action (text, icon);
-	m_menu.addAction (action);
-	m_toolBar.addAction (action);
-	return action;
-}
-
-gui.Action* PluginHost.createCheckableAction (
-	char const* text,
-	char const* iconFileName,
+	gui.Icon* icon,
+	bool isCheckable,
 	bool isChecked
 	)
 {
-	gui.Action* action = createAction (text, iconFileName);
-	action.m_isCheckable = true;
-	action.m_isChecked = isChecked;
+	gui.Action* action = new gui.Action (text, icon);
+	action.m_isCheckable = isCheckable;
+	if (isCheckable)
+		action.m_isChecked = isChecked;	
+	
+	m_menu.addAction (action);
+	m_toolBar.addAction (action);
 	return action;
 }
 

@@ -14,12 +14,6 @@ protected:
 		Opened,
 	}
 
-	static char const* m_stateStringTable [] = 
-	{
-		"Closed",
-		"Opened",
-	};
-
 	enum Access
 	{
 		ReadWrite,
@@ -28,6 +22,13 @@ protected:
 	}
 
 	enum ActionId
+	{
+		Open,
+		Clear,
+		_Count,
+	}
+
+	enum IconId
 	{
 		Open,
 		Close,
@@ -52,6 +53,7 @@ protected:
 	// toolbar, status bar & menu
 
 	gui.Action* m_actionTable [ActionId._Count];
+	gui.Icon* m_iconTable [IconId._Count];
 	gui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
 	gui.ComboBox* m_fileNameCombo;
 	
@@ -81,6 +83,7 @@ public:
 protected:
 	createUi ();
 
+	onOpen ();
 	onFileStreamEvent (io.FileStreamEventParams const* params);
 
 	reactor m_uiReactor ();
@@ -111,14 +114,14 @@ FileSession.createUi ()
 	m_fileNameCombo.m_isEditable = true;
 	m_fileNameCombo.m_onEnter += open;
 
-	m_actionTable [ActionId.Open] = m_pluginHost.createAction ("Open", "images/open.png");
-	m_actionTable [ActionId.Open].m_onTriggered += open;
+	m_iconTable [IconId.Open] = new gui.Icon ("images/open.png");
+	m_iconTable [IconId.Close] = new gui.Icon ("images/close.png");
+	m_iconTable [IconId.Clear] = new gui.Icon ("images/clear.png");
 
-	m_actionTable [ActionId.Close] = m_pluginHost.createAction ("Close", "images/close.png");
-	m_actionTable [ActionId.Close].m_onTriggered += close;
-	m_actionTable [ActionId.Close].m_isEnabled = false;
+	m_actionTable [ActionId.Open] = m_pluginHost.createAction ("Open", m_iconTable [IconId.Open]);
+	m_actionTable [ActionId.Open].m_onTriggered += onOpen;
 
-	m_actionTable [ActionId.Clear] = m_pluginHost.createAction ("Clear", "images/clear.png");
+	m_actionTable [ActionId.Clear] = m_pluginHost.createAction ("Clear", m_iconTable [IconId.Clear]);
 	m_actionTable [ActionId.Clear].m_onTriggered += clear;
 	m_actionTable [ActionId.Clear].m_isEnabled = false;
 
@@ -148,6 +151,14 @@ FileSession.createUi ()
 		);
 
 	m_uiReactor.start ();
+}
+
+FileSession.onOpen ()
+{
+	if (m_state)
+		close ();
+	else 
+		try	open ();
 }
 
 bool FileSession.open () throws
@@ -271,9 +282,10 @@ reactor FileSession.m_uiReactor ()
 {
 	m_title = $"File $(m_fileNameCombo.m_editText)";
 	m_isTransmitEnabled = m_state == State.Opened;
-	m_actionTable [ActionId.Close].m_isEnabled = m_state != State.Closed;
+	m_actionTable [ActionId.Open].m_text = m_state ? "Close" : "Open";
+	m_actionTable [ActionId.Open].m_icon = m_iconTable [m_state ? IconId.Close : IconId.Open];
 	m_actionTable [ActionId.Clear].m_isEnabled = m_state && m_file.m_kind == io.FileStreamKind.Disk;
-	m_statusPaneTable [StatusPaneId.State].m_text = m_stateStringTable [m_state];
+	m_statusPaneTable [StatusPaneId.State].m_text = m_state ? "Opened" : "Closed";
 }
 
 //.............................................................................

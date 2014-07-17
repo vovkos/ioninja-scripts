@@ -13,6 +13,8 @@ icon        = images/proxy.png
 small-icon  = images/proxy-16x16.png
 monitor     = true
 
+group = fkjfdklj
+
 session-class         = TcpProxySession
 log-representer-class = TcpProxyLogRepresenter
 

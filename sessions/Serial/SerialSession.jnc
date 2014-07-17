@@ -1,4 +1,4 @@
-	//.............................................................................
+//.............................................................................
 //
 // Serial session
 //
@@ -14,18 +14,18 @@ protected:
 		Opened,
 	}
 
-	static char const* m_stateStringTable [] = 
-	{
-		"Closed",
-		"Opened",
-	};
-
 	enum ActionId
 	{
 		Open,
-		Close,
 		Dtr,
 		Rts,
+		_Count,
+	}
+
+	enum IconId
+	{
+		Open,
+		Close,
 		_Count,
 	}
 
@@ -55,6 +55,7 @@ protected:
 	// toolbar, status bar & menu
 
 	gui.Action* m_actionTable [ActionId._Count];
+	gui.Icon* m_iconTable [IconId._Count];
 	gui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
 	gui.ComboBox* m_portCombo;
 	gui.ComboBox* m_baudRateCombo;
@@ -93,6 +94,7 @@ public:
 		) throws;
 
 protected:
+	onOpen ();	
 	onSerialEvent (io.SerialEventParams const* params);
 	onBaudRateChanged ();
 	onFlowControlChanged ();
@@ -150,19 +152,19 @@ SerialSession.createUi ()
 	m_flowControlCombo.addItem ("XON/XOFF");
 	m_flowControlCombo.m_onChanged += onFlowControlChanged;
 
-	m_actionTable [ActionId.Open]  = m_pluginHost.createAction ("Open", "images/connect.png");
-	m_actionTable [ActionId.Open].m_onTriggered += open;
+	m_iconTable [IconId.Open] = new gui.Icon ("images/connect.png");
+	m_iconTable [IconId.Close] = new gui.Icon ("images/pause.png");
 
-	m_actionTable [ActionId.Close] = m_pluginHost.createAction ("Close", "images/pause.png");
-	m_actionTable [ActionId.Close].m_onTriggered += close;
+	m_actionTable [ActionId.Open]  = m_pluginHost.createAction ("Open", "images/connect.png");
+	m_actionTable [ActionId.Open].m_onTriggered += onOpen;
 
 	m_pluginHost.m_menu.addSeparator ();
 	m_pluginHost.m_toolBar.addSeparator ();
 
-	m_actionTable [ActionId.Dtr] = m_pluginHost.createCheckableAction ("DTR", "images/dtr.png", true);
+	m_actionTable [ActionId.Dtr] = m_pluginHost.createAction ("DTR", "images/dtr.png", true, true);
 	m_actionTable [ActionId.Dtr].m_onTriggered += onDtrChanged;
 	
-	m_actionTable [ActionId.Rts] = m_pluginHost.createCheckableAction ("RTS", "images/rts.png", false);
+	m_actionTable [ActionId.Rts] = m_pluginHost.createAction ("RTS", "images/rts.png", true, false);
 	m_actionTable [ActionId.Rts].m_onTriggered += onRtsChanged;
 
 	// status bar
@@ -302,6 +304,14 @@ SerialSession.createUi ()
 		);
 
 	m_uiReactor.start ();
+}
+
+SerialSession.onOpen ()
+{
+	if (m_state)
+		close ();
+	else
+		try open ();
 }
 
 bool SerialSession.open () throws
@@ -549,12 +559,13 @@ SerialSession.onRtsChanged ()
 
 reactor SerialSession.m_uiReactor ()
 {	
-	m_actionTable [ActionId.Close].m_isEnabled = m_state == State.Opened;
+	m_actionTable [ActionId.Open].m_text = m_state ? "Close" : "Open";
+	m_actionTable [ActionId.Open].m_icon = m_iconTable [m_state ? IconId.Close : IconId.Open];
 	m_title = $"$(m_portCombo.m_currentText) $(m_baudRateCombo.m_currentText)";
 	m_isTransmitEnabled = m_state == State.Opened;
 	m_statusPaneTable [StatusPaneId.PortName].m_text = m_portCombo.m_currentText;
 	m_statusPaneTable [StatusPaneId.PortName].m_isVisible = m_state != State.Closed;
-	m_statusPaneTable [StatusPaneId.State].m_text = m_stateStringTable [m_state]; 
+	m_statusPaneTable [StatusPaneId.State].m_text = m_state ? "Opened" : "Closed"; 
 	m_statusPaneTable [StatusPaneId.Dtr].m_isEnabled = m_state && m_serialDtr;
 	m_statusPaneTable [StatusPaneId.Rts].m_isEnabled = m_state && m_serialRts;
 	m_statusPaneTable [StatusPaneId.Dsr].m_isEnabled = m_state && (m_serialStatusLines & io.SerialStatusLines.Dsr);

@@ -14,12 +14,6 @@ protected:
 		Opened,
 	}
 
-	static char const* m_stateStringTable [] = 
-	{
-		"Closed",
-		"Opened",
-	};
-
 	enum ResolveState
 	{
 		Unresolved,
@@ -31,10 +25,16 @@ protected:
 	enum ActionId
 	{
 		Open,
+		_Count,
+	}
+
+	enum IconId
+	{
+		Open,
 		Close,
 		_Count,
 	}
-	
+
 	enum StatusPaneId
 	{
 		State,
@@ -56,6 +56,7 @@ protected:
 	// toolbar, status bar & menu
 	
 	gui.Action* m_actionTable [ActionId._Count];
+	gui.Icon* m_iconTable [IconId._Count];
 	gui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
 	gui.ComboBox* m_localPortCombo;
 	gui.ComboBox* m_remoteAddressCombo;
@@ -85,7 +86,9 @@ public:
 
 protected:
 	void reportError();
-	
+
+	onOpen  ();
+
 	onLocalPortChanged ();
 	onRemoteAddressChanged ();
 	onSocketEvent (io.SocketEventParams const* params);
@@ -117,17 +120,17 @@ UdpSession.construct (doc.PluginHost* pluginHost)
 UdpSession.createGui()
 {
 	// toolbar
-	
+
 	m_pluginHost.m_toolBar.addLabel ("Local port: ");
 	m_localPortCombo = m_pluginHost.m_toolBar.addComboBox ();
 	m_localPortCombo.m_isEditable = true;
 	m_localPortCombo.m_onChanged += onLocalPortChanged;
 
-	m_actionTable [ActionId.Open] = m_pluginHost.createAction("Open socket", "images/open.png");
-	m_actionTable [ActionId.Open].m_onTriggered += openSocket;
+	m_iconTable [IconId.Open] = new gui.Icon ("images/open.png");
+	m_iconTable [IconId.Close] = new gui.Icon ("images/close.png");
 
-	m_actionTable [ActionId.Close] = m_pluginHost.createAction("Close socket", "images/close.png");
-	m_actionTable [ActionId.Close].m_onTriggered += closeSocket;
+	m_actionTable [ActionId.Open] = m_pluginHost.createAction("Open socket", m_iconTable [IconId.Open]);
+	m_actionTable [ActionId.Open].m_onTriggered += onOpen;
 
 	m_pluginHost.m_toolBar.addSeparator ();
 
@@ -159,6 +162,14 @@ UdpSession.createGui()
 	m_adapterProp.m_value = 0;
 
 	m_uiReactor.start();
+}
+
+UdpSession.onOpen  ()
+{
+	if (m_state)
+		closeSocket ();
+	else
+		openSocket ();
 }
 
 UdpSession.openSocket ()
@@ -376,9 +387,10 @@ reactor UdpSession.m_uiReactor ()
 {
 	m_title = $"UDP @ $(m_localPortCombo.m_editText) -> $(m_remoteAddressCombo.m_editText)";
 	m_isTransmitEnabled = m_state == State.Opened;
-	m_actionTable [ActionId.Close].m_isEnabled = m_state == State.Opened;
+	m_actionTable [ActionId.Open].m_text = m_state ? "Close Socket" : "Open Socket";
+	m_actionTable [ActionId.Open].m_icon = m_iconTable [m_state ? IconId.Close : IconId.Open];
 	m_adapterProp.m_isEnabled = m_state == State.Closed;
-	m_statusPaneTable [StatusPaneId.State].m_text = m_stateStringTable [m_state];
+	m_statusPaneTable [StatusPaneId.State].m_text = m_state ? "Opened" : "Closed";
 }
 
 //.............................................................................
