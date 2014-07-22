@@ -36,7 +36,7 @@ opaque class PluginHost
 		char const* text,
 		gui.Icon* icon = null,
 		bool isCheckable = false,
-		bool isChecked = false		
+		bool isChecked = false
 		);
 
 	gui.Action* createAction (

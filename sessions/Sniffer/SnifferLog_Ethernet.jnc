@@ -23,14 +23,20 @@ representEthernet (
 {
 	io.EthernetHdr const* ethernetHdr = (io.EthernetHdr const*) p;
 
-	target.m_lineAttr.m_iconIdx = log.StdLogIcon.Packet;
 	target.m_lineAttr.m_backColor = gui.StdColor.PastelGray;
+
+	if (size < sizeof (io.EthernetHdr))
+	{
+		target.addHyperText ("<+b>BAD FRAME<>");
+
+		target.m_lineAttr.m_textColor = gui.StdColor.Gray;
+		target.m_lineAttr.m_backColor = gui.ColorFlags.Transparent;
+		target.addBin (p, size);
+		return;
+	}
 
 	if (foldFlags)
 	{
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Packet;
-		target.m_lineAttr.m_backColor = gui.StdColor.PastelGray;
-
 		target.addHyperText (jnc.format (
 			"[<#0000ff=-1>-<>]\n"
 			"<+b>ETHERNET<>\n"

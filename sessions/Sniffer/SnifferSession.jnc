@@ -225,6 +225,7 @@ void SnifferSession.updateProperties ()
 bool SnifferSession.applyProperties () throws
 {
 	// m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
+
 	if (m_state == State.Opened)
 		m_pcap.m_filter = m_captureFilterProp.m_value;
 
