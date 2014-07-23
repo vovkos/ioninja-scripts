@@ -96,7 +96,7 @@ opaque class Action
 	bool autoget property m_isEnabled;
 	bool autoget property m_isCheckable;
 	bool autoget bindable property m_isChecked;
-	
+
 	char const* autoget property m_text;
 	Icon* autoget property m_icon;
 
@@ -134,20 +134,20 @@ opaque class ComboBox
 	object* indexed property m_itemData (size_t index);
 
 	property m_currentIndex
-	{	
+	{
 		size_t autoget m_value;
 		set (size_t value);
 		alias bindable event m_onPropChanged () = m_onChanged;
 	}
 
 	property m_currentText
-	{		
+	{
 		char const* get ();
 		alias bindable event m_onPropChanged () = m_onChanged;
 	}
 
 	property m_currentData
-	{		
+	{
 		object* get ();
 		alias bindable event m_onPropChanged () = m_onChanged;
 	}
@@ -196,10 +196,10 @@ opaque class StatusBar
 	displayMessage (
 		char const* text,
 		uint_t timeout = 3000
-		);  
-	 
+		);
+
 	size_t dconst m_paneCount;
-	StatusPane* indexed property m_pane (size_t index);
+	StatusPane* indexed const property m_pane (size_t index);
 
 	StatusPane* addPane (
 		char const* text = null,
