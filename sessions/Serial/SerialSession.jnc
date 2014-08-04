@@ -393,8 +393,8 @@ void SerialSession.load (doc.Storage* storage)
 void SerialSession.save (doc.Storage* storage)
 {
 	storage.writeString ("portName", m_portCombo.m_editText);
-	storage.writeInt ("baudRate", m_baudRateCombo.m_currentIndex);
-	storage.writeInt ("flowControl", m_flowControlCombo.m_currentIndex);
+	storage.writeInt ("baudRate", (int) m_baudRateCombo.m_currentIndex);
+	storage.writeInt ("flowControl", (int) m_flowControlCombo.m_currentIndex);
 	storage.writeInt ("dataBits", m_dataBitsProp.m_value);
 	storage.writeInt ("stopBits", m_stopBitsProp.m_value);
 	storage.writeInt ("parity", m_parityProp.m_value);
