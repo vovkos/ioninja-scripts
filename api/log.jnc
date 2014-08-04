@@ -84,7 +84,7 @@ fenum LineAttrFlags
 struct LineAttr: gui.TextAttr
 {
 	LineAttrFlags m_flags;
-	size_t m_iconIdx;
+	uint_t m_iconIdx;
 }
 
 //.............................................................................
