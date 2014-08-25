@@ -176,10 +176,13 @@ UdpSession.openSocket ()
 {
 	closeSocket ();
 
+	char const* portString = m_localPortCombo.m_editText;
+	m_localPortCombo.addEditTextToHistory ();
+
 	io.SocketAddress localAddress;
 	localAddress.m_family = io.AddressFamily.Ip4;
 	localAddress.m_ip4.m_address.m_i32 = m_adapterProp.m_value;
-	localAddress.m_ip4.m_port = (uint16_t) atoi (m_localPortCombo.m_editText);
+	localAddress.m_ip4.m_port = (uint16_t) atoi (portString);
 
 	if (!try m_socket.open (io.Protocol.Udp, &localAddress))
 	{
