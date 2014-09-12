@@ -3,10 +3,6 @@
 # Author: Vladimir Gladkov
 
 #..............................................................................
-
-project_virtual_folder (nj_plg_XModem)
-
-#..............................................................................
 #
 # src folder
 #
@@ -19,12 +15,13 @@ set (
 	XModemReceiver.jnc
 	)
 
-source_virtual_folder (
+source_group (
 	src
+	FILES
 	${PLG_JNC_LIST}
 	)
 
-#..............................................................................
+# . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 #
 # prj folder
 #
@@ -34,12 +31,13 @@ set (
 	XModem.njplg
 	)
 
-source_virtual_folder (
+source_group (
 	prj
+	FILES
 	${PLG_PRJ_LIST}
 	)
 
-#..............................................................................
+# . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 #
 # img folder
 #
@@ -49,14 +47,15 @@ set (
 	images/xmodem.png
 	)
 
-source_virtual_folder (
+source_group (
 	img
+	FILES
 	${PLG_IMG_LIST}
 	)
 
 #..............................................................................
 #
-# nj_PLG_XModem script library
+# nj_plg_XModem script library
 #
 
 add_library (

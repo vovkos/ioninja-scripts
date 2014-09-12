@@ -3,10 +3,6 @@
 # Author: Vladimir Gladkov
 
 #..............................................................................
-
-project_virtual_folder (nj_plg_File)
-
-#..............................................................................
 #
 # src folder
 #
@@ -17,12 +13,13 @@ set (
 	FileSession.jnc
 	)
 
-source_virtual_folder (
+source_group (
 	src
+	FILES
 	${PLG_JNC_LIST}
 	)
 
-#..............................................................................
+# . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 #
 # prj folder
 #
@@ -32,12 +29,13 @@ set (
 	File.njplg
 	)
 
-source_virtual_folder (
+source_group (
 	prj
+	FILES
 	${PLG_PRJ_LIST}
 	)
 
-#..............................................................................
+# . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 #
 # img folder
 #
@@ -49,14 +47,15 @@ set (
 	images/close.png
 	)
 
-source_virtual_folder (
+source_group (
 	img
+	FILES
 	${PLG_IMG_LIST}
 	)
 
 #..............................................................................
 #
-# nj_ssp_File script library
+# nj_plg_File script library
 #
 
 add_library (

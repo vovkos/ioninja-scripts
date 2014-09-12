@@ -3,10 +3,6 @@
 # Author: Vladimir Gladkov
 
 #..............................................................................
-
-project_virtual_folder (nj_plg_TcpProxy)
-
-#..............................................................................
 #
 # src folder
 #
@@ -17,12 +13,13 @@ set (
 	TcpProxySession.jnc
 	)
 
-source_virtual_folder (
+source_group (
 	src
+	FILES
 	${PLG_JNC_LIST}
 	)
 
-#..............................................................................
+# . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 #
 # prj folder
 #
@@ -32,12 +29,13 @@ set (
 	TcpProxy.njplg
 	)
 
-source_virtual_folder (
+source_group (
 	prj
+	FILES
 	${PLG_PRJ_LIST}
 	)
 
-#..............................................................................
+# . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 #
 # img folder
 #
@@ -49,8 +47,9 @@ set (
 	images/proxy.png
 	)
 
-source_virtual_folder (
+source_group (
 	img
+	FILES
 	${PLG_IMG_LIST}
 	)
 

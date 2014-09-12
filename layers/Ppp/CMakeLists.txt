@@ -3,10 +3,6 @@
 # Author: Vladimir Gladkov
 
 #..............................................................................
-
-project_virtual_folder (nj_plg_Ppp)
-
-#..............................................................................
 #
 # src folder
 #
@@ -17,12 +13,13 @@ set (
 	PppLog.jnc
 	)
 
-source_virtual_folder (
+source_group (
 	src
+	FILES
 	${PLG_JNC_LIST}
 	)
 
-#..............................................................................
+# . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 #
 # prj folder
 #
@@ -32,12 +29,13 @@ set (
 	Ppp.njplg
 	)
 
-source_virtual_folder (
+source_group (
 	prj
+	FILES
 	${PLG_PRJ_LIST}
 	)
 
-#..............................................................................
+# . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 #
 # img folder
 #
@@ -47,14 +45,15 @@ set (
 	images/ppp.png
 	)
 
-source_virtual_folder (
+source_group (
 	img
+	FILES
 	${PLG_IMG_LIST}
 	)
 
 #..............................................................................
 #
-# nj_PLG_Ppp script library
+# nj_plg_Ppp script library
 #
 
 add_library (

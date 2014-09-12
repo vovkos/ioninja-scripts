@@ -3,10 +3,6 @@
 # Author: Vladimir Gladkov
 
 #..............................................................................
-
-project_virtual_folder (nj_api_jnc)
-
-#..............................................................................
 #
 # src folder
 #
@@ -34,8 +30,9 @@ set (
 	std.jnc
 	)
 
-source_virtual_folder (
+source_group (
 	api
+	FILES
 	${API_JNC_LIST}
 	)
 

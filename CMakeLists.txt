@@ -4,8 +4,6 @@
 
 #..............................................................................
 
-root_virtual_folder (${CMAKE_CURRENT_BINARY_DIR}/scripts.virtual)
-
 add_subdirectory (api)
 add_subdirectory (layers)
 add_subdirectory (sessions)
