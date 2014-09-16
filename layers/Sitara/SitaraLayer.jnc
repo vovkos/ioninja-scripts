@@ -1,0 +1,214 @@
+//.............................................................................
+
+class SitaraLayer: doc.Layer
+{
+protected:
+	enum State
+	{
+		Idle,
+		XModemTransmitFileDlg,
+		YModemTransmitFileDlg,
+		XModemTransmitting,
+		YModemTransmitting,
+	}
+
+	enum ActionId
+	{
+		Transmit,
+		_Count,
+	}
+
+	State bindable m_state;
+	
+	gui.Action* m_actionTable [ActionId._Count];
+
+	XModemTransmitter m_xmodemTransmitter;
+	YModemTransmitter m_ymodemTransmitter;
+
+public:
+	io.MappedFile* m_file1;
+	io.MappedFile* m_file2;
+
+public:
+	construct (doc.PluginHost* pluginHost);
+
+	transmitFile ();
+	cancelFileTranfer  ();	
+
+	xmodemTransmit ();
+	ymodemTransmit ();
+	
+protected:
+	createUi ();	
+	
+	onLogRecord (
+		uint64_t timestamp,
+		uint_t recordCode,
+		void const* p,
+		size_t size
+		);
+
+	onFileDlgCompleted ();
+	onProgressDlgButtonClicked (gui.StdDlgButton button);
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+SitaraLayer.construct (doc.PluginHost* pluginHost)
+{
+	basetype1.construct (pluginHost);	
+	m_xmodemTransmitter.construct (this);
+	m_ymodemTransmitter.construct (this);
+	
+	pluginHost.m_fileDlg.m_onCompleted += onFileDlgCompleted;
+	pluginHost.m_progressDlg.m_onButtonClicked += onProgressDlgButtonClicked;
+	pluginHost.m_log.attachListener (onLogRecord @ pluginHost.m_mainThreadScheduler);
+
+	m_state = State.Idle;
+	m_file1 = new io.MappedFile ();
+	m_file2 = new io.MappedFile ();
+
+	createUi ();
+}
+
+SitaraLayer.createUi ()
+{
+	m_pluginHost.m_toolBar.addSeparator ();
+
+	m_actionTable [ActionId.Transmit]  = m_pluginHost.createAction ("Transmit File with XModem", "images/transmit.png");
+	m_actionTable [ActionId.Transmit].m_onTriggered += transmitFile;
+}
+
+SitaraLayer.transmitFile ()
+{
+	cancelFileTranfer ();
+
+	m_pluginHost.m_progressDlg.m_title = "Sitara Uploader";
+	m_pluginHost.m_progressDlg.m_status = "Initializing...";
+	m_pluginHost.m_progressDlg.m_progress = 0;
+	m_pluginHost.m_progressDlg.m_buttons = gui.StdDlgButtons.Abort;
+	m_pluginHost.m_progressDlg.show ();
+
+	m_pluginHost.m_fileDlg.m_kind = gui.FileDlgKind.Open;
+	m_pluginHost.m_fileDlg.m_title = "Transmit File #1 with XModem...";
+	m_pluginHost.m_fileDlg.m_filter = "All files (*.*)";
+	m_pluginHost.m_fileDlg.show ();
+	
+	m_state = State.XModemTransmitFileDlg;
+}
+
+SitaraLayer.cancelFileTranfer ()
+{
+	switch (m_state)
+	{
+	case State.Idle:
+		return;
+	
+	case State.XModemTransmitting:
+		m_xmodemTransmitter.cancel ();
+		break;
+
+	case State.YModemTransmitting:
+		m_ymodemTransmitter.cancel ();
+		break;
+	}
+
+	m_state = State.Idle;
+	m_file1.close ();
+	m_file2.close ();
+	m_pluginHost.m_progressDlg.hide ();
+}
+
+SitaraLayer.onFileDlgCompleted ()
+{
+	if (m_pluginHost.m_fileDlg.m_result != gui.StdDlgButton.Ok)
+	{
+		m_state = State.Idle;
+		return;
+	}
+
+	switch (m_state)
+	{
+	case State.XModemTransmitFileDlg:
+		m_file1.open (
+			m_pluginHost.m_fileDlg.m_filePath, 
+			io.FileOpenFlags.OpenExisting | io.FileOpenFlags.ReadOnly
+			);
+
+		m_pluginHost.m_fileDlg.m_kind = gui.FileDlgKind.Open;
+		m_pluginHost.m_fileDlg.m_title = "Transmit File #2 with YModem...";
+		m_pluginHost.m_fileDlg.m_filter = "All files (*.*)";
+		m_pluginHost.m_fileDlg.show ();
+	
+		m_state = State.YModemTransmitFileDlg;
+		break;
+
+	case State.YModemTransmitFileDlg:
+		m_file2.open (
+			m_pluginHost.m_fileDlg.m_filePath, 
+			io.FileOpenFlags.OpenExisting | io.FileOpenFlags.ReadOnly
+			);
+			
+		xmodemTransmit ();
+		break;
+		
+//	--> causes compiler crash
+
+//	default:
+//		cancelFileTranfer ();
+	}
+
+catch:
+	m_pluginHost.m_progressDlg.m_status = jnc.getLastError ().m_description;
+	m_pluginHost.m_progressDlg.m_buttons = gui.StdDlgButtons.Close;		
+}
+
+SitaraLayer.xmodemTransmit ()
+{
+	m_state = State.XModemTransmitting;
+	m_xmodemTransmitter.start ();
+}
+
+SitaraLayer.ymodemTransmit ()
+{
+	m_state = State.YModemTransmitting;
+	m_ymodemTransmitter.start ();
+}
+
+SitaraLayer.onProgressDlgButtonClicked (gui.StdDlgButton button)
+{
+	switch (button)
+	{
+	case gui.StdDlgButton.Cancel:
+	case gui.StdDlgButton.Abort:
+		cancelFileTranfer ();
+		break;
+
+	case gui.StdDlgButton.Ok:
+	case gui.StdDlgButton.Close:
+		m_pluginHost.m_progressDlg.hide ();
+		break;
+	}
+}
+
+SitaraLayer.onLogRecord (
+	uint64_t timestamp,
+	uint_t recordCode,
+	void const* p,
+	size_t size
+	)
+{
+	if (recordCode == log.StdRecordCode.Rx)
+		switch (m_state)
+		{
+		case State.XModemTransmitting:
+			m_xmodemTransmitter.onRx (p, size);
+			break;
+
+		case State.YModemTransmitting:
+			m_ymodemTransmitter.onRx (p, size);
+			break;
+		}
+}
+
+//.............................................................................
