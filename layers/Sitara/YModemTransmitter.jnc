@@ -62,9 +62,9 @@ YModemTransmitter.cancel ()
 
 	m_parent.m_pluginHost.m_progressDlg.m_status = "Cancelling YModem transfer...";
 
-	static char c = YModemChar.Can;
-	for (size_t i = 0; i < YModemCanCount; i++)
-		try m_parent.transmit (&c, sizeof (c));
+//	static char c = YModemChar.Can;
+//	for (size_t i = 0; i < YModemCanCount; i++)
+//		try m_parent.transmit (&c, sizeof (c));
 
 	complete ();
 }
@@ -148,8 +148,8 @@ YModemTransmitter.onRx (char c)
 		case YModemChar.Nak:
 		case YModemChar.C:
 			m_parent.m_pluginHost.m_progressDlg.m_status = "Transferring YModem file name...";
-			m_state = State.FileName;
-			sendFileNameBlock ();
+//			m_state = State.FileName;
+//			sendFileNameBlock ();
 			break;
 		}
 		
