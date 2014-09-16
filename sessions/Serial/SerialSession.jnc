@@ -321,6 +321,9 @@ bool SerialSession.open () throws
 	char const* name = m_portCombo.m_currentText;
 
 	// open and configure
+	
+	m_baudRateProp.m_currentIndex = m_baudRateCombo.m_currentIndex;
+	m_flowControlProp.m_currentIndex = m_flowControlProp.m_currentIndex;
 
 	m_serial.open (name);
 	m_serial.m_baudRate = m_baudRateProp.m_value;
