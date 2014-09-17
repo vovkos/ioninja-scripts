@@ -124,6 +124,7 @@ SitaraLayer.onFileDlgCompleted ()
 	if (m_pluginHost.m_fileDlg.m_result != gui.StdDlgButton.Ok)
 	{
 		m_state = State.Idle;
+		m_pluginHost.m_progressDlg.hide ();
 		return;
 	}
 
