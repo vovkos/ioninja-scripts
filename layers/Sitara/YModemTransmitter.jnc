@@ -31,8 +31,6 @@ public:
 		);
 		
 protected:
-	onRx (char c);
-
 	complete ();
 	sendFileNameBlock ();
 	sendNextDataBlock ();
@@ -62,9 +60,9 @@ YModemTransmitter.cancel ()
 
 	m_parent.m_pluginHost.m_progressDlg.m_status = "Cancelling YModem transfer...";
 
-//	static char c = YModemChar.Can;
-//	for (size_t i = 0; i < YModemCanCount; i++)
-//		try m_parent.transmit (&c, sizeof (c));
+	static char c = YModemChar.Can;
+	for (size_t i = 0; i < YModemCanCount; i++)
+		try m_parent.transmit (&c, sizeof (c));
 
 	complete ();
 }
@@ -133,13 +131,8 @@ YModemTransmitter.onRx (
 	size_t size
 	)
 {
-	char const* c = (char const*) p;
-//	for (size_t i = 0; i < size; i++, c++)
-		onRx (*c);
-}
+	char c = *(char const*) p;
 	
-YModemTransmitter.onRx (char c)
-{
 	switch (m_state)
 	{
 	case State.WaitReceiver:
@@ -148,8 +141,8 @@ YModemTransmitter.onRx (char c)
 		case YModemChar.Nak:
 		case YModemChar.C:
 			m_parent.m_pluginHost.m_progressDlg.m_status = "Transferring YModem file name...";
-//			m_state = State.FileName;
-//			sendFileNameBlock ();
+			m_state = State.FileName;
+			sendFileNameBlock ();
 			break;
 		}
 		
@@ -165,7 +158,7 @@ YModemTransmitter.onRx (char c)
 			break;
 
 		case YModemChar.Nak:
-//			sendFileNameBlock (); // retransmit file name
+			sendFileNameBlock (); // retransmit file name
 			break; 
 		}
 
@@ -207,7 +200,7 @@ YModemTransmitter.onRx (char c)
 		switch (c)
 		{
 		case YModemChar.Ack:
-			m_parent.m_pluginHost.m_progressDlg.m_status = "YModem transfer completed successfully";
+			m_parent.m_pluginHost.m_progressDlg.m_status = "Finishing YModem transfer...";
 			m_state = State.EotWaitReceiver;
 			break; 
 
@@ -224,6 +217,7 @@ YModemTransmitter.onRx (char c)
 		{
 		case YModemChar.Nak:
 		case YModemChar.C:
+			m_parent.m_pluginHost.m_progressDlg.m_status = "Transferring YModem NULL file name...";
 			m_state = State.EotNullFileName;
 			sendFileNameBlock ();
 			break;
@@ -235,6 +229,7 @@ YModemTransmitter.onRx (char c)
 		switch (c)
 		{
 		case YModemChar.Ack:
+			m_parent.m_pluginHost.m_progressDlg.m_status = "YModem transfer finished.";
 			complete ();
 			break;
 
