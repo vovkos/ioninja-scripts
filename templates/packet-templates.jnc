@@ -1,0 +1,14 @@
+// Use this file to define binary packet templates 
+
+#pack (1)
+
+struct Packet
+{
+	int8 m_field1;
+	int16 m_field2;
+	int32 m_field3;
+
+	char m_field4 [8];
+
+	// ...
+}
