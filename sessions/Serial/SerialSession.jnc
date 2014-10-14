@@ -341,7 +341,7 @@ bool SerialSession.open () throws
 	params.m_stopBits = m_serial.m_stopBits;
 	params.m_parity = m_serial.m_parity;
 
-	char const* p = $"$(params,B)$name";
+	char const* p = $"$(params; B)$name";
 	size_t size = jnc.getDataPtrSpan (p);
 	m_pluginHost.writeLog (SerialLogRecordCode.PortOpened, p, size);
 
@@ -498,7 +498,7 @@ SerialSession.onSerialEvent (io.SerialEventParams const* params)
 		break;
 		
 	case io.SerialEvent.StatusLineChanged:
-		char const* p = $"$(params.m_lines, B)$(params.m_mask, B)";
+		char const* p = $"$(params.m_lines; B)$(params.m_mask; B)";
 		size_t size = jnc.getDataPtrSpan (p);
 		m_pluginHost.writeLog (SerialLogRecordCode.StatusLineChanged, p, size);
 		m_serialStatusLines = params.m_lines;

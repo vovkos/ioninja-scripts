@@ -235,7 +235,7 @@ bool TcpConnectionSession.connect (io.SocketAddress const* remoteAddress) throws
 	m_socket.connect (remoteAddress);
 	localAddress = m_socket.m_address;
 
-	char const* p = $"$(*remoteAddress, B)$(localAddress, B)";
+	char const* p = $"$(*remoteAddress; B)$(localAddress; B)";
 	m_pluginHost.writeLog (TcpConnectionLogRecordCode.ConnectingFrom, p, jnc.getDataPtrSpan (p));
 	return true;
 
@@ -248,7 +248,7 @@ catch:
 	}
 	else
 	{
-		char const* p = $"$(*remoteAddress, B)$(localAddress, B)";
+		char const* p = $"$(*remoteAddress; B)$(localAddress; B)";
 		m_pluginHost.writeLog (TcpConnectionLogRecordCode.ConnectingFrom, p, jnc.getDataPtrSpan (p));
 	}
 

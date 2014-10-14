@@ -170,7 +170,7 @@ bool FileSession.open () throws
 	char const* fileName = m_fileNameCombo.m_editText;
 	m_file.open (fileName);
 	
-	char const* p = $"$(m_file.m_kind, B)$fileName";
+	char const* p = $"$(m_file.m_kind; B)$fileName";
 	m_pluginHost.writeLog (FileLogRecordCode.Opened, p, jnc.getDataPtrSpan (p));
 	m_fileName = fileName;
 	m_state = State.Opened;
