@@ -1,5 +1,0 @@
---- ioninja-server log created on Tuesday 21 October 2014 15:42:15
-command line = /home/vladimir/Projects/ioninja/ioninja/build/make-amd64/bin/Release/ioninja-server --mcjit -x Echo/Echo.njplg 
-Compiling...
-pModule->ParseFile (/home/vladimir/Projects/ioninja/ioninja/build/make-amd64/bin/Release/../scripts/api/gui_Base.jnc)
-No such file or directory
