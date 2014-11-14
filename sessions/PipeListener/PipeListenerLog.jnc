@@ -44,7 +44,7 @@ bool PipeListenerLogRepresenter.represent (
 		char const* name = (char const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
-		target.addHyperText ($"Listening on <15>$name<>");
+		target.addHyperText ($"Listening on \e[34m$name<>");
 		break;
 
 	case PipeListenerLogRecordCode.ListenError:
@@ -58,7 +58,7 @@ bool PipeListenerLogRepresenter.represent (
 		char const* name = (char const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
-		target.addHyperText ($"Stopped listening on <15>$name<>");
+		target.addHyperText ($"Stopped listening on \e[34m$name");
 		break;
 
 	case PipeListenerLogRecordCode.ClientConnected:

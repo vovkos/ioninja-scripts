@@ -56,7 +56,7 @@ bool TcpListenerLogRepresenter.represent (
 		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
-		target.addHyperText ($"Listening on <15>$addressString<>");
+		target.addHyperText ($"Listening on \e[34m$addressString");
 		break;
 
 	case TcpListenerLogRecordCode.ListenError:
@@ -70,14 +70,14 @@ bool TcpListenerLogRepresenter.represent (
 		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
-		target.addHyperText ($"Stopped listening on <15>$addressString<>");
+		target.addHyperText ($"Stopped listening on \e[34m$addressString");
 		break;
 
 	case TcpListenerLogRecordCode.ClientConnected:
 		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText ($"Client connected from <15>$addressString<>");
+		target.addHyperText ($"Client connected from \e[34m$addressString");
 		break;
 
 	case TcpListenerLogRecordCode.ClientDisconnected:
@@ -88,14 +88,14 @@ bool TcpListenerLogRepresenter.represent (
 
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText ($"Client <15>$addressString<> disconnected ($closeKind by $initiator node)");
+		target.addHyperText ($"Client \e[34m$addressString\e[m disconnected ($closeKind by $initiator node)");
 		break;
 
 	case TcpListenerLogRecordCode.ClientRejected:
 		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Warning;
-		target.addHyperText ($"Client <15>$addressString<> is rejected ");
+		target.addHyperText ($"Client \e[34m$addressString\e[m is rejected ");
 		break;
 
 	default:

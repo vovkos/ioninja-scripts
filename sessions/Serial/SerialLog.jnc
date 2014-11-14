@@ -72,15 +72,15 @@ bool SerialLogRepresenter.represent (
 		target.m_lineAttr.m_backColor = StdLogColor.Start;
 
 		if (!(foldFlags & 1))
-			target.addHyperText ($"[<#0000ff=+1>+<>] Opened port <15>$name<> at <15>$(params.m_baudRate)<> bps");
+			target.addHyperText ($"[\e^+1\e[34m+\e[m] Opened port \e[34m$name\e[m at \e[34m$(params.m_baudRate)\e[m bps");
 		else
 			target.addHyperText (
-				$"[<#0000ff=-1>-<>] Opened port <15>$name<>\n"
-				$"    <#808080+i>Baud rate:<>    $(params.m_baudRate) bps\n"
-				$"    <#808080+i>Data bits:<>    $(params.m_dataBits)\n"
-				$"    <#808080+i>Stop bits:<>    $(params.m_stopBits)\n"
-				$"    <#808080+i>Parity:<>       $(params.m_parity)\n"
-				$"    <#808080+i>Flow control:<> $(params.m_flowControl)"
+				$"[\e^-1\e[34m-\e[m] Opened port \e[34m$name\n"
+				$"    \e[90mBaud rate:    \e[34m$(params.m_baudRate)\e[m bps\n"
+				$"    \e[90mData bits:    \e[34m$(params.m_dataBits)\n"
+				$"    \e[90mStop bits:    \e[34m$(params.m_stopBits)\n"
+				$"    \e[90mParity:       \e[34m$(params.m_parity)\n"
+				$"    \e[90mFlow control: \e[34m$(params.m_flowControl)"
 				);
 
 		break;
@@ -89,7 +89,7 @@ bool SerialLogRepresenter.represent (
 		char const* name = (char const*) p;
 		target.m_lineAttr.m_iconIdx = StdLogIcon.Pause;
 		target.m_lineAttr.m_backColor = StdLogColor.Stop;
-		target.addHyperText ($"Port <15>$name<> closed");
+		target.addHyperText ($"Port \e[34m$name\e[m closed");
 		break;
 
 	case SerialLogRecordCode.PortOpenError:
@@ -104,7 +104,7 @@ bool SerialLogRepresenter.represent (
 
 		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = StdLogColor.Info;
-		target.addHyperText ($"Baud rate set to <15>$baudRate<> bps");
+		target.addHyperText ($"Baud rate set to \e[34m$baudRate\e[m bps");
 		break;
 
 	case SerialLogRecordCode.DataBitsChanged:
@@ -112,7 +112,7 @@ bool SerialLogRepresenter.represent (
 
 		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = StdLogColor.Info;
-		target.addHyperText ($"Data bits set to <15>$dataBits<>");
+		target.addHyperText ($"Data bits set to \e[34m$dataBits");
 		break;
 
 	case SerialLogRecordCode.StopBitsChanged:
@@ -120,7 +120,7 @@ bool SerialLogRepresenter.represent (
 
 		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = StdLogColor.Info;
-		target.addHyperText ($"Stop bits set to <15>$stopBits<>");
+		target.addHyperText ($"Stop bits set to \e[34m$stopBits");
 		break;
 
 	case SerialLogRecordCode.ParityChanged:
@@ -128,7 +128,7 @@ bool SerialLogRepresenter.represent (
 
 		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = StdLogColor.Info;
-		target.addHyperText ($"Parity set to <15>$parity<>");
+		target.addHyperText ($"Parity set to \e[34m$parity");
 		break;
 
 	case SerialLogRecordCode.FlowControlChanged:
@@ -136,7 +136,7 @@ bool SerialLogRepresenter.represent (
 
 		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = StdLogColor.Info;
-		target.addHyperText ($"Flow control set to <15>$flowControl");
+		target.addHyperText ($"Flow control set to \e[34m$flowControl");
 		break;
 
 	case SerialLogRecordCode.RtsChanged:
@@ -144,7 +144,7 @@ bool SerialLogRepresenter.represent (
 
 		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = StdLogColor.Info;
-		target.addHyperText ($"<15>RTS<> set to $rts");
+		target.addHyperText ($"\e[34mRTS\e[m set to $rts");
 		break;
 
 	case SerialLogRecordCode.DtrChanged:
@@ -152,7 +152,7 @@ bool SerialLogRepresenter.represent (
 
 		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = StdLogColor.Info;
-		target.addHyperText ($"<15>DTR<> set to $dtr");
+		target.addHyperText ($"\e[34mDTR\e[m set to $dtr");
 		break;
 
 	case SerialLogRecordCode.StatusLineChanged:
@@ -166,19 +166,19 @@ bool SerialLogRepresenter.represent (
 		if (mask & io.SerialStatusLines.Dsr)
 		{
 			bool dsr = (lines & io.SerialStatusLines.Dsr) != 0;
-			target.addHyperText (StatusLinePartCode.Suffix, $" <15>DSR<>:$dsr");
+			target.addHyperText (StatusLinePartCode.Suffix, $" \e[34mDSR\e[m:$dsr");
 		}
 
 		if (mask & io.SerialStatusLines.Cts)
 		{
 			bool cts = (lines & io.SerialStatusLines.Cts) != 0;
-			target.addHyperText (StatusLinePartCode.Suffix, $" <15>CTS<>:$cts");
+			target.addHyperText (StatusLinePartCode.Suffix, $" \e[34mCTS\e[m:$cts");
 		}
 
 		if (mask & io.SerialStatusLines.Dcd)
 		{
 			bool dcd = (lines & io.SerialStatusLines.Dcd) != 0;
-			target.addHyperText (StatusLinePartCode.Suffix, $" <15>DCD<>:$dcd");
+			target.addHyperText (StatusLinePartCode.Suffix, $" \e[34mDCD\e[m:$dcd");
 		}
 
 		break;

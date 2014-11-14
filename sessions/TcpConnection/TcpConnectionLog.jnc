@@ -64,14 +64,14 @@ bool TcpConnectionLogRepresenter.represent (
 		char const* addressString = (char const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText (TcpConnectionPartCode.Connecting, $"Resolving <15>$addressString<>...");
+		target.addHyperText (TcpConnectionPartCode.Connecting, $"Resolving \e[34m$addressString\e[m...");
 		break;
 
 	case TcpConnectionLogRecordCode.Connecting:
 		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText (TcpConnectionPartCode.Connecting, $"Connecting to <15>$addressString<>...");
+		target.addHyperText (TcpConnectionPartCode.Connecting, $"Connecting to \e[34m$addressString\e[m...");
 		break;
 		
 	case TcpConnectionLogRecordCode.ConnectingFrom:
@@ -79,12 +79,12 @@ bool TcpConnectionLogRepresenter.represent (
 		char const* localAddressString = try io.formatSocketAddress ((io.SocketAddress const*) p + 1);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText (TcpConnectionPartCode.Connecting, $"Connecting to <15>$remoteAddressString<> from <15>$localAddressString<>...");
+		target.addHyperText (TcpConnectionPartCode.Connecting, $"Connecting to \e[34m$remoteAddressString\e[m from \e[34m$localAddressString\e[m...");
 		break;
 
 	case TcpConnectionLogRecordCode.ResolveCompleted:
 		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
-		target.addHyperText (TcpConnectionPartCode.ConnectCompleted, $"ok (<15>$addressString<>)");
+		target.addHyperText (TcpConnectionPartCode.ConnectCompleted, $"ok (\e[34m$addressString\e[m)");
 		break;
 
 	case TcpConnectionLogRecordCode.ConnectCompleted:
@@ -115,7 +115,7 @@ bool TcpConnectionLogRepresenter.represent (
 
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;	
-		target.addHyperText ($"Disconnected from <15>$addressString<> ($closeKind by $initiator node)");
+		target.addHyperText ($"Disconnected from \e[34m$addressString\e[m ($closeKind by $initiator node)");
 		break;
 
 	default:

@@ -27,7 +27,7 @@ representEthernet (
 
 	if (size < sizeof (io.EthernetHdr))
 	{
-		target.addHyperText ("<+b>BAD FRAME<>");
+		target.addHyperText ("\e[1mBAD FRAME");
 
 		target.m_lineAttr.m_textColor = gui.StdColor.Gray;
 		target.m_lineAttr.m_backColor = gui.ColorFlags.Transparent;
@@ -38,11 +38,11 @@ representEthernet (
 	if (foldFlags)
 	{
 		target.addHyperText (jnc.format (
-			"[<#0000ff=-1>-<>]\n"
-			"<+b>ETHERNET<>\n"
-			"   <#808080+i>TYPE:<> <=!%d,%d>%04Xh<>\n"
-			"   <#808080+i>SRC:<>  <=!%d,%d>%s<>\n"
-			"   <#808080+i>DST:<>  <=!%d,%d>%s<>",
+			"[\e^-1\e[34m-\e[m]\n"
+			"\e[1mETHERNET\n"
+			"   \e[90mTYPE: \e^!%d,%d\e[34m%04Xh\n"
+			"   \e[90mSRC:  \e^!%d,%d\e[34m%s\n"
+			"   \e[90mDST:  \e^!%d,%d\e[34m%s",
 	
 			offsetof (ethernetHdr.m_type), 
 			sizeof (ethernetHdr.m_type), 
@@ -73,7 +73,7 @@ representEthernet (
 		}
 
 		target.addHyperText (jnc.format (
-			"[<#0000ff=+1>+<>] <+b>ETHERNET<> %s > %s [TYPE:%04Xh]",
+			"[\e^+1\e[34m+\e[m] \e[1mETHERNET \e[10;34m%s\e[m > \e[34m%s\e[m [TYPE:%04Xh]",
 			formatEthernetString (ethernetHdr->m_srcAddress),
 			formatEthernetString (ethernetHdr->m_dstAddress),
 			ethernetHdr->m_type

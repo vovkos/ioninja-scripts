@@ -58,14 +58,14 @@ bool SshChannelLogRepresenter.represent (
 		char const* addressString = (char const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText (SshChannelLogPartCode.Connecting, $"Resolving <15>$addressString<>...");
+		target.addHyperText (SshChannelLogPartCode.Connecting, $"Resolving \e[34m$addressString\e[m...");
 		break;
 
 	case SshChannelLogRecordCode.ResolveCompleted:
 		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, $"ok (<15>$addressString<>)");
+		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, $"ok (\e[34m$addressString\e[m)");
 		target.addHyperText (SshChannelLogPartCode.Connecting, "Establishing TCP connection...");
 		break;
 
@@ -73,7 +73,7 @@ bool SshChannelLogRepresenter.represent (
 		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText (SshChannelLogPartCode.Connecting, $"Establishing TCP connection to <15>$addressString<>...");
+		target.addHyperText (SshChannelLogPartCode.Connecting, $"Establishing TCP connection to \e[34m$addressString\e[m...");
 		break;
 
 	case SshChannelLogRecordCode.TcpConnectCompleted:
@@ -138,7 +138,7 @@ bool SshChannelLogRepresenter.represent (
 		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
-		target.addHyperText ($"Disconnected from <15>$addressString<>");
+		target.addHyperText ($"Disconnected from \e[34m$addressString");
 		break;
 
 	default:

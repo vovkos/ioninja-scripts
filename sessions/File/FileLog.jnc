@@ -44,7 +44,7 @@ bool FileLogRepresenter.represent (
 		char const* fileName = (char const*) (kind + 1);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
-		target.addHyperText ($"Opened file <15>$fileName<> ($(io.getFileStreamKindString (*kind)))");
+		target.addHyperText ($"Opened file \e[34m$fileName\e[m ($(io.getFileStreamKindString (*kind)))");
 		break;
 
 	case FileLogRecordCode.OpenError:
@@ -58,7 +58,7 @@ bool FileLogRepresenter.represent (
 		char const* fileName = (char const*) p;		
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
-		target.addHyperText ($"Closed file <15>$fileName");
+		target.addHyperText ($"Closed file \e[34m$fileName");
 		break;
 
 	case FileLogRecordCode.Eof:

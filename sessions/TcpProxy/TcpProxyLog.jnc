@@ -59,7 +59,7 @@ bool TcpProxyLogRepresenter.represent (
 		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
-		target.addHyperText ($"Listening on <15>$addressString<>");
+		target.addHyperText ($"Listening on \e[34m$addressString");
 		break;
 
 	case TcpProxyLogRecordCode.ListenError:
@@ -73,7 +73,7 @@ bool TcpProxyLogRepresenter.represent (
 		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
-		target.addHyperText ($"Stopped listening on <15>$addressString<>");
+		target.addHyperText ($"Stopped listening on \e[34m$addressString");
 		break;
 
 	case TcpProxyLogRecordCode.ListenCanceled:
@@ -84,28 +84,28 @@ bool TcpProxyLogRepresenter.represent (
 		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText ($"Client connected from <15>$addressString<>");
+		target.addHyperText ($"Client connected from \e[34m$addressString");
 		break;
 
 	case TcpProxyLogRecordCode.ClientDisconnected:
 		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText ($"Client <15>$addressString<> disconnected");
+		target.addHyperText ($"Client \e[34m$addressString\e[m disconnected");
 		break;
 
 	case TcpProxyLogRecordCode.ClientRejected:
 		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Warning;
-		target.addHyperText ($"Client <15>$addressString<> is rejected ");
+		target.addHyperText ($"Client \e[34m$addressString\e[m is rejected ");
 		break;
 
 	case TcpProxyLogRecordCode.TargetConnecting:
 		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText (TcpProxyPartCode.TargetConnecting, $"Connecting to <15>$addressString<>...");
+		target.addHyperText (TcpProxyPartCode.TargetConnecting, $"Connecting to \e[34m$addressString\e[m...");
 		break;
 
 	case TcpProxyLogRecordCode.TargetConnectCompleted:
@@ -132,19 +132,19 @@ bool TcpProxyLogRepresenter.represent (
 		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
-		target.addHyperText ($"Disconnected from <15>$addressString<>");
+		target.addHyperText ($"Disconnected from \e[34m$addressString");
 		break;
 		
 	case TcpProxyLogRecordCode.TargetResolving:
 		char const* addressString = (char const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText (TcpProxyPartCode.TargetConnecting, $"Resolving <15>$addressString<>...");
+		target.addHyperText (TcpProxyPartCode.TargetConnecting, $"Resolving \e[34m$addressString\e[m...");
 		break;
 		
 	case TcpProxyLogRecordCode.TargetResolveCompleted:
 		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
-		target.addHyperText (TcpProxyPartCode.TargetConnectCompleted, $"ok (<15>$addressString<>)");
+		target.addHyperText (TcpProxyPartCode.TargetConnectCompleted, $"ok (\e[34m$addressString\e[m)");
 		break;
 		
 	case TcpProxyLogRecordCode.TargetResolvingError:

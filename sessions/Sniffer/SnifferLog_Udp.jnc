@@ -15,11 +15,11 @@ representUdpHdr (
 	io.UdpHdr const* udpHdr = (io.UdpHdr const*) (p + baseOffset);
 
 	target.addHyperText (jnc.format (
-		"<+b>UDP<>\n" 
-		"   <#808080+i>SRC:<>      <=!%d,%d>%d<>\n"
-		"   <#808080+i>DST:<>      <=!%d,%d>%d<>\n"
-		"   <#808080+i>LENGTH:<>   <=!%d,%d>%d<>\n"
-		"   <#808080+i>CHECKSUM:<> <=!%d,%d>%04Xh<>", 
+		"\e[1mUDP\n" 
+		"   \e[90mSRC:      \e^!%d,%d\e[34m%d\n"
+		"   \e[90mDST:      \e^!%d,%d\e[34m%d\n"
+		"   \e[90mLENGTH:   \e^!%d,%d\e[34m%d\n"
+		"   \e[90mCHECKSUM: \e^!%d,%d\e[34m%04Xh", 
 
 		baseOffset + offsetof (udpHdr.m_srcPort), 
 		sizeof (udpHdr.m_srcPort), 
@@ -50,7 +50,7 @@ representUdp (
 	if (baseOffset + sizeof(io.UdpHdr) > size)
 	{
 		target.addHyperText (jnc.format (
-			"[<#0000ff=+1>+<>] <+b>UDP<> %s > %s [INVALID SIZE:%d]",
+			"[\e^+1\e[34m+\e[m] \e[1mUDP \e[10;34m%s\e[m > \e[34m%s\e[m [INVALID SIZE:%d]",
 			formatIpString (ipHdr->m_srcAddress), 
 			formatIpString (ipHdr->m_dstAddress),
 			size
@@ -63,7 +63,7 @@ representUdp (
 	size_t dataSize = udpHdr.m_length - sizeof (io.UdpHdr);
 
 	target.addHyperText (jnc.format (
-		"[<#0000ff=+1>+<>] <+b>UDP<> %s:%d > %s:%d (%d bytes)",
+		"[\e^+1\e[34m+\e[m] \e[1mUDP \e[10;34m%s:%d\e[m > \e[34m%s:%d\e[m (%d bytes)",
 		formatIpString (ipHdr->m_srcAddress), 
 		udpHdr.m_srcPort,
 		formatIpString (ipHdr->m_dstAddress), 

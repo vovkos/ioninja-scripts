@@ -29,16 +29,16 @@ representTcpHdr (
 	io.TcpHdr const* tcpHdr = (io.TcpHdr const*) (p + baseOffset);
 
 	target.addHyperText (jnc.format (
-		"<+b>TCP<>\n" 
-		"   <#808080+i>SRC:<>      <=!%d,%d>%d<>\n"
-		"   <#808080+i>DST:<>      <=!%d,%d>%d<>\n"
-		"   <#808080+i>SEQ:<>      <=!%d,%d>%08x<>\n"
-		"   <#808080+i>ACK:<>      <=!%d,%d>%08x<>\n"
-		"   <#808080+i>DATAOFFS:<> <=!%d,%d>%d<>\n"
-		"   <#808080+i>FLAGS:<>    <=!%d,%d>%s<>\n"
-		"   <#808080+i>WINDOW:<>   <=!%d,%d>%d<>\n"
-		"   <#808080+i>CHECKSUM:<> <=!%d,%d>%04Xh<>\n"
-		"   <#808080+i>URGENT:<>   <=!%d,%d>%d<>",
+		"\e[1mTCP\n" 
+		"   \e[90mSRC:      \e^!%d,%d\e[34m%d\n"
+		"   \e[90mDST:      \e^!%d,%d\e[34m%d\n"
+		"   \e[90mSEQ:      \e^!%d,%d\e[34m%08x\n"
+		"   \e[90mACK:      \e^!%d,%d\e[34m%08x\n"
+		"   \e[90mDATAOFFS: \e^!%d,%d\e[34m%d\n"
+		"   \e[90mFLAGS:    \e^!%d,%d\e[34m%s\n"
+		"   \e[90mWINDOW:   \e^!%d,%d\e[34m%d\n"
+		"   \e[90mCHECKSUM: \e^!%d,%d\e[34m%04Xh\n"
+		"   \e[90mURGENT:   \e^!%d,%d\e[34m%d",
 		
 		baseOffset + offsetof (tcpHdr.m_srcPort), 
 		sizeof (tcpHdr.m_srcPort), 
@@ -89,7 +89,7 @@ representTcp (
 	if (baseOffset + sizeof(io.TcpHdr) > size)
 	{
 		target.addHyperText (jnc.format (
-			"[<#0000ff=+1>+<>] <+b>TCP<> %s > %s [INVALID SIZE:%d]",
+			"[\e^+1\e[34m+\e[m] \e[1mTCP \e[10;34m%s\e[m > \e[34m%s\e[m [INVALID SIZE:%d]",
 			formatIpString (ipHdr.m_srcAddress), 
 			formatIpString (ipHdr.m_dstAddress),
 			size
@@ -104,7 +104,7 @@ representTcp (
 	size_t dataSize = ipHdr->m_totalLength - sizeof (io.IpHdr) - dataOffset;
 
 	target.addHyperText (jnc.format (
-		"[<#0000ff=+1>+<>] <+b>TCP<> %s:%d > %s:%d [%s] (%d bytes)",
+		"[\e^+1\e[34m+\e[m] \e[1mTCP \e[10;34m%s:%d\e[m > \e[10;34m%s:%d\e[m [%s] (%d bytes)",
 		formatIpString (ipHdr.m_srcAddress), 
 		tcpHdr.m_srcPort,
 		formatIpString (ipHdr.m_dstAddress), 

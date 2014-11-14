@@ -43,7 +43,7 @@ bool SerialMonLogRepresenter.represent (
 		char const* name = (char const*) p;
 		target.m_lineAttr.m_iconIdx = StdLogIcon.Play;
 		target.m_lineAttr.m_backColor = StdLogColor.Start;
-		target.addHyperText ($"Capture started on port <15>$name<>");
+		target.addHyperText ($"Capture started on port \e[34m$name");
 		break;
 
 	case SerialMonLogRecordCode.CaptureStopped:

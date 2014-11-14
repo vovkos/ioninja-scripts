@@ -24,18 +24,18 @@ representIpHdr (
 	io.IpHdr const* ipHdr = (io.IpHdr const*) (p + baseOffset);
 
 	target.addHyperText (jnc.format (
-		"<+b>IP<>\n"
-		"   <#808080+i>VERSION:<>  <=!%d,%d>%d<>\n"
-		"   <#808080+i>HLENGTH:<>  <=!%d,%d>%d<>\n"
-		"   <#808080+i>TOS:<>      <=!%d,%d>%d<>\n"
-		"   <#808080+i>TLENGTH:<>  <=!%d,%d>%d<>\n"
-		"   <#808080+i>ID:<>       <=!%d,%d>%d<>\n"
-		"   <#808080+i>FLAGS:<>    <=!%d,%d>%d<>\n"
-		"   <#808080+i>TTL:<>      <=!%d,%d>%d<>\n"
-		"   <#808080+i>PROTO:<>    <=!%d,%d>%d<>\n"
-		"   <#808080+i>CHECKSUM:<> <=!%d,%d>%04Xh<>\n"
-		"   <#808080+i>SRC:<>      <=!%d,%d>%s<>\n"
-		"   <#808080+i>DST:<>      <=!%d,%d>%s<>",
+		"\e[1mIP\n"
+		"   \e[90mVERSION:  \e^!%d,%d\e[34m%d\n"
+		"   \e[90mHLENGTH:  \e^!%d,%d\e[34m%d\n"
+		"   \e[90mTOS:      \e^!%d,%d\e[34m%d\n"
+		"   \e[90mTLENGTH:  \e^!%d,%d\e[34m%d\n"
+		"   \e[90mID:       \e^!%d,%d\e[34m%d\n"
+		"   \e[90mFLAGS:    \e^!%d,%d\e[34m%d\n"
+		"   \e[90mTTL:      \e^!%d,%d\e[34m%d\n"
+		"   \e[90mPROTO:    \e^!%d,%d\e[34m%d\n"
+		"   \e[90mCHECKSUM: \e^!%d,%d\e[34m%04Xh\n"
+		"   \e[90mSRC:      \e^!%d,%d\e[34m%s\n"
+		"   \e[90mDST:      \e^!%d,%d\e[34m%s",
 		
 		baseOffset + offsetof (ipHdr.m_version), 
 		sizeof (ipHdr.m_version), 
@@ -107,7 +107,7 @@ representIp(
 {
 	if (baseOffset + sizeof (io.IpHdr) > size)
 	{
-		target.addHyperText (jnc.format ("[<#0000ff=+1>+<>] <+b>IP<> [INVALID SIZE:%d]", size));
+		target.addHyperText (jnc.format ("[\e^+1\e[34m+\e[m] \e[1mIP\e[m [INVALID SIZE:%d]", size));
 		return;
 	}
 
@@ -129,7 +129,7 @@ representIp(
 		
 	default:
 		target.addHyperText (jnc.format (
-			"[<#0000ff=+1>+<>] <+b>IP<> %s > %s [PROTO:%d]",
+			"[\e^+1\e[34m+\e[m] \e[1mIP \e[10;34m%s\e[m > \e[34m%s\e[m [PROTO:%d]",
 			formatIpString (ipHdr.m_srcAddress), 
 			formatIpString (ipHdr.m_dstAddress),
 			ipHdr.m_protocol

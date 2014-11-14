@@ -53,13 +53,13 @@ bool UdpLogRepresenter.represent (
 			target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
 			target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
 			target.m_lineAttr.m_backColor = log.StdLogColor.Start;
-			target.addHyperText($"Opened socket at <#0000FF>$addressString<>");
+			target.addHyperText($"Opened socket at \e[34m$addressString");
 			break;
 			
 		case UdpRecordCode.Close:
 			target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
 			target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
-			target.addHyperText($"Socket at <#0000FF>$((char const*) p)<> closed");
+			target.addHyperText($"Socket at \e[34m$((char const*) p)\e[m closed");
 			break;
 			
 		case UdpRecordCode.Tx:
@@ -69,7 +69,7 @@ bool UdpLogRepresenter.represent (
 			target.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
 			target.m_lineAttr.m_iconIdx = log.StdLogIcon.Tx;
 			target.m_lineAttr.m_backColor = gui.StdColor.PastelGray;
-			target.addHyperText ($"To <#0000FF>$remoteAddress<>");
+			target.addHyperText ($"To \e[34m$remoteAddress");
 						
 			target.m_lineAttr.m_flags = 0;
 			target.m_lineAttr.m_iconIdx = -1;
@@ -85,7 +85,7 @@ bool UdpLogRepresenter.represent (
 			target.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
 			target.m_lineAttr.m_iconIdx = log.StdLogIcon.Rx;
 			target.m_lineAttr.m_backColor = gui.StdColor.PastelGray;
-			target.addHyperText ($"From <#0000FF>$remoteAddress<>");
+			target.addHyperText ($"From \e[34m$remoteAddress");
 			
 			target.m_lineAttr.m_flags = 0;
 			target.m_lineAttr.m_iconIdx = -1;
@@ -107,12 +107,12 @@ bool UdpLogRepresenter.represent (
 			char const* addressString = (char const*) p;
 			target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 			target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-			target.addHyperText (UdpRecordPartCode.Resolving, $"Resolving <15>$addressString<>...");
+			target.addHyperText (UdpRecordPartCode.Resolving, $"Resolving \e[34m$addressString\e[m...");
 			break;
 			
 		case UdpRecordCode.ResolveCompleted:
 			char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
-			target.addHyperText (UdpRecordPartCode.ResolveCompleted, $"ok (<15>$addressString<>)");
+			target.addHyperText (UdpRecordPartCode.ResolveCompleted, $"ok (\e[34m$addressString\e[m)");
 			break;
 			
 		default:
