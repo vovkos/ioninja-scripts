@@ -21,7 +21,9 @@ enum
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-struct pack (1) XModemBlock
+alignment (1);
+
+struct XModemBlock
 {
 	uchar_t m_code;
 	uchar_t m_blockNumber;

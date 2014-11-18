@@ -116,7 +116,7 @@ struct IcmpHdr
 
 //.............................................................................
 
-fenum TcpFlags: uint8_t
+bitflag enum TcpFlags: uint8_t
 {
 	Fin,
 	Syn,

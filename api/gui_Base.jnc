@@ -11,7 +11,7 @@ namespace gui {
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-fenum ColorFlags
+bitflag enum ColorFlags
 {
 	Transparent  = 0x80000000,
 	Index        = 0x40000000,
@@ -53,7 +53,7 @@ enum StdColor
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-fenum FontFlags
+bitflag enum FontFlags
 {
 	Bold,
 	Italic,
@@ -198,7 +198,7 @@ opaque class StatusBar
 		uint_t timeout = 3000
 		);
 
-	size_t dconst m_paneCount;
+	size_t readonly m_paneCount;
 	StatusPane* indexed const property m_pane (size_t index);
 
 	StatusPane* addPane (

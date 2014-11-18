@@ -9,14 +9,14 @@ namespace doc {
 
 opaque class PluginHost
 {
-	gui.Menu* dconst m_menu;
-	gui.ToolBar* dconst m_toolBar;
-	gui.StatusBar* dconst m_statusBar;
-	gui.PropertyGrid* dconst m_propertyGrid;
-	gui.FileDlg* dconst m_fileDlg;
-	gui.ProgressDlg* dconst m_progressDlg;
-	log.Log* dconst m_log;
-	jnc.Scheduler* dconst m_mainThreadScheduler;
+	gui.Menu* readonly m_menu;
+	gui.ToolBar* readonly m_toolBar;
+	gui.StatusBar* readonly m_statusBar;
+	gui.PropertyGrid* readonly m_propertyGrid;
+	gui.FileDlg* readonly m_fileDlg;
+	gui.ProgressDlg* readonly m_progressDlg;
+	log.Log* readonly m_log;
+	jnc.Scheduler* readonly m_mainThreadScheduler;
 
 	writeLog (
 		uint_t recordCode,

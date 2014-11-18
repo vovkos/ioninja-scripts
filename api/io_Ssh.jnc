@@ -40,7 +40,7 @@ opaque class SshChannel
 	SocketAddress const property m_address;
 	SocketAddress const property m_peerAddress;
 
-	bool dconst m_isOpen;
+	bool readonly m_isOpen;
 	uint_t m_syncId;
 
 	SshChannel* operator new ();

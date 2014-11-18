@@ -30,7 +30,7 @@ enum StdDlgButton
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-fenum StdDlgButtons
+bitflag enum StdDlgButtons
 {
 	Ok,
 	Cancel,
@@ -58,7 +58,7 @@ opaque class FileDlg
 	char const* autoget property m_filter;
 	char const* autoget property m_filePath;
 
-	StdDlgButton dconst m_result;
+	StdDlgButton readonly m_result;
 
 	event m_onCompleted ();
 

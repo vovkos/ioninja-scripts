@@ -7,7 +7,7 @@ namespace io {
 
 //.............................................................................
 
-fenum FileOpenFlags
+bitflag enum FileOpenFlags
 {
 	ReadOnly,
 	OpenExisting,
@@ -67,9 +67,9 @@ struct FileStreamEventParams
 
 opaque class FileStream
 {
-	bool dconst m_isOpen;
+	bool readonly m_isOpen;
 	uint_t m_syncId;
-	FileStreamKind dconst m_kind;
+	FileStreamKind readonly m_kind;
 
 	FileStream* operator new ();
 

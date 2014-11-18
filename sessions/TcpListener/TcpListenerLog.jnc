@@ -15,7 +15,7 @@ enum TcpListenerLogRecordCode
 	ClientRejected,
 }
 
-fenum TcpDisconnectLogRecordFlags
+bitflag enum TcpDisconnectLogRecordFlags
 {
 	Remote,
 	Reset,	

@@ -9,7 +9,7 @@ namespace io {
 
 opaque class NamedPipe
 {
-	bool dconst m_isOpen;
+	bool readonly m_isOpen;
 	uint_t m_syncId;
 
 	NamedPipe* operator new ();

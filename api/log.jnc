@@ -7,14 +7,14 @@ namespace log {
 
 //.............................................................................
 
-fenum RecordCodeFlags
+bitflag enum RecordCodeFlags
 {
 	Foldable          = 0x80000000,
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-fenum PartCodeFlags
+bitflag enum PartCodeFlags
 {
 	MergeableBackward = 0x40000000,
 	MergeableForward  = 0x20000000,
@@ -72,7 +72,7 @@ enum StdLogColor
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-fenum LineAttrFlags
+bitflag enum LineAttrFlags
 {
 	TileIcon,
 	Delimiter,
@@ -93,8 +93,8 @@ struct LineAttr: gui.TextAttr
 
 opaque class RepresenterTarget
 {
-	uint64_t dconst m_timestamp;
-	uint_t dconst m_recordCode;
+	uint64_t readonly m_timestamp;
+	uint_t readonly m_recordCode;
 	LineAttr m_lineAttr;
 
 	void addPart (
@@ -231,7 +231,7 @@ opaque class Log
 {
 	gui.Icon* indexed property m_iconTable (size_t i);
 
-	Writer* dconst m_writer;
+	Writer* readonly m_writer;
 	Representer* autoget property m_representer;
 
 	attachFilter (Filter* filter);

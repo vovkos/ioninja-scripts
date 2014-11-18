@@ -23,7 +23,7 @@ enum TcpConnectionPartCode
 	ConnectCompleted = 1 | log.PartCodeFlags.MergeableBackward,
 }
 
-fenum TcpDisconnectLogRecordFlags
+bitflag enum TcpDisconnectLogRecordFlags
 {
 	Remote,
 	Reset,	

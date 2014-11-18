@@ -36,7 +36,7 @@ enum SerialParity
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-fenum SerialStatusLines
+bitflag enum SerialStatusLines
 {
 	Cts,
 	Dsr,
@@ -79,7 +79,7 @@ opaque class Serial
 	bool autoget property m_dtr;
 	bool autoget property m_rts;
 
-	bool dconst m_isOpen;
+	bool readonly m_isOpen;
 	uint_t m_syncId;
 
 	Serial* operator new ();

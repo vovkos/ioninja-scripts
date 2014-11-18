@@ -20,7 +20,7 @@ enum NetworkAdapterType
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-fenum NetworkAdapterFlags
+bitflag enum NetworkAdapterFlags
 {
 	MediaDisconnected,
 	DhcpEnabled,

@@ -163,7 +163,7 @@ bool SnifferSession.capture () throws
 {
 	stopCapture ();
 
-	object <io.PCapDeviceDesc const*>* data = (object <io.PCapDeviceDesc const*>*) m_deviceCombo.m_currentData;
+	object <io.PCapDeviceDesc const*>* data = dynamic (object <io.PCapDeviceDesc const*>*) m_deviceCombo.m_currentData;
 	io.PCapDeviceDesc const* device = data.m_value;
 
 	m_pcap.open (

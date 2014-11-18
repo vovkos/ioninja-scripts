@@ -9,7 +9,7 @@ namespace doc {
 
 class Plugin
 {
-	PluginHost* dconst m_pluginHost;
+	PluginHost* readonly m_pluginHost;
 
 	construct (PluginHost* host)
 	{

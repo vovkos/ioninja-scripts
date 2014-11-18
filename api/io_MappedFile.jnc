@@ -11,7 +11,7 @@ opaque class MappedFile
 {
 	size_t autoget property m_dynamicViewLimit;
 
-	bool dconst m_isOpen;
+	bool readonly m_isOpen;
 	uint64_t autoget property m_size;
 
 	MappedFile* operator new ();

@@ -1,6 +1,6 @@
 // Use this file to define binary packet templates 
 
-#pack (1)
+alignment (1);
 
 struct Packet
 {

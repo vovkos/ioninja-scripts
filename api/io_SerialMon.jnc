@@ -51,7 +51,7 @@ struct SerialMonEventParams
 
 opaque class SerialMon
 {
-	bool dconst m_isOpen;
+	bool readonly m_isOpen;
 	uint_t m_syncId;
 
 	SerialMon* operator new ();

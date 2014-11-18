@@ -10,8 +10,8 @@ namespace io {
 opaque class PCap
 {
 	char const* autoget property m_filter;
-	bool dconst m_isPromiscious;
-	bool dconst m_isOpen;
+	bool readonly m_isPromiscious;
+	bool readonly m_isOpen;
 	uint_t m_syncId;
 
 	PCap* operator new ();
