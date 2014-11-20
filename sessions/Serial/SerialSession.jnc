@@ -342,8 +342,7 @@ bool SerialSession.open () throws
 	params.m_parity = m_serial.m_parity;
 
 	char const* p = $"$(params; B)$name";
-	size_t size = jnc.getDataPtrSpan (p);
-	m_pluginHost.writeLog (SerialLogRecordCode.PortOpened, p, size);
+	m_pluginHost.writeLog (SerialLogRecordCode.PortOpened, p, dynamic sizeof (*p));
 
 	m_portName = name;
 	m_serialDtr = m_serial.m_dtr;
@@ -499,8 +498,7 @@ SerialSession.onSerialEvent (io.SerialEventParams const* params)
 		
 	case io.SerialEvent.StatusLineChanged:
 		char const* p = $"$(params.m_lines; B)$(params.m_mask; B)";
-		size_t size = jnc.getDataPtrSpan (p);
-		m_pluginHost.writeLog (SerialLogRecordCode.StatusLineChanged, p, size);
+		m_pluginHost.writeLog (SerialLogRecordCode.StatusLineChanged, p, dynamic sizeof (*p));
 		m_serialStatusLines = params.m_lines;
 		break;
 
