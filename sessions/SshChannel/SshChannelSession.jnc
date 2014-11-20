@@ -107,7 +107,7 @@ SshChannelSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
 
-	pluginHost.m_log.m_representer = static new SshChannelLogRepresenter;
+	pluginHost.m_log.m_representer = new SshChannelLogRepresenter;
 
 	m_state = State.Closed;
 	m_channel = new io.SshChannel  ();

@@ -111,7 +111,7 @@ SerialSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
 
-	pluginHost.m_log.m_representer = static new SerialLogRepresenter;
+	pluginHost.m_log.m_representer = new SerialLogRepresenter;
 	pluginHost.m_log.attachFilter (m_logFilter);
 
 	m_state = State.Closed;

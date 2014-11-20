@@ -35,8 +35,9 @@ public:
 PppLayer.construct (doc.PluginHost* pluginHost)
 {
 	basetype1.construct (pluginHost);	
+
+	pluginHost.m_log.m_representer = new PppLogRepresenter;
 	pluginHost.m_log.attachFilter (this);
-	pluginHost.m_log.m_representer = static new PppLogRepresenter;
 	
 	m_state = State.Normal;
 }

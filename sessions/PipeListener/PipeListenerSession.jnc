@@ -94,7 +94,7 @@ PipeListenerSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
 	
-	pluginHost.m_log.m_representer = static new PipeListenerLogRepresenter;
+	pluginHost.m_log.m_representer = new PipeListenerLogRepresenter;
 	
 	m_connectionState = State.Closed;
 	m_listenerState = State.Closed;

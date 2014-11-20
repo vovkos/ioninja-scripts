@@ -84,7 +84,7 @@ SnifferSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
 
-	pluginHost.m_log.m_representer = static new SnifferLogRepresenter;
+	pluginHost.m_log.m_representer = new SnifferLogRepresenter;
 
 	m_state = State.Closed;
 	m_pcap = new io.PCap ();
@@ -216,7 +216,7 @@ void SnifferSession.save (doc.Storage* storage)
 
 void SnifferSession.updateProperties ()
 {
-	object <io.PCapDeviceDesc const*>* data = (object <io.PCapDeviceDesc const*>*) m_deviceCombo.m_currentData;
+	object <io.PCapDeviceDesc const*>* data = dynamic (object <io.PCapDeviceDesc const*>*) m_deviceCombo.m_currentData;
 	io.PCapDeviceDesc const* device = data.m_value;
 	
 	m_deviceProp.m_value = device.m_name;

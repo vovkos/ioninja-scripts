@@ -104,7 +104,7 @@ UdpSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct(pluginHost);
 
-	pluginHost.m_log.m_representer = static new UdpLogRepresenter;
+	pluginHost.m_log.m_representer = new UdpLogRepresenter;
 
 	m_state = State.Closed;
 	m_socket = new io.Socket ();

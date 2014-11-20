@@ -76,7 +76,7 @@ protected:
 SerialMonSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
-	pluginHost.m_log.m_representer = static new SerialMonLogRepresenter;
+	pluginHost.m_log.m_representer = new SerialMonLogRepresenter;
 
 	m_state = State.Closed;
 	m_serialMon = new io.SerialMon ();
