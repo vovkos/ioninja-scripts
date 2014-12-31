@@ -364,11 +364,11 @@ bool SshChannelSession.applyProperties () throws
 
 void SshChannelSession.restoreDefaultProperties ()
 {
-	m_addressProp.m_value = "ls0.tibbo.net:22";
-	m_userNameProp.m_value = "vovkos";
+	m_addressProp.m_value = "sdf.org:22";
+	m_userNameProp.m_value = "new";
 	m_channelTypeProp.m_value = "session";
 	m_processTypeProp.m_value = "shell";
-	m_ptyTypeProp.m_value = "ansi";
+	m_ptyTypeProp.m_value = "xterm";
 	m_closeKindProp.m_value = io.SocketCloseKind.Graceful;
 	m_isNagleEnabledProp.m_value = true;
 	m_useLocalAddressProp.m_value = false;
