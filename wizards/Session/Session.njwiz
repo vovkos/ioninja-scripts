@@ -4,9 +4,24 @@
 //
 
 [wizard]
-defaultPluginName        = "My Session"
-defaultPluginDescription = "A session created by Session Wizard"
-defaultPluginId          = my-session
+name        = "Transport Session"
+description = "Generates a complete session plugin"
+icon        = images/plugin-16x16.png
+
+[variable]
+id          = pluginName
+name        = "Session Name"
+value       = "My Session"
+
+[variable]
+id          = pluginDescription
+name        = "Session Description"
+value       = "Wizard-generated transport session"
+
+[variable]
+id          = pluginId
+name        = "Session ID"
+value       = my-session
 
 [variable]
 id          = pluginPrefix

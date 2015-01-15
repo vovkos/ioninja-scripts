@@ -4,9 +4,24 @@
 //
 
 [wizard]
-defaultPluginName        = "My Answering Machine"
-defaultPluginDescription = "A layer created by Answering Machine Wizard"
-defaultPluginId          = my-answering-machine
+name        = "Answering Machine"
+description = "Generates a plugin which listens for commands and sends replies back"
+icon        = images/plugin-16x16.png
+
+[variable]
+id          = pluginName
+name        = "Layer Name"
+value       = "My Answering Machine"
+
+[variable]
+id          = pluginDescription
+name        = "Layer Description"
+value       = "Wizard-generated layer (listens for commands and sends replies back)"
+
+[variable]
+id          = pluginId
+name        = "Layer ID"
+value       = my-answering-machine
 
 [variable]
 id          = layerClass

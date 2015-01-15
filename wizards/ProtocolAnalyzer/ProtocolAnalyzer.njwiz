@@ -4,9 +4,24 @@
 //
 
 [wizard]
-defaultPluginName        = "My Protocol Analyzer"
-defaultPluginDescription = "A layer created by Protocol Analyzer Wizard"
-defaultPluginId          = my-proto-analyzer
+name        = "Protocol Analyzer"
+description = "Generates a plugin which analyzes a log and generates a secondary log with decoded records"
+icon        = images/plugin-16x16.png
+
+[variable]
+id          = pluginName
+name        = "Layer Name"
+value       = "My Protocol Analyzer"
+
+[variable]
+id          = pluginDescription
+name        = "Layer Description"
+value       = "Wizard-generated layer (analyzes a log and generates a secondary log with decoded records)"
+
+[variable]
+id          = pluginId
+name        = "Layer ID"
+value       = my-proto-analyzer
 
 [variable]
 id          = pluginPrefix
