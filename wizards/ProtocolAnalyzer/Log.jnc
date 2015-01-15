@@ -1,0 +1,74 @@
+//.............................................................................
+//
+// Ppp log packet declarations and representer
+//
+
+//.............................................................................
+
+enum $(logRecordCodeEnum)
+{
+	Open,
+	Close,
+	Connect,
+	Disconnect,
+}
+
+//.............................................................................
+
+class $logRepresenterClass: log.Representer
+{
+	override bool represent (
+		log.RepresenterTarget* target,
+		uint_t recordCode,
+		void const* p,
+		size_t size,
+		uint_t foldFlags
+		);
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+bool $logRepresenterClass.represent (
+	log.RepresenterTarget* target,
+	uint_t recordCode,
+	void const* p,
+	size_t size,
+	uint_t foldFlags
+	)
+{
+	printf ("$logRepresenterClass.represent ()\n");
+
+	switch (recordCode)
+	{
+	case $logRecordCodeEnum.Open:
+		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = StdLogColor.Info;
+		target.addHyperText ("Open in-band command");
+		break;
+
+	case $logRecordCodeEnum.Close:
+		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = StdLogColor.Info;
+		target.addHyperText ("Close in-band command");
+		break;
+
+	case $logRecordCodeEnum.Connect:
+		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = StdLogColor.Info;
+		target.addHyperText ("Connect in-band command");
+		break;
+
+	case $logRecordCodeEnum.Disconnect:
+		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = StdLogColor.Info;
+		target.addHyperText ("Disconnect in-band command");
+		break;
+
+	default:
+		return false;
+	}
+
+	return true;
+}
+
+//.............................................................................

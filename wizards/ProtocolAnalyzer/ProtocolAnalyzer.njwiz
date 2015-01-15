@@ -1,0 +1,65 @@
+//.............................................................................
+//
+//  IO Ninja IDE Wizard -- Protocol Analyzer layer 
+//
+
+[wizard]
+defaultPluginName        = "My Protocol Analyzer"
+defaultPluginDescription = "A layer created by Protocol Analyzer Wizard"
+defaultPluginId          = my-proto-analyzer
+
+[variable]
+id          = pluginPrefix
+name        = "Layer Prefix"
+value       = MyProto
+
+[variable]
+id          = layerClass
+name        = "Layer Class"
+readOnly    = true
+value       = $(pluginPrefix)Layer
+rebuildOn   = pluginPrefix
+
+[variable]
+id          = layerFile
+name        = "Layer File"
+readOnly    = true
+value       = $(pluginPrefix)Layer.jnc
+rebuildOn   = pluginPrefix
+
+[variable]
+id          = logRecordCodeEnum
+name        = "Log Record Enum"
+readOnly    = true
+value       = $(pluginPrefix)LogRecord
+rebuildOn   = pluginPrefix
+
+[variable]
+id          = logRepresenterClass
+name        = "Log Representer Class"
+readOnly    = true
+value       = $(pluginPrefix)LogRepresenter
+rebuildOn   = pluginPrefix
+
+[variable]
+id          = logFile
+name        = "Log File"
+readOnly    = true
+value       = $(pluginPrefix)Log.jnc
+rebuildOn   = pluginPrefix
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+[file]
+source = Layer.jnc.in
+target = $projectDir/$layerFile
+interpolate = true
+
+[file]
+source = Log.jnc.in
+target = $projectDir/$logFile
+interpolate = true
+
+[file]
+source = images/*
+target = $projectDir/images/

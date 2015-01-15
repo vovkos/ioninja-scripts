@@ -1,0 +1,65 @@
+//.............................................................................
+//
+//  IO Ninja IDE Wizard -- Transport Session
+//
+
+[wizard]
+defaultPluginName        = "My Session"
+defaultPluginDescription = "A session created by Session Wizard"
+defaultPluginId          = my-session
+
+[variable]
+id          = pluginPrefix
+name        = "Session Prefix"
+value       = My
+
+[variable]
+id          = sessionClass
+name        = "Session Class"
+readOnly    = true
+value       = $(pluginPrefix)Session
+rebuildOn   = pluginPrefix
+
+[variable]
+id          = sessionFile
+name        = "Session File"
+readOnly    = true
+value       = $(pluginPrefix)Session.jnc
+rebuildOn   = pluginPrefix
+
+[variable]
+id          = logRecordCodeEnum
+name        = "Log Record Enum"
+readOnly    = true
+value       = $(pluginPrefix)LogRecord
+rebuildOn   = pluginPrefix
+
+[variable]
+id          = logRepresenterClass
+name        = "Log Representer Class"
+readOnly    = true
+value       = $(pluginPrefix)LogRepresenter
+rebuildOn   = pluginPrefix
+
+[variable]
+id          = logFile
+name        = "Log File"
+readOnly    = true
+value       = $(pluginPrefix)Log.jnc
+rebuildOn   = pluginPrefix
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+[file]
+source = Session.jnc.in
+target = $projectDir/$sessionFile
+interpolate = true
+
+[file]
+source = Log.jnc.in
+target = $projectDir/$logFile
+interpolate = true
+
+[file]
+source = images/*
+target = $projectDir/images/

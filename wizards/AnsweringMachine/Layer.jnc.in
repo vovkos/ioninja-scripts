@@ -1,0 +1,40 @@
+//.............................................................................
+//
+// $pluginName layer
+//
+
+//.............................................................................
+
+class $layerClass: doc.Layer
+{
+	construct (doc.PluginHost* pluginHost);
+
+protected:
+	onLogRecord (
+		uint64_t timestamp,
+		uint_t recordCode,
+		void const* p,
+		size_t size
+		);
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+$layerClass.construct (doc.PluginHost* pluginHost)
+{
+	basetype.construct (pluginHost);
+	pluginHost.m_log.attachListener (onLogRecord @ pluginHost.m_mainThreadScheduler);
+}
+
+$layerClass.onLogRecord (
+	uint64_t timestamp,
+	uint_t recordCode,
+	void const* p,
+	size_t size
+	)
+{
+	if (recordCode == log.StdRecordCode.Rx)
+		try transmit (p, size);
+}
+
+//.............................................................................

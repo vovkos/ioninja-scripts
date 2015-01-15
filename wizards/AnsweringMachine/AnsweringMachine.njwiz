@@ -1,0 +1,32 @@
+//.............................................................................
+//
+//  IO Ninja IDE Wizard -- Answering Machine layer 
+//
+
+[wizard]
+defaultPluginName        = "My Answering Machine"
+defaultPluginDescription = "A layer created by Answering Machine Wizard"
+defaultPluginId          = my-answering-machine
+
+[variable]
+id          = layerClass
+name        = "Layer Class"
+value       = MyAnsweringMachineLayer
+
+[variable]
+id          = layerFile
+name        = "Layer File"
+readOnly    = true
+value       = $layerClass.jnc
+rebuildOn   = layerClass
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+[file]
+source = Layer.jnc.in
+target = $projectDir/$layerFile
+interpolate = true
+
+[file]
+source = images/*
+target = $projectDir/images/
