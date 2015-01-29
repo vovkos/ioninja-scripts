@@ -66,15 +66,20 @@ rebuildOn   = pluginPrefix
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 [file]
+source = Session.njplg.in
+target = $(projectName).njplg
+interpolate = true
+
+[file]
 source = Session.jnc.in
-target = $projectDir/$sessionFile
+target = $(sessionFile)
 interpolate = true
 
 [file]
 source = Log.jnc.in
-target = $projectDir/$logFile
+target = $(logFile)
 interpolate = true
 
 [file]
-source = images/*
-target = $projectDir/images/
+source = images
+target = images

@@ -37,7 +37,7 @@ struct TcpDisconnectLogRecordParams
 
 //.............................................................................
 
-class TcpConnectionLogRepresenter: log.Representer
+class $(logRepresenterClass): log.Representer
 {
 	override bool represent (
 		log.RepresenterTarget* target,
@@ -50,7 +50,7 @@ class TcpConnectionLogRepresenter: log.Representer
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-bool TcpConnectionLogRepresenter.represent (
+bool $(logRepresenterClass).represent (
 	log.RepresenterTarget* target,
 	uint_t recordCode,
 	void const* p,

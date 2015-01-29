@@ -1,11 +1,11 @@
 //.............................................................................
 //
-// TCP Connection session
+// $(pluginName)
 //
 
 //.............................................................................
 
-class TcpConnectionSession: doc.Session
+class $(sessionClass): doc.Session
 {
 protected:
 	enum State
@@ -102,11 +102,11 @@ protected:
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-TcpConnectionSession.construct (doc.PluginHost* pluginHost)
+$(sessionClass).construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
 
-	pluginHost.m_log.m_representer = new TcpConnectionLogRepresenter;
+	pluginHost.m_log.m_representer = new $(logRepresenterClass);
 
 	m_state = State.Closed;
 	m_socket = new io.Socket ();
@@ -117,10 +117,12 @@ TcpConnectionSession.construct (doc.PluginHost* pluginHost)
 	createUi ();
 }
 
-TcpConnectionSession.createUi ()
+$(sessionClass).createUi ()
 {
 	// toolbar
 
+	char const* s = $"this is $(sessionClass)";
+	
 	m_pluginHost.m_toolBar.addLabel ("Address: ");
 	m_addressCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_addressCombo.m_isEditable = true;
@@ -173,7 +175,7 @@ TcpConnectionSession.createUi ()
 	m_uiReactor.start ();
 }
 
-TcpConnectionSession.onConnect ()
+$(sessionClass).onConnect ()
 {
 	if (m_state)
 		disconnect ();
@@ -181,7 +183,7 @@ TcpConnectionSession.onConnect ()
 		try	connect ();
 }
 
-bool TcpConnectionSession.connect () throws
+bool $(sessionClass).connect () throws
 {
 	disconnect ();
 
@@ -210,7 +212,7 @@ catch:
 	return false;
 }
 
-bool TcpConnectionSession.connect (io.SocketAddress const* remoteAddress) throws
+bool $(sessionClass).connect (io.SocketAddress const* remoteAddress) throws
 {
 	io.SocketAddress localAddress;
 
@@ -256,7 +258,7 @@ catch:
 	return false;
 }
 
-TcpConnectionSession.handleConnectError (jnc.Error const* error)
+$(sessionClass).handleConnectError (jnc.Error const* error)
 {
 	m_pluginHost.writeLog (
 		TcpConnectionLogRecordCode.ConnectError,
@@ -268,7 +270,7 @@ TcpConnectionSession.handleConnectError (jnc.Error const* error)
 	m_state = State.Closed;
 }
 
-TcpConnectionSession.disconnect ()
+$(sessionClass).disconnect ()
 {
 	switch (m_state)
 	{
@@ -300,7 +302,7 @@ TcpConnectionSession.disconnect ()
 	m_state = State.Closed;
 }
 
-void TcpConnectionSession.load (doc.Storage* storage)
+void $(sessionClass).load (doc.Storage* storage)
 {
 	m_addressCombo.m_editText = storage.readString ("address");
 	m_closeKindProp.m_value = storage.readInt ("closeKindProp");
@@ -310,7 +312,7 @@ void TcpConnectionSession.load (doc.Storage* storage)
 	m_localPortProp.m_value = storage.readInt ("localPort");
 }
 
-void TcpConnectionSession.save (doc.Storage* storage)
+void $(sessionClass).save (doc.Storage* storage)
 {
 	storage.writeString ("address", m_addressCombo.m_editText);
 	storage.writeInt ("closeKindProp", m_closeKindProp.m_value);
@@ -320,12 +322,12 @@ void TcpConnectionSession.save (doc.Storage* storage)
 	storage.writeInt ("localPort", m_localPortProp.m_value);
 }
 
-void TcpConnectionSession.updateProperties ()
+void $(sessionClass).updateProperties ()
 {
 	m_addressProp.m_value = m_addressCombo.m_editText;
 }
 
-bool TcpConnectionSession.applyProperties () throws
+bool $(sessionClass).applyProperties () throws
 {
 	m_addressCombo.m_editText = m_addressProp.m_value;
 	
@@ -338,7 +340,7 @@ bool TcpConnectionSession.applyProperties () throws
 	return true;
 }
 
-void TcpConnectionSession.restoreDefaultProperties ()
+void $(sessionClass).restoreDefaultProperties ()
 {
 	m_addressProp.m_value = "tibbo.com:80";
 	m_closeKindProp.m_value = io.SocketCloseKind.Graceful;
@@ -348,7 +350,7 @@ void TcpConnectionSession.restoreDefaultProperties ()
 	m_localPortProp.m_value = 0;
 }
 
-size_t TcpConnectionSession.transmit (
+size_t $(sessionClass).transmit (
 	void const* p,
 	size_t size
 	) throws
@@ -363,7 +365,7 @@ size_t TcpConnectionSession.transmit (
 	return result;
 }
 
-TcpConnectionSession.onSocketEvent (io.SocketEventParams const* params)
+$(sessionClass).onSocketEvent (io.SocketEventParams const* params)
 {
 	if (params.m_syncId != m_socket.m_syncId)
 		return;
@@ -406,7 +408,7 @@ TcpConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 	}
 }
 
-TcpConnectionSession.onResolverEvent (io.SocketAddressResolverEventParams const* params)
+$(sessionClass).onResolverEvent (io.SocketAddressResolverEventParams const* params)
 {
 	if (params.m_syncId != m_socket.m_syncId)
 		return;
@@ -429,7 +431,7 @@ TcpConnectionSession.onResolverEvent (io.SocketAddressResolverEventParams const*
 	}
 }
 
-reactor TcpConnectionSession.m_uiReactor ()
+reactor $(sessionClass).m_uiReactor ()
 {
 	m_title = $"TCP $(m_addressCombo.m_editText)";
 	m_isTransmitEnabled = m_state == State.Connected;

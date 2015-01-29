@@ -1,23 +1,23 @@
 //.............................................................................
 //
-// TCP Connection session plugin
+// $(pluginName) plugin
 //
 
 [plugin]
 
-name        = TCP Connection Socket
-description = "Establishes connection over TCP socket"
-id          = tcp
-group       = clients
-guid        = db8c8923-a699-46cc-be7c-f0bcd523082b
-icon        = images/tcp.png
-small-icon  = images/tcp-16x16.png
+name        = $(pluginName)
+description = $(pluginDescription)
+id          = $(pluginId)
+group       = other
+guid        = $(guid)
+icon        = images/plugin.png
+small-icon  = images/plugin-16x16.png
 
-session-class         = TcpConnectionSession
-log-representer-class = TcpConnectionLogRepresenter
+session-class         = $(sessionClass)
+log-representer-class = $(logRepresenterClass)
 
 [scripts]
 
-TcpConnectionSession.jnc
-TcpConnectionLog.jnc
+$(sessionFile)
+$(logFile)
 

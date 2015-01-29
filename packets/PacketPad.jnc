@@ -1,8 +1,8 @@
-// Use this file to define binary packet templates 
+// Use this file to quickly add your packet templates 
 
 alignment (1);
 
-struct Packet
+struct MyPacket
 {
 	int8 m_field1;
 	int16 m_field2;
