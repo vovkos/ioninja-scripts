@@ -14,8 +14,8 @@ icon        = images/serialmon.png
 small-icon  = images/serialmon-16x16.png
 monitor     = true
 
-session-class         = SerialMonSession
-log-representer-class = SerialMonLogRepresenter
+session-class        = SerialMonSession
+log-representer-func = representSerialMonLog
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 

@@ -3,196 +3,46 @@
 // Packet header definitions for TCP/IP protocol stack
 //
 
-//.............................................................................
-
-namespace impl {
-
-enum EthernetType: uint16_t
-{
-	Ip  = 0x0008,
-	Arp = 0x0608,
-	Ip6 = 0xdd86,
-}
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-struct EthernetHdr
-{
-	uint8_t m_dstAddress [6];
-	uint8_t m_srcAddress [6];
-	EthernetType m_type;
-}
+import "io_Packet.jnc"
 
 //.............................................................................
-
-struct ArpHdr
-{
-	uint16_t m_hardwareType;
-	uint16_t m_protocolType;
-	uint8_t m_hardwareLength;
-	uint8_t m_protocolLength;
-	uint16_t m_operation;
-}
-
-//.............................................................................
-
-enum IpProtocol: uint8_t
-{
-	Icmp = 1,
-	Tcp  = 6,
-	Udp  = 17,
-}
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-struct IpHdr
-{
-	uint8_t m_headerLength: 4;
-	uint8_t m_version: 4;
-	uint8_t m_typeOfService;
-	bigendian uint16_t m_totalLength;
-	uint16_t m_identification;
-	uint16_t m_flags;
-	uint8_t m_timeToLive;
-	IpProtocol m_protocol;
-	bigendian uint16_t m_headerChecksum;
-	uint32_t m_srcAddress;
-	uint32_t m_dstAddress;
-}
-
-struct Ip6Hdr
-{
-	uint32_t m_flowLabel: 20;
-	uint32_t m_trafficClass: 8;
-	uint32_t m_version: 4;
-	bigendian uint16_t m_payloadLength;
-	uint8_t m_nextHeader;
-	uint8_t m_hopLimit;
-	uint16_t m_srcAddress [8];
-	uint16_t m_dstAddress [8];
-}
-
-struct IpPseudoHdr
-{
-	uint32_t m_srcAddress;
-	uint32_t m_dstAddress;
-	uint8_t m_zero;
-	uint8_t m_protocol;
-	uint16_t m_length;
-}
-
-//.............................................................................
-
-enum IcmpType: uint8_t
-{
-	EchoReply               = 0,
-	DestinationUnreachable  = 3,
-	SourceQuench            = 4,
-	Redirect                = 5,
-	Echo                    = 8,
-	RouterAdvertisement     = 9,
-	RouterSelection         = 10,
-	TimeExceeded            = 11,
-	ParameterProblem        = 12,
-	TimestampRequest        = 13,
-	TimestampReply          = 14,
-	InformationRequest      = 15,
-	InformationReply        = 16,
-	AddressMaskRequest      = 17,
-	AddressMaskReply        = 18,
-	TraceRoute              = 30,
-}
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-struct IcmpHdr
-{
-	IcmpType m_type;
-	uint8_t m_code; 
-	bigendian uint16_t m_checksum;
-	bigendian uint16_t m_id;
-	bigendian uint16_t m_seqNumber;
-}
-
-//.............................................................................
-
-bitflag enum TcpFlags: uint8_t
-{
-	Fin,
-	Syn,
-	Rst,
-	Psh,
-	Ack,
-	Urg,
-	Bog,
-}
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-struct TcpHdr
-{
-	bigendian uint16_t m_srcPort;
-	bigendian uint16_t m_dstPort;
-	bigendian uint32_t m_seqNumber;
-	bigendian uint32_t m_ackNumber;
-	uint8_t m_reserved: 4;
-	uint8_t m_dataOffset: 4;
-	TcpFlags m_flags;
-	bigendian uint16_t m_window;
-	bigendian uint16_t m_checksum;
-	bigendian uint16_t m_urgentData;
-}
-
-//.............................................................................
- 
-struct UdpHdr
-{
-	bigendian uint16_t m_srcPort;
-	bigendian uint16_t m_dstPort;
-	bigendian uint16_t m_length;
-	bigendian uint16_t m_checksum;
-}
-
-//.............................................................................
-
-} // namespace impl {
 
 struct EthernetFrame
 {
-	impl.EthernetHdr m_ethernet;
+	io.EthernetHdr m_ethernet;
 }
 
 struct ArpFrame
 {
-	impl.EthernetHdr m_ethernet;
-	impl.ArpHdr m_arp;
+	io.EthernetHdr m_ethernet;
+	io.ArpHdr m_arp;
 }
 
 struct IpFrame
 {
-	impl.EthernetHdr m_ethernet;
-	impl.IpHdr m_ip;
+	io.EthernetHdr m_ethernet;
+	io.IpHdr m_ip;
 }
 
 struct IcmpFrame
 {
-	impl.EthernetHdr m_ethernet;
-	impl.IpHdr m_ip;
-	impl.IcmpHdr m_icmp;
+	io.EthernetHdr m_ethernet;
+	io.IpHdr m_ip;
+	io.IcmpHdr m_icmp;
 }
 
 struct TcpFrame
 {
-	impl.EthernetHdr m_ethernet;
-	impl.IpHdr m_ip;
-	impl.TcpHdr m_tcp;
+	io.EthernetHdr m_ethernet;
+	io.IpHdr m_ip;
+	io.TcpHdr m_tcp;
 }
 
 struct UdpFrame
 {
-	impl.EthernetHdr m_ethernet;
-	impl.IpHdr m_ip;
-	impl.UdpHdr m_udp;
+	io.EthernetHdr m_ethernet;
+	io.IpHdr m_ip;
+	io.UdpHdr m_udp;
 }
 
 //.............................................................................

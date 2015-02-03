@@ -3,6 +3,9 @@
 // Serial session
 //
 
+import "doc_Plugin.jnc"
+import "io_SerialMon.jnc"
+
 //.............................................................................
 
 class SerialMonSession: doc.Session
@@ -76,7 +79,7 @@ protected:
 SerialMonSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
-	pluginHost.m_log.m_representer = new SerialMonLogRepresenter;
+	pluginHost.m_log.m_representerFunc = representSerialMonLog;
 
 	m_state = State.Closed;
 	m_serialMon = new io.SerialMon ();
@@ -106,7 +109,7 @@ SerialMonSession.createUi ()
 	m_iconTable [IconId.Capture] = new gui.Icon ("images/capture.png");
 	m_iconTable [IconId.StopCapture] = new gui.Icon ("images/pause.png");
 
-	m_actionTable [ActionId.Capture]  = m_pluginHost.createAction ("Capture", m_iconTable [IconId.Capture]);
+	m_actionTable [ActionId.Capture]  = createAction ("Capture", m_iconTable [IconId.Capture]);
 	m_actionTable [ActionId.Capture].m_onTriggered += onCapture;
 
 	// status bar
@@ -115,7 +118,7 @@ SerialMonSession.createUi ()
 
 	// property grid	
 
-	m_portNameProp = m_pluginHost.createStringProperty (
+	m_portNameProp = m_pluginHost.m_propertyGrid.createStringProperty (
 		"Port name",
 		"Specify serial port name to use"
 		);
@@ -138,7 +141,7 @@ bool SerialMonSession.capture () throws
 	char const* name = m_portNameCombo.m_currentText;
 
 	m_serialMon.capture (name);
-	m_pluginHost.writeLog (SerialMonLogRecordCode.CaptureStarted, name, strlen (name));
+	writeLog (SerialMonLogRecordCode.CaptureStarted, name, strlen (name));
 
 	m_portName = name;
 	m_state = State.Opened;
@@ -148,7 +151,7 @@ catch:
 	m_serialMon.close ();
 
 	jnc.Error const* error = jnc.getLastError ();
-	m_pluginHost.writeLog (
+	writeLog (
 		SerialMonLogRecordCode.CaptureError,
 		error,
 		error.m_size
@@ -161,7 +164,7 @@ SerialMonSession.stopCapture ()
 	if (m_state != State.Opened)
 		return;
 
-	m_pluginHost.writeLog (
+	writeLog (
 		SerialMonLogRecordCode.CaptureStopped,
 		m_portName,
 		strlen (m_portName) + 1
@@ -208,53 +211,53 @@ SerialMonSession.onReadyRead (uint_t syncId)
 	switch (params.m_eventKind)
 	{
 	case io.SerialMonEvent.DeviceOpened:
-		m_pluginHost.writeLog (SerialMonLogRecordCode.DeviceOpened);
+		writeLog (SerialMonLogRecordCode.DeviceOpened);
 		break;	
 
 	case io.SerialMonEvent.DeviceClosed:		
-		m_pluginHost.writeLog (SerialMonLogRecordCode.DeviceClosed);
+		writeLog (SerialMonLogRecordCode.DeviceClosed);
 		break;
 		
 	case io.SerialMonEvent.RxData:
-		m_pluginHost.writeLog (log.StdRecordCode.Rx, params.m_data, params.m_dataSize);
+		writeLog (log.StdRecordCode.Rx, params.m_data, params.m_dataSize);
 		break;
 
 	case io.SerialMonEvent.TxData:
-		m_pluginHost.writeLog (log.StdRecordCode.Tx, params.m_data, params.m_dataSize);
+		writeLog (log.StdRecordCode.Tx, params.m_data, params.m_dataSize);
 		break;
 
 	case io.SerialMonEvent.BaudRateChanged:
-		m_pluginHost.writeLog (SerialLogRecordCode.BaudRateChanged, &params.m_baudRate, sizeof (params.m_baudRate));
+		writeLog (SerialLogRecordCode.BaudRateChanged, &params.m_baudRate, sizeof (params.m_baudRate));
 		break;
 
 	case io.SerialMonEvent.FlowControlChanged:
-		m_pluginHost.writeLog (SerialLogRecordCode.FlowControlChanged, &params.m_flowControl, sizeof (params.m_flowControl));
+		writeLog (SerialLogRecordCode.FlowControlChanged, &params.m_flowControl, sizeof (params.m_flowControl));
 		break;
 
 	case io.SerialMonEvent.DataBitsChanged:
-		m_pluginHost.writeLog (SerialLogRecordCode.DataBitsChanged, &params.m_dataBits, sizeof (params.m_dataBits));
+		writeLog (SerialLogRecordCode.DataBitsChanged, &params.m_dataBits, sizeof (params.m_dataBits));
 		break;
 
 	case io.SerialMonEvent.StopBitsChanged:
-		m_pluginHost.writeLog (SerialLogRecordCode.StopBitsChanged, &params.m_stopBits, sizeof (params.m_stopBits));
+		writeLog (SerialLogRecordCode.StopBitsChanged, &params.m_stopBits, sizeof (params.m_stopBits));
 		break;
 
 	case io.SerialMonEvent.ParityChanged:
-		m_pluginHost.writeLog (SerialLogRecordCode.ParityChanged, &params.m_parity, sizeof (params.m_parity));
+		writeLog (SerialLogRecordCode.ParityChanged, &params.m_parity, sizeof (params.m_parity));
 		break;
 
 	case io.SerialMonEvent.StatusLineChanged:
 		uint_t mask = -1;
 		char const* p = $"$(params.m_statusLines; B)$(mask; B)";
-		m_pluginHost.writeLog (SerialLogRecordCode.StatusLineChanged, p, dynamic sizeof (*p));
+		writeLog (SerialLogRecordCode.StatusLineChanged, p, dynamic sizeof (*p));
 		break;
 
 	case io.SerialMonEvent.DtrChanged:
-		m_pluginHost.writeLog (SerialLogRecordCode.DtrChanged, &params.m_dtr, sizeof (params.m_dtr));
+		writeLog (SerialLogRecordCode.DtrChanged, &params.m_dtr, sizeof (params.m_dtr));
 		break;
 
 	case io.SerialMonEvent.RtsChanged:
-		m_pluginHost.writeLog (SerialLogRecordCode.RtsChanged, &params.m_rts, sizeof (params.m_rts));
+		writeLog (SerialLogRecordCode.RtsChanged, &params.m_rts, sizeof (params.m_rts));
 		break;
 	} 
 }

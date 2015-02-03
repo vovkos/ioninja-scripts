@@ -3,6 +3,9 @@
 // Sniffer session
 //
 
+import "doc_Plugin.jnc"
+import "io_PCap.jnc"
+
 //.............................................................................
 
 class SnifferSession: doc.Session
@@ -84,7 +87,7 @@ SnifferSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
 
-	pluginHost.m_log.m_representer = new SnifferLogRepresenter;
+	pluginHost.m_log.m_representerFunc = representSnifferLog;
 
 	m_state = State.Closed;
 	m_pcap = new io.PCap ();
@@ -119,7 +122,7 @@ SnifferSession.createUi ()
 	m_iconTable [IconId.Capture] = new gui.Icon ("images/capture.png");
 	m_iconTable [IconId.StopCapture] = new gui.Icon ("images/pause.png");
 
-	m_actionTable [ActionId.Capture] = m_pluginHost.createAction ("Capture", m_iconTable [IconId.Capture]);
+	m_actionTable [ActionId.Capture] = createAction ("Capture", m_iconTable [IconId.Capture]);
 	m_actionTable [ActionId.Capture].m_onTriggered += onCapture;
 
 	// status bar
@@ -128,22 +131,22 @@ SnifferSession.createUi ()
 
 	// property grid
 
-	m_deviceProp = m_pluginHost.createStringProperty (
+	m_deviceProp = m_pluginHost.m_propertyGrid.createStringProperty (
 		"Device",
 		"Specify the device to capture on"
 		);
 
-	m_promisciousProp = m_pluginHost.createBoolProperty (
+	m_promisciousProp = m_pluginHost.m_propertyGrid.createBoolProperty (
 		"Promiscious Mode",
 		"Put the capturing interface into promiscious mode"
 		);
 
-	m_captureFilterProp = m_pluginHost.createStringProperty (
+	m_captureFilterProp = m_pluginHost.m_propertyGrid.createStringProperty (
 		"Capture Filter",
 		"Capture only the packets which have passed this primary filter"
 		);
 
-	m_displayFilterProp = m_pluginHost.createStringProperty (
+	m_displayFilterProp = m_pluginHost.m_propertyGrid.createStringProperty (
 		"Display Filter",
 		"Apply the secondary filter to captured packets"
 		);
@@ -172,13 +175,13 @@ bool SnifferSession.capture () throws
 		m_promisciousProp.m_value
 		);
 
-	m_pluginHost.writeLog (SnifferLogRecordCode.CaptureStarted);
+	writeLog (SnifferLogRecordCode.CaptureStarted);
 	m_state = State.Opened;
 	return true;
 
 catch:
 	jnc.Error const* error = jnc.getLastError ();
-	m_pluginHost.writeLog (
+	writeLog (
 		SnifferLogRecordCode.CaptureError,
 		error,
 		error.m_size
@@ -193,7 +196,7 @@ SnifferSession.stopCapture ()
 	if (m_state != State.Opened)
 		return;
 
-	m_pluginHost.writeLog (SnifferLogRecordCode.CaptureStopped);
+	writeLog (SnifferLogRecordCode.CaptureStopped);
 	m_pcap.close ();
 	m_state = State.Closed;
 }
@@ -250,7 +253,7 @@ size_t SnifferSession.transmit (
 
 	size_t result = try m_pcap.write (p, size);
 	if (result != -1)
-		m_pluginHost.writeLog (SnifferLogRecordCode.InjectedPacket, p, result);
+		writeLog (SnifferLogRecordCode.InjectedPacket, p, result);
 
 	return result;
 }
@@ -263,7 +266,7 @@ SnifferSession.onReadyRead (uint_t syncId)
 	heap char buffer [512];
 	size_t result = try m_pcap.read (buffer, sizeof (buffer));
 	if (result != -1)
-		m_pluginHost.writeLog (SnifferLogRecordCode.Packet, buffer, result);
+		writeLog (SnifferLogRecordCode.Packet, buffer, result);
 }
 
 reactor SnifferSession.m_uiReactor ()

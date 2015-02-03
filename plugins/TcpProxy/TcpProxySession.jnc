@@ -3,6 +3,10 @@
 // TCP Proxy session
 //
 
+import "doc_Plugin.jnc"
+import "io_Socket.jnc"
+import "io_NetworkAdapter.jnc"
+
 //.............................................................................
 
 class TcpProxySession: doc.Session
@@ -143,7 +147,7 @@ TcpProxySession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
 
-	pluginHost.m_log.m_representer = new TcpProxyLogRepresenter;
+	pluginHost.m_log.m_representerFunc = representTcpProxyLog;
 		
 	// listener
 	
@@ -189,10 +193,10 @@ TcpProxySession.createUi ()
 	m_iconTable [IconId.StopListen] = new gui.Icon ("images/pause.png");
 	m_iconTable [IconId.Disconnect] = new gui.Icon ("images/disconnect.png");
 	
-	m_actionTable [ActionId.Listen] = m_pluginHost.createAction ("Listen", m_iconTable [IconId.Listen]);
+	m_actionTable [ActionId.Listen] = createAction ("Listen", m_iconTable [IconId.Listen]);
 	m_actionTable [ActionId.Listen].m_onTriggered += onListen;
 
-	m_actionTable [ActionId.Disconnect] = m_pluginHost.createAction ("Disconnect", m_iconTable [IconId.Disconnect]);
+	m_actionTable [ActionId.Disconnect] = createAction ("Disconnect", m_iconTable [IconId.Disconnect]);
 	m_actionTable [ActionId.Disconnect].m_onTriggered += disconnect;
 		
 	// status bar
@@ -204,27 +208,28 @@ TcpProxySession.createUi ()
 		
 	// property grid
 			
-	m_serverPortProp = m_pluginHost.createIntProperty (
+	m_serverPortProp = m_pluginHost.m_propertyGrid.createIntProperty (
 		"Port",
 		"Port to listen on"
 		);
 
-	m_clientAddressProp = m_pluginHost.createStringProperty (
+	m_clientAddressProp = m_pluginHost.m_propertyGrid.createStringProperty (
 		"Target Address",
 		"Address to connect to"
 		);
 
-	m_adapterProp = m_pluginHost.createNetworkAdapterProperty (
+	m_adapterProp = io.createNetworkAdapterProperty (
+		m_pluginHost.m_propertyGrid,
 		"Interface",
 		"Interface to bind to and to listen on for target connection"
 		);
 
-	m_overrideConnectionProp = m_pluginHost.createBoolProperty (
+	m_overrideConnectionProp = m_pluginHost.m_propertyGrid.createBoolProperty (
 		"Override Connections",
 		"Accept incoming connection even if already connected"
 		);
 
-	m_resetConnectionProp = m_pluginHost.createBoolProperty (
+	m_resetConnectionProp = m_pluginHost.m_propertyGrid.createBoolProperty (
 		"Reset Connections",
 		"Use TCP RST to terminate connections (instead of TCP graceful disconnect)"
 		);
@@ -264,7 +269,7 @@ bool TcpProxySession.listen () throws
 		m_listenerSocket.open (io.Protocol.Tcp, &address);
 		m_listenerSocket.listen ();
 
-		m_pluginHost.writeLog (
+		writeLog (
 			TcpProxyLogRecordCode.Listening,
 			&address,
 			sizeof (address)
@@ -275,7 +280,7 @@ bool TcpProxySession.listen () throws
 	}
 	else
 	{
-		m_pluginHost.writeLog (
+		writeLog (
 			TcpProxyLogRecordCode.TargetResolving,
 			targetAddressString,
 			strlen (targetAddressString)
@@ -307,12 +312,12 @@ TcpProxySession.stopListen ()
 			return;
 		
 		case ListenerState.Resolving:
-			m_pluginHost.writeLog (TcpProxyLogRecordCode.ListenCanceled);
+			writeLog (TcpProxyLogRecordCode.ListenCanceled);
 			m_resolverSyncId++;
 			break;
 			
 		case ListenerState.Listening:
-			m_pluginHost.writeLog (
+			writeLog (
 				TcpProxyLogRecordCode.ListenStopped,
 				&m_localAddress,
 				sizeof (m_localAddress)
@@ -331,7 +336,7 @@ TcpProxySession.disconnect ()
 	if (m_serverConnectionState != ServerConnectionState.Connected)
 		return;
 
-	m_pluginHost.writeLog (
+	writeLog (
 		TcpProxyLogRecordCode.ClientDisconnected,
 		&m_serverRemoteAddress,
 		sizeof (m_serverRemoteAddress)
@@ -347,7 +352,7 @@ bool TcpProxySession.connectTarget ()
 {
 	disconnectTarget ();
 	
-	m_pluginHost.writeLog (
+	writeLog (
 		TcpProxyLogRecordCode.TargetConnecting,
 		&m_clientRemoteAddress,
 		sizeof (m_clientRemoteAddress)
@@ -370,7 +375,7 @@ TcpProxySession.disconnectTarget ()
 	if (m_clientConnectionState != ClientConnectionState.Connected)
 		return;
 	
-	m_pluginHost.writeLog (
+	writeLog (
 		TcpProxyLogRecordCode.TargetDisconnected,
 		&m_clientRemoteAddress,
 		sizeof (m_clientRemoteAddress)
@@ -458,7 +463,7 @@ TcpProxySession.onListenerSocketEvent (io.SocketEventParams const* params)
 		if (m_serverConnectionState == ServerConnectionState.Connected && !m_overrideConnectionProp.m_value)
 		{
 			socket.close ();
-			m_pluginHost.writeLog (
+			writeLog (
 				TcpProxyLogRecordCode.ClientRejected,
 				&address,
 				sizeof (address)
@@ -469,7 +474,7 @@ TcpProxySession.onListenerSocketEvent (io.SocketEventParams const* params)
 
 		disconnect ();
 
-		m_pluginHost.writeLog (
+		writeLog (
 			TcpProxyLogRecordCode.ClientConnected,
 			&address,
 			sizeof (address)
@@ -500,7 +505,7 @@ TcpProxySession.onListenerConnectionSocketEvent (io.SocketEventParams const* par
 	switch (params.m_eventKind)
 	{
 	case io.SocketEvent.Disconnected:
-		m_pluginHost.writeLog (
+		writeLog (
 			TcpProxyLogRecordCode.ClientDisconnected,
 			&m_serverRemoteAddress,
 			sizeof (m_serverRemoteAddress)
@@ -518,7 +523,7 @@ TcpProxySession.onListenerConnectionSocketEvent (io.SocketEventParams const* par
 		size_t result = try m_serverConnectionSocket.recv (buffer, sizeof (buffer));
 		if (result != -1)
 		{
-			m_pluginHost.writeLog (log.StdRecordCode.Tx, buffer, result);
+			writeLog (log.StdRecordCode.Tx, buffer, result);
 		
 			if (m_clientConnectionState == ClientConnectionState.Connected)
 				try m_clientConnnectionSocket.send (buffer, result);
@@ -536,7 +541,7 @@ TcpProxySession.onTargetSocketEvent (io.SocketEventParams const* params)
 	switch (params.m_eventKind)
 	{
 	case io.SocketEvent.ConnectCompleted:
-		m_pluginHost.writeLog (TcpProxyLogRecordCode.TargetConnectCompleted);
+		writeLog (TcpProxyLogRecordCode.TargetConnectCompleted);
 		m_clientConnectionState = ClientConnectionState.Connected;
 		
 		// only once the connection to the target was successfully established
@@ -550,14 +555,14 @@ TcpProxySession.onTargetSocketEvent (io.SocketEventParams const* params)
 		break;
 
 	case io.SocketEvent.ConnectCancelled:
-		m_pluginHost.writeLog (TcpProxyLogRecordCode.TargetConnectCancelled);
+		writeLog (TcpProxyLogRecordCode.TargetConnectCancelled);
 		m_clientConnectionState = ClientConnectionState.Closed;
 		
 		disconnect ();
 		break;
 
 	case io.SocketEvent.ConnectError:
-		m_pluginHost.writeLog (
+		writeLog (
 			TcpProxyLogRecordCode.TargetConnectError,
 			params.m_error,
 			params.m_error.m_size
@@ -568,7 +573,7 @@ TcpProxySession.onTargetSocketEvent (io.SocketEventParams const* params)
 		break;
 
 	case io.SocketEvent.Disconnected:
-		m_pluginHost.writeLog (
+		writeLog (
 			TcpProxyLogRecordCode.TargetDisconnected,
 			&m_clientRemoteAddress,
 			sizeof (m_serverRemoteAddress)
@@ -583,7 +588,7 @@ TcpProxySession.onTargetSocketEvent (io.SocketEventParams const* params)
 		size_t result = try m_clientConnnectionSocket.recv (buffer, sizeof (buffer));
 		if (result != -1)
 		{
-			m_pluginHost.writeLog (log.StdRecordCode.Rx, buffer, result);
+			writeLog (log.StdRecordCode.Rx, buffer, result);
 		
 			if (m_serverConnectionState == ServerConnectionState.Connected)
 				try m_serverConnectionSocket.send (buffer, result);
@@ -600,7 +605,7 @@ TcpProxySession.onResolverEvent (io.SocketAddressResolverEventParams const* para
 	switch (params.m_eventKind)
 	{
 	case io.SocketAddressResolverEvent.ResolveCompleted:
-		m_pluginHost.writeLog (
+		writeLog (
 			TcpProxyLogRecordCode.TargetResolveCompleted,
 			params.m_address,
 			sizeof (io.SocketAddress)
@@ -621,7 +626,7 @@ TcpProxySession.onResolverEvent (io.SocketAddressResolverEventParams const* para
 		m_listenerSocket.open (io.Protocol.Tcp, &address);
 		m_listenerSocket.listen ();
 
-		m_pluginHost.writeLog (
+		writeLog (
 			TcpProxyLogRecordCode.Listening,
 			&address,
 			sizeof (address)
@@ -632,7 +637,7 @@ TcpProxySession.onResolverEvent (io.SocketAddressResolverEventParams const* para
 		break;
 
 	case io.SocketAddressResolverEvent.ResolveError:
-		m_pluginHost.writeLog (
+		writeLog (
 			TcpProxyLogRecordCode.TargetResolvingError,
 			params.m_error,
 			params.m_error.m_size
@@ -647,7 +652,7 @@ catch:
 
 TcpProxySession.handleListenerConnectError (jnc.Error const* error)
 {
-	m_pluginHost.writeLog (
+	writeLog (
 		TcpProxyLogRecordCode.ListenError,
 		error,
 		error.m_size
@@ -659,7 +664,7 @@ TcpProxySession.handleListenerConnectError (jnc.Error const* error)
 
 TcpProxySession.handleTargetConnectError (jnc.Error const* error)
 {
-	m_pluginHost.writeLog (
+	writeLog (
 		TcpProxyLogRecordCode.TargetConnectError,
 		error,
 		error.m_size

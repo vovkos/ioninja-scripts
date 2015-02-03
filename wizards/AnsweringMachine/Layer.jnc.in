@@ -1,11 +1,11 @@
 //.............................................................................
 //
-// $pluginName layer
+// $(pluginName) layer
 //
 
 //.............................................................................
 
-class $layerClass: doc.Layer
+class $(layerClass): doc.Layer
 {
 	construct (doc.PluginHost* pluginHost);
 
@@ -20,13 +20,13 @@ protected:
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-$layerClass.construct (doc.PluginHost* pluginHost)
+$(layerClass).construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
 	pluginHost.m_log.attachListener (onLogRecord @ pluginHost.m_mainThreadScheduler);
 }
 
-$layerClass.onLogRecord (
+$(layerClass).onLogRecord (
 	uint64_t timestamp,
 	uint_t recordCode,
 	void const* p,

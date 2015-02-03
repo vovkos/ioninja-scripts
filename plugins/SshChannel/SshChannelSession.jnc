@@ -3,6 +3,11 @@
 // SSH Connection session
 //
 
+import "doc_Plugin.jnc"
+import "io_Ssh.jnc"
+import "io_Socket.jnc"
+import "io_NetworkAdapter.jnc"
+
 //.............................................................................
 
 class SshChannelSession: doc.Session
@@ -107,7 +112,7 @@ SshChannelSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
 
-	pluginHost.m_log.m_representer = new SshChannelLogRepresenter;
+	pluginHost.m_log.m_representerFunc = representSshChannelLog;
 
 	m_state = State.Closed;
 	m_channel = new io.SshChannel  ();
@@ -130,7 +135,7 @@ SshChannelSession.createUi ()
 	m_iconTable [IconId.Connect] = new gui.Icon ("images/connect.png");
 	m_iconTable [IconId.Disconnect] = new gui.Icon ("images/disconnect.png");
 
-	m_actionTable [ActionId.Connect] = m_pluginHost.createAction ("Connect", m_iconTable [IconId.Connect]);
+	m_actionTable [ActionId.Connect] = createAction ("Connect", m_iconTable [IconId.Connect]);
 	m_actionTable [ActionId.Connect].m_onTriggered += onConnect;
 
 	// status bar
@@ -141,34 +146,34 @@ SshChannelSession.createUi ()
 
 	// property grid
 
-	m_addressProp = m_pluginHost.createStringProperty (
+	m_addressProp = m_pluginHost.m_propertyGrid.createStringProperty (
 		"Remote address",
 		"Remote address to connect to (IP-address or host-name followed by ':' port)"
 		);
 
-	m_userNameProp = m_pluginHost.createStringProperty (
+	m_userNameProp = m_pluginHost.m_propertyGrid.createStringProperty (
 		"User name",
 		"User name for SSH authentification"
 		);
 		
-	m_passwordProp = m_pluginHost.createStringProperty (
+	m_passwordProp = m_pluginHost.m_propertyGrid.createStringProperty (
 		"Password",
 		"Password for SSH authentification"
 		);
 
 	m_passwordProp.m_isPassword = true;
 
-	m_channelTypeProp = m_pluginHost.createStringProperty (
+	m_channelTypeProp = m_pluginHost.m_propertyGrid.createStringProperty (
 		"SSH channel",
 		"Type of requested SSH channel"
 		);
 
-	m_processTypeProp = m_pluginHost.createStringProperty (
+	m_processTypeProp = m_pluginHost.m_propertyGrid.createStringProperty (
 		"SSH process",
 		"Type of requested SSH process"
 		);
 
-	m_ptyTypeProp = m_pluginHost.createStringProperty (
+	m_ptyTypeProp = m_pluginHost.m_propertyGrid.createStringProperty (
 		"Pseudoterminal",
 		"Type of requested pseudoterminal (PTY)"
 		);
@@ -179,29 +184,30 @@ SshChannelSession.createUi ()
 		{ "Graceful", io.SocketCloseKind.Graceful },
 	};
 
-	m_closeKindProp = m_pluginHost.createEnumProperty (
+	m_closeKindProp = m_pluginHost.m_propertyGrid.createEnumProperty (
 		"TCP disconnect",
 		"How to close TCP connection (graceful / reset)", 
 		closeKindTable,
 		countof (closeKindTable)
 		);
 
-	m_isNagleEnabledProp = m_pluginHost.createBoolProperty (
+	m_isNagleEnabledProp = m_pluginHost.m_propertyGrid.createBoolProperty (
 		"Use TCP Nagle algorithm",
 		"Specify whether to reduce the number of small TCP packets being sent"
 		);
 
-	m_useLocalAddressProp = m_pluginHost.createBoolProperty (
+	m_useLocalAddressProp = m_pluginHost.m_propertyGrid.createBoolProperty (
 		"Use local TCP address",
 		"Bind socket to the specified local address before connect"
 		);
 
-	m_adapterProp = m_pluginHost.createNetworkAdapterProperty (
+	m_adapterProp = io.createNetworkAdapterProperty (
+		m_pluginHost.m_propertyGrid,
 		"Adapter",
 		"Adapter to bind to before connect"
 		);
 
-	m_localPortProp = m_pluginHost.createIntProperty (
+	m_localPortProp = m_pluginHost.m_propertyGrid.createIntProperty (
 		"Local TCP port",
 		"Local TCP port to bind to before connect"
 		);
@@ -228,7 +234,7 @@ bool SshChannelSession.connect () throws
 	bool isDirectAddress = try io.parseSocketAddress (addressString, &address);
 	if (isDirectAddress)
 	{
-		m_pluginHost.writeLog (
+		writeLog (
 			SshChannelLogRecordCode.TcpConnecting,
 			&address,
 			sizeof (address)
@@ -236,7 +242,7 @@ bool SshChannelSession.connect () throws
 	}
 	else
 	{
-		m_pluginHost.writeLog (
+		writeLog (
 			SshChannelLogRecordCode.Resolving,
 			addressString,
 			strlen (addressString)
@@ -288,7 +294,7 @@ catch:
 
 SshChannelSession.handleConnectError (jnc.Error const* error)
 {
-	m_pluginHost.writeLog (
+	writeLog (
 		SshChannelLogRecordCode.ConnectError,
 		error,
 		error.m_size
@@ -307,11 +313,11 @@ SshChannelSession.disconnect ()
 
 	case State.Resolving:
 	case State.Connecting:
-		m_pluginHost.writeLog (SshChannelLogRecordCode.ConnectCancelled);
+		writeLog (SshChannelLogRecordCode.ConnectCancelled);
 		break;
 
 	case State.Connected:
-		m_pluginHost.writeLog (
+		writeLog (
 			SshChannelLogRecordCode.Disconnected,
 			&m_remoteAddress,
 			sizeof (m_remoteAddress)
@@ -386,7 +392,7 @@ size_t SshChannelSession.transmit (
 
 	size_t result = try m_channel.write (p, size);
 	if (result != -1)
-		m_pluginHost.writeLog (log.StdRecordCode.Tx, p, result);
+		writeLog (log.StdRecordCode.Tx, p, result);
 
 	return result;
 }
@@ -399,31 +405,31 @@ SshChannelSession.onSshEvent (io.SshEventParams const* params)
 	switch (params.m_eventKind)
 	{
 	case io.SshEvent.TcpConnectCompleted:
-		m_pluginHost.writeLog (SshChannelLogRecordCode.TcpConnectCompleted);
+		writeLog (SshChannelLogRecordCode.TcpConnectCompleted);
 		break;
 
 	case io.SshEvent.SshHandshakeCompleted:
-		m_pluginHost.writeLog (SshChannelLogRecordCode.SshHandshakeCompleted);
+		writeLog (SshChannelLogRecordCode.SshHandshakeCompleted);
 		break;
 
 	case io.SshEvent.SshAuthCompleted:
-		m_pluginHost.writeLog (SshChannelLogRecordCode.SshAuthCompleted);
+		writeLog (SshChannelLogRecordCode.SshAuthCompleted);
 		break;
 
 	case io.SshEvent.SshChannelOpened:
-		m_pluginHost.writeLog (SshChannelLogRecordCode.SshChannelOpened);
+		writeLog (SshChannelLogRecordCode.SshChannelOpened);
 		break;
 
 	case io.SshEvent.SshPtyRequested:
-		m_pluginHost.writeLog (SshChannelLogRecordCode.SshPtyRequested);
+		writeLog (SshChannelLogRecordCode.SshPtyRequested);
 		break;
 
 	case io.SshEvent.SshProcessStarted:
-		m_pluginHost.writeLog (SshChannelLogRecordCode.SshProcessStarted);
+		writeLog (SshChannelLogRecordCode.SshProcessStarted);
 		break;
 
 	case io.SshEvent.ConnectCompleted:
-		m_pluginHost.writeLog (SshChannelLogRecordCode.ConnectCompleted);
+		writeLog (SshChannelLogRecordCode.ConnectCompleted);
 		m_state = State.Connected;
 		break;
 
@@ -432,7 +438,7 @@ SshChannelSession.onSshEvent (io.SshEventParams const* params)
 		break;
 
 	case io.SshEvent.Disconnected:
-		m_pluginHost.writeLog (
+		writeLog (
 			SshChannelLogRecordCode.Disconnected,
 			&m_remoteAddress,
 			sizeof (m_remoteAddress)
@@ -446,7 +452,7 @@ SshChannelSession.onSshEvent (io.SshEventParams const* params)
 		heap char buffer [512];
 		size_t result = try m_channel.read (buffer, sizeof (buffer));
 		if (result != -1)
-			m_pluginHost.writeLog (log.StdRecordCode.Rx, buffer, result);
+			writeLog (log.StdRecordCode.Rx, buffer, result);
 		break;
 	}
 }
@@ -459,7 +465,7 @@ SshChannelSession.onResolverEvent (io.SocketAddressResolverEventParams const* pa
 	switch (params.m_eventKind)
 	{
 	case io.SocketAddressResolverEvent.ResolveCompleted:
-		m_pluginHost.writeLog (
+		writeLog (
 			SshChannelLogRecordCode.ResolveCompleted,
 			params.m_address,
 			sizeof (io.SocketAddress)

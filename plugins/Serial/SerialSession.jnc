@@ -3,6 +3,9 @@
 // Serial session
 //
 
+import "doc_Plugin.jnc"
+import "io_Serial.jnc"
+
 //.............................................................................
 
 class SerialSession: doc.Session
@@ -111,7 +114,7 @@ SerialSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
 
-	pluginHost.m_log.m_representer = new SerialLogRepresenter;
+	pluginHost.m_log.m_representerFunc = representSerialLog;
 	pluginHost.m_log.attachFilter (m_logFilter);
 
 	m_state = State.Closed;
@@ -155,16 +158,16 @@ SerialSession.createUi ()
 	m_iconTable [IconId.Open] = new gui.Icon ("images/connect.png");
 	m_iconTable [IconId.Close] = new gui.Icon ("images/pause.png");
 
-	m_actionTable [ActionId.Open]  = m_pluginHost.createAction ("Open", "images/connect.png");
+	m_actionTable [ActionId.Open]  = createAction ("Open", "images/connect.png");
 	m_actionTable [ActionId.Open].m_onTriggered += onOpen;
 
 	m_pluginHost.m_menu.addSeparator ();
 	m_pluginHost.m_toolBar.addSeparator ();
 
-	m_actionTable [ActionId.Dtr] = m_pluginHost.createAction ("DTR", "images/dtr.png", true, true);
+	m_actionTable [ActionId.Dtr] = createAction ("DTR", "images/dtr.png", true, true);
 	m_actionTable [ActionId.Dtr].m_onTriggered += onDtrChanged;
 	
-	m_actionTable [ActionId.Rts] = m_pluginHost.createAction ("RTS", "images/rts.png", true, false);
+	m_actionTable [ActionId.Rts] = createAction ("RTS", "images/rts.png", true, false);
 	m_actionTable [ActionId.Rts].m_onTriggered += onRtsChanged;
 
 	// status bar
@@ -187,7 +190,8 @@ SerialSession.createUi ()
 
 	// ports
 
-	m_portProp = m_pluginHost.createSerialPortProperty (
+	m_portProp = io.createSerialPortProperty (
+		m_pluginHost.m_propertyGrid,
 		"Port",
 		"Specify serial port to use",
 		portList,
@@ -204,7 +208,7 @@ SerialSession.createUi ()
 		{ "115200 bps", 115200 },
 	};
 
-	m_baudRateProp = m_pluginHost.createEnumProperty (
+	m_baudRateProp = m_pluginHost.m_propertyGrid.createEnumProperty (
 		"Baud rate",
 		"Serial baud rate",
 		baudRateTable,
@@ -222,7 +226,7 @@ SerialSession.createUi ()
 		{ "Software (XON/XOFF)", io.SerialFlowControl.XOnXOff },
 	};
 
-	m_flowControlProp = m_pluginHost.createEnumProperty (
+	m_flowControlProp = m_pluginHost.m_propertyGrid.createEnumProperty (
 		"Flow control",
 		"Serial flow control",
 		flowControlTable,
@@ -239,7 +243,7 @@ SerialSession.createUi ()
 		{ "8 bits", 8 },
 	};
 
-	m_dataBitsProp = m_pluginHost.createEnumProperty (
+	m_dataBitsProp = m_pluginHost.m_propertyGrid.createEnumProperty (
 		"Data bits",
 		"Serial data bit count (word size)",
 		dataBitsTable,
@@ -257,7 +261,7 @@ SerialSession.createUi ()
 		{ "2 bits",   io.SerialStopBits._2 },
 	};
 
-	m_stopBitsProp = m_pluginHost.createEnumProperty (
+	m_stopBitsProp = m_pluginHost.m_propertyGrid.createEnumProperty (
 		"Stop bits",
 		"Serial stop bit count",
 		stopBitsTable,
@@ -277,7 +281,7 @@ SerialSession.createUi ()
 		{ "Space", io.SerialParity.Space },
 	};
 
-	m_parityProp = m_pluginHost.createEnumProperty (
+	m_parityProp = m_pluginHost.m_propertyGrid.createEnumProperty (
 		"Parity",
 		"Serial parity check",
 		parityTable,
@@ -288,17 +292,17 @@ SerialSession.createUi ()
 
 	// filter 
 
-	m_settingChangedVisibleProp = m_pluginHost.createBoolProperty (
+	m_settingChangedVisibleProp = m_pluginHost.m_propertyGrid.createBoolProperty (
 		"Show setting changes",
 		"Display setting change log records (or filter them out)"
 		);
 
-	m_controlLineChangedVisibleProp = m_pluginHost.createBoolProperty (
+	m_controlLineChangedVisibleProp = m_pluginHost.m_propertyGrid.createBoolProperty (
 		"Show control line changes",
 		"Display control line change log records (or filter them out)"
 		);
 
-	m_statusLineChangedVisibleProp = m_pluginHost.createBoolProperty (
+	m_statusLineChangedVisibleProp = m_pluginHost.m_propertyGrid.createBoolProperty (
 		"Show status line changes",
 		"Display status line change log records (or filter them out)"
 		);
@@ -342,7 +346,7 @@ bool SerialSession.open () throws
 	params.m_parity = m_serial.m_parity;
 
 	char const* p = $"$(params; B)$name";
-	m_pluginHost.writeLog (SerialLogRecordCode.PortOpened, p, dynamic sizeof (*p));
+	writeLog (SerialLogRecordCode.PortOpened, p, dynamic sizeof (*p));
 
 	m_portName = name;
 	m_serialDtr = m_serial.m_dtr;
@@ -356,7 +360,7 @@ catch:
 	m_serial.close ();
 
 	jnc.Error const* error = jnc.getLastError ();
-	m_pluginHost.writeLog (
+	writeLog (
 		SerialLogRecordCode.PortOpenError,
 		error,
 		error.m_size
@@ -369,7 +373,7 @@ SerialSession.close ()
 	if (m_state != State.Opened)
 		return;
 
-	m_pluginHost.writeLog (
+	writeLog (
 		SerialLogRecordCode.PortClosed,
 		m_portName,
 		strlen (m_portName) + 1
@@ -431,21 +435,21 @@ bool SerialSession.applyProperties () throws
 	if (m_serial.m_dataBits != dataBitsValue)
 	{
 		m_serial.m_dataBits = dataBitsValue;
-		m_pluginHost.writeLog (SerialLogRecordCode.DataBitsChanged, &dataBitsValue, sizeof (dataBitsValue));
+		writeLog (SerialLogRecordCode.DataBitsChanged, &dataBitsValue, sizeof (dataBitsValue));
 	}
 		
 	io.SerialStopBits stopBitsValue = (io.SerialStopBits) m_stopBitsProp.m_value;
 	if (m_serial.m_stopBits != stopBitsValue)
 	{
 		m_serial.m_stopBits = stopBitsValue;
-		m_pluginHost.writeLog (SerialLogRecordCode.StopBitsChanged, &stopBitsValue, sizeof (stopBitsValue));
+		writeLog (SerialLogRecordCode.StopBitsChanged, &stopBitsValue, sizeof (stopBitsValue));
 	}
 
 	io.SerialParity parityValue = (io.SerialParity) m_parityProp.m_value;
 	if (m_serial.m_parity != parityValue)
 	{
 		m_serial.m_parity = parityValue;
-		m_pluginHost.writeLog (SerialLogRecordCode.ParityChanged, &parityValue, sizeof (parityValue));
+		writeLog (SerialLogRecordCode.ParityChanged, &parityValue, sizeof (parityValue));
 	}
 		
 	// baud rate and flow control setting changes are handled by their onChanged event handlers
@@ -477,7 +481,7 @@ size_t SerialSession.transmit (
 
 	size_t result = try m_serial.write (p, size);
 	if (result != -1)
-		m_pluginHost.writeLog (log.StdRecordCode.Tx, p, result);
+		writeLog (log.StdRecordCode.Tx, p, result);
 
 	return result;
 }
@@ -493,12 +497,12 @@ SerialSession.onSerialEvent (io.SerialEventParams const* params)
 		heap char buffer [512];
 		size_t result = try m_serial.read (buffer, sizeof (buffer));
 		if (result != -1)
-			m_pluginHost.writeLog (log.StdRecordCode.Rx, buffer, result);
+			writeLog (log.StdRecordCode.Rx, buffer, result);
 		break;
 		
 	case io.SerialEvent.StatusLineChanged:
 		char const* p = $"$(params.m_lines; B)$(params.m_mask; B)";
-		m_pluginHost.writeLog (SerialLogRecordCode.StatusLineChanged, p, dynamic sizeof (*p));
+		writeLog (SerialLogRecordCode.StatusLineChanged, p, dynamic sizeof (*p));
 		m_serialStatusLines = params.m_lines;
 		break;
 
@@ -521,7 +525,7 @@ SerialSession.onBaudRateChanged ()
 	uint_t value = m_baudRateProp.m_value;
 		
 	m_serial.m_baudRate = value;
-	m_pluginHost.writeLog (SerialLogRecordCode.BaudRateChanged, &value, sizeof (value));
+	writeLog (SerialLogRecordCode.BaudRateChanged, &value, sizeof (value));
 }
 
 SerialSession.onFlowControlChanged ()
@@ -533,7 +537,7 @@ SerialSession.onFlowControlChanged ()
 	io.SerialFlowControl value = (io.SerialFlowControl) m_flowControlProp.m_value;
 		
 	m_serial.m_flowControl = value;
-	m_pluginHost.writeLog (SerialLogRecordCode.FlowControlChanged, &value, sizeof (value));
+	writeLog (SerialLogRecordCode.FlowControlChanged, &value, sizeof (value));
 }
 
 SerialSession.onDtrChanged ()
@@ -544,7 +548,7 @@ SerialSession.onDtrChanged ()
 	bool value = m_actionTable [ActionId.Dtr].m_isChecked;
 	m_serial.m_dtr = value;
 	m_serialDtr = value;
-	m_pluginHost.writeLog (SerialLogRecordCode.DtrChanged, &value, sizeof (value));
+	writeLog (SerialLogRecordCode.DtrChanged, &value, sizeof (value));
 }
 
 SerialSession.onRtsChanged ()
@@ -555,7 +559,7 @@ SerialSession.onRtsChanged ()
 	bool value = m_actionTable [ActionId.Rts].m_isChecked;
 	m_serial.m_rts = value;
 	m_serialRts = value;
-	m_pluginHost.writeLog (SerialLogRecordCode.RtsChanged, &value, sizeof (value));
+	writeLog (SerialLogRecordCode.RtsChanged, &value, sizeof (value));
 }
 
 reactor SerialSession.m_uiReactor ()

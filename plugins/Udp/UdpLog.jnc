@@ -25,20 +25,7 @@ enum UdpRecordPartCode
 
 //.............................................................................
 
-class UdpLogRepresenter: log.Representer
-{
-	override bool represent (
-		log.RepresenterTarget* target,
-		uint_t recordCode,
-		void const* p,
-		size_t size,
-		uint_t foldFlags
-		);
-}
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-bool UdpLogRepresenter.represent (
+bool representUdpLog (
 	log.RepresenterTarget* target,
 	uint_t recordCode,
 	void const* p,

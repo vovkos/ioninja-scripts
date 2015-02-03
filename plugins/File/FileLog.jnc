@@ -16,20 +16,7 @@ enum FileLogRecordCode
 
 //.............................................................................
 
-class FileLogRepresenter: log.Representer
-{
-	override bool represent (
-		log.RepresenterTarget* target,
-		uint_t recordCode,
-		void const* p,
-		size_t size,
-		uint_t foldFlags
-		);
-}
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-bool FileLogRepresenter.represent (
+bool representFileLog (
 	log.RepresenterTarget* target,
 	uint_t recordCode,
 	void const* p,

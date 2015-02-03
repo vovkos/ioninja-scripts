@@ -17,20 +17,7 @@ enum PipeListenerLogRecordCode
 
 //.............................................................................
 
-class PipeListenerLogRepresenter: log.Representer
-{
-	override bool represent (
-		log.RepresenterTarget* target,
-		uint_t recordCode,
-		void const* p,
-		size_t size,
-		uint_t foldFlags
-		);
-}
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-bool PipeListenerLogRepresenter.represent (
+bool representPipeListenerLog  (
 	log.RepresenterTarget* target,
 	uint_t recordCode,
 	void const* p,

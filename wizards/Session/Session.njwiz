@@ -6,22 +6,15 @@
 [wizard]
 name        = "Transport Session"
 description = "Generates a complete session plugin"
-icon        = images/plugin-16x16.png
 
-[variable]
-id          = pluginName
-name        = "Session Name"
-value       = "My Session"
-
-[variable]
-id          = pluginDescription
-name        = "Session Description"
-value       = "Wizard-generated transport session"
-
-[variable]
-id          = pluginId
-name        = "Session ID"
-value       = my-session
+[plugin]
+name        = "My Session"
+description = "Wizard-generated transport session"
+id          = "my-session"
+kind        = session
+group       = other
+icon        = images/plugin.png
+icon-small  = images/plugin-16x16.png
 
 [variable]
 id          = pluginPrefix
@@ -32,6 +25,7 @@ value       = My
 id          = sessionClass
 name        = "Session Class"
 readOnly    = true
+volatile    = true
 value       = $(pluginPrefix)Session
 rebuildOn   = pluginPrefix
 
@@ -50,10 +44,10 @@ value       = $(pluginPrefix)LogRecord
 rebuildOn   = pluginPrefix
 
 [variable]
-id          = logRepresenterClass
-name        = "Log Representer Class"
+id          = logRepresenterFunc
+name        = "Log Representer Function"
 readOnly    = true
-value       = $(pluginPrefix)LogRepresenter
+value       = represent$(pluginPrefix)Log
 rebuildOn   = pluginPrefix
 
 [variable]
@@ -66,19 +60,14 @@ rebuildOn   = pluginPrefix
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 [file]
-source = Session.njplg.in
-target = $(projectName).njplg
-interpolate = true
-
-[file]
 source = Session.jnc.in
 target = $(sessionFile)
-interpolate = true
+script = true
 
 [file]
 source = Log.jnc.in
 target = $(logFile)
-interpolate = true
+script = true
 
 [file]
 source = images

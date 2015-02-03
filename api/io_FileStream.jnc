@@ -3,18 +3,9 @@
 // File stream class
 //
 
+import "io_MappedFile.jnc"
+
 namespace io {
-
-//.............................................................................
-
-bitflag enum FileOpenFlags
-{
-	ReadOnly,
-	OpenExisting,
-	Exclusive,
-	ShareWrite,
-	DeleteOnClose,
-}
 
 //.............................................................................
 
@@ -58,7 +49,7 @@ enum FileStreamEvent
 
 struct FileStreamEventParams
 {
-	SocketEvent m_eventKind;
+	FileStreamEvent m_eventKind;
 	uint_t m_syncId;
 	jnc.Error* m_error;
 }

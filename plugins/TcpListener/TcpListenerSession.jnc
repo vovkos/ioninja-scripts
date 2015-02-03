@@ -3,6 +3,10 @@
 // TCP Listener session
 //
 
+import "doc_Plugin.jnc"
+import "io_Socket.jnc"
+import "io_NetworkAdapter.jnc"
+
 //.............................................................................
 
 class TcpListenerSession: doc.Session
@@ -104,7 +108,7 @@ TcpListenerSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
 
-	pluginHost.m_log.m_representer = new TcpListenerLogRepresenter;
+	pluginHost.m_log.m_representerFunc = representTcpListenerLog;
 
 	m_connectionState = ConnectionState.Closed;
 	m_listenerState = ListenerState.Closed;
@@ -135,35 +139,37 @@ TcpListenerSession.createUi ()
 	m_iconTable [IconId.StopListen] = new gui.Icon ("images/pause.png");
 	m_iconTable [IconId.Disconnect] = new gui.Icon ("images/disconnect.png");
 
-	m_actionTable [ActionId.Listen] = m_pluginHost.createAction ("Listen", m_iconTable [IconId.Listen]);
+	m_actionTable [ActionId.Listen] = createAction ("Listen", m_iconTable [IconId.Listen]);
 	m_actionTable [ActionId.Listen].m_onTriggered += onListen;
 
-	m_actionTable [ActionId.Disconnect] = m_pluginHost.createAction ("Disconnect", m_iconTable [IconId.Disconnect]);
+	m_actionTable [ActionId.Disconnect] = createAction ("Disconnect", m_iconTable [IconId.Disconnect]);
 	m_actionTable [ActionId.Disconnect].m_onTriggered += disconnect;
 
 	// property grid
 
-	m_adapterProp = m_pluginHost.createNetworkAdapterProperty (
+	m_adapterProp = io.createNetworkAdapterProperty (
+		m_pluginHost.m_propertyGrid,
 		"Adapter",
 		"Network adapter to listen on"
 		);
 
-	m_portProp = m_pluginHost.createIntProperty (
+	m_portProp = m_pluginHost.m_propertyGrid.createIntProperty (
 		"TCP Port",
 		"TCP port to listen on"
 		);
 
-	m_overrideOldConnectionProp = m_pluginHost.createBoolProperty (
+	m_overrideOldConnectionProp = m_pluginHost.m_propertyGrid.createBoolProperty (
 		"Override connections",
 		"Accept incoming connection even if already connected"
 		);
 
-	m_closeKindProp = m_pluginHost.createSocketCloseKindProperty (
+	m_closeKindProp = io.createSocketCloseKindProperty (
+		m_pluginHost.m_propertyGrid,
 		"TCP disconnect",
 		"How to close TCP connection (graceful / reset)"
 		);
 
-	m_isNagleEnabledProp = m_pluginHost.createBoolProperty (
+	m_isNagleEnabledProp = m_pluginHost.m_propertyGrid.createBoolProperty (
 		"Use TCP Nagle algorithm",
 		"Specify whether to reduce the number of small TCP packets being sent"
 		);
@@ -195,7 +201,7 @@ bool TcpListenerSession.listen () throws
 	m_listenerSocket.m_isNagleEnabled = m_isNagleEnabledProp.m_value;
 	m_listenerSocket.listen ();
 
-	m_pluginHost.writeLog (
+	writeLog (
 		TcpListenerLogRecordCode.Listening,
 		&address,
 		sizeof (address)
@@ -209,7 +215,7 @@ bool TcpListenerSession.listen () throws
 
 catch:
 	jnc.Error const* error = jnc.getLastError ();
-	m_pluginHost.writeLog (
+	writeLog (
 		TcpListenerLogRecordCode.ListenError,
 		error,
 		error.m_size
@@ -224,7 +230,7 @@ TcpListenerSession.stopListen ()
 	if (m_listenerState != ListenerState.Listening)
 		return;
 
-	m_pluginHost.writeLog (
+	writeLog (
 		TcpListenerLogRecordCode.ListenStopped,
 		&m_localAddress,
 		sizeof (m_localAddress)
@@ -245,7 +251,7 @@ TcpListenerSession.disconnect ()
 	if (m_closeKindProp.m_value == io.SocketCloseKind.Reset)
 		params.m_flags |= TcpDisconnectLogRecordFlags.Reset;
 
-	m_pluginHost.writeLog (
+	writeLog (
 		TcpListenerLogRecordCode.ClientDisconnected,
 		&params,
 		sizeof (params)
@@ -312,7 +318,7 @@ size_t TcpListenerSession.transmit (
 
 	size_t result = try m_connectionSocket.send (p, size);
 	if (result != -1)
-		m_pluginHost.writeLog (log.StdRecordCode.Tx, p, result);
+		writeLog (log.StdRecordCode.Tx, p, result);
 
 	return result;
 }
@@ -333,7 +339,7 @@ TcpListenerSession.onListenerSocketEvent (io.SocketEventParams const* params)
 		if (m_connectionState == ConnectionState.Connected && !m_overrideOldConnectionProp.m_value)
 		{
 			socket.close ();
-			m_pluginHost.writeLog (
+			writeLog (
 				TcpListenerLogRecordCode.ClientRejected,
 				&address,
 				sizeof (address)
@@ -344,7 +350,7 @@ TcpListenerSession.onListenerSocketEvent (io.SocketEventParams const* params)
 
 		disconnect ();
 
-		m_pluginHost.writeLog (
+		writeLog (
 			TcpListenerLogRecordCode.ClientConnected,
 			&address,
 			sizeof (address)
@@ -377,7 +383,7 @@ TcpListenerSession.onConnectionSocketEvent (io.SocketEventParams const* params)
 		if (params.m_flags & io.SocketDisconnectEventFlags.Reset)
 			recordParams.m_flags |= TcpDisconnectLogRecordFlags.Reset;			
 		
-		m_pluginHost.writeLog (
+		writeLog (
 			TcpListenerLogRecordCode.ClientDisconnected,
 			&recordParams,
 			sizeof (recordParams)
@@ -392,7 +398,7 @@ TcpListenerSession.onConnectionSocketEvent (io.SocketEventParams const* params)
 		heap char buffer [512];
 		size_t result = try m_connectionSocket.recv (buffer, sizeof (buffer));
 		if (result != -1)
-			m_pluginHost.writeLog (log.StdRecordCode.Rx, buffer, result);
+			writeLog (log.StdRecordCode.Rx, buffer, result);
 		break;
 	}
 }

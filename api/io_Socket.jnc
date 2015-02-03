@@ -3,6 +3,8 @@
 // Socket class
 //
 
+import "io_SocketAddress.jnc"
+
 namespace io {
 
 //.............................................................................
@@ -100,6 +102,28 @@ opaque class Socket
 	event m_onSocketEvent (SocketEventParams const* params);
 
 	void firePendingEvents (); // to process events happened after accept () and before assiging event handler
+}
+
+//.............................................................................
+
+gui.EnumProperty* createSocketCloseKindProperty (
+	gui.PropertyGrid* propertyGrid,
+	char const* name,
+	char const* toolTipText
+	)
+{
+	static gui.EnumPropertyOption closeKindTable [] =
+	{
+		{ "Graceful", SocketCloseKind.Graceful },
+		{ "Reset",    SocketCloseKind.Reset },
+	};
+
+	return propertyGrid.createEnumProperty (
+		name,
+		toolTipText,
+		closeKindTable,
+		countof (closeKindTable)
+		);
 }
 
 //.............................................................................

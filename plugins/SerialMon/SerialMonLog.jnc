@@ -16,20 +16,7 @@ enum SerialMonLogRecordCode
 
 //.............................................................................
 
-class SerialMonLogRepresenter: SerialLogRepresenter
-{
-	override bool represent (
-		log.RepresenterTarget* target,
-		uint_t recordCode,
-		void const* p,
-		size_t size,
-		uint_t foldFlags
-		);
-}
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-bool SerialMonLogRepresenter.represent (
+bool representSerialMonLog  (
 	log.RepresenterTarget* target,
 	uint_t recordCode,
 	void const* p,
@@ -41,42 +28,41 @@ bool SerialMonLogRepresenter.represent (
 	{
 	case SerialMonLogRecordCode.CaptureStarted:
 		char const* name = (char const*) p;
-		target.m_lineAttr.m_iconIdx = StdLogIcon.Play;
-		target.m_lineAttr.m_backColor = StdLogColor.Start;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
 		target.addHyperText ($"Capture started on port \e[34m$name");
 		break;
 
 	case SerialMonLogRecordCode.CaptureStopped:
-		target.m_lineAttr.m_iconIdx = StdLogIcon.Pause;
-		target.m_lineAttr.m_backColor = StdLogColor.Stop;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
 		target.addHyperText ("Capture stopped");
 		break;
 
 	case SerialMonLogRecordCode.CaptureError:
 		jnc.Error const* error = (jnc.Error const*) p;
-		target.m_lineAttr.m_iconIdx = StdLogIcon.Error;
-		target.m_lineAttr.m_backColor = StdLogColor.Error;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
 		target.addHyperText ($"Unable to start capture ($(error.m_description))");
 		break;
 
 	case SerialMonLogRecordCode.DeviceOpened:
-		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = StdLogColor.Info;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText ("Port opened");
 		break;
 
 	case SerialMonLogRecordCode.DeviceClosed:
-		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = StdLogColor.Info;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText ("Port closed");
 		break;
 
 	default:
-		return basetype.represent (target, recordCode, p, size, foldFlags);
+		return representSerialLog (target, recordCode, p, size, foldFlags);
 	}
 
 	return true;
 }
 
 //.............................................................................
-

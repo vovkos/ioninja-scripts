@@ -3,6 +3,8 @@
 // Ninja log engine declarations
 //
 
+import "gui_Base.jnc"
+
 namespace log {
 
 //.............................................................................
@@ -137,16 +139,13 @@ opaque class RepresenterTarget
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-class Representer
-{
-	abstract bool represent (
-		RepresenterTarget* target,
-		uint_t recordCode,
-		void const* p,
-		size_t size,
-		uint_t foldFlags
-		);
-}
+typedef bool RepresenterFunc (
+	RepresenterTarget* target,
+	uint_t recordCode,
+	void const* p,
+	size_t size,
+	uint_t foldFlags
+	);
 
 //.............................................................................
 
@@ -216,7 +215,7 @@ enum ListenerSensitivity
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-typedef OnRecord (
+typedef ListenerFunc (
 	uint64_t timestamp,
 	uint_t recordCode,
 	void const* p,
@@ -232,13 +231,13 @@ opaque class Log
 	gui.Icon* indexed property m_iconTable (size_t i);
 
 	Writer* readonly m_writer;
-	Representer* autoget property m_representer;
+	RepresenterFunc thin* autoget property m_representerFunc;
 
 	attachFilter (Filter* filter);
 	attachConverter (Converter* converter);
 
 	attachListener (
-		OnRecord* onRecord,
+		ListenerFunc* listenerFunc,
 		ListenerSensitivity sensitivity = ListenerSensitivity.LiveRecordsOnly
 		);
 }

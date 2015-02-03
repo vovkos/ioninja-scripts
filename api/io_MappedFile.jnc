@@ -7,6 +7,17 @@ namespace io {
 
 //.............................................................................
 
+bitflag enum FileOpenFlags
+{
+	ReadOnly,
+	OpenExisting,
+	Exclusive,
+	ShareWrite,
+	DeleteOnClose,
+}
+
+//.............................................................................
+
 opaque class MappedFile
 {
 	size_t autoget property m_dynamicViewLimit;

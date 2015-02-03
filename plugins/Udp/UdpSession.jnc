@@ -3,6 +3,10 @@
 // UDP session
 //
 
+import "doc_Plugin.jnc"
+import "io_Socket.jnc"
+import "io_NetworkAdapter.jnc"
+
 //.............................................................................
 
 class UdpSession: doc.Session
@@ -104,7 +108,7 @@ UdpSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct(pluginHost);
 
-	pluginHost.m_log.m_representer = new UdpLogRepresenter;
+	pluginHost.m_log.m_representerFunc = representUdpLog;
 
 	m_state = State.Closed;
 	m_socket = new io.Socket ();
@@ -129,7 +133,7 @@ UdpSession.createGui()
 	m_iconTable [IconId.Open] = new gui.Icon ("images/open.png");
 	m_iconTable [IconId.Close] = new gui.Icon ("images/close.png");
 
-	m_actionTable [ActionId.Open] = m_pluginHost.createAction("Open socket", m_iconTable [IconId.Open]);
+	m_actionTable [ActionId.Open] = createAction("Open socket", m_iconTable [IconId.Open]);
 	m_actionTable [ActionId.Open].m_onTriggered += onOpen;
 
 	m_pluginHost.m_toolBar.addSeparator ();
@@ -145,17 +149,18 @@ UdpSession.createGui()
 
 	// property grid
 
-	m_remoteAddressProp = m_pluginHost.createStringProperty (
+	m_remoteAddressProp = m_pluginHost.m_propertyGrid.createStringProperty (
 		"Remote address",
 		"Remote address to send to (IP-address or host-name followed by ':' port)"
 		);
 
-	m_localPortProp = m_pluginHost.createIntProperty (
+	m_localPortProp = m_pluginHost.m_propertyGrid.createIntProperty (
 		"Local UDP port",
 		"Local UDP port to listen to"
 		);
 
-	m_adapterProp = m_pluginHost.createNetworkAdapterProperty (
+	m_adapterProp = io.createNetworkAdapterProperty (
+		m_pluginHost.m_propertyGrid,
 		"Adapter",
 		"Adapter to bind socket to"
 		);
@@ -190,7 +195,7 @@ UdpSession.openSocket ()
 		return;
 	}
 
-	m_pluginHost.writeLog (UdpRecordCode.Open, &localAddress, sizeof (localAddress));
+	writeLog (UdpRecordCode.Open, &localAddress, sizeof (localAddress));
 
 	m_state = State.Opened;
 }
@@ -205,7 +210,7 @@ UdpSession.closeSocket ()
 	m_localPortCombo.m_backgroundColor = gui.StdColor.White;
 
 	char const* port = m_localPortCombo.m_editText;
-	m_pluginHost.writeLog (UdpRecordCode.Close, port, strlen (port));
+	writeLog (UdpRecordCode.Close, port, strlen (port));
 
 	m_state = State.Closed;
 }
@@ -279,7 +284,7 @@ size_t UdpSession.transmit (
 		
 		if (m_resolveState == ResolveState.Unresolved)
 		{
-			m_pluginHost.writeLog (
+			writeLog (
 				UdpRecordCode.Resolving,
 				addressString,
 				strlen (addressString)
@@ -302,7 +307,7 @@ catch:
 UdpSession.reportError()
 {
 	jnc.Error const* error = jnc.getLastError ();
-	m_pluginHost.writeLog (UdpRecordCode.Error, error, error.m_size);
+	writeLog (UdpRecordCode.Error, error, error.m_size);
 }
 
 UdpSession.onLocalPortChanged ()
@@ -334,7 +339,7 @@ UdpSession.onSocketEvent(io.SocketEventParams const* params)
 				void* data = memcat (&remoteAddress, sizeof (io.SocketAddress), buffer, size);
 				size_t dataSize = sizeof (io.SocketAddress) + size;
 
-				m_pluginHost.writeLog (UdpRecordCode.Rx, data, dataSize);
+				writeLog (UdpRecordCode.Rx, data, dataSize);
 			}
 			break;
 	}
@@ -348,7 +353,7 @@ UdpSession.onResolverEvent (io.SocketAddressResolverEventParams const* params)
 	switch (params.m_eventKind)
 	{
 	case io.SocketAddressResolverEvent.ResolveCompleted:
-		m_pluginHost.writeLog (
+		writeLog (
 			UdpRecordCode.ResolveCompleted,
 			params.m_address,
 			sizeof (io.SocketAddress)
@@ -376,7 +381,7 @@ UdpSession.onResolverEvent (io.SocketAddressResolverEventParams const* params)
 		break;
 
 	case io.SocketAddressResolverEvent.ResolveError:
-		m_pluginHost.writeLog (UdpRecordCode.Error, params.m_error, params.m_error.m_size);
+		writeLog (UdpRecordCode.Error, params.m_error, params.m_error.m_size);
 		m_resolveState = ResolveState.Unresolved;
 		break;
 		

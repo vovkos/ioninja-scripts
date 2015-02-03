@@ -13,8 +13,8 @@ guid        = 1dfd5eb0-9560-11e3-a5e2-0800200c9a66
 icon        = images/file.png
 small-icon  = images/file-16x16.png
 
-session-class         = FileSession
-log-representer-class = FileLogRepresenter
+session-class        = FileSession
+log-representer-func = representFileLog
 
 [scripts]
 

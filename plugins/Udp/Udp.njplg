@@ -13,8 +13,8 @@ icon        = images/udp.png
 small-icon  = images/udp-16x16.png
 terminal    = false
 
-session-class         = UdpSession
-log-representer-class = UdpLogRepresenter
+session-class        = UdpSession
+log-representer-func = representUdpLog
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 

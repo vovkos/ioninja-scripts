@@ -5,15 +5,15 @@
 
 [plugin]
 
-name        = $pluginName
-description = "$pluginDescription"
-id          = $pluginId
-guid        = $pluginGuid
+name        = $(pluginName)
+description = "$(pluginDescription)"
+id          = $(pluginId)
+guid        = $(pluginGuid)
 icon        = images/plugin.png
 small-icon  = images/plugin-16x16.png
 
-layer-class = $layerClass
+layer-class = $(layerClass)
 
 [scripts]
 
-$layerClass.jnc
+$(layerFile)

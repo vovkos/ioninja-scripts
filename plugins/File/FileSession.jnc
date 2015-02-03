@@ -3,6 +3,9 @@
 // Generic file session
 //
 
+import "doc_Plugin.jnc"
+import "io_FileStream.jnc"
+
 //.............................................................................
 
 class FileSession: doc.Session
@@ -95,7 +98,7 @@ FileSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
 	
-	pluginHost.m_log.m_representer = new FileLogRepresenter;
+	pluginHost.m_log.m_representerFunc = representFileLog;
 
 	m_state = State.Closed;
 	m_access = Access.ReadWrite;
@@ -118,10 +121,10 @@ FileSession.createUi ()
 	m_iconTable [IconId.Close] = new gui.Icon ("images/close.png");
 	m_iconTable [IconId.Clear] = new gui.Icon ("images/clear.png");
 
-	m_actionTable [ActionId.Open] = m_pluginHost.createAction ("Open", m_iconTable [IconId.Open]);
+	m_actionTable [ActionId.Open] = createAction ("Open", m_iconTable [IconId.Open]);
 	m_actionTable [ActionId.Open].m_onTriggered += onOpen;
 
-	m_actionTable [ActionId.Clear] = m_pluginHost.createAction ("Clear", m_iconTable [IconId.Clear]);
+	m_actionTable [ActionId.Clear] = createAction ("Clear", m_iconTable [IconId.Clear]);
 	m_actionTable [ActionId.Clear].m_onTriggered += clear;
 	m_actionTable [ActionId.Clear].m_isEnabled = false;
 
@@ -131,7 +134,7 @@ FileSession.createUi ()
 
 	// property grid
 
-	m_fileNameProp = m_pluginHost.createStringProperty (
+	m_fileNameProp = m_pluginHost.m_propertyGrid.createStringProperty (
 		"File name",
 		"Specify the file name to open"
 		);
@@ -143,7 +146,7 @@ FileSession.createUi ()
 		{ "Write-only",  Access.WriteOnly },
 	};
 
-	m_accessProp = m_pluginHost.createEnumProperty (
+	m_accessProp = m_pluginHost.m_propertyGrid.createEnumProperty (
 		"Access mode",
 		"Access mode for the file",
 		accessModeTable,
@@ -171,14 +174,14 @@ bool FileSession.open () throws
 	m_file.open (fileName);
 	
 	char const* p = $"$(m_file.m_kind; B)$fileName";
-	m_pluginHost.writeLog (FileLogRecordCode.Opened, p, dynamic sizeof (*p));
+	writeLog (FileLogRecordCode.Opened, p, dynamic sizeof (*p));
 	m_fileName = fileName;
 	m_state = State.Opened;
 	return true;
 
 catch:
 	jnc.Error const* error = jnc.getLastError ();
-	m_pluginHost.writeLog (
+	writeLog (
 		FileLogRecordCode.OpenError,
 		error,
 		error.m_size
@@ -193,7 +196,7 @@ FileSession.close ()
 	if (m_state != State.Opened)
 		return;
 
-	m_pluginHost.writeLog (FileLogRecordCode.Closed, m_fileName, strlen (m_fileName));
+	writeLog (FileLogRecordCode.Closed, m_fileName, strlen (m_fileName));
 	m_file.close ();
 	m_state = State.Closed;
 }
@@ -245,7 +248,7 @@ size_t FileSession.transmit (
 
 	size_t result = try m_file.write (p, size);
 	if (result != -1)
-		m_pluginHost.writeLog (log.StdRecordCode.Tx, p, result);
+		writeLog (log.StdRecordCode.Tx, p, result);
 
 	return result;
 }
@@ -261,18 +264,18 @@ FileSession.onFileStreamEvent (io.FileStreamEventParams const* params)
 		heap char buffer [512];
 		size_t result = try m_file.read (buffer, sizeof (buffer));
 		if (result != -1)
-			m_pluginHost.writeLog (log.StdRecordCode.Rx, buffer, result);
+			writeLog (log.StdRecordCode.Rx, buffer, result);
 		break;	
 		
 	case io.FileStreamEvent.Eof:
-		m_pluginHost.writeLog (FileLogRecordCode.Eof);
+		writeLog (FileLogRecordCode.Eof);
 
 		if (m_file.m_kind != io.FileStreamKind.Disk)
 			close ();
 		break;
 
 	case io.FileStreamEvent.ReadError:
-		m_pluginHost.writeLog (FileLogRecordCode.ReadError, params.m_error, params.m_error.m_size);
+		writeLog (FileLogRecordCode.ReadError, params.m_error, params.m_error.m_size);
 		close ();
 		break;		
 	}

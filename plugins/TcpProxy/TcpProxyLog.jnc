@@ -32,20 +32,7 @@ enum TcpProxyPartCode
 
 //.............................................................................
 
-class TcpProxyLogRepresenter: log.Representer
-{
-	override bool represent (
-		log.RepresenterTarget* target,
-		uint_t recordCode,
-		void const* p,
-		size_t size,
-		uint_t foldFlags
-		);
-}
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-bool TcpProxyLogRepresenter.represent (
+bool representTcpProxyLog (
 	log.RepresenterTarget* target,
 	uint_t recordCode,
 	void const* p,

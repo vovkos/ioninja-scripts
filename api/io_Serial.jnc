@@ -115,6 +115,32 @@ struct SerialPortDesc
 
 SerialPortDesc const* createSerialPortDescList (size_t* count = null);
 
+gui.EnumProperty* createSerialPortProperty (
+	gui.PropertyGrid* propertyGrid,
+	char const* name,
+	char const* toolTipText,
+	SerialPortDesc const* portList,
+	size_t portCount
+	)
+{
+	gui.EnumPropertyOption* portOptionArray = new gui.EnumPropertyOption [portCount];
+	gui.EnumPropertyOption* portOption = portOptionArray;
+
+	io.SerialPortDesc const* port = portList;
+	for (; port; port = port->m_next, portOption++)
+	{
+		portOption.m_text = port->m_name;
+		portOption.m_value = 0;
+	}
+
+	return propertyGrid.createEnumProperty (
+		name,
+		toolTipText,
+		portOptionArray,
+		portCount
+		);
+}
+
 //.............................................................................
 
 } // namespace io {

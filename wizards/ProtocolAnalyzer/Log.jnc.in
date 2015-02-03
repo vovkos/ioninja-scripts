@@ -15,20 +15,7 @@ enum $(logRecordCodeEnum)
 
 //.............................................................................
 
-class $logRepresenterClass: log.Representer
-{
-	override bool represent (
-		log.RepresenterTarget* target,
-		uint_t recordCode,
-		void const* p,
-		size_t size,
-		uint_t foldFlags
-		);
-}
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-bool $logRepresenterClass.represent (
+bool $(logRepresenterFunc) (
 	log.RepresenterTarget* target,
 	uint_t recordCode,
 	void const* p,
@@ -36,8 +23,6 @@ bool $logRepresenterClass.represent (
 	uint_t foldFlags
 	)
 {
-	printf ("$logRepresenterClass.represent ()\n");
-
 	switch (recordCode)
 	{
 	case $logRecordCodeEnum.Open:

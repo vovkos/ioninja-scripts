@@ -1,6 +1,6 @@
 //.............................................................................
 //
-// $(pluginName) plugin
+// Hey! This is $(pluginName) plugin
 //
 
 [plugin]
@@ -8,16 +8,15 @@
 name        = $(pluginName)
 description = $(pluginDescription)
 id          = $(pluginId)
-group       = other
-guid        = $(guid)
+group       = $(pluginGroup)
+guid        = $(pluginGuid)
 icon        = images/plugin.png
 small-icon  = images/plugin-16x16.png
 
-session-class         = $(sessionClass)
-log-representer-class = $(logRepresenterClass)
+session-class        = $(sessionClass)
+log-representer-func = $(logRepresenterFunc)
 
 [scripts]
 
-$(sessionFile)
-$(logFile)
+$(pluginFileList)
 

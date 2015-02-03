@@ -51,9 +51,50 @@ struct NetworkAdapterDesc
 	NetworkAdapterAddress m_dhcpServer;
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+//.............................................................................
 
 NetworkAdapterDesc const* createNetworkAdapterDescList (size_t* count = null);
+
+gui.EnumProperty* createNetworkAdapterProperty (
+	gui.PropertyGrid* propertyGrid,
+	char const* name,
+	char const* toolTipText
+	)
+{
+	size_t adapterCount;
+	NetworkAdapterDesc const* adapterList = createNetworkAdapterDescList (&adapterCount);
+
+	adapterCount += 2; // include 'All adapters' and 'Loopback adapter'
+	gui.EnumPropertyOption* adapterOptionArray = new gui.EnumPropertyOption [adapterCount];
+
+	gui.EnumPropertyOption* adapterOption = adapterOptionArray;
+	adapterOption.m_text = "0.0.0.0 (All adapters)";
+	adapterOption.m_value = 0;
+	adapterOption++;
+
+	adapterOption.m_text = "127.0.0.1 (Loopback adapter)";
+	adapterOption.m_value = 0x7f000001;
+	adapterOption++;
+
+	io.NetworkAdapterDesc const* adapter = adapterList;
+	for (; adapter; adapter = adapter->m_next, adapterOption++)
+	{
+		adapterOption.m_text = jnc.format (
+			"%s (%s)",
+			io.formatAddress_Ip4 (&adapter->m_address.m_address),
+			adapter->m_description
+			);
+
+		adapterOption.m_value = adapter->m_address.m_address.m_i32;
+	}
+
+	return propertyGrid.createEnumProperty (		
+		name,
+		toolTipText,
+		adapterOptionArray,
+		adapterCount
+		);
+}
 
 //.............................................................................
 

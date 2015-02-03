@@ -3,6 +3,8 @@
 // Echo layer
 //
 
+import "doc_Plugin.jnc"
+
 //.............................................................................
 
 class EchoLayer: doc.Layer

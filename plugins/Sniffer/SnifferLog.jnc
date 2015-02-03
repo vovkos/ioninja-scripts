@@ -3,6 +3,8 @@
 // Sniffer log packet declarations and representer
 //
 
+import "io_Packet.jnc"
+
 //.............................................................................
 
 enum SnifferLogRecordCode
@@ -18,20 +20,7 @@ enum SnifferLogRecordCode
 
 //.............................................................................
 
-class SnifferLogRepresenter: log.Representer
-{
-	override bool represent (
-		log.RepresenterTarget* target,
-		uint_t recordCode,
-		void const* p,
-		size_t size,
-		uint_t foldFlags
-		);
-}
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-bool SnifferLogRepresenter.represent (
+bool representSnifferLog (
 	log.RepresenterTarget* target,
 	uint_t recordCode,
 	void const* p,

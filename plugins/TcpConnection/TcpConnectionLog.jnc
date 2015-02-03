@@ -37,20 +37,7 @@ struct TcpDisconnectLogRecordParams
 
 //.............................................................................
 
-class TcpConnectionLogRepresenter: log.Representer
-{
-	override bool represent (
-		log.RepresenterTarget* target,
-		uint_t recordCode,
-		void const* p,
-		size_t size,
-		uint_t foldFlags
-		);
-}
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-bool TcpConnectionLogRepresenter.represent (
+bool representTcpConnectionLog (
 	log.RepresenterTarget* target,
 	uint_t recordCode,
 	void const* p,

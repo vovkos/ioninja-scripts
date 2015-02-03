@@ -3,6 +3,9 @@
 // Ninja document model: plugins (sessions and protocols)
 //
 
+import "doc_PluginHost.jnc"
+import "doc_Storage.jnc"
+
 namespace doc {
 
 //.............................................................................
@@ -41,9 +44,59 @@ class Plugin
 		void const* p,
 		size_t size
 		) throws;
+
+	writeLog (
+		uint_t recordCode,
+		void const* p,
+		size_t size
+		)
+	{
+		m_pluginHost.m_log.m_writer.write (recordCode, p, size);
+	}
+
+	writeLog (uint_t recordCode)
+	{
+		m_pluginHost.m_log.m_writer.write (recordCode, null, 0);
+	}
+
+	gui.Action* createAction (
+		char const* text,
+		gui.Icon* icon = null,
+		bool isCheckable = false,
+		bool isChecked = false
+		);
+
+	gui.Action* createAction (
+		char const* text,
+		char const* iconFileName,
+		bool isCheckable = false,
+		bool isChecked = false		
+		)
+	{
+		return createAction (text, new gui.Icon (iconFileName), isCheckable, isChecked);
+	}
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+gui.Action* Plugin.createAction (
+	char const* text,
+	gui.Icon* icon,
+	bool isCheckable,
+	bool isChecked
+	)
+{
+	gui.Action* action = new gui.Action (text, icon);
+	action.m_isCheckable = isCheckable;
+	if (isCheckable)
+		action.m_isChecked = isChecked;	
+	
+	m_pluginHost.m_menu.addAction (action);
+	m_pluginHost.m_toolBar.addAction (action);
+	return action;
+}
+
+//.............................................................................
 
 class Session: Plugin
 {
