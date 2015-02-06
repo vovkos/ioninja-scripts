@@ -1,16 +1,13 @@
 //.............................................................................
 //
-// Ppp log packet declarations and representer
+// $(pluginName) log record declarations and representer
 //
 
 //.............................................................................
 
 enum $(logRecordCodeEnum)
 {
-	Open,
-	Close,
-	Connect,
-	Disconnect,
+	InBandCommand = 0x100,
 }
 
 //.............................................................................
@@ -25,32 +22,14 @@ bool $(logRepresenterFunc) (
 {
 	switch (recordCode)
 	{
-	case $logRecordCodeEnum.Open:
-		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = StdLogColor.Info;
-		target.addHyperText ("Open in-band command");
+	case MyProtoLogRecord.InBandCommand:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText ($"In-band command: $((char const*) p)");
 		break;
 
-	case $logRecordCodeEnum.Close:
-		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = StdLogColor.Info;
-		target.addHyperText ("Close in-band command");
-		break;
-
-	case $logRecordCodeEnum.Connect:
-		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = StdLogColor.Info;
-		target.addHyperText ("Connect in-band command");
-		break;
-
-	case $logRecordCodeEnum.Disconnect:
-		target.m_lineAttr.m_iconIdx = StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = StdLogColor.Info;
-		target.addHyperText ("Disconnect in-band command");
-		break;
-
-	default:
-		return false;
+	default:		
+		return false; // fallback to default representer
 	}
 
 	return true;

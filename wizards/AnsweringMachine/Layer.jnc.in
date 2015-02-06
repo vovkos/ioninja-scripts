@@ -3,11 +3,30 @@
 // $(pluginName) layer
 //
 
+import "doc_Plugin.jnc"
+
 //.............................................................................
 
 class $(layerClass): doc.Layer
 {
-	construct (doc.PluginHost* pluginHost);
+	enum CommandId
+	{
+		UnknownCommand = 0,
+		About,
+		Version,
+		Help, 
+	}
+
+protected:
+    char m_commandBuffer [256];
+    size_t m_commandSize;
+
+public:	
+	construct (doc.PluginHost* pluginHost)
+    {
+        basetype.construct (pluginHost);
+        pluginHost.m_log.attachListener (onLogRecord @ pluginHost.m_mainThreadScheduler);
+    }
 
 protected:
 	onLogRecord (
@@ -15,26 +34,109 @@ protected:
 		uint_t recordCode,
 		void const* p,
 		size_t size
-		);
+		)
+    {
+        if (recordCode == log.StdRecordCode.Rx)
+            onRx (p, size);
+    }
+
+    onRx (
+        void const* p,
+		size_t size
+        );
+        
+    appendCommand (
+        void const* p,
+		size_t size
+        );
+        
+	processCommand ();
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-$(layerClass).construct (doc.PluginHost* pluginHost)
-{
-	basetype.construct (pluginHost);
-	pluginHost.m_log.attachListener (onLogRecord @ pluginHost.m_mainThreadScheduler);
-}
-
-$(layerClass).onLogRecord (
-	uint64_t timestamp,
-	uint_t recordCode,
+$(layerClass).onRx (
 	void const* p,
 	size_t size
 	)
 {
-	if (recordCode == log.StdRecordCode.Rx)
-		try transmit (p, size);
+	void const* end = p + size;
+	while (p < end)
+	{	
+		// accumulate command until CR/LF
+		
+		void const* p0 = p;
+		for (; p < end; p++)
+			switch (*(char const*) p)
+			{
+			case '\r':
+			case '\n':
+				break2;				
+			}
+		
+		if (p >= end)
+		{
+			appendCommand (p0, end - p0);
+			break;
+		}
+
+		appendCommand (p0, p - p0);
+
+		// process command and move to the next chunk 
+		
+		if (m_commandSize)
+		{
+			processCommand ();
+			m_commandSize = 0;
+		}
+		
+		p++; // include CR/LF character
+	}
+}
+
+$(layerClass).appendCommand (
+    void const* p,
+    size_t size
+    )
+{
+	size_t leftover = sizeof (m_commandBuffer) - 1 - m_commandSize;
+	if (!leftover)
+		return;
+
+	if (size > leftover)
+		size = leftover;
+
+	memcpy (&m_commandBuffer [m_commandSize], p, size);
+	m_commandSize += size;
+}
+
+$(layerClass).processCommand ()
+{
+	// ensure zero-temrination
+	
+	assert (m_commandSize < sizeof (m_commandBuffer));
+	m_commandBuffer [m_commandSize] = 0;
+
+	// analyze command
+	
+	CommandId commandId = 
+		stricmp (m_commandBuffer, "about") == 0 ? CommandId.About :
+		stricmp (m_commandBuffer, "version") == 0 ? CommandId.Version :
+		stricmp (m_commandBuffer, "help") == 0 ? CommandId.Help :
+		CommandId.UnknownCommand;
+
+	// send reply
+		
+	static char const* replyTable [] =
+	{
+		"Unknown command\r\n",
+		"IO Ninja - My Answering Machine\r\n",
+		"Version 1.0.0\r\n",
+		"This plugin is a starting point for writing your test utility\r\n",
+	};
+
+	char const* reply = replyTable [commandId];	
+	try transmit (reply, strlen (reply));
 }
 
 //.............................................................................

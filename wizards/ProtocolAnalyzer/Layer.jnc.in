@@ -1,22 +1,19 @@
 //.............................................................................
 //
-// $pluginName layer
+// $(pluginName) layer
 //
+
+import "doc_Plugin.jnc"
 
 //.............................................................................
 
-class $layerClass: 
+class $(layerClass): 
 	doc.Layer,
 	log.Converter
 {
 protected:
-	enum State
-	{
-		Normal,
-		Escape,
-	}
-	
-	State m_state;
+	$(analyzerClass) m_txAnalyzer;
+	$(analyzerClass) m_rxAnalyzer;
 	
 public:
 	construct (doc.PluginHost* pluginHost);
@@ -32,17 +29,15 @@ public:
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-$layerClass.construct (doc.PluginHost* pluginHost)
+$(layerClass).construct (doc.PluginHost* pluginHost)
 {
 	basetype1.construct (pluginHost);	
 
-	pluginHost.m_log.m_representer = new $logRepresenterClass;
-	pluginHost.m_log.attachFilter (this);
-	
-	m_state = State.Normal;
+	pluginHost.m_log.attachConverter (this);
+	pluginHost.m_log.m_representerFunc = $(logRepresenterFunc);
 }
 
-bool $layerClass.convert (
+bool $(layerClass).convert (
 	log.Writer* writer,
 	uint64_t timestamp,
 	uint_t recordCode,
@@ -50,57 +45,19 @@ bool $layerClass.convert (
 	size_t size
 	)
 {
-	if (recordCode != log.StdRecordCode.Tx)
-		return false;
-
-	void const* p0 = p;
-	void const* end = p + size;	
-
-	for (; p < end; p++)
+	switch (recordCode)
 	{
-		char c = *(char const*) p;		
-		if (m_state != State.Escape)
-		{
-			if (c == '\\')
-			{
-				if (p > p0)
-					writer.write (timestamp, recordCode, p0, p - p0);
-				
-				m_state = State.Escape;
-			}
-		}
-		else
-		{
-			p0 = p + 1;
+	case log.StdRecordCode.Tx:
+		m_txAnalyzer.write (writer, timestamp, recordCode, p, size);
+		break;
 
-			switch (c)
-			{
-			case 'o':
-				writer.write (timestamp, $logRecordCodeEnum.Open, null, 0);
-				break;
+	case log.StdRecordCode.Rx:
+		m_rxAnalyzer.write (writer, timestamp, recordCode, p, size);
+		break;
 
-			case 'c':
-				writer.write (timestamp, $logRecordCodeEnum.Close, null, 0);
-				break;
-
-			case 'e':
-				writer.write (timestamp, $logRecordCodeEnum.Connect, null, 0);
-				break;
-
-			case 'd':
-				writer.write (timestamp, $logRecordCodeEnum.Disconnect, null, 0);
-				break;
-				
-			default:
-				p0 = p;
-			}
-			
-			m_state = State.Normal;
-		}
+	default:
+		return false; // don't convert other records
 	}
-
-	if (p > p0)
-		writer.write (timestamp, recordCode, p0, p - p0);
 	
 	return true;
 }

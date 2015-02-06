@@ -35,10 +35,10 @@ value       = $(pluginPrefix)Layer
 rebuildOn   = pluginPrefix
 
 [variable]
-id          = layerFile
-name        = "Layer File"
+id          = analyzerClass
+name        = "Stream Analyzer Class"
 readOnly    = true
-value       = $(pluginPrefix)Layer.jnc
+value       = $(pluginPrefix)StreamAnalyzer
 rebuildOn   = pluginPrefix
 
 [variable]
@@ -49,10 +49,24 @@ value       = $(pluginPrefix)LogRecord
 rebuildOn   = pluginPrefix
 
 [variable]
-id          = logRepresenterClass
-name        = "Log Representer Class"
+id          = logRepresenterFunc
+name        = "Log Representer Function"
 readOnly    = true
-value       = $(pluginPrefix)LogRepresenter
+value       = represent$(pluginPrefix)Log
+rebuildOn   = pluginPrefix
+
+[variable]
+id          = layerFile
+name        = "Layer File"
+readOnly    = true
+value       = $(pluginPrefix)Layer.jnc
+rebuildOn   = pluginPrefix
+
+[variable]
+id          = analyzerFile
+name        = "Stream Analyzer File"
+readOnly    = true
+value       = $(pluginPrefix)StreamAnalyzer.jnc
 rebuildOn   = pluginPrefix
 
 [variable]
@@ -65,10 +79,19 @@ rebuildOn   = pluginPrefix
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 [file]
+source = Layer.njplg.in
+target = $(projectName).njplg
+interpolate = true
+
+[file]
 source = Layer.jnc.in
 target = $(layerFile)
 interpolate = true
-script = true
+
+[file]
+source = Analyzer.jnc.in
+target = $(analyzerFile)
+interpolate = true
 
 [file]
 source = Log.jnc.in
@@ -78,4 +101,4 @@ script = true
 
 [file]
 source = images
-target = $(images)
+target = images

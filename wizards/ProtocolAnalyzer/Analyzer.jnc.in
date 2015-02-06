@@ -1,0 +1,106 @@
+//.............................................................................
+//
+// $(pluginName) stream analyzer
+//
+
+//.............................................................................
+
+class $(analyzerClass)
+{
+protected:
+	enum State
+	{
+		Idle,
+		Command,
+	}
+	
+	State m_state;
+	char m_commandBuffer [256];
+    size_t m_commandSize;
+
+public:
+	write (
+		log.Writer* writer,
+		uint64_t timestamp,
+		uint_t recordCode,
+		void const* p,
+		size_t size
+		);
+		
+protected:
+    appendCommand (
+        void const* p,
+		size_t size
+        );	
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+$(analyzerClass).write (
+	log.Writer* writer,
+	uint64_t timestamp,
+	uint_t recordCode,
+	void const* p,
+	size_t size
+	)
+{
+	void const* p0 = p;		
+	void const* end = p + size;	
+
+	for (; p < end; p++)
+	{
+		size_t offset;
+		
+		switch (m_state)
+		{
+		case State.Idle:
+			offset = memchr (p, '<', end - p);
+			if (offset == -1)
+				break2;
+
+			m_state = State.Command;
+			p += offset + 1;
+			
+			// and fall through 
+			
+		case State.Command:
+			offset = memchr (p, '>', end - p);
+			if (offset == -1)
+			{
+				appendCommand (p, end - p);
+				break2;			
+			}
+			
+			appendCommand (p, offset);			
+			p += offset + 1;
+			
+			writer.write (timestamp, recordCode, p0, p - p0);
+			writer.write (timestamp, MyProtoLogRecord.InBandCommand, m_commandBuffer, m_commandSize);
+			
+			p0 = p;
+			m_commandSize = 0;
+			m_state = State.Idle;
+			break;
+		}
+	}
+	
+	writer.write (timestamp, recordCode, p0, end - p0);
+}
+
+$(analyzerClass).appendCommand (
+    void const* p,
+    size_t size
+    )
+{
+	size_t leftover = sizeof (m_commandBuffer) - 1 - m_commandSize;
+	if (!leftover)
+		return;
+
+	if (size > leftover)
+		size = leftover;
+
+	memcpy (&m_commandBuffer [m_commandSize], p, size);
+	m_commandSize += size;
+}
+
+//.............................................................................
