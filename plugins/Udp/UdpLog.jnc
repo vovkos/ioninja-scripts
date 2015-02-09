@@ -10,8 +10,8 @@ enum UdpRecordCode
 {
 	Open,
 	Close,
-	Tx,
-	Rx,
+	TxPacket,
+	RxPacket,
 	Error,
 	Resolving,
 	ResolveCompleted,
@@ -49,44 +49,27 @@ bool representUdpLog (
 			target.addHyperText($"Socket at \e[34m$((char const*) p)\e[m closed");
 			break;
 			
-		case UdpRecordCode.Tx:
-			char const* remoteAddress = try io.formatSocketAddress ((io.SocketAddress const*) p);
-			void const* data = p + sizeof (io.SocketAddress);
-						
+		case UdpRecordCode.TxPacket:
+			char const* remoteAddress = try io.formatSocketAddress ((io.SocketAddress const*) p);			
 			target.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
-			target.m_lineAttr.m_iconIdx = log.StdLogIcon.Tx;
+			target.m_lineAttr.m_iconIdx = log.StdLogIcon.TxPacket;
 			target.m_lineAttr.m_backColor = gui.StdColor.PastelGray;
 			target.addHyperText ($"To \e[34m$remoteAddress");
-						
-			target.m_lineAttr.m_flags = 0;
-			target.m_lineAttr.m_iconIdx = -1;
-			target.m_lineAttr.m_backColor = gui.StdColor.White;
-			target.m_lineAttr.m_textColor = gui.StdColor.Blue;
-			target.addBin (data, size - sizeof (io.SocketAddress));
 			break;
 			
-		case UdpRecordCode.Rx:
+		case UdpRecordCode.RxPacket:
 			char const* remoteAddress = try io.formatSocketAddress ((io.SocketAddress const*) p);
-			void const* data = p + sizeof (io.SocketAddress);
-			
 			target.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
-			target.m_lineAttr.m_iconIdx = log.StdLogIcon.Rx;
+			target.m_lineAttr.m_iconIdx = log.StdLogIcon.RxPacket;
 			target.m_lineAttr.m_backColor = gui.StdColor.PastelGray;
 			target.addHyperText ($"From \e[34m$remoteAddress");
-			
-			target.m_lineAttr.m_flags = 0;
-			target.m_lineAttr.m_iconIdx = -1;
-			target.m_lineAttr.m_backColor = gui.StdColor.White;
-			target.m_lineAttr.m_textColor = gui.StdColor.Green;
-			target.addBin (data, size - sizeof (io.SocketAddress));
 			break;
 			
 		case UdpRecordCode.Error:
+			jnc.Error const* Error = (jnc.Error const*) p;
 			target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
 			target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 			target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-
-			jnc.Error const* Error = (jnc.Error const*) p;
 			target.addHyperText (UdpRecordPartCode.ResolveCompleted, $"error ($(Error.m_description))");
 			break;
 			
