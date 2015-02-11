@@ -35,58 +35,58 @@ bool representUdpLog (
 {
 	switch (recordCode)
 	{	
-		case UdpRecordCode.Open:
-			char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
-			target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
-			target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
-			target.m_lineAttr.m_backColor = log.StdLogColor.Start;
-			target.addHyperText($"Opened socket at \e[34m$addressString");
-			break;
-			
-		case UdpRecordCode.Close:
-			target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
-			target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
-			target.addHyperText($"Socket at \e[34m$((char const*) p)\e[m closed");
-			break;
-			
-		case UdpRecordCode.TxPacket:
-			char const* remoteAddress = try io.formatSocketAddress ((io.SocketAddress const*) p);			
-			target.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
-			target.m_lineAttr.m_iconIdx = log.StdLogIcon.TxPacket;
-			target.m_lineAttr.m_backColor = gui.StdColor.PastelGray;
-			target.addHyperText ($"To \e[34m$remoteAddress");
-			break;
-			
-		case UdpRecordCode.RxPacket:
-			char const* remoteAddress = try io.formatSocketAddress ((io.SocketAddress const*) p);
-			target.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
-			target.m_lineAttr.m_iconIdx = log.StdLogIcon.RxPacket;
-			target.m_lineAttr.m_backColor = gui.StdColor.PastelGray;
-			target.addHyperText ($"From \e[34m$remoteAddress");
-			break;
-			
-		case UdpRecordCode.Error:
-			jnc.Error const* Error = (jnc.Error const*) p;
-			target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
-			target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
-			target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-			target.addHyperText (UdpRecordPartCode.ResolveCompleted, $"error ($(Error.m_description))");
-			break;
-			
-		case UdpRecordCode.Resolving:
-			char const* addressString = (char const*) p;
-			target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-			target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-			target.addHyperText (UdpRecordPartCode.Resolving, $"Resolving \e[34m$addressString\e[m...");
-			break;
-			
-		case UdpRecordCode.ResolveCompleted:
-			char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
-			target.addHyperText (UdpRecordPartCode.ResolveCompleted, $"ok (\e[34m$addressString\e[m)");
-			break;
-			
-		default:
-			return false;
+	case UdpRecordCode.Open:
+		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
+		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
+		target.addHyperText($"Opened socket at \e[34m$addressString");
+		break;
+
+	case UdpRecordCode.Close:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
+		target.addHyperText($"Socket at \e[34m$((char const*) p)\e[m closed");
+		break;
+
+	case UdpRecordCode.TxPacket:
+		char const* remoteAddress = try io.formatSocketAddress ((io.SocketAddress const*) p);			
+		target.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.TxPacket;
+		target.m_lineAttr.m_backColor = gui.StdColor.PastelGray;
+		target.addHyperText ($"To \e[34m$remoteAddress");
+		break;
+
+	case UdpRecordCode.RxPacket:
+		char const* remoteAddress = try io.formatSocketAddress ((io.SocketAddress const*) p);
+		target.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.RxPacket;
+		target.m_lineAttr.m_backColor = gui.StdColor.PastelGray;
+		target.addHyperText ($"From \e[34m$remoteAddress");
+		break;
+
+	case UdpRecordCode.Error:
+		jnc.Error const* Error = (jnc.Error const*) p;
+		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
+		target.addHyperText (UdpRecordPartCode.ResolveCompleted, $"error ($(Error.m_description))");
+		break;
+
+	case UdpRecordCode.Resolving:
+		char const* addressString = (char const*) p;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText (UdpRecordPartCode.Resolving, $"Resolving \e[34m$addressString\e[m...");
+		break;
+
+	case UdpRecordCode.ResolveCompleted:
+		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
+		target.addHyperText (UdpRecordPartCode.ResolveCompleted, $"ok (\e[34m$addressString\e[m)");
+		break;
+
+	default:
+		return false;
 	}
 	
 	return true;

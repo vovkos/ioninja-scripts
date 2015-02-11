@@ -67,8 +67,9 @@ protected:
 	
 	// property grid
 	
-	gui.IntProperty* m_localPortProp;
 	gui.StringProperty* m_remoteAddressProp;
+	gui.BoolProperty* m_autoRemoteAddressProp;
+	gui.IntProperty* m_localPortProp;
 	gui.EnumProperty* m_adapterProp;
 		
 public:
@@ -125,7 +126,12 @@ UdpSession.createGui()
 {
 	// toolbar
 
-	m_pluginHost.m_toolBar.addLabel ("Local port: ");
+	m_pluginHost.m_toolBar.addLabel ("Remote address: ");
+	m_remoteAddressCombo = m_pluginHost.m_toolBar.addComboBox (-1);
+	m_remoteAddressCombo.m_isEditable = true;
+	m_remoteAddressCombo.m_onChanged += onRemoteAddressChanged;
+
+	m_pluginHost.m_toolBar.addLabel (" Local port: ");
 	m_localPortCombo = m_pluginHost.m_toolBar.addComboBox ();
 	m_localPortCombo.m_isEditable = true;
 	m_localPortCombo.m_onChanged += onLocalPortChanged;
@@ -136,13 +142,6 @@ UdpSession.createGui()
 	m_actionTable [ActionId.Open] = createAction("Open socket", m_iconTable [IconId.Open]);
 	m_actionTable [ActionId.Open].m_onTriggered += onOpen;
 
-	m_pluginHost.m_toolBar.addSeparator ();
-
-	m_pluginHost.m_toolBar.addLabel ("Remote address: ");
-	m_remoteAddressCombo = m_pluginHost.m_toolBar.addComboBox (-1);
-	m_remoteAddressCombo.m_isEditable = true;
-	m_remoteAddressCombo.m_onChanged += onRemoteAddressChanged;
-
 	// status bar
 
 	m_statusPaneTable [StatusPaneId.State] = m_pluginHost.m_statusBar.addPane (, 80);
@@ -152,6 +151,11 @@ UdpSession.createGui()
 	m_remoteAddressProp = m_pluginHost.m_propertyGrid.createStringProperty (
 		"Remote address",
 		"Remote address to send to (IP-address or host-name followed by ':' port)"
+		);
+
+	m_autoRemoteAddressProp = m_pluginHost.m_propertyGrid.createBoolProperty (
+		"Auto-switch remote address",
+		"Automatically switch remote address upon receiving a datagram"
 		);
 
 	m_localPortProp = m_pluginHost.m_propertyGrid.createIntProperty (
@@ -217,15 +221,17 @@ UdpSession.closeSocket ()
 
 UdpSession.load (doc.Storage* storage)
 {	
-	m_localPortCombo.m_editText = storage.readString ("localPort");
 	m_remoteAddressCombo.m_editText = storage.readString ("remoteAddress");	
+	m_autoRemoteAddressProp.m_value = storage.readString ("autoRemoteAddress");	
+	m_localPortCombo.m_editText = storage.readString ("localPort");
 	m_adapterProp.m_value = storage.readInt ("adapterIp");
 }
 
 UdpSession.save (doc.Storage* storage)
 {
-	storage.writeString ("localPort", m_localPortCombo.m_editText);
 	storage.writeString ("remoteAddress", m_remoteAddressCombo.m_editText);
+	storage.writeInt ("autoRemoteAddress", m_autoRemoteAddressProp.m_value);
+	storage.writeString ("localPort", m_localPortCombo.m_editText);
 	storage.writeInt ("adapterIp", m_adapterProp.m_value);
 }
 
@@ -244,8 +250,8 @@ bool UdpSession.applyProperties () throws
 
 UdpSession.restoreDefaultProperties ()
 {
-	m_localPortProp.m_value = 1000;
 	m_remoteAddressProp.m_value = "127.0.0.1:1001";
+	m_localPortProp.m_value = 0;
 	m_adapterProp.m_value = 0;
 }
 
@@ -334,6 +340,9 @@ UdpSession.onSocketEvent(io.SocketEventParams const* params)
 		size_t size = try m_socket.recvFrom (buffer, sizeof (buffer), &remoteAddress);
 		if (size == -1)
 			break;
+		
+		if (m_autoRemoteAddressProp.m_value)
+			m_remoteAddressCombo.m_editText = try io.formatSocketAddress (&remoteAddress);
 			
 		writeLog (UdpRecordCode.RxPacket, &remoteAddress, sizeof (io.SocketAddress));
 		writeLog (log.StdRecordCode.Rx, buffer, size);
