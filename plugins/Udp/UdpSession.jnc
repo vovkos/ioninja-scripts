@@ -28,6 +28,7 @@ protected:
 	
 	enum ActionId
 	{
+		AutoRemoteAddress,
 		Open,
 		_Count,
 	}
@@ -36,6 +37,7 @@ protected:
 	{
 		Open,
 		Close,
+		Compass,
 		_Count,
 	}
 
@@ -126,18 +128,22 @@ UdpSession.createGui()
 {
 	// toolbar
 
+	m_iconTable [IconId.Open] = new gui.Icon ("images/open.png");
+	m_iconTable [IconId.Close] = new gui.Icon ("images/close.png");
+	m_iconTable [IconId.Compass] = new gui.Icon ("images/compass.png");
+
 	m_pluginHost.m_toolBar.addLabel ("Remote address: ");
 	m_remoteAddressCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_remoteAddressCombo.m_isEditable = true;
 	m_remoteAddressCombo.m_onChanged += onRemoteAddressChanged;
 
+	m_actionTable [ActionId.AutoRemoteAddress] = createAction("Auto-switch remote address", m_iconTable [IconId.Compass]);
+	m_actionTable [ActionId.AutoRemoteAddress].m_isCheckable = true;
+
 	m_pluginHost.m_toolBar.addLabel (" Local port: ");
 	m_localPortCombo = m_pluginHost.m_toolBar.addComboBox ();
 	m_localPortCombo.m_isEditable = true;
 	m_localPortCombo.m_onChanged += onLocalPortChanged;
-
-	m_iconTable [IconId.Open] = new gui.Icon ("images/open.png");
-	m_iconTable [IconId.Close] = new gui.Icon ("images/close.png");
 
 	m_actionTable [ActionId.Open] = createAction("Open socket", m_iconTable [IconId.Open]);
 	m_actionTable [ActionId.Open].m_onTriggered += onOpen;
@@ -188,18 +194,19 @@ UdpSession.openSocket ()
 	char const* portString = m_localPortCombo.m_editText;
 	m_localPortCombo.addEditTextToHistory ();
 
-	io.SocketAddress localAddress;
-	localAddress.m_family = io.AddressFamily.Ip4;
-	localAddress.m_ip4.m_address.m_i32 = m_adapterProp.m_value;
-	localAddress.m_ip4.m_port = (uint16_t) atoi (portString);
+	io.SocketAddress address;
+	address.m_family = io.AddressFamily.Ip4;
+	address.m_ip4.m_address.m_i32 = m_adapterProp.m_value;
+	address.m_ip4.m_port = (uint16_t) atoi (portString);
 
-	if (!try m_socket.open (io.Protocol.Udp, &localAddress))
+	if (!try m_socket.open (io.Protocol.Udp, &address))
 	{
 		reportError ();
 		return;
 	}
-
-	writeLog (UdpRecordCode.Open, &localAddress, sizeof (localAddress));
+	
+	address = m_socket.m_address;
+	writeLog (UdpRecordCode.Open, &address, sizeof (address));
 
 	m_state = State.Opened;
 }
@@ -209,13 +216,13 @@ UdpSession.closeSocket ()
 	if (m_state == State.Closed)
 		return;
 
+	io.SocketAddress address = m_socket.m_address;
 	m_socket.close ();
 
 	m_localPortCombo.m_backgroundColor = gui.StdColor.White;
 
-	char const* port = m_localPortCombo.m_editText;
-	writeLog (UdpRecordCode.Close, port, strlen (port));
-
+	writeLog (UdpRecordCode.Close, &address, sizeof (address));
+	
 	m_state = State.Closed;
 }
 
@@ -237,19 +244,22 @@ UdpSession.save (doc.Storage* storage)
 
 UdpSession.updateProperties ()
 {
-	m_localPortProp.m_value = atoi (m_localPortCombo.m_editText);
+	m_autoRemoteAddressProp.m_value = m_actionTable [ActionId.AutoRemoteAddress].m_isChecked;
 	m_remoteAddressProp.m_value = m_remoteAddressCombo.m_editText;
+	m_localPortProp.m_value = atoi (m_localPortCombo.m_editText);
 }
 
 bool UdpSession.applyProperties () throws
 {
-	m_localPortCombo.m_editText = $"$(m_localPortProp.m_value)";
+	m_actionTable [ActionId.AutoRemoteAddress].m_isChecked = m_autoRemoteAddressProp.m_value;
 	m_remoteAddressCombo.m_editText = m_remoteAddressProp.m_value;
+	m_localPortCombo.m_editText = $"$(m_localPortProp.m_value)";
 	return true;
 }
 
 UdpSession.restoreDefaultProperties ()
 {
+	m_autoRemoteAddressProp.m_value = false;
 	m_remoteAddressProp.m_value = "127.0.0.1:1001";
 	m_localPortProp.m_value = 0;
 	m_adapterProp.m_value = 0;
@@ -264,7 +274,7 @@ size_t UdpSession.transmit (
 		return -1;
 
 	char const* addressString = m_remoteAddressCombo.m_editText;
-	//m_remoteAddressCombo.addEditTextToHistory ();
+	m_remoteAddressCombo.addEditTextToHistory ();
 
 	io.SocketAddress remoteAddress;
 	bool isDirectAddress = try io.parseSocketAddress (addressString, &remoteAddress);
@@ -341,7 +351,7 @@ UdpSession.onSocketEvent(io.SocketEventParams const* params)
 		if (size == -1)
 			break;
 		
-		if (m_autoRemoteAddressProp.m_value)
+		if (m_actionTable [ActionId.AutoRemoteAddress].m_isChecked)
 			m_remoteAddressCombo.m_editText = try io.formatSocketAddress (&remoteAddress);
 			
 		writeLog (UdpRecordCode.RxPacket, &remoteAddress, sizeof (io.SocketAddress));
@@ -398,6 +408,7 @@ reactor UdpSession.m_uiReactor ()
 {
 	m_title = $"UDP @ $(m_localPortCombo.m_editText) -> $(m_remoteAddressCombo.m_editText)";
 	m_isTransmitEnabled = m_state == State.Opened;
+	m_remoteAddressCombo.m_isEnabled = !m_actionTable [ActionId.AutoRemoteAddress].m_isChecked;
 	m_actionTable [ActionId.Open].m_text = m_state ? "Close Socket" : "Open Socket";
 	m_actionTable [ActionId.Open].m_icon = m_iconTable [m_state ? IconId.Close : IconId.Open];
 	m_adapterProp.m_isEnabled = m_state == State.Closed;

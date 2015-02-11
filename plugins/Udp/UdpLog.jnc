@@ -44,9 +44,10 @@ bool representUdpLog (
 		break;
 
 	case UdpRecordCode.Close:
+		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
-		target.addHyperText($"Socket at \e[34m$((char const*) p)\e[m closed");
+		target.addHyperText($"Socket at \e[34m$addressString\e[m closed");
 		break;
 
 	case UdpRecordCode.TxPacket:
