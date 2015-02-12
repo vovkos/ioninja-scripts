@@ -110,7 +110,7 @@ protected:
 UdpSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct(pluginHost);
-
+	
 	pluginHost.m_log.m_representerFunc = representUdpLog;
 
 	m_state = State.Closed;
@@ -229,7 +229,7 @@ UdpSession.closeSocket ()
 UdpSession.load (doc.Storage* storage)
 {	
 	m_remoteAddressCombo.m_editText = storage.readString ("remoteAddress");	
-	m_autoRemoteAddressProp.m_value = storage.readString ("autoRemoteAddress");	
+	m_actionTable [ActionId.AutoRemoteAddress].m_isChecked = storage.readInt ("autoRemoteAddress");	
 	m_localPortCombo.m_editText = storage.readString ("localPort");
 	m_adapterProp.m_value = storage.readInt ("adapterIp");
 }
@@ -237,7 +237,7 @@ UdpSession.load (doc.Storage* storage)
 UdpSession.save (doc.Storage* storage)
 {
 	storage.writeString ("remoteAddress", m_remoteAddressCombo.m_editText);
-	storage.writeInt ("autoRemoteAddress", m_autoRemoteAddressProp.m_value);
+	storage.writeInt ("autoRemoteAddress", m_actionTable [ActionId.AutoRemoteAddress].m_isChecked);
 	storage.writeString ("localPort", m_localPortCombo.m_editText);
 	storage.writeInt ("adapterIp", m_adapterProp.m_value);
 }

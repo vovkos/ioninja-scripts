@@ -49,30 +49,28 @@ $(analyzerClass).write (
 
 	for (; p < end; p++)
 	{
-		size_t offset;
-		
 		switch (m_state)
 		{
 		case State.Idle:
-			offset = memchr (p, '<', end - p);
-			if (offset == -1)
+			char const* p2 = memchr (p, '<', end - p);
+			if (!p2)
 				break2;
 
 			m_state = State.Command;
-			p += offset + 1;
+			p = p2 + 1;
 			
 			// and fall through 
 			
 		case State.Command:
-			offset = memchr (p, '>', end - p);
-			if (offset == -1)
+			char const* p2 = memchr (p, '>', end - p);
+			if (!p2)
 			{
 				appendCommand (p, end - p);
 				break2;			
 			}
 			
-			appendCommand (p, offset);			
-			p += offset + 1;
+			appendCommand (p, p2 - p);			
+			p = p2 + 1;
 			
 			writer.write (timestamp, recordCode, p0, p - p0);
 			writer.write (timestamp, MyProtoLogRecord.InBandCommand, m_commandBuffer, m_commandSize);
