@@ -35,10 +35,10 @@ value       = $(pluginPrefix)Layer
 rebuildOn   = pluginPrefix
 
 [variable]
-id          = analyzerClass
-name        = "Stream Analyzer Class"
+id          = streamClass
+name        = "Stream Class"
 readOnly    = true
-value       = $(pluginPrefix)StreamAnalyzer
+value       = $(pluginPrefix)Stream
 rebuildOn   = pluginPrefix
 
 [variable]
@@ -59,15 +59,15 @@ rebuildOn   = pluginPrefix
 id          = layerFile
 name        = "Layer File"
 readOnly    = true
-value       = $(pluginPrefix)Layer.jnc
-rebuildOn   = pluginPrefix
+value       = $(layerClass).jnc
+rebuildOn   = layerClass
 
 [variable]
-id          = analyzerFile
-name        = "Stream Analyzer File"
+id          = streamFile
+name        = "Stream File"
 readOnly    = true
-value       = $(pluginPrefix)StreamAnalyzer.jnc
-rebuildOn   = pluginPrefix
+value       = $(streamClass).jnc
+rebuildOn   = streamClass
 
 [variable]
 id          = logFile
@@ -89,8 +89,8 @@ target = $(layerFile)
 interpolate = true
 
 [file]
-source = Analyzer.jnc.in
-target = $(analyzerFile)
+source = Stream.jnc.in
+target = $(streamFile)
 interpolate = true
 
 [file]

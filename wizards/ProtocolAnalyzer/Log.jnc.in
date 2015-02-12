@@ -22,7 +22,7 @@ bool $(logRepresenterFunc) (
 {
 	switch (recordCode)
 	{
-	case MyProtoLogRecord.InBandCommand:
+	case $(logRecordCodeEnum).InBandCommand:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText ($"In-band command: $((char const*) p)");

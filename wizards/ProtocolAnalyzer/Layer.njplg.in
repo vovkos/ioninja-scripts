@@ -18,5 +18,5 @@ log-representer-func = $(logRepresenterFunc)
 [scripts]
 
 $(layerFile)
-$(analyzerFile)
+$(streamFile)
 $(logFile)

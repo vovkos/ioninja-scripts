@@ -1,11 +1,11 @@
 //.............................................................................
 //
-// $(pluginName) stream analyzer
+// $(pluginName) stream
 //
 
 //.............................................................................
 
-class $(analyzerClass)
+class $(streamClass)
 {
 protected:
 	enum State
@@ -36,7 +36,7 @@ protected:
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-$(analyzerClass).write (
+$(streamClass).write (
 	log.Writer* writer,
 	uint64_t timestamp,
 	uint_t recordCode,
@@ -52,17 +52,17 @@ $(analyzerClass).write (
 		switch (m_state)
 		{
 		case State.Idle:
-			char const* p2 = memchr (p, '<', end - p);
+			void const* p2 = memchr (p, '<', end - p);
 			if (!p2)
 				break2;
 
 			m_state = State.Command;
-			p = p2 + 1;
+			p = (char const*) p2 + 1;
 			
 			// and fall through 
 			
 		case State.Command:
-			char const* p2 = memchr (p, '>', end - p);
+			void const* p2 = memchr (p, '>', end - p);
 			if (!p2)
 			{
 				appendCommand (p, end - p);
@@ -70,10 +70,10 @@ $(analyzerClass).write (
 			}
 			
 			appendCommand (p, p2 - p);			
-			p = p2 + 1;
+			p = (char const*) p2 + 1;
 			
 			writer.write (timestamp, recordCode, p0, p - p0);
-			writer.write (timestamp, MyProtoLogRecord.InBandCommand, m_commandBuffer, m_commandSize);
+			writer.write (timestamp, $(logRecordCodeEnum).InBandCommand, m_commandBuffer, m_commandSize);
 			
 			p0 = p;
 			m_commandSize = 0;
@@ -85,7 +85,7 @@ $(analyzerClass).write (
 	writer.write (timestamp, recordCode, p0, end - p0);
 }
 
-$(analyzerClass).appendCommand (
+$(streamClass).appendCommand (
     void const* p,
     size_t size
     )

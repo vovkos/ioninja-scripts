@@ -12,8 +12,8 @@ class $(layerClass):
 	log.Converter
 {
 protected:
-	$(analyzerClass) m_txAnalyzer;
-	$(analyzerClass) m_rxAnalyzer;
+	$(streamClass) m_txStream;
+	$(streamClass) m_rxStream;
 	
 public:
 	construct (doc.PluginHost* pluginHost);
@@ -31,10 +31,8 @@ public:
 
 $(layerClass).construct (doc.PluginHost* pluginHost)
 {
-	basetype1.construct (pluginHost);	
-
-	pluginHost.m_log.attachConverter (this);
-	pluginHost.m_log.m_representerFunc = $(logRepresenterFunc);
+	basetype1.construct (pluginHost);
+	pluginHost.m_log.attachConverter (this, logRepresenterFunc);
 }
 
 bool $(layerClass).convert (
@@ -48,11 +46,11 @@ bool $(layerClass).convert (
 	switch (recordCode)
 	{
 	case log.StdRecordCode.Tx:
-		m_txAnalyzer.write (writer, timestamp, recordCode, p, size);
+		m_txStream.write (writer, timestamp, recordCode, p, size);
 		break;
 
 	case log.StdRecordCode.Rx:
-		m_rxAnalyzer.write (writer, timestamp, recordCode, p, size);
+		m_rxStream.write (writer, timestamp, recordCode, p, size);
 		break;
 
 	default:
