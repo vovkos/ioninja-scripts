@@ -234,7 +234,11 @@ opaque class Log
 	RepresenterFunc thin* autoget property m_representerFunc;
 
 	attachFilter (Filter* filter);
-	attachConverter (Converter* converter);
+
+	attachConverter (
+		Converter* converter,
+		RepresenterFunc thin* representerFunc = null
+		);
 
 	attachListener (
 		ListenerFunc* listenerFunc,
