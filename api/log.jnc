@@ -154,22 +154,17 @@ opaque class Writer
 	write (
 		uint64_t timestamp,
 		uint_t recordCode,
-		void const* p,
-		size_t size
+		void const* p = null,
+		size_t size = 0
 		);
 
 	write (
 		uint_t recordCode,
-		void const* p,
-		size_t size
+		void const* p = null,
+		size_t size = 0
 		)
 	{
 		write (jnc.getTimestamp (), recordCode, p, size);
-	}
-
-	write (uint_t recordCode)
-	{
-		write (jnc.getTimestamp (), recordCode, null, 0);
 	}
 }
 

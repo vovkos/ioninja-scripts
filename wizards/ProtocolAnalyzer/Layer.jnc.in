@@ -32,7 +32,7 @@ public:
 $(layerClass).construct (doc.PluginHost* pluginHost)
 {
 	basetype1.construct (pluginHost);
-	pluginHost.m_log.attachConverter (this, logRepresenterFunc);
+	pluginHost.m_log.attachConverter (this, $(logRepresenterFunc));
 }
 
 bool $(layerClass).convert (
