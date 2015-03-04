@@ -45,6 +45,11 @@ class Plugin
 		size_t size
 		) throws;
 
+	size_t transmitString (char const* s) throws
+	{
+		return try transmit (s, strlen (s));
+	}	
+
 	writeLog (
 		uint_t recordCode,
 		void const* p,
