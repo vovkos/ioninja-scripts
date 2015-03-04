@@ -7,14 +7,20 @@
 name        = "Transport Session"
 description = "Generates a complete session plugin"
 
-[plugin]
-name        = "My Session"
-description = "Wizard-generated transport session"
-id          = "my-session"
-kind        = session
-group       = other
-icon        = images/plugin.png
-icon-small  = images/plugin-16x16.png
+[variable]
+id          = pluginName
+name        = "Session Name"
+value       = "My Session"
+
+[variable]
+id          = pluginDescription
+name        = "Session Description"
+value       = "Wizard-generated transport session"
+
+[variable]
+id          = pluginId
+name        = "Session ID"
+value       = my-session
 
 [variable]
 id          = pluginPrefix
@@ -25,22 +31,14 @@ value       = My
 id          = sessionClass
 name        = "Session Class"
 readOnly    = true
-volatile    = true
 value       = $(pluginPrefix)Session
-rebuildOn   = pluginPrefix
-
-[variable]
-id          = sessionFile
-name        = "Session File"
-readOnly    = true
-value       = $(pluginPrefix)Session.jnc
 rebuildOn   = pluginPrefix
 
 [variable]
 id          = logRecordCodeEnum
 name        = "Log Record Enum"
 readOnly    = true
-value       = $(pluginPrefix)LogRecord
+value       = $(pluginPrefix)LogRecordCode
 rebuildOn   = pluginPrefix
 
 [variable]
@@ -48,6 +46,13 @@ id          = logRepresenterFunc
 name        = "Log Representer Function"
 readOnly    = true
 value       = represent$(pluginPrefix)Log
+rebuildOn   = pluginPrefix
+
+[variable]
+id          = sessionFile
+name        = "Session File"
+readOnly    = true
+value       = $(pluginPrefix)Session.jnc
 rebuildOn   = pluginPrefix
 
 [variable]
@@ -60,14 +65,19 @@ rebuildOn   = pluginPrefix
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 [file]
+source = Session.njplg.in
+target = $(projectName).njplg
+interpolate = true
+
+[file]
 source = Session.jnc.in
 target = $(sessionFile)
-script = true
+interpolate = true
 
 [file]
 source = Log.jnc.in
 target = $(logFile)
-script = true
+interpolate = true
 
 [file]
 source = images

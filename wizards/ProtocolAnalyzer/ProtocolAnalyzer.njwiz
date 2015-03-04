@@ -45,7 +45,7 @@ rebuildOn   = pluginPrefix
 id          = logRecordCodeEnum
 name        = "Log Record Enum"
 readOnly    = true
-value       = $(pluginPrefix)LogRecord
+value       = $(pluginPrefix)LogRecordCode
 rebuildOn   = pluginPrefix
 
 [variable]

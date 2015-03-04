@@ -1,7 +1,9 @@
 //.............................................................................
 //
-// $(pluginName)
+// $(pluginName) plugin
 //
+
+import "doc_Plugin.jnc"
 
 //.............................................................................
 
@@ -11,18 +13,12 @@ protected:
 	enum State
 	{
 		Closed,
-		Resolving,
-		Opening,
-		Connecting,
 		Connected,
 	}
 
 	static char const* m_stateStringTable [] = 
 	{
 		"Closed",
-		"Resolving...",
-		"Opening...",
-		"Connecting...",
 		"Connected",
 	};
 
@@ -41,19 +37,17 @@ protected:
 
 	enum StatusPaneId
 	{
-		RemoteAddress,
+		Address,
 		State,
 		_Count,
 	}
 
 protected:
 
-	// socket
+	// transport
 
 	State bindable m_state;
-	io.Socket* m_socket;
-	io.SocketAddressResolver* m_resolver;
-	io.SocketAddress m_remoteAddress;
+	char const* m_address;
 
 	// toolbar, status bar & menu
 
@@ -65,17 +59,11 @@ protected:
 	// property grid
 
 	gui.StringProperty* m_addressProp;
-	gui.EnumProperty* m_closeKindProp;
-	gui.BoolProperty* m_isNagleEnabledProp;
-	gui.BoolProperty* m_useLocalAddressProp;
-	gui.EnumProperty* m_adapterProp;
-	gui.IntProperty* m_localPortProp;
 
 public:
 	construct (doc.PluginHost* pluginHost);
 
 	bool connect () throws;
-	bool connect (io.SocketAddress const* address) throws;
 	disconnect ();
 
 	override void load (doc.Storage* storage);
@@ -90,12 +78,8 @@ public:
 		) throws;
 
 protected:	
-	handleConnectError (jnc.Error const* error);
-
 	onConnect ();
-	onSocketEvent (io.SocketEventParams const* params);
-	onResolverEvent (io.SocketAddressResolverEventParams const* params);
-
+	
 	createUi ();
 	reactor m_uiReactor ();
 }
@@ -106,14 +90,8 @@ $(sessionClass).construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
 
-	pluginHost.m_log.m_representer = new $(logRepresenterClass);
-
+	pluginHost.m_log.m_representerFunc = $(logRepresenterFunc);
 	m_state = State.Closed;
-	m_socket = new io.Socket ();
-	m_socket.m_onSocketEvent += onSocketEvent @ m_pluginHost.m_mainThreadScheduler;
-	m_resolver = new io.SocketAddressResolver ();
-	m_resolver.m_onResolverEvent += onResolverEvent @ m_pluginHost.m_mainThreadScheduler;
-
 	createUi ();
 }
 
@@ -121,8 +99,6 @@ $(sessionClass).createUi ()
 {
 	// toolbar
 
-	char const* s = $"this is $(sessionClass)";
-	
 	m_pluginHost.m_toolBar.addLabel ("Address: ");
 	m_addressCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_addressCombo.m_isEditable = true;
@@ -131,45 +107,20 @@ $(sessionClass).createUi ()
 	m_iconTable [IconId.Connect] = new gui.Icon ("images/connect.png");
 	m_iconTable [IconId.Disconnect] = new gui.Icon ("images/disconnect.png");
 
-	m_actionTable [ActionId.Connect] = m_pluginHost.createAction ("Connect", m_iconTable [IconId.Connect]);
+	m_actionTable [ActionId.Connect] = createAction ("Connect", m_iconTable [IconId.Connect]);
 	m_actionTable [ActionId.Connect].m_onTriggered += onConnect;
 
 	// status bar
 	
-	m_statusPaneTable [StatusPaneId.RemoteAddress] = m_pluginHost.m_statusBar.addPane (, 100);
-	m_statusPaneTable [StatusPaneId.RemoteAddress].m_color = gui.StdColor.Blue;
+	m_statusPaneTable [StatusPaneId.Address] = m_pluginHost.m_statusBar.addPane (, 100);
+	m_statusPaneTable [StatusPaneId.Address].m_color = gui.StdColor.Blue;
 	m_statusPaneTable [StatusPaneId.State] = m_pluginHost.m_statusBar.addPane (, 80);
  
 	// property grid
 
-	m_addressProp = m_pluginHost.createStringProperty (
+	m_addressProp = m_pluginHost.m_propertyGrid.createStringProperty (
 		"Remote address",
-		"Remote address to connect to (IP-address or host-name followed by ':' port)"
-		);
-
-	m_closeKindProp = m_pluginHost.createSocketCloseKindProperty (
-		"TCP disconnect",
-		"How to close TCP connection (graceful / reset)"
-		);
-
-	m_isNagleEnabledProp = m_pluginHost.createBoolProperty (
-		"Use TCP Nagle algorithm",
-		"Specify whether to reduce the number of small TCP packets being sent"
-		);
-
-	m_useLocalAddressProp = m_pluginHost.createBoolProperty (
-		"Use local address",
-		"Bind socket to the specified local address before connect"
-		);
-
-	m_adapterProp = m_pluginHost.createNetworkAdapterProperty (
-		"Adapter",
-		"Adapter to bind to before connect"
-		);
-
-	m_localPortProp = m_pluginHost.createIntProperty (
-		"Local TCP port",
-		"Local TCP port to bind to before connect"
+		"Remote address to connect to"
 		);
 
 	m_uiReactor.start ();
@@ -187,139 +138,32 @@ bool $(sessionClass).connect () throws
 {
 	disconnect ();
 
-	char const* addressString = m_addressCombo.m_editText;
+	char const* address = m_addressCombo.m_editText;
 	m_addressCombo.addEditTextToHistory ();
 
-	io.SocketAddress address;
-	bool isDirectAddress = try io.parseSocketAddress (addressString, &address);
-	if (isDirectAddress)
-		return try connect (&address);
-
-	m_state = State.Resolving;
-
-	m_pluginHost.writeLog (
-		TcpConnectionLogRecordCode.Resolving,
-		addressString,
-		strlen (addressString)
-		);
-
-	m_resolver.m_syncId = m_socket.m_syncId;
-	m_resolver.resolve (addressString);
+	writeLog ($(logRecordCodeEnum).Connected, address, strlen (address));	
+	m_address = strdup (address);
+	m_state = State.Connected;
 	return true;
-
-catch:
-	handleConnectError (jnc.getLastError ());
-	return false;
-}
-
-bool $(sessionClass).connect (io.SocketAddress const* remoteAddress) throws
-{
-	io.SocketAddress localAddress;
-
-	if (!m_useLocalAddressProp.m_value)
-	{
-		m_socket.open (io.Protocol.Tcp); // any address
-	}
-	else
-	{
-		localAddress.m_family = io.AddressFamily.Ip4;
-		localAddress.m_ip4.m_address.m_i32 = m_adapterProp.m_value;
-		localAddress.m_ip4.m_port = (uint16_t) m_localPortProp.m_value;
-
-		m_socket.open (io.Protocol.Tcp, &localAddress);
-	}
-
-	m_remoteAddress = *remoteAddress;
-	m_state = State.Connecting;
-
-	m_socket.m_closeKind = (io.SocketCloseKind) m_closeKindProp.m_value;
-	m_socket.m_isNagleEnabled = m_isNagleEnabledProp.m_value;
-	m_socket.connect (remoteAddress);
-	localAddress = m_socket.m_address;
-
-	char const* p = $"$(*remoteAddress; B)$(localAddress; B)";
-	m_pluginHost.writeLog (TcpConnectionLogRecordCode.ConnectingFrom, p, dynamic sizeof (*p));
-	return true;
-
-catch:
-	// we haven't written "Connecting..." log prefix yet
-
-	if (!m_useLocalAddressProp.m_value)
-	{
-		m_pluginHost.writeLog (TcpConnectionLogRecordCode.Connecting, &remoteAddress, sizeof (io.SocketAddress));
-	}
-	else
-	{
-		char const* p = $"$(*remoteAddress; B)$(localAddress; B)";
-		m_pluginHost.writeLog (TcpConnectionLogRecordCode.ConnectingFrom, p, dynamic sizeof (*p));
-	}
-
-	handleConnectError (jnc.getLastError ());
-	return false;
-}
-
-$(sessionClass).handleConnectError (jnc.Error const* error)
-{
-	m_pluginHost.writeLog (
-		TcpConnectionLogRecordCode.ConnectError,
-		error,
-		error.m_size
-		);
-
-	m_socket.close ();
-	m_state = State.Closed;
 }
 
 $(sessionClass).disconnect ()
 {
-	switch (m_state)
-	{
-	case State.Closed:
+	if (!m_state)
 		return;
 
-	case State.Resolving:
-	case State.Connecting:
-		m_pluginHost.writeLog (TcpConnectionLogRecordCode.ConnectCancelled);
-		break;
-
-	case State.Connected:		
-		TcpDisconnectLogRecordParams params;
-		params.m_address = m_remoteAddress;		
-		params.m_flags = 0;
-
-		if (m_closeKindProp.m_value == io.SocketCloseKind.Reset)
-			params.m_flags |= TcpDisconnectLogRecordFlags.Reset;
-		
-		m_pluginHost.writeLog (
-			TcpConnectionLogRecordCode.Disconnected,
-			&params,
-			sizeof (params)
-			);
-		break;
-	}
-
-	m_socket.close ();
+	writeLog ($(logRecordCodeEnum).Disconnected, m_address, strlen (m_address));
 	m_state = State.Closed;
 }
 
 void $(sessionClass).load (doc.Storage* storage)
 {
 	m_addressCombo.m_editText = storage.readString ("address");
-	m_closeKindProp.m_value = storage.readInt ("closeKindProp");
-	m_isNagleEnabledProp.m_value = storage.readBool ("isNagleEnabledProp");
-	m_useLocalAddressProp.m_value = storage.readBool ("useLocalAddress");
-	m_adapterProp.m_value = storage.readInt ("adapterIp");
-	m_localPortProp.m_value = storage.readInt ("localPort");
 }
 
 void $(sessionClass).save (doc.Storage* storage)
 {
 	storage.writeString ("address", m_addressCombo.m_editText);
-	storage.writeInt ("closeKindProp", m_closeKindProp.m_value);
-	storage.writeBool ("isNagleEnabledProp", m_isNagleEnabledProp.m_value);
-	storage.writeBool ("useLocalAddress", m_useLocalAddressProp.m_value);
-	storage.writeInt ("adapterIp", m_adapterProp.m_value);
-	storage.writeInt ("localPort", m_localPortProp.m_value);
 }
 
 void $(sessionClass).updateProperties ()
@@ -330,24 +174,12 @@ void $(sessionClass).updateProperties ()
 bool $(sessionClass).applyProperties () throws
 {
 	m_addressCombo.m_editText = m_addressProp.m_value;
-	
-	if (m_socket.m_isOpen)
-	{
-		m_socket.m_closeKind = (io.SocketCloseKind) m_closeKindProp.m_value;
-		m_socket.m_isNagleEnabled = m_isNagleEnabledProp.m_value;
-	}
-
 	return true;
 }
 
 void $(sessionClass).restoreDefaultProperties ()
 {
-	m_addressProp.m_value = "tibbo.com:80";
-	m_closeKindProp.m_value = io.SocketCloseKind.Graceful;
-	m_isNagleEnabledProp.m_value = true;
-	m_useLocalAddressProp.m_value = false;
-	m_adapterProp.m_value = 0;
-	m_localPortProp.m_value = 0;
+	m_addressProp.m_value = "remote-address";
 }
 
 size_t $(sessionClass).transmit (
@@ -358,90 +190,19 @@ size_t $(sessionClass).transmit (
 	if (m_state != State.Connected)
 		return -1;
 
-	size_t result = try m_socket.send (p, size);
-	if (result != -1)
-		m_pluginHost.writeLog (log.StdRecordCode.Tx, p, result);
-
-	return result;
-}
-
-$(sessionClass).onSocketEvent (io.SocketEventParams const* params)
-{
-	if (params.m_syncId != m_socket.m_syncId)
-		return;
-
-	switch (params.m_eventKind)
-	{
-	case io.SocketEvent.ConnectCompleted:
-		m_pluginHost.writeLog (TcpConnectionLogRecordCode.ConnectCompleted);
-		m_state = State.Connected;
-		break;
-
-	case io.SocketEvent.ConnectError:
-		handleConnectError (params.m_error);
-		break;
-
-	case io.SocketEvent.Disconnected:
-		TcpDisconnectLogRecordParams recordParams;
-		recordParams.m_address = m_remoteAddress;		
-		recordParams.m_flags = TcpDisconnectLogRecordFlags.Remote;
-		
-		if (params.m_flags & io.SocketDisconnectEventFlags.Reset)
-			recordParams.m_flags |= TcpDisconnectLogRecordFlags.Reset;			
-		
-		m_pluginHost.writeLog (
-			TcpConnectionLogRecordCode.Disconnected,
-			&recordParams,
-			sizeof (recordParams)
-			);
-
-		m_socket.close ();
-		m_state = State.Closed;
-		break;
-
-	case io.SocketEvent.IncomingData:
-		heap char buffer [512];
-		size_t result = try m_socket.recv (buffer, sizeof (buffer));
-		if (result != -1)
-			m_pluginHost.writeLog (log.StdRecordCode.Rx, buffer, result);
-		break;
-	}
-}
-
-$(sessionClass).onResolverEvent (io.SocketAddressResolverEventParams const* params)
-{
-	if (params.m_syncId != m_socket.m_syncId)
-		return;
-
-	switch (params.m_eventKind)
-	{
-	case io.SocketAddressResolverEvent.ResolveCompleted:
-		m_pluginHost.writeLog (
-			TcpConnectionLogRecordCode.ResolveCompleted,
-			params.m_address,
-			sizeof (io.SocketAddress)
-			);
-
-		try connect (params.m_address);
-		break;
-
-	case io.SocketAddressResolverEvent.ResolveError:
-		handleConnectError (params.m_error);
-		break;
-	}
+	writeLog (log.StdRecordCode.Tx, p, size);
+	return size;
 }
 
 reactor $(sessionClass).m_uiReactor ()
 {
-	m_title = $"TCP $(m_addressCombo.m_editText)";
+	m_title = $"$(pluginName) $(m_addressCombo.m_editText)";
 	m_isTransmitEnabled = m_state == State.Connected;
-	m_adapterProp.m_isEnabled = m_useLocalAddressProp.m_value;
-	m_localPortProp.m_isEnabled = m_useLocalAddressProp.m_value;
 	m_actionTable [ActionId.Connect].m_text = m_state ? "Disconnect" : "Connect";
 	m_actionTable [ActionId.Connect].m_icon = m_iconTable [m_state ? IconId.Disconnect : IconId.Connect];
 	m_statusPaneTable [StatusPaneId.State].m_text = m_stateStringTable [m_state];
-	m_statusPaneTable [StatusPaneId.RemoteAddress].m_text = m_state > State.Resolving ? try io.formatSocketAddress (&m_remoteAddress) : "<peer-address>";
-	m_statusPaneTable [StatusPaneId.RemoteAddress].m_isVisible = m_state > State.Resolving;
+	m_statusPaneTable [StatusPaneId.Address].m_text = m_state == State.Connected ? m_address : null;
+	m_statusPaneTable [StatusPaneId.Address].m_isVisible = m_state == State.Connected;
 }
 
 //.............................................................................

@@ -12,11 +12,15 @@ class $(layerClass):
 	log.Converter
 {
 protected:
-	$(streamClass) m_txStream;
-	$(streamClass) m_rxStream;
+	$(streamClass) m_tx;
+	$(streamClass) m_rx;
 	
 public:
-	construct (doc.PluginHost* pluginHost);
+	construct (doc.PluginHost* pluginHost)
+	{
+		basetype1.construct (pluginHost);
+		pluginHost.m_log.attachConverter (this, $(logRepresenterFunc));
+	}
 
 	override bool convert (
 		log.Writer* writer,
@@ -24,16 +28,10 @@ public:
 		uint_t recordCode,
 		void const* p,
 		size_t size
-		);
+		);	
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-$(layerClass).construct (doc.PluginHost* pluginHost)
-{
-	basetype1.construct (pluginHost);
-	pluginHost.m_log.attachConverter (this, $(logRepresenterFunc));
-}
 
 bool $(layerClass).convert (
 	log.Writer* writer,
@@ -46,11 +44,11 @@ bool $(layerClass).convert (
 	switch (recordCode)
 	{
 	case log.StdRecordCode.Tx:
-		m_txStream.write (writer, timestamp, recordCode, p, size);
+		m_tx.write (writer, timestamp, recordCode, p, size);
 		break;
 
 	case log.StdRecordCode.Rx:
-		m_rxStream.write (writer, timestamp, recordCode, p, size);
+		m_rx.write (writer, timestamp, recordCode, p, size);
 		break;
 
 	default:

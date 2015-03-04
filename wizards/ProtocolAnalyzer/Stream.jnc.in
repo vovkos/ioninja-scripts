@@ -8,17 +8,20 @@
 class $(streamClass)
 {
 protected:
-	enum State
-	{
-		Idle,
-		Command,
-	}
-	
-	State m_state;
-	char m_commandBuffer [256];
-    size_t m_commandSize;
+	jnc.Recognizer m_scanner;
+
+	log.Writer* m_writer;
+	uint64_t m_timestamp;
+	uint_t m_recordCode;
+	void const* m_p;
+	size_t m_offset;
 
 public:
+	construct ()
+	{
+		m_scanner.construct (scanStream);
+	}
+
 	write (
 		log.Writer* writer,
 		uint64_t timestamp,
@@ -28,10 +31,7 @@ public:
 		);
 		
 protected:
-    appendCommand (
-        void const* p,
-		size_t size
-        );	
+	bool automaton scanStream ();
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -44,61 +44,48 @@ $(streamClass).write (
 	size_t size
 	)
 {
-	void const* p0 = p;		
-	void const* end = p + size;	
+	// prepare context for scanner automaton
 
-	for (; p < end; p++)
-	{
-		switch (m_state)
-		{
-		case State.Idle:
-			void const* p2 = memchr (p, '<', end - p);
-			if (!p2)
-				break2;
-
-			m_state = State.Command;
-			p = (char const*) p2 + 1;
-			
-			// and fall through 
-			
-		case State.Command:
-			void const* p2 = memchr (p, '>', end - p);
-			if (!p2)
-			{
-				appendCommand (p, end - p);
-				break2;			
-			}
-			
-			appendCommand (p, p2 - p);			
-			p = (char const*) p2 + 1;
-			
-			writer.write (timestamp, recordCode, p0, p - p0);
-			writer.write (timestamp, $(logRecordCodeEnum).InBandCommand, m_commandBuffer, m_commandSize);
-			
-			p0 = p;
-			m_commandSize = 0;
-			m_state = State.Idle;
-			break;
-		}
-	}
+	m_writer = writer;
+	m_timestamp = timestamp;
+	m_recordCode = recordCode;
+	m_p = p;
+	m_offset = m_scanner.m_currentOffset;
 	
-	writer.write (timestamp, recordCode, p0, end - p0);
+	try m_scanner.write (p, size);
+
+	// display the rest of actual data
+
+	size_t chunkLength = m_scanner.m_currentOffset - m_offset;
+
+	if (chunkLength)
+		writer.write (timestamp, recordCode, m_p, chunkLength);
 }
 
-$(streamClass).appendCommand (
-    void const* p,
-    size_t size
-    )
+bool automaton $(streamClass).scanStream ()
 {
-	size_t leftover = sizeof (m_commandBuffer) - 1 - m_commandSize;
-	if (!leftover)
-		return;
+	%% '<' [^>]* '>'
+		// display the actual data first...
+			
+		size_t chunkLength = recognizer.m_currentOffset - m_offset;
+		assert (chunkLength); // matched lexeme is not empty
+		
+		m_writer.write (m_timestamp, m_recordCode, m_p, chunkLength);
 
-	if (size > leftover)
-		size = leftover;
+		m_p += chunkLength;
+		m_offset += chunkLength;
 
-	memcpy (&m_commandBuffer [m_commandSize], p, size);
-	m_commandSize += size;
+		// ...and then the inband command
+		
+		m_writer.write (
+			m_timestamp, 
+			$(logRecordCodeEnum).InBandCommand, 
+			recognizer.m_lexeme + 1, 
+			recognizer.m_lexemeLength - 2
+			);
+	
+	%% .
+		// ignore the rest		
 }
 
 //.............................................................................

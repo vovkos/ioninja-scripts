@@ -6,7 +6,7 @@
 [plugin]
 
 name        = $(pluginName)
-description = "$(pluginDescription)"
+description = $(pluginDescription)
 id          = $(pluginId)
 guid        = $(pluginGuid)
 icon        = images/plugin.png
