@@ -35,13 +35,6 @@ value       = $(pluginPrefix)Layer
 rebuildOn   = pluginPrefix
 
 [variable]
-id          = streamClass
-name        = "Stream Class"
-readOnly    = true
-value       = $(pluginPrefix)Stream
-rebuildOn   = pluginPrefix
-
-[variable]
 id          = logRecordCodeEnum
 name        = "Log Record Enum"
 readOnly    = true
@@ -63,13 +56,6 @@ value       = $(layerClass).jnc
 rebuildOn   = layerClass
 
 [variable]
-id          = streamFile
-name        = "Stream File"
-readOnly    = true
-value       = $(streamClass).jnc
-rebuildOn   = streamClass
-
-[variable]
 id          = logFile
 name        = "Log File"
 readOnly    = true
@@ -86,11 +72,6 @@ interpolate = true
 [file]
 source = Layer.jnc.in
 target = $(layerFile)
-interpolate = true
-
-[file]
-source = Stream.jnc.in
-target = $(streamFile)
 interpolate = true
 
 [file]

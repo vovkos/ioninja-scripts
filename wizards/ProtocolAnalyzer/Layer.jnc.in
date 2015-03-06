@@ -12,15 +12,17 @@ class $(layerClass):
 	log.Converter
 {
 protected:
-	$(streamClass) m_tx;
-	$(streamClass) m_rx;
+	jnc.Recognizer m_txScanner;
+	jnc.Recognizer m_rxScanner;
+
+	log.Writer* m_writer;
+	uint64_t m_timestamp;
+	uint_t m_recordCode;
+	void const* m_p;
+	size_t m_offset;
 	
 public:
-	construct (doc.PluginHost* pluginHost)
-	{
-		basetype1.construct (pluginHost);
-		pluginHost.m_log.attachConverter (this, $(logRepresenterFunc));
-	}
+	construct (doc.PluginHost* pluginHost);
 
 	override bool convert (
 		log.Writer* writer,
@@ -29,9 +31,23 @@ public:
 		void const* p,
 		size_t size
 		);	
+
+protected:
+	bool automaton scanStream ();
+	
+	writeOriginalData (jnc.Recognizer* recognizer);
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+$(layerClass).construct (doc.PluginHost* pluginHost)
+{
+	basetype1.construct (pluginHost);
+	m_txScanner.construct (scanStream);
+	m_rxScanner.construct (scanStream);
+
+	pluginHost.m_log.attachConverter (this, $(logRepresenterFunc));
+}
 
 bool $(layerClass).convert (
 	log.Writer* writer,
@@ -41,21 +57,68 @@ bool $(layerClass).convert (
 	size_t size
 	)
 {
+	jnc.Recognizer* recognizer;
+
 	switch (recordCode)
 	{
 	case log.StdRecordCode.Tx:
-		m_tx.write (writer, timestamp, recordCode, p, size);
+		recognizer = &m_txScanner;
 		break;
 
 	case log.StdRecordCode.Rx:
-		m_rx.write (writer, timestamp, recordCode, p, size);
+		recognizer = &m_rxScanner;
 		break;
 
 	default:
 		return false; // don't convert other records
 	}
+
+	// prepare context for scanner automaton
+
+	m_writer = writer;
+	m_timestamp = timestamp;
+	m_recordCode = recordCode;
+	m_p = p;
+	m_offset = recognizer.m_currentOffset;
 	
+	try recognizer.write (p, size);
+
+	// write the rest of original data
+
+	writeOriginalData (recognizer);	
 	return true;
+}
+
+$(layerClass).writeOriginalData (jnc.Recognizer* recognizer)
+{
+	size_t chunkLength = recognizer.m_currentOffset - m_offset;
+	if (!chunkLength)
+		return;
+		
+	m_writer.write (m_timestamp, m_recordCode, m_p, chunkLength);
+
+	m_p += chunkLength;
+	m_offset += chunkLength;
+}
+
+bool automaton $(layerClass).scanStream ()
+{
+	%% '<' [^>]* '>'
+		// write original data first...
+
+		writeOriginalData (recognizer);
+		
+		// ...and then the decoded in-band command
+		
+		m_writer.write (
+			m_timestamp, 
+			$(logRecordCodeEnum).InBandCommand, 
+			recognizer.m_lexeme + 1, 
+			recognizer.m_lexemeLength - 2
+			);
+	
+	%% .
+		// ignore the rest		
 }
 
 //.............................................................................
