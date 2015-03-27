@@ -5,6 +5,8 @@
 
 import "io_Packet.jnc"
 
+alignment (1);
+
 //.............................................................................
 
 struct EthernetFrame
