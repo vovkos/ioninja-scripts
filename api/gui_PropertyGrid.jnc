@@ -49,7 +49,7 @@ opaque class StringProperty: Property
 struct EnumPropertyOption
 {
 	char const* m_text;
-	int m_value;
+	variant m_value;
 };
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -60,8 +60,8 @@ opaque class EnumProperty: Property
 
 	property m_value
 	{
-		int autoget m_value;
-		set (int value);
+		variant autoget m_value;
+		set (variant value);
 		alias bindable event m_onPropChanged () = m_onChanged;
 	}
 
@@ -117,29 +117,29 @@ opaque class PropertyGrid
 {
 	addProperty (Property* prop);
 
-	gui.BoolProperty* createBoolProperty (
+	BoolProperty* createBoolProperty (
 		char const* name,
 		char const* toolTipText
 		);
 
-	gui.IntProperty* createIntProperty (
+	IntProperty* createIntProperty (
 		char const* name,
 		char const* toolTipText
 		);
 
-	gui.StringProperty* createStringProperty (
+	StringProperty* createStringProperty (
 		char const* name,
 		char const* toolTipText
 		);
 
-	gui.EnumProperty* createEnumProperty (
+	EnumProperty* createEnumProperty (
 		char const* name,
 		char const* toolTipText,
-		gui.EnumPropertyOption const* optionArray,
+		EnumPropertyOption const* optionArray,
 		size_t count
 		);
 
-	gui.EnumProperty* createNetworkAdapterProperty (
+	EnumProperty* createNetworkAdapterProperty (
 		char const* name,
 		char const* toolTipText
 		);

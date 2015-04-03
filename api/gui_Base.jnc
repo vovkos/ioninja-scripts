@@ -127,11 +127,11 @@ opaque class ComboBox
 
 	size_t addItem (
 		char const* text,
-		object* data = null
+		variant data = null
 		);
 
 	char const* indexed property m_itemText (size_t index);
-	object* indexed property m_itemData (size_t index);
+	variant indexed property m_itemData (size_t index);
 
 	property m_currentIndex
 	{
@@ -148,7 +148,7 @@ opaque class ComboBox
 
 	property m_currentData
 	{
-		object* get ();
+		variant get ();
 		alias bindable event m_onPropChanged () = m_onChanged;
 	}
 

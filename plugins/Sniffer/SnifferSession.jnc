@@ -114,9 +114,7 @@ SnifferSession.createUi ()
 			device->m_description
 			);
 
-		object <io.PCapDeviceDesc const*>* data = new object <io.PCapDeviceDesc const*>;
-		data.m_value = device;
-		m_deviceCombo.addItem (itemName, data);
+		m_deviceCombo.addItem (itemName, device);
 	}
 
 	m_iconTable [IconId.Capture] = new gui.Icon ("images/capture.png");
@@ -165,9 +163,12 @@ SnifferSession.onCapture ()
 bool SnifferSession.capture () throws
 {
 	stopCapture ();
-
-	object <io.PCapDeviceDesc const*>* data = dynamic (object <io.PCapDeviceDesc const*>*) m_deviceCombo.m_currentData;
-	io.PCapDeviceDesc const* device = data.m_value;
+	
+	
+	
+	io.PCapDeviceDesc const* device = m_deviceCombo.m_currentData;
+	if (!device)
+		return false;
 
 	m_pcap.open (
 		device.m_name, 
@@ -219,9 +220,10 @@ void SnifferSession.save (doc.Storage* storage)
 
 void SnifferSession.updateProperties ()
 {
-	object <io.PCapDeviceDesc const*>* data = dynamic (object <io.PCapDeviceDesc const*>*) m_deviceCombo.m_currentData;
-	io.PCapDeviceDesc const* device = data.m_value;
-	
+	io.PCapDeviceDesc const* device = m_deviceCombo.m_currentData;
+	if (!device)
+		return;
+		
 	m_deviceProp.m_value = device.m_name;
 }
 
