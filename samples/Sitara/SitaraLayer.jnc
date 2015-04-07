@@ -48,7 +48,7 @@ protected:
 		size_t size
 		);
 
-	onFileDlgCompleted ();
+	onFileDlgCompleted (gui.StdDlgButton button);
 	onProgressDlgButtonClicked (gui.StdDlgButton button);
 }
 
@@ -119,9 +119,9 @@ SitaraLayer.cancelFileTranfer ()
 	m_pluginHost.m_progressDlg.hide ();
 }
 
-SitaraLayer.onFileDlgCompleted ()
+SitaraLayer.onFileDlgCompleted (gui.StdDlgButton button)
 {
-	if (m_pluginHost.m_fileDlg.m_result != gui.StdDlgButton.Ok)
+	if (button != gui.StdDlgButton.Ok)
 	{
 		m_state = State.Idle;
 		m_pluginHost.m_progressDlg.hide ();

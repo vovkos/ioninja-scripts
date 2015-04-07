@@ -19,6 +19,8 @@ opaque class PluginHost
 	gui.StatusBar* readonly m_statusBar;
 	gui.PropertyGrid* readonly m_propertyGrid;
 	gui.FileDlg* readonly m_fileDlg;
+	gui.LoginDlg* readonly m_loginDlg;
+	gui.MessageDlg* readonly m_messageDlg;
 	gui.ProgressDlg* readonly m_progressDlg;
 	log.Log* readonly m_log;
 	jnc.Scheduler* readonly m_mainThreadScheduler;

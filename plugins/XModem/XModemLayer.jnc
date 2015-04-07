@@ -49,7 +49,7 @@ protected:
 		size_t size
 		);
 
-	onFileDlgCompleted ();
+	onFileDlgCompleted (gui.StdDlgButton button);
 	onProgressDlgButtonClicked (gui.StdDlgButton button);
 }
 
@@ -127,9 +127,9 @@ XModemLayer.cancelFileTranfer ()
 	m_pluginHost.m_progressDlg.hide ();
 }
 
-XModemLayer.onFileDlgCompleted ()
+XModemLayer.onFileDlgCompleted (gui.StdDlgButton button)
 {
-	if (m_pluginHost.m_fileDlg.m_result != gui.StdDlgButton.Ok)
+	if (button != gui.StdDlgButton.Ok)
 	{
 		m_state = State.Idle;
 		return;

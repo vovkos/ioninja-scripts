@@ -58,9 +58,35 @@ opaque class FileDlg
 	char const* autoget property m_filter;
 	char const* autoget property m_filePath;
 
-	StdDlgButton readonly m_result;
+	event m_onCompleted (StdDlgButton button);
 
-	event m_onCompleted ();
+	show ();
+}
+
+//.............................................................................
+
+opaque class LoginDlg
+{
+	char const* autoget property m_title;
+	char const* autoget property m_message;
+	char const* autoget property m_userName;
+	char const* autoget property m_password;
+
+	event m_onCompleted (StdDlgButton button);
+
+	show ();
+}
+
+//.............................................................................
+
+opaque class MessageDlg
+{
+	char const* autoget property m_title;
+	char const* autoget property m_message;
+	StdDlgIcon autoget property m_icon;
+	StdDlgButtons autoget property m_buttons;
+
+	event m_onCompleted (StdDlgButton button);
 
 	show ();
 }
