@@ -12,6 +12,7 @@ enum SshChannelLogRecordCode
 	TcpConnecting,
 	TcpConnectCompleted,
 	SshHandshakeCompleted,
+	SshAuthenticating,
 	SshAuthCompleted,
 	SshChannelOpened,
 	SshPtyRequested,
@@ -73,6 +74,12 @@ bool representSshChannelLog (
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, "ok");
+		
+		// and fall through...
+
+	case SshChannelLogRecordCode.SshAuthenticating:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText (SshChannelLogPartCode.Connecting, "Performing SSH authentification...");
 		break;
 

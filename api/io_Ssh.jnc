@@ -14,6 +14,7 @@ enum SshEvent
 	TcpConnectCompleted,
 	SshHandshakeCompleted,
 	SshAuthCompleted,
+	SshAuthError,
 	SshChannelOpened,
 	SshPtyRequested,
 	SshProcessStarted,
@@ -62,9 +63,15 @@ opaque class SshChannel
 		bool isSync = false
 		) throws;
 
+	bool authenticate (
+		char const* userName,
+		char const* password
+		) throws;
+		
 	bool resizePty (
 		uint_t width,
-		uint_t height
+		uint_t height,
+		bool isSync = false
 		);
 
 	size_t read (

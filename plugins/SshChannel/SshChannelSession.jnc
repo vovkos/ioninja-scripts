@@ -18,6 +18,8 @@ protected:
 		Closed,
 		Resolving,
 		Connecting,
+		RequestingLogin,
+		Authenticating,
 		Connected
 	}
 
@@ -26,6 +28,8 @@ protected:
 		"Closed",
 		"Resolving...",
 		"Connecting...",
+		"Requestin login...",
+		"Authenticating...",
 		"Connected",
 	};
 
@@ -97,10 +101,13 @@ public:
 
 protected:
 	handleConnectError (jnc.Error const* error);
+	handleSshAuthError (jnc.Error const* error);
 	
 	onConnect ();
 	onSshEvent (io.SshEventParams const* params);
 	onResolverEvent (io.SocketAddressResolverEventParams const* params);
+	onLoginDlgCompleted (gui.StdDlgButton button);
+	onConsoleSizeChanged ();
 
 	createUi ();	
 	reactor m_uiReactor ();
@@ -119,6 +126,8 @@ SshChannelSession.construct (doc.PluginHost* pluginHost)
 	m_channel.m_onSshEvent += onSshEvent @ m_pluginHost.m_mainThreadScheduler;
 	m_resolver = new io.SocketAddressResolver ();
 	m_resolver.m_onResolverEvent += onResolverEvent @ m_pluginHost.m_mainThreadScheduler;
+	m_pluginHost.m_loginDlg.m_onCompleted += onLoginDlgCompleted;
+	m_pluginHost.m_terminal.m_onConsoleSizeChanged += onConsoleSizeChanged;
 
 	createUi ();
 }
@@ -274,7 +283,9 @@ bool SshChannelSession.connect () throws
 			m_passwordProp.m_value,
 			m_channelTypeProp.m_value,
 			m_processTypeProp.m_value,
-			m_ptyTypeProp.m_value
+			m_ptyTypeProp.m_value,
+			m_pluginHost.m_terminal.m_consoleWidth,
+			m_pluginHost.m_terminal.m_consoleHeight
 			);
 
 		m_remoteAddress = address;
@@ -302,6 +313,52 @@ SshChannelSession.handleConnectError (jnc.Error const* error)
 		
 	m_channel.close ();
 	m_state = State.Closed;
+}
+
+SshChannelSession.handleSshAuthError (jnc.Error const* error)
+{
+	writeLog (
+		SshChannelLogRecordCode.ConnectError,
+		error,
+		error.m_size
+		);
+	
+	m_pluginHost.m_loginDlg.m_userName = m_userNameProp.m_value;
+	m_pluginHost.m_loginDlg.m_password = m_passwordProp.m_value;
+	m_pluginHost.m_loginDlg.show ();	
+	
+	m_state = State.RequestingLogin;
+}
+
+SshChannelSession.onLoginDlgCompleted (gui.StdDlgButton button)
+{
+	if (m_state != State.RequestingLogin)
+		return;
+
+	if (button != gui.StdDlgButton.Ok)
+		jnc.throw ();
+	
+	m_userNameProp.m_value = m_pluginHost.m_loginDlg.m_userName;
+	m_passwordProp.m_value = m_pluginHost.m_loginDlg.m_password;
+
+	m_channel.authenticate (m_userNameProp.m_value, m_passwordProp.m_value);
+	writeLog (SshChannelLogRecordCode.SshAuthenticating);
+	m_state = State.Authenticating;
+	
+catch:
+	m_channel.close ();
+	m_state = State.Closed;
+}
+
+SshChannelSession.onConsoleSizeChanged ()
+{
+	if (m_state != State.Connected)
+		return; // actually, need to handle console size change during connection process also
+	
+	m_channel.resizePty (
+		m_pluginHost.m_terminal.m_consoleWidth,
+		m_pluginHost.m_terminal.m_consoleHeight
+		);	
 }
 
 SshChannelSession.disconnect ()
@@ -433,6 +490,10 @@ SshChannelSession.onSshEvent (io.SshEventParams const* params)
 		m_state = State.Connected;
 		break;
 
+	case io.SshEvent.SshAuthError:
+		handleSshAuthError (params.m_error);
+		break;
+
 	case io.SshEvent.ConnectError:
 		handleConnectError (params.m_error);
 		break;
@@ -477,7 +538,9 @@ SshChannelSession.onResolverEvent (io.SocketAddressResolverEventParams const* pa
 			m_passwordProp.m_value,
 			m_channelTypeProp.m_value,
 			m_processTypeProp.m_value,
-			m_ptyTypeProp.m_value			
+			m_ptyTypeProp.m_value,
+			m_pluginHost.m_terminal.m_consoleWidth,
+			m_pluginHost.m_terminal.m_consoleHeight
 			);
 
 		m_remoteAddress = *params.m_address;

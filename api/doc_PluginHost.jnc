@@ -12,6 +12,16 @@ namespace doc {
 
 //.............................................................................
 
+class Terminal
+{
+	uint_t m_consoleWidth;
+	uint_t m_consoleHeight;
+	
+	event m_onConsoleSizeChanged ();
+}
+
+//.............................................................................
+
 opaque class PluginHost
 {
 	gui.Menu* readonly m_menu;
@@ -23,6 +33,7 @@ opaque class PluginHost
 	gui.MessageDlg* readonly m_messageDlg;
 	gui.ProgressDlg* readonly m_progressDlg;
 	log.Log* readonly m_log;
+	doc.Terminal* readonly m_terminal;
 	jnc.Scheduler* readonly m_mainThreadScheduler;
 }
 
