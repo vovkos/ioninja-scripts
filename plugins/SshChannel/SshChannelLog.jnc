@@ -49,7 +49,7 @@ bool representSshChannelLog (
 		break;
 
 	case SshChannelLogRecordCode.ResolveCompleted:
-		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
+		char const* addressString = ((io.SocketAddress const*) p).getString ();
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, $"ok (\e[34m$addressString\e[m)");
@@ -57,7 +57,7 @@ bool representSshChannelLog (
 		break;
 
 	case SshChannelLogRecordCode.TcpConnecting:
-		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
+		char const* addressString = ((io.SocketAddress const*) p).getString ();
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText (SshChannelLogPartCode.Connecting, $"Establishing TCP connection to \e[34m$addressString\e[m...");
@@ -128,7 +128,7 @@ bool representSshChannelLog (
 		break;
 
 	case SshChannelLogRecordCode.Disconnected:
-		char const* addressString = try io.formatSocketAddress ((io.SocketAddress const*) p);
+		char const* addressString = ((io.SocketAddress const*) p).getString ();
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
 		target.addHyperText ($"Disconnected from \e[34m$addressString");

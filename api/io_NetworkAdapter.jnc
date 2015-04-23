@@ -16,14 +16,20 @@ enum NetworkAdapterType
 	Ppp,
 	TokenRing,
 	Slip,
+	Tunnel,
+	_Count,
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 bitflag enum NetworkAdapterFlags
 {
-	MediaDisconnected,
-	DhcpEnabled,
+	Dhcp,
+	Ddns,
+	Broadcast,
+	Multicast,
+	Ip4,
+	Ip6,
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -31,8 +37,8 @@ bitflag enum NetworkAdapterFlags
 struct NetworkAdapterAddress
 {
 	NetworkAdapterAddress const* m_next;
-	Address_Ip4 m_address;
-	Address_Ip4 m_mask;
+	SocketAddress m_address;
+	size_t m_netMaskBitCount;
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -40,59 +46,92 @@ struct NetworkAdapterAddress
 struct NetworkAdapterDesc
 {
 	NetworkAdapterDesc const* m_next;
-	NetworkAdapterType m_type;
-	NetworkAdapterFlags m_flags;
 	char const* m_name;
 	char const* m_description;
+	NetworkAdapterType m_type;
+	NetworkAdapterFlags m_flags;
 	uint8_t m_mac [6];
-
-	NetworkAdapterAddress m_address;
-	NetworkAdapterAddress m_gateway;
-	NetworkAdapterAddress m_dhcpServer;
+	NetworkAdapterAddress const* m_address;
+	size_t m_addressCount;
 }
 
 //.............................................................................
 
-NetworkAdapterDesc const* createNetworkAdapterDescList (size_t* count = null);
+NetworkAdapterDesc const* createNetworkAdapterDescList (
+	size_t* adapterCount = null,
+	size_t* addressCount = null
+	);
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+enum NetworkAdapterPropertyKind
+{
+	Connection,
+	Listener,	
+}
 
 gui.EnumProperty* createNetworkAdapterProperty (
 	gui.PropertyGrid* propertyGrid,
+	NetworkAdapterPropertyKind kind,
 	char const* name,
 	char const* toolTipText
 	)
 {
-	size_t adapterCount;
-	NetworkAdapterDesc const* adapterList = createNetworkAdapterDescList (&adapterCount);
+	size_t enumOptionCount;
+	NetworkAdapterDesc const* adapterList = createNetworkAdapterDescList (null, &enumOptionCount);
 
-	adapterCount += 2; // include 'All adapters' and 'Loopback adapter'
-	gui.EnumPropertyOption* adapterOptionArray = new gui.EnumPropertyOption [adapterCount];
-
-	gui.EnumPropertyOption* adapterOption = adapterOptionArray;
-	adapterOption.m_text = "0.0.0.0 (All adapters)";
-	adapterOption.m_value = 0;
-	adapterOption++;
-
-	adapterOption.m_text = "127.0.0.1 (Loopback adapter)";
-	adapterOption.m_value = 0x7f000001;
-	adapterOption++;
-
-	io.NetworkAdapterDesc const* adapter = adapterList;
-	for (; adapter; adapter = adapter->m_next, adapterOption++)
+	gui.EnumPropertyOption* enumOptionArray;
+	gui.EnumPropertyOption* enumOption;
+	
+	if (kind == NetworkAdapterPropertyKind.Connection)
 	{
-		adapterOption.m_text = jnc.format (
-			"%s (%s)",
-			io.formatAddress_Ip4 (&adapter->m_address.m_address),
-			adapter->m_description
-			);
+		enumOptionCount++; // include 'Auto'
+		enumOptionArray = new gui.EnumPropertyOption [enumOptionCount];
+		enumOption = enumOptionArray;
+	
+		enumOption.m_text = "Auto";
+		enumOption.m_value = null;
+		enumOption++;
+	}
+	else
+	{	
+		static io.SocketAddress autoAddress_ip4 = { m_family = AddressFamily.Ip4 };
+		static io.SocketAddress autoAddress_ip6 = { m_family = AddressFamily.Ip6 };
+	
+		enumOptionCount += 2; // include 'All IPv4/IPv6 adapters'
+		enumOptionArray = new gui.EnumPropertyOption [enumOptionCount];
+		enumOption = enumOptionArray;
+	
+		enumOption.m_text = "All IPv4 adapters";
+		enumOption.m_value = &autoAddress_ip4;
+		enumOption++;
 
-		adapterOption.m_value = adapter->m_address.m_address.m_i32;
+		enumOption.m_text = "All IPv6 adapters";
+		enumOption.m_value = &autoAddress_ip6;
+		enumOption++;
+	}
+	
+	io.NetworkAdapterDesc const* adapter = adapterList;
+	for (; adapter; adapter = adapter->m_next)
+	{
+		io.NetworkAdapterAddress const* address = adapter->m_address;
+		for (; address; address = address->m_next, enumOption++)
+		{
+			enumOption.m_text = jnc.format (
+				"%s - %s",
+				adapter->m_description,				
+				address.m_address.getString ()
+				);
+				
+			enumOption.m_value = &address.m_address;
+		}
 	}
 
 	return propertyGrid.createEnumProperty (		
 		name,
 		toolTipText,
-		adapterOptionArray,
-		adapterCount
+		enumOptionArray,
+		enumOptionCount
 		);
 }
 

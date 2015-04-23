@@ -86,6 +86,7 @@ public:
 	construct (doc.PluginHost* pluginHost);
 
 	bool connect () throws;
+	bool connect (io.SocketAddress const* address) throws;
 	disconnect ();
 
 	override void load (doc.Storage* storage);
@@ -212,6 +213,7 @@ SshChannelSession.createUi ()
 
 	m_adapterProp = io.createNetworkAdapterProperty (
 		m_pluginHost.m_propertyGrid,
+		io.NetworkAdapterPropertyKind.Connection,
 		"Adapter",
 		"Adapter to bind to before connect"
 		);
@@ -240,26 +242,38 @@ bool SshChannelSession.connect () throws
 	m_addressCombo.addEditTextToHistory ();
 
 	io.SocketAddress address;
-	bool isDirectAddress = try io.parseSocketAddress (addressString, &address);
+	bool isDirectAddress = try address.parse (addressString);
 	if (isDirectAddress)
-	{
-		writeLog (
-			SshChannelLogRecordCode.TcpConnecting,
-			&address,
-			sizeof (address)
-			);
-	}
-	else
-	{
-		writeLog (
-			SshChannelLogRecordCode.Resolving,
-			addressString,
-			strlen (addressString)
-			);
+		return try connect (&address);
+		
+	m_state = State.Resolving;
 
-		m_resolver.m_syncId = m_channel.m_syncId;
-		m_resolver.resolve (addressString);
-	}	
+	writeLog (
+		SshChannelLogRecordCode.Resolving,
+		addressString,
+		strlen (addressString)
+		);
+
+	io.AddressFamily addressFamily = io.AddressFamily.Undefined;
+	if (m_useLocalAddressProp.m_value)
+	{
+		io.SocketAddress const* adapterAddress = m_adapterProp.m_value;
+		if (adapterAddress)
+			addressFamily = adapterAddress.m_family;
+	}
+		
+	m_resolver.m_syncId = m_socket.m_syncId;
+	m_resolver.resolve (addressString, addressFamily);
+	return true;
+
+catch:
+	handleConnectError (jnc.getLastError ());
+	return false;
+}
+
+bool SshChannelSession.connect (io.SocketAddress* remoteAddress) throws
+{
+	disconnect ();
 
 	if (!m_useLocalAddressProp.m_value)
 	{
@@ -267,35 +281,37 @@ bool SshChannelSession.connect () throws
 	}
 	else
 	{
-		io.SocketAddress localAddress;
-		localAddress.m_family = io.AddressFamily.Ip4;
-		localAddress.m_ip4.m_address.m_i32 = m_adapterProp.m_value;
-		localAddress.m_ip4.m_port = (uint16_t) m_localPortProp.m_value;
+		io.SocketAddress const* adapterAddress = m_adapterProp.m_value;
+		if (adapterAddress)
+			localAddress = *adapterAddress;
+		else
+			localAddress.m_family = remoteAddress.m_family;
+			
+		localAddress.m_ip4.m_port = (uint16_t) m_localPortProp.m_value; // same for IPv4/IPv6
 
 		m_channel.open (&localAddress);
 	}
 
-	if (isDirectAddress)
-	{
-		m_channel.connect (
-			&address, 
-			m_userNameProp.m_value, 
-			m_passwordProp.m_value,
-			m_channelTypeProp.m_value,
-			m_processTypeProp.m_value,
-			m_ptyTypeProp.m_value,
-			m_pluginHost.m_terminal.m_consoleWidth,
-			m_pluginHost.m_terminal.m_consoleHeight
-			);
+	m_state = State.Connecting;
+	m_remoteAddress = *remoteAddress;
 
-		m_remoteAddress = address;
-		m_state = State.Connecting;
-	}
-	else
-	{
-		m_state = State.Resolving;
-	}		
+	writeLog (
+		SshChannelLogRecordCode.TcpConnecting,
+		&address,
+		sizeof (address)
+		);		
 	
+	m_channel.connect (
+		&address, 
+		m_userNameProp.m_value, 
+		m_passwordProp.m_value,
+		m_channelTypeProp.m_value,
+		m_processTypeProp.m_value,
+		m_ptyTypeProp.m_value,
+		m_pluginHost.m_terminal.m_consoleWidth,
+		m_pluginHost.m_terminal.m_consoleHeight
+		);
+
 	return true;
 
 catch:
@@ -528,23 +544,11 @@ SshChannelSession.onResolverEvent (io.SocketAddressResolverEventParams const* pa
 	case io.SocketAddressResolverEvent.ResolveCompleted:
 		writeLog (
 			SshChannelLogRecordCode.ResolveCompleted,
-			params.m_address,
+			params.m_addressTable,
 			sizeof (io.SocketAddress)
 			);
 
-		m_channel.connect (
-			params.m_address,
-			m_userNameProp.m_value, 
-			m_passwordProp.m_value,
-			m_channelTypeProp.m_value,
-			m_processTypeProp.m_value,
-			m_ptyTypeProp.m_value,
-			m_pluginHost.m_terminal.m_consoleWidth,
-			m_pluginHost.m_terminal.m_consoleHeight
-			);
-
-		m_remoteAddress = *params.m_address;
-		m_state = State.Connecting;
+		try connect (params.m_addressTable);
 		break;
 
 	case io.SocketAddressResolverEvent.ResolveError:
@@ -565,7 +569,7 @@ reactor SshChannelSession.m_uiReactor ()
 	m_actionTable [ActionId.Connect].m_text = m_state ? "Disconnect" : "Connect";
 	m_actionTable [ActionId.Connect].m_icon = m_iconTable [m_state ? IconId.Disconnect : IconId.Connect];
 	m_statusPaneTable [StatusPaneId.State].m_text = m_stateStringTable [m_state];
-	m_statusPaneTable [StatusPaneId.RemoteAddress].m_text = m_state > State.Resolving ? try io.formatSocketAddress (&m_remoteAddress) : "<peer-address>";
+	m_statusPaneTable [StatusPaneId.RemoteAddress].m_text = m_state > State.Resolving ? m_remoteAddress.getString () : "<peer-address>";
 	m_statusPaneTable [StatusPaneId.RemoteAddress].m_isVisible = m_state > State.Resolving;
 }
 

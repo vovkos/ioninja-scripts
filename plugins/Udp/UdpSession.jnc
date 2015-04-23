@@ -71,8 +71,8 @@ protected:
 	
 	gui.StringProperty* m_remoteAddressProp;
 	gui.BoolProperty* m_autoRemoteAddressProp;
-	gui.IntProperty* m_localPortProp;
 	gui.EnumProperty* m_adapterProp;
+	gui.IntProperty* m_localPortProp;
 		
 public:
 	construct (doc.PluginHost* pluginHost);
@@ -164,16 +164,18 @@ UdpSession.createGui()
 		"Automatically switch remote address upon receiving a datagram"
 		);
 
+	m_adapterProp = io.createNetworkAdapterProperty (
+		m_pluginHost.m_propertyGrid,
+		io.NetworkAdapterPropertyKind.Listener,
+		"Adapter",
+		"Adapter to bind socket to"
+		);
+		
 	m_localPortProp = m_pluginHost.m_propertyGrid.createIntProperty (
 		"Local UDP port",
 		"Local UDP port to listen to"
 		);
-
-	m_adapterProp = io.createNetworkAdapterProperty (
-		m_pluginHost.m_propertyGrid,
-		"Adapter",
-		"Adapter to bind socket to"
-		);
+		
 	m_adapterProp.m_value = 0;
 
 	m_uiReactor.start();
@@ -194,10 +196,8 @@ UdpSession.openSocket ()
 	char const* portString = m_localPortCombo.m_editText;
 	m_localPortCombo.addEditTextToHistory ();
 
-	io.SocketAddress address;
-	address.m_family = io.AddressFamily.Ip4;
-	address.m_ip4.m_address.m_i32 = m_adapterProp.m_value;
-	address.m_ip4.m_port = (uint16_t) atoi (portString);
+	io.SocketAddress address = *(io.SocketAddress const*) m_adapterProp.m_value;
+	address.m_ip4.m_port = (uint16_t) atoi (portString); // same for IPv4/IPv6
 
 	if (!try m_socket.open (io.Protocol.Udp, &address))
 	{
@@ -277,7 +277,7 @@ size_t UdpSession.transmit (
 	m_remoteAddressCombo.addEditTextToHistory ();
 
 	io.SocketAddress remoteAddress;
-	bool isDirectAddress = try io.parseSocketAddress (addressString, &remoteAddress);
+	bool isDirectAddress = try remoteAddress.parse (addressString);
 	if (isDirectAddress || m_resolveState == ResolveState.Resolved)
 	{	
 		if (isDirectAddress)
@@ -287,8 +287,8 @@ size_t UdpSession.transmit (
 		
 		m_socket.sendTo (p, size, &remoteAddress);
 		
-		m_pluginHost.m_log.m_writer.write(UdpRecordCode.TxPacket, &remoteAddress, sizeof (io.SocketAddress));
-		m_pluginHost.m_log.m_writer.write(log.StdRecordCode.Tx, p, size);
+		m_pluginHost.m_log.m_writer.write (UdpRecordCode.TxPacket, &remoteAddress, sizeof (io.SocketAddress));
+		m_pluginHost.m_log.m_writer.write (log.StdRecordCode.Tx, p, size);
 	}
 	else
 	{
@@ -304,9 +304,16 @@ size_t UdpSession.transmit (
 				strlen (addressString)
 				);
 
+			io.AddressFamily addressFamily = io.AddressFamily.Undefined;
+			if (m_useLocalAddressProp.m_value)
+			{
+				io.SocketAddress const* adapterAddress = m_adapterProp.m_value;
+				if (adapterAddress)
+					addressFamily = adapterAddress.m_family;
+			}
+				
 			m_resolver.m_syncId = m_socket.m_syncId;
-			m_resolver.resolve (addressString);
-
+			m_resolver.resolve (addressString, addressFamily);
 			m_resolveState = ResolveState.Resolving;
 		}
 	}
@@ -352,7 +359,7 @@ UdpSession.onSocketEvent(io.SocketEventParams const* params)
 			break;
 		
 		if (m_actionTable [ActionId.AutoRemoteAddress].m_isChecked)
-			m_remoteAddressCombo.m_editText = try io.formatSocketAddress (&remoteAddress);
+			m_remoteAddressCombo.m_editText = remoteAddress.getString ();
 			
 		writeLog (UdpRecordCode.RxPacket, &remoteAddress, sizeof (io.SocketAddress));
 		writeLog (log.StdRecordCode.Rx, buffer, size);
@@ -370,11 +377,11 @@ UdpSession.onResolverEvent (io.SocketAddressResolverEventParams const* params)
 	case io.SocketAddressResolverEvent.ResolveCompleted:
 		writeLog (
 			UdpRecordCode.ResolveCompleted,
-			params.m_address,
+			&params.m_address,
 			sizeof (io.SocketAddress)
 			);
 
-		m_remoteAddress = *params.m_address;
+		m_remoteAddress = params.m_address;
 		
 		m_resolveState = m_resolveState == ResolveState.ChangeWhileResolving ?
 			ResolveState.Unresolved :
@@ -411,7 +418,6 @@ reactor UdpSession.m_uiReactor ()
 	m_remoteAddressCombo.m_isEnabled = !m_actionTable [ActionId.AutoRemoteAddress].m_isChecked;
 	m_actionTable [ActionId.Open].m_text = m_state ? "Close Socket" : "Open Socket";
 	m_actionTable [ActionId.Open].m_icon = m_iconTable [m_state ? IconId.Close : IconId.Open];
-	m_adapterProp.m_isEnabled = m_state == State.Closed;
 	m_statusPaneTable [StatusPaneId.State].m_text = m_state ? "Opened" : "Closed";
 }
 

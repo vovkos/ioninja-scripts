@@ -220,6 +220,7 @@ TcpProxySession.createUi ()
 
 	m_adapterProp = io.createNetworkAdapterProperty (
 		m_pluginHost.m_propertyGrid,
+		io.NetworkAdapterPropertyKind.Listener,
 		"Interface",
 		"Interface to bind to and to listen on for target connection"
 		);
@@ -255,16 +256,14 @@ bool TcpProxySession.listen () throws
 	char const* targetAddressString = m_clientAddressCombo.m_editText;
 
 	io.SocketAddress targetAddress;
-	bool isDirectAddress = try io.parseSocketAddress (targetAddressString, &targetAddress);
+	bool isDirectAddress = try targetAddress.parse (targetAddressString);
 	if (isDirectAddress || m_isTargetAddressResolved)
 	{
 		if (isDirectAddress)
 			m_clientRemoteAddress = targetAddress;
 		
-		io.SocketAddress address;
-		address.m_family = io.AddressFamily.Ip4;
-		address.m_ip4.m_address.m_i32 = m_adapterProp.m_value;
-		address.m_ip4.m_port = (uint16_t) atoi (m_serverPortCombo.m_editText);
+		io.SocketAddress address = *(io.SocketAddress const*) m_adapterProp.m_value;
+		address.m_ip4.m_port = (uint16_t) atoi (m_serverPortCombo.m_editText); // same for IPv4/IPv6
 
 		m_listenerSocket.open (io.Protocol.Tcp, &address);
 		m_listenerSocket.listen ();
@@ -607,21 +606,19 @@ TcpProxySession.onResolverEvent (io.SocketAddressResolverEventParams const* para
 	case io.SocketAddressResolverEvent.ResolveCompleted:
 		writeLog (
 			TcpProxyLogRecordCode.TargetResolveCompleted,
-			params.m_address,
+			params.m_addressTable,
 			sizeof (io.SocketAddress)
 			);
 		
-		m_clientRemoteAddress = *params.m_address;
+		m_clientRemoteAddress = *params.m_addressTable;
 		
 		if (!m_wasTargetAddressChangedWhileResolving)
 			m_isTargetAddressResolved = true;
 				
 		// start listening
 		
-		io.SocketAddress address;
-		address.m_family = io.AddressFamily.Ip4;
-		address.m_ip4.m_address.m_i32 = m_adapterProp.m_value;
-		address.m_ip4.m_port = (uint16_t) atoi (m_serverPortCombo.m_editText);
+		io.SocketAddress address = *(io.SocketAddress const*) m_adapterProp.m_value;
+		address.m_ip4.m_port = (uint16_t) atoi (m_serverPortCombo.m_editText); // same for IPv4/IPv6
 
 		m_listenerSocket.open (io.Protocol.Tcp, &address);
 		m_listenerSocket.listen ();
@@ -680,7 +677,7 @@ reactor TcpProxySession.m_uiReactor ()
 	m_actionTable [ActionId.Listen].m_text = m_listenerState ? "Stop Listening" : "Listen";
 	m_actionTable [ActionId.Listen].m_icon = m_iconTable [m_listenerState ? IconId.StopListen : IconId.Listen];
 	m_actionTable [ActionId.Disconnect].m_isEnabled = m_serverConnectionState || m_clientConnectionState;
-	m_statusPaneTable [StatusPaneId.ServerRemoteAddress].m_text = m_serverConnectionState ? try io.formatSocketAddress (&m_serverRemoteAddress) : "<server-peer>";
+	m_statusPaneTable [StatusPaneId.ServerRemoteAddress].m_text = m_serverConnectionState ? m_serverRemoteAddress.getString () : "<server-peer>";
 	m_statusPaneTable [StatusPaneId.ServerRemoteAddress].m_isVisible = m_serverConnectionState != ServerConnectionState.Closed;
 	m_statusPaneTable [StatusPaneId.ListenerState].m_text = m_listenerStateStringTable [m_listenerState];
 	m_statusPaneTable [StatusPaneId.ClientConnectionState].m_text = m_clientConnectionStateStringTable [m_clientConnectionState];

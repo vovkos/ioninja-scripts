@@ -149,6 +149,7 @@ TcpListenerSession.createUi ()
 
 	m_adapterProp = io.createNetworkAdapterProperty (
 		m_pluginHost.m_propertyGrid,
+		io.NetworkAdapterPropertyKind.Listener,
 		"Adapter",
 		"Network adapter to listen on"
 		);
@@ -191,10 +192,8 @@ bool TcpListenerSession.listen () throws
 
 	m_portCombo.addEditTextToHistory ();
 
-	io.SocketAddress address;
-	address.m_family = io.AddressFamily.Ip4;
-	address.m_ip4.m_address.m_i32 = m_adapterProp.m_value;
-	address.m_ip4.m_port = (uint16_t) atoi (m_portCombo.m_editText);
+	io.SocketAddress address = *(io.SocketAddress const*) m_adapterProp.m_value;
+	address.m_ip4.m_port = (uint16_t) atoi (m_portCombo.m_editText); // same for IPv4/IPv6
 	
 	m_listenerSocket.open (io.Protocol.Tcp, &address);
 	m_listenerSocket.m_closeKind = (io.SocketCloseKind) m_closeKindProp.m_value;
@@ -411,7 +410,7 @@ reactor TcpListenerSession.m_uiReactor ()
 	m_actionTable [ActionId.Listen].m_icon = m_iconTable [m_listenerState ? IconId.StopListen : IconId.Listen];
 	m_actionTable [ActionId.Disconnect].m_isEnabled = m_connectionState != ConnectionState.Closed;
 	m_statusPaneTable [StatusPaneId.ListenerState].m_text = m_listenerState ? "Listening" : "Not listening";
-	m_statusPaneTable [StatusPaneId.RemoteAddress].m_text = m_connectionState ? try io.formatSocketAddress (&m_remoteAddress) : "<peer>";
+	m_statusPaneTable [StatusPaneId.RemoteAddress].m_text = m_connectionState ? m_remoteAddress.getString () : "<peer>";
 	m_statusPaneTable [StatusPaneId.RemoteAddress].m_isVisible = m_connectionState != ConnectionState.Closed;
 }
 

@@ -110,7 +110,7 @@ SnifferSession.createUi ()
 	{
 		char const* itemName = jnc.format (
 			"%s (%s)", 
-			io.formatAddress_Ip4 (&device->m_address.m_address),
+			device->m_address.m_address.getString (),
 			device->m_description
 			);
 

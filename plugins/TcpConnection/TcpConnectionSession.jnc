@@ -167,6 +167,7 @@ TcpConnectionSession.createUi ()
 
 	m_adapterProp = io.createNetworkAdapterProperty (
 		m_pluginHost.m_propertyGrid,
+		io.NetworkAdapterPropertyKind.Connection,
 		"Adapter",
 		"Adapter to bind to before connect"
 		);
@@ -195,7 +196,7 @@ bool TcpConnectionSession.connect () throws
 	m_addressCombo.addEditTextToHistory ();
 
 	io.SocketAddress address;
-	bool isDirectAddress = try io.parseSocketAddress (addressString, &address);
+	bool isDirectAddress = try address.parse (addressString);
 	if (isDirectAddress)
 		return try connect (&address);
 
@@ -207,8 +208,16 @@ bool TcpConnectionSession.connect () throws
 		strlen (addressString)
 		);
 
+	io.AddressFamily addressFamily = io.AddressFamily.Undefined;
+	if (m_useLocalAddressProp.m_value)
+	{
+		io.SocketAddress const* adapterAddress = m_adapterProp.m_value;
+		if (adapterAddress)
+			addressFamily = adapterAddress.m_family;
+	}
+		
 	m_resolver.m_syncId = m_socket.m_syncId;
-	m_resolver.resolve (addressString);
+	m_resolver.resolve (addressString, addressFamily);
 	return true;
 
 catch:
@@ -222,13 +231,17 @@ bool TcpConnectionSession.connect (io.SocketAddress const* remoteAddress) throws
 
 	if (!m_useLocalAddressProp.m_value)
 	{
-		m_socket.open (io.Protocol.Tcp); // any address
+		m_socket.open (io.Protocol.Tcp, remoteAddress.m_family);
 	}
 	else
 	{
-		localAddress.m_family = io.AddressFamily.Ip4;
-		localAddress.m_ip4.m_address.m_i32 = m_adapterProp.m_value;
-		localAddress.m_ip4.m_port = (uint16_t) m_localPortProp.m_value;
+		io.SocketAddress const* adapterAddress = m_adapterProp.m_value;
+		if (adapterAddress)
+			localAddress = *adapterAddress;
+		else
+			localAddress.m_family = remoteAddress.m_family;
+			
+		localAddress.m_ip4.m_port = (uint16_t) m_localPortProp.m_value; // same for IPv4/IPv6
 
 		m_socket.open (io.Protocol.Tcp, &localAddress);
 	}
@@ -250,7 +263,7 @@ catch:
 
 	if (!m_useLocalAddressProp.m_value)
 	{
-		writeLog (TcpConnectionLogRecordCode.Connecting, &remoteAddress, sizeof (io.SocketAddress));
+		writeLog (TcpConnectionLogRecordCode.Connecting, remoteAddress, sizeof (io.SocketAddress));
 	}
 	else
 	{
@@ -422,11 +435,11 @@ TcpConnectionSession.onResolverEvent (io.SocketAddressResolverEventParams const*
 	case io.SocketAddressResolverEvent.ResolveCompleted:
 		writeLog (
 			TcpConnectionLogRecordCode.ResolveCompleted,
-			params.m_address,
+			params.m_addressTable,
 			sizeof (io.SocketAddress)
 			);
 
-		try connect (params.m_address);
+		try connect (params.m_addressTable);
 		break;
 
 	case io.SocketAddressResolverEvent.ResolveError:
@@ -444,7 +457,7 @@ reactor TcpConnectionSession.m_uiReactor ()
 	m_actionTable [ActionId.Connect].m_text = m_state ? "Disconnect" : "Connect";
 	m_actionTable [ActionId.Connect].m_icon = m_iconTable [m_state ? IconId.Disconnect : IconId.Connect];
 	m_statusPaneTable [StatusPaneId.State].m_text = m_stateStringTable [m_state];
-	m_statusPaneTable [StatusPaneId.RemoteAddress].m_text = m_state > State.Resolving ? try io.formatSocketAddress (&m_remoteAddress) : "<peer-address>";
+	m_statusPaneTable [StatusPaneId.RemoteAddress].m_text = m_state > State.Resolving ? m_remoteAddress.getString () : "<peer-address>";
 	m_statusPaneTable [StatusPaneId.RemoteAddress].m_isVisible = m_state > State.Resolving;
 }
 

@@ -1,13 +1,11 @@
 //.............................................................................
 //
-// Socket class
+// Socket address-related types and utilities
 //
 
 namespace io {
 
 //.............................................................................
-
-// sockets
 
 enum Protocol
 {
@@ -21,101 +19,74 @@ enum Protocol
 
 enum AddressFamily: uint16_t
 {
-	Ip4 = 2,
-	Ip6 = 23,
-}
-
-//.............................................................................
-
-union Address_Ip4
-{
-	bigendian uint32_t m_i32;
-	uint8_t m_i8 [4];
+	Undefined = 0,
+	Ip4       = 2,
+	Ip6       = 23,
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-bool parseAddress_Ip4 (
-	char const* string,
-	Address_Ip4* address
-	) throws;
+union Address_ip4
+{
+	bigendian uint32_t m_i32;
+	uint8_t m_i8 [4];	
+	
+	bool parse (char const* string) throws;
+	char const* getString () const;
+}
 
-char const* formatAddress_Ip4 (Address_Ip4 const* address);
-
-//.............................................................................
-
-union Address_Ip6
+union Address_ip6
 {
 	bigendian uint16_t m_i16 [8];
 	uint8_t m_i8 [16];
+
+	bool parse (char const* string) throws;
+	char const* getString () const;
 }
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-bool parseAddress_Ip6 (
-	char const* string,
-	Address_Ip6* address
-	) throws;
-
-char const* formatAddress_Ip6 (Address_Ip4 const* address) throws;
 
 //.............................................................................
 
-// socket address is network address plus transport info
+// socket address is network address plus transport info (matches sockaddr)
 
 alignment (2);
 
-struct SocketAddress_Ip4
-{
-	bigendian uint16_t m_port;
-	Address_Ip4 m_address;
-}
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-struct SocketAddress_Ip6
-{
-	bigendian uint16_t m_port;
-	bigendian uint32_t m_flow;
-	Address_Ip6 m_address;
-}
-
-//.............................................................................
-
-// layout matches berkely sockets sockaddr
-
-struct SocketAddress
+struct SocketAddress_ip4
 {
 	AddressFamily m_family;
+	bigendian uint16_t m_port;
+	Address_ip4 m_address;
 
-	union
-	{
-		SocketAddress_Ip4 m_ip4;
-		SocketAddress_Ip6 m_ip6;
-	}
+	bool parse (char const* string) throws;
+	char const* getString () const;
+}
+
+struct SocketAddress_ip6
+{
+	AddressFamily m_family;	
+	bigendian uint16_t m_port;
+	uint32_t m_flow;
+	Address_ip6 m_address;
+	uint32_t m_scope;
+
+	bool parse (char const* string) throws;
+	char const* getString () const;
+}
+
+union SocketAddress
+{
+	AddressFamily m_family;	
+	SocketAddress_ip4 m_ip4;
+	SocketAddress_ip6 m_ip6;
+
+	bool parse (char const* string) throws;
+	char const* getString () const;
 }
 
 alignment (default);
 
 //.............................................................................
 
-bool parseSocketAddress (
-	char const* string,
-	SocketAddress* address
-	) throws;
-
-bool resolveSocketAddress (
-	char const* string,
-	SocketAddress* address,
-	function* onComplete (
-		bool result,
-		jnc.Error const* error
-		)
-	) throws;
-
-char const* formatSocketAddress (SocketAddress const* address) throws;
-
-//.............................................................................
+// name-to-address resolver
 
 enum SocketAddressResolverEvent
 {
@@ -130,7 +101,8 @@ struct SocketAddressResolverEventParams
 {
 	SocketAddressResolverEvent m_eventKind;
 	uint_t m_syncId;
-	SocketAddress const* m_address;
+	SocketAddress const* m_addressTable;
+	size_t m_addressCount;
 	jnc.Error const* m_error;
 }
 
@@ -142,7 +114,11 @@ opaque class SocketAddressResolver
 
 	SocketAddressResolver* operator new ();
 
-	bool resolve (char const* name) throws;
+	bool resolve (
+		char const* name,
+		AddressFamily family = AddressFamily.Unspecified
+		) throws;
+		
 	bool cancel (uint_t syncId);
 	cancelAll ();
 

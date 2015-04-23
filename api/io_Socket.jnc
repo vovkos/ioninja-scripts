@@ -64,9 +64,14 @@ opaque class Socket
 
 	bool open (
 		Protocol protocol,
-		SocketAddress const* address = null
+		AddressFamily family = AddressFamily.Ip4
 		) throws;
 
+	bool open (
+		Protocol protocol,
+		SocketAddress const* address
+		) throws;
+		
 	void close ();
 
 	bool connect (

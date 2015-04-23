@@ -46,9 +46,9 @@ opaque class PCap
 struct PCapAddress
 {
 	PCapAddress const* m_next;
-	Address_Ip4 m_address;
-	Address_Ip4 m_mask;
-	Address_Ip4 m_broadcast;
+	Address_ip4 m_address;
+	Address_ip4 m_mask;
+	Address_ip4 m_broadcast;
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
