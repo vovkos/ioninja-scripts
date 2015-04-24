@@ -261,8 +261,8 @@ bool SshChannelSession.connect () throws
 		if (adapterAddress)
 			addressFamily = adapterAddress.m_family;
 	}
-		
-	m_resolver.m_syncId = m_socket.m_syncId;
+
+	m_resolver.m_syncId = m_channel.m_syncId;
 	m_resolver.resolve (addressString, addressFamily);
 	return true;
 
@@ -271,7 +271,7 @@ catch:
 	return false;
 }
 
-bool SshChannelSession.connect (io.SocketAddress* remoteAddress) throws
+bool SshChannelSession.connect (io.SocketAddress const* remoteAddress) throws
 {
 	disconnect ();
 
@@ -281,6 +281,7 @@ bool SshChannelSession.connect (io.SocketAddress* remoteAddress) throws
 	}
 	else
 	{
+		io.SocketAddress localAddress;
 		io.SocketAddress const* adapterAddress = m_adapterProp.m_value;
 		if (adapterAddress)
 			localAddress = *adapterAddress;
@@ -297,12 +298,12 @@ bool SshChannelSession.connect (io.SocketAddress* remoteAddress) throws
 
 	writeLog (
 		SshChannelLogRecordCode.TcpConnecting,
-		&address,
-		sizeof (address)
-		);		
-	
+		remoteAddress,
+		sizeof (io.SocketAddress)
+		);
+
 	m_channel.connect (
-		&address, 
+		remoteAddress, 
 		m_userNameProp.m_value, 
 		m_passwordProp.m_value,
 		m_channelTypeProp.m_value,

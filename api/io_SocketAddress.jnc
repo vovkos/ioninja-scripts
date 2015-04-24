@@ -116,7 +116,7 @@ opaque class SocketAddressResolver
 
 	bool resolve (
 		char const* name,
-		AddressFamily family = AddressFamily.Unspecified
+		AddressFamily family = AddressFamily.Undefined
 		) throws;
 		
 	bool cancel (uint_t syncId);

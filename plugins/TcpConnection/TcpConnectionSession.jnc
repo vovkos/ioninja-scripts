@@ -448,17 +448,20 @@ TcpConnectionSession.onResolverEvent (io.SocketAddressResolverEventParams const*
 	}
 }
 
+int g_x;
+
 reactor TcpConnectionSession.m_uiReactor ()
 {
-	m_title = $"TCP $(m_addressCombo.m_editText)";
-	m_isTransmitEnabled = m_state == State.Connected;
-	m_adapterProp.m_isEnabled = m_useLocalAddressProp.m_value;
-	m_localPortProp.m_isEnabled = m_useLocalAddressProp.m_value;
-	m_actionTable [ActionId.Connect].m_text = m_state ? "Disconnect" : "Connect";
-	m_actionTable [ActionId.Connect].m_icon = m_iconTable [m_state ? IconId.Disconnect : IconId.Connect];
-	m_statusPaneTable [StatusPaneId.State].m_text = m_stateStringTable [m_state];
-	m_statusPaneTable [StatusPaneId.RemoteAddress].m_text = m_state > State.Resolving ? m_remoteAddress.getString () : "<peer-address>";
-	m_statusPaneTable [StatusPaneId.RemoteAddress].m_isVisible = m_state > State.Resolving;
+	g_x = m_state;
+//	m_title = $"TCP $(m_addressCombo.m_editText)";
+//	m_isTransmitEnabled = m_state == State.Connected;
+//	m_adapterProp.m_isEnabled = m_useLocalAddressProp.m_value;
+//	m_localPortProp.m_isEnabled = m_useLocalAddressProp.m_value;
+//	m_actionTable [ActionId.Connect].m_text = m_state ? "Disconnect" : "Connect";
+//	m_actionTable [ActionId.Connect].m_icon = m_iconTable [m_state ? IconId.Disconnect : IconId.Connect];
+//	m_statusPaneTable [StatusPaneId.State].m_text = m_stateStringTable [m_state];
+//	m_statusPaneTable [StatusPaneId.RemoteAddress].m_text = m_state > State.Resolving ? m_remoteAddress.getString () : "<peer-address>";
+//	m_statusPaneTable [StatusPaneId.RemoteAddress].m_isVisible = m_state > State.Resolving;
 }
 
 //.............................................................................

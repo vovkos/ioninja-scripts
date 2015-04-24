@@ -175,8 +175,6 @@ UdpSession.createGui()
 		"Local UDP port",
 		"Local UDP port to listen to"
 		);
-		
-	m_adapterProp.m_value = 0;
 
 	m_uiReactor.start();
 }
@@ -305,13 +303,10 @@ size_t UdpSession.transmit (
 				);
 
 			io.AddressFamily addressFamily = io.AddressFamily.Undefined;
-			if (m_useLocalAddressProp.m_value)
-			{
-				io.SocketAddress const* adapterAddress = m_adapterProp.m_value;
-				if (adapterAddress)
-					addressFamily = adapterAddress.m_family;
-			}
-				
+			io.SocketAddress const* adapterAddress = m_adapterProp.m_value;
+			if (adapterAddress)
+				addressFamily = adapterAddress.m_family;
+
 			m_resolver.m_syncId = m_socket.m_syncId;
 			m_resolver.resolve (addressString, addressFamily);
 			m_resolveState = ResolveState.Resolving;
@@ -377,11 +372,11 @@ UdpSession.onResolverEvent (io.SocketAddressResolverEventParams const* params)
 	case io.SocketAddressResolverEvent.ResolveCompleted:
 		writeLog (
 			UdpRecordCode.ResolveCompleted,
-			&params.m_address,
+			params.m_addressTable,
 			sizeof (io.SocketAddress)
 			);
 
-		m_remoteAddress = params.m_address;
+		m_remoteAddress = *params.m_addressTable;
 		
 		m_resolveState = m_resolveState == ResolveState.ChangeWhileResolving ?
 			ResolveState.Unresolved :
