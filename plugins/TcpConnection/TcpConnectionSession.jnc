@@ -5,7 +5,7 @@
 
 import "doc_Plugin.jnc"
 import "io_Socket.jnc"
-import "io_NetworkAdapter.jnc"
+import "gui_NetworkAdapter.jnc"
 
 //.............................................................................
 
@@ -165,9 +165,9 @@ TcpConnectionSession.createUi ()
 		"Bind socket to the specified local address before connect"
 		);
 
-	m_adapterProp = io.createNetworkAdapterProperty (
+	m_adapterProp = gui.createNetworkAdapterProperty (
 		m_pluginHost.m_propertyGrid,
-		io.NetworkAdapterPropertyKind.Connection,
+		gui.NetworkAdapterUsage.Connection,
 		"Adapter",
 		"Adapter to bind to before connect"
 		);

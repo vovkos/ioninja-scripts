@@ -55,85 +55,12 @@ struct NetworkAdapterDesc
 	size_t m_addressCount;
 }
 
-//.............................................................................
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 NetworkAdapterDesc const* createNetworkAdapterDescList (
 	size_t* adapterCount = null,
 	size_t* addressCount = null
 	);
-
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-enum NetworkAdapterPropertyKind
-{
-	Connection,
-	Listener,	
-}
-
-gui.EnumProperty* createNetworkAdapterProperty (
-	gui.PropertyGrid* propertyGrid,
-	NetworkAdapterPropertyKind kind,
-	char const* name,
-	char const* toolTipText
-	)
-{
-	size_t enumOptionCount;
-	NetworkAdapterDesc const* adapterList = createNetworkAdapterDescList (null, &enumOptionCount);
-
-	gui.EnumPropertyOption* enumOptionArray;
-	gui.EnumPropertyOption* enumOption;
-	
-	if (kind == NetworkAdapterPropertyKind.Connection)
-	{
-		enumOptionCount++; // include 'Auto'
-		enumOptionArray = new gui.EnumPropertyOption [enumOptionCount];
-		enumOption = enumOptionArray;
-	
-		enumOption.m_text = "Auto";
-		enumOption.m_value = null;
-		enumOption++;
-	}
-	else
-	{	
-		static io.SocketAddress autoAddress_ip4 = { m_family = AddressFamily.Ip4 };
-		static io.SocketAddress autoAddress_ip6 = { m_family = AddressFamily.Ip6 };
-	
-		enumOptionCount += 2; // include 'All IPv4/IPv6 adapters'
-		enumOptionArray = new gui.EnumPropertyOption [enumOptionCount];
-		enumOption = enumOptionArray;
-	
-		enumOption.m_text = "All IPv4 adapters";
-		enumOption.m_value = &autoAddress_ip4;
-		enumOption++;
-
-		enumOption.m_text = "All IPv6 adapters";
-		enumOption.m_value = &autoAddress_ip6;
-		enumOption++;
-	}
-	
-	io.NetworkAdapterDesc const* adapter = adapterList;
-	for (; adapter; adapter = adapter->m_next)
-	{
-		io.NetworkAdapterAddress const* address = adapter->m_address;
-		for (; address; address = address->m_next, enumOption++)
-		{
-			enumOption.m_text = jnc.format (
-				"%s - %s",
-				adapter->m_description,				
-				address.m_address.getString ()
-				);
-				
-			enumOption.m_value = &address.m_address;
-		}
-	}
-
-	return propertyGrid.createEnumProperty (		
-		name,
-		toolTipText,
-		enumOptionArray,
-		enumOptionCount
-		);
-}
 
 //.............................................................................
 

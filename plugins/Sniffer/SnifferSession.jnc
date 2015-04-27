@@ -110,8 +110,8 @@ SnifferSession.createUi ()
 	{
 		char const* itemName = jnc.format (
 			"%s (%s)", 
-			device->m_address.m_address.getString (),
-			device->m_description
+			device->m_description,
+			device->m_address.m_address.getString ()
 			);
 
 		m_deviceCombo.addItem (itemName, device);

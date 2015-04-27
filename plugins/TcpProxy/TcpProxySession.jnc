@@ -5,7 +5,7 @@
 
 import "doc_Plugin.jnc"
 import "io_Socket.jnc"
-import "io_NetworkAdapter.jnc"
+import "gui_NetworkAdapter.jnc"
 
 //.............................................................................
 
@@ -98,6 +98,7 @@ protected:
 	gui.Action* m_actionTable [ActionId._Count];
 	gui.Icon* m_iconTable [IconId._Count];
 	gui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
+	gui.ComboBox* m_adapterCombo;
 	gui.ComboBox* m_serverPortCombo;
 	gui.ComboBox* m_clientAddressCombo;
 	
@@ -177,13 +178,16 @@ TcpProxySession.createUi ()
 {
 	// toolbar
 	
-	m_pluginHost.m_toolBar.addLabel ("Listen on: ");
+	m_pluginHost.m_toolBar.addLabel ("Adapter: ");	
+	m_adapterCombo = gui.createNetworkAdapterComboBox (m_pluginHost.m_toolBar, gui.NetworkAdapterUsage.Listener);
+
+	m_pluginHost.m_toolBar.addLabel ("Port: ");
 	m_serverPortCombo = m_pluginHost.m_toolBar.addComboBox ();
 	m_serverPortCombo.m_isEditable = true;
 	m_serverPortCombo.m_editText = "1001";
 	m_serverPortCombo.m_onChanged += onListenerPortChanged;
 	
-	m_pluginHost.m_toolBar.addLabel (" Connect to: ");
+	m_pluginHost.m_toolBar.addLabel ("Remote: ");
 	m_clientAddressCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_clientAddressCombo.m_isEditable = true;
 	m_clientAddressCombo.m_editText = "127.0.0.1:1002";
@@ -218,9 +222,9 @@ TcpProxySession.createUi ()
 		"Address to connect to"
 		);
 
-	m_adapterProp = io.createNetworkAdapterProperty (
+	m_adapterProp = gui.createNetworkAdapterProperty (
 		m_pluginHost.m_propertyGrid,
-		io.NetworkAdapterPropertyKind.Listener,
+		gui.NetworkAdapterUsage.Listener,
 		"Interface",
 		"Interface to bind to and to listen on for target connection"
 		);
@@ -262,7 +266,7 @@ bool TcpProxySession.listen () throws
 		if (isDirectAddress)
 			m_clientRemoteAddress = targetAddress;
 		
-		io.SocketAddress address = *(io.SocketAddress const*) m_adapterProp.m_value;
+		io.SocketAddress address = *(io.SocketAddress const*) m_adapterCombo.m_currentData;
 		address.m_ip4.m_port = (uint16_t) atoi (m_serverPortCombo.m_editText); // same for IPv4/IPv6
 
 		m_listenerSocket.open (io.Protocol.Tcp, &address);
@@ -386,18 +390,18 @@ TcpProxySession.disconnectTarget ()
 
 override void TcpProxySession.load (doc.Storage* storage)
 {
+	m_adapterCombo.m_currentIndex  = storage.readInt ("adapterIdx");
 	m_serverPortCombo.m_editText = storage.readString ("port");
 	m_clientAddressCombo.m_editText = storage.readString ("targetAddress");
-	m_adapterProp.m_value = storage.readInt ("adapterIp");
 	m_overrideConnectionProp.m_value = storage.readBool ("overrideConnection");
 	m_resetConnectionProp.m_value = storage.readBool ("resetConnection");
 }
 
 override void TcpProxySession.save (doc.Storage* storage)
 {
+	storage.writeInt ("adapterIdx", m_adapterCombo.m_currentIndex);
 	storage.writeString ("port", m_serverPortCombo.m_editText);
 	storage.writeString ("targetAddress", m_clientAddressCombo.m_editText);
-	storage.writeInt ("adapterIp", m_adapterProp.m_value);
 	storage.writeBool ("overrideConnection", m_overrideConnectionProp.m_value);
 	storage.writeBool ("resetConnection", m_resetConnectionProp.m_value);
 }
@@ -417,9 +421,9 @@ override bool TcpProxySession.applyProperties () throws
 
 override void TcpProxySession.restoreDefaultProperties ()
 {
+	m_adapterProp.m_currentIndex = 0;
 	m_serverPortProp.m_value = 1001;
 	m_clientAddressProp.m_value = "127.0.0.1:1002";
-	m_adapterProp.m_value = 0;
 	m_overrideConnectionProp.m_value = true;
 	m_resetConnectionProp.m_value = false;
 }
@@ -617,7 +621,7 @@ TcpProxySession.onResolverEvent (io.SocketAddressResolverEventParams const* para
 				
 		// start listening
 		
-		io.SocketAddress address = *(io.SocketAddress const*) m_adapterProp.m_value;
+		io.SocketAddress address = *(io.SocketAddress const*) m_adapterCombo.m_currentData;
 		address.m_ip4.m_port = (uint16_t) atoi (m_serverPortCombo.m_editText); // same for IPv4/IPv6
 
 		m_listenerSocket.open (io.Protocol.Tcp, &address);

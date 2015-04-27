@@ -21,7 +21,7 @@ enum AddressFamily: uint16_t
 {
 	Undefined = 0,
 	Ip4       = 2,
-	Ip6       = 23,
+	Ip6       = AF_INET6, // temp solution: ioninja exports os-dependent AF_INET6 constant
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .

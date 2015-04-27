@@ -5,7 +5,7 @@
 
 import "doc_Plugin.jnc"
 import "io_Socket.jnc"
-import "io_NetworkAdapter.jnc"
+import "gui_NetworkAdapter.jnc"
 
 //.............................................................................
 
@@ -64,6 +64,7 @@ protected:
 	gui.Action* m_actionTable [ActionId._Count];
 	gui.Icon* m_iconTable [IconId._Count];
 	gui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
+	gui.ComboBox* m_adapterCombo;
 	gui.ComboBox* m_localPortCombo;
 	gui.ComboBox* m_remoteAddressCombo;
 	
@@ -132,21 +133,24 @@ UdpSession.createGui()
 	m_iconTable [IconId.Close] = new gui.Icon ("images/close.png");
 	m_iconTable [IconId.Compass] = new gui.Icon ("images/compass.png");
 
-	m_pluginHost.m_toolBar.addLabel ("Remote address: ");
-	m_remoteAddressCombo = m_pluginHost.m_toolBar.addComboBox (-1);
-	m_remoteAddressCombo.m_isEditable = true;
-	m_remoteAddressCombo.m_onChanged += onRemoteAddressChanged;
+	m_pluginHost.m_toolBar.addLabel ("Adapter: ");	
+	m_adapterCombo = gui.createNetworkAdapterComboBox (m_pluginHost.m_toolBar, gui.NetworkAdapterUsage.Listener);
 
-	m_actionTable [ActionId.AutoRemoteAddress] = createAction("Auto-switch remote address", m_iconTable [IconId.Compass]);
-	m_actionTable [ActionId.AutoRemoteAddress].m_isCheckable = true;
-
-	m_pluginHost.m_toolBar.addLabel (" Local port: ");
+	m_pluginHost.m_toolBar.addLabel ("Port: ");
 	m_localPortCombo = m_pluginHost.m_toolBar.addComboBox ();
 	m_localPortCombo.m_isEditable = true;
 	m_localPortCombo.m_onChanged += onLocalPortChanged;
 
 	m_actionTable [ActionId.Open] = createAction("Open socket", m_iconTable [IconId.Open]);
 	m_actionTable [ActionId.Open].m_onTriggered += onOpen;
+
+	m_pluginHost.m_toolBar.addLabel ("Remote: ");
+	m_remoteAddressCombo = m_pluginHost.m_toolBar.addComboBox (-1);
+	m_remoteAddressCombo.m_isEditable = true;
+	m_remoteAddressCombo.m_onChanged += onRemoteAddressChanged;
+
+	m_actionTable [ActionId.AutoRemoteAddress] = createAction("Auto-switch remote address", m_iconTable [IconId.Compass]);
+	m_actionTable [ActionId.AutoRemoteAddress].m_isCheckable = true;
 
 	// status bar
 
@@ -164,9 +168,9 @@ UdpSession.createGui()
 		"Automatically switch remote address upon receiving a datagram"
 		);
 
-	m_adapterProp = io.createNetworkAdapterProperty (
+	m_adapterProp = gui.createNetworkAdapterProperty (
 		m_pluginHost.m_propertyGrid,
-		io.NetworkAdapterPropertyKind.Listener,
+		gui.NetworkAdapterUsage.Listener,
 		"Adapter",
 		"Adapter to bind socket to"
 		);
@@ -194,7 +198,7 @@ UdpSession.openSocket ()
 	char const* portString = m_localPortCombo.m_editText;
 	m_localPortCombo.addEditTextToHistory ();
 
-	io.SocketAddress address = *(io.SocketAddress const*) m_adapterProp.m_value;
+	io.SocketAddress address = *(io.SocketAddress const*) m_adapterCombo.m_currentData;
 	address.m_ip4.m_port = (uint16_t) atoi (portString); // same for IPv4/IPv6
 
 	if (!try m_socket.open (io.Protocol.Udp, &address))
@@ -226,18 +230,18 @@ UdpSession.closeSocket ()
 
 UdpSession.load (doc.Storage* storage)
 {	
+	m_adapterCombo.m_currentIndex  = storage.readInt ("adapterIdx");
+	m_localPortCombo.m_editText = storage.readString ("localPort");
 	m_remoteAddressCombo.m_editText = storage.readString ("remoteAddress");	
 	m_actionTable [ActionId.AutoRemoteAddress].m_isChecked = storage.readInt ("autoRemoteAddress");	
-	m_localPortCombo.m_editText = storage.readString ("localPort");
-	m_adapterProp.m_value = storage.readInt ("adapterIp");
 }
 
 UdpSession.save (doc.Storage* storage)
 {
+	storage.writeInt ("adapterIdx", m_adapterCombo.m_currentIndex);
+	storage.writeString ("localPort", m_localPortCombo.m_editText);
 	storage.writeString ("remoteAddress", m_remoteAddressCombo.m_editText);
 	storage.writeInt ("autoRemoteAddress", m_actionTable [ActionId.AutoRemoteAddress].m_isChecked);
-	storage.writeString ("localPort", m_localPortCombo.m_editText);
-	storage.writeInt ("adapterIp", m_adapterProp.m_value);
 }
 
 UdpSession.updateProperties ()
@@ -257,10 +261,10 @@ bool UdpSession.applyProperties () throws
 
 UdpSession.restoreDefaultProperties ()
 {
-	m_autoRemoteAddressProp.m_value = false;
-	m_remoteAddressProp.m_value = "127.0.0.1:1001";
+	m_adapterProp.m_currentIndex = 0;
 	m_localPortProp.m_value = 0;
-	m_adapterProp.m_value = 0;
+	m_remoteAddressProp.m_value = "127.0.0.1:1001";
+	m_autoRemoteAddressProp.m_value = false;
 }
 
 size_t UdpSession.transmit (
@@ -303,7 +307,7 @@ size_t UdpSession.transmit (
 				);
 
 			io.AddressFamily addressFamily = io.AddressFamily.Undefined;
-			io.SocketAddress const* adapterAddress = m_adapterProp.m_value;
+			io.SocketAddress const* adapterAddress = m_adapterCombo.m_currentData;
 			if (adapterAddress)
 				addressFamily = adapterAddress.m_family;
 

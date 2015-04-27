@@ -1,0 +1,123 @@
+//.............................................................................
+//
+// Network adapter user interface
+//
+
+import "gui_Base.jnc"
+import "gui_PropertyGrid.jnc"
+import "io_NetworkAdapter.jnc"
+
+namespace gui {
+
+//.............................................................................
+
+enum NetworkAdapterUsage
+{
+	Connection,
+	Listener,	
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+EnumPropertyOption const* createNetworkAdapterOptionArray (NetworkAdapterUsage usage)
+{
+	size_t addressCount;
+	io.NetworkAdapterDesc const* adapterList = io.createNetworkAdapterDescList (null, &addressCount);
+
+	EnumPropertyOption* optionArray;
+	EnumPropertyOption* option;
+	
+	switch (usage)
+	{
+	case NetworkAdapterUsage.Connection:
+		addressCount++; // include 'Auto'
+		optionArray = new EnumPropertyOption [addressCount];
+		option = optionArray;
+	
+		option.m_text = "Auto";
+		option.m_value = null;
+		option++;
+		break;
+		
+	case NetworkAdapterUsage.Listener:
+		static io.SocketAddress autoAddress_ip4 = { m_family = io.AddressFamily.Ip4 };
+		static io.SocketAddress autoAddress_ip6 = { m_family = io.AddressFamily.Ip6 };
+	
+		addressCount += 2; // include 'All IPv4/IPv6 adapters'
+		optionArray = new EnumPropertyOption [addressCount];
+		option = optionArray;
+	
+		option.m_text = "All IPv4 adapters";
+		option.m_value = &autoAddress_ip4;
+		option++;
+
+		option.m_text = "All IPv6 adapters";
+		option.m_value = &autoAddress_ip6;
+		option++;
+		break;
+	}
+	
+	io.NetworkAdapterDesc const* adapter = adapterList;
+	for (; adapter; adapter = adapter->m_next)
+	{
+		io.NetworkAdapterAddress const* address = adapter->m_address;
+		for (; address; address = address->m_next, option++)
+		{
+			option.m_text = $"%1 - %2" (
+				adapter->m_description,				
+				address.m_address.getString ()
+				);
+				
+			option.m_value = &address.m_address;
+		}
+	}
+	
+	return optionArray;
+}
+
+//.............................................................................
+
+EnumProperty* createNetworkAdapterProperty (
+	PropertyGrid* propertyGrid,
+	NetworkAdapterUsage usage,
+	char const* name,
+	char const* toolTipText
+	)
+{
+	EnumPropertyOption const* optionArray = createNetworkAdapterOptionArray (usage);
+	size_t optionCount = dynamic countof (*optionArray);
+
+	return propertyGrid.createEnumProperty (		
+		name,
+		toolTipText,
+		optionArray,
+		optionCount
+		);
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+ComboBox* 
+createNetworkAdapterComboBox (
+	ToolBar* toolBar,
+	NetworkAdapterUsage usage,
+	uint_t width = -1
+	)
+{
+	EnumPropertyOption const* optionArray = createNetworkAdapterOptionArray (usage);
+	size_t optionCount = dynamic countof (*optionArray);
+
+	ComboBox* comboBox = toolBar.addComboBox (width);
+	
+	for (size_t i = 0; i < optionCount; i++)
+		comboBox.addItem (
+			optionArray [i].m_text, 
+			optionArray [i].m_value
+			);
+	
+	return comboBox;
+}
+
+//.............................................................................
+
+} // namespace io {

@@ -5,7 +5,7 @@
 
 import "doc_Plugin.jnc"
 import "io_Socket.jnc"
-import "io_NetworkAdapter.jnc"
+import "gui_NetworkAdapter.jnc"
 
 //.............................................................................
 
@@ -65,6 +65,7 @@ protected:
 	gui.Action* m_actionTable [ActionId._Count];
 	gui.Icon* m_iconTable [IconId._Count];
 	gui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
+	gui.ComboBox* m_adapterCombo;
 	gui.ComboBox* m_portCombo;
 
 	// property grid
@@ -122,6 +123,9 @@ TcpListenerSession.createUi ()
 {
 	// toolbar
 
+	m_pluginHost.m_toolBar.addLabel ("Adapter: ");	
+	m_adapterCombo = gui.createNetworkAdapterComboBox (m_pluginHost.m_toolBar, gui.NetworkAdapterUsage.Listener);
+
 	m_pluginHost.m_toolBar.addLabel ("Port: ");	
 	m_portCombo = m_pluginHost.m_toolBar.addComboBox ();
 	m_portCombo.m_isEditable = true;
@@ -147,9 +151,9 @@ TcpListenerSession.createUi ()
 
 	// property grid
 
-	m_adapterProp = io.createNetworkAdapterProperty (
+	m_adapterProp = gui.createNetworkAdapterProperty (
 		m_pluginHost.m_propertyGrid,
-		io.NetworkAdapterPropertyKind.Listener,
+		gui.NetworkAdapterUsage.Listener,
 		"Adapter",
 		"Network adapter to listen on"
 		);
@@ -192,7 +196,7 @@ bool TcpListenerSession.listen () throws
 
 	m_portCombo.addEditTextToHistory ();
 
-	io.SocketAddress address = *(io.SocketAddress const*) m_adapterProp.m_value;
+	io.SocketAddress address = *(io.SocketAddress const*) m_adapterCombo.m_currentData;
 	address.m_ip4.m_port = (uint16_t) atoi (m_portCombo.m_editText); // same for IPv4/IPv6
 	
 	m_listenerSocket.open (io.Protocol.Tcp, &address);
@@ -264,8 +268,8 @@ TcpListenerSession.disconnect ()
 
 void TcpListenerSession.load (doc.Storage* storage)
 {
+	m_adapterCombo.m_currentIndex  = storage.readInt ("adapterIdx");
 	m_portCombo.m_editText = storage.readString ("port");
-	m_adapterProp.m_value = storage.readInt ("adapterIp");
 	m_overrideOldConnectionProp.m_value = storage.readBool ("overrideOldConnection");
 	m_closeKindProp.m_value = storage.readInt ("closeKindProp");
 	m_isNagleEnabledProp.m_value = storage.readBool ("isNagleEnabledProp");
@@ -274,7 +278,7 @@ void TcpListenerSession.load (doc.Storage* storage)
 void TcpListenerSession.save (doc.Storage* storage)
 {
 	storage.writeString ("port", m_portCombo.m_editText);
-	storage.writeInt ("adapterIp", m_adapterProp.m_value);
+	storage.writeInt ("adapterIdx", m_adapterCombo.m_currentIndex);
 	storage.writeBool ("overrideOldConnection", m_overrideOldConnectionProp.m_value);
 	storage.writeInt ("closeKindProp", m_closeKindProp.m_value);
 	storage.writeBool ("isNagleEnabledProp", m_isNagleEnabledProp.m_value);
@@ -283,11 +287,13 @@ void TcpListenerSession.save (doc.Storage* storage)
 void TcpListenerSession.updateProperties ()
 {
 	m_portProp.m_value = atoi (m_portCombo.m_editText);
+	m_adapterProp.m_currentIndex = m_adapterCombo.m_currentIndex;
 }
 
 bool TcpListenerSession.applyProperties () throws
 {	
 	m_portCombo.m_editText = $"$(m_portProp.m_value)";
+	m_adapterCombo.m_currentIndex = m_adapterProp.m_currentIndex;
 
 	if (m_connectionSocket)
 	{
@@ -300,8 +306,8 @@ bool TcpListenerSession.applyProperties () throws
 
 void TcpListenerSession.restoreDefaultProperties ()
 {
+	m_adapterProp.m_currentIndex = 0;
 	m_portProp.m_value = 1001;
-	m_adapterProp.m_value = 0;
 	m_overrideOldConnectionProp.m_value = true;
 	m_closeKindProp.m_value = io.SocketCloseKind.Graceful;
 	m_isNagleEnabledProp.m_value = true;
