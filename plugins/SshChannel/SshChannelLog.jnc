@@ -53,7 +53,6 @@ bool representSshChannelLog (
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, $"ok (\e[34m$addressString\e[m)");
-		target.addHyperText (SshChannelLogPartCode.Connecting, "Establishing TCP connection...");
 		break;
 
 	case SshChannelLogRecordCode.TcpConnecting:
@@ -64,6 +63,7 @@ bool representSshChannelLog (
 		break;
 
 	case SshChannelLogRecordCode.TcpConnectCompleted:
+		target.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, "ok");
@@ -71,6 +71,7 @@ bool representSshChannelLog (
 		break;
 
 	case SshChannelLogRecordCode.SshHandshakeCompleted:
+		target.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, "ok");
@@ -84,6 +85,7 @@ bool representSshChannelLog (
 		break;
 
 	case SshChannelLogRecordCode.SshAuthCompleted:
+		target.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, "ok");
@@ -91,6 +93,7 @@ bool representSshChannelLog (
 		break;
 
 	case SshChannelLogRecordCode.SshChannelOpened:
+		target.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, "ok");
@@ -98,6 +101,7 @@ bool representSshChannelLog (
 		break;
 
 	case SshChannelLogRecordCode.SshPtyRequested:
+		target.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, "ok");

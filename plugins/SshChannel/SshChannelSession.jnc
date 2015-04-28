@@ -549,6 +549,8 @@ SshChannelSession.onResolverEvent (io.SocketAddressResolverEventParams const* pa
 			sizeof (io.SocketAddress)
 			);
 
+		m_state = State.Closed;
+		
 		try connect (params.m_addressTable);
 		break;
 

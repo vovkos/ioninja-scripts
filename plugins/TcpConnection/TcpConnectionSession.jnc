@@ -227,6 +227,8 @@ catch:
 
 bool TcpConnectionSession.connect (io.SocketAddress const* remoteAddress) throws
 {
+	disconnect ();
+	
 	io.SocketAddress localAddress;
 
 	if (!m_useLocalAddressProp.m_value)
@@ -439,6 +441,7 @@ TcpConnectionSession.onResolverEvent (io.SocketAddressResolverEventParams const*
 			sizeof (io.SocketAddress)
 			);
 
+		m_state = State.Closed;
 		try connect (params.m_addressTable);
 		break;
 
