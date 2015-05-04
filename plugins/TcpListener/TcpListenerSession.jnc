@@ -123,10 +123,10 @@ TcpListenerSession.createUi ()
 {
 	// toolbar
 
-	m_pluginHost.m_toolBar.addLabel ("Adapter: ");	
+	m_pluginHost.m_toolBar.addLabel ("Adapter:");	
 	m_adapterCombo = gui.createNetworkAdapterComboBox (m_pluginHost.m_toolBar, gui.NetworkAdapterUsage.Listener);
 
-	m_pluginHost.m_toolBar.addLabel ("Port: ");	
+	m_pluginHost.m_toolBar.addLabel ("Port:");	
 	m_portCombo = m_pluginHost.m_toolBar.addComboBox ();
 	m_portCombo.m_isEditable = true;
 	m_portCombo.m_onEnter += listen;

@@ -112,7 +112,7 @@ PipeListenerSession.createUi ()
 {
 	// toolbar
 
-	m_pluginHost.m_toolBar.addLabel ("Name: ");
+	m_pluginHost.m_toolBar.addLabel ("Name:");
 	m_pipeNameCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_pipeNameCombo.m_isEditable = true;
 	m_pipeNameCombo.m_onEnter += listen;

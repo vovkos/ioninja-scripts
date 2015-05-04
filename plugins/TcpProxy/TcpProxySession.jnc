@@ -178,16 +178,16 @@ TcpProxySession.createUi ()
 {
 	// toolbar
 	
-	m_pluginHost.m_toolBar.addLabel ("Adapter: ");	
+	m_pluginHost.m_toolBar.addLabel ("Adapter:");	
 	m_adapterCombo = gui.createNetworkAdapterComboBox (m_pluginHost.m_toolBar, gui.NetworkAdapterUsage.Listener);
 
-	m_pluginHost.m_toolBar.addLabel ("Port: ");
+	m_pluginHost.m_toolBar.addLabel ("Port:");
 	m_serverPortCombo = m_pluginHost.m_toolBar.addComboBox ();
 	m_serverPortCombo.m_isEditable = true;
 	m_serverPortCombo.m_editText = "1001";
 	m_serverPortCombo.m_onChanged += onListenerPortChanged;
 	
-	m_pluginHost.m_toolBar.addLabel ("Remote: ");
+	m_pluginHost.m_toolBar.addLabel ("Remote:");
 	m_clientAddressCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_clientAddressCombo.m_isEditable = true;
 	m_clientAddressCombo.m_editText = "127.0.0.1:1002";

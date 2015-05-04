@@ -131,7 +131,7 @@ SerialSession.createUi ()
 	size_t portCount;
 	io.SerialPortDesc const* portList = io.createSerialPortDescList (&portCount);
 
-	m_pluginHost.m_toolBar.addLabel ("Port: ");
+	m_pluginHost.m_toolBar.addLabel ("Port:");
 	m_portCombo = m_pluginHost.m_toolBar.addComboBox ();
 	m_portCombo.m_isEditable = true;
 	m_portCombo.m_onEnter += open;
@@ -140,7 +140,7 @@ SerialSession.createUi ()
 	for (; port; port = port.m_next)
 		m_portCombo.addItem (port.m_name, null);
 	
-	m_pluginHost.m_toolBar.addLabel (" Baud rate: ");
+	m_pluginHost.m_toolBar.addLabel (" Baud rate:");
 	m_baudRateCombo = m_pluginHost.m_toolBar.addComboBox ();
 	m_baudRateCombo.addItem ("9600 bps");
 	m_baudRateCombo.addItem ("19200 bps");
@@ -148,7 +148,7 @@ SerialSession.createUi ()
 	m_baudRateCombo.addItem ("115200 bps");
 	m_baudRateCombo.m_onChanged += onBaudRateChanged;
 
-	m_pluginHost.m_toolBar.addLabel (" Flow control: ");
+	m_pluginHost.m_toolBar.addLabel (" Flow control:");
 	m_flowControlCombo = m_pluginHost.m_toolBar.addComboBox ();
 	m_flowControlCombo.addItem ("None");
 	m_flowControlCombo.addItem ("RTS/CTS");

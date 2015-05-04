@@ -133,10 +133,10 @@ UdpSession.createGui()
 	m_iconTable [IconId.Close] = new gui.Icon ("images/close.png");
 	m_iconTable [IconId.Compass] = new gui.Icon ("images/compass.png");
 
-	m_pluginHost.m_toolBar.addLabel ("Adapter: ");	
+	m_pluginHost.m_toolBar.addLabel ("Adapter:");	
 	m_adapterCombo = gui.createNetworkAdapterComboBox (m_pluginHost.m_toolBar, gui.NetworkAdapterUsage.Listener);
 
-	m_pluginHost.m_toolBar.addLabel ("Port: ");
+	m_pluginHost.m_toolBar.addLabel ("Port:");
 	m_localPortCombo = m_pluginHost.m_toolBar.addComboBox ();
 	m_localPortCombo.m_isEditable = true;
 	m_localPortCombo.m_onChanged += onLocalPortChanged;
@@ -144,7 +144,7 @@ UdpSession.createGui()
 	m_actionTable [ActionId.Open] = createAction("Open socket", m_iconTable [IconId.Open]);
 	m_actionTable [ActionId.Open].m_onTriggered += onOpen;
 
-	m_pluginHost.m_toolBar.addLabel ("Remote: ");
+	m_pluginHost.m_toolBar.addLabel ("Remote:");
 	m_remoteAddressCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_remoteAddressCombo.m_isEditable = true;
 	m_remoteAddressCombo.m_onChanged += onRemoteAddressChanged;

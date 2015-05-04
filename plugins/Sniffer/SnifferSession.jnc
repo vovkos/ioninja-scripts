@@ -100,7 +100,7 @@ SnifferSession.createUi ()
 {
 	// toolbar
 
-	m_pluginHost.m_toolBar.addLabel ("Device: ");
+	m_pluginHost.m_toolBar.addLabel ("Device:");
 	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_deviceCombo.m_onEnter += capture;
 

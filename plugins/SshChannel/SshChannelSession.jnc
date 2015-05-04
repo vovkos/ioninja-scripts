@@ -137,7 +137,7 @@ SshChannelSession.createUi ()
 {
 	// toolbar
 
-	m_pluginHost.m_toolBar.addLabel ("Address: ");
+	m_pluginHost.m_toolBar.addLabel ("Address:");
 	m_addressCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_addressCombo.m_isEditable = true;
 	m_addressCombo.m_onEnter += connect;

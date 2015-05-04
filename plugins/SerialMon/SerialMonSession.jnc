@@ -92,7 +92,7 @@ SerialMonSession.createUi ()
 {
 	// toolbar
 
-	m_pluginHost.m_toolBar.addLabel ("Port: ");
+	m_pluginHost.m_toolBar.addLabel ("Port:");
 	m_portNameCombo = m_pluginHost.m_toolBar.addComboBox ();
 	m_portNameCombo.m_isEditable = true;
 	m_portNameCombo.m_onEnter += capture;
