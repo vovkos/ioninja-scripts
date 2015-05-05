@@ -277,8 +277,8 @@ void TcpListenerSession.load (doc.Storage* storage)
 
 void TcpListenerSession.save (doc.Storage* storage)
 {
+	storage.writeInt ("adapterIdx", (int) m_adapterCombo.m_currentIndex);
 	storage.writeString ("port", m_portCombo.m_editText);
-	storage.writeInt ("adapterIdx", m_adapterCombo.m_currentIndex);
 	storage.writeBool ("overrideOldConnection", m_overrideOldConnectionProp.m_value);
 	storage.writeInt ("closeKindProp", m_closeKindProp.m_value);
 	storage.writeBool ("isNagleEnabledProp", m_isNagleEnabledProp.m_value);

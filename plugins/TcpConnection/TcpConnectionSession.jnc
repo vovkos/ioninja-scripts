@@ -327,7 +327,7 @@ void TcpConnectionSession.load (doc.Storage* storage)
 	m_closeKindProp.m_value = storage.readInt ("closeKindProp");
 	m_isNagleEnabledProp.m_value = storage.readBool ("isNagleEnabledProp");
 	m_useLocalAddressProp.m_value = storage.readBool ("useLocalAddress");
-	m_adapterProp.m_value = storage.readInt ("adapterIp");
+	m_adapterProp.m_currentIndex = storage.readInt ("adapterIdx");
 	m_localPortProp.m_value = storage.readInt ("localPort");
 }
 
@@ -337,7 +337,7 @@ void TcpConnectionSession.save (doc.Storage* storage)
 	storage.writeInt ("closeKindProp", m_closeKindProp.m_value);
 	storage.writeBool ("isNagleEnabledProp", m_isNagleEnabledProp.m_value);
 	storage.writeBool ("useLocalAddress", m_useLocalAddressProp.m_value);
-	storage.writeInt ("adapterIp", m_adapterProp.m_value);
+	storage.writeInt ("adapterIdx", (int) m_adapterProp.m_currentIndex);
 	storage.writeInt ("localPort", m_localPortProp.m_value);
 }
 

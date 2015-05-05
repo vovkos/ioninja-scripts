@@ -399,7 +399,7 @@ override void TcpProxySession.load (doc.Storage* storage)
 
 override void TcpProxySession.save (doc.Storage* storage)
 {
-	storage.writeInt ("adapterIdx", m_adapterCombo.m_currentIndex);
+	storage.writeInt ("adapterIdx", (int) m_adapterCombo.m_currentIndex);
 	storage.writeString ("port", m_serverPortCombo.m_editText);
 	storage.writeString ("targetAddress", m_clientAddressCombo.m_editText);
 	storage.writeBool ("overrideConnection", m_overrideConnectionProp.m_value);
