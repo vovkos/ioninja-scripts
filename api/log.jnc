@@ -36,8 +36,11 @@ enum PartKind
 
 enum StdRecordCode
 {
-	Tx = 0x01000000 | PartCodeFlags.Mergeable, 
-	Rx = 0x02000000 | PartCodeFlags.Mergeable,
+	Tx        = 0x01000000 | PartCodeFlags.Mergeable, 
+	Rx        = 0x02000000 | PartCodeFlags.Mergeable,
+	PlainText = 0x03000000 | PartCodeFlags.Mergeable,
+	HyperText = 0x04000000 | PartCodeFlags.Mergeable,
+	Bin       = 0x05000000 | PartCodeFlags.Mergeable,
 }
 
 //.............................................................................

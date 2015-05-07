@@ -64,6 +64,14 @@ class Plugin
 		m_pluginHost.m_log.m_writer.write (recordCode, null, 0);
 	}
 
+	writeLogString (
+		uint_t recordCode,
+		char const* p
+		)
+	{
+		m_pluginHost.m_log.m_writer.write (recordCode, p, strlen (p));
+	}
+
 	gui.Action* createAction (
 		char const* text,
 		gui.Icon* icon = null,
