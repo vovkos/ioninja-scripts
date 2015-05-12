@@ -254,7 +254,6 @@ bool TcpConnectionSession.connect (io.SocketAddress const* remoteAddress) throws
 	m_socket.m_closeKind = (io.SocketCloseKind) m_closeKindProp.m_value;
 	m_socket.m_isNagleEnabled = m_isNagleEnabledProp.m_value;
 	m_socket.connect (remoteAddress);
-	m_socket.
 	
 	localAddress = m_socket.m_address;
 
