@@ -295,6 +295,12 @@ bool TcpListenerSession.applyProperties () throws
 	m_portCombo.m_editText = $"$(m_portProp.m_value)";
 	m_adapterCombo.m_currentIndex = m_adapterProp.m_currentIndex;
 
+	if (m_listenerSocket.m_isOpen)
+	{
+		m_listenerSocket.m_closeKind = (io.SocketCloseKind) m_closeKindProp.m_value;
+		m_listenerSocket.m_isNagleEnabled = m_isNagleEnabledProp.m_value;
+	}
+
 	if (m_connectionSocket)
 	{
 		m_connectionSocket.m_closeKind = (io.SocketCloseKind) m_closeKindProp.m_value;
@@ -393,7 +399,8 @@ TcpListenerSession.onConnectionSocketEvent (io.SocketEventParams const* params)
 			&recordParams,
 			sizeof (recordParams)
 			);
-			
+
+		m_connectionSocket.close ();	
 		m_connectionSocket = null;
 		m_connectionState = ConnectionState.Closed;
 		m_connectionSyncId++;
