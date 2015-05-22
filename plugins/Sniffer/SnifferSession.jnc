@@ -108,9 +108,8 @@ SnifferSession.createUi ()
 
 	for (; device; device = device->m_next)
 	{
-		char const* itemName = jnc.format (
-			"%s (%s)", 
-			device->m_description,
+		char const* itemName = $"%1 (%2)" (
+			device->m_description ? device->m_description : device->m_name,
 			device->m_address.m_address.getString ()
 			);
 
@@ -163,9 +162,7 @@ SnifferSession.onCapture ()
 bool SnifferSession.capture () throws
 {
 	stopCapture ();
-	
-	
-	
+		
 	io.PCapDeviceDesc const* device = m_deviceCombo.m_currentData;
 	if (!device)
 		return false;
