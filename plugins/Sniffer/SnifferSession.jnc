@@ -48,6 +48,7 @@ protected:
 	gui.Icon* m_iconTable [IconId._Count];
 	gui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
 	gui.ComboBox* m_deviceCombo;
+	gui.ComboBox* m_filterCombo;
 	
 	// property grid
 	
@@ -73,7 +74,8 @@ public:
 		) throws;
 
 protected:
-	onCapture ();	
+	onCapture ();
+	onSetFilter ();
 	onReadyRead (uint_t syncId);
 
 	createUi ();
@@ -102,6 +104,11 @@ SnifferSession.createUi ()
 	m_pluginHost.m_toolBar.addLabel ("Device:");
 	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_deviceCombo.m_onEnter += capture;
+
+	m_pluginHost.m_toolBar.addLabel ("Filter:");
+	m_filterCombo = m_pluginHost.m_toolBar.addComboBox (-1);
+	m_filterCombo.m_isEditable = true;
+	m_filterCombo.m_onEnter += onSetFilter;
 
 	io.PCapDeviceDesc const* device = io.createPCapDeviceDescList ();
 
@@ -142,7 +149,6 @@ SnifferSession.createUi ()
 		"Capture only the packets which have passed this primary filter"
 		);
 
-
 	m_uiReactor.start ();
 }
 
@@ -154,6 +160,14 @@ SnifferSession.onCapture ()
 		try capture ();
 }
 
+SnifferSession.onSetFilter ()
+{
+	if (m_state != State.Opened)
+		return;
+
+	m_pcap.m_filter = m_filterProp.m_value;
+}
+
 bool SnifferSession.capture () throws
 {
 	stopCapture ();
@@ -162,13 +176,16 @@ bool SnifferSession.capture () throws
 	if (!device)
 		return false;
 
+	char const* filter = m_filterCombo.m_editText;
+	m_filterCombo.addEditTextToHistory ();
+
 	m_pcap.open (
 		device.m_name, 
-		m_filterProp.m_value,
+		filter,
 		m_promisciousProp.m_value
 		);
 
-	writeLog (SnifferLogRecordCode.CaptureStarted);
+	writeLogString (SnifferLogRecordCode.CaptureStarted, filter);
 	m_state = State.Opened;
 	return true;
 
@@ -197,33 +214,30 @@ SnifferSession.stopCapture ()
 void SnifferSession.load (doc.Storage* storage)
 {
 	m_deviceCombo.m_currentIndex = storage.readInt ("device");
+	m_filterCombo.m_editText = storage.readString ("captureFilter");
 	m_promisciousProp.m_value = storage.readBool ("promiscious");
-	m_filterProp.m_value = storage.readString ("captureFilter");
 }
 
 void SnifferSession.save (doc.Storage* storage)
 {
 	storage.writeInt ("device", (int) m_deviceCombo.m_currentIndex);
+	storage.writeString ("captureFilter", m_filterCombo.m_editText);
 	storage.writeBool ("promiscious", m_promisciousProp.m_value);
-	storage.writeString ("captureFilter", m_filterProp.m_value);
 }
 
 void SnifferSession.updateProperties ()
 {
 	io.PCapDeviceDesc const* device = m_deviceCombo.m_currentData;
-	if (!device)
-		return;
-		
-	m_deviceProp.m_value = device.m_name;
+	if (device)
+		m_deviceProp.m_value = device.m_name;
+
+	m_filterProp.m_value = m_filterCombo.m_editText;
 }
 
 bool SnifferSession.applyProperties () throws
 {
-	// m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
-
-	if (m_state == State.Opened)
-		m_pcap.m_filter = m_filterProp.m_value;
-
+	m_filterCombo.m_editText = m_filterProp.m_value;
+	onSetFilter ();
 	return true;
 }
 

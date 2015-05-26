@@ -65,7 +65,7 @@ bool representTcpFlowMonLog (
 		char const* filter = (char const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
-		target.addHyperText ($"Capture started with filter \e[34m$filter\e[m");
+		target.addHyperText ($"Capture started with filter \e[34m$filter");
 		break;
 
 	case TcpFlowMonLogRecordCode.CaptureError:
@@ -85,7 +85,7 @@ bool representTcpFlowMonLog (
 		char const* filter = (char const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText ($"Capture filter changed to \e[34m$filter\e[m");
+		target.addHyperText ($"Capture filter changed to \e[34m$filter");
 		break;
 
 	case TcpFlowMonLogRecordCode.Connecting:

@@ -537,7 +537,7 @@ bool TcpFlowMonSession.decodeTcpPacket (
 	else if (
 		(tcpHdr.m_flags & io.TcpFlags.Syn) && 
 		(tcpHdr.m_flags & io.TcpFlags.Ack) &&
-		m_tcpState = TcpState.Syn)
+		m_tcpState == TcpState.Syn)
 	{
 		writeLog (TcpFlowMonLogRecordCode.ConnectCompleted);		
 		m_tcpState = TcpState.Connected;
