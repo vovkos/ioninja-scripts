@@ -1,6 +1,6 @@
 //.............................................................................
 //
-// TCP Monitor session
+// UDP Flow Monitor session
 //
 
 import "doc_Plugin.jnc"
@@ -10,7 +10,7 @@ import "io_SocketAddress.jnc"
 
 //.............................................................................
 
-class TcpFlowMonSession: doc.Session
+class UdpFlowMonSession: doc.Session
 {
 protected:
 	enum CaptureState
@@ -18,14 +18,6 @@ protected:
 		Closed,
 		Resolving,
 		Capturing,
-	}
-
-	enum TcpState
-	{
-		Disconnected,
-		Syn,
-		Connected,
-		Fin,
 	}
 
 	enum ActionId
@@ -47,12 +39,6 @@ protected:
 		_Count, 
 	}
 
-	struct TcpPeer
-	{
-		io.SocketAddress m_address;
-		uint32_t m_offset;
-	};	
-
 protected:
 	// pcap
 
@@ -60,12 +46,6 @@ protected:
 	io.PCap* m_pcap;	
 	io.SocketAddressResolver* m_resolver;
 	io.SocketAddress m_filterAddress;
-	
-	// tcp decoding
-	
-	TcpState m_tcpState;
-	TcpPeer m_tcpPeer1;
-	TcpPeer m_tcpPeer2;
 	
 	// toolbar, status bar & menu
 	
@@ -106,28 +86,19 @@ protected:
 		size_t size
 		);
 
-	bool decodeTcpPacket (
-		TcpPeer* peer,		
-		log.StdRecordCode recordCode,
-		io.TcpHdr const* tcpHdr,
-		void const* p,
-		size_t size
-		);
-
 	createUi ();
 	reactor m_uiReactor ();
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-TcpFlowMonSession.construct (doc.PluginHost* pluginHost)
+UdpFlowMonSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
 
-	pluginHost.m_log.m_representerFunc = representTcpFlowMonLog;
+	pluginHost.m_log.m_representerFunc = representUdpFlowMonLog;
 
 	m_captureState = CaptureState.Closed;
-	m_tcpState = TcpState.Disconnected;
 	m_pcap = new io.PCap ();
 	m_pcap.m_onReadyRead += onReadyRead @ m_pluginHost.m_mainThreadScheduler;
 	m_resolver = new io.SocketAddressResolver ();
@@ -136,7 +107,7 @@ TcpFlowMonSession.construct (doc.PluginHost* pluginHost)
 	createUi ();
 }
 
-TcpFlowMonSession.createUi ()
+UdpFlowMonSession.createUi ()
 {
 	// toolbar
 
@@ -190,7 +161,7 @@ TcpFlowMonSession.createUi ()
 	m_uiReactor.start ();
 }
 
-TcpFlowMonSession.onCapture ()
+UdpFlowMonSession.onCapture ()
 {
 	if (m_captureState)
 		stopCapture ();
@@ -198,7 +169,7 @@ TcpFlowMonSession.onCapture ()
 		try capture ();
 }
 
-bool TcpFlowMonSession.capture () throws
+bool UdpFlowMonSession.capture () throws
 {
 	stopCapture ();
 
@@ -217,7 +188,7 @@ bool TcpFlowMonSession.capture () throws
 	m_captureState = CaptureState.Resolving;
 
 	writeLogString (
-		TcpFlowMonLogRecordCode.Resolving,
+		UdpFlowMonLogRecordCode.Resolving,
 		filterString
 		);
 
@@ -230,7 +201,7 @@ catch:
 	return false;
 }
 
-bool TcpFlowMonSession.capture (io.SocketAddress const* filterAddress) throws
+bool UdpFlowMonSession.capture (io.SocketAddress const* filterAddress) throws
 {
 	stopCapture ();
 		
@@ -242,7 +213,7 @@ bool TcpFlowMonSession.capture (io.SocketAddress const* filterAddress) throws
 		filterAddress.m_ip6.m_address.getString () :
 		filterAddress.m_ip4.m_address.getString ();
 	
-	char const* filterString = $"tcp and host $addressString";
+	char const* filterString = $"udp and host $addressString";
 	
 	if (filterAddress.m_ip4.m_port)
 		filterString = $"$filterString and port $(filterAddress.m_ip4.m_port)";
@@ -255,7 +226,7 @@ bool TcpFlowMonSession.capture (io.SocketAddress const* filterAddress) throws
 
 	m_captureState = CaptureState.Capturing;	
 	m_filterAddress = *filterAddress;
-	writeLog (TcpFlowMonLogRecordCode.CaptureStarted);	
+	writeLog (UdpFlowMonLogRecordCode.CaptureStarted);	
 	return true;
 
 catch:
@@ -263,45 +234,43 @@ catch:
 	return false;
 }
 
-TcpFlowMonSession.handleCaptureError (jnc.Error const* error)
+UdpFlowMonSession.handleCaptureError (jnc.Error const* error)
 {
 	writeLog (
-		TcpFlowMonLogRecordCode.CaptureError,
+		UdpFlowMonLogRecordCode.CaptureError,
 		error,
 		error.m_size
 		);
 
 	m_pcap.close ();
 	m_captureState = CaptureState.Closed;
-	m_tcpState = TcpState.Disconnected;
 }
 
-TcpFlowMonSession.stopCapture ()
+UdpFlowMonSession.stopCapture ()
 {
 	if (!m_captureState)
 		return;
 
-	writeLog (TcpFlowMonLogRecordCode.CaptureStopped);
+	writeLog (UdpFlowMonLogRecordCode.CaptureStopped);
 	m_pcap.close ();
 	m_captureState = CaptureState.Closed;
-	m_tcpState = TcpState.Disconnected;
 }
 
-void TcpFlowMonSession.load (doc.Storage* storage)
+void UdpFlowMonSession.load (doc.Storage* storage)
 {
 	m_deviceCombo.m_currentIndex = storage.readInt ("device");
 	m_promisciousProp.m_value = storage.readBool ("promiscious");
 	m_filterCombo.m_editText = storage.readString ("captureFilter");
 }
 
-void TcpFlowMonSession.save (doc.Storage* storage)
+void UdpFlowMonSession.save (doc.Storage* storage)
 {
 	storage.writeInt ("device", (int) m_deviceCombo.m_currentIndex);
 	storage.writeBool ("promiscious", m_promisciousProp.m_value);
 	storage.writeString ("captureFilter", m_filterCombo.m_editText);
 }
 
-void TcpFlowMonSession.updateProperties ()
+void UdpFlowMonSession.updateProperties ()
 {
 	io.PCapDeviceDesc const* device = m_deviceCombo.m_currentData;
 	if (!device)
@@ -310,7 +279,7 @@ void TcpFlowMonSession.updateProperties ()
 	m_deviceProp.m_value = device.m_name;
 }
 
-bool TcpFlowMonSession.applyProperties () throws
+bool UdpFlowMonSession.applyProperties () throws
 {
 	// m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
 	m_filterCombo.m_editText = m_filterProp.m_value;
@@ -321,14 +290,14 @@ bool TcpFlowMonSession.applyProperties () throws
 	return true;
 }
 
-void TcpFlowMonSession.restoreDefaultProperties ()
+void UdpFlowMonSession.restoreDefaultProperties ()
 {
 	m_deviceProp.m_value = m_deviceCombo.m_itemText [0];
 	m_promisciousProp.m_value = false;
 	m_filterProp.m_value = "tibbo.com:80";
 }
 
-TcpFlowMonSession.onResolverEvent (io.SocketAddressResolverEventParams const* params)
+UdpFlowMonSession.onResolverEvent (io.SocketAddressResolverEventParams const* params)
 {
 	if (params.m_syncId != m_pcap.m_syncId)
 		return;
@@ -337,7 +306,7 @@ TcpFlowMonSession.onResolverEvent (io.SocketAddressResolverEventParams const* pa
 	{
 	case io.SocketAddressResolverEvent.ResolveCompleted:
 		writeLog (
-			TcpFlowMonLogRecordCode.ResolveCompleted,
+			UdpFlowMonLogRecordCode.ResolveCompleted,
 			params.m_addressTable,
 			sizeof (io.SocketAddress)
 			);
@@ -352,7 +321,7 @@ TcpFlowMonSession.onResolverEvent (io.SocketAddressResolverEventParams const* pa
 	}
 }
 
-TcpFlowMonSession.onReadyRead (uint_t syncId)
+UdpFlowMonSession.onReadyRead (uint_t syncId)
 {
 	if (syncId != m_pcap.m_syncId)
 		return;
@@ -363,7 +332,7 @@ TcpFlowMonSession.onReadyRead (uint_t syncId)
 		decodePacket (buffer, result);
 }
 
-bool TcpFlowMonSession.decodePacket (
+bool UdpFlowMonSession.decodePacket (
 	void const* p,
 	size_t size
 	)
@@ -386,7 +355,7 @@ bool TcpFlowMonSession.decodePacket (
 		
 		io.IpHdr const* ipHdr = (io.IpHdr const*) p;
 
-		if (ipHdr.m_protocol != io.Protocol.Tcp ||
+		if (ipHdr.m_protocol != io.Protocol.Udp ||
 			ipHdr.m_totalLength > size)
 			return false;
 		
@@ -405,7 +374,7 @@ bool TcpFlowMonSession.decodePacket (
 		
 		io.Ip6Hdr const* ip6Hdr = (io.Ip6Hdr const*) p;
 
-		if (ip6Hdr.m_nextHeader != io.Protocol.Tcp ||
+		if (ip6Hdr.m_nextHeader != io.Protocol.Udp ||
 			ip6Hdr.m_payloadLength + sizeof (io.Ip6Hdr) > size)
 			return false;
 		
@@ -422,149 +391,49 @@ bool TcpFlowMonSession.decodePacket (
 		return false;
 	}	
 
-	io.TcpHdr const* tcpHdr = (io.TcpHdr const*) p;
-	size_t tcpHdrSize = tcpHdr.m_dataOffset * 4;
-	if (tcpHdrSize > size)
+	io.UdpHdr const* udpHdr = (io.UdpHdr const*) p;
+	if (udpHdr.m_length > size)
 		return false;
 
-	p += tcpHdrSize;
-	size -= tcpHdrSize;
+	p += sizeof (io.UdpHdr);
+	size = udpHdr.m_length - sizeof (io.UdpHdr);
 
-	srcAddress.m_ip4.m_port = tcpHdr.m_srcPort;
-	dstAddress.m_ip4.m_port = tcpHdr.m_dstPort;
+	srcAddress.m_ip4.m_port = udpHdr.m_srcPort;
+	dstAddress.m_ip4.m_port = udpHdr.m_dstPort;
 
-	if (!m_tcpState)
+	char const* params = $"$(srcAddress; B)$(dstAddress; B)";
+
+	if (srcAddress.isMatch (&m_filterAddress))
 	{
-		if (!(tcpHdr.m_flags & io.TcpFlags.Syn) && !size)
-			return false;
-
-		if (srcAddress.isMatch (&m_filterAddress))
-		{
-			m_tcpPeer1.m_address = srcAddress;
-			m_tcpPeer1.m_offset = tcpHdr.m_seqNumber;
-			m_tcpPeer2.m_address = dstAddress;
-			m_tcpPeer2.m_offset = 0;
-		}
-		else if (dstAddress.isMatch (&m_filterAddress))
-		{
-			m_tcpPeer1.m_address = dstAddress;
-			m_tcpPeer1.m_offset = 0;
-			m_tcpPeer2.m_address = srcAddress;
-			m_tcpPeer2.m_offset = tcpHdr.m_seqNumber;
-		}
-		else 
-		{
-			return false;
-		}
+		writeLog (
+			UdpFlowMonLogRecordCode.RxPacket,
+			params,
+			dynamic sizeof (*params)
+			);
 		
-		char const* params = $"$(srcAddress; B)$(dstAddress; B)";
-		
-		if (!(tcpHdr.m_flags & io.TcpFlags.Syn))
-		{
-			writeLog (
-				TcpFlowMonLogRecordCode.ConnectionPickedUp,
-				params,
-				dynamic sizeof (*params)
-				);			
-
-			m_tcpState = TcpState.Connected;
-		}
-		else if (!(tcpHdr.m_flags & io.TcpFlags.Ack))
-		{
-			writeLog (
-				TcpFlowMonLogRecordCode.Connecting,
-				params,
-				dynamic sizeof (*params)
-				);			
-			
-			m_tcpState = TcpState.Syn;
-		}
-		else if (m_tcpState == TcpState.Syn) 
-		{
-			writeLog (TcpFlowMonLogRecordCode.ConnectCompleted);						
-			m_tcpState = TcpState.Connected;				
-		}
-		else
-		{
-			writeLog (
-				TcpFlowMonLogRecordCode.ConnectionPickedUp,
-				params,
-				dynamic sizeof (*params)
-				);			
-
-			m_tcpState = TcpState.Connected;
-		}
+		writeLog (log.StdRecordCode.Tx, p, size);
 	}
+	else if (dstAddress.isMatch (&m_filterAddress))
+	{
+		writeLog (
+			UdpFlowMonLogRecordCode.TxPacket,
+			params,
+			dynamic sizeof (*params)
+			);
 
-	if (
-		m_tcpPeer1.m_address.isEqual (&srcAddress) &&
-		m_tcpPeer2.m_address.isEqual (&dstAddress))
-	{
-		decodeTcpPacket (&m_tcpPeer1, log.StdRecordCode.Tx, tcpHdr, p, size);
-	}
-	else if (
-		m_tcpPeer2.m_address.isEqual (&srcAddress) &&
-		m_tcpPeer1.m_address.isEqual (&dstAddress))
-	{
-		decodeTcpPacket (&m_tcpPeer2, log.StdRecordCode.Rx, tcpHdr, p, size);
+		writeLog (log.StdRecordCode.Tx, p, size);
 	}
 	else
-	{	
+	{
 		return false;
 	}
 
 	return true;
 }		
 
-bool TcpFlowMonSession.decodeTcpPacket (
-	TcpFlowMonSession.TcpPeer* peer,
-	log.StdRecordCode recordCode,
-	io.TcpHdr const* tcpHdr,
-	void const* p,
-	size_t size
-	)
+reactor UdpFlowMonSession.m_uiReactor ()
 {
-	if ((tcpHdr.m_flags & io.TcpFlags.Rst) || 
-		(tcpHdr.m_flags & io.TcpFlags.Fin))
-	{
-		writeLog (
-			TcpFlowMonLogRecordCode.Disconnected,
-			peer.m_address,
-			sizeof (peer.m_address)
-			);
-		
-		m_tcpState = TcpState.Disconnected;
-	}
-	else if (
-		(tcpHdr.m_flags & io.TcpFlags.Syn) && 
-		(tcpHdr.m_flags & io.TcpFlags.Ack) &&
-		m_tcpState = TcpState.Syn)
-	{
-		writeLog (TcpFlowMonLogRecordCode.ConnectCompleted);		
-		m_tcpState = TcpState.Connected;
-	}
-	else if (tcpHdr.m_seqNumber + size > peer.m_offset)
-	{	
-		if (tcpHdr.m_seqNumber < peer.m_offset)
-		{
-			size_t skip = peer.m_offset - tcpHdr.m_seqNumber;
-			if (skip > size)
-				return false;
-				
-			p += skip;
-			size -= skip;
-		}		
-						
-		writeLog (recordCode, p, size);
-		peer.m_offset = tcpHdr.m_seqNumber + size;
-	}
-
-	return true;
-}
-
-reactor TcpFlowMonSession.m_uiReactor ()
-{
-	m_title = $"TCP Mon $(m_filterCombo.m_currentText)";
+	m_title = $"UDP Mon $(m_filterCombo.m_currentText)";
 	m_actionTable [ActionId.Capture].m_text = m_captureState ? "Stop Capture" : "Capture";
 	m_actionTable [ActionId.Capture].m_icon = m_iconTable [m_captureState ? IconId.StopCapture : IconId.Capture];
 	m_statusPaneTable [StatusPaneId.State].m_text = m_captureState ? "Capturing" : "Closed";

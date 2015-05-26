@@ -1,0 +1,104 @@
+//.............................................................................
+//
+// UDP Flow Monitor log record declarations and representer
+//
+
+//.............................................................................
+
+enum UdpFlowMonLogRecordCode
+{
+	Resolving,
+	ResolveCompleted,
+	ResolveError,
+	CaptureStarted,
+	CaptureError,
+	CaptureStopped,
+	FilterChanged,
+	TxPacket,
+	RxPacket,
+}
+
+enum UdpFlowMonLogPartCode
+{
+	Resolving        = 1 | log.PartCodeFlags.MergeableForward,
+	ResolveCompleted = 1 | log.PartCodeFlags.MergeableBackward,
+}
+
+//.............................................................................
+
+bool representUdpFlowMonLog (
+	log.RepresenterTarget* target,
+	uint_t recordCode,
+	void const* p,
+	size_t size,
+	uint_t foldFlags
+	)
+{
+	switch (recordCode)
+	{
+	case UdpFlowMonLogRecordCode.Resolving:
+		char const* addressString = (char const*) p;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText (UdpFlowMonLogPartCode.Resolving, $"Resolving \e[34m$addressString\e[m...");
+		break;
+
+	case UdpFlowMonLogRecordCode.ResolveCompleted:		
+		char const* addressString = ((io.SocketAddress const*) p).getString ();
+		target.addHyperText (UdpFlowMonLogPartCode.ResolveCompleted, $"ok (\e[34m$addressString\e[m)");
+		break;
+		
+	case UdpFlowMonLogRecordCode.ResolveError:
+		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
+
+		jnc.Error const* error = (jnc.Error const*) p;
+		target.addHyperText (UdpFlowMonLogPartCode.ResolveCompleted, $"error ($(error.m_description))");
+		break;
+		
+	case UdpFlowMonLogRecordCode.CaptureStarted:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
+		target.addHyperText ("Capture started");
+		break;
+
+	case UdpFlowMonLogRecordCode.CaptureError:
+		jnc.Error const* error = (jnc.Error const*) p;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
+		target.addHyperText ($"Capture error ($(error.m_description))");
+		break;
+
+	case UdpFlowMonLogRecordCode.CaptureStopped:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
+		target.addHyperText ("Capture stopped");
+		break;
+
+	case UdpFlowMonLogRecordCode.FilterChanged:
+		char const* filter = (char const*) p;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText ($"Capture filter set to '$filter'");
+		break;
+
+	case UdpFlowMonLogRecordCode.TxPacket:
+	case UdpFlowMonLogRecordCode.RxPacket:		
+		char const* srcAddress = ((io.SocketAddress const*) p).getString ();
+		char const* dstAddress = ((io.SocketAddress const*) p + 1).getString ();
+		target.m_lineAttr.m_iconIdx = recordCode == UdpFlowMonLogRecordCode.TxPacket ? 
+			log.StdLogIcon.TxPacket :
+			log.StdLogIcon.RxPacket;			
+		target.m_lineAttr.m_backColor = gui.StdColor.PastelGray;
+		target.addHyperText ($"From \e[34m$srcAddress to \e[34m$dstAddress");
+		break;
+
+	default:
+		return false;
+	}
+
+	return true;
+}
+
+//.............................................................................

@@ -52,7 +52,6 @@ bool representUdpLog (
 
 	case UdpRecordCode.TxPacket:
 		char const* remoteAddress = ((io.SocketAddress const*) p).getString ();
-		target.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.TxPacket;
 		target.m_lineAttr.m_backColor = gui.StdColor.PastelGray;
 		target.addHyperText ($"To \e[34m$remoteAddress");
@@ -60,7 +59,6 @@ bool representUdpLog (
 
 	case UdpRecordCode.RxPacket:
 		char const* remoteAddress = ((io.SocketAddress const*) p).getString ();
-		target.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.RxPacket;
 		target.m_lineAttr.m_backColor = gui.StdColor.PastelGray;
 		target.addHyperText ($"From \e[34m$remoteAddress");
