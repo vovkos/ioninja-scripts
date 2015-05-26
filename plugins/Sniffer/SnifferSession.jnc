@@ -53,8 +53,7 @@ protected:
 	
 	gui.StringProperty* m_deviceProp;
 	gui.BoolProperty* m_promisciousProp;
-	gui.StringProperty* m_captureFilterProp;
-	gui.StringProperty* m_displayFilterProp;
+	gui.StringProperty* m_filterProp;
 
 public:
 	construct (doc.PluginHost* pluginHost);
@@ -138,16 +137,12 @@ SnifferSession.createUi ()
 		"Put the capturing interface into promiscious mode"
 		);
 
-	m_captureFilterProp = m_pluginHost.m_propertyGrid.createStringProperty (
+	m_filterProp = m_pluginHost.m_propertyGrid.createStringProperty (
 		"Capture Filter",
 		"Capture only the packets which have passed this primary filter"
 		);
 
-	m_displayFilterProp = m_pluginHost.m_propertyGrid.createStringProperty (
-		"Display Filter",
-		"Apply the secondary filter to captured packets"
-		);
-	
+
 	m_uiReactor.start ();
 }
 
@@ -169,7 +164,7 @@ bool SnifferSession.capture () throws
 
 	m_pcap.open (
 		device.m_name, 
-		m_captureFilterProp.m_value,
+		m_filterProp.m_value,
 		m_promisciousProp.m_value
 		);
 
@@ -203,16 +198,14 @@ void SnifferSession.load (doc.Storage* storage)
 {
 	m_deviceCombo.m_currentIndex = storage.readInt ("device");
 	m_promisciousProp.m_value = storage.readBool ("promiscious");
-	m_captureFilterProp.m_value = storage.readString ("captureFilter");
-	m_displayFilterProp.m_value = storage.readString ("displayFilter");
+	m_filterProp.m_value = storage.readString ("captureFilter");
 }
 
 void SnifferSession.save (doc.Storage* storage)
 {
 	storage.writeInt ("device", (int) m_deviceCombo.m_currentIndex);
 	storage.writeBool ("promiscious", m_promisciousProp.m_value);
-	storage.writeString ("captureFilter", m_captureFilterProp.m_value);
-	storage.writeString ("displayFilter", m_displayFilterProp.m_value);
+	storage.writeString ("captureFilter", m_filterProp.m_value);
 }
 
 void SnifferSession.updateProperties ()
@@ -229,7 +222,7 @@ bool SnifferSession.applyProperties () throws
 	// m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
 
 	if (m_state == State.Opened)
-		m_pcap.m_filter = m_captureFilterProp.m_value;
+		m_pcap.m_filter = m_filterProp.m_value;
 
 	return true;
 }
@@ -238,8 +231,7 @@ void SnifferSession.restoreDefaultProperties ()
 {
 	m_deviceProp.m_value = m_deviceCombo.m_itemText [0];
 	m_promisciousProp.m_value = false;
-	m_captureFilterProp.m_value = "";
-	m_displayFilterProp.m_value = "";
+	m_filterProp.m_value = null;
 }
 
 size_t SnifferSession.transmit (

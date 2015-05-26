@@ -90,8 +90,8 @@ bool representTcpConnectionLog (
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
 
-		jnc.Error const* Error = (jnc.Error const*) p;
-		target.addHyperText (TcpConnectionPartCode.ConnectCompleted, $"error ($(Error.m_description))");
+		jnc.Error const* error = (jnc.Error const*) p;
+		target.addHyperText (TcpConnectionPartCode.ConnectCompleted, $"error ($(error.m_description))");
 		break;
 
 	case TcpConnectionLogRecordCode.Disconnected:

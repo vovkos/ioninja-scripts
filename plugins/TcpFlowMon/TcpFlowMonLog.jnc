@@ -1,0 +1,127 @@
+//.............................................................................
+//
+// TCP Monitor log record declarations and representer
+//
+
+//.............................................................................
+
+enum TcpFlowMonLogRecordCode
+{
+	Resolving,
+	ResolveCompleted,
+	ResolveError,
+	CaptureStarted,
+	CaptureError,
+	CaptureStopped,
+	FilterChanged,
+	Connecting,
+	ConnectCompleted,
+	ConnectionPickedUp,
+	Disconnected,
+}
+
+enum TcpFlowMonLogPartCode
+{
+	Resolving        = 1 | log.PartCodeFlags.MergeableForward,
+	ResolveCompleted = 1 | log.PartCodeFlags.MergeableBackward,
+	Connecting       = 2 | log.PartCodeFlags.MergeableForward,
+	ConnectCompleted = 2 | log.PartCodeFlags.MergeableBackward,
+}
+
+//.............................................................................
+
+bool representTcpFlowMonLog (
+	log.RepresenterTarget* target,
+	uint_t recordCode,
+	void const* p,
+	size_t size,
+	uint_t foldFlags
+	)
+{
+	switch (recordCode)
+	{
+	case TcpFlowMonLogRecordCode.Resolving:
+		char const* addressString = (char const*) p;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText (TcpFlowMonLogPartCode.Resolving, $"Resolving \e[34m$addressString\e[m...");
+		break;
+
+	case TcpFlowMonLogRecordCode.ResolveCompleted:		
+		char const* addressString = ((io.SocketAddress const*) p).getString ();
+		target.addHyperText (TcpFlowMonLogPartCode.ResolveCompleted, $"ok (\e[34m$addressString\e[m)");
+		break;
+		
+	case TcpFlowMonLogRecordCode.ResolveError:
+		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
+
+		jnc.Error const* error = (jnc.Error const*) p;
+		target.addHyperText (TcpFlowMonLogPartCode.ResolveCompleted, $"error ($(error.m_description))");
+		break;
+		
+	case TcpFlowMonLogRecordCode.CaptureStarted:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
+		target.addHyperText ("Capture started");
+		break;
+
+	case TcpFlowMonLogRecordCode.CaptureError:
+		jnc.Error const* error = (jnc.Error const*) p;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
+		target.addHyperText ($"Capture error ($(error.m_description))");
+		break;
+
+	case TcpFlowMonLogRecordCode.CaptureStopped:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
+		target.addHyperText ("Capture stopped");
+		break;
+
+	case TcpFlowMonLogRecordCode.FilterChanged:
+		char const* filter = (char const*) p;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText ($"Capture filter set to '$filter'");
+		break;
+
+	case TcpFlowMonLogRecordCode.Connecting:
+		char const* dstAddressString = ((io.SocketAddress const*) p).getString ();
+		char const* srcAddressString = ((io.SocketAddress const*) p + 1).getString ();
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText (TcpFlowMonLogPartCode.Connecting, $"Connecting to \e[34m$dstAddressString\e[m from \e[34m$srcAddressString\e[m...");
+		break;
+
+	case TcpFlowMonLogRecordCode.ConnectionPickedUp:
+		char const* addressString1 = ((io.SocketAddress const*) p).getString ();
+		char const* addressString2 = ((io.SocketAddress const*) p + 1).getString ();
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText ($"Picked up connection between \e[34m$addressString1\e[m and \e[34m$addressString2\e[m");
+		break;
+
+	case TcpFlowMonLogRecordCode.ConnectCompleted:
+		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText (TcpFlowMonLogPartCode.ConnectCompleted, "ok");
+		break;
+
+	case TcpFlowMonLogRecordCode.Disconnected:
+		char const* addressString = ((io.SocketAddress const*) p).getString ();
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText ($"Disconnected by \e[34m$addressString\e");
+		break;
+
+	default:
+		return false;
+	}
+
+	return true;
+}
+
+//.............................................................................

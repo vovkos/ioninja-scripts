@@ -56,6 +56,8 @@ struct SocketAddress_ip4
 	bigendian uint16_t m_port;
 	Address_ip4 m_address;
 
+	bool isEqual (SocketAddress_ip4 const* address);
+	bool isMatch (SocketAddress_ip4 const* filterAddress);
 	bool parse (char const* string) throws;
 	char const* getString () const;
 }
@@ -68,6 +70,8 @@ struct SocketAddress_ip6
 	Address_ip6 m_address;
 	uint32_t m_scope;
 
+	bool isEqual (SocketAddress_ip6 const* address);
+	bool isMatch (SocketAddress_ip6 const* filterAddress);
 	bool parse (char const* string) throws;
 	char const* getString () const;
 }
@@ -78,6 +82,8 @@ union SocketAddress
 	SocketAddress_ip4 m_ip4;
 	SocketAddress_ip6 m_ip6;
 
+	bool isEqual (SocketAddress const* addr);
+	bool isMatch (SocketAddress const* filterAddress);
 	bool parse (char const* string) throws;
 	char const* getString () const;
 }

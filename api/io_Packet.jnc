@@ -56,8 +56,8 @@ struct IpHdr
 	uint8_t m_timeToLive;
 	IpProtocol m_protocol;
 	bigendian uint16_t m_headerChecksum;
-	uint32_t m_srcAddress;
-	uint32_t m_dstAddress;
+	bigendian uint32_t m_srcAddress;
+	bigendian uint32_t m_dstAddress;
 }
 
 struct Ip6Hdr

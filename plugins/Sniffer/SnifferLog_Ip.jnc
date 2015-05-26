@@ -5,7 +5,7 @@
 
 //.............................................................................
 
-char const* formatIpString (uint32_t ip32)
+char const* formatIpString (bigendian uint32_t ip32)
 {
 	uint8_t const* ip8 = (uint8_t const*) &ip32;
 	return jnc.format (
