@@ -62,9 +62,10 @@ bool representTcpFlowMonLog (
 		break;
 		
 	case TcpFlowMonLogRecordCode.CaptureStarted:
+		char const* filter = (char const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
-		target.addHyperText ("Capture started");
+		target.addHyperText ($"Capture started with filter \e[34m$filter\e[m");
 		break;
 
 	case TcpFlowMonLogRecordCode.CaptureError:
@@ -84,12 +85,12 @@ bool representTcpFlowMonLog (
 		char const* filter = (char const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText ($"Capture filter set to '$filter'");
+		target.addHyperText ($"Capture filter changed to \e[34m$filter\e[m");
 		break;
 
 	case TcpFlowMonLogRecordCode.Connecting:
-		char const* dstAddressString = ((io.SocketAddress const*) p).getString ();
-		char const* srcAddressString = ((io.SocketAddress const*) p + 1).getString ();
+		char const* srcAddressString = ((io.SocketAddress const*) p).getString ();
+		char const* dstAddressString = ((io.SocketAddress const*) p + 1).getString ();
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText (TcpFlowMonLogPartCode.Connecting, $"Connecting to \e[34m$dstAddressString\e[m from \e[34m$srcAddressString\e[m...");

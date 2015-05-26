@@ -58,9 +58,10 @@ bool representUdpFlowMonLog (
 		break;
 		
 	case UdpFlowMonLogRecordCode.CaptureStarted:
+		char const* filter = (char const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
-		target.addHyperText ("Capture started");
+		target.addHyperText ($"Capture started with filter \e[34m$filter\e[m");
 		break;
 
 	case UdpFlowMonLogRecordCode.CaptureError:
@@ -80,7 +81,7 @@ bool representUdpFlowMonLog (
 		char const* filter = (char const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText ($"Capture filter set to '$filter'");
+		target.addHyperText ($"Capture filter changed to \e[34m$filter\e[m");
 		break;
 
 	case UdpFlowMonLogRecordCode.TxPacket:

@@ -238,12 +238,11 @@ bool TcpFlowMonSession.capture (io.SocketAddress const* filterAddress) throws
 	if (!device)
 		return false;
 	
-	char const* addressString = filterAddress.m_family == io.AddressFamily.Ip6 ?
-		filterAddress.m_ip6.m_address.getString () :
-		filterAddress.m_ip4.m_address.getString ();
-	
-	char const* filterString = $"tcp and host $addressString";
-	
+	char const* filterString = 
+		filterAddress.m_family == io.AddressFamily.Ip6 ? $"tcp and host $(filterAddress.m_ip6.m_address.getString ())" :
+		filterAddress.m_ip4.m_address.m_i32 ? $"tcp and host $(filterAddress.m_ip4.m_address.getString ())" :
+		"tcp";
+
 	if (filterAddress.m_ip4.m_port)
 		filterString = $"$filterString and port $(filterAddress.m_ip4.m_port)";
 	
@@ -255,7 +254,7 @@ bool TcpFlowMonSession.capture (io.SocketAddress const* filterAddress) throws
 
 	m_captureState = CaptureState.Capturing;	
 	m_filterAddress = *filterAddress;
-	writeLog (TcpFlowMonLogRecordCode.CaptureStarted);	
+	writeLogString (TcpFlowMonLogRecordCode.CaptureStarted, filterString);
 	return true;
 
 catch:
@@ -500,13 +499,13 @@ bool TcpFlowMonSession.decodePacket (
 		m_tcpPeer1.m_address.isEqual (&srcAddress) &&
 		m_tcpPeer2.m_address.isEqual (&dstAddress))
 	{
-		decodeTcpPacket (&m_tcpPeer1, log.StdRecordCode.Tx, tcpHdr, p, size);
+		decodeTcpPacket (&m_tcpPeer1, log.StdRecordCode.Rx, tcpHdr, p, size);
 	}
 	else if (
 		m_tcpPeer2.m_address.isEqual (&srcAddress) &&
 		m_tcpPeer1.m_address.isEqual (&dstAddress))
 	{
-		decodeTcpPacket (&m_tcpPeer2, log.StdRecordCode.Rx, tcpHdr, p, size);
+		decodeTcpPacket (&m_tcpPeer2, log.StdRecordCode.Tx, tcpHdr, p, size);
 	}
 	else
 	{	

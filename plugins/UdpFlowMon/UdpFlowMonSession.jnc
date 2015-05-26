@@ -209,11 +209,10 @@ bool UdpFlowMonSession.capture (io.SocketAddress const* filterAddress) throws
 	if (!device)
 		return false;
 	
-	char const* addressString = filterAddress.m_family == io.AddressFamily.Ip6 ?
-		filterAddress.m_ip6.m_address.getString () :
-		filterAddress.m_ip4.m_address.getString ();
-	
-	char const* filterString = $"udp and host $addressString";
+	char const* filterString = 
+		filterAddress.m_family == io.AddressFamily.Ip6 ? $"udp and host $(filterAddress.m_ip6.m_address.getString ())" :
+		filterAddress.m_ip4.m_address.m_i32 ? $"udp and host $(filterAddress.m_ip4.m_address.getString ())" :
+		"udp";
 	
 	if (filterAddress.m_ip4.m_port)
 		filterString = $"$filterString and port $(filterAddress.m_ip4.m_port)";
@@ -226,7 +225,7 @@ bool UdpFlowMonSession.capture (io.SocketAddress const* filterAddress) throws
 
 	m_captureState = CaptureState.Capturing;	
 	m_filterAddress = *filterAddress;
-	writeLog (UdpFlowMonLogRecordCode.CaptureStarted);	
+	writeLogString (UdpFlowMonLogRecordCode.CaptureStarted, filterString);
 	return true;
 
 catch:
@@ -411,7 +410,7 @@ bool UdpFlowMonSession.decodePacket (
 			dynamic sizeof (*params)
 			);
 		
-		writeLog (log.StdRecordCode.Tx, p, size);
+		writeLog (log.StdRecordCode.Rx, p, size);
 	}
 	else if (dstAddress.isMatch (&m_filterAddress))
 	{
