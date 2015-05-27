@@ -325,7 +325,7 @@ UdpFlowMonSession.onReadyRead (uint_t syncId)
 	if (syncId != m_pcap.m_syncId)
 		return;
 
-	heap char buffer [512];
+	static char buffer [1600]; // static is OK -- we read in main thread
 	size_t result = try m_pcap.read (buffer, sizeof (buffer));
 	if (result != -1)
 		decodePacket (buffer, result);

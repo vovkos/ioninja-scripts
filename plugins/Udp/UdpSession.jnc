@@ -352,7 +352,7 @@ UdpSession.onSocketEvent(io.SocketEventParams const* params)
 	{
 	case io.SocketEvent.IncomingData:
 		io.SocketAddress remoteAddress;
-		heap char buffer [512];
+		static char buffer [65535]; // static is OK -- we read in main thread
 		size_t size = try m_socket.recvFrom (buffer, sizeof (buffer), &remoteAddress);
 		if (size == -1)
 			break;
