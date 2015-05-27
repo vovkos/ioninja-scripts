@@ -47,10 +47,21 @@ protected:
 		_Count, 
 	}
 
+	struct TcpOutOfOrderSegment
+	{
+		TcpOutOfOrderSegment* m_next;
+		uint32_t m_seqNumber;
+		void* m_p;
+		size_t m_size;
+	};	
+
 	struct TcpPeer
 	{
+		log.StdRecordCode m_recordCode;
 		io.SocketAddress m_address;
-		uint32_t m_offset;
+		uint32_t m_seqNumber;
+		TcpOutOfOrderSegment* m_outOfOrderSegment;
+		size_t m_outOfOrderSegmentCount;
 	};	
 
 protected:
@@ -80,6 +91,7 @@ protected:
 	gui.StringProperty* m_deviceProp;
 	gui.BoolProperty* m_promisciousProp;
 	gui.StringProperty* m_filterProp;
+	gui.IntProperty* m_outOfOrderLimitProp;
 
 public:
 	construct (doc.PluginHost* pluginHost);
@@ -106,13 +118,36 @@ protected:
 		size_t size
 		);
 
-	bool decodeTcpPacket (
+	decodeTcpPacket (
 		TcpPeer* peer,		
-		log.StdRecordCode recordCode,
 		io.TcpHdr const* tcpHdr,
 		void const* p,
 		size_t size
 		);
+
+	decodeTcpDataSegment (
+		TcpPeer* peer,
+		uint32_t seqNumber,
+		void const* p,
+		size_t size
+		);
+
+	writeTcpData (
+		TcpPeer* peer,
+		uint32_t seqNumber,
+		void const* p,
+		size_t size
+		);
+
+	addTcpOutOfOrderSegment (
+		TcpPeer* peer,
+		uint32_t seqNumber,
+		void const* p,
+		size_t size
+		);
+
+	writeFirstTcpOutOfOrderSegment (TcpPeer* peer);
+	writeAlignedTcpOutOfOrderSegments (TcpPeer* peer);
 
 	createUi ();
 	reactor m_uiReactor ();
@@ -132,7 +167,9 @@ TcpFlowMonSession.construct (doc.PluginHost* pluginHost)
 	m_pcap.m_onReadyRead += onReadyRead @ m_pluginHost.m_mainThreadScheduler;
 	m_resolver = new io.SocketAddressResolver ();
 	m_resolver.m_onResolverEvent += onResolverEvent @ m_pluginHost.m_mainThreadScheduler;
-
+	m_tcpPeer1.m_recordCode = log.StdRecordCode.Rx;
+	m_tcpPeer2.m_recordCode = log.StdRecordCode.Tx;
+	
 	createUi ();
 }
 
@@ -185,6 +222,11 @@ TcpFlowMonSession.createUi ()
 	m_filterProp = m_pluginHost.m_propertyGrid.createStringProperty (
 		"Address Filter",
 		"Specify the address to monitor"
+		);
+
+	m_outOfOrderLimitProp = m_pluginHost.m_propertyGrid.createIntProperty (
+		"Out-of-order Limit",
+		"Specify the maximum number of out-of-order segments"
 		);
 
 	m_uiReactor.start ();
@@ -291,6 +333,7 @@ void TcpFlowMonSession.load (doc.Storage* storage)
 	m_deviceCombo.m_currentIndex = storage.readInt ("device");
 	m_promisciousProp.m_value = storage.readBool ("promiscious");
 	m_filterCombo.m_editText = storage.readString ("captureFilter");
+	m_outOfOrderLimitProp.m_value = storage.readInt ("outOfOrderLimit");
 }
 
 void TcpFlowMonSession.save (doc.Storage* storage)
@@ -298,6 +341,7 @@ void TcpFlowMonSession.save (doc.Storage* storage)
 	storage.writeInt ("device", (int) m_deviceCombo.m_currentIndex);
 	storage.writeBool ("promiscious", m_promisciousProp.m_value);
 	storage.writeString ("captureFilter", m_filterCombo.m_editText);
+	storage.writeInt ("outOfOrderLimit", m_outOfOrderLimitProp.m_value);
 }
 
 void TcpFlowMonSession.updateProperties ()
@@ -305,18 +349,19 @@ void TcpFlowMonSession.updateProperties ()
 	io.PCapDeviceDesc const* device = m_deviceCombo.m_currentData;
 	if (!device)
 		return;
-		
+	
+	m_filterProp.m_value = m_filterCombo.m_editText;
 	m_deviceProp.m_value = device.m_name;
 }
 
 bool TcpFlowMonSession.applyProperties () throws
 {
 	// m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
-	m_filterCombo.m_editText = m_filterProp.m_value;
+	m_filterCombo.m_editText = m_filterProp.m_value;	
 
-	if (m_captureState == CaptureState.Capturing)
-		m_pcap.m_filter = m_filterProp.m_value;
-
+	// if (m_captureState == CaptureState.Capturing)
+	//	m_pcap.m_filter = m_filterProp.m_value;
+	
 	return true;
 }
 
@@ -325,6 +370,7 @@ void TcpFlowMonSession.restoreDefaultProperties ()
 	m_deviceProp.m_value = m_deviceCombo.m_itemText [0];
 	m_promisciousProp.m_value = false;
 	m_filterProp.m_value = "tibbo.com:80";
+	m_outOfOrderLimitProp.m_value = 4;
 }
 
 TcpFlowMonSession.onResolverEvent (io.SocketAddressResolverEventParams const* params)
@@ -356,7 +402,7 @@ TcpFlowMonSession.onReadyRead (uint_t syncId)
 	if (syncId != m_pcap.m_syncId)
 		return;
 
-	heap char buffer [512];
+	static char buffer [1600]; // static is OK -- we read in main thread
 	size_t result = try m_pcap.read (buffer, sizeof (buffer));
 	if (result != -1)
 		decodePacket (buffer, result);
@@ -423,6 +469,7 @@ bool TcpFlowMonSession.decodePacket (
 
 	io.TcpHdr const* tcpHdr = (io.TcpHdr const*) p;
 	size_t tcpHdrSize = tcpHdr.m_dataOffset * 4;
+	
 	if (tcpHdrSize > size)
 		return false;
 
@@ -432,24 +479,42 @@ bool TcpFlowMonSession.decodePacket (
 	srcAddress.m_ip4.m_port = tcpHdr.m_srcPort;
 	dstAddress.m_ip4.m_port = tcpHdr.m_dstPort;
 
+	printf (
+		"\nTCP %s > %s; size = %d\n", 
+		srcAddress.getString (),
+		dstAddress.getString (),
+		size
+		);
+
 	if (!m_tcpState)
 	{
 		if (!(tcpHdr.m_flags & io.TcpFlags.Syn) && !size)
 			return false;
 
+		size_t seqNumberDelta = (tcpHdr.m_flags & io.TcpFlags.Syn) ? 1 : 0;
 		if (srcAddress.isMatch (&m_filterAddress))
 		{
 			m_tcpPeer1.m_address = srcAddress;
-			m_tcpPeer1.m_offset = tcpHdr.m_seqNumber;
+			m_tcpPeer1.m_seqNumber = tcpHdr.m_seqNumber + seqNumberDelta;
+			m_tcpPeer1.m_outOfOrderSegment = null;
+			m_tcpPeer1.m_outOfOrderSegmentCount = 0;
+			
 			m_tcpPeer2.m_address = dstAddress;
-			m_tcpPeer2.m_offset = 0;
+			m_tcpPeer2.m_seqNumber = tcpHdr.m_ackNumber;
+			m_tcpPeer2.m_outOfOrderSegment = null;
+			m_tcpPeer2.m_outOfOrderSegmentCount = 0;
 		}
 		else if (dstAddress.isMatch (&m_filterAddress))
 		{
 			m_tcpPeer1.m_address = dstAddress;
-			m_tcpPeer1.m_offset = 0;
+			m_tcpPeer1.m_seqNumber = tcpHdr.m_ackNumber;
+			m_tcpPeer1.m_outOfOrderSegment = null;
+			m_tcpPeer1.m_outOfOrderSegmentCount = 0;
+
 			m_tcpPeer2.m_address = srcAddress;
-			m_tcpPeer2.m_offset = tcpHdr.m_seqNumber;
+			m_tcpPeer2.m_seqNumber = tcpHdr.m_seqNumber + seqNumberDelta;
+			m_tcpPeer2.m_outOfOrderSegment = null;
+			m_tcpPeer2.m_outOfOrderSegmentCount = 0;
 		}
 		else 
 		{
@@ -499,30 +564,36 @@ bool TcpFlowMonSession.decodePacket (
 		m_tcpPeer1.m_address.isEqual (&srcAddress) &&
 		m_tcpPeer2.m_address.isEqual (&dstAddress))
 	{
-		decodeTcpPacket (&m_tcpPeer1, log.StdRecordCode.Rx, tcpHdr, p, size);
+		decodeTcpPacket (&m_tcpPeer1, tcpHdr, p, size);
 	}
 	else if (
 		m_tcpPeer2.m_address.isEqual (&srcAddress) &&
 		m_tcpPeer1.m_address.isEqual (&dstAddress))
 	{
-		decodeTcpPacket (&m_tcpPeer2, log.StdRecordCode.Tx, tcpHdr, p, size);
+		decodeTcpPacket (&m_tcpPeer2, tcpHdr, p, size);
 	}
 	else
-	{	
+	{
 		return false;
 	}
 
 	return true;
-}		
+}
 
-bool TcpFlowMonSession.decodeTcpPacket (
+TcpFlowMonSession.decodeTcpPacket (
 	TcpFlowMonSession.TcpPeer* peer,
-	log.StdRecordCode recordCode,
 	io.TcpHdr const* tcpHdr,
 	void const* p,
 	size_t size
 	)
 {
+	printf (
+		"decodeTcpPacket (peer.m_seqNumber = %u, tcpHdr.m_seqNumber = %u, size = %u\n",
+		peer.m_seqNumber,
+		tcpHdr.m_seqNumber,
+		size
+		);
+	
 	if ((tcpHdr.m_flags & io.TcpFlags.Rst) || 
 		(tcpHdr.m_flags & io.TcpFlags.Fin))
 	{
@@ -541,24 +612,133 @@ bool TcpFlowMonSession.decodeTcpPacket (
 	{
 		writeLog (TcpFlowMonLogRecordCode.ConnectCompleted);		
 		m_tcpState = TcpState.Connected;
+		peer.m_seqNumber = tcpHdr.m_seqNumber + 1;
 	}
-	else if (tcpHdr.m_seqNumber + size > peer.m_offset)
+	else if (size)
 	{	
-		if (tcpHdr.m_seqNumber < peer.m_offset)
-		{
-			size_t skip = peer.m_offset - tcpHdr.m_seqNumber;
-			if (skip > size)
-				return false;
-				
-			p += skip;
-			size -= skip;
-		}		
-						
-		writeLog (recordCode, p, size);
-		peer.m_offset = tcpHdr.m_seqNumber + size;
+		decodeTcpDataSegment (peer, tcpHdr.m_seqNumber, p, size);
+	}
+}
+
+TcpFlowMonSession.writeTcpData (
+	TcpFlowMonSession.TcpPeer* peer,
+	uint32_t seqNumber,
+	void const* p,
+	size_t size
+	)
+{
+	if ((intptr) (peer.m_seqNumber - seqNumber) > 0) // retransmission
+	{
+		size_t skip = peer.m_seqNumber - seqNumber;
+		if (skip >= size)
+			return;
+
+		p += skip;
+		size -= skip;
 	}
 
-	return true;
+	writeLog (peer.m_recordCode, p, size);
+	peer.m_seqNumber = seqNumber + size;
+}
+
+TcpFlowMonSession.decodeTcpDataSegment (
+	TcpFlowMonSession.TcpPeer* peer,
+	uint32_t seqNumber,
+	void const* p,
+	size_t size
+	)
+{
+	if ((intptr) (seqNumber - peer.m_seqNumber) > 0)
+	{
+		addTcpOutOfOrderSegment (peer, seqNumber, p, size);
+	}
+	else
+	{
+		writeTcpData (peer, seqNumber, p, size);
+		writeAlignedTcpOutOfOrderSegments (peer);
+	}
+}
+
+TcpFlowMonSession.addTcpOutOfOrderSegment (
+	TcpFlowMonSession.TcpPeer* peer,
+	uint32_t seqNumber,
+	void const* p,
+	size_t size
+	)
+{
+	printf (
+		"addTcpOutOfOrderSegment (peer.m_seqNumber = %u, tcpHdr.m_seqNumber = %u, size = %u\n",
+		peer.m_seqNumber,
+		seqNumber,
+		size
+		);
+	
+	TcpOutOfOrderSegment* segment = new TcpOutOfOrderSegment;
+	segment.m_seqNumber = seqNumber;
+	segment.m_p = new char [size];
+	segment.m_size = size;
+	memcpy (segment.m_p, p, size);
+	
+	// find location to insert it
+	
+	TcpOutOfOrderSegment** loc = &peer.m_outOfOrderSegment;
+	TcpOutOfOrderSegment* next = peer.m_outOfOrderSegment;	
+	while (next)
+	{
+		if (seqNumber == next.m_seqNumber) // duplicate segment
+			return;
+
+		if (seqNumber < next.m_seqNumber)
+			break;
+		
+		loc = &next.m_next;
+		next = next.m_next;
+	}
+	
+	segment.m_next = next;
+	*loc = segment;
+	peer.m_outOfOrderSegmentCount++;
+
+	if (peer.m_outOfOrderSegmentCount < m_outOfOrderLimitProp.m_value)
+		return;
+	
+	writeLog (TcpFlowMonLogRecordCode.OutOfOrderDataDropped);
+	
+	// maintain out-of-order limit
+
+	while (
+		peer.m_outOfOrderSegment &&
+		peer.m_outOfOrderSegmentCount > m_outOfOrderLimitProp.m_value
+		)
+	{
+		writeFirstTcpOutOfOrderSegment (peer);
+	}	
+
+	writeAlignedTcpOutOfOrderSegments (peer);
+}
+
+TcpFlowMonSession.writeFirstTcpOutOfOrderSegment (TcpFlowMonSession.TcpPeer* peer)
+{
+	writeTcpData (
+		peer, 
+		peer.m_outOfOrderSegment.m_seqNumber, 
+		peer.m_outOfOrderSegment.m_p, 
+		peer.m_outOfOrderSegment.m_size
+		);
+	
+	peer.m_outOfOrderSegment = peer.m_outOfOrderSegment.m_next;
+	peer.m_outOfOrderSegmentCount--;
+}
+
+TcpFlowMonSession.writeAlignedTcpOutOfOrderSegments (TcpFlowMonSession.TcpPeer* peer)
+{
+	while (
+		peer.m_outOfOrderSegment &&
+		peer.m_outOfOrderSegment.m_seqNumber <= peer.m_seqNumber
+		)
+	{
+		writeFirstTcpOutOfOrderSegment (peer);
+	}	
 }
 
 reactor TcpFlowMonSession.m_uiReactor ()

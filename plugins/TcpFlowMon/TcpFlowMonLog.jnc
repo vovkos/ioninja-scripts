@@ -18,6 +18,7 @@ enum TcpFlowMonLogRecordCode
 	ConnectCompleted,
 	ConnectionPickedUp,
 	Disconnected,
+	OutOfOrderDataDropped,
 }
 
 enum TcpFlowMonLogPartCode
@@ -116,6 +117,12 @@ bool representTcpFlowMonLog (
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText ($"Disconnected by \e[34m$addressString\e");
+		break;
+
+	case TcpFlowMonLogRecordCode.OutOfOrderDataDropped:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
+		target.addHyperText ($"Out-of-order segment(s), data dropped\e");
 		break;
 
 	default:
