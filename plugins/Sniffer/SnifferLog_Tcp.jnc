@@ -99,21 +99,44 @@ representTcp (
 	}
 
 	io.TcpHdr const* tcpHdr = (io.TcpHdr const*) (p + baseOffset);
-
 	size_t dataOffset = tcpHdr.m_dataOffset * 4;
-	size_t dataSize = ipHdr->m_totalLength - sizeof (io.IpHdr) - dataOffset;
+	size_t dataSize = ipHdr->m_totalLength - sizeof (io.IpHdr) - dataOffset;	
+	
+	baseOffset += dataOffset;	
+	if (baseOffset > size)
+	{
+		target.addHyperText (jnc.format (
+			"[\e^+1\e[34m+\e[m] \e[1mTCP \e[10;34m%s\e[m > \e[34m%s\e[m [INVALID SIZE:%d]",
+			formatIpString (ipHdr.m_srcAddress), 
+			formatIpString (ipHdr.m_dstAddress),
+			size
+			));
+
+		return;
+	}
+
+	char const* lengthString;
+	if (baseOffset + dataSize <= size)
+	{
+		lengthString = $"$dataSize bytes";
+	}
+	else
+	{
+		lengthString = $"INVALID SIZE: $dataSize bytes";
+		dataSize = size - baseOffset;
+	}
 
 	target.addHyperText (jnc.format (
-		"[\e^+1\e[34m+\e[m] \e[1mTCP \e[10;34m%s:%d\e[m > \e[10;34m%s:%d\e[m [%s] (%d bytes)",
+		"[\e^+1\e[34m+\e[m] \e[1mTCP \e[10;34m%s:%d\e[m > \e[10;34m%s:%d\e[m [%s] (%s)",
 		formatIpString (ipHdr.m_srcAddress), 
 		tcpHdr.m_srcPort,
 		formatIpString (ipHdr.m_dstAddress), 
 		tcpHdr.m_dstPort,
 		formatTcpFlagString (tcpHdr.m_flags),
-		dataSize
+		lengthString
 		));
 
-	representPacketData (target, p, size, baseOffset + dataOffset, dataSize);
+	representPacketData (target, p, size, baseOffset, dataSize);
 }
 
 //.............................................................................

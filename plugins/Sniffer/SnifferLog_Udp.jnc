@@ -58,9 +58,22 @@ representUdp (
 
 		return;
 	}
-
+	
 	io.UdpHdr const* udpHdr = (io.UdpHdr const*) (p + baseOffset);
 	size_t dataSize = udpHdr.m_length - sizeof (io.UdpHdr);
+	baseOffset += sizeof (io.UdpHdr);
+	
+	char const* lengthString;
+	
+	if (baseOffset + dataSize <= size)
+	{
+		lengthString = $"$dataSize bytes";
+	}
+	else
+	{
+		lengthString = $"INVALID SIZE: $dataSize bytes";
+		dataSize = size - baseOffset;
+	}
 
 	target.addHyperText (jnc.format (
 		"[\e^+1\e[34m+\e[m] \e[1mUDP \e[10;34m%s:%d\e[m > \e[34m%s:%d\e[m (%d bytes)",
@@ -68,10 +81,10 @@ representUdp (
 		udpHdr.m_srcPort,
 		formatIpString (ipHdr->m_dstAddress), 
 		udpHdr.m_dstPort,
-		dataSize
+		lengthString
 		));
 
-	representPacketData (target, p, size, baseOffset + sizeof (io.UdpHdr), dataSize);
+	representPacketData (target, p, size, baseOffset, dataSize);
 }
 
 //.............................................................................
