@@ -109,6 +109,19 @@ opaque class RepresenterTarget
 		size_t size
 		);
 
+	void addPlainText (
+		uint_t partCode,
+		char const* text
+		)
+	{
+		addPart (PartKind.PlainText, partCode, text, strlen (text));
+	}
+
+	void addPlainText (char const* text)
+	{
+		addPart (PartKind.PlainText, m_recordCode, text, strlen (text));
+	}
+
 	void addHyperText (
 		uint_t partCode,
 		char const* text

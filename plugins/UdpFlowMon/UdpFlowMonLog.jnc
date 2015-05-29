@@ -9,11 +9,15 @@ enum UdpFlowMonLogRecordCode
 {
 	Resolving,
 	ResolveCompleted,
+	ResolveCancelled,
 	ResolveError,
+	StartingCapture,
 	CaptureStarted,
 	CaptureError,
 	CaptureStopped,
+	ChangingFilter,
 	FilterChanged,
+	FilterError,
 	TxPacket,
 	RxPacket,
 }
@@ -22,6 +26,10 @@ enum UdpFlowMonLogPartCode
 {
 	Resolving        = 1 | log.PartCodeFlags.MergeableForward,
 	ResolveCompleted = 1 | log.PartCodeFlags.MergeableBackward,
+	StartingCapture  = 2 | log.PartCodeFlags.MergeableForward,
+	CaptureCompleted = 2 | log.PartCodeFlags.MergeableBackward,
+	ChangingFilter   = 3 | log.PartCodeFlags.MergeableForward,
+	FilterCompleted  = 3 | log.PartCodeFlags.MergeableBackward,
 }
 
 //.............................................................................
@@ -47,41 +55,64 @@ bool representUdpFlowMonLog (
 		char const* addressString = ((io.SocketAddress const*) p).getString ();
 		target.addHyperText (UdpFlowMonLogPartCode.ResolveCompleted, $"ok (\e[34m$addressString\e[m)");
 		break;
-		
+
+	case UdpFlowMonLogRecordCode.ResolveCancelled:		
+		target.addPlainText (UdpFlowMonLogPartCode.ResolveCompleted, "cancelled");
+		break;
+
 	case UdpFlowMonLogRecordCode.ResolveError:
+		jnc.Error const* error = (jnc.Error const*) p;
 		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-
-		jnc.Error const* error = (jnc.Error const*) p;
-		target.addHyperText (UdpFlowMonLogPartCode.ResolveCompleted, $"error ($(error.m_description))");
+		target.addPlainText (UdpFlowMonLogPartCode.ResolveCompleted, $"error ($(error.m_description))");
 		break;
 		
-	case UdpFlowMonLogRecordCode.CaptureStarted:
+	case UdpFlowMonLogRecordCode.StartingCapture:
 		char const* filter = (char const*) p;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText (UdpFlowMonLogPartCode.StartingCapture, $"Starting capture with filter \e[34m$filter\e[m...");
+		break;
+
+	case UdpFlowMonLogRecordCode.CaptureStarted:
+		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
-		target.addHyperText ($"Capture started with filter \e[34m$filter\e[m");
+		target.addPlainText (UdpFlowMonLogPartCode.CaptureCompleted, "ok");
 		break;
 
 	case UdpFlowMonLogRecordCode.CaptureError:
 		jnc.Error const* error = (jnc.Error const*) p;
+		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		target.addHyperText ($"Capture error ($(error.m_description))");
+		target.addPlainText (UdpFlowMonLogPartCode.CaptureCompleted, $"error ($(error.m_description))");
 		break;
 
 	case UdpFlowMonLogRecordCode.CaptureStopped:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
-		target.addHyperText ("Capture stopped");
+		target.addPlainText ("Capture stopped");
 		break;
 
-	case UdpFlowMonLogRecordCode.FilterChanged:
+	case UdpFlowMonLogRecordCode.ChangingFilter:
 		char const* filter = (char const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText ($"Capture filter changed to \e[34m$filter\e[m");
+		target.addHyperText (UdpFlowMonLogPartCode.ChangingFilter, $"Changing capture filter to \e[34m$filter\e[m...");
+		break;
+
+	case UdpFlowMonLogRecordCode.FilterChanged:
+		target.addPlainText (UdpFlowMonLogPartCode.FilterCompleted, "ok");
+		break;
+
+	case UdpFlowMonLogRecordCode.FilterError:
+		jnc.Error const* error = (jnc.Error const*) p;
+		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
+		target.addPlainText (UdpFlowMonLogPartCode.FilterCompleted, $"error ($(error.m_description))");
 		break;
 
 	case UdpFlowMonLogRecordCode.TxPacket:

@@ -9,6 +9,7 @@ name                  = TCP Flow Monitor
 description           = "Monitors TCP communication and produces clean data flow"
 id                    = tcp-flow-mon
 group                 = monitors
+monitor               = true
 guid                  = 5a6cc363-3ace-4db8-9224-3d972d16b30d
 icon                  = images/tcpmon.png
 small-icon            = images/tcpmon-16x16.png

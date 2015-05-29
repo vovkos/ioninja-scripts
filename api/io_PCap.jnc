@@ -11,7 +11,7 @@ namespace io {
 
 opaque class PCap
 {
-	char const* autoget property m_filter;
+	char const* readonly m_filter;
 	bool readonly m_isPromiscious;
 	bool readonly m_isOpen;
 	uint_t m_syncId;
@@ -25,6 +25,8 @@ opaque class PCap
 		) throws;
 
 	void close ();
+	
+	bool setFilter (char const* filter) throws;
 
 	size_t write (
 		void const* p,

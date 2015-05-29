@@ -9,11 +9,15 @@ enum TcpFlowMonLogRecordCode
 {
 	Resolving,
 	ResolveCompleted,
+	ResolveCancelled,
 	ResolveError,
+	StartingCapture,
 	CaptureStarted,
 	CaptureError,
 	CaptureStopped,
+	ChangingFilter,
 	FilterChanged,
+	FilterError,
 	Connecting,
 	ConnectCompleted,
 	ConnectionPickedUp,
@@ -25,8 +29,12 @@ enum TcpFlowMonLogPartCode
 {
 	Resolving        = 1 | log.PartCodeFlags.MergeableForward,
 	ResolveCompleted = 1 | log.PartCodeFlags.MergeableBackward,
-	Connecting       = 2 | log.PartCodeFlags.MergeableForward,
-	ConnectCompleted = 2 | log.PartCodeFlags.MergeableBackward,
+	StartingCapture  = 2 | log.PartCodeFlags.MergeableForward,
+	CaptureCompleted = 2 | log.PartCodeFlags.MergeableBackward,
+	ChangingFilter   = 3 | log.PartCodeFlags.MergeableForward,
+	FilterCompleted  = 3 | log.PartCodeFlags.MergeableBackward,
+	Connecting       = 4 | log.PartCodeFlags.MergeableForward,
+	ConnectCompleted = 4 | log.PartCodeFlags.MergeableBackward,
 }
 
 //.............................................................................
@@ -52,41 +60,64 @@ bool representTcpFlowMonLog (
 		char const* addressString = ((io.SocketAddress const*) p).getString ();
 		target.addHyperText (TcpFlowMonLogPartCode.ResolveCompleted, $"ok (\e[34m$addressString\e[m)");
 		break;
-		
+
+	case TcpFlowMonLogRecordCode.ResolveCancelled:		
+		target.addPlainText (TcpFlowMonLogPartCode.ResolveCompleted, "cancelled");
+		break;
+
 	case TcpFlowMonLogRecordCode.ResolveError:
+		jnc.Error const* error = (jnc.Error const*) p;
 		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-
-		jnc.Error const* error = (jnc.Error const*) p;
-		target.addHyperText (TcpFlowMonLogPartCode.ResolveCompleted, $"error ($(error.m_description))");
+		target.addPlainText (TcpFlowMonLogPartCode.ResolveCompleted, $"error ($(error.m_description))");
 		break;
 		
-	case TcpFlowMonLogRecordCode.CaptureStarted:
+	case TcpFlowMonLogRecordCode.StartingCapture:
 		char const* filter = (char const*) p;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText (TcpFlowMonLogPartCode.StartingCapture, $"Starting capture with filter \e[34m$filter\e[m...");
+		break;
+
+	case TcpFlowMonLogRecordCode.CaptureStarted:
+		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
-		target.addHyperText ($"Capture started with filter \e[34m$filter");
+		target.addPlainText (TcpFlowMonLogPartCode.CaptureCompleted, "ok");
 		break;
 
 	case TcpFlowMonLogRecordCode.CaptureError:
 		jnc.Error const* error = (jnc.Error const*) p;
+		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		target.addHyperText ($"Capture error ($(error.m_description))");
+		target.addPlainText (TcpFlowMonLogPartCode.CaptureCompleted, $"error ($(error.m_description))");
 		break;
 
 	case TcpFlowMonLogRecordCode.CaptureStopped:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
-		target.addHyperText ("Capture stopped");
+		target.addPlainText ("Capture stopped");
 		break;
 
-	case TcpFlowMonLogRecordCode.FilterChanged:
+	case TcpFlowMonLogRecordCode.ChangingFilter:
 		char const* filter = (char const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText ($"Capture filter changed to \e[34m$filter");
+		target.addHyperText (TcpFlowMonLogPartCode.ChangingFilter, $"Changing capture filter to \e[34m$filter\e[m...");
+		break;
+
+	case TcpFlowMonLogRecordCode.FilterChanged:
+		target.addPlainText (TcpFlowMonLogPartCode.FilterCompleted, "ok");
+		break;
+
+	case TcpFlowMonLogRecordCode.FilterError:
+		jnc.Error const* error = (jnc.Error const*) p;
+		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
+		target.addPlainText (TcpFlowMonLogPartCode.FilterCompleted, $"error ($(error.m_description))");
 		break;
 
 	case TcpFlowMonLogRecordCode.Connecting:
@@ -97,19 +128,16 @@ bool representTcpFlowMonLog (
 		target.addHyperText (TcpFlowMonLogPartCode.Connecting, $"Connecting to \e[34m$dstAddressString\e[m from \e[34m$srcAddressString\e[m...");
 		break;
 
+	case TcpFlowMonLogRecordCode.ConnectCompleted:
+		target.addHyperText (TcpFlowMonLogPartCode.ConnectCompleted, "ok");
+		break;
+
 	case TcpFlowMonLogRecordCode.ConnectionPickedUp:
 		char const* addressString1 = ((io.SocketAddress const*) p).getString ();
 		char const* addressString2 = ((io.SocketAddress const*) p + 1).getString ();
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText ($"Picked up connection between \e[34m$addressString1\e[m and \e[34m$addressString2\e[m");
-		break;
-
-	case TcpFlowMonLogRecordCode.ConnectCompleted:
-		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText (TcpFlowMonLogPartCode.ConnectCompleted, "ok");
 		break;
 
 	case TcpFlowMonLogRecordCode.Disconnected:

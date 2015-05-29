@@ -13,9 +13,8 @@ import "io_SocketAddress.jnc"
 class UdpFlowMonSession: doc.Session
 {
 protected:
-	enum CaptureState
+	bitflag enum State
 	{
-		Closed,
 		Resolving,
 		Capturing,
 	}
@@ -42,7 +41,7 @@ protected:
 protected:
 	// pcap
 
-	CaptureState bindable m_captureState;
+	State bindable m_state;
 	io.PCap* m_pcap;	
 	io.SocketAddressResolver* m_resolver;
 	io.SocketAddress m_filterAddress;
@@ -76,10 +75,14 @@ public:
 
 protected:
 	onCapture ();	
+	onSetFilter ();
 	onReadyRead (uint_t syncId);
 	onResolverEvent (io.SocketAddressResolverEventParams const* params);
 
-	handleCaptureError (jnc.Error const* error);
+	char const* createFilterString (io.SocketAddress const* filterAddress);
+
+	bool applyFilter () throws;
+	bool setFilter (io.SocketAddress const* filterAddress) throws;
 
 	bool decodePacket (
 		void const* p,
@@ -98,7 +101,7 @@ UdpFlowMonSession.construct (doc.PluginHost* pluginHost)
 
 	pluginHost.m_log.m_representerFunc = representUdpFlowMonLog;
 
-	m_captureState = CaptureState.Closed;
+	m_state = 0;
 	m_pcap = new io.PCap ();
 	m_pcap.m_onReadyRead += onReadyRead @ m_pluginHost.m_mainThreadScheduler;
 	m_resolver = new io.SocketAddressResolver ();
@@ -113,11 +116,12 @@ UdpFlowMonSession.createUi ()
 
 	m_pluginHost.m_toolBar.addLabel ("Device:");
 	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox (-1);
-	m_deviceCombo.m_onEnter += capture;
+	m_deviceCombo.m_onEnter += onCapture;
 
 	m_pluginHost.m_toolBar.addLabel ("Filter:");
 	m_filterCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_filterCombo.m_isEditable = true;
+	m_filterCombo.m_onEnter += onSetFilter;
 
 	io.PCapDeviceDesc const* device = io.createPCapDeviceDescList ();
 
@@ -163,10 +167,18 @@ UdpFlowMonSession.createUi ()
 
 UdpFlowMonSession.onCapture ()
 {
-	if (m_captureState)
+	if (m_state)
 		stopCapture ();
 	else
 		try capture ();
+}
+
+UdpFlowMonSession.onSetFilter ()
+{
+	if (!m_state)
+		try capture ();
+	else
+		try applyFilter ();	
 }
 
 bool UdpFlowMonSession.capture () throws
@@ -177,28 +189,26 @@ bool UdpFlowMonSession.capture () throws
 	if (!device)
 		return false;
 
-	char const* filterString = m_filterCombo.m_editText;
+	char const* addressString = m_filterCombo.m_editText;
 	m_filterCombo.addEditTextToHistory ();
 
 	io.SocketAddress filterAddress;
-	bool isDirectAddress = try filterAddress.parse (filterString);
+	bool isDirectAddress = try filterAddress.parse (addressString);
 	if (isDirectAddress)
 		return try capture (&filterAddress);
 
-	m_captureState = CaptureState.Resolving;
-
-	writeLogString (
-		UdpFlowMonLogRecordCode.Resolving,
-		filterString
-		);
+	writeLogString (UdpFlowMonLogRecordCode.Resolving, addressString);
 
 	m_resolver.m_syncId = m_pcap.m_syncId;
-	m_resolver.resolve (filterString);
-	return true;
+	bool result = try m_resolver.resolve (addressString);
+	if (!result)
+	{
+		writeLogLastError (UdpFlowMonLogRecordCode.ResolveError);
+		return false;
+	}
 
-catch:
-	handleCaptureError (jnc.getLastError ());
-	return false;
+	m_state = State.Resolving;
+	return true;
 }
 
 bool UdpFlowMonSession.capture (io.SocketAddress const* filterAddress) throws
@@ -209,50 +219,98 @@ bool UdpFlowMonSession.capture (io.SocketAddress const* filterAddress) throws
 	if (!device)
 		return false;
 	
-	char const* filterString = 
-		filterAddress.m_family == io.AddressFamily.Ip6 ? $"udp and host $(filterAddress.m_ip6.m_address.getString ())" :
-		filterAddress.m_ip4.m_address.m_i32 ? $"udp and host $(filterAddress.m_ip4.m_address.getString ())" :
-		"udp";
+	char const* filterString = createFilterString (filterAddress);
+	writeLogString (UdpFlowMonLogRecordCode.StartingCapture, filterString);
 	
-	if (filterAddress.m_ip4.m_port)
-		filterString = $"$filterString and port $(filterAddress.m_ip4.m_port)";
-	
-	m_pcap.open (
+	bool result = try m_pcap.open (
 		device.m_name, 
 		filterString,
 		m_promisciousProp.m_value
 		);
+		
+	if (!result)
+	{
+		writeLogLastError (UdpFlowMonLogRecordCode.CaptureError);
+		return false;
+	}
 
-	m_captureState = CaptureState.Capturing;	
+	m_state = State.Capturing;
 	m_filterAddress = *filterAddress;
-	writeLogString (UdpFlowMonLogRecordCode.CaptureStarted, filterString);
+	writeLog (UdpFlowMonLogRecordCode.CaptureStarted);
 	return true;
-
-catch:
-	handleCaptureError (jnc.getLastError ());
-	return false;
-}
-
-UdpFlowMonSession.handleCaptureError (jnc.Error const* error)
-{
-	writeLog (
-		UdpFlowMonLogRecordCode.CaptureError,
-		error,
-		error.m_size
-		);
-
-	m_pcap.close ();
-	m_captureState = CaptureState.Closed;
 }
 
 UdpFlowMonSession.stopCapture ()
 {
-	if (!m_captureState)
+	if (!m_state)
 		return;
 
-	writeLog (UdpFlowMonLogRecordCode.CaptureStopped);
+	if (m_state & State.Resolving)
+		writeLog (UdpFlowMonLogRecordCode.ResolveCancelled);		
+	
+	if (m_state & State.Capturing)
+		writeLog (UdpFlowMonLogRecordCode.CaptureStopped);
+	
 	m_pcap.close ();
-	m_captureState = CaptureState.Closed;
+	m_state = 0;
+}
+
+bool UdpFlowMonSession.applyFilter () throws
+{
+	char const* filterString = m_filterCombo.m_editText;
+	m_filterCombo.addEditTextToHistory ();
+
+	io.SocketAddress filterAddress;
+	bool isDirectAddress = try filterAddress.parse (filterString);
+	if (isDirectAddress)
+	{
+		m_state &= ~State.Resolving;
+		return try setFilter (&filterAddress);	
+	}
+
+	writeLogString (UdpFlowMonLogRecordCode.Resolving, filterString);
+		
+	m_resolver.m_syncId = m_pcap.m_syncId;
+	bool result = try m_resolver.resolve (filterString);
+	if (!result)
+	{
+		writeLogLastError (UdpFlowMonLogRecordCode.ResolveError);
+		return false;
+	}
+	
+	m_state |= State.Resolving;
+	return true;
+}
+
+bool UdpFlowMonSession.setFilter (io.SocketAddress const* filterAddress) throws
+{
+	if (!m_state.Capturing)
+		return true;
+
+	char const* filterString = createFilterString (filterAddress);
+	writeLogString (UdpFlowMonLogRecordCode.ChangingFilter, filterString);
+	bool result = try m_pcap.setFilter (filterString);
+	if (!result)
+	{
+		writeLogLastError (UdpFlowMonLogRecordCode.FilterError);
+		return false;
+	}
+	
+	writeLog (UdpFlowMonLogRecordCode.FilterChanged);
+	return true;
+}
+
+char const* UdpFlowMonSession.createFilterString (io.SocketAddress const* filterAddress)
+{
+	char const* filterString = 
+		filterAddress.m_family == io.AddressFamily.Ip6 ? $"udp and host $(filterAddress.m_ip6.m_address.getString ())" :
+		filterAddress.m_ip4.m_address.m_i32 ? $"udp and host $(filterAddress.m_ip4.m_address.getString ())" :
+		"udp";
+
+	if (filterAddress.m_ip4.m_port)
+		filterString = $"$filterString and port $(filterAddress.m_ip4.m_port)";
+	
+	return filterString;
 }
 
 void UdpFlowMonSession.load (doc.Storage* storage)
@@ -283,8 +341,8 @@ bool UdpFlowMonSession.applyProperties () throws
 	// m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
 	m_filterCombo.m_editText = m_filterProp.m_value;
 
-	if (m_captureState == CaptureState.Capturing)
-		m_pcap.m_filter = m_filterProp.m_value;
+	if (m_state.Capturing)
+		applyFilter ();
 
 	return true;
 }
@@ -293,13 +351,15 @@ void UdpFlowMonSession.restoreDefaultProperties ()
 {
 	m_deviceProp.m_value = m_deviceCombo.m_itemText [0];
 	m_promisciousProp.m_value = false;
-	m_filterProp.m_value = "tibbo.com:80";
+	m_filterProp.m_value = "65535";
 }
 
 UdpFlowMonSession.onResolverEvent (io.SocketAddressResolverEventParams const* params)
 {
 	if (params.m_syncId != m_pcap.m_syncId)
 		return;
+
+	m_state &= ~State.Resolving;
 
 	switch (params.m_eventKind)
 	{
@@ -310,12 +370,14 @@ UdpFlowMonSession.onResolverEvent (io.SocketAddressResolverEventParams const* pa
 			sizeof (io.SocketAddress)
 			);
 
-		m_captureState = CaptureState.Closed;
-		try capture (params.m_addressTable);
+		if (m_state & State.Capturing)
+			try setFilter (params.m_addressTable);
+		else
+			try capture (params.m_addressTable);
 		break;
 
 	case io.SocketAddressResolverEvent.ResolveError:
-		handleCaptureError (params.m_error);
+		writeLogError (UdpFlowMonLogRecordCode.ResolveError, params.m_error);
 		break;
 	}
 }
@@ -433,9 +495,12 @@ bool UdpFlowMonSession.decodePacket (
 reactor UdpFlowMonSession.m_uiReactor ()
 {
 	m_title = $"UDP Mon $(m_filterCombo.m_currentText)";
-	m_actionTable [ActionId.Capture].m_text = m_captureState ? "Stop Capture" : "Capture";
-	m_actionTable [ActionId.Capture].m_icon = m_iconTable [m_captureState ? IconId.StopCapture : IconId.Capture];
-	m_statusPaneTable [StatusPaneId.State].m_text = m_captureState ? "Capturing" : "Closed";
+	m_actionTable [ActionId.Capture].m_text = m_state ? "Stop Capture" : "Capture";
+	m_actionTable [ActionId.Capture].m_icon = m_iconTable [m_state ? IconId.StopCapture : IconId.Capture];
+	m_statusPaneTable [StatusPaneId.State].m_text = 
+		(m_state & State.Capturing) ? "Capturing" : 
+		(m_state & State.Resolving) ? "Resolving" :
+		"Closed";
 }
 
 //.............................................................................

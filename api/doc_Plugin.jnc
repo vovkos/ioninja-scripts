@@ -72,6 +72,19 @@ class Plugin
 		m_pluginHost.m_log.m_writer.write (recordCode, p, strlen (p));
 	}
 
+	writeLogError (
+		uint_t recordCode,
+		jnc.Error const* error
+		)
+	{
+		m_pluginHost.m_log.m_writer.write (recordCode, error, error.m_size);
+	}
+
+	writeLogLastError (uint_t recordCode)
+	{
+		writeLogError (recordCode, jnc.getLastError ());
+	}
+
 	gui.Action* createAction (
 		char const* text,
 		gui.Icon* icon = null,

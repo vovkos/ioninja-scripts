@@ -9,13 +9,23 @@ import "io_Packet.jnc"
 
 enum SnifferLogRecordCode
 {
-	Packet         = 1 | log.RecordCodeFlags.Foldable,
-	InjectedPacket = 2 | log.RecordCodeFlags.Foldable,
-	CaptureStarted = 3,
+	Packet          = 1 | log.RecordCodeFlags.Foldable,
+	InjectedPacket  = 2 | log.RecordCodeFlags.Foldable,
+	StartingCapture = 3, // non foldable
+	CaptureStarted,
 	CaptureError,
 	CaptureStopped,
+	ChangingFilter,
 	FilterChanged,
 	FilterError,
+}
+
+enum SnifferLogPartCode
+{
+	StartingCapture  = 1 | log.PartCodeFlags.MergeableForward,
+	CaptureCompleted = 1 | log.PartCodeFlags.MergeableBackward,
+	ChangingFilter   = 2 | log.PartCodeFlags.MergeableForward,
+	FilterCompleted  = 2 | log.PartCodeFlags.MergeableBackward,
 }
 
 //.............................................................................
@@ -40,38 +50,51 @@ bool representSnifferLog (
 		representPacket (target, p, size, foldFlags);
 		break;
 
-	case SnifferLogRecordCode.CaptureStarted:
+	case SnifferLogRecordCode.StartingCapture:
 		char const* filter = (char const*) p;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText (SnifferLogPartCode.StartingCapture, $"Starting capture with filter \e[34m$filter\e[m...");
+		break;
+
+	case SnifferLogRecordCode.CaptureStarted:
+		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
-		target.addHyperText ($"Capture started with filter \e[34m$filter");
+		target.addPlainText (SnifferLogPartCode.CaptureCompleted, "ok");
 		break;
 
 	case SnifferLogRecordCode.CaptureError:
 		jnc.Error const* error = (jnc.Error const*) p;
+		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		target.addHyperText ($"Capture error ($(error.m_description))");
+		target.addPlainText (SnifferLogPartCode.CaptureCompleted, $"error ($(error.m_description))");
 		break;
 
 	case SnifferLogRecordCode.CaptureStopped:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
-		target.addHyperText ("Capture stopped");
+		target.addPlainText ("Capture stopped");
 		break;
 
-	case SnifferLogRecordCode.FilterChanged:
+	case SnifferLogRecordCode.ChangingFilter:
 		char const* filter = (char const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText ($"Capture filter changed to \e[34m$filter");
+		target.addHyperText (SnifferLogPartCode.ChangingFilter, $"Changing capture filter to \e[34m$filter\e[m...");
+		break;
+
+	case SnifferLogRecordCode.FilterChanged:
+		target.addPlainText (SnifferLogPartCode.FilterCompleted, "ok");
 		break;
 
 	case SnifferLogRecordCode.FilterError:
 		jnc.Error const* error = (jnc.Error const*) p;
+		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		target.addHyperText ($"Cannot change filter ($(error.m_description))");
+		target.addPlainText (SnifferLogPartCode.FilterCompleted, $"error ($(error.m_description))");
 		break;
 
 	default:
