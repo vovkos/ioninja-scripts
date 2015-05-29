@@ -669,7 +669,7 @@ TcpFlowMonSession.writeTcpData (
 	}
 
 	writeLog (peer.m_recordCode, p, size);
-	peer.m_seqNumber = seqNumber + size;
+	peer.m_seqNumber = seqNumber + (uint32_t) size;
 }
 
 TcpFlowMonSession.decodeTcpDataSegment (
