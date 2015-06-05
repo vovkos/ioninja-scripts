@@ -124,6 +124,7 @@ opaque class ComboBox
 	uint_t autoget property m_backgroundColor;
 
 	void addEditTextToHistory ();
+	void adjustSizeToContents (); 
 
 	size_t addItem (
 		char const* text,
