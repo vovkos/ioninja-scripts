@@ -469,7 +469,7 @@ bool UdpFlowMonSession.decodePacket (
 		writeLog (
 			UdpFlowMonLogRecordCode.RxPacket,
 			params,
-			dynamic sizeof (*params)
+			dynamic sizeof (params)
 			);
 		
 		writeLog (log.StdRecordCode.Rx, p, size);
@@ -479,7 +479,7 @@ bool UdpFlowMonSession.decodePacket (
 		writeLog (
 			UdpFlowMonLogRecordCode.TxPacket,
 			params,
-			dynamic sizeof (*params)
+			dynamic sizeof (params)
 			);
 
 		writeLog (log.StdRecordCode.Tx, p, size);

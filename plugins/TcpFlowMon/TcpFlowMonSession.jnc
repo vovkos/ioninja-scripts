@@ -571,7 +571,7 @@ bool TcpFlowMonSession.decodePacket (
 			writeLog (
 				TcpFlowMonLogRecordCode.ConnectionPickedUp,
 				params,
-				dynamic sizeof (*params)
+				dynamic sizeof (params)
 				);
 		}
 		else if (!(tcpHdr.m_flags & io.TcpFlags.Ack))
@@ -579,7 +579,7 @@ bool TcpFlowMonSession.decodePacket (
 			writeLog (
 				TcpFlowMonLogRecordCode.Connecting,
 				params,
-				dynamic sizeof (*params)
+				dynamic sizeof (params)
 				);			
 			
 			m_state |= State.TcpSyn;
@@ -589,7 +589,7 @@ bool TcpFlowMonSession.decodePacket (
 			writeLog (
 				TcpFlowMonLogRecordCode.Connecting,
 				params,
-				dynamic sizeof (*params)
+				dynamic sizeof (params)
 				);			
 
 			writeLog (TcpFlowMonLogRecordCode.ConnectCompleted);			

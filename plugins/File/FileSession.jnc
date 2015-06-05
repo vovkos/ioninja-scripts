@@ -174,7 +174,7 @@ bool FileSession.open () throws
 	m_file.open (fileName);
 	
 	char const* p = $"$(m_file.m_kind; B)$fileName";
-	writeLog (FileLogRecordCode.Opened, p, dynamic sizeof (*p));
+	writeLog (FileLogRecordCode.Opened, p, dynamic sizeof (p));
 	m_fileName = fileName;
 	m_state = State.Opened;
 	return true;

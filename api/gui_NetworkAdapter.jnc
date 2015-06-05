@@ -85,7 +85,7 @@ EnumProperty* createNetworkAdapterProperty (
 	)
 {
 	EnumPropertyOption const* optionArray = createNetworkAdapterOptionArray (usage);
-	size_t optionCount = dynamic countof (*optionArray);
+	size_t optionCount = dynamic countof (optionArray);
 
 	return propertyGrid.createEnumProperty (		
 		name,
@@ -105,7 +105,7 @@ createNetworkAdapterComboBox (
 	)
 {
 	EnumPropertyOption const* optionArray = createNetworkAdapterOptionArray (usage);
-	size_t optionCount = dynamic countof (*optionArray);
+	size_t optionCount = dynamic countof (optionArray);
 
 	ComboBox* comboBox = toolBar.addComboBox (width);
 	
