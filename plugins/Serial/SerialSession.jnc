@@ -126,33 +126,91 @@ SerialSession.construct (doc.PluginHost* pluginHost)
 
 SerialSession.createUi ()
 {
+	static gui.EnumPropertyOption baudRateTable [] =
+	{
+		{ "110 bps",    110 },
+		{ "300 bps",    300 },
+		{ "600 bps",    600 },
+		{ "1200 bps",   1200 },
+		{ "2400 bps",   2400 },
+		{ "4800 bps",   4800 },
+		{ "9600 bps",   9600 },
+		{ "14400 bps",  14400 },
+		{ "19200 bps",  19200 },
+		{ "38400 bps",  38400 },
+		{ "56000 bps",  56000 },
+		{ "57600 bps",  57600 },
+		{ "115200 bps", 115200 },
+		{ "128000 bps", 128000 },
+		{ "256000 bps", 256000 },
+	};
+	
+	static gui.EnumPropertyOption flowControlTable [] =
+	{
+		{ "None",     io.SerialFlowControl.None },
+		{ "RTS/CTS",  io.SerialFlowControl.RtsCts },
+		{ "XON/XOFF", io.SerialFlowControl.XOnXOff },
+	};
+	
+	static gui.EnumPropertyOption dataBitsTable [] =
+	{
+		{ "7 bits", 7 },
+		{ "8 bits", 8 },
+	};
+	
+	static gui.EnumPropertyOption stopBitsTable [] =
+	{
+		{ "1 bit",    io.SerialStopBits._1 },
+		{ "1.5 bits", io.SerialStopBits._15 },
+		{ "2 bits",   io.SerialStopBits._2 },
+	};
+	
+	static gui.EnumPropertyOption parityTable [] =
+	{
+		{ "None",  io.SerialParity.None },
+		{ "Odd",   io.SerialParity.Odd },
+		{ "Even",  io.SerialParity.Even },
+		{ "Mark",  io.SerialParity.Mark },
+		{ "Space", io.SerialParity.Space },
+	};
+	
 	// toolbar
-
-	size_t portCount;
-	io.SerialPortDesc const* portList = io.createSerialPortDescList (&portCount);
 
 	m_pluginHost.m_toolBar.addLabel ("Port:");
 	m_portCombo = m_pluginHost.m_toolBar.addComboBox ();
 	m_portCombo.m_isEditable = true;
-	m_portCombo.m_onEnter += open;
 	
+	size_t portCount;
+	io.SerialPortDesc const* portList = io.createSerialPortDescList (&portCount);
 	io.SerialPortDesc const* port = portList;
 	for (; port; port = port.m_next)
 		m_portCombo.addItem (port.m_name, null);
-	
+
+	m_portCombo.adjustSizeToContents ();
+	m_portCombo.m_onEnter += open;
+
 	m_pluginHost.m_toolBar.addLabel (" Baud rate:");
 	m_baudRateCombo = m_pluginHost.m_toolBar.addComboBox ();
-	m_baudRateCombo.addItem ("9600 bps");
-	m_baudRateCombo.addItem ("19200 bps");
-	m_baudRateCombo.addItem ("38400 bps");
-	m_baudRateCombo.addItem ("115200 bps");
+
+	for (size_t i = 0; i < countof (baudRateTable); i++)
+		m_baudRateCombo.addItem (
+			baudRateTable [i].m_text, 
+			baudRateTable [i].m_value
+			);		
+
+	m_baudRateCombo.adjustSizeToContents ();
 	m_baudRateCombo.m_onChanged += onBaudRateChanged;
 
 	m_pluginHost.m_toolBar.addLabel (" Flow control:");
 	m_flowControlCombo = m_pluginHost.m_toolBar.addComboBox ();
-	m_flowControlCombo.addItem ("None");
-	m_flowControlCombo.addItem ("RTS/CTS");
-	m_flowControlCombo.addItem ("XON/XOFF");
+
+	for (size_t i = 0; i < countof (flowControlTable); i++)
+		m_flowControlCombo.addItem (
+			flowControlTable [i].m_text, 
+			flowControlTable [i].m_value
+			);
+
+	m_flowControlCombo.adjustSizeToContents ();
 	m_flowControlCombo.m_onChanged += onFlowControlChanged;
 
 	m_iconTable [IconId.Open] = new gui.Icon ("images/connect.png");
@@ -188,8 +246,6 @@ SerialSession.createUi ()
 
 	// property grid
 
-	// ports
-
 	m_portProp = io.createSerialPortProperty (
 		m_pluginHost.m_propertyGrid,
 		"Port",
@@ -198,33 +254,12 @@ SerialSession.createUi ()
 		portCount
 		);
 
-	// baud
-
-	static gui.EnumPropertyOption baudRateTable [] =
-	{
-		{ "9600 bps",   9600 },
-		{ "19200 bps",  19200 },
-		{ "38400 bps",  38400 },
-		{ "115200 bps", 115200 },
-	};
-
 	m_baudRateProp = m_pluginHost.m_propertyGrid.createEnumProperty (
 		"Baud rate",
 		"Serial baud rate",
 		baudRateTable,
 		countof (baudRateTable)
 		);
-
-	m_baudRateProp.m_value = 38400;
-
-	// flow control
-
-	static gui.EnumPropertyOption flowControlTable [] =
-	{
-		{ "None",                io.SerialFlowControl.None },
-		{ "Hardware (RTS/CTS)",  io.SerialFlowControl.RtsCts },
-		{ "Software (XON/XOFF)", io.SerialFlowControl.XOnXOff },
-	};
 
 	m_flowControlProp = m_pluginHost.m_propertyGrid.createEnumProperty (
 		"Flow control",
@@ -233,33 +268,12 @@ SerialSession.createUi ()
 		countof (flowControlTable)
 		);
 
-	m_flowControlProp.m_value = io.SerialFlowControl.None;
-
-	// data bits
-
-	static gui.EnumPropertyOption dataBitsTable [] =
-	{
-		{ "7 bits", 7 },
-		{ "8 bits", 8 },
-	};
-
 	m_dataBitsProp = m_pluginHost.m_propertyGrid.createEnumProperty (
 		"Data bits",
 		"Serial data bit count (word size)",
 		dataBitsTable,
 		countof (dataBitsTable)
 		);
-
-	m_dataBitsProp.m_value = 8;
-
-	// stop bits
-
-	static gui.EnumPropertyOption stopBitsTable [] =
-	{
-		{ "1 bit",    io.SerialStopBits._1 },
-		{ "1.5 bits", io.SerialStopBits._15 },
-		{ "2 bits",   io.SerialStopBits._2 },
-	};
 
 	m_stopBitsProp = m_pluginHost.m_propertyGrid.createEnumProperty (
 		"Stop bits",
@@ -268,27 +282,12 @@ SerialSession.createUi ()
 		countof (stopBitsTable)
 		);
 
-	m_stopBitsProp.m_value = io.SerialStopBits._1;
-
-	// parity
-
-	static gui.EnumPropertyOption parityTable [] =
-	{
-		{ "None",  io.SerialParity.None },
-		{ "Odd",   io.SerialParity.Odd },
-		{ "Even",  io.SerialParity.Even },
-		{ "Mark",  io.SerialParity.Mark },
-		{ "Space", io.SerialParity.Space },
-	};
-
 	m_parityProp = m_pluginHost.m_propertyGrid.createEnumProperty (
 		"Parity",
 		"Serial parity check",
 		parityTable,
 		countof (parityTable)
 		);
-
-	m_parityProp.m_value = io.SerialParity.None;
 
 	// filter 
 
@@ -326,12 +325,9 @@ bool SerialSession.open () throws
 
 	// open and configure
 	
-	m_baudRateProp.m_currentIndex = m_baudRateCombo.m_currentIndex;
-	m_flowControlProp.m_currentIndex = m_flowControlProp.m_currentIndex;
-
 	m_serial.open (name);
-	m_serial.m_baudRate = m_baudRateProp.m_value;
-	m_serial.m_flowControl = (io.SerialFlowControl) m_flowControlProp.m_value;
+	m_serial.m_baudRate = m_baudRateCombo.m_currentData;
+	m_serial.m_flowControl = (io.SerialFlowControl) m_flowControlCombo.m_currentData;
 	m_serial.m_dataBits = m_dataBitsProp.m_value;
 	m_serial.m_stopBits = (io.SerialStopBits) m_stopBitsProp.m_value;
 	m_serial.m_parity = (io.SerialParity) m_parityProp.m_value;
@@ -346,7 +342,7 @@ bool SerialSession.open () throws
 	params.m_parity = m_serial.m_parity;
 
 	char const* p = $"$(params; B)$name";
-	writeLog (SerialLogRecordCode.PortOpened, p, dynamic sizeof (*p));
+	writeLog (SerialLogRecordCode.PortOpened, p, dynamic sizeof (p));
 
 	m_portName = name;
 	m_serialDtr = m_serial.m_dtr;
@@ -502,7 +498,7 @@ SerialSession.onSerialEvent (io.SerialEventParams const* params)
 		
 	case io.SerialEvent.StatusLineChanged:
 		char const* p = $"$(params.m_lines; B)$(params.m_mask; B)";
-		writeLog (SerialLogRecordCode.StatusLineChanged, p, dynamic sizeof (*p));
+		writeLog (SerialLogRecordCode.StatusLineChanged, p, dynamic sizeof (p));
 		m_serialStatusLines = params.m_lines;
 		break;
 
