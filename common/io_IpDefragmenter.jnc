@@ -3,6 +3,8 @@
 // IP defragmentation 
 //
 
+import "io_Packet.jnc"
+
 namespace io {
 
 //.............................................................................
@@ -19,15 +21,15 @@ protected:
 	struct Fragment
 	{
 		size_t m_offset;
-		void* m_p;
+		void* m_payload;
 		size_t m_size;
 	}
-
+	
 	class Chain
 	{
 		jnc.ListEntry* m_listEntry;
+		uint64_t m_key;
 		jnc.List m_fragmentList;
-		uint_t m_identification;
 		uint64_t m_deadlineTimestamp;
 
 		void* m_buffer;
@@ -47,11 +49,9 @@ public:
 	
 	reset ();
 
-	void const* addFragmentedDgram (io.IpHdr const* ipHdr);
-	
 	void const* addFragmentedDgram (
 		io.IpHdr const* ipHdr,
-		void const* p,
+		void const* payload,
 		size_t size		
 		);
 		
@@ -71,40 +71,35 @@ IpDefragmenter.reset ()
 	m_chainHashTable.clear ();
 }
 
-void const* IpDefragmenter.addFragmentedDgram (io.IpHdr const* ipHdr)
-{
-	size_t ipHdrSize = ipHdr.m_headerLength * 4;
-	size_t dataSize = ipHdr.m_totalLength - ipHdrSize;	
-	
-	return addFragmentedDgram (ipHdr, (char const*) ipHdr + ipHdrSize, dataSize);
-}
-
 void const* IpDefragmenter.addFragmentedDgram (
 	io.IpHdr const* ipHdr,
-	void const* p,
+	void const* payload,
 	size_t size		
 	)
 {	
-	Chain* chain = m_chainHashTable.m_map [ipHdr.m_identification];
+	uint64_t timestamp = jnc.getTimestamp ();
+	uint64_t key = (uint64_t) ipHdr.m_srcAddress | (ipHdr.m_identification << 32);
+	Chain* chain = m_chainHashTable.m_map [key];
 	if (!chain)
 	{
 		chain = new Chain;
-		chain.m_identification = ipHdr.m_identification;
+		chain.m_key = key;
 		chain.m_listEntry = m_chainList.insertTail (chain);
-		m_chainHashTable.m_map [ipHdr.m_identification] = chain;
+		m_chainHashTable.m_map [key] = chain;
 	}
-
-	if (chain.m_fragmentList.m_count >= m_fragmentLimit) // too many fragments in chain
+	else if (
+		chain.m_deadlineTimestamp < timestamp || // chain timed out
+		chain.m_fragmentList.m_count >= m_fragmentLimit) // too many fragments in chain
 	{
 		m_chainList.remove (chain.m_listEntry);
-		m_chainHashTable.remove (chain.m_identification);
+		m_chainHashTable.remove (chain.m_key);
 		return null;
 	}
 
 	size_t offset = ipHdr.m_fragmentOffset * 8;
-	if (chain.m_buffer && offset + size > chain.m_size) // invalid fragment past the end of buffer
+	if (chain.m_buffer && offset + size > chain.m_size) // ignore invalid fragment past the end of buffer
 		return null;
-
+		
 	// find location to insert it
 
 	jnc.ListEntry* it = chain.m_fragmentList.m_head;
@@ -117,12 +112,12 @@ void const* IpDefragmenter.addFragmentedDgram (
 		if (offset < fragment.m_offset)
 			break;
 	}
-
+		
 	Fragment* fragment = new Fragment;
 	fragment.m_offset = offset;
-	fragment.m_p = new char [size];
+	fragment.m_payload = new char [size];
 	fragment.m_size = size;
-	memcpy (fragment.m_p, p, size);
+	memcpy (fragment.m_payload, payload, size);
 	chain.m_fragmentList.insertBefore (fragment, it);
 	
 	if (!(ipHdr.m_flags & io.IpFlags.Mf))
@@ -131,7 +126,9 @@ void const* IpDefragmenter.addFragmentedDgram (
 		chain.m_buffer = new char [chain.m_size];
 	}
 
-	chain.m_deadlineTimestamp = jnc.getTimestamp () + m_timeout * 10000;
+	// reset chain timer
+	
+	chain.m_deadlineTimestamp = timestamp + m_timeout * 10000;
 	m_chainList.moveToTail (chain.m_listEntry);
 	
 	void const* result = chain.m_buffer ? assembleChain (chain) : null;
@@ -157,17 +154,17 @@ void const* IpDefragmenter.assembleChain (IpDefragmenter.Chain* chain)
 			if (skip >= fragment.m_size)
 				continue;				
 			
-			fragment.m_p += skip;
+			fragment.m_payload += skip;
 			fragment.m_size -= skip;
 		}
 		
-		memcpy (p, fragment.m_p, fragment.m_size);
+		memcpy (p, fragment.m_payload, fragment.m_size);
 		p += fragment.m_size;	
-		chain.m_offset += fragment.m_size;
+		chain.m_offset += fragment.m_size;		
 	}
 
-	m_chainList.remove (chain.m_listEntry);
-	m_chainHashTable.remove (chain.m_identification);
+	m_chainList.remove (chain.m_listEntry);	
+	m_chainHashTable.remove (chain.m_key);	
 	return chain.m_buffer;
 }
 
@@ -182,7 +179,7 @@ IpDefragmenter.removeTimedOutChains ()
 			break;
 		
 		m_chainList.remove (chain.m_listEntry);
-		m_chainHashTable.remove (chain.m_identification);
+		m_chainHashTable.remove (chain.m_key);
 	}
 }
 

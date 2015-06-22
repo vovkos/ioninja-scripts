@@ -43,7 +43,6 @@ protected:
 	class TcpPeer
 	{
 		io.SocketAddress m_address;
-		io.IpDefragmenter m_ipDefragmenter;
 		io.TcpSequencer m_tcpSequencer;
 	};	
 
@@ -58,6 +57,7 @@ protected:
 	// pcap & tcp decoding
 
 	io.PCap* m_pcap;	
+	io.IpDefragmenter m_ipDefragmenter;
 	io.SocketAddressResolver* m_resolver;
 	io.SocketAddress m_filterAddress;
 	TcpPeer m_tcpPeer1;
@@ -355,6 +355,7 @@ TcpFlowMonSession.stopCapture ()
 		writeLog (TcpFlowMonLogRecordCode.CaptureStopped);
 	
 	m_pcap.close ();
+	m_ipDefragmenter.reset ();
 	m_state = 0;
 }
 
@@ -462,13 +463,9 @@ bool TcpFlowMonSession.applyProperties () throws
 {
 	m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
 	m_filterCombo.m_editText = m_filterProp.m_value;
-	
-	m_tcpPeer1.m_ipDefragmenter.m_fragmentLimit = m_ipFragmentLimitProp.m_value;
-	m_tcpPeer1.m_ipDefragmenter.m_timeout = m_ipFragmentTimeoutProp.m_value;
+	m_ipDefragmenter.m_fragmentLimit = m_ipFragmentLimitProp.m_value;
+	m_ipDefragmenter.m_timeout = m_ipFragmentTimeoutProp.m_value;
 	m_tcpPeer1.m_tcpSequencer.m_outOfSeqLimit = m_tcpOutOfSeqLimitProp.m_value;
-	
-	m_tcpPeer2.m_ipDefragmenter.m_fragmentLimit = m_ipFragmentLimitProp.m_value;
-	m_tcpPeer2.m_ipDefragmenter.m_timeout = m_ipFragmentTimeoutProp.m_value;
 	m_tcpPeer2.m_tcpSequencer.m_outOfSeqLimit = m_tcpOutOfSeqLimitProp.m_value;
 	
 	if (m_state.Capturing)
@@ -578,6 +575,7 @@ bool TcpFlowMonSession.decodePacket (
 		size_t ipHdrSize = ipHdr.m_headerLength * 4;
 
 		if (ipHdr.m_protocol != io.Protocol.Tcp ||
+			ipHdrSize < sizeof (io.IpHdr) ||
 			ipHdrSize > ipHdr.m_totalLength ||
 			ipHdr.m_totalLength > size)
 			return false;
@@ -589,6 +587,16 @@ bool TcpFlowMonSession.decodePacket (
 
 		p += ipHdrSize;
 		size = ipHdr.m_totalLength - ipHdrSize;
+		
+		if ((ipHdr.m_flags & io.IpFlags.Mf) || ipHdr.m_fragmentOffset) // fragmented ip
+		{
+			p = m_ipDefragmenter.addFragmentedDgram (ipHdr, p, size);
+			if (!p)
+				return false;
+
+			size = dynamic sizeof (p);
+		}
+		
 		break;
 
 	case io.EthernetType.Ip6:

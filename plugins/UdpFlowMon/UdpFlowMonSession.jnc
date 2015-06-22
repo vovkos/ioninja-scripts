@@ -48,6 +48,7 @@ protected:
 
 	State bindable m_state;
 	io.PCap* m_pcap;	
+	io.IpDefragmenter m_ipDefragmenter;
 	io.SocketAddressResolver* m_resolver;
 	io.SocketAddress m_filterAddress;
 	
@@ -64,6 +65,8 @@ protected:
 	gui.EnumProperty* m_deviceProp;
 	gui.BoolProperty* m_promisciousProp;
 	gui.StringProperty* m_filterProp;
+	gui.IntProperty* m_ipFragmentLimitProp;
+	gui.IntProperty* m_ipFragmentTimeoutProp;
 
 public:
 	construct (doc.PluginHost* pluginHost);
@@ -167,6 +170,16 @@ UdpFlowMonSession.createUi ()
 	m_filterProp = m_pluginHost.m_propertyGrid.createStringProperty (
 		"Address Filter",
 		"Specify the address to monitor"
+		);
+
+	m_ipFragmentLimitProp  = m_pluginHost.m_propertyGrid.createIntProperty (
+		"IP Fragment Limit",
+		"Specify the maximum number of IP fragments"
+		);
+
+	m_ipFragmentTimeoutProp  = m_pluginHost.m_propertyGrid.createIntProperty (
+		"IP Fragment Timeout (ms)",
+		"Specify the maximum delay between IP fragments"
 		);
 
 	m_uiReactor.start ();
@@ -306,6 +319,7 @@ UdpFlowMonSession.stopCapture ()
 		writeLog (UdpFlowMonLogRecordCode.CaptureStopped);
 	
 	m_pcap.close ();
+	m_ipDefragmenter.reset ();
 	m_state = 0;
 }
 
@@ -388,6 +402,8 @@ void UdpFlowMonSession.load (doc.Storage* storage)
 	m_deviceCombo.m_currentIndex = storage.readInt ("device");
 	m_promisciousProp.m_value = storage.readBool ("promiscious");
 	m_filterCombo.m_editText = storage.readString ("captureFilter");
+	m_ipFragmentLimitProp.m_value = storage.readInt ("ipFragmentLimit");
+	m_ipFragmentTimeoutProp.m_value = storage.readInt ("ipFragmentTimeout");
 }
 
 void UdpFlowMonSession.save (doc.Storage* storage)
@@ -395,6 +411,8 @@ void UdpFlowMonSession.save (doc.Storage* storage)
 	storage.writeInt ("device", (int) m_deviceCombo.m_currentIndex);
 	storage.writeBool ("promiscious", m_promisciousProp.m_value);
 	storage.writeString ("captureFilter", m_filterCombo.m_editText);
+	storage.writeInt ("ipFragmentLimit", m_ipFragmentLimitProp.m_value);
+	storage.writeInt ("ipFragmentTimeout", m_ipFragmentTimeoutProp.m_value);
 }
 
 void UdpFlowMonSession.updateProperties ()
@@ -407,6 +425,8 @@ bool UdpFlowMonSession.applyProperties () throws
 {
 	m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
 	m_filterCombo.m_editText = m_filterProp.m_value;
+	m_ipDefragmenter.m_fragmentLimit = m_ipFragmentLimitProp.m_value;
+	m_ipDefragmenter.m_timeout = m_ipFragmentTimeoutProp.m_value;
 
 	if (m_state.Capturing)
 		applyFilter ();
@@ -416,9 +436,11 @@ bool UdpFlowMonSession.applyProperties () throws
 
 void UdpFlowMonSession.restoreDefaultProperties ()
 {
-	m_deviceProp.m_value = m_deviceCombo.m_itemText [0];
+	m_deviceProp.m_currentIndex = 0;
 	m_promisciousProp.m_value = false;
 	m_filterProp.m_value = "65535";
+	m_ipFragmentLimitProp.m_value = io.IpDefragmenter.DefIpFragmentLimit;
+	m_ipFragmentTimeoutProp.m_value = io.IpDefragmenter.DefIpFragmentTimeout;
 }
 
 UdpFlowMonSession.onResolverEvent (io.SocketAddressResolverEventParams const* params)
@@ -485,9 +507,7 @@ bool UdpFlowMonSession.decodePacket (
 	p += sizeof (io.EthernetHdr);
 	size -= sizeof (io.EthernetHdr);
 
-	io.SocketAddress srcAddress;
-	io.SocketAddress dstAddress;
-
+	UdpFlowMonPacketParams params;
 	switch (ethernetHdr.m_type)
 	{
 	case io.EthernetType.Ip:
@@ -498,17 +518,28 @@ bool UdpFlowMonSession.decodePacket (
 		size_t ipHdrSize = ipHdr.m_headerLength * 4;
 
 		if (ipHdr.m_protocol != io.Protocol.Udp ||
+			ipHdrSize < sizeof (io.IpHdr) ||
 			ipHdrSize > ipHdr.m_totalLength ||
 			ipHdr.m_totalLength > size)
 			return false;
-		
-		srcAddress.m_family = io.AddressFamily.Ip4;
-		srcAddress.m_ip4.m_address.m_i32 = ipHdr.m_srcAddress;
-		dstAddress.m_family = io.AddressFamily.Ip4;
-		dstAddress.m_ip4.m_address.m_i32 = ipHdr.m_dstAddress;		
 
 		p += ipHdrSize;
 		size = ipHdr.m_totalLength - ipHdrSize;
+
+		if ((ipHdr.m_flags & io.IpFlags.Mf) || ipHdr.m_fragmentOffset) // fragmented ip
+		{
+			p = m_ipDefragmenter.addFragmentedDgram (ipHdr, p, size);
+			if (!p)
+				return false;
+
+			size = dynamic sizeof (p);
+			params.m_isFragmented = true;		
+		}
+
+		params.m_srcAddress.m_family = io.AddressFamily.Ip4;
+		params.m_srcAddress.m_ip4.m_address.m_i32 = ipHdr.m_srcAddress;
+		params.m_dstAddress.m_family = io.AddressFamily.Ip4;
+		params.m_dstAddress.m_ip4.m_address.m_i32 = ipHdr.m_dstAddress;		
 		break;
 
 	case io.EthernetType.Ip6:
@@ -521,13 +552,13 @@ bool UdpFlowMonSession.decodePacket (
 			ip6Hdr.m_payloadLength + sizeof (io.Ip6Hdr) > size)
 			return false;
 		
-		srcAddress.m_family = io.AddressFamily.Ip6;
-		srcAddress.m_ip6.m_address = *(io.Address_ip6 const*) ip6Hdr.m_srcAddress;
-		dstAddress.m_family = io.AddressFamily.Ip6;
-		dstAddress.m_ip6.m_address = *(io.Address_ip6 const*) ip6Hdr.m_dstAddress;		
-
 		p += sizeof (io.Ip6Hdr);
 		size = ip6Hdr.m_payloadLength;
+
+		params.m_srcAddress.m_family = io.AddressFamily.Ip6;
+		params.m_srcAddress.m_ip6.m_address = *(io.Address_ip6 const*) ip6Hdr.m_srcAddress;
+		params.m_dstAddress.m_family = io.AddressFamily.Ip6;
+		params.m_dstAddress.m_ip6.m_address = *(io.Address_ip6 const*) ip6Hdr.m_dstAddress;		
 		break;
 
 	default:
@@ -541,34 +572,21 @@ bool UdpFlowMonSession.decodePacket (
 	if (udpHdr.m_length < sizeof (io.UdpHdr) || udpHdr.m_length > size)
 		return false;
 
-	trace ($"udpHdr.m_length = $(udpHdr.m_length) size = $size\n");
-
 	p += sizeof (io.UdpHdr);
 	size = udpHdr.m_length - sizeof (io.UdpHdr);
 
-	srcAddress.m_ip4.m_port = udpHdr.m_srcPort;
-	dstAddress.m_ip4.m_port = udpHdr.m_dstPort;
+	params.m_srcAddress.m_ip4.m_port = udpHdr.m_srcPort;
+	params.m_dstAddress.m_ip4.m_port = udpHdr.m_dstPort;
+	params.m_size = size;
 
-	char const* params = $"$(srcAddress; B)$(dstAddress; B)";
-
-	if (srcAddress.isMatch (&m_filterAddress))
+	if (params.m_srcAddress.isMatch (m_filterAddress))
 	{
-		writeLog (
-			UdpFlowMonLogRecordCode.RxPacket,
-			params,
-			dynamic sizeof (params)
-			);
-		
+		writeLog (UdpFlowMonLogRecordCode.RxPacket, &params, sizeof (params));		
 		writeLog (log.StdRecordCode.Rx, p, size);
 	}
-	else if (dstAddress.isMatch (&m_filterAddress))
+	else if (params.m_dstAddress.isMatch (m_filterAddress))
 	{
-		writeLog (
-			UdpFlowMonLogRecordCode.TxPacket,
-			params,
-			dynamic sizeof (params)
-			);
-
+		writeLog (UdpFlowMonLogRecordCode.TxPacket, &params, sizeof (params));		
 		writeLog (log.StdRecordCode.Tx, p, size);
 	}
 	else
@@ -576,10 +594,8 @@ bool UdpFlowMonSession.decodePacket (
 		return false;
 	}
 
-	trace ("done\n");
-
 	return true;
-}		
+}
 
 reactor UdpFlowMonSession.m_uiReactor ()
 {

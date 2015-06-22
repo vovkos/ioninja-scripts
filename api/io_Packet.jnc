@@ -45,10 +45,10 @@ enum IpProtocol: uint8_t
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-bitflag enum IpFlags: uint16_t
-{
-	Df,
-	Mf,
+bitflag enum IpFlags
+{		
+	Mf = 0x01,
+	Df = 0x02,
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
