@@ -9,6 +9,22 @@ namespace io {
 
 //.............................................................................
 
+enum PCapEventKind
+{
+	ReadyRead,
+	Eof,
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+struct PCapEventParams
+{
+	PCapEventKind m_eventKind;
+	uint_t m_syncId;
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
 opaque class PCap
 {
 	char const* readonly m_filter;
@@ -18,12 +34,17 @@ opaque class PCap
 
 	PCap* operator new ();
 
-	bool open (
+	bool openDevice (
 		char const* deviceName,
 		char const* filter = null,
 		bool isPromiscious = false
 		) throws;
 
+	bool openFile (
+		char const* fileName,
+		char const* filter = null
+		) throws;
+		
 	void close ();
 	
 	bool setFilter (char const* filter) throws;
@@ -38,7 +59,7 @@ opaque class PCap
 		size_t size
 		) throws;
 
-	event m_onReadyRead (uint_t syncId);
+	event m_onPCapEvent (PCapEventParams const* params);
 }
 
 //.............................................................................
