@@ -7,7 +7,7 @@ import "gui_Base.jnc"
 import "gui_PropertyGrid.jnc"
 import "io_NetworkAdapter.jnc"
 
-namespace gui {
+namespace io {
 
 //.............................................................................
 

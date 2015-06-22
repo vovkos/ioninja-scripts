@@ -135,14 +135,14 @@ bool representTcpFlowMonLog (
 	case TcpFlowMonLogRecordCode.ConnectionPickedUp:
 		char const* addressString1 = ((io.SocketAddress const*) p).getString ();
 		char const* addressString2 = ((io.SocketAddress const*) p + 1).getString ();
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText ($"Picked up connection between \e[34m$addressString1\e[m and \e[34m$addressString2\e[m");
 		break;
 
 	case TcpFlowMonLogRecordCode.Disconnected:
 		char const* addressString = ((io.SocketAddress const*) p).getString ();
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText ($"Disconnected by \e[34m$addressString\e");
 		break;
