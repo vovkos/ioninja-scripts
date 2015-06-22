@@ -45,6 +45,14 @@ enum IpProtocol: uint8_t
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
+bitflag enum IpFlags: uint16_t
+{
+	Df,
+	Mf,
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
 struct IpHdr
 {
 	uint8_t m_headerLength: 4;
@@ -52,7 +60,8 @@ struct IpHdr
 	uint8_t m_typeOfService;
 	bigendian uint16_t m_totalLength;
 	uint16_t m_identification;
-	uint16_t m_flags;
+	bigendian uint16_t m_flags: 3;
+	bigendian uint16_t m_fragmentOffset: 13;
 	uint8_t m_timeToLive;
 	IpProtocol m_protocol;
 	bigendian uint16_t m_headerChecksum;
