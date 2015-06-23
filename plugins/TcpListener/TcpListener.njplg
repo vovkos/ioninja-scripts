@@ -20,4 +20,4 @@ log-representer-func = representTcpListenerLog
 
 TcpListenerSession.jnc
 TcpListenerLog.jnc
-
+../../common/io_NetworkAdapterUi.jnc

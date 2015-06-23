@@ -5,7 +5,6 @@
 
 import "doc_Plugin.jnc"
 import "io_Socket.jnc"
-import "gui_NetworkAdapter.jnc"
 
 //.............................................................................
 
@@ -179,7 +178,7 @@ TcpProxySession.createUi ()
 	// toolbar
 	
 	m_pluginHost.m_toolBar.addLabel ("Adapter:");	
-	m_adapterCombo = gui.createNetworkAdapterComboBox (m_pluginHost.m_toolBar, gui.NetworkAdapterUsage.Listener);
+	m_adapterCombo = io.createNetworkAdapterComboBox (m_pluginHost.m_toolBar, io.NetworkAdapterUsage.Listener);
 
 	m_pluginHost.m_toolBar.addLabel ("Port:");
 	m_serverPortCombo = m_pluginHost.m_toolBar.addComboBox ();
@@ -222,9 +221,9 @@ TcpProxySession.createUi ()
 		"Address to connect to"
 		);
 
-	m_adapterProp = gui.createNetworkAdapterProperty (
+	m_adapterProp = io.createNetworkAdapterProperty (
 		m_pluginHost.m_propertyGrid,
-		gui.NetworkAdapterUsage.Listener,
+		io.NetworkAdapterUsage.Listener,
 		"Interface",
 		"Interface to bind to and to listen on for target connection"
 		);

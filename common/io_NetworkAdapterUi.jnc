@@ -19,19 +19,19 @@ enum NetworkAdapterUsage
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-EnumPropertyOption const* createNetworkAdapterOptionArray (NetworkAdapterUsage usage)
+gui.EnumPropertyOption const* createNetworkAdapterOptionArray (NetworkAdapterUsage usage)
 {
 	size_t addressCount;
 	io.NetworkAdapterDesc const* adapterList = io.createNetworkAdapterDescList (null, &addressCount);
 
-	EnumPropertyOption* optionArray;
-	EnumPropertyOption* option;
+	gui.EnumPropertyOption* optionArray;
+	gui.EnumPropertyOption* option;
 	
 	switch (usage)
 	{
 	case NetworkAdapterUsage.Connection:
 		addressCount++; // include 'Auto'
-		optionArray = new EnumPropertyOption [addressCount];
+		optionArray = new gui.EnumPropertyOption [addressCount];
 		option = optionArray;
 	
 		option.m_text = "Auto";
@@ -44,7 +44,7 @@ EnumPropertyOption const* createNetworkAdapterOptionArray (NetworkAdapterUsage u
 		static io.SocketAddress autoAddress_ip6 = { m_family = io.AddressFamily.Ip6 };
 	
 		addressCount += 2; // include 'All IPv4/IPv6 adapters'
-		optionArray = new EnumPropertyOption [addressCount];
+		optionArray = new gui.EnumPropertyOption [addressCount];
 		option = optionArray;
 	
 		option.m_text = "All IPv4 adapters";
@@ -77,14 +77,14 @@ EnumPropertyOption const* createNetworkAdapterOptionArray (NetworkAdapterUsage u
 
 //.............................................................................
 
-EnumProperty* createNetworkAdapterProperty (
-	PropertyGrid* propertyGrid,
+gui.EnumProperty* createNetworkAdapterProperty (
+	gui.PropertyGrid* propertyGrid,
 	NetworkAdapterUsage usage,
 	char const* name,
 	char const* toolTipText
 	)
 {
-	EnumPropertyOption const* optionArray = createNetworkAdapterOptionArray (usage);
+	gui.EnumPropertyOption const* optionArray = createNetworkAdapterOptionArray (usage);
 	size_t optionCount = dynamic countof (optionArray);
 
 	return propertyGrid.createEnumProperty (		
@@ -97,17 +97,17 @@ EnumProperty* createNetworkAdapterProperty (
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-ComboBox* 
+gui.ComboBox* 
 createNetworkAdapterComboBox (
-	ToolBar* toolBar,
+	gui.ToolBar* toolBar,
 	NetworkAdapterUsage usage,
 	uint_t width = -1
 	)
 {
-	EnumPropertyOption const* optionArray = createNetworkAdapterOptionArray (usage);
+	gui.EnumPropertyOption const* optionArray = createNetworkAdapterOptionArray (usage);
 	size_t optionCount = dynamic countof (optionArray);
 
-	ComboBox* comboBox = toolBar.addComboBox (width);
+	gui.ComboBox* comboBox = toolBar.addComboBox (width);
 	
 	for (size_t i = 0; i < optionCount; i++)
 		comboBox.addItem (

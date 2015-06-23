@@ -5,7 +5,6 @@
 
 import "doc_Plugin.jnc"
 import "io_Socket.jnc"
-import "gui_NetworkAdapter.jnc"
 
 //.............................................................................
 
@@ -124,7 +123,7 @@ TcpListenerSession.createUi ()
 	// toolbar
 
 	m_pluginHost.m_toolBar.addLabel ("Adapter:");	
-	m_adapterCombo = gui.createNetworkAdapterComboBox (m_pluginHost.m_toolBar, gui.NetworkAdapterUsage.Listener);
+	m_adapterCombo = io.createNetworkAdapterComboBox (m_pluginHost.m_toolBar, io.NetworkAdapterUsage.Listener);
 
 	m_pluginHost.m_toolBar.addLabel ("Port:");	
 	m_portCombo = m_pluginHost.m_toolBar.addComboBox ();
@@ -151,9 +150,9 @@ TcpListenerSession.createUi ()
 
 	// property grid
 
-	m_adapterProp = gui.createNetworkAdapterProperty (
+	m_adapterProp = io.createNetworkAdapterProperty (
 		m_pluginHost.m_propertyGrid,
-		gui.NetworkAdapterUsage.Listener,
+		io.NetworkAdapterUsage.Listener,
 		"Adapter",
 		"Network adapter to listen on"
 		);

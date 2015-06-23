@@ -6,7 +6,6 @@
 import "doc_Plugin.jnc"
 import "io_Ssh.jnc"
 import "io_Socket.jnc"
-import "gui_NetworkAdapter.jnc"
 
 //.............................................................................
 
@@ -211,9 +210,9 @@ SshChannelSession.createUi ()
 		"Bind socket to the specified local address before connect"
 		);
 
-	m_adapterProp = gui.createNetworkAdapterProperty (
+	m_adapterProp = io.createNetworkAdapterProperty (
 		m_pluginHost.m_propertyGrid,
-		gui.NetworkAdapterUsage.Connection,
+		io.NetworkAdapterUsage.Connection,
 		"Adapter",
 		"Adapter to bind to before connect"
 		);
