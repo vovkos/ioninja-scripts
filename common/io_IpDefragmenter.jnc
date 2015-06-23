@@ -26,15 +26,15 @@ protected:
 	}
 	
 	class Chain
-	{
+	{		
 		jnc.ListEntry* m_listEntry;
 		uint64_t m_key;
 		jnc.List m_fragmentList;
 		uint64_t m_deadlineTimestamp;
 
-		void* m_buffer;
-		size_t m_size;
+		io.IpHdr* m_ipHdr;
 		size_t m_offset;
+		size_t m_size;
 	}
 
 	jnc.List m_chainList;
@@ -49,14 +49,13 @@ public:
 	
 	reset ();
 
-	void const* addFragmentedDgram (
+	io.IpHdr const* defragment (
 		io.IpHdr const* ipHdr,
-		void const* payload,
 		size_t size		
 		);
 		
 protected:
-	void const* assembleChain (Chain* chain);
+	io.IpHdr const* assembleChain (Chain* chain);
 	removeTimedOutChains ();
 }
 
@@ -71,12 +70,20 @@ IpDefragmenter.reset ()
 	m_chainHashTable.clear ();
 }
 
-void const* IpDefragmenter.addFragmentedDgram (
+io.IpHdr const* IpDefragmenter.defragment (
 	io.IpHdr const* ipHdr,
-	void const* payload,
 	size_t size		
 	)
 {	
+	size_t ipHdrSize = ipHdr.m_headerLength * 4;	
+	if (ipHdrSize < sizeof (io.IpHdr) ||
+		ipHdrSize > ipHdr.m_totalLength ||
+		ipHdr.m_totalLength > size)
+		return null;
+
+	void const* payload = (char const*) ipHdr + ipHdrSize;
+	size = ipHdr.m_totalLength - ipHdrSize;	
+	
 	uint64_t timestamp = jnc.getTimestamp ();
 	uint64_t key = (uint64_t) ipHdr.m_srcAddress | (ipHdr.m_identification << 32);
 	Chain* chain = m_chainHashTable.m_map [key];
@@ -97,7 +104,7 @@ void const* IpDefragmenter.addFragmentedDgram (
 	}
 
 	size_t offset = ipHdr.m_fragmentOffset * 8;
-	if (chain.m_buffer && offset + size > chain.m_size) // ignore invalid fragment past the end of buffer
+	if (chain.m_ipHdr && offset + size > chain.m_size) // ignore invalid fragment past the end of buffer
 		return null;
 		
 	// find location to insert it
@@ -120,10 +127,21 @@ void const* IpDefragmenter.addFragmentedDgram (
 	memcpy (fragment.m_payload, payload, size);
 	chain.m_fragmentList.insertBefore (fragment, it);
 	
-	if (!(ipHdr.m_flags & io.IpFlags.Mf))
+	if (!(ipHdr.m_flags & io.IpFlags.Mf)) // last fragment, prepare chain buffer
 	{
-		chain.m_size = fragment.m_offset + fragment.m_size;
-		chain.m_buffer = new char [chain.m_size];
+		size_t payloadSize = fragment.m_offset + fragment.m_size;
+		size_t bufferSize = sizeof (io.IpHdr) + payloadSize;
+		
+		io.IpHdr* newIpHdr = (io.IpHdr*) new char [bufferSize];
+		*newIpHdr = *ipHdr;
+		newIpHdr.m_headerLength = sizeof (io.IpHdr) / 4;
+		newIpHdr.m_totalLength = bufferSize;
+		newIpHdr.m_flags = 0;
+		newIpHdr.m_fragmentOffset = 0;
+
+		chain.m_ipHdr = newIpHdr;
+		chain.m_size = payloadSize;
+		chain.m_offset = 0;		
 	}
 
 	// reset chain timer
@@ -131,15 +149,15 @@ void const* IpDefragmenter.addFragmentedDgram (
 	chain.m_deadlineTimestamp = timestamp + m_timeout * 10000;
 	m_chainList.moveToTail (chain.m_listEntry);
 	
-	void const* result = chain.m_buffer ? assembleChain (chain) : null;
+	io.IpHdr const* result = chain.m_ipHdr ? assembleChain (chain) : null;
 	
 	removeTimedOutChains ();
 	return result;
 }
 
-void const* IpDefragmenter.assembleChain (IpDefragmenter.Chain* chain)
+io.IpHdr const* IpDefragmenter.assembleChain (IpDefragmenter.Chain* chain)
 {	
-	char* p = chain.m_buffer + chain.m_offset;
+	char* p = (char*) (chain.m_ipHdr + 1) + chain.m_offset;
 	while (chain.m_fragmentList.m_count)
 	{
 		Fragment* fragment = chain.m_fragmentList.m_head.m_data;
@@ -165,7 +183,7 @@ void const* IpDefragmenter.assembleChain (IpDefragmenter.Chain* chain)
 
 	m_chainList.remove (chain.m_listEntry);	
 	m_chainHashTable.remove (chain.m_key);	
-	return chain.m_buffer;
+	return chain.m_ipHdr;
 }
 
 IpDefragmenter.removeTimedOutChains ()

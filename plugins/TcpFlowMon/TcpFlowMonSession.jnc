@@ -427,15 +427,17 @@ char const* TcpFlowMonSession.createFilterString (io.SocketAddress const* filter
 		filterAddress.m_ip4.m_address.m_i32 ? $"tcp and host $(filterAddress.m_ip4.m_address.getString ())" :
 		"tcp";
 
-	if (filterAddress.m_ip4.m_port)
-		filterString = $"$filterString and port $(filterAddress.m_ip4.m_port)";
+	// fragmentated segments will not satisfy port filter
+
+	// if (filterAddress.m_ip4.m_port)
+	//	filterString = $"$filterString and port $(filterAddress.m_ip4.m_port)";
 	
 	return filterString;
 }
 
 void TcpFlowMonSession.load (doc.Storage* storage)
 {
-	m_deviceCombo.m_currentIndex = storage.readInt ("device");
+	m_deviceCombo.m_currentIndex = storage.readInt ("deviceIdx");
 	m_promisciousProp.m_value = storage.readBool ("promiscious");
 	m_filterCombo.m_editText = storage.readString ("captureFilter");
 	m_ipFragmentLimitProp.m_value = storage.readInt ("ipFragmentLimit");
@@ -445,7 +447,7 @@ void TcpFlowMonSession.load (doc.Storage* storage)
 
 void TcpFlowMonSession.save (doc.Storage* storage)
 {
-	storage.writeInt ("device", (int) m_deviceCombo.m_currentIndex);
+	storage.writeInt ("deviceIdx", (int) m_deviceCombo.m_currentIndex);
 	storage.writeBool ("promiscious", m_promisciousProp.m_value);
 	storage.writeString ("captureFilter", m_filterCombo.m_editText);
 	storage.writeInt ("ipFragmentLimit", m_ipFragmentLimitProp.m_value);
@@ -580,23 +582,25 @@ bool TcpFlowMonSession.decodePacket (
 			ipHdr.m_totalLength > size)
 			return false;
 		
+		if ((ipHdr.m_flags & io.IpFlags.Mf) || ipHdr.m_fragmentOffset) // fragmented ip
+		{
+			ipHdr = m_ipDefragmenter.defragment (ipHdr, size);
+			if (!ipHdr)
+				return false;
+
+			p = ipHdr + 1;
+			size = dynamic sizeof (p);
+		}
+		else
+		{
+			p += ipHdrSize;
+			size = ipHdr.m_totalLength - ipHdrSize;
+		}
+		
 		srcAddress.m_family = io.AddressFamily.Ip4;
 		srcAddress.m_ip4.m_address.m_i32 = ipHdr.m_srcAddress;
 		dstAddress.m_family = io.AddressFamily.Ip4;
 		dstAddress.m_ip4.m_address.m_i32 = ipHdr.m_dstAddress;		
-
-		p += ipHdrSize;
-		size = ipHdr.m_totalLength - ipHdrSize;
-		
-		if ((ipHdr.m_flags & io.IpFlags.Mf) || ipHdr.m_fragmentOffset) // fragmented ip
-		{
-			p = m_ipDefragmenter.addFragmentedDgram (ipHdr, p, size);
-			if (!p)
-				return false;
-
-			size = dynamic sizeof (p);
-		}
-		
 		break;
 
 	case io.EthernetType.Ip6:
@@ -608,14 +612,14 @@ bool TcpFlowMonSession.decodePacket (
 		if (ip6Hdr.m_nextHeader != io.Protocol.Tcp ||
 			ip6Hdr.m_payloadLength + sizeof (io.Ip6Hdr) > size)
 			return false;
-		
+
+		p += sizeof (io.Ip6Hdr);
+		size = ip6Hdr.m_payloadLength;
+
 		srcAddress.m_family = io.AddressFamily.Ip6;
 		srcAddress.m_ip6.m_address = *(io.Address_ip6 const*) ip6Hdr.m_srcAddress;
 		dstAddress.m_family = io.AddressFamily.Ip6;
 		dstAddress.m_ip6.m_address = *(io.Address_ip6 const*) ip6Hdr.m_dstAddress;		
-
-		p += sizeof (io.Ip6Hdr);
-		size = ip6Hdr.m_payloadLength;
 		break;
 
 	default:

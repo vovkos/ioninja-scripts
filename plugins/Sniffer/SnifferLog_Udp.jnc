@@ -76,7 +76,7 @@ representUdp (
 	}
 
 	target.addHyperText (jnc.format (
-		"[\e^+1\e[34m+\e[m] \e[1mUDP \e[10;34m%s:%d\e[m > \e[34m%s:%d\e[m (%d bytes)",
+		"[\e^+1\e[34m+\e[m] \e[1mUDP \e[10;34m%s:%d\e[m > \e[34m%s:%d\e[m (%s)",
 		formatIpString (ipHdr->m_srcAddress), 
 		udpHdr.m_srcPort,
 		formatIpString (ipHdr->m_dstAddress), 

@@ -28,3 +28,5 @@ SnifferLog_Ip.jnc
 SnifferLog_Icmp.jnc
 SnifferLog_Tcp.jnc
 SnifferLog_Udp.jnc
+../../common/io_IpDefragmenter.jnc
+../../common/io_PCapDeviceUi.jnc

@@ -22,6 +22,7 @@ representIpHdr (
 	)
 {
 	io.IpHdr const* ipHdr = (io.IpHdr const*) (p + baseOffset);
+	size_t ipHdrSize = ipHdr.m_headerLength * 4;
 
 	target.addHyperText (jnc.format (
 		"\e[1mIP\n"
@@ -31,6 +32,7 @@ representIpHdr (
 		"   \e[90mTLENGTH:  \e^!%d,%d\e[34m%d\n"
 		"   \e[90mID:       \e^!%d,%d\e[34m%d\n"
 		"   \e[90mFLAGS:    \e^!%d,%d\e[34m%d\n"
+		"   \e[90mFRAGOFFS: \e^!%d,%d\e[34m%d\n"
 		"   \e[90mTTL:      \e^!%d,%d\e[34m%d\n"
 		"   \e[90mPROTO:    \e^!%d,%d\e[34m%d\n"
 		"   \e[90mCHECKSUM: \e^!%d,%d\e[34m%04Xh\n"
@@ -43,7 +45,7 @@ representIpHdr (
 
 		baseOffset + offsetof (ipHdr.m_headerLength), 
 		sizeof (ipHdr.m_headerLength), 
-		ipHdr.m_headerLength * 4,
+		ipHdrSize,
 
 		baseOffset + offsetof (ipHdr.m_typeOfService), 
 		sizeof (ipHdr.m_typeOfService), 
@@ -60,6 +62,10 @@ representIpHdr (
 		baseOffset + offsetof (ipHdr.m_flags), 
 		sizeof (ipHdr.m_flags), 
 		ipHdr.m_flags,
+
+		baseOffset + offsetof (ipHdr.m_fragmentOffset), 
+		sizeof (ipHdr.m_fragmentOffset), 
+		ipHdr.m_fragmentOffset,
 
 		baseOffset + offsetof (ipHdr.m_timeToLive), 
 		sizeof (ipHdr.m_timeToLive), 
@@ -81,21 +87,41 @@ representIpHdr (
 		sizeof (ipHdr.m_dstAddress), 
 		formatIpString (ipHdr.m_dstAddress)
 		));
+	
+	if	(ipHdrSize < sizeof (io.IpHdr) || baseOffset + ipHdrSize > size)
+	{
+		target.addHyperText ($"INVALID HEADER SIZE: $ipHdrSize");
+		return;
+	}
+
+	if ((ipHdr.m_flags & io.IpFlags.Mf) || ipHdr.m_fragmentOffset)
+	{
+		target.addHyperText ("\e[1mFRAGMENTED");
+		return;
+	}
 
 	switch (ipHdr.m_protocol)
 	{
 	case io.IpProtocol.Icmp:
-		representIcmpHdr (target, p, size, baseOffset + sizeof (io.IpHdr));
+		representIcmpHdr (target, p, size, baseOffset + ipHdrSize);
 		break;
 
 	case io.IpProtocol.Tcp:
-		representTcpHdr (target, p, size, baseOffset + sizeof (io.IpHdr));
+		representTcpHdr (target, p, size, baseOffset + ipHdrSize);
 		break;
 
 	case io.IpProtocol.Udp:
-		representUdpHdr (target, p, size, baseOffset + sizeof (io.IpHdr));
+		representUdpHdr (target, p, size, baseOffset + ipHdrSize);
 		break;
 	}
+}
+
+char const* formatIpLogText (io.IpHdr const* ipHdr)
+{
+	return $"[\e^+1\e[34m+\e[m] \e[1mIP \e[34m%1\e[m > \e[34m%2\e[m" (
+		formatIpString (ipHdr.m_srcAddress), 
+		formatIpString (ipHdr.m_dstAddress)
+		);
 }
 
 representIp(
@@ -112,31 +138,42 @@ representIp(
 	}
 
 	io.IpHdr const* ipHdr = (io.IpHdr const*) (p + baseOffset);
+	size_t ipHdrSize = ipHdr.m_headerLength * 4;
+	if (baseOffset + ipHdrSize > size)
+	{
+		target.addHyperText (
+			$"%1 [PROTO:%2; INVALID HEADER SIZE: %3]" (
+				formatIpLogText (ipHdr), 
+				ipHdr.m_protocol, 
+				ipHdrSize
+				));
+		return;
+	}
+
+	if ((ipHdr.m_flags & io.IpFlags.Mf) || ipHdr.m_fragmentOffset)
+	{
+		target.addHyperText ($"%1 [PROTO:%2; FRAGMENTED]" (formatIpLogText (ipHdr), ipHdr.m_protocol));
+		return;
+	}
 	
 	switch (ipHdr.m_protocol)
 	{
 	case io.IpProtocol.Icmp:
-		representIcmp (target, ipHdr, p, size, baseOffset + sizeof (io.IpHdr));
+		representIcmp (target, ipHdr, p, size, baseOffset + ipHdrSize);
 		break;
 
 	case io.IpProtocol.Tcp:
-		representTcp (target, ipHdr, p, size, baseOffset + sizeof (io.IpHdr));
+		representTcp (target, ipHdr, p, size, baseOffset + ipHdrSize);
 		break;
 
 	case io.IpProtocol.Udp:
-		representUdp (target, ipHdr, p, size, baseOffset + sizeof (io.IpHdr));
+		representUdp (target, ipHdr, p, size, baseOffset + ipHdrSize);
 		break;
 		
 	default:
-		target.addHyperText (jnc.format (
-			"[\e^+1\e[34m+\e[m] \e[1mIP \e[10;34m%s\e[m > \e[34m%s\e[m [PROTO:%d]",
-			formatIpString (ipHdr.m_srcAddress), 
-			formatIpString (ipHdr.m_dstAddress),
-			ipHdr.m_protocol
-			));
-
-		size_t dataSize = ipHdr.m_totalLength - sizeof (io.IpHdr);
-		representPacketData (target, p, size, baseOffset + sizeof (io.IpHdr), dataSize);
+		target.addHyperText ($"%1 [PROTO:%2]" (formatIpLogText (ipHdr), ipHdr.m_protocol));
+		size_t dataSize = ipHdr.m_totalLength - ipHdrSize;
+		representPacketData (target, p, size, baseOffset + ipHdrSize, dataSize);
 	}
 }
 

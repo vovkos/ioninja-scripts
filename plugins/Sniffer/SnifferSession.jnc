@@ -41,6 +41,7 @@ protected:
 
 	State bindable m_state;
 	io.PCap* m_pcap;	
+	io.IpDefragmenter m_ipDefragmenter;
 	
 	// toolbar, status bar & menu
 	
@@ -52,14 +53,27 @@ protected:
 	
 	// property grid
 	
-	gui.StringProperty* m_deviceProp;
+	gui.EnumProperty* m_deviceProp;
 	gui.BoolProperty* m_promisciousProp;
 	gui.StringProperty* m_filterProp;
+	gui.IntProperty* m_ipFragmentLimitProp;
+	gui.IntProperty* m_ipFragmentTimeoutProp;
 
 public:
 	construct (doc.PluginHost* pluginHost);
 
 	bool capture () throws;
+	
+	bool capture (
+		io.PCapDeviceDesc const* device,
+		char const* filterString
+		) throws;		
+
+	bool openCapFile (
+		char const* fileName,
+		char const* filterString
+		) throws;
+
 	stopCapture ();
 
 	override void load (doc.Storage* storage);
@@ -75,10 +89,16 @@ public:
 
 protected:
 	onCapture ();
+	onFileDlgCompleted (gui.StdDlgButton button);
 	onSetFilter ();
-	onReadyRead (uint_t syncId);
+	onPCapEvent (io.PCapEventParams const* params);
 
 	bool applyFilter () throws;
+
+	processPacket (
+		void const* p,
+		size_t size
+		);
 
 	createUi ();
 	reactor m_uiReactor ();
@@ -91,10 +111,11 @@ SnifferSession.construct (doc.PluginHost* pluginHost)
 	basetype.construct (pluginHost);
 
 	pluginHost.m_log.m_representerFunc = representSnifferLog;
+	pluginHost.m_fileDlg.m_onCompleted += onFileDlgCompleted;
 
 	m_state = State.Closed;
 	m_pcap = new io.PCap ();
-	m_pcap.m_onReadyRead += onReadyRead @ m_pluginHost.m_mainThreadScheduler;
+	m_pcap.m_onPCapEvent += onPCapEvent @ m_pluginHost.m_mainThreadScheduler;
 
 	createUi ();
 }
@@ -104,25 +125,13 @@ SnifferSession.createUi ()
 	// toolbar
 
 	m_pluginHost.m_toolBar.addLabel ("Device:");
-	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox (-1);
+	m_deviceCombo = io.createPCapDeviceComboBox (m_pluginHost.m_toolBar);
 	m_deviceCombo.m_onEnter += onCapture;
 
 	m_pluginHost.m_toolBar.addLabel ("Filter:");
 	m_filterCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_filterCombo.m_isEditable = true;
 	m_filterCombo.m_onEnter += onSetFilter;
-
-	io.PCapDeviceDesc const* device = io.createPCapDeviceDescList ();
-
-	for (; device; device = device->m_next)
-	{
-		char const* itemName = $"%1 (%2)" (
-			device->m_description ? device->m_description : device->m_name,
-			device->m_address.m_address.getString ()
-			);
-
-		m_deviceCombo.addItem (itemName, device);
-	}
 
 	m_iconTable [IconId.Capture] = new gui.Icon ("images/capture.png");
 	m_iconTable [IconId.StopCapture] = new gui.Icon ("images/pause.png");
@@ -136,7 +145,8 @@ SnifferSession.createUi ()
 
 	// property grid
 
-	m_deviceProp = m_pluginHost.m_propertyGrid.createStringProperty (
+	m_deviceProp = io.createPCapDeviceProperty (
+		m_pluginHost.m_propertyGrid,,
 		"Device",
 		"Specify the device to capture on"
 		);
@@ -149,6 +159,16 @@ SnifferSession.createUi ()
 	m_filterProp = m_pluginHost.m_propertyGrid.createStringProperty (
 		"Capture Filter",
 		"Capture only the packets which have passed this primary filter"
+		);
+
+	m_ipFragmentLimitProp  = m_pluginHost.m_propertyGrid.createIntProperty (
+		"IP Fragment Limit",
+		"Specify the maximum number of IP fragments"
+		);
+
+	m_ipFragmentTimeoutProp  = m_pluginHost.m_propertyGrid.createIntProperty (
+		"IP Fragment Timeout (ms)",
+		"Specify the maximum delay between IP fragments"
 		);
 
 	m_uiReactor.start ();
@@ -170,23 +190,77 @@ SnifferSession.onSetFilter ()
 		try applyFilter ();	
 }
 
+SnifferSession.onFileDlgCompleted (gui.StdDlgButton button)
+{
+	if (button != gui.StdDlgButton.Ok)
+		return;
+	
+	char const* fileName = m_pluginHost.m_fileDlg.m_filePath;
+	char const* filterString = m_filterCombo.m_editText;
+	m_filterCombo.addEditTextToHistory ();
+
+	try openCapFile (fileName, filterString);
+}
+
 bool SnifferSession.capture () throws
 {
 	stopCapture ();
-		
+	
+	if (m_deviceCombo.m_currentIndex == -1)
+		return false;
+
 	io.PCapDeviceDesc const* device = m_deviceCombo.m_currentData;
 	if (!device)
-		return false;
-	
-	char const* filter = m_filterCombo.m_editText;
+	{
+		m_pluginHost.m_fileDlg.m_kind = gui.FileDlgKind.Open;
+		m_pluginHost.m_fileDlg.m_title = "Open Wireshark File (*.cap; *.pcap)...";
+		m_pluginHost.m_fileDlg.m_filter = "Wireshark .cap files (*.cap; *.pcap);; All files (*.*)";
+		m_pluginHost.m_fileDlg.show ();
+		return true;
+	}
+
+	char const* filterString = m_filterCombo.m_editText;
 	m_filterCombo.addEditTextToHistory ();
+
+	return try capture (device, filterString);
+}
+
+bool SnifferSession.capture (
+	io.PCapDeviceDesc const* device,
+	char const* filterString
+	) throws
+{
+	stopCapture ();
+		
+	writeLogString (SnifferLogRecordCode.StartingCapture, filterString);
 	
-	writeLogString (SnifferLogRecordCode.StartingCapture, filter);
-	
-	bool result = try m_pcap.open (
+	bool result = try m_pcap.openDevice (
 		device.m_name, 
-		filter,
+		filterString,
 		m_promisciousProp.m_value
+		);
+		
+	if (!result)
+	{
+		writeLogLastError (SnifferLogRecordCode.CaptureError);
+		return false;
+	}
+
+	m_state = State.Capturing;
+	writeLog (SnifferLogRecordCode.CaptureStarted);
+	return true;
+}
+
+bool SnifferSession.openCapFile (
+	char const* fileName,
+	char const* filterString
+	) throws
+{
+	writeLogString (SnifferLogRecordCode.StartingCapture, filterString);
+	
+	bool result = try m_pcap.openFile (
+		fileName, 
+		filterString
 		);
 		
 	if (!result)
@@ -232,30 +306,34 @@ bool SnifferSession.applyFilter () throws
 
 void SnifferSession.load (doc.Storage* storage)
 {
-	m_deviceCombo.m_currentIndex = storage.readInt ("device");
+	m_deviceCombo.m_currentIndex = storage.readInt ("deviceIdx");
 	m_filterCombo.m_editText = storage.readString ("captureFilter");
 	m_promisciousProp.m_value = storage.readBool ("promiscious");
+	m_ipFragmentLimitProp.m_value = storage.readInt ("ipFragmentLimit");
+	m_ipFragmentTimeoutProp.m_value = storage.readInt ("ipFragmentTimeout");
 }
 
 void SnifferSession.save (doc.Storage* storage)
 {
-	storage.writeInt ("device", (int) m_deviceCombo.m_currentIndex);
+	storage.writeInt ("deviceIdx", (int) m_deviceCombo.m_currentIndex);
 	storage.writeString ("captureFilter", m_filterCombo.m_editText);
 	storage.writeBool ("promiscious", m_promisciousProp.m_value);
+	storage.writeInt ("ipFragmentLimit", m_ipFragmentLimitProp.m_value);
+	storage.writeInt ("ipFragmentTimeout", m_ipFragmentTimeoutProp.m_value);
 }
 
 void SnifferSession.updateProperties ()
 {
-	io.PCapDeviceDesc const* device = m_deviceCombo.m_currentData;
-	if (device)
-		m_deviceProp.m_value = device.m_name;
-
+	m_deviceProp.m_currentIndex = m_deviceCombo.m_currentIndex;
 	m_filterProp.m_value = m_filterCombo.m_editText;
 }
 
 bool SnifferSession.applyProperties () throws
 {
+	m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
 	m_filterCombo.m_editText = m_filterProp.m_value;
+	m_ipDefragmenter.m_fragmentLimit = m_ipFragmentLimitProp.m_value;
+	m_ipDefragmenter.m_timeout = m_ipFragmentTimeoutProp.m_value;
 	
 	if (m_state)
 		try applyFilter ();
@@ -265,9 +343,11 @@ bool SnifferSession.applyProperties () throws
 
 void SnifferSession.restoreDefaultProperties ()
 {
-	m_deviceProp.m_value = m_deviceCombo.m_itemText [0];
+	m_deviceProp.m_currentIndex = 0;
 	m_promisciousProp.m_value = false;
 	m_filterProp.m_value = "tcp and port 80";
+	m_ipFragmentLimitProp.m_value = io.IpDefragmenter.DefIpFragmentLimit;
+	m_ipFragmentTimeoutProp.m_value = io.IpDefragmenter.DefIpFragmentTimeout;
 }
 
 size_t SnifferSession.transmit (
@@ -285,15 +365,56 @@ size_t SnifferSession.transmit (
 	return result;
 }
 
-SnifferSession.onReadyRead (uint_t syncId)
+SnifferSession.onPCapEvent (io.PCapEventParams const* params)
 {
-	if (syncId != m_pcap.m_syncId)
+	if (params.m_syncId != m_pcap.m_syncId)
 		return;
 
-	static char buffer [1600]; // static is OK -- we read in main thread
-	size_t result = try m_pcap.read (buffer, sizeof (buffer));
-	if (result != -1)
-		writeLog (SnifferLogRecordCode.Packet, buffer, result);
+	switch (params.m_eventKind)
+	{
+	case io.PCapEventKind.ReadyRead:
+		static char buffer [1600]; // static is OK -- we read in main thread
+		size_t result = try m_pcap.read (buffer, sizeof (buffer));
+		if (result != -1)
+			processPacket (buffer, result);
+		
+		break;
+	
+	case io.PCapEventKind.Eof:
+		stopCapture ();
+		break;
+	}
+}
+
+SnifferSession.processPacket (
+	void const* p,
+	size_t size
+	)
+{
+	writeLog (SnifferLogRecordCode.Packet, p, size);
+
+	// defragment IPv4
+	
+	if (size < sizeof (io.EthernetHdr) + sizeof (io.IpHdr))
+		return;
+	
+	io.EthernetHdr const* ethernetHdr = (io.EthernetHdr const*) p;
+	if (ethernetHdr.m_type != io.EthernetType.Ip)
+		return;
+
+	p += sizeof (io.EthernetHdr);
+	size -= sizeof (io.EthernetHdr);
+	
+	io.IpHdr const* ipHdr = (io.IpHdr const*) p;
+	if ((ipHdr.m_flags & io.IpFlags.Mf) || ipHdr.m_fragmentOffset)
+	{
+		ipHdr = m_ipDefragmenter.defragment (ipHdr, size);
+		if (ipHdr)
+		{
+			size = dynamic sizeof (ipHdr);
+			writeLog (SnifferLogRecordCode.DefragmentedIp, ipHdr, size);
+		}
+	}
 }
 
 reactor SnifferSession.m_uiReactor ()

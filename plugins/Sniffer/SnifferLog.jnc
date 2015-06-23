@@ -11,7 +11,8 @@ enum SnifferLogRecordCode
 {
 	Packet          = 1 | log.RecordCodeFlags.Foldable,
 	InjectedPacket  = 2 | log.RecordCodeFlags.Foldable,
-	StartingCapture = 3, // non foldable
+	DefragmentedIp  = 3 | log.RecordCodeFlags.Foldable,
+	StartingCapture = 4, // non foldable
 	CaptureStarted,
 	CaptureError,
 	CaptureStopped,
@@ -48,6 +49,11 @@ bool representSnifferLog (
 	case SnifferLogRecordCode.InjectedPacket:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.TxPacket;
 		representPacket (target, p, size, foldFlags);
+		break;
+		
+	case SnifferLogRecordCode.DefragmentedIp:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Packet;
+		representDefragmentedIp (target, p, size, foldFlags);
 		break;
 
 	case SnifferLogRecordCode.StartingCapture:
@@ -116,6 +122,31 @@ representPacket (
 	// TODO: add data link switch, currently we support ethernet only
 
 	representEthernet (target, p, size, foldFlags);
+}
+
+representDefragmentedIp (
+	log.RepresenterTarget* target,
+	void const* p,
+	size_t size,
+	uint_t foldFlags
+	)
+{
+	target.m_lineAttr.m_backColor = gui.StdColor.PastelCyan;
+	target.addPlainText ("Defragmented IP packet");
+	
+	if (foldFlags)
+	{
+		target.addHyperText ("[\e^-1\e[34m-\e[m]");
+		representIpHdr (target, p, size, 0);
+
+		target.m_lineAttr.m_textColor = gui.StdColor.Gray;
+		target.m_lineAttr.m_backColor = gui.ColorFlags.Transparent;
+		target.addBin (p, size);
+	}
+	else
+	{
+		representIp (target, p, size, 0);
+	}
 }
 
 representPacketData (
