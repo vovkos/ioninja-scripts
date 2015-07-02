@@ -27,7 +27,7 @@ protected:
 			try m_rxScanner.write (p, size);
 	}
 
-	bool automaton scanRx ();
+	jnc.AutomatonResult automaton scanRx (jnc.Recognizer* recognizer);
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -39,7 +39,7 @@ $(layerClass).construct (doc.PluginHost* pluginHost)
 	pluginHost.m_log.attachListener (onLogRecord @ pluginHost.m_mainThreadScheduler);
 }
 
-bool automaton $(layerClass).scanRx ()
+jnc.AutomatonResult automaton $(layerClass).scanRx (jnc.Recognizer* recognizer)
 {
 	%% "about" [\r\n]
 		try transmitString ("IO Ninja - $(pluginName)\r\n");
