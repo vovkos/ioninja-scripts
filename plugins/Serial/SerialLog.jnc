@@ -40,12 +40,12 @@ char const* getTableString (
 	char const* const* table
 	)
 {
-	return value < dynamic countof (table) ? table [value] : "\e[31mundefined";
+	return value < dynamic countof (table) ? table [value] : "\e[31mundefined\e[m";
 }
 
 char const* getLineString (uint_t line)
 {
-	return line ? "\e[31mon" : "\e[90moff";
+	return line ? "\e[31mon\e[m" : "\e[90moff\e[m";
 }
 
 //.............................................................................
