@@ -521,7 +521,7 @@ TcpProxySession.onListenerConnectionSocketEvent (io.SocketEventParams const* par
 		break;
 
 	case io.SocketEvent.IncomingData:
-		heap char buffer [512];
+		static char buffer [512];
 		size_t result = try m_serverConnectionSocket.recv (buffer, sizeof (buffer));
 		if (result != -1)
 		{
@@ -586,7 +586,7 @@ TcpProxySession.onTargetSocketEvent (io.SocketEventParams const* params)
 		break;
 
 	case io.SocketEvent.IncomingData:
-		heap char buffer [512];
+		static char buffer [512];
 		size_t result = try m_clientConnnectionSocket.recv (buffer, sizeof (buffer));
 		if (result != -1)
 		{

@@ -406,7 +406,7 @@ TcpListenerSession.onConnectionSocketEvent (io.SocketEventParams const* params)
 		break;
 
 	case io.SocketEvent.IncomingData:
-		heap char buffer [512];
+		static char buffer [512];
 		size_t result = try m_connectionSocket.recv (buffer, sizeof (buffer));
 		if (result != -1)
 			writeLog (log.StdRecordCode.Rx, buffer, result);

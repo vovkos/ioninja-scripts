@@ -490,7 +490,7 @@ SerialSession.onSerialEvent (io.SerialEventParams const* params)
 	switch (params.m_eventKind)
 	{
 	case io.SerialEvent.IncomingData:
-		heap char buffer [512];
+		static char buffer [512];
 		size_t result = try m_serial.read (buffer, sizeof (buffer));
 		if (result != -1)
 			writeLog (log.StdRecordCode.Rx, buffer, result);

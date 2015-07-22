@@ -302,7 +302,7 @@ PipeListenerSession.onConnectionPipeEvent (io.FileStreamEventParams const* param
 		break;
 
 	case io.FileStreamEvent.IncomingData:
-		heap char buffer [512];
+		static char buffer [512];
 		size_t result = try m_connectionPipe.read (buffer, sizeof (buffer));
 		if (result != -1)
 			writeLog (log.StdRecordCode.Rx, buffer, result);
