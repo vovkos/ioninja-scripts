@@ -61,6 +61,7 @@ opaque class Socket
 	uint_t m_syncId;
 
 	Socket* operator new ();
+	destruct ();
 
 	bool open (
 		Protocol protocol,

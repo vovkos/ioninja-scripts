@@ -83,6 +83,7 @@ opaque class Serial
 	uint_t m_syncId;
 
 	Serial* operator new ();
+	destruct ();
 
 	bool open (char const* name) throws;
 	void close ();

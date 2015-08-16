@@ -63,6 +63,7 @@ opaque class FileStream
 	FileStreamKind readonly m_kind;
 
 	FileStream* operator new ();
+	destruct ();
 
 	bool open (
 		char const* name,

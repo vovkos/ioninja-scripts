@@ -181,10 +181,13 @@ TcpConnectionSession.createUi ()
 
 TcpConnectionSession.onConnect ()
 {
+	io.SocketAddress address;
+	try address.parse ("127.0.0.1:1001");
+
 	if (m_state)
 		disconnect ();
 	else 
-		try	connect ();
+		try connect ();
 }
 
 bool TcpConnectionSession.connect () throws
@@ -227,9 +230,10 @@ catch:
 bool TcpConnectionSession.connect (io.SocketAddress const* remoteAddress) throws
 {
 	disconnect ();
-	
+
 	io.SocketAddress localAddress;
 
+nestedscope:
 	if (!m_useLocalAddressProp.m_value)
 	{
 		m_socket.open (io.Protocol.Tcp, remoteAddress.m_family);
@@ -261,8 +265,6 @@ bool TcpConnectionSession.connect (io.SocketAddress const* remoteAddress) throws
 	return true;
 
 catch:
-	// we haven't written "Connecting..." log prefix yet
-
 	if (!m_useLocalAddressProp.m_value)
 	{
 		writeLog (TcpConnectionLogRecordCode.Connecting, remoteAddress, sizeof (io.SocketAddress));

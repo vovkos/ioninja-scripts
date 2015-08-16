@@ -35,6 +35,8 @@ opaque class PluginHost
 	log.Log* readonly m_log;
 	doc.Terminal* readonly m_terminal;
 	jnc.Scheduler* readonly m_mainThreadScheduler;
+
+	destruct ();
 }
 
 //.............................................................................

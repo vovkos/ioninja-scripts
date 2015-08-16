@@ -56,8 +56,6 @@ struct EnumPropertyOption
 
 opaque class EnumProperty: Property
 {
-	EnumProperty* operator new (char const* name);
-
 	property m_value
 	{
 		variant autoget m_value;
@@ -71,6 +69,9 @@ opaque class EnumProperty: Property
 		set (size_t value);
 		alias bindable event m_onPropChanged () = m_onChanged;
 	}
+
+	EnumProperty* operator new (char const* name);
+	destruct ();
 
 	setOptions (
 		EnumPropertyOption const* optionArray,

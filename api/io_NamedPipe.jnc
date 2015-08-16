@@ -13,6 +13,7 @@ opaque class NamedPipe
 	uint_t m_syncId;
 
 	NamedPipe* operator new ();
+	destruct ();
 
 	bool open (
 		char const* name,

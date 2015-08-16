@@ -36,8 +36,6 @@ bool PppLogRepresenter.represent (
 	uint_t foldFlags
 	)
 {
-	printf ("PppLogRepresenter.represent ()\n");
-
 	switch (recordCode)
 	{
 	case PppLogRecordCode.Open:

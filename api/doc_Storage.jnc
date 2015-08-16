@@ -11,6 +11,7 @@ opaque class Storage
 {
 	char const* autoget property m_directory;
 
+	destruct ();
 	void clear ();
 
 	bool readBool (char const* name)

@@ -123,6 +123,8 @@ opaque class ComboBox
 	char const* autoget property m_toolTipText;
 	uint_t autoget property m_backgroundColor;
 
+	destruct ();
+
 	void addEditTextToHistory ();
 	void adjustSizeToContents (); 
 
@@ -163,6 +165,8 @@ opaque class ComboBox
 
 opaque class ToolBar
 {
+	destruct ();
+
 	addAction (Action* action);
 	addLabel (char const* pText);
 	ComboBox* addComboBox (uint_t width = 0);  // 0 = default, -1 = stretch
@@ -177,6 +181,8 @@ opaque class Menu
 {
 	addAction (Action* action);
 	addSeparator ();
+
+	destruct ();
 }
 
 //.............................................................................
@@ -194,6 +200,8 @@ opaque class StatusPane
 
 opaque class StatusBar
 {
+	destruct ();
+
 	displayMessage (
 		char const* text,
 		uint_t timeout = 3000

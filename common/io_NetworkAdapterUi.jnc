@@ -26,7 +26,7 @@ gui.EnumPropertyOption const* createNetworkAdapterOptionArray (NetworkAdapterUsa
 
 	gui.EnumPropertyOption* optionArray;
 	gui.EnumPropertyOption* option;
-	
+
 	switch (usage)
 	{
 	case NetworkAdapterUsage.Connection:
@@ -67,7 +67,7 @@ gui.EnumPropertyOption const* createNetworkAdapterOptionArray (NetworkAdapterUsa
 				adapter->m_description,				
 				address.m_address.getString ()
 				);
-				
+	
 			option.m_value = &address.m_address;
 		}
 	}

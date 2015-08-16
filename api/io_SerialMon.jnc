@@ -57,6 +57,7 @@ opaque class SerialMon
 	uint_t m_syncId;
 
 	SerialMon* operator new ();
+	destruct ();
 
 	bool capture (char const* name) throws;
 	void close ();

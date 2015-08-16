@@ -33,6 +33,7 @@ opaque class PCap
 	uint_t m_syncId;
 
 	PCap* operator new ();
+	destruct ();
 
 	bool openDevice (
 		char const* deviceName,

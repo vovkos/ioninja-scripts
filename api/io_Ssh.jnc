@@ -47,6 +47,7 @@ opaque class SshChannel
 	uint_t m_syncId;
 
 	SshChannel* operator new ();
+	destruct ();
 
 	bool open (SocketAddress const* address = null) throws;
 	void close ();

@@ -26,6 +26,7 @@ opaque class MappedFile
 	uint64_t autoget property m_size;
 
 	MappedFile* operator new ();
+	destruct ();
 
 	bool open (
 		char const* name,
