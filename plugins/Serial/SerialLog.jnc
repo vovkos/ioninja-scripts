@@ -102,7 +102,7 @@ bool representSerialLog (
 				$"    \e[90mParity:       \e[34m%3" (
 				getTableString (params.m_flowControl, flowControlStringTable),
 				getTableString (params.m_stopBits, stopBitsStringTable),
-				getTableString (params.m_parity, parityStringTable),
+				getTableString (params.m_parity, parityStringTable)
 				));
 
 		break;
