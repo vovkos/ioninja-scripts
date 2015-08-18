@@ -13,61 +13,30 @@ namespace io {
 
 gui.EnumPropertyOption const* createPCapDeviceOptionArray (bool canOpenFile = true)
 {
-	printf ("createPCapDeviceOptionArray -- 1\n");
-
 	size_t count;
 	io.PCapDeviceDesc const* device = io.createPCapDeviceDescList (&count);
 
 	if (canOpenFile)
 		count++;
 
-	printf ("createPCapDeviceOptionArray -- 2\n");
-
 	gui.EnumPropertyOption* optionArray = new gui.EnumPropertyOption [count];
 	gui.EnumPropertyOption* option = optionArray;	
 	
 	for (; device; device = device->m_next, option++)
 	{
-		printf ("createPCapDeviceOptionArray -- 3.1\n");
-
-		printf (
-			"createPCapDeviceOptionArray -- 3.1.1 (device: %x; device_name: %x/%s; device_description: %x/%s; device->m_address: %x/%x/%s)\n", 
-			device,
-			device->m_name,
-			device->m_name, 
-			device->m_description, 
-			device->m_description, 
-			&device->m_address,
-			&device->m_address.m_address,
+		option.m_text = $"%1 - %2" (
+			device->m_description ? device->m_description : device->m_name,
 			device->m_address.m_address.getString ()
 			);
 
-		char const* s = $"%1 - %2" (
-			device->m_description ? device->m_description : device->m_name, 
-			device->m_address.m_address.getString ()
-			);	
-                		
-		printf ("createPCapDeviceOptionArray -- 3.2 (%s)\n", s);
-
-		option.m_text = s; /* $"%1 - %2" (
-			device->m_description ? device->m_description : device->m_name,
-			device->m_address.m_address.getString ()
-			);          */
-
-		printf ("createPCapDeviceOptionArray -- 3.3\n");
-
 		option.m_value = device;
 	}
-
-	printf ("createPCapDeviceOptionArray -- 3\n");
 
 	if (canOpenFile)
 	{
 		option.m_text = "Wireshark File (*.cap; *.pcap)";
 		option.m_value = null;
 	}
-
-	printf ("createPCapDeviceOptionArray -- 4\n");
 
 	return optionArray;
 }
@@ -81,12 +50,8 @@ gui.EnumProperty* createPCapDeviceProperty (
 	char const* toolTipText
 	)
 {
-	printf ("createPCapDeviceProperty -- 1\n");
-
 	gui.EnumPropertyOption const* optionArray = createPCapDeviceOptionArray (canOpenFile);
 	size_t optionCount = dynamic countof (optionArray);
-
-	printf ("createPCapDeviceProperty -- 2\n");
 
 	return propertyGrid.createEnumProperty (		
 		name,
@@ -105,26 +70,17 @@ createPCapDeviceComboBox (
 	uint_t width = -1
 	)
 {
-	printf ("createPCapDeviceComboBox -- 1\n");
-
 	gui.EnumPropertyOption const* optionArray = createPCapDeviceOptionArray (canOpenFile);
 	size_t optionCount = dynamic countof (optionArray);
 
-	printf ("createPCapDeviceComboBox -- 2\n");
-
 	gui.ComboBox* comboBox = toolBar.addComboBox (width);
-	
+
 	for (size_t i = 0; i < optionCount; i++)
-	{
-		printf ("createPCapDeviceComboBox -- %d - %s\n", i, optionArray [i].m_text);
 		comboBox.addItem (
 			optionArray [i].m_text, 
 			optionArray [i].m_value
 			);
-	}
 	                                      
-	printf ("createPCapDeviceComboBox -- 3\n");
-
 	return comboBox;
 }
 
