@@ -56,7 +56,7 @@ opaque class SerialMon
 	bool readonly m_isOpen;
 	uint_t m_syncId;
 
-	SerialMon* operator new ();
+	construct ();
 	destruct ();
 
 	bool capture (char const* name) throws;

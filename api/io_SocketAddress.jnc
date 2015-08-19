@@ -118,7 +118,7 @@ opaque class SocketAddressResolver
 {
 	uint_t m_syncId;
 
-	SocketAddressResolver* operator new ();
+	construct ();
 	destruct ();
 
 	bool resolve (

@@ -12,7 +12,7 @@ opaque class NamedPipe
 	bool readonly m_isOpen;
 	uint_t m_syncId;
 
-	NamedPipe* operator new ();
+	construct ();
 	destruct ();
 
 	bool open (

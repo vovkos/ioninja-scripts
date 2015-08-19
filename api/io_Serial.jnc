@@ -82,7 +82,7 @@ opaque class Serial
 	bool readonly m_isOpen;
 	uint_t m_syncId;
 
-	Serial* operator new ();
+	construct ();
 	destruct ();
 
 	bool open (char const* name) throws;

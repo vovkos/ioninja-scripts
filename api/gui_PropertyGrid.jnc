@@ -20,7 +20,7 @@ class Property
 
 opaque class BoolProperty: Property
 {
-	BoolProperty* operator new (char const* name);
+	construct (char const* name);
 
 	bool autoget bindable property m_value;
 }
@@ -29,7 +29,7 @@ opaque class BoolProperty: Property
 
 opaque class IntProperty: Property
 {
-	IntProperty* operator new (char const* name);
+	construct (char const* name);
 
 	int autoget bindable property m_value;
 }
@@ -38,7 +38,7 @@ opaque class IntProperty: Property
 
 opaque class StringProperty: Property
 {
-	StringProperty* operator new (char const* name);
+	construct (char const* name);
 
 	char const* autoget bindable property m_value;
 	bool autoget property m_isPassword;
@@ -70,7 +70,7 @@ opaque class EnumProperty: Property
 		alias bindable event m_onPropChanged () = m_onChanged;
 	}
 
-	EnumProperty* operator new (char const* name);
+	construct (char const* name);
 	destruct ();
 
 	setOptions (
@@ -85,7 +85,7 @@ opaque class EnumProperty: Property
 
 opaque class GroupProperty
 {
-	GroupProperty* operator new (char const* name);
+	construct (char const* name);
 
 	addProperty (Property* prop);
 

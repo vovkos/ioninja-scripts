@@ -78,7 +78,7 @@ struct TextAttr
 
 opaque class Icon
 {
-	Icon* operator new (char const* fileName);
+	construct (char const* fileName);
 }
 
 //.............................................................................
@@ -87,7 +87,7 @@ opaque class Icon
 
 opaque class Action
 {
-	Action* operator new (
+	construct (
 		char const* text,
 		Icon* icon = null
 		);
