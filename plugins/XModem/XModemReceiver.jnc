@@ -48,7 +48,7 @@ XModemReceiver.start ()
 	static char c = XModemChar.Nak;
 	try m_parent.transmit (&c, sizeof (c));
 
-	m_parent.m_pluginHost.m_progressDlg.m_status = "Receiving XModem data blocks...";
+	m_parent.m_progressDlg.m_status = "Receiving XModem data blocks...";
 	m_state = State.Data;
 	m_offset = 0;
 	m_parent.m_file.m_size = 0;
@@ -63,7 +63,7 @@ XModemReceiver.cancel ()
 	for (size_t i = 0; i < XModemCanCount; i++)
 		try m_parent.transmit (&c, sizeof(c));
 
-	m_parent.m_pluginHost.m_progressDlg.m_status = "XModem transfer cancelled by user";
+	m_parent.m_progressDlg.m_status = "XModem transfer cancelled by user";
 	complete ();
 }
 
@@ -71,7 +71,7 @@ XModemReceiver.complete ()
 {
 	m_state = State.Idle;
 	m_offset = 0;
-	m_parent.m_pluginHost.m_progressDlg.m_buttons = gui.StdDlgButtons.Ok;
+	m_parent.m_progressDlg.m_buttons = gui.StdDlgButtons.Ok;
 	m_parent.m_file.close ();
 }
 
@@ -91,7 +91,7 @@ XModemReceiver.onRx (
 		break;
 
 	case XModemChar.Can: 
-		m_parent.m_pluginHost.m_progressDlg.m_status = "XModem transfer cancelled by remote node";
+		m_parent.m_progressDlg.m_status = "XModem transfer cancelled by remote node";
 		complete ();
 		break;
 
@@ -99,7 +99,7 @@ XModemReceiver.onRx (
 		static char c = XModemChar.Ack;	
 		try m_parent.transmit (&c, sizeof (c));
 
-		m_parent.m_pluginHost.m_progressDlg.m_status = "XModem transfer completed successfully";
+		m_parent.m_progressDlg.m_status = "XModem transfer completed successfully";
 		complete ();
 		break;
 	}
@@ -114,7 +114,7 @@ XModemReceiver.onRx_Data (XModemBlock const* block)
 	if (block.m_blockNumber != blockNumber)
 	{
 		m_parent.transmit (&nak, sizeof (nak));
-		m_parent.m_pluginHost.m_progressDlg.m_status = "Out-of-sequence XModem block";
+		m_parent.m_progressDlg.m_status = "Out-of-sequence XModem block";
 		return; // and ignore it
 	}
 
@@ -122,7 +122,7 @@ XModemReceiver.onRx_Data (XModemBlock const* block)
 	if (block.m_checksum != checksum)
 	{
 		m_parent.transmit (&nak, sizeof (nak));
-		m_parent.m_pluginHost.m_progressDlg.m_status = "Bad checksum of XModem block";
+		m_parent.m_progressDlg.m_status = "Bad checksum of XModem block";
 		return; // and ignore it
 	}
 
@@ -134,7 +134,7 @@ XModemReceiver.onRx_Data (XModemBlock const* block)
 	m_parent.m_file.m_size = m_offset;
 	
 catch:
-	m_parent.m_pluginHost.m_progressDlg.m_status = jnc.getLastError ().m_description;
+	m_parent.m_progressDlg.m_status = jnc.getLastError ().m_description;
 	complete ();
 }
 

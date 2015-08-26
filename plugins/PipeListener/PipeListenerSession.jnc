@@ -44,7 +44,7 @@ protected:
 	// listener
 
 	State bindable m_listenerState;
-	io.NamedPipe* m_listenerPipe;
+	io.NamedPipe m_listenerPipe;
 	char const* m_pipeName;
 
 	// connection
@@ -102,8 +102,7 @@ PipeListenerSession.construct (doc.PluginHost* pluginHost)
 	
 	m_connectionState = State.Closed;
 	m_listenerState = State.Closed;
-	m_listenerPipe = new io.NamedPipe ();
-	m_listenerPipe.m_onIncomingConnection += onIncomingConnection @ m_pluginHost.m_mainThreadScheduler;	
+	m_listenerPipe.m_onIncomingConnection += onIncomingConnection @ pluginHost.m_mainThreadScheduler;	
 	
 	createUi ();
 }

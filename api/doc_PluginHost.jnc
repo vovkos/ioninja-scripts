@@ -5,7 +5,6 @@
 
 import "gui_Base.jnc"
 import "gui_PropertyGrid.jnc"
-import "gui_Dialog.jnc"
 import "log.jnc"
 
 namespace doc {
@@ -14,8 +13,8 @@ namespace doc {
 
 class Terminal
 {
-	uint_t m_consoleWidth;
-	uint_t m_consoleHeight;
+	uint_t readonly m_consoleWidth;
+	uint_t readonly m_consoleHeight;
 	
 	event m_onConsoleSizeChanged ();
 }
@@ -24,16 +23,12 @@ class Terminal
 
 opaque class PluginHost
 {
-	gui.Menu* readonly m_menu;
-	gui.ToolBar* readonly m_toolBar;
-	gui.StatusBar* readonly m_statusBar;
-	gui.PropertyGrid* readonly m_propertyGrid;
-	gui.FileDlg* readonly m_fileDlg;
-	gui.LoginDlg* readonly m_loginDlg;
-	gui.MessageDlg* readonly m_messageDlg;
-	gui.ProgressDlg* readonly m_progressDlg;
-	log.Log* readonly m_log;
-	doc.Terminal* readonly m_terminal;
+	gui.Menu m_menu;
+	gui.ToolBar m_toolBar;
+	gui.StatusBar m_statusBar;
+	gui.PropertyGrid m_propertyGrid;
+	log.Log m_log;
+	doc.Terminal m_terminal;
 	jnc.Scheduler* readonly m_mainThreadScheduler;
 
 	destruct ();

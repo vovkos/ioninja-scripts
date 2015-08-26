@@ -7,10 +7,8 @@ namespace gui {
 
 //.............................................................................
 
-class Property
+opaque class Property
 {
-	protected uint_t m_id; // <-- tmp solution
-
 	char const* autoget property m_name;
 	char const* autoget property m_toolTipText;
 	bool autoget property m_isEnabled;

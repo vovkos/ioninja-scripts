@@ -48,7 +48,7 @@ protected:
 	// serial port
 
 	State bindable m_state;
-	io.Serial* m_serial;
+	io.Serial m_serial;
 	char const* m_portName;
 	uint_t bindable m_serialStatusLines;
 	bool bindable m_serialDtr;
@@ -118,8 +118,7 @@ SerialSession.construct (doc.PluginHost* pluginHost)
 	pluginHost.m_log.attachFilter (m_logFilter);
 
 	m_state = State.Closed;
-	m_serial = new io.Serial ();
-	m_serial.m_onSerialEvent += onSerialEvent @ m_pluginHost.m_mainThreadScheduler;
+	m_serial.m_onSerialEvent += onSerialEvent @ pluginHost.m_mainThreadScheduler;
 
 	createUi ();
 }

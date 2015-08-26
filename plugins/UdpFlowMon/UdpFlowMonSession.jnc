@@ -4,6 +4,7 @@
 //
 
 import "doc_Plugin.jnc"
+import "gui_Dialog.jnc"
 import "io_PCap.jnc"
 import "io_Packet.jnc"
 import "io_SocketAddress.jnc"
@@ -47,9 +48,9 @@ protected:
 	// pcap
 
 	State bindable m_state;
-	io.PCap* m_pcap;	
+	io.PCap m_pcap;	
 	io.IpDefragmenter m_ipDefragmenter;
-	io.SocketAddressResolver* m_resolver;
+	io.SocketAddressResolver m_resolver;
 	io.SocketAddress m_filterAddress;
 	
 	// toolbar, status bar & menu
@@ -59,6 +60,7 @@ protected:
 	gui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
 	gui.ComboBox* m_deviceCombo;
 	gui.ComboBox* m_filterCombo;
+	gui.FileDlg* m_fileDlg;
 	
 	// property grid
 	
@@ -120,13 +122,10 @@ UdpFlowMonSession.construct (doc.PluginHost* pluginHost)
 	basetype.construct (pluginHost);
 
 	pluginHost.m_log.m_representerFunc = representUdpFlowMonLog;
-	pluginHost.m_fileDlg.m_onCompleted += onFileDlgCompleted;
 
 	m_state = 0;
-	m_pcap = new io.PCap ();
-	m_pcap.m_onPCapEvent += onPCapEvent @ m_pluginHost.m_mainThreadScheduler;
-	m_resolver = new io.SocketAddressResolver ();
-	m_resolver.m_onResolverEvent += onResolverEvent @ m_pluginHost.m_mainThreadScheduler;
+	m_pcap.m_onPCapEvent += onPCapEvent @ pluginHost.m_mainThreadScheduler;
+	m_resolver.m_onResolverEvent += onResolverEvent @ pluginHost.m_mainThreadScheduler;
 
 	createUi ();
 }
@@ -198,7 +197,7 @@ UdpFlowMonSession.onFileDlgCompleted (gui.StdDlgButton button)
 	if (button != gui.StdDlgButton.Ok)
 		return;
 	
-	char const* fileName = m_pluginHost.m_fileDlg.m_filePath;
+	char const* fileName = m_fileDlg.m_filePath;
 	char const* addressString = m_filterCombo.m_editText;
 	m_filterCombo.addEditTextToHistory ();
 
@@ -234,10 +233,16 @@ bool UdpFlowMonSession.capture () throws
 	io.PCapDeviceDesc const* device = m_deviceCombo.m_currentData;
 	if (!device)
 	{
-		m_pluginHost.m_fileDlg.m_kind = gui.FileDlgKind.Open;
-		m_pluginHost.m_fileDlg.m_title = "Open Wireshark File (*.cap; *.pcap)...";
-		m_pluginHost.m_fileDlg.m_filter = "Wireshark .cap files (*.cap; *.pcap);; All files (*.*)";
-		m_pluginHost.m_fileDlg.show ();
+		if (!m_fileDlg)
+		{
+			m_fileDlg = new gui.FileDlg;
+			m_fileDlg.m_onCompleted += onFileDlgCompleted;			
+		}
+		
+		m_fileDlg.m_kind = gui.FileDlgKind.Open;
+		m_fileDlg.m_title = "Open Wireshark File (*.cap; *.pcap)...";
+		m_fileDlg.m_filter = "Wireshark .cap files (*.cap; *.pcap);; All files (*.*)";
+		m_fileDlg.show ();
 		return true;
 	}
 

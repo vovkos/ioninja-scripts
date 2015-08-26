@@ -4,6 +4,7 @@
 //
 
 import "doc_Plugin.jnc"
+import "gui_Dialog.jnc"
 import "io_Ssh.jnc"
 import "io_Socket.jnc"
 
@@ -56,8 +57,8 @@ protected:
 	// ssh 
 	
 	State bindable m_state;
-	io.SshChannel* m_channel;
-	io.SocketAddressResolver* m_resolver;
+	io.SshChannel m_channel;
+	io.SocketAddressResolver m_resolver;
 	io.SocketAddress m_remoteAddress;
 	
 	// toolbar, status bar & menu
@@ -66,6 +67,7 @@ protected:
 	gui.Icon* m_iconTable [IconId._Count];
 	gui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
 	gui.ComboBox* m_addressCombo;
+	gui.LoginDlg* m_loginDlg;
 
 	// property grid
 
@@ -122,11 +124,8 @@ SshChannelSession.construct (doc.PluginHost* pluginHost)
 	pluginHost.m_log.m_representerFunc = representSshChannelLog;
 
 	m_state = State.Closed;
-	m_channel = new io.SshChannel  ();
-	m_channel.m_onSshEvent += onSshEvent @ m_pluginHost.m_mainThreadScheduler;
-	m_resolver = new io.SocketAddressResolver ();
-	m_resolver.m_onResolverEvent += onResolverEvent @ m_pluginHost.m_mainThreadScheduler;
-	m_pluginHost.m_loginDlg.m_onCompleted += onLoginDlgCompleted;
+	m_channel.m_onSshEvent += onSshEvent @ pluginHost.m_mainThreadScheduler;
+	m_resolver.m_onResolverEvent += onResolverEvent @ pluginHost.m_mainThreadScheduler;
 	m_pluginHost.m_terminal.m_onConsoleSizeChanged += onConsoleSizeChanged;
 
 	createUi ();
@@ -339,9 +338,15 @@ SshChannelSession.handleSshAuthError (jnc.Error const* error)
 		error.m_size
 		);
 	
-	m_pluginHost.m_loginDlg.m_userName = m_userNameProp.m_value;
-	m_pluginHost.m_loginDlg.m_password = m_passwordProp.m_value;
-	m_pluginHost.m_loginDlg.show ();	
+	if (!m_loginDlg)
+	{
+		m_loginDlg = new gui.LoginDlg;
+		m_loginDlg.m_onCompleted += onLoginDlgCompleted;
+	}
+	
+	m_loginDlg.m_userName = m_userNameProp.m_value;
+	m_loginDlg.m_password = m_passwordProp.m_value;
+	m_loginDlg.show ();	
 	
 	m_state = State.RequestingLogin;
 }
@@ -354,8 +359,8 @@ SshChannelSession.onLoginDlgCompleted (gui.StdDlgButton button)
 	if (button != gui.StdDlgButton.Ok)
 		jnc.throw ();
 	
-	m_userNameProp.m_value = m_pluginHost.m_loginDlg.m_userName;
-	m_passwordProp.m_value = m_pluginHost.m_loginDlg.m_password;
+	m_userNameProp.m_value = m_loginDlg.m_userName;
+	m_passwordProp.m_value = m_loginDlg.m_password;
 
 	m_channel.authenticate (m_userNameProp.m_value, m_passwordProp.m_value);
 	writeLog (SshChannelLogRecordCode.SshAuthenticating);

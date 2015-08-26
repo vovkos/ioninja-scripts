@@ -60,6 +60,8 @@ opaque class FileDlg
 
 	event m_onCompleted (StdDlgButton button);
 
+	construct ();
+	
 	show ();
 }
 
@@ -74,6 +76,8 @@ opaque class LoginDlg
 
 	event m_onCompleted (StdDlgButton button);
 
+	construct ();
+	
 	show ();
 }
 
@@ -88,6 +92,8 @@ opaque class MessageDlg
 
 	event m_onCompleted (StdDlgButton button);
 
+	construct ();
+
 	show ();
 }
 
@@ -101,10 +107,12 @@ opaque class ProgressDlg
 	StdDlgIcon autoget property m_icon;
 	StdDlgButtons autoget property m_buttons;
 
+	event m_onButtonClicked (StdDlgButton button);
+	
+	construct ();
+	
 	show ();
 	hide ();
-
-	event m_onButtonClicked (StdDlgButton button);
 }
 
 //.............................................................................

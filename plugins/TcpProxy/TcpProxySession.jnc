@@ -72,7 +72,7 @@ protected:
 	// server listener socket
 	
 	ListenerState bindable m_listenerState;
-	io.Socket* m_listenerSocket;
+	io.Socket m_listenerSocket;
 	io.SocketAddress m_localAddress;
 	
 	// server connection socket
@@ -85,9 +85,9 @@ protected:
 	// client connection socket
 	
 	ClientConnectionState bindable m_clientConnectionState;
-	io.Socket* m_clientConnnectionSocket;
+	io.Socket m_clientConnnectionSocket;
 	io.SocketAddress m_clientRemoteAddress;
-	io.SocketAddressResolver* m_resolver;
+	io.SocketAddressResolver m_resolver;
 	uint_t m_resolverSyncId;
 	bool m_isTargetAddressResolved;
 	bool m_wasTargetAddressChangedWhileResolving;
@@ -152,8 +152,7 @@ TcpProxySession.construct (doc.PluginHost* pluginHost)
 	// listener
 	
 	m_listenerState = ListenerState.Closed;
-	m_listenerSocket = new io.Socket ();
-	m_listenerSocket.m_onSocketEvent += onListenerSocketEvent @ m_pluginHost.m_mainThreadScheduler;
+	m_listenerSocket.m_onSocketEvent += onListenerSocketEvent @ pluginHost.m_mainThreadScheduler;
 	
 	// server connection
 	
@@ -162,10 +161,8 @@ TcpProxySession.construct (doc.PluginHost* pluginHost)
 	// client connection
 	
 	m_clientConnectionState = ClientConnectionState.Closed;
-	m_clientConnnectionSocket = new io.Socket ();
-	m_clientConnnectionSocket.m_onSocketEvent += onTargetSocketEvent @ m_pluginHost.m_mainThreadScheduler;
-	m_resolver = new io.SocketAddressResolver ();
-	m_resolver.m_onResolverEvent += onResolverEvent @ m_pluginHost.m_mainThreadScheduler;
+	m_clientConnnectionSocket.m_onSocketEvent += onTargetSocketEvent @ pluginHost.m_mainThreadScheduler;
+	m_resolver.m_onResolverEvent += onResolverEvent @ pluginHost.m_mainThreadScheduler;
 	m_resolverSyncId = 0;
 	m_isTargetAddressResolved = false;
 	m_wasTargetAddressChangedWhileResolving = false;

@@ -49,7 +49,7 @@ protected:
 	// listener socket
 
 	ListenerState bindable m_listenerState;
-	io.Socket* m_listenerSocket;
+	io.Socket m_listenerSocket;
 	io.SocketAddress m_localAddress;
 
 	// connection socket
@@ -112,8 +112,7 @@ TcpListenerSession.construct (doc.PluginHost* pluginHost)
 
 	m_connectionState = ConnectionState.Closed;
 	m_listenerState = ListenerState.Closed;
-	m_listenerSocket = new io.Socket ();
-	m_listenerSocket.m_onSocketEvent += onListenerSocketEvent @ m_pluginHost.m_mainThreadScheduler;
+	m_listenerSocket.m_onSocketEvent += onListenerSocketEvent @ pluginHost.m_mainThreadScheduler;
 
 	createUi ();
 }

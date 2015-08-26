@@ -40,7 +40,7 @@ protected:
 	// serial port
 
 	State bindable m_state;
-	io.SerialMon* m_serialMon;
+	io.SerialMon m_serialMon;
 	char const* m_portName;
 
 	// toolbar, status bar & menu
@@ -82,8 +82,7 @@ SerialMonSession.construct (doc.PluginHost* pluginHost)
 	pluginHost.m_log.m_representerFunc = representSerialMonLog;
 
 	m_state = State.Closed;
-	m_serialMon = new io.SerialMon ();
-	m_serialMon.m_onReadyRead += onReadyRead @ m_pluginHost.m_mainThreadScheduler;
+	m_serialMon.m_onReadyRead += onReadyRead @ pluginHost.m_mainThreadScheduler;
 
 	createUi ();
 }

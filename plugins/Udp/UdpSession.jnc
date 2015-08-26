@@ -50,8 +50,8 @@ protected:
 	// socket
 		
 	State bindable m_state;
-	io.Socket* m_socket;
-	io.SocketAddressResolver* m_resolver;
+	io.Socket m_socket;
+	io.SocketAddressResolver m_resolver;
 	ResolveState m_resolveState;
 	io.SocketAddress m_remoteAddress;
 	char* m_pendingData;
@@ -114,10 +114,8 @@ UdpSession.construct (doc.PluginHost* pluginHost)
 	pluginHost.m_log.m_representerFunc = representUdpLog;
 
 	m_state = State.Closed;
-	m_socket = new io.Socket ();
-	m_socket.m_onSocketEvent += onSocketEvent @ m_pluginHost.m_mainThreadScheduler;
-	m_resolver = new io.SocketAddressResolver ();
-	m_resolver.m_onResolverEvent += onResolverEvent @ m_pluginHost.m_mainThreadScheduler;
+	m_socket.m_onSocketEvent += onSocketEvent @ pluginHost.m_mainThreadScheduler;
+	m_resolver.m_onResolverEvent += onResolverEvent @ pluginHost.m_mainThreadScheduler;
 	m_resolveState = ResolveState.Unresolved;
 	m_remoteAddressChanged = false;
 

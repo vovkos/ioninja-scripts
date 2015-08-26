@@ -50,7 +50,7 @@ protected:
 
 	State bindable m_state;
 	Access m_access;
-	io.FileStream* m_file;
+	io.FileStream m_file;
 	char const* m_fileName;
 
 	// toolbar, status bar & menu
@@ -102,8 +102,7 @@ FileSession.construct (doc.PluginHost* pluginHost)
 
 	m_state = State.Closed;
 	m_access = Access.ReadWrite;
-	m_file = new io.FileStream ();
-	m_file.m_onFileStreamEvent += onFileStreamEvent @ m_pluginHost.m_mainThreadScheduler;
+	m_file.m_onFileStreamEvent += onFileStreamEvent @ pluginHost.m_mainThreadScheduler;
 
 	createUi ();
 }
