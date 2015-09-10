@@ -49,11 +49,11 @@ protected:
 
 	State bindable m_state;
 	io.Serial m_serial;
+	SerialLogFilter m_logFilter;
 	char const* m_portName;
 	uint_t bindable m_serialStatusLines;
 	bool bindable m_serialDtr;
 	bool bindable m_serialRts;
-	SerialLogFilter m_logFilter;
 
 	// toolbar, status bar & menu
 
