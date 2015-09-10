@@ -33,7 +33,7 @@ public:
 		);	
 
 protected:
-	bool automaton scanStream ();
+	jnc.AutomatonResult automaton scanStream (jnc.Recognizer* recognizer);
 	
 	writeOriginalData (jnc.Recognizer* recognizer);
 }
@@ -101,7 +101,7 @@ $(layerClass).writeOriginalData (jnc.Recognizer* recognizer)
 	m_offset += chunkLength;
 }
 
-bool automaton $(layerClass).scanStream ()
+jnc.AutomatonResult automaton $(layerClass).scanStream (jnc.Recognizer* recognizer)
 {
 	%% '<' [^>]* '>'
 		// write original data first...
