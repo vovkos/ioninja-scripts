@@ -36,11 +36,21 @@ enum PartKind
 
 enum StdRecordCode
 {
-	Tx        = 0x01000000 | PartCodeFlags.Mergeable, 
-	Rx        = 0x02000000 | PartCodeFlags.Mergeable,
-	PlainText = 0x03000000 | PartCodeFlags.Mergeable,
-	HyperText = 0x04000000 | PartCodeFlags.Mergeable,
-	Bin       = 0x05000000 | PartCodeFlags.Mergeable,
+	Tx            = 0x01000000 | PartCodeFlags.Mergeable, 
+	Rx            = 0x02000000 | PartCodeFlags.Mergeable,
+	PlainText     = 0x03000000 | PartCodeFlags.Mergeable,
+	HyperText     = 0x04000000 | PartCodeFlags.Mergeable,
+	Bin           = 0x05000000 | PartCodeFlags.Mergeable,
+	RetroColorize = 0x06000000,
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+struct RetroColorizeParams
+{
+	int m_retroOffset;
+	uint_t m_length;
+	gui.TextAttr m_attr;
 }
 
 //.............................................................................
@@ -109,6 +119,12 @@ opaque class RepresenterTarget
 		size_t size
 		);
 
+	void retroColorize (
+		intptr retroOffset,
+		size_t length,
+		gui.TextAttr attr
+		);
+		
 	void addPlainText (
 		uint_t partCode,
 		char const* text
