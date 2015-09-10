@@ -5,11 +5,15 @@
 
 //.............................................................................
 
+size_t
 representUdpHdr (
 	log.RepresenterTarget* target,
 	void const* p, 
 	size_t size,
-	size_t baseOffset
+	size_t baseOffset,
+	size_t* hdrSizeTable,
+	uint_t* hdrColorTable,
+	size_t hdrIdx
 	)
 {
 	io.UdpHdr const* udpHdr = (io.UdpHdr const*) (p + baseOffset);
@@ -37,6 +41,10 @@ representUdpHdr (
 		sizeof (udpHdr.m_checksum), 
 		udpHdr.m_checksum
 		));
+		
+	hdrSizeTable [hdrIdx] = sizeof (io.UdpHdr);
+	hdrColorTable [hdrIdx] = SnifferLogHdrColor.Udp;
+	return hdrIdx + 1;
 }
 
 representUdp (

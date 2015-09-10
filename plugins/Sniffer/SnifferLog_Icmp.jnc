@@ -5,11 +5,15 @@
 
 //.............................................................................
 
-representIcmpHdr(
+size_t
+representIcmpHdr (
 	log.RepresenterTarget* target,
 	void const* p, 
 	size_t size,
-	size_t baseOffset
+	size_t baseOffset,
+	size_t* hdrSizeTable,
+	uint_t* hdrColorTable,
+	size_t hdrIdx
 	)
 {
 	io.IcmpHdr const* icmpHdr = (io.IcmpHdr const*) (p + baseOffset);
@@ -42,6 +46,10 @@ representIcmpHdr(
 		sizeof (icmpHdr.m_seqNumber), 
 		icmpHdr.m_seqNumber
 		));
+		
+	hdrSizeTable [hdrIdx] = sizeof (io.IcmpHdr);
+	hdrColorTable [hdrIdx] = SnifferLogHdrColor.Icmp;
+	return hdrIdx + 1;
 }
 
 representIcmp (

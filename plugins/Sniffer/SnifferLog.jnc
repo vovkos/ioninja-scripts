@@ -29,6 +29,18 @@ enum SnifferLogPartCode
 	FilterCompleted  = 2 | log.PartCodeFlags.MergeableBackward,
 }
 
+enum SnifferLogHdrColor
+{
+	Ethernet   = gui.StdColor.Green,
+	Ip         = gui.StdColor.Cyan,
+	IpOptions  = gui.StdColor.Purple,
+	Ip6        = gui.StdColor.Cyan,
+	Tcp        = gui.StdColor.Blue,
+	TcpOptions = gui.StdColor.Purple,
+	Udp        = gui.StdColor.Blue,
+	Icmp       = gui.StdColor.Blue,
+}
+
 //.............................................................................
 
 bool representSnifferLog (
@@ -124,6 +136,32 @@ representPacket (
 	representEthernet (target, p, size, foldFlags);
 }
 
+representColorizedBin (
+	log.RepresenterTarget* target,
+	void const* p,
+	size_t size,
+	size_t const* hdrSizeTable,
+	uint_t const* hdrColorTable,
+	size_t hdrCount
+	)
+{
+	target.m_lineAttr.m_textColor = gui.StdColor.Gray;		
+	target.m_lineAttr.m_backColor = gui.ColorFlags.Transparent;		
+	target.addBin (p, size);
+
+	gui.TextAttr attr;
+	attr.m_backColor = gui.ColorFlags.Transparent;
+	
+	intptr retroOffset = -size;	
+	for (size_t i = 0; i < hdrCount; i++)
+	{
+		size_t size = hdrSizeTable [i];
+		attr.m_textColor = hdrColorTable [i];
+		target.retroColorize (retroOffset, size, attr);
+		retroOffset += size;
+	}	
+}
+
 representDefragmentedIp (
 	log.RepresenterTarget* target,
 	void const* p,
@@ -137,11 +175,12 @@ representDefragmentedIp (
 	if (foldFlags)
 	{
 		target.addHyperText ("[\e^-1\e[34m-\e[m]");
-		representIpHdr (target, p, size, 0);
-
-		target.m_lineAttr.m_textColor = gui.StdColor.Gray;
-		target.m_lineAttr.m_backColor = gui.ColorFlags.Transparent;
-		target.addBin (p, size);
+		
+		size_t hdrSizeTable [8];
+		uint_t hdrColorTable [8];
+		
+		size_t hdrCount = representIpHdr (target, p, size, 0, hdrSizeTable, hdrColorTable, 0);
+		representColorizedBin (target, p, size, hdrSizeTable, hdrColorTable, hdrCount);
 	}
 	else
 	{

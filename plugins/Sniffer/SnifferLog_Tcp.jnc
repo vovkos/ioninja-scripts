@@ -19,11 +19,15 @@ char const* formatTcpFlagString (io.TcpFlags flags)
 		);
 }
 
+size_t
 representTcpHdr (
 	log.RepresenterTarget* target,
 	void const* p, 
 	size_t size,
-	size_t baseOffset
+	size_t baseOffset,
+	size_t* hdrSizeTable,
+	uint_t* hdrColorTable,
+	size_t hdrIdx
 	)
 {
 	io.TcpHdr const* tcpHdr = (io.TcpHdr const*) (p + baseOffset);
@@ -76,6 +80,23 @@ representTcpHdr (
 		sizeof (tcpHdr.m_urgentData), 
 		tcpHdr.m_urgentData
 		));
+		
+	size_t dataOffset = tcpHdr.m_dataOffset * 4;
+	if (dataOffset > size)
+		dataOffset = size;
+
+	hdrSizeTable [hdrIdx] = sizeof (io.TcpHdr);
+	hdrColorTable [hdrIdx] = SnifferLogHdrColor.Tcp;
+	hdrIdx++;	
+		
+	if (dataOffset > sizeof (io.TcpHdr))
+	{
+		hdrSizeTable [hdrIdx] = dataOffset - sizeof (io.TcpHdr);
+		hdrColorTable [hdrIdx] = SnifferLogHdrColor.TcpOptions;
+		hdrIdx++;	
+	}	
+	
+	return hdrIdx;	
 }
 
 representTcp (

@@ -56,13 +56,15 @@ representEthernet (
 			sizeof (ethernetHdr.m_dstAddress), 
 			formatEthernetString (ethernetHdr.m_dstAddress)
 			));
-
+		
+		size_t hdrSizeTable [8] = { sizeof (io.EthernetHdr) };
+		uint_t hdrColorTable [8] = { SnifferLogHdrColor.Ethernet };
+		size_t hdrCount = 1;
+		
 		if (ethernetHdr->m_type == io.EthernetType.Ip)
-			representIpHdr (target, p, size, sizeof (io.EthernetHdr));
+			hdrCount = representIpHdr (target, p, size, sizeof (io.EthernetHdr), hdrSizeTable, hdrColorTable, 1);
 
-		target.m_lineAttr.m_textColor = gui.StdColor.Gray;
-		target.m_lineAttr.m_backColor = gui.ColorFlags.Transparent;
-		target.addBin (p, size);
+		representColorizedBin (target, p, size, hdrSizeTable, hdrColorTable, hdrCount);
 	}
 	else
 	{

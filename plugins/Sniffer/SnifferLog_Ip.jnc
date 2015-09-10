@@ -14,11 +14,15 @@ char const* formatIpString (bigendian uint32_t ip32)
 		);
 }
 
+size_t
 representIpHdr (
 	log.RepresenterTarget* target,
 	void const* p,
 	size_t size,
-	size_t baseOffset
+	size_t baseOffset,
+	size_t* hdrSizeTable,
+	uint_t* hdrColorTable,
+	size_t hdrIdx
 	)
 {
 	io.IpHdr const* ipHdr = (io.IpHdr const*) (p + baseOffset);
@@ -91,29 +95,41 @@ representIpHdr (
 	if	(ipHdrSize < sizeof (io.IpHdr) || baseOffset + ipHdrSize > size)
 	{
 		target.addHyperText ($"INVALID HEADER SIZE: $ipHdrSize");
-		return;
+		hdrSizeTable [hdrIdx] = sizeof (io.IpHdr);
+		return hdrIdx + 1;
 	}
 
 	if ((ipHdr.m_flags & io.IpFlags.Mf) || ipHdr.m_fragmentOffset)
 	{
 		target.addHyperText ("\e[1mFRAGMENTED");
-		return;
+		hdrSizeTable [hdrIdx] = sizeof (io.IpHdr);
+		return hdrIdx + 1;
 	}
 
+	hdrSizeTable [hdrIdx] = ipHdrSize;
+	hdrColorTable [hdrIdx] = SnifferLogHdrColor.Ip;		
+	hdrIdx++;
+	
+	if (ipHdrSize > sizeof (io.IpHdr))
+	{
+		hdrSizeTable [hdrIdx] = ipHdrSize - sizeof (io.IpHdr);
+		hdrColorTable [hdrIdx] = SnifferLogHdrColor.IpOptions;
+		hdrIdx++;	
+	}
+	
 	switch (ipHdr.m_protocol)
 	{
 	case io.IpProtocol.Icmp:
-		representIcmpHdr (target, p, size, baseOffset + ipHdrSize);
-		break;
+		return representIcmpHdr (target, p, size, baseOffset + ipHdrSize, hdrSizeTable, hdrColorTable, hdrIdx);
 
 	case io.IpProtocol.Tcp:
-		representTcpHdr (target, p, size, baseOffset + ipHdrSize);
-		break;
+		return representTcpHdr (target, p, size, baseOffset + ipHdrSize, hdrSizeTable, hdrColorTable, hdrIdx);
 
 	case io.IpProtocol.Udp:
-		representUdpHdr (target, p, size, baseOffset + ipHdrSize);
-		break;
+		return representUdpHdr (target, p, size, baseOffset + ipHdrSize, hdrSizeTable, hdrColorTable, hdrIdx);
 	}
+	
+	return hdrIdx;
 }
 
 char const* formatIpLogText (io.IpHdr const* ipHdr)
