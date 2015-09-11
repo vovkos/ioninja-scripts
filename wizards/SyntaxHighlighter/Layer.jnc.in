@@ -1,0 +1,69 @@
+//.............................................................................
+//
+// $(pluginName) layer
+//
+
+import "doc_Plugin.jnc"
+
+//.............................................................................
+
+class $(layerClass): 
+	doc.Layer,
+	log.Converter
+{
+protected:
+	$(highlighterClass) m_txHighlighter;
+	$(highlighterClass) m_rxHighlighter;
+	
+public:
+	construct (doc.PluginHost* pluginHost);
+
+	override bool convert (
+		log.Writer* writer,
+		uint64_t timestamp,
+		uint_t recordCode,
+		void const* p,
+		size_t size
+		);	
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+$(layerClass).construct (doc.PluginHost* pluginHost)
+{
+	basetype1.construct (pluginHost);
+	pluginHost.m_log.attachConverter (this);
+}
+
+bool $(layerClass).convert (
+	log.Writer* writer,
+	uint64_t timestamp,
+	uint_t recordCode,
+	void const* p,
+	size_t size
+	)
+{
+	switch (recordCode)
+	{
+	case log.StdRecordCode.Tx:
+		m_rxHighlighter.finalize (writer);
+		writer.write (timestamp, recordCode, p, size);
+		m_txHighlighter.write (writer, p, size);
+		break;
+
+	case log.StdRecordCode.Rx:
+		m_txHighlighter.finalize (writer);
+		writer.write (timestamp, recordCode, p, size);
+		m_rxHighlighter.write (writer, p, size);
+		break;
+
+	default:
+		m_txHighlighter.finalize (writer);
+		m_rxHighlighter.finalize (writer);
+		writer.write (timestamp, recordCode, p, size);
+	}
+
+	return true;
+}
+
+//.............................................................................

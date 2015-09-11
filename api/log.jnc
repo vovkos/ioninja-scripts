@@ -198,6 +198,33 @@ opaque class Writer
 	{
 		write (jnc.getTimestamp (), recordCode, p, size);
 	}
+	
+	retroColorize (
+		intptr retroOffset,
+		size_t length,
+		gui.TextAttr attr
+		)
+	{
+		RetroColorizeParams params;
+		params.m_retroOffset = retroOffset;
+		params.m_length = length;
+		params.m_attr = attr;
+		
+		write (StdRecordCode.RetroColorize, &params, sizeof (params));
+	}
+
+	retroColorize (
+		intptr retroOffset,
+		size_t length,
+		uint_t color
+		)
+	{
+		gui.TextAttr attr;
+		attr.m_textColor = color;
+		attr.m_backColor = gui.ColorFlags.Transparent;
+		
+		retroColorize (retroOffset, length, attr);
+	}
 }
 
 //.............................................................................

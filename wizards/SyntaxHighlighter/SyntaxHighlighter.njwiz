@@ -1,21 +1,21 @@
 //.............................................................................
 //
-//  IO Ninja IDE Wizard -- Colorizer layer 
+//  IO Ninja IDE Wizard -- Syntax highlighter layer 
 //
 
 [wizard]
-name        = "Colorizer"
-description = "Generates a plugin which generates a secondary log with colorized binary data"
+name        = "Syntax Highlighter"
+description = "Generates a plugin which generates a secondary log with syntax-highlighted binary data"
 
 [variable]
 id          = pluginName
 name        = "Layer Name"
-value       = "My Colorizer"
+value       = "My Syntax Highlighter"
 
 [variable]
 id          = pluginDescription
 name        = "Layer Description"
-value       = "Wizard-generated layer (analyzes a log and generates a secondary log with colorized binary data)"
+value       = "Wizard-generated layer (analyzes a log and generates a secondary log with syntax-highlighted binary data)"
 
 [variable]
 id          = pluginId
@@ -24,8 +24,8 @@ value       = my-colorizer
 
 [variable]
 id          = pluginPrefix
-name        = "Layer Prefix"
-value       = MyColorizer
+name        = "Plugin Prefix"
+value       = MySyntax
 
 [variable]
 id          = layerClass
@@ -35,11 +35,25 @@ value       = $(pluginPrefix)Layer
 rebuildOn   = pluginPrefix
 
 [variable]
+id          = highlighterClass
+name        = "Highlighter Class"
+readOnly    = true
+value       = $(pluginPrefix)Highlighter
+rebuildOn   = pluginPrefix
+
+[variable]
 id          = layerFile
 name        = "Layer File"
 readOnly    = true
 value       = $(layerClass).jnc
 rebuildOn   = layerClass
+
+[variable]
+id          = highlighterFile
+name        = "Highlighter File"
+readOnly    = true
+value       = $(highlighterClass).jnc
+rebuildOn   = highlighterClass
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
@@ -51,6 +65,11 @@ interpolate = true
 [file]
 source = Layer.jnc.in
 target = $(layerFile)
+interpolate = true
+
+[file]
+source = Highlighter.jnc.in
+target = $(highlighterFile)
 interpolate = true
 
 [file]
