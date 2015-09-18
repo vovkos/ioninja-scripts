@@ -11,7 +11,7 @@ class EchoLayer: doc.Layer
 {
 	construct (doc.PluginHost* pluginHost)
 	{
-		basetype.construct (pluginHost);	
+		basetype.construct (pluginHost);
 		pluginHost.m_log.attachListener (onLogRecord @ pluginHost.m_mainThreadScheduler);
 
 	}
