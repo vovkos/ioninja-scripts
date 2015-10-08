@@ -3,8 +3,10 @@
 // TCP Proxy session
 //
 
-import "doc_Plugin.jnc"
+import "io_base.jncx"
 import "io_Socket.jnc"
+import "io_SocketAddressResolver.jnc"
+import "doc_Plugin.jnc"
 
 //.............................................................................
 
@@ -126,8 +128,8 @@ public:
 	override void restoreDefaultProperties ();
 
 protected:
-	handleListenerConnectError (jnc.Error const* error);
-	handleTargetConnectError (jnc.Error const* error);
+	handleListenerConnectError (std.Error const* error);
+	handleTargetConnectError (std.Error const* error);
 	
 	onListen ();
 	onListenerPortChanged ();
@@ -296,7 +298,7 @@ bool TcpProxySession.listen () throws
 	return true;
 
 catch:
-	handleListenerConnectError (jnc.getLastError ());
+	handleListenerConnectError (std.getLastError ());
 	return false;
 }
 
@@ -365,7 +367,7 @@ bool TcpProxySession.connectTarget ()
 	return true;
 	
 catch:
-	handleTargetConnectError (jnc.getLastError ());
+	handleTargetConnectError (std.getLastError ());
 	return false;
 }
 
@@ -644,10 +646,10 @@ TcpProxySession.onResolverEvent (io.SocketAddressResolverEventParams const* para
 	}
 
 catch:
-	handleListenerConnectError (jnc.getLastError ());
+	handleListenerConnectError (std.getLastError ());
 }
 
-TcpProxySession.handleListenerConnectError (jnc.Error const* error)
+TcpProxySession.handleListenerConnectError (std.Error const* error)
 {
 	writeLog (
 		TcpProxyLogRecordCode.ListenError,
@@ -659,7 +661,7 @@ TcpProxySession.handleListenerConnectError (jnc.Error const* error)
 	m_listenerState = ListenerState.Closed;
 }
 
-TcpProxySession.handleTargetConnectError (jnc.Error const* error)
+TcpProxySession.handleTargetConnectError (std.Error const* error)
 {
 	writeLog (
 		TcpProxyLogRecordCode.TargetConnectError,

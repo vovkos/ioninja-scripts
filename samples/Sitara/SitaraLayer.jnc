@@ -160,7 +160,7 @@ SitaraLayer.onFileDlgCompleted (gui.StdDlgButton button)
 	}
 
 catch:
-	m_pluginHost.m_progressDlg.m_status = jnc.getLastError ().m_description;
+	m_pluginHost.m_progressDlg.m_status = std.getLastError ().m_description;
 	m_pluginHost.m_progressDlg.m_buttons = gui.StdDlgButtons.Close;		
 }
 

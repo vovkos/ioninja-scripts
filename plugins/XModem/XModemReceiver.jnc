@@ -134,7 +134,7 @@ XModemReceiver.onRx_Data (XModemBlock const* block)
 	m_parent.m_file.m_size = m_offset;
 	
 catch:
-	m_parent.m_progressDlg.m_status = jnc.getLastError ().m_description;
+	m_parent.m_progressDlg.m_status = std.getLastError ().m_description;
 	complete ();
 }
 

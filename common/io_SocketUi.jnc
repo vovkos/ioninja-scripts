@@ -1,13 +1,36 @@
 //.............................................................................
 //
-// Network adapter user interface
+// Socket & network adapter user interface
 //
 
 import "gui_Base.jnc"
 import "gui_PropertyGrid.jnc"
+import "io_Socket.jnc"
 import "io_NetworkAdapter.jnc"
 
 namespace io {
+
+//.............................................................................
+
+gui.EnumProperty* createSocketCloseKindProperty (
+	gui.PropertyGrid* propertyGrid,
+	char const* name,
+	char const* toolTipText
+	)
+{
+	static gui.EnumPropertyOption closeKindTable [] =
+	{
+		{ "Graceful", SocketCloseKind.Graceful },
+		{ "Reset",    SocketCloseKind.Reset },
+	};
+
+	return propertyGrid.createEnumProperty (
+		name,
+		toolTipText,
+		closeKindTable,
+		countof (closeKindTable)
+		);
+}
 
 //.............................................................................
 

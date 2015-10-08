@@ -3,11 +3,13 @@
 // TCP Monitor session
 //
 
-import "doc_Plugin.jnc"
-import "gui_Dialog.jnc"
-import "io_PCap.jnc"
+import "io_base.jncx"
+import "io_pcap.jncx"
 import "io_Packet.jnc"
 import "io_SocketAddress.jnc"
+import "io_SocketAddressResolver.jnc"
+import "doc_Plugin.jnc"
+import "gui_Dialog.jnc"
 
 //.............................................................................
 

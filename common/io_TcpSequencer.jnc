@@ -3,6 +3,8 @@
 // TCP sequencer ensures handling of TCP segments in correct order 
 //
 
+import "std_List.jnc"
+
 namespace io {
 
 //.............................................................................
@@ -23,7 +25,7 @@ protected:
 		size_t m_size;
 	};
 	
-	jnc.List m_outOfSeqList;
+	std.List m_outOfSeqList;
 
 public:
 	size_t m_outOfSeqLimit;
@@ -94,7 +96,7 @@ TcpSequencer.addOutOfSeqSegment (
 {
 	// find location to insert it
 
-	jnc.ListEntry* it = m_outOfSeqList.m_head;
+	std.ListEntry* it = m_outOfSeqList.m_head;
 	for (; it; it = it.m_next)
 	{
 		OutOfSeqSegment* segment = it.m_data;

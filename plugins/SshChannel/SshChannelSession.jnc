@@ -3,10 +3,12 @@
 // SSH Connection session
 //
 
+import "io_base.jncx"
+import "io_ssh.jncx"
+import "io_Socket.jnc"
+import "io_SocketAddressResolver.jnc"
 import "doc_Plugin.jnc"
 import "gui_Dialog.jnc"
-import "io_Ssh.jnc"
-import "io_Socket.jnc"
 
 //.............................................................................
 
@@ -102,8 +104,8 @@ public:
 		) throws;
 
 protected:
-	handleConnectError (jnc.Error const* error);
-	handleSshAuthError (jnc.Error const* error);
+	handleConnectError (std.Error const* error);
+	handleSshAuthError (std.Error const* error);
 	
 	onConnect ();
 	onSshEvent (io.SshEventParams const* params);
@@ -265,7 +267,7 @@ bool SshChannelSession.connect () throws
 	return true;
 
 catch:
-	handleConnectError (jnc.getLastError ());
+	handleConnectError (std.getLastError ());
 	return false;
 }
 
@@ -314,11 +316,11 @@ bool SshChannelSession.connect (io.SocketAddress const* remoteAddress) throws
 	return true;
 
 catch:
-	handleConnectError (jnc.getLastError ());
+	handleConnectError (std.getLastError ());
 	return false;
 }
 
-SshChannelSession.handleConnectError (jnc.Error const* error)
+SshChannelSession.handleConnectError (std.Error const* error)
 {
 	writeLog (
 		SshChannelLogRecordCode.ConnectError,
@@ -330,7 +332,7 @@ SshChannelSession.handleConnectError (jnc.Error const* error)
 	m_state = State.Closed;
 }
 
-SshChannelSession.handleSshAuthError (jnc.Error const* error)
+SshChannelSession.handleSshAuthError (std.Error const* error)
 {
 	writeLog (
 		SshChannelLogRecordCode.ConnectError,
@@ -357,7 +359,7 @@ SshChannelSession.onLoginDlgCompleted (gui.StdDlgButton button)
 		return;
 
 	if (button != gui.StdDlgButton.Ok)
-		jnc.throw ();
+		std.throw ();
 	
 	m_userNameProp.m_value = m_loginDlg.m_userName;
 	m_passwordProp.m_value = m_loginDlg.m_password;
@@ -564,7 +566,7 @@ SshChannelSession.onResolverEvent (io.SocketAddressResolverEventParams const* pa
 	}
 
 catch:
-	handleConnectError (jnc.getLastError ());
+	handleConnectError (std.getLastError ());
 }
 
 reactor SshChannelSession.m_uiReactor ()

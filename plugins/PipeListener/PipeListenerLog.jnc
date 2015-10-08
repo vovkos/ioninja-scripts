@@ -35,7 +35,7 @@ bool representPipeListenerLog  (
 		break;
 
 	case PipeListenerLogRecordCode.ListenError:
-		jnc.Error const* Error = (jnc.Error const*) p;
+		std.Error const* Error = (std.Error const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
 		target.addHyperText ($"Cannot listen ($(Error.m_description))");

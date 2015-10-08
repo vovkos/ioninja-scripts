@@ -20,4 +20,4 @@ log-representer-func = representSshChannelLog
 
 SshChannelSession.jnc
 SshChannelLog.jnc
-../../common/io_NetworkAdapterUi.jnc
+../../common/io_SocketUi.jnc

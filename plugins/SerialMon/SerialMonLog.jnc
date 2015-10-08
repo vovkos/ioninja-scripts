@@ -40,7 +40,7 @@ bool representSerialMonLog  (
 		break;
 
 	case SerialMonLogRecordCode.CaptureError:
-		jnc.Error const* error = (jnc.Error const*) p;
+		std.Error const* error = (std.Error const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
 		target.addHyperText ($"Unable to start capture ($(error.m_description))");

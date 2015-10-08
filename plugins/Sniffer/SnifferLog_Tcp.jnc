@@ -7,7 +7,7 @@
 
 char const* formatTcpFlagString (io.TcpFlags flags)
 {
-	return jnc.format (
+	return std.format (
 		"%c%c%c%c%c%c%c",
 		(flags & io.TcpFlags.Fin) ? 'F' : '.',
 		(flags & io.TcpFlags.Syn) ? 'S' : '.',
@@ -32,7 +32,7 @@ representTcpHdr (
 {
 	io.TcpHdr const* tcpHdr = (io.TcpHdr const*) (p + baseOffset);
 
-	target.addHyperText (jnc.format (
+	target.addHyperText (std.format (
 		"\e[1mTCP\n" 
 		"   \e[90mSRC:      \e^!%d,%d\e[34m%d\n"
 		"   \e[90mDST:      \e^!%d,%d\e[34m%d\n"
@@ -109,7 +109,7 @@ representTcp (
 {
 	if (baseOffset + sizeof(io.TcpHdr) > size)
 	{
-		target.addHyperText (jnc.format (
+		target.addHyperText (std.format (
 			"[\e^+1\e[34m+\e[m] \e[1mTCP \e[10;34m%s\e[m > \e[34m%s\e[m [INVALID SIZE:%d]",
 			formatIpString (ipHdr.m_srcAddress), 
 			formatIpString (ipHdr.m_dstAddress),
@@ -126,7 +126,7 @@ representTcp (
 	baseOffset += dataOffset;	
 	if (baseOffset > size)
 	{
-		target.addHyperText (jnc.format (
+		target.addHyperText (std.format (
 			"[\e^+1\e[34m+\e[m] \e[1mTCP \e[10;34m%s\e[m > \e[34m%s\e[m [INVALID SIZE:%d]",
 			formatIpString (ipHdr.m_srcAddress), 
 			formatIpString (ipHdr.m_dstAddress),
@@ -147,7 +147,7 @@ representTcp (
 		dataSize = size - baseOffset;
 	}
 
-	target.addHyperText (jnc.format (
+	target.addHyperText (std.format (
 		"[\e^+1\e[34m+\e[m] \e[1mTCP \e[10;34m%s:%d\e[m > \e[10;34m%s:%d\e[m [%s] (%s)",
 		formatIpString (ipHdr.m_srcAddress), 
 		tcpHdr.m_srcPort,

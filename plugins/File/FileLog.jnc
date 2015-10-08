@@ -35,7 +35,7 @@ bool representFileLog (
 		break;
 
 	case FileLogRecordCode.OpenError:
-		jnc.Error const* Error = (jnc.Error const*) p;
+		std.Error const* Error = (std.Error const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
 		target.addHyperText ($"Cannot open file ($(Error.m_description))");
@@ -55,7 +55,7 @@ bool representFileLog (
 		break;
 
 	case FileLogRecordCode.ReadError:
-		jnc.Error const* error = (jnc.Error const*) p;
+		std.Error const* error = (std.Error const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
 		target.addHyperText ($"Read error ($(error.m_description))");

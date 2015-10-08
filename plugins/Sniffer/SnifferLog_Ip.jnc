@@ -8,7 +8,7 @@
 char const* formatIpString (bigendian uint32_t ip32)
 {
 	uint8_t const* ip8 = (uint8_t const*) &ip32;
-	return jnc.format (
+	return std.format (
 		"%d.%d.%d.%d", 
 		ip8 [0], ip8 [1], ip8 [2], ip8 [3]
 		);
@@ -28,7 +28,7 @@ representIpHdr (
 	io.IpHdr const* ipHdr = (io.IpHdr const*) (p + baseOffset);
 	size_t ipHdrSize = ipHdr.m_headerLength * 4;
 
-	target.addHyperText (jnc.format (
+	target.addHyperText (std.format (
 		"\e[1mIP\n"
 		"   \e[90mVERSION:  \e^!%d,%d\e[34m%d\n"
 		"   \e[90mHLENGTH:  \e^!%d,%d\e[34m%d\n"
@@ -149,7 +149,7 @@ representIp(
 {
 	if (baseOffset + sizeof (io.IpHdr) > size)
 	{
-		target.addHyperText (jnc.format ("[\e^+1\e[34m+\e[m] \e[1mIP\e[m [INVALID SIZE:%d]", size));
+		target.addHyperText (std.format ("[\e^+1\e[34m+\e[m] \e[1mIP\e[m [INVALID SIZE:%d]", size));
 		return;
 	}
 

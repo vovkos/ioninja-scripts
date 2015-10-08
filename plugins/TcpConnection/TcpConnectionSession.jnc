@@ -3,8 +3,10 @@
 // TCP Connection session
 //
 
-import "doc_Plugin.jnc"
+import "io_base.jncx"
 import "io_Socket.jnc"
+import "io_SocketAddressResolver.jnc"
+import "doc_Plugin.jnc"
 
 //.............................................................................
 
@@ -93,7 +95,7 @@ public:
 		) throws;
 
 protected:	
-	handleConnectError (jnc.Error const* error);
+	handleConnectError (std.Error const* error);
 
 	onConnect ();
 	onSocketEvent (io.SocketEventParams const* params);
@@ -221,7 +223,7 @@ bool TcpConnectionSession.connect () throws
 	return true;
 
 catch:
-	handleConnectError (jnc.getLastError ());
+	handleConnectError (std.getLastError ());
 	return false;
 }
 
@@ -273,11 +275,11 @@ catch:
 		writeLog (TcpConnectionLogRecordCode.ConnectingFrom, p, dynamic sizeof (p));
 	}
 
-	handleConnectError (jnc.getLastError ());
+	handleConnectError (std.getLastError ());
 	return false;
 }
 
-TcpConnectionSession.handleConnectError (jnc.Error const* error)
+TcpConnectionSession.handleConnectError (std.Error const* error)
 {
 	writeLog (
 		TcpConnectionLogRecordCode.ConnectError,

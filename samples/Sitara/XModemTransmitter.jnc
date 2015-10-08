@@ -112,7 +112,7 @@ XModemTransmitter.sendNextDataBlock ()
 	m_offset += size;	
 
 catch:
-	m_parent.m_pluginHost.m_progressDlg.m_status = jnc.getLastError ().m_description;
+	m_parent.m_pluginHost.m_progressDlg.m_status = std.getLastError ().m_description;
 	complete ();
 }
 

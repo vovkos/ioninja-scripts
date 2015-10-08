@@ -3,6 +3,8 @@
 // IP defragmentation 
 //
 
+import "std_List.jnc"
+import "std_HashTable.jnc"
 import "io_Packet.jnc"
 
 namespace io {
@@ -27,9 +29,9 @@ protected:
 	
 	class Chain
 	{		
-		jnc.ListEntry* m_listEntry;
+		std.ListEntry* m_listEntry;
 		uint64_t m_key;
-		jnc.List m_fragmentList;
+		std.List m_fragmentList;
 		uint64_t m_deadlineTimestamp;
 
 		io.IpHdr* m_ipHdr;
@@ -37,8 +39,8 @@ protected:
 		size_t m_size;
 	}
 
-	jnc.List m_chainList;
-	jnc.VariantHashTable m_chainHashTable;	
+	std.List m_chainList;
+	std.VariantHashTable m_chainHashTable;	
 
 public:
 	size_t m_fragmentLimit;
@@ -84,7 +86,7 @@ io.IpHdr const* IpDefragmenter.defragment (
 	void const* payload = (char const*) ipHdr + ipHdrSize;
 	size = ipHdr.m_totalLength - ipHdrSize;	
 	
-	uint64_t timestamp = jnc.getTimestamp ();
+	uint64_t timestamp = std.getTimestamp ();
 	uint64_t key = (uint64_t) ipHdr.m_srcAddress | (ipHdr.m_identification << 32);
 	Chain* chain = m_chainHashTable.m_map [key];
 	if (!chain)
@@ -109,7 +111,7 @@ io.IpHdr const* IpDefragmenter.defragment (
 		
 	// find location to insert it
 
-	jnc.ListEntry* it = chain.m_fragmentList.m_head;
+	std.ListEntry* it = chain.m_fragmentList.m_head;
 	for (; it; it = it.m_next)
 	{
 		Fragment* fragment = it.m_data;
@@ -188,7 +190,7 @@ io.IpHdr const* IpDefragmenter.assembleChain (IpDefragmenter.Chain* chain)
 
 IpDefragmenter.removeTimedOutChains ()
 {
-	uint64_t timestamp = jnc.getTimestamp ();
+	uint64_t timestamp = std.getTimestamp ();
 	
 	while (m_chainList.m_count)
 	{

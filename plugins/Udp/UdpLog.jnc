@@ -65,7 +65,7 @@ bool representUdpLog (
 		break;
 
 	case UdpRecordCode.Error:
-		jnc.Error const* Error = (jnc.Error const*) p;
+		std.Error const* Error = (std.Error const*) p;
 		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;

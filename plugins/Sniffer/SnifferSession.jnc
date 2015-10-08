@@ -3,9 +3,10 @@
 // Sniffer session
 //
 
+import "io_base.jncx"
+import "io_pcap.jncx"
 import "doc_Plugin.jnc"
 import "gui_Dialog.jnc"
-import "io_PCap.jnc"
 
 //.............................................................................
 

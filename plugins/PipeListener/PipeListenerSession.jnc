@@ -3,9 +3,10 @@
 // Pipe Listener session
 //
 
-import "doc_Plugin.jnc"
+import "io_base.jncx"
 import "io_NamedPipe.jnc"
 import "io_FileStream.jnc"
+import "doc_Plugin.jnc"
 
 //.............................................................................
 
@@ -174,7 +175,7 @@ bool PipeListenerSession.listen () throws
 	return true;
 
 catch:
-	jnc.Error const* error = jnc.getLastError ();
+	std.Error const* error = std.getLastError ();
 	writeLog (
 		PipeListenerLogRecordCode.ListenError,
 		error,

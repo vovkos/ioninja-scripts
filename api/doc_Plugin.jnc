@@ -74,7 +74,7 @@ class Plugin
 
 	writeLogError (
 		uint_t recordCode,
-		jnc.Error const* error
+		std.Error const* error
 		)
 	{
 		m_pluginHost.m_log.m_writer.write (recordCode, error, error.m_size);
@@ -82,7 +82,7 @@ class Plugin
 
 	writeLogLastError (uint_t recordCode)
 	{
-		writeLogError (recordCode, jnc.getLastError ());
+		writeLogError (recordCode, std.getLastError ());
 	}
 
 	gui.Action* createAction (
