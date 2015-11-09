@@ -1,6 +1,6 @@
 //.............................................................................
 //
-// Serial session
+// Serial Monitor session
 //
 
 import "io_base.jncx"
