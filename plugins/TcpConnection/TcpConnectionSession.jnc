@@ -181,8 +181,12 @@ TcpConnectionSession.createUi ()
 
 TcpConnectionSession.onConnect ()
 {
+	printf ("TcpConnectionSession.onConnect - 1\n");
+
 	io.SocketAddress address;
 	try address.parse ("127.0.0.1:1001");
+
+	printf ("TcpConnectionSession.onConnect - 2\n");
 
 	if (m_state)
 		disconnect ();
@@ -192,15 +196,27 @@ TcpConnectionSession.onConnect ()
 
 bool TcpConnectionSession.connect () throws
 {
+	printf ("TcpConnectionSession.connect - 1\n");
+
 	disconnect ();
 
+	printf ("TcpConnectionSession.connect - 2\n");
+
 	char const* addressString = m_addressCombo.m_editText;
+
+	printf ("TcpConnectionSession.connect - 3\n");
+
+	printf ("addressString = %s\n", addressString);
+
 	m_addressCombo.addEditTextToHistory ();
 
 	io.SocketAddress address;
 	bool isDirectAddress = try address.parse (addressString);
 	if (isDirectAddress)
+	{
+		printf ("direct address\n");
 		return try connect (&address);
+	}
 
 	m_state = State.Resolving;
 
@@ -209,6 +225,8 @@ bool TcpConnectionSession.connect () throws
 		addressString,
 		strlen (addressString)
 		);
+
+	printf ("resolving %s...\n", addressString);
 
 	io.AddressFamily addressFamily = io.AddressFamily.Undefined;
 	if (m_useLocalAddressProp.m_value)
@@ -431,12 +449,17 @@ TcpConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 
 TcpConnectionSession.onResolverEvent (io.SocketAddressResolverEventParams const* params)
 {
+	printf ("TcpConnectionSession.onResolverEvent\n");
+
 	if (params.m_syncId != m_socket.m_syncId)
 		return;
 
 	switch (params.m_eventKind)
 	{
 	case io.SocketAddressResolverEvent.ResolveCompleted:
+		printf ("io.SocketAddressResolverEvent.ResolveCompleted\n");
+		printf ("addr = %s\n", params.m_addressTable [0].getString ());
+
 		writeLog (
 			TcpConnectionLogRecordCode.ResolveCompleted,
 			params.m_addressTable,
