@@ -286,13 +286,6 @@ SerialSession.createUi ()
 		countof (baudRateTable)
 		);
 
-	m_flowControlProp = m_pluginHost.m_propertyGrid.createEnumProperty (
-		"Flow control",
-		"Serial flow control",
-		flowControlTable,
-		countof (flowControlTable)
-		);
-
 	m_dataBitsProp = m_pluginHost.m_propertyGrid.createEnumProperty (
 		"Data bits",
 		"Serial data bit count (word size)",
@@ -305,6 +298,13 @@ SerialSession.createUi ()
 		"Serial stop bit count",
 		stopBitsTable,
 		countof (stopBitsTable)
+		);
+
+	m_flowControlProp = m_pluginHost.m_propertyGrid.createEnumProperty (
+		"Flow control",
+		"Serial flow control",
+		flowControlTable,
+		countof (flowControlTable)
 		);
 
 	m_parityProp = m_pluginHost.m_propertyGrid.createEnumProperty (
@@ -371,10 +371,10 @@ bool SerialSession.open () throws
 	
 	m_serial.open (name);
 	m_serial.m_baudRate = m_baudRateCombo.m_currentData;
-	m_serial.m_flowControl = (io.SerialFlowControl) m_flowControlCombo.m_currentData;
-	m_serial.m_dataBits = m_dataBitsProp.m_value;
-	m_serial.m_stopBits = (io.SerialStopBits) m_stopBitsProp.m_value;
-	m_serial.m_parity = (io.SerialParity) m_parityProp.m_value;
+	m_serial.m_dataBits = m_dataBitsCombo.m_currentData;
+	m_serial.m_stopBits = m_stopBitsCombo.m_currentData;
+	m_serial.m_flowControl = m_flowControlCombo.m_currentData;
+	m_serial.m_parity = m_parityProp.m_value;
 	m_serial.m_dtr = m_actionTable [ActionId.Dtr].m_isChecked;
 	m_serial.m_rts = m_actionTable [ActionId.Rts].m_isChecked;
 
