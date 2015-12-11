@@ -21,6 +21,7 @@ enum SshChannelLogRecordCode
 	ConnectCompleted,
 	ConnectError,
 	Disconnected,
+	Reconnecting,
 }
 
 enum SshChannelLogPartCode
@@ -118,7 +119,7 @@ bool representSshChannelLog (
 		target.addHyperText ("SSH channel established");
 		break;
 
-	case SshChannelLogRecordCode.ConnectCancelled:
+	case SshChannelLogRecordCode.ConnectCancelled:	
 		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, "cancelled");
 		break;
 
@@ -136,6 +137,12 @@ bool representSshChannelLog (
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
 		target.addHyperText ($"Disconnected from \e[34m$addressString");
+		break;
+
+	case SshChannelLogRecordCode.Reconnecting:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText (SshChannelLogPartCode.Connecting, "Reconnecting...");
 		break;
 
 	default:

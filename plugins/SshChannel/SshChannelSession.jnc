@@ -21,7 +21,6 @@ protected:
 		Resolving,
 		Connecting,
 		RequestingLogin,
-		Authenticating,
 		Connected
 	}
 
@@ -31,7 +30,6 @@ protected:
 		"Resolving...",
 		"Connecting...",
 		"Requestin login...",
-		"Authenticating...",
 		"Connected",
 	};
 
@@ -360,13 +358,12 @@ SshChannelSession.onLoginDlgCompleted (gui.StdDlgButton button)
 
 	if (button != gui.StdDlgButton.Ok)
 		std.throw ();
+
 	
 	m_userNameProp.m_value = m_loginDlg.m_userName;
 	m_passwordProp.m_value = m_loginDlg.m_password;
-
 	m_channel.authenticate (m_userNameProp.m_value, m_passwordProp.m_value);
-	writeLog (SshChannelLogRecordCode.SshAuthenticating);
-	m_state = State.Authenticating;
+	m_state = State.Connecting;
 	
 catch:
 	m_channel.close ();
@@ -530,6 +527,16 @@ SshChannelSession.onSshEvent (io.SshEventParams const* params)
 		
 		m_channel.close ();
 		m_state = State.Closed;
+		break;
+
+	case io.SshEvent.ReauthenticateInitiated:
+		printf ("io.SshEvent.ReauthenticateInitiated\n");
+		writeLog (SshChannelLogRecordCode.SshAuthenticating);
+		break;
+
+	case io.SshEvent.ReconnectInitiated:
+		printf ("io.SshEvent.ReconnectInitiated\n");
+		writeLog (SshChannelLogRecordCode.Reconnecting);
 		break;
 
 	case io.SshEvent.IncomingData:
