@@ -50,10 +50,10 @@ bool representTcpProxyLog (
 		break;
 
 	case TcpProxyLogRecordCode.ListenError:
-		std.Error const* Error = (std.Error const*) p;
+		std.Error const* error = (std.Error const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		target.addHyperText (TcpProxyPartCode.TargetConnectCompleted, $"Cannot listen ($(Error.m_description))");
+		target.addHyperText (TcpProxyPartCode.TargetConnectCompleted, $"Cannot listen: $(error.m_description)");
 		break;
 
 	case TcpProxyLogRecordCode.ListenStopped:
@@ -111,8 +111,8 @@ bool representTcpProxyLog (
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
 
-		std.Error const* Error = (std.Error const*) p;
-		target.addHyperText (TcpProxyPartCode.TargetConnectCompleted, $"error ($(Error.m_description))");
+		std.Error const* error = (std.Error const*) p;
+		target.addHyperText (TcpProxyPartCode.TargetConnectCompleted, $"error ($(error.m_description))");
 		break;
 
 	case TcpProxyLogRecordCode.TargetDisconnected:
@@ -139,8 +139,8 @@ bool representTcpProxyLog (
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
 
-		std.Error const* Error = (std.Error const*) p;
-		target.addHyperText (TcpProxyPartCode.TargetConnectCompleted, $"error ($(Error.m_description))");
+		std.Error const* error = (std.Error const*) p;
+		target.addHyperText (TcpProxyPartCode.TargetConnectCompleted, $"error ($(error.m_description))");
 		break;
 
 	default:

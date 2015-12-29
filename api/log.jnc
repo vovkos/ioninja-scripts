@@ -41,7 +41,8 @@ enum StdRecordCode
 	PlainText     = 0x03000000 | PartCodeFlags.Mergeable,
 	HyperText     = 0x04000000 | PartCodeFlags.Mergeable,
 	Bin           = 0x05000000 | PartCodeFlags.Mergeable,
-	RetroColorize = 0x06000000,
+	Error         = 0x06000000,
+	RetroColorize = 0x07000000,
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .

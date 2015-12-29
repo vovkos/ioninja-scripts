@@ -91,7 +91,7 @@ bool representTcpConnectionLog (
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
 
 		std.Error const* error = (std.Error const*) p;
-		target.addHyperText (TcpConnectionPartCode.ConnectCompleted, $"error ($(error.m_description))");
+		target.addHyperText (TcpConnectionPartCode.ConnectCompleted, $"error: $(error.m_description)");
 		break;
 
 	case TcpConnectionLogRecordCode.Disconnected:

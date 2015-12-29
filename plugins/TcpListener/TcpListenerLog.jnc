@@ -47,10 +47,10 @@ bool representTcpListenerLog (
 		break;
 
 	case TcpListenerLogRecordCode.ListenError:
-		std.Error const* Error = (std.Error const*) p;
+		std.Error const* error = (std.Error const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		target.addHyperText ($"Cannot listen ($(Error.m_description))");
+		target.addHyperText ($"Cannot listen: $(error.m_description)");
 		break;
 
 	case TcpListenerLogRecordCode.ListenStopped:

@@ -21,6 +21,7 @@ protected:
 
 	enum ActionId
 	{
+		Refresh,
 		Capture,
 		_Count,
 	}
@@ -77,6 +78,7 @@ public:
 	override void restoreDefaultProperties ();
 
 protected:
+	onRefresh ();
 	onCapture ();
 	onReadyRead (uint_t syncId);
 
@@ -111,8 +113,11 @@ SerialMonSession.createUi ()
 	io.SerialPortDesc const* portList = io.createSerialPortDescList (&portCount);
 	io.SerialPortDesc const* port = portList;
 	for (; port; port = port.m_next)
-		m_portCombo.addItem (port.m_name, null);
+		m_portCombo.addItem (port.m_deviceName, null);
 
+	m_actionTable [ActionId.Refresh]  = createAction ("Refresh port list", "images/refresh.png");
+	m_actionTable [ActionId.Refresh].m_onTriggered += onRefresh;
+		
 	m_iconTable [IconId.Capture] = new gui.Icon ("images/capture.png");
 	m_iconTable [IconId.StopCapture] = new gui.Icon ("images/pause.png");
 
@@ -151,6 +156,23 @@ SerialMonSession.createUi ()
 		);
 	
 	m_uiReactor.start ();
+}
+
+SerialMonSession.onRefresh ()
+{
+	char const* name = m_portCombo.m_currentText;
+	m_portCombo.clear ();
+
+	size_t portCount;
+	io.SerialPortDesc const* portList = io.createSerialPortDescList (&portCount);
+	io.SerialPortDesc const* port = portList;
+	for (; port; port = port.m_next)
+		m_portCombo.addItem (port.m_deviceName, null);
+
+	m_portCombo.m_editText = name; // preserve current text
+	m_portCombo.adjustSizeToContents ();
+
+	io.updateSerialPortProperty (m_portProp, portList, portCount);
 }
 
 SerialMonSession.onCapture ()

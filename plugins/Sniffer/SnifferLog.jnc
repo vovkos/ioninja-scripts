@@ -87,7 +87,7 @@ bool representSnifferLog (
 		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		target.addPlainText (SnifferLogPartCode.CaptureCompleted, $"error ($(error.m_description))");
+		target.addPlainText (SnifferLogPartCode.CaptureCompleted, $"error: $(error.m_description)");
 		break;
 
 	case SnifferLogRecordCode.CaptureStopped:
@@ -112,7 +112,7 @@ bool representSnifferLog (
 		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		target.addPlainText (SnifferLogPartCode.FilterCompleted, $"error ($(error.m_description))");
+		target.addPlainText (SnifferLogPartCode.FilterCompleted, $"error: $(error.m_description)");
 		break;
 
 	default:

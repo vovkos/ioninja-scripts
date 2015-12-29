@@ -70,7 +70,7 @@ bool representTcpFlowMonLog (
 		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		target.addPlainText (TcpFlowMonLogPartCode.ResolveCompleted, $"error ($(error.m_description))");
+		target.addPlainText (TcpFlowMonLogPartCode.ResolveCompleted, $"error: $(error.m_description)");
 		break;
 		
 	case TcpFlowMonLogRecordCode.StartingCapture:

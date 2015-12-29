@@ -18,6 +18,7 @@ enum SerialLogRecordCode
 	RtsChanged,
 	DtrChanged,
 	StatusLineChanged,
+	IoError,
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -118,7 +119,7 @@ bool representSerialLog (
 		std.Error const* error = (std.Error const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		target.addHyperText ($"Unable to open port ($(error.m_description))");
+		target.addHyperText ($"Unable to open port: $(error.m_description)");
 		break;
 
 	case SerialLogRecordCode.BaudRateChanged:
@@ -208,6 +209,13 @@ bool representSerialLog (
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText (string);
+		break;
+		
+	case SerialLogRecordCode.IoError:
+		std.Error const* error = (std.Error const*) p;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
+		target.addHyperText ($"IO error: $(error.m_description)");
 		break;
 
 	default:

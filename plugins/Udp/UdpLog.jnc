@@ -65,11 +65,11 @@ bool representUdpLog (
 		break;
 
 	case UdpRecordCode.Error:
-		std.Error const* Error = (std.Error const*) p;
+		std.Error const* error = (std.Error const*) p;
 		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		target.addHyperText (UdpRecordPartCode.ResolveCompleted, $"error ($(Error.m_description))");
+		target.addHyperText (UdpRecordPartCode.ResolveCompleted, $"error: $(error.m_description)");
 		break;
 
 	case UdpRecordCode.Resolving:

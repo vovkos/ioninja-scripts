@@ -75,7 +75,7 @@ bool representUdpFlowMonLog (
 		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		target.addPlainText (UdpFlowMonLogPartCode.ResolveCompleted, $"error ($(error.m_description))");
+		target.addPlainText (UdpFlowMonLogPartCode.ResolveCompleted, $"error: $(error.m_description)");
 		break;
 		
 	case UdpFlowMonLogRecordCode.StartingCapture:

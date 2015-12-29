@@ -294,7 +294,7 @@ PipeListenerSession.onConnectionPipeEvent (io.FileStreamEventParams const* param
 	switch (params.m_eventKind)
 	{
 	case io.FileStreamEvent.Eof:
-	case io.FileStreamEvent.ReadError:
+	case io.FileStreamEvent.IoError:
 		writeLog (PipeListenerLogRecordCode.ClientDisconnected);
 		m_connectionPipe = null;
 		m_connectionState = State.Closed;

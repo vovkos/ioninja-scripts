@@ -20,3 +20,4 @@ log-representer-func = representSerialLog
 
 SerialSession.jnc
 SerialLog.jnc
+../../common/io_SerialUi.jnc

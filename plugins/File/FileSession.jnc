@@ -274,8 +274,8 @@ FileSession.onFileStreamEvent (io.FileStreamEventParams const* params)
 			close ();
 		break;
 
-	case io.FileStreamEvent.ReadError:
-		writeLog (FileLogRecordCode.ReadError, params.m_error, params.m_error.m_size);
+	case io.FileStreamEvent.IoError:
+		writeLog (FileLogRecordCode.IoError, params.m_error, params.m_error.m_size);
 		close ();
 		break;		
 	}

@@ -11,7 +11,7 @@ enum FileLogRecordCode
 	OpenError,
 	Closed,	
 	Eof,
-	ReadError
+	IoError
 }
 
 //.............................................................................
@@ -35,10 +35,10 @@ bool representFileLog (
 		break;
 
 	case FileLogRecordCode.OpenError:
-		std.Error const* Error = (std.Error const*) p;
+		std.Error const* error = (std.Error const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		target.addHyperText ($"Cannot open file ($(Error.m_description))");
+		target.addHyperText ($"Cannot open file ($(error.m_description))");
 		break;
 
 	case FileLogRecordCode.Closed:
@@ -54,11 +54,11 @@ bool representFileLog (
 		target.addHyperText ("EOF reached");
 		break;
 
-	case FileLogRecordCode.ReadError:
+	case FileLogRecordCode.IoError:
 		std.Error const* error = (std.Error const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		target.addHyperText ($"Read error ($(error.m_description))");
+		target.addHyperText ($"IO error: $(error.m_description)");
 		break;
 
 	default:

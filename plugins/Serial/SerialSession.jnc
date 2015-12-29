@@ -20,6 +20,7 @@ protected:
 
 	enum ActionId
 	{
+		Refresh,
 		Open,
 		Dtr,
 		Rts,
@@ -101,6 +102,7 @@ public:
 		) throws;
 
 protected:
+	onRefresh ();
 	onOpen ();	
 	onSerialEvent (io.SerialEventParams const* params);
 	onBaudRateChanged ();
@@ -198,11 +200,14 @@ SerialSession.createUi ()
 	io.SerialPortDesc const* portList = io.createSerialPortDescList (&portCount);
 	io.SerialPortDesc const* port = portList;
 	for (; port; port = port.m_next)
-		m_portCombo.addItem (port.m_name, null);
+		m_portCombo.addItem (port.m_deviceName, null);
 
 	m_portCombo.adjustSizeToContents ();
 	m_portCombo.m_onEnter += open;
 
+	m_actionTable [ActionId.Refresh]  = createAction ("Refresh port list", "images/refresh.png");
+	m_actionTable [ActionId.Refresh].m_onTriggered += onRefresh;
+	
 	m_baudRateCombo = createSerialSettingComboBox (
 		"Baud:", 
 		baudRateTable, 
@@ -240,7 +245,7 @@ SerialSession.createUi ()
 
 	m_iconTable [IconId.Open] = new gui.Icon ("images/connect.png");
 	m_iconTable [IconId.Close] = new gui.Icon ("images/pause.png");
-
+	
 	m_actionTable [ActionId.Open]  = createAction ("Open", "images/connect.png");
 	m_actionTable [ActionId.Open].m_onTriggered += onOpen;
 
@@ -351,6 +356,23 @@ gui.ComboBox* SerialSession.createSerialSettingComboBox (
 	comboBox.m_onChanged += onChanged;
 	
 	return comboBox;
+}
+
+SerialSession.onRefresh ()
+{
+	char const* name = m_portCombo.m_currentText;
+	m_portCombo.clear ();
+
+	size_t portCount;
+	io.SerialPortDesc const* portList = io.createSerialPortDescList (&portCount);
+	io.SerialPortDesc const* port = portList;
+	for (; port; port = port.m_next)
+		m_portCombo.addItem (port.m_deviceName, null);
+
+	m_portCombo.m_editText = name; // preserve current text
+	m_portCombo.adjustSizeToContents ();
+
+	io.updateSerialPortProperty (m_portProp, portList, portCount);
 }
 
 SerialSession.onOpen ()
@@ -562,6 +584,11 @@ SerialSession.onSerialEvent (io.SerialEventParams const* params)
 
 	case io.SerialEvent.TransmitBufferReady:
 		m_isTransmitEnabled = true;
+		break;
+
+	case io.SerialEvent.IoError:
+		writeLog (SerialLogRecordCode.IoError, params.m_error, params.m_error.m_size);
+		close ();
 		break;
 	}
 }
