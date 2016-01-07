@@ -71,7 +71,7 @@ protected:
 
 	// serial property grid
 
-	gui.EnumProperty* m_portProp;
+	gui.StringProperty* m_portProp;
 	gui.EnumProperty* m_baudRateProp;
 	gui.EnumProperty* m_dataBitsProp;
 	gui.EnumProperty* m_stopBitsProp;
@@ -276,12 +276,9 @@ SerialSession.createUi ()
 
 	// property grid
 
-	m_portProp = io.createSerialPortProperty (
-		m_pluginHost.m_propertyGrid,
+	m_portProp = m_pluginHost.m_propertyGrid.createStringProperty (
 		"Port",
-		"Specify serial port to use",
-		portList,
-		portCount
+		"Specify serial port to use"
 		);
 
 	m_baudRateProp = m_pluginHost.m_propertyGrid.createEnumProperty (
@@ -371,8 +368,6 @@ SerialSession.onRefresh ()
 
 	m_portCombo.m_editText = name; // preserve current text
 	m_portCombo.adjustSizeToContents ();
-
-	io.updateSerialPortProperty (m_portProp, portList, portCount);
 }
 
 SerialSession.onOpen ()
@@ -475,7 +470,7 @@ void SerialSession.save (doc.Storage* storage)
 
 void SerialSession.updateProperties ()
 {
-	m_portProp.m_currentIndex = m_portCombo.m_currentIndex;
+	m_portProp.m_value = m_portCombo.m_editText;
 	m_baudRateProp.m_currentIndex = m_baudRateCombo.m_currentIndex;
 	m_dataBitsProp.m_currentIndex = m_dataBitsCombo.m_currentIndex;
 	m_stopBitsProp.m_currentIndex = m_stopBitsCombo.m_currentIndex;
@@ -489,7 +484,7 @@ void SerialSession.updateProperties ()
 
 bool SerialSession.applyProperties () throws
 {
-	m_portCombo.m_currentIndex = m_portProp.m_currentIndex;
+	m_portCombo.m_editText = m_portProp.m_value;
 	m_baudRateCombo.m_currentIndex = m_baudRateProp.m_currentIndex;
 	m_dataBitsCombo.m_currentIndex = m_dataBitsProp.m_currentIndex;
 	m_stopBitsCombo.m_currentIndex = m_stopBitsProp.m_currentIndex;
@@ -531,7 +526,7 @@ bool SerialSession.applyProperties () throws
 
 void SerialSession.restoreDefaultProperties ()
 {
-	m_portProp.m_currentIndex = 0;
+	m_portProp.m_value = m_portCombo.m_itemText [0];
 	m_baudRateProp.m_value = 38400;
 	m_flowControlProp.m_value = io.SerialFlowControl.None;
 	m_dataBitsProp.m_value = 8;
