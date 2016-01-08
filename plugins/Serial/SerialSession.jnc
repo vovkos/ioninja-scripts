@@ -635,7 +635,7 @@ SerialSession.onParityChanged ()
 
 	io.SerialParity value = m_parityCombo.m_currentData;		
 	m_serial.m_parity = value;
-	writeLog (SerialLogRecordCode.StopBitsChanged, &value, sizeof (value));
+	writeLog (SerialLogRecordCode.ParityChanged, &value, sizeof (value));
 }
 
 SerialSession.onDtrChanged ()
