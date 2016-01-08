@@ -311,9 +311,7 @@ SerialMonSession.onReadyRead (uint_t syncId)
 		break;
 
 	case io.SerialMonEvent.StatusLineChanged:
-		uint_t mask = -1;
-		char const* p = $"$(params.m_statusLines; B)$(mask; B)";
-		writeLog (SerialLogRecordCode.StatusLineChanged, p, dynamic sizeof (p));
+		writeLog (SerialLogRecordCode.StatusLineChanged, &params.m_statusLines, sizeof (uint_t) * 2);
 		break;
 
 	case io.SerialMonEvent.DtrChanged:
