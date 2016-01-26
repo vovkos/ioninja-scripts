@@ -530,12 +530,10 @@ SshChannelSession.onSshEvent (io.SshEventParams const* params)
 		break;
 
 	case io.SshEvent.ReauthenticateInitiated:
-		printf ("io.SshEvent.ReauthenticateInitiated\n");
 		writeLog (SshChannelLogRecordCode.SshAuthenticating);
 		break;
 
 	case io.SshEvent.ReconnectInitiated:
-		printf ("io.SshEvent.ReconnectInitiated\n");
 		writeLog (SshChannelLogRecordCode.Reconnecting);
 		break;
 
