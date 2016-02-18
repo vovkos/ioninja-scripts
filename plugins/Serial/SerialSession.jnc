@@ -158,7 +158,11 @@ SerialSession.createUi ()
 		{ "57600 bps",  57600 },
 		{ "115200 bps", 115200 },
 		{ "128000 bps", 128000 },
+		{ "153600 bps", 153600 },
+		{ "230400 bps", 230400 },
 		{ "256000 bps", 256000 },
+		{ "460800 bps", 460800 },
+		{ "921600 bps", 921600 },
 	};
 	
 	static gui.EnumPropertyOption flowControlTable [] =
