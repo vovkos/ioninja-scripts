@@ -75,24 +75,24 @@ protected:
 public:
 	construct (doc.PluginHost* pluginHost);
 
-	bool capture () throws;
+	bool errorcode capture ();
 	
-	bool capture (
+	bool errorcode capture (
 		io.PCapDeviceDesc const* device,
 		io.SocketAddress const* filterAddress
-		) throws;
+		);
 	
-	bool openCapFile (
+	bool errorcode openCapFile (
 		char const* fileName,
 		io.SocketAddress const* filterAddress
-		) throws;
+		);
 	
 	stopCapture ();
 
 	override void load (doc.Storage* storage);
 	override void save (doc.Storage* storage);
 	override void updateProperties ();
-	override bool applyProperties () throws;
+	override bool errorcode applyProperties ();
 	override void restoreDefaultProperties ();
 
 protected:
@@ -103,10 +103,10 @@ protected:
 	onResolverEvent (io.SocketAddressResolverEventParams const* params);
 
 	char const* createFilterString (io.SocketAddress const* filterAddress);
-	bool resolve (char const* addressString) throws;
+	bool errorcode resolve (char const* addressString);
 
-	bool applyFilter () throws;
-	bool setFilter (io.SocketAddress const* filterAddress) throws;
+	bool errorcode applyFilter ();
+	bool errorcode setFilter (io.SocketAddress const* filterAddress);
 
 	bool decodePacket (
 		void const* p,
@@ -225,7 +225,7 @@ UdpFlowMonSession.onSetFilter ()
 		try applyFilter ();	
 }
 
-bool UdpFlowMonSession.capture () throws
+bool errorcode UdpFlowMonSession.capture ()
 {
 	stopCapture ();
 	
@@ -261,10 +261,10 @@ bool UdpFlowMonSession.capture () throws
 	return try resolve (addressString);
 }
 
-bool UdpFlowMonSession.capture (
+bool errorcode UdpFlowMonSession.capture (
 	io.PCapDeviceDesc const* device,
 	io.SocketAddress const* filterAddress
-	) throws
+	)
 {
 	stopCapture ();
 		
@@ -289,10 +289,10 @@ bool UdpFlowMonSession.capture (
 	return true;
 }
 
-bool UdpFlowMonSession.openCapFile (
+bool errorcode UdpFlowMonSession.openCapFile (
 	char const* fileName,
 	io.SocketAddress const* filterAddress
-	) throws
+	)
 {
 	char const* filterString = createFilterString (filterAddress);
 	writeLogString (UdpFlowMonLogRecordCode.StartingCapture, filterString);
@@ -330,7 +330,7 @@ UdpFlowMonSession.stopCapture ()
 	m_state = 0;
 }
 
-bool UdpFlowMonSession.resolve (char const* addressString) throws
+bool errorcode UdpFlowMonSession.resolve (char const* addressString)
 {
 	writeLogString (UdpFlowMonLogRecordCode.Resolving, addressString);
 
@@ -346,7 +346,7 @@ bool UdpFlowMonSession.resolve (char const* addressString) throws
 	return true;	
 }	
 
-bool UdpFlowMonSession.applyFilter () throws
+bool errorcode UdpFlowMonSession.applyFilter ()
 {
 	char const* filterString = m_filterCombo.m_editText;
 	m_filterCombo.addEditTextToHistory ();
@@ -373,7 +373,7 @@ bool UdpFlowMonSession.applyFilter () throws
 	return true;
 }
 
-bool UdpFlowMonSession.setFilter (io.SocketAddress const* filterAddress) throws
+bool errorcode UdpFlowMonSession.setFilter (io.SocketAddress const* filterAddress)
 {
 	if (!m_state.Capturing)
 		return true;
@@ -430,7 +430,7 @@ void UdpFlowMonSession.updateProperties ()
 	m_filterProp.m_value = m_filterCombo.m_editText;
 }
 
-bool UdpFlowMonSession.applyProperties () throws
+bool errorcode UdpFlowMonSession.applyProperties ()
 {
 	m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
 	m_filterCombo.m_editText = m_filterProp.m_value;

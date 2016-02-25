@@ -79,20 +79,20 @@ protected:
 public:
 	construct (doc.PluginHost* pluginHost);
 
-	bool connect () throws;
-	bool connect (io.SocketAddress const* address) throws;
+	bool errorcode connect ();
+	bool errorcode connect (io.SocketAddress const* address);
 	disconnect ();
 
 	override void load (doc.Storage* storage);
 	override void save (doc.Storage* storage);
 	override void updateProperties ();
-	override bool applyProperties () throws;
+	override bool errorcode applyProperties ();
 	override void restoreDefaultProperties ();
 
-	override size_t transmit (
+	override size_t errorcode transmit (
 		void const* p,
 		size_t size
-		) throws;
+		);
 
 protected:	
 	handleConnectError (std.Error const* error);
@@ -187,7 +187,7 @@ TcpConnectionSession.onConnect ()
 		try connect ();
 }
 
-bool TcpConnectionSession.connect () throws
+bool errorcode TcpConnectionSession.connect ()
 {
 	disconnect ();
 
@@ -224,7 +224,7 @@ catch:
 	return false;
 }
 
-bool TcpConnectionSession.connect (io.SocketAddress const* remoteAddress) throws
+bool errorcode TcpConnectionSession.connect (io.SocketAddress const* remoteAddress)
 {
 	disconnect ();
 
@@ -345,7 +345,7 @@ void TcpConnectionSession.updateProperties ()
 	m_addressProp.m_value = m_addressCombo.m_editText;
 }
 
-bool TcpConnectionSession.applyProperties () throws
+bool errorcode TcpConnectionSession.applyProperties ()
 {
 	m_addressCombo.m_editText = m_addressProp.m_value;
 	
@@ -368,10 +368,10 @@ void TcpConnectionSession.restoreDefaultProperties ()
 	m_localPortProp.m_value = 0;
 }
 
-size_t TcpConnectionSession.transmit (
+size_t errorcode TcpConnectionSession.transmit (
 	void const* p,
 	size_t size
-	) throws
+	)
 {
 	if (m_state != State.Connected)
 		return -1;

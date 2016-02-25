@@ -68,13 +68,13 @@ protected:
 public:
 	construct (doc.PluginHost* pluginHost);
 
-	bool capture () throws;
+	bool errorcode capture ();
 	stopCapture ();
 
 	override void load (doc.Storage* storage);
 	override void save (doc.Storage* storage);
 	override void updateProperties ();
-	override bool applyProperties () throws;
+	override bool errorcode applyProperties ();
 	override void restoreDefaultProperties ();
 
 protected:
@@ -183,7 +183,7 @@ SerialMonSession.onCapture ()
 		try capture ();
 }
 
-bool SerialMonSession.capture () throws
+bool errorcode SerialMonSession.capture ()
 {
 	stopCapture ();
 
@@ -247,7 +247,7 @@ void SerialMonSession.updateProperties ()
 	m_statusLineChangedVisibleProp.m_value = m_logFilter.m_isStatusLineChangedVisible;
 }
 
-bool SerialMonSession.applyProperties () throws
+bool errorcode SerialMonSession.applyProperties ()
 {
 	m_portCombo.m_currentIndex = m_portProp.m_currentIndex;
 	m_logFilter.m_isSettingChangedVisible = m_settingChangedVisibleProp.m_value;

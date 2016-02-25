@@ -65,30 +65,30 @@ protected:
 public:
 	construct (doc.PluginHost* pluginHost);
 
-	bool capture () throws;
+	bool errorcode capture ();
 	
-	bool capture (
+	bool errorcode capture (
 		io.PCapDeviceDesc const* device,
 		char const* filterString
-		) throws;		
+		);		
 
-	bool openCapFile (
+	bool errorcode openCapFile (
 		char const* fileName,
 		char const* filterString
-		) throws;
+		);
 
 	stopCapture ();
 
 	override void load (doc.Storage* storage);
 	override void save (doc.Storage* storage);
 	override void updateProperties ();
-	override bool applyProperties () throws;
+	override bool errorcode applyProperties ();
 	override void restoreDefaultProperties ();
 
-	override size_t transmit (
+	override size_t errorcode transmit (
 		void const* p,
 		size_t size
-		) throws;
+		);
 
 protected:
 	onCapture ();
@@ -96,7 +96,7 @@ protected:
 	onSetFilter ();
 	onPCapEvent (io.PCapEventParams const* params);
 
-	bool applyFilter () throws;
+	bool errorcode applyFilter ();
 
 	processPacket (
 		void const* p,
@@ -203,7 +203,7 @@ SnifferSession.onFileDlgCompleted (gui.StdDlgButton button)
 	try openCapFile (fileName, filterString);
 }
 
-bool SnifferSession.capture () throws
+bool errorcode SnifferSession.capture ()
 {
 	stopCapture ();
 	
@@ -232,10 +232,10 @@ bool SnifferSession.capture () throws
 	return try capture (device, filterString);
 }
 
-bool SnifferSession.capture (
+bool errorcode SnifferSession.capture (
 	io.PCapDeviceDesc const* device,
 	char const* filterString
-	) throws
+	)
 {
 	stopCapture ();
 		
@@ -258,10 +258,10 @@ bool SnifferSession.capture (
 	return true;
 }
 
-bool SnifferSession.openCapFile (
+bool errorcode SnifferSession.openCapFile (
 	char const* fileName,
 	char const* filterString
-	) throws
+	)
 {
 	writeLogString (SnifferLogRecordCode.StartingCapture, filterString);
 	
@@ -291,7 +291,7 @@ SnifferSession.stopCapture ()
 	m_state = State.Closed;
 }
 
-bool SnifferSession.applyFilter () throws
+bool errorcode SnifferSession.applyFilter ()
 {
 	char const* filter = m_filterCombo.m_editText;
 	m_filterCombo.addEditTextToHistory ();
@@ -335,7 +335,7 @@ void SnifferSession.updateProperties ()
 	m_filterProp.m_value = m_filterCombo.m_editText;
 }
 
-bool SnifferSession.applyProperties () throws
+bool errorcode SnifferSession.applyProperties ()
 {
 	m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
 	m_filterCombo.m_editText = m_filterProp.m_value;
@@ -357,10 +357,10 @@ void SnifferSession.restoreDefaultProperties ()
 	m_ipFragmentTimeoutProp.m_value = io.IpDefragmenter.DefIpFragmentTimeout;
 }
 
-size_t SnifferSession.transmit (
+size_t errorcode SnifferSession.transmit (
 	void const* p,
 	size_t size
-	) throws
+	)
 {
 	if (!m_pcap)
 		return -1;

@@ -69,20 +69,20 @@ protected:
 public:
 	construct (doc.PluginHost* pluginHost);
 
-	bool listen () throws;
+	bool errorcode listen ();
 	stopListen ();
 	disconnect ();
 
 	override void load (doc.Storage* storage);
 	override void save (doc.Storage* storage);
 	override void updateProperties ();
-	override bool applyProperties () throws;
+	override bool errorcode applyProperties ();
 	override void restoreDefaultProperties ();
 
-	override size_t transmit (
+	override size_t errorcode transmit (
 		void const* p,
 		size_t size
-		) throws;
+		);
 
 protected:
 	onListen ();
@@ -155,7 +155,7 @@ PipeListenerSession.onListen ()
 		try listen ();
 }
 
-bool PipeListenerSession.listen () throws
+bool errorcode PipeListenerSession.listen ()
 {
 	stopListen ();
 
@@ -230,7 +230,7 @@ void PipeListenerSession.updateProperties ()
 	m_pipeNameProp.m_value = m_pipeNameCombo.m_editText;
 }
 
-bool PipeListenerSession.applyProperties () throws
+bool errorcode PipeListenerSession.applyProperties ()
 {
 	m_pipeNameCombo.m_editText = m_pipeNameProp.m_value;
 	return true;
@@ -242,10 +242,10 @@ void PipeListenerSession.restoreDefaultProperties ()
 	m_overrideOldConnectionProp.m_value = true;
 }
 
-size_t PipeListenerSession.transmit (
+size_t errorcode PipeListenerSession.transmit (
 	void const* p,
 	size_t size
-	) throws
+	)
 {
 	if (m_connectionState != State.Opened)
 		return -1;

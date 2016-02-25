@@ -114,7 +114,7 @@ protected:
 public:
 	construct (doc.PluginHost* pluginHost);
 	
-	bool listen () throws;
+	bool errorcode listen ();
 	stopListen ();
 	disconnect ();
 	
@@ -124,7 +124,7 @@ public:
 	override void load (doc.Storage* storage);
 	override void save (doc.Storage* storage);
 	override void updateProperties ();
-	override bool applyProperties () throws;
+	override bool errorcode applyProperties ();
 	override void restoreDefaultProperties ();
 
 protected:
@@ -248,7 +248,7 @@ TcpProxySession.onListen ()
 		try listen ();
 }
 
-bool TcpProxySession.listen () throws
+bool errorcode TcpProxySession.listen ()
 {
 	stopListen ();
 
@@ -410,7 +410,7 @@ override void TcpProxySession.updateProperties ()
 	m_clientAddressProp.m_value = m_clientAddressCombo.m_editText;
 }
 
-override bool TcpProxySession.applyProperties () throws
+override bool errorcode TcpProxySession.applyProperties ()
 {
 	m_serverPortCombo.m_editText = $"$(m_serverPortProp.m_value)";
 	m_clientAddressCombo.m_editText = m_clientAddressProp.m_value;

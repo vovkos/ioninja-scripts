@@ -69,20 +69,20 @@ protected:
 public:
 	construct (doc.PluginHost* pluginHost);
 
-	bool open () throws;
+	bool errorcode open ();
 	close ();
 	clear ();
 
 	override void load (doc.Storage* storage);
 	override void save (doc.Storage* storage);
 	override void updateProperties ();
-	override bool applyProperties () throws;
+	override bool errorcode applyProperties ();
 	override void restoreDefaultProperties ();
 
-	override size_t transmit (
+	override size_t errorcode transmit (
 		void const* p,
 		size_t size
-		) throws;
+		);
 
 protected:
 	createUi ();
@@ -164,7 +164,7 @@ FileSession.onOpen ()
 		try	open ();
 }
 
-bool FileSession.open () throws
+bool errorcode FileSession.open ()
 {
 	close ();
 
@@ -226,7 +226,7 @@ void FileSession.updateProperties ()
 	m_fileNameProp.m_value = m_fileNameCombo.m_editText;
 }
 
-bool FileSession.applyProperties () throws
+bool errorcode FileSession.applyProperties ()
 {
 	m_fileNameCombo.m_editText = m_fileNameProp.m_value;
 	return true;
@@ -238,10 +238,10 @@ void FileSession.restoreDefaultProperties ()
 	m_accessProp.m_value = Access.ReadWrite;
 }
 
-size_t FileSession.transmit (
+size_t errorcode FileSession.transmit (
 	void const* p,
 	size_t size
-	) throws
+	)
 {
 	if (m_state != State.Opened)
 		return -1;

@@ -79,20 +79,20 @@ protected:
 public:
 	construct (doc.PluginHost* pluginHost);
 
-	bool listen () throws;
+	bool errorcode listen ();
 	stopListen ();
 	disconnect ();
 
 	override void load (doc.Storage* storage);
 	override void save (doc.Storage* storage);
 	override void updateProperties ();
-	override bool applyProperties () throws;
+	override bool errorcode applyProperties ();
 	override void restoreDefaultProperties ();
 
-	override size_t transmit (
+	override size_t errorcode transmit (
 		void const* p,
 		size_t size
-		) throws;
+		);
 
 protected:
 	onListen ();	
@@ -189,7 +189,7 @@ TcpListenerSession.onListen ()
 		try listen ();
 }
 
-bool TcpListenerSession.listen () throws
+bool errorcode TcpListenerSession.listen ()
 {
 	stopListen ();
 
@@ -289,7 +289,7 @@ void TcpListenerSession.updateProperties ()
 	m_adapterProp.m_currentIndex = m_adapterCombo.m_currentIndex;
 }
 
-bool TcpListenerSession.applyProperties () throws
+bool errorcode TcpListenerSession.applyProperties ()
 {	
 	m_portCombo.m_editText = $"$(m_portProp.m_value)";
 	m_adapterCombo.m_currentIndex = m_adapterProp.m_currentIndex;
@@ -318,10 +318,10 @@ void TcpListenerSession.restoreDefaultProperties ()
 	m_isNagleEnabledProp.m_value = true;
 }
 
-size_t TcpListenerSession.transmit (
+size_t errorcode TcpListenerSession.transmit (
 	void const* p,
 	size_t size
-	) throws
+	)
 {
 	if (m_connectionState != ConnectionState.Connected)
 		return -1;

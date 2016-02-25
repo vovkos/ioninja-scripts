@@ -87,24 +87,24 @@ protected:
 public:
 	construct (doc.PluginHost* pluginHost);
 
-	bool capture () throws;
+	bool errorcode capture ();
 
-	bool capture (
+	bool errorcode capture (
 		io.PCapDeviceDesc const* device,
 		io.SocketAddress const* filterAddress
-		) throws;
+		);
 		
-	bool openCapFile (
+	bool errorcode openCapFile (
 		char const* fileName,
 		io.SocketAddress const* filterAddress
-		) throws;
+		);
 	
 	stopCapture ();
 
 	override void load (doc.Storage* storage);
 	override void save (doc.Storage* storage);
 	override void updateProperties ();
-	override bool applyProperties () throws;
+	override bool errorcode applyProperties ();
 	override void restoreDefaultProperties ();
 
 protected:
@@ -123,10 +123,10 @@ protected:
 	onDataDrop ();
 
 	char const* createFilterString (io.SocketAddress const* filterAddress);
-	bool resolve (char const* addressString) throws;
+	bool errorcode resolve (char const* addressString);
 
-	bool applyFilter () throws;
-	bool setFilter (io.SocketAddress const* filterAddress) throws;
+	bool errorcode applyFilter ();
+	bool errorcode setFilter (io.SocketAddress const* filterAddress);
 
 	bool decodePacket (
 		void const* p,
@@ -261,7 +261,7 @@ TcpFlowMonSession.onSetFilter ()
 		try applyFilter ();	
 }
 		
-bool TcpFlowMonSession.capture () throws
+bool errorcode TcpFlowMonSession.capture ()
 {
 	stopCapture ();
 	
@@ -297,10 +297,10 @@ bool TcpFlowMonSession.capture () throws
 	return try resolve (addressString);
 }
 
-bool TcpFlowMonSession.capture (
+bool errorcode TcpFlowMonSession.capture (
 	io.PCapDeviceDesc const* device,
 	io.SocketAddress const* filterAddress
-	) throws
+	)
 {
 	stopCapture ();
 		
@@ -325,10 +325,10 @@ bool TcpFlowMonSession.capture (
 	return true;
 }
 
-bool TcpFlowMonSession.openCapFile (
+bool errorcode TcpFlowMonSession.openCapFile (
 	char const* fileName,
 	io.SocketAddress const* filterAddress
-	) throws
+	)
 {
 	char const* filterString = createFilterString (filterAddress);
 	writeLogString (TcpFlowMonLogRecordCode.StartingCapture, filterString);
@@ -366,7 +366,7 @@ TcpFlowMonSession.stopCapture ()
 	m_state = 0;
 }
 
-bool TcpFlowMonSession.resolve (char const* addressString) throws
+bool errorcode TcpFlowMonSession.resolve (char const* addressString)
 {
 	writeLogString (TcpFlowMonLogRecordCode.Resolving, addressString);
 
@@ -382,7 +382,7 @@ bool TcpFlowMonSession.resolve (char const* addressString) throws
 	return true;	
 }	
 
-bool TcpFlowMonSession.applyFilter () throws
+bool errorcode TcpFlowMonSession.applyFilter ()
 {
 	char const* filterString = m_filterCombo.m_editText;
 	m_filterCombo.addEditTextToHistory ();
@@ -409,7 +409,7 @@ bool TcpFlowMonSession.applyFilter () throws
 	return true;
 }
 
-bool TcpFlowMonSession.setFilter (io.SocketAddress const* filterAddress) throws
+bool errorcode TcpFlowMonSession.setFilter (io.SocketAddress const* filterAddress)
 {
 	if (!m_state.Capturing)
 		return true;
@@ -468,7 +468,7 @@ void TcpFlowMonSession.updateProperties ()
 	m_filterProp.m_value = m_filterCombo.m_editText;
 }
 
-bool TcpFlowMonSession.applyProperties () throws
+bool errorcode TcpFlowMonSession.applyProperties ()
 {
 	m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
 	m_filterCombo.m_editText = m_filterProp.m_value;

@@ -86,20 +86,20 @@ protected:
 public:
 	construct (doc.PluginHost* pluginHost);
 
-	bool connect () throws;
-	bool connect (io.SocketAddress const* address) throws;
+	bool errorcode connect ();
+	bool errorcode connect (io.SocketAddress const* address);
 	disconnect ();
 
 	override void load (doc.Storage* storage);
 	override void save (doc.Storage* storage);
 	override void updateProperties ();
-	override bool applyProperties () throws;
+	override bool errorcode applyProperties ();
 	override void restoreDefaultProperties ();
 
-	override size_t transmit (
+	override size_t errorcode transmit (
 		void const* p,
 		size_t size
-		) throws;
+		);
 
 protected:
 	handleConnectError (std.Error const* error);
@@ -232,7 +232,7 @@ SshChannelSession.onConnect ()
 		connect ();
 }
 
-bool SshChannelSession.connect () throws
+bool errorcode SshChannelSession.connect ()
 {
 	disconnect ();
 
@@ -269,7 +269,7 @@ catch:
 	return false;
 }
 
-bool SshChannelSession.connect (io.SocketAddress const* remoteAddress) throws
+bool errorcode SshChannelSession.connect (io.SocketAddress const* remoteAddress)
 {
 	disconnect ();
 
@@ -357,8 +357,11 @@ SshChannelSession.onLoginDlgCompleted (gui.StdDlgButton button)
 		return;
 
 	if (button != gui.StdDlgButton.Ok)
-		std.throw ();
-
+	{
+		m_channel.close ();
+		m_state = State.Closed;
+		return;
+	}
 	
 	m_userNameProp.m_value = m_loginDlg.m_userName;
 	m_passwordProp.m_value = m_loginDlg.m_password;
@@ -375,7 +378,7 @@ SshChannelSession.onConsoleSizeChanged ()
 	if (m_state != State.Connected)
 		return; // actually, need to handle console size change during connection process also
 	
-	m_channel.resizePty (
+	try m_channel.resizePty (
 		m_pluginHost.m_terminal.m_consoleWidth,
 		m_pluginHost.m_terminal.m_consoleHeight
 		);	
@@ -439,7 +442,7 @@ void SshChannelSession.updateProperties ()
 	m_addressProp.m_value = m_addressCombo.m_editText;
 }
 
-bool SshChannelSession.applyProperties () throws
+bool errorcode SshChannelSession.applyProperties ()
 {
 	m_addressCombo.m_editText = m_addressProp.m_value;
 	return true;
@@ -459,10 +462,10 @@ void SshChannelSession.restoreDefaultProperties ()
 	m_localPortProp.m_value = 0;
 }
 
-size_t SshChannelSession.transmit (
+size_t errorcode SshChannelSession.transmit (
 	void const* p,
 	size_t size
-	) throws
+	)
 {
 	if (m_state != State.Connected)
 		return -1;

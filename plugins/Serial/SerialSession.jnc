@@ -87,19 +87,19 @@ protected:
 public:
 	construct (doc.PluginHost* pluginHost);
 
-	bool open () throws;
+	bool errorcode open ();
 	close ();
 
 	override void load (doc.Storage* storage);
 	override void save (doc.Storage* storage);
 	override void updateProperties ();
-	override bool applyProperties () throws;
+	override bool errorcode applyProperties ();
 	override void restoreDefaultProperties ();
 
-	override size_t transmit (
+	override size_t errorcode transmit (
 		void const* p,
 		size_t size
-		) throws;
+		);
 
 protected:
 	onRefresh ();
@@ -382,7 +382,7 @@ SerialSession.onOpen ()
 		try open ();
 }
 
-bool SerialSession.open () throws
+bool errorcode SerialSession.open ()
 {
 	close ();
 
@@ -486,7 +486,7 @@ void SerialSession.updateProperties ()
 	m_statusLineChangedVisibleProp.m_value = m_logFilter.m_isStatusLineChangedVisible;
 }
 
-bool SerialSession.applyProperties () throws
+bool errorcode SerialSession.applyProperties ()
 {
 	m_portCombo.m_editText = m_portProp.m_value;
 	m_baudRateCombo.m_currentIndex = m_baudRateProp.m_currentIndex;
@@ -542,10 +542,10 @@ void SerialSession.restoreDefaultProperties ()
 	m_statusLineChangedVisibleProp.m_value = true;
 }
 
-size_t SerialSession.transmit (
+size_t errorcode SerialSession.transmit (
 	void const* p,
 	size_t size
-	) throws
+	)
 {
 	if (m_state != State.Opened)
 		return -1;

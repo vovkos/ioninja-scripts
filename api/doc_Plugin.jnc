@@ -31,7 +31,7 @@ class Plugin
 	{		
 	}
 
-	virtual bool applyProperties () throws
+	virtual bool errorcode applyProperties ()
 	{
 		return true;
 	}
@@ -40,12 +40,12 @@ class Plugin
 	{		
 	}
 
-	abstract size_t transmit (
+	abstract size_t errorcode transmit (
 		void const* p,
 		size_t size
-		) throws;
+		);
 
-	size_t transmitString (char const* s) throws
+	size_t errorcode transmitString (char const* s)
 	{
 		return try transmit (s, strlen (s));
 	}	
@@ -134,10 +134,10 @@ class Session: Plugin
 		basetype.construct (host);
 	}
 
-	override size_t transmit (
+	override size_t errorcode transmit (
 		void const* p,
 		size_t size
-		) throws
+		)
 	{
 		return size;
 	}
@@ -152,10 +152,10 @@ class Layer: Plugin
 		basetype.construct (host);
 	}
 
-	override size_t transmit (
+	override size_t errorcode transmit (
 		void const* p,
 		size_t size
-		) throws
+		)
 	{
 		return transmitNext (p, size);
 	}
