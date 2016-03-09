@@ -31,7 +31,7 @@ bool representPipeListenerLog  (
 		char const* name = (char const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
-		target.addHyperText ($"Listening on \e[34m$name<>");
+		target.addHyperText ($"Listening on \e[34m$name");
 		break;
 
 	case PipeListenerLogRecordCode.ListenError:
