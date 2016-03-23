@@ -5,10 +5,29 @@ alignment (1);
 struct MyPacket
 {
 	int8 m_field1;
-	int16 m_field2;
+	int16 m_field2;	
 	int32 m_field3;
+	
+	int m_checksum;
+	
 
 	char m_field4 [8];
 
 	// ...
+
+	[ packetTemplateAction ]
+	
+	void initialize ()
+	{
+		m_field1 = 1;
+		m_field2 = 2;
+		m_field3 = 3;
+	}
+
+	[ packetTemplateAction ]
+	
+	void calcChecksum ()
+	{
+		m_checksum = (m_field1 + m_field2 + m_field3) * 10;
+	}
 }

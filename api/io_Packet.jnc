@@ -83,11 +83,11 @@ struct Ip6Hdr
 
 struct IpPseudoHdr
 {
-	uint32_t m_srcAddress;
-	uint32_t m_dstAddress;
+	bigendian uint32_t m_srcAddress;
+	bigendian uint32_t m_dstAddress;
 	uint8_t m_zero;
 	uint8_t m_protocol;
-	uint16_t m_length;
+	bigendian uint16_t m_length;
 }
 
 //.............................................................................
