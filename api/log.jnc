@@ -11,16 +11,17 @@ namespace log {
 
 bitflag enum RecordCodeFlags
 {
-	Foldable          = 0x80000000,
+	Foldable = 0x80000000,
+	Epoch    = 0x40000000, // epoch for relative timestamps
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 bitflag enum PartCodeFlags
 {
-	MergeableBackward = 0x40000000,
-	MergeableForward  = 0x20000000,
-	Mergeable         = 0x60000000,
+	MergeableBackward = 0x20000000, // don't interfere with RecordCodeFlags
+	MergeableForward  = 0x10000000,
+	Mergeable         = 0x30000000,
 }
 
 //.............................................................................
