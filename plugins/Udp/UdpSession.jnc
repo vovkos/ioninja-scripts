@@ -194,6 +194,8 @@ UdpSession.openSocket ()
 {
 	closeSocket ();
 
+	writeLog (log.StdRecordCode.SessionStarted);
+	
 	char const* portString = m_localPortCombo.m_editText;
 	m_localPortCombo.addEditTextToHistory ();
 

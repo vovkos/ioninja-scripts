@@ -29,8 +29,8 @@ bool representFileLog (
 	case FileLogRecordCode.Opened:
 		io.FileStreamKind const* kind = (io.FileStreamKind const*) p;
 		char const* fileName = (char const*) (kind + 1);
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Connect;
 		target.addHyperText ($"Opened file \e[34m$fileName\e[m ($(io.getFileStreamKindString (*kind)))");
 		break;
 
@@ -43,8 +43,8 @@ bool representFileLog (
 
 	case FileLogRecordCode.Closed:
 		char const* fileName = (char const*) p;		
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
 		target.addHyperText ($"Closed file \e[34m$fileName");
 		break;
 

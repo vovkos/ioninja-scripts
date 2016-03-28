@@ -114,8 +114,8 @@ bool representSshChannelLog (
 		break;
 
 	case SshChannelLogRecordCode.ConnectCompleted:
-		target.m_lineAttr.m_iconIdx  = log.StdLogIcon.Play;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
+		target.m_lineAttr.m_iconIdx  = log.StdLogIcon.Connect;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Connect;
 		target.addHyperText ("SSH channel established");
 		break;
 
@@ -134,8 +134,8 @@ bool representSshChannelLog (
 
 	case SshChannelLogRecordCode.Disconnected:
 		char const* addressString = ((io.SocketAddress const*) p).getString ();
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
 		target.addHyperText ($"Disconnected from \e[34m$addressString");
 		break;
 

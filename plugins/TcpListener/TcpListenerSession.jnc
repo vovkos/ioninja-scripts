@@ -193,6 +193,8 @@ bool errorcode TcpListenerSession.listen ()
 {
 	stopListen ();
 
+	writeLog (log.StdRecordCode.SessionStarted);
+	
 	m_portCombo.addEditTextToHistory ();
 
 	io.SocketAddress address = *(io.SocketAddress const*) m_adapterCombo.m_currentData;

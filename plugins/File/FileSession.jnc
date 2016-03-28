@@ -168,6 +168,8 @@ bool errorcode FileSession.open ()
 {
 	close ();
 
+	writeLog (log.StdRecordCode.SessionStarted);
+	
 	m_fileNameCombo.addEditTextToHistory ();
 
 	char const* fileName = m_fileNameCombo.m_editText;

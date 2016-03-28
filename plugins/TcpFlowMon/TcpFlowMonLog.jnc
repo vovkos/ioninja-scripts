@@ -82,8 +82,8 @@ bool representTcpFlowMonLog (
 
 	case TcpFlowMonLogRecordCode.CaptureStarted:
 		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Listen;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addPlainText (TcpFlowMonLogPartCode.CaptureCompleted, "ok");
 		break;
 
@@ -96,8 +96,8 @@ bool representTcpFlowMonLog (
 		break;
 
 	case TcpFlowMonLogRecordCode.CaptureStopped:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.StopListen;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addPlainText ("Capture stopped");
 		break;
 
@@ -129,21 +129,23 @@ bool representTcpFlowMonLog (
 		break;
 
 	case TcpFlowMonLogRecordCode.ConnectCompleted:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Connect;
 		target.addHyperText (TcpFlowMonLogPartCode.ConnectCompleted, "ok");
 		break;
 
 	case TcpFlowMonLogRecordCode.ConnectionPickedUp:
 		char const* addressString1 = ((io.SocketAddress const*) p).getString ();
 		char const* addressString2 = ((io.SocketAddress const*) p + 1).getString ();
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Connect;
 		target.addHyperText ($"Picked up connection between \e[34m$addressString1\e[m and \e[34m$addressString2\e[m");
 		break;
 
 	case TcpFlowMonLogRecordCode.Disconnected:
 		char const* addressString = ((io.SocketAddress const*) p).getString ();
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
 		target.addHyperText ($"Disconnected by \e[34m$addressString\e");
 		break;
 

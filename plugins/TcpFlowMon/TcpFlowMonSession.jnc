@@ -303,7 +303,9 @@ bool errorcode TcpFlowMonSession.capture (
 	)
 {
 	stopCapture ();
-		
+
+	writeLog (log.StdRecordCode.SessionStarted);
+	
 	char const* filterString = createFilterString (filterAddress);
 	writeLogString (TcpFlowMonLogRecordCode.StartingCapture, filterString);
 	

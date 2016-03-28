@@ -88,8 +88,8 @@ bool representSerialLog (
 		SerialOpenParams const* params = (SerialOpenParams const*) p;
 		char const* name = (char const*) (params + 1);
 
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Connect;
 
 		if (!(foldFlags & 1))
 			target.addHyperText ($"[\e^+1\e[34m+\e[m] Opened port \e[34m$name\e[m at \e[34m$(params.m_baudRate)\e[m bps");
@@ -110,8 +110,8 @@ bool representSerialLog (
 
 	case SerialLogRecordCode.PortClosed:
 		char const* name = (char const*) p;
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
 		target.addHyperText ($"Port \e[34m$name\e[m closed");
 		break;
 

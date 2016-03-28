@@ -238,7 +238,9 @@ bool errorcode SnifferSession.capture (
 	)
 {
 	stopCapture ();
-		
+
+	writeLog (log.StdRecordCode.SessionStarted);
+	
 	writeLogString (SnifferLogRecordCode.StartingCapture, filterString);
 	
 	bool result = try m_pcap.openDevice (

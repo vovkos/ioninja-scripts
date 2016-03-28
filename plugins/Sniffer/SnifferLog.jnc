@@ -77,8 +77,8 @@ bool representSnifferLog (
 
 	case SnifferLogRecordCode.CaptureStarted:
 		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Listen;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Connect;
 		target.addPlainText (SnifferLogPartCode.CaptureCompleted, "ok");
 		break;
 
@@ -91,8 +91,8 @@ bool representSnifferLog (
 		break;
 
 	case SnifferLogRecordCode.CaptureStopped:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.StopListen;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
 		target.addPlainText ("Capture stopped");
 		break;
 

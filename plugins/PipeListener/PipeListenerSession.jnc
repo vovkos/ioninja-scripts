@@ -159,6 +159,8 @@ bool errorcode PipeListenerSession.listen ()
 {
 	stopListen ();
 
+	writeLog (log.StdRecordCode.SessionStarted);
+	
 	m_pipeNameCombo.addEditTextToHistory ();
 
 	char const* name = m_pipeNameCombo.m_editText;

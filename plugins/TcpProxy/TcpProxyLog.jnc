@@ -44,8 +44,8 @@ bool representTcpProxyLog (
 	{
 	case TcpProxyLogRecordCode.Listening:
 		char const* addressString = ((io.SocketAddress const*) p).getString ();
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Listen;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText ($"Listening on \e[34m$addressString");
 		break;
 
@@ -58,8 +58,8 @@ bool representTcpProxyLog (
 
 	case TcpProxyLogRecordCode.ListenStopped:
 		char const* addressString = ((io.SocketAddress const*) p).getString ();
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.StopListen;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText ($"Stopped listening on \e[34m$addressString");
 		break;
 
@@ -97,8 +97,8 @@ bool representTcpProxyLog (
 
 	case TcpProxyLogRecordCode.TargetConnectCompleted:
 		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Connect;
 		target.addHyperText (TcpProxyPartCode.TargetConnectCompleted, "ok");
 		break;
 
@@ -117,8 +117,8 @@ bool representTcpProxyLog (
 
 	case TcpProxyLogRecordCode.TargetDisconnected:
 		char const* addressString = ((io.SocketAddress const*) p).getString ();
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
 		target.addHyperText ($"Disconnected from \e[34m$addressString");
 		break;
 		

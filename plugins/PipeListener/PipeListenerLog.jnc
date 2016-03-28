@@ -29,8 +29,8 @@ bool representPipeListenerLog  (
 	{
 	case PipeListenerLogRecordCode.Listening:
 		char const* name = (char const*) p;
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Start;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Listen;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText ($"Listening on \e[34m$name");
 		break;
 
@@ -43,20 +43,20 @@ bool representPipeListenerLog  (
 
 	case PipeListenerLogRecordCode.ListenStopped:
 		char const* name = (char const*) p;
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Stop;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.StopListen;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText ($"Stopped listening on \e[34m$name");
 		break;
 
 	case PipeListenerLogRecordCode.ClientConnected:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Connect;
 		target.addHyperText ("Client connected");
 		break;
 
 	case PipeListenerLogRecordCode.ClientDisconnected:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
 		target.addHyperText ("Client disconnected");
 		break;
 

@@ -37,13 +37,14 @@ enum PartKind
 
 enum StdRecordCode
 {
-	Tx            = 0x01000000 | PartCodeFlags.Mergeable, 
-	Rx            = 0x02000000 | PartCodeFlags.Mergeable,
-	PlainText     = 0x03000000 | PartCodeFlags.Mergeable,
-	HyperText     = 0x04000000 | PartCodeFlags.Mergeable,
-	Bin           = 0x05000000 | PartCodeFlags.Mergeable,
-	Error         = 0x06000000,
-	RetroColorize = 0x07000000,
+	Tx             = 0x01000000 | PartCodeFlags.Mergeable, 
+	Rx             = 0x02000000 | PartCodeFlags.Mergeable,
+	PlainText      = 0x03000000 | PartCodeFlags.Mergeable,
+	HyperText      = 0x04000000 | PartCodeFlags.Mergeable,
+	Bin            = 0x05000000 | PartCodeFlags.Mergeable,
+	SessionStarted = 0x06000000 | RecordCodeFlags.Epoch,
+	RetroColorize  = 0x07000000,
+	Error          = 0x08000000,
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -64,8 +65,13 @@ enum StdLogIcon
 	Info = 0,
 	Warning,
 	Error,
+	LightBulb,
 	Play,
 	Pause,
+	Connect,
+	Disconnect,
+	Listen,
+	StopListen,
 	TxPacket,
 	RxPacket,
 	Packet,
@@ -78,13 +84,14 @@ enum StdLogIcon
 
 enum StdLogColor
 {
-	Start   = gui.StdColor.PastelGreen,
-	Stop    = gui.StdColor.PastelGreen,
-	Info    = gui.StdColor.PastelBlue,
-	Warning = gui.StdColor.PastelYellow,
-	Error   = gui.StdColor.PastelRed,
-	Tx      = gui.StdColor.Blue,
-	Rx      = gui.StdColor.Green,
+	Start      = gui.StdColor.PastelPurple,
+	Connect    = gui.StdColor.PastelGreen,
+	Disconnect = gui.StdColor.PastelGreen,
+	Info       = gui.StdColor.PastelBlue,
+	Warning    = gui.StdColor.PastelYellow,
+	Error      = gui.StdColor.PastelRed,
+	Tx         = gui.StdColor.Blue,
+	Rx         = gui.StdColor.Green,
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .

@@ -187,6 +187,8 @@ bool errorcode SerialMonSession.capture ()
 {
 	stopCapture ();
 
+	writeLog (log.StdRecordCode.SessionStarted);
+	
 	char const* name = m_portCombo.m_currentText;
 
 	m_serialMon.capture (name);

@@ -252,6 +252,8 @@ bool errorcode TcpProxySession.listen ()
 {
 	stopListen ();
 
+	writeLog (log.StdRecordCode.SessionStarted);
+	
 	//m_addressCombo.addEditTextToHistory ();
 	//m_serverPortCombo.addEditTextToHistory ();
 
