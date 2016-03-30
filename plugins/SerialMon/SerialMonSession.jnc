@@ -45,7 +45,6 @@ protected:
 	State bindable m_state;
 	io.SerialMon m_serialMon;
 	SerialLogFilter m_logFilter;
-	char const* m_portName;
 
 	// toolbar, status bar & menu
 
@@ -115,13 +114,13 @@ SerialMonSession.createUi ()
 	for (; port; port = port.m_next)
 		m_portCombo.addItem (port.m_deviceName, null);
 
-	m_actionTable [ActionId.Refresh]  = createAction ("Refresh port list", "images/refresh.png");
+	m_actionTable [ActionId.Refresh] = createAction ("Refresh port list", "images/refresh.png");
 	m_actionTable [ActionId.Refresh].m_onTriggered += onRefresh;
 		
 	m_iconTable [IconId.Capture] = new gui.Icon ("images/capture.png");
 	m_iconTable [IconId.StopCapture] = new gui.Icon ("images/pause.png");
 
-	m_actionTable [ActionId.Capture]  = createAction ("Capture", m_iconTable [IconId.Capture]);
+	m_actionTable [ActionId.Capture] = createAction ("Capture", m_iconTable [IconId.Capture]);
 	m_actionTable [ActionId.Capture].m_onTriggered += onCapture;
 
 	// status bar
@@ -194,7 +193,6 @@ bool errorcode SerialMonSession.capture ()
 	m_serialMon.capture (name);
 	writeLog (SerialMonLogRecordCode.CaptureStarted, name, strlen (name));
 
-	m_portName = name;
 	m_state = State.Opened;
 	return true;
 
@@ -215,11 +213,7 @@ SerialMonSession.stopCapture ()
 	if (m_state != State.Opened)
 		return;
 
-	writeLog (
-		SerialMonLogRecordCode.CaptureStopped,
-		m_portName,
-		strlen (m_portName) + 1
-		);
+	writeLog (SerialMonLogRecordCode.CaptureStopped);
 
 	m_serialMon.close ();
 	m_state = State.Closed;

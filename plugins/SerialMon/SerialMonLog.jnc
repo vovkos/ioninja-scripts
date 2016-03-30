@@ -3,6 +3,8 @@
 // Serial Monitor log packet declarations and representer
 //
 
+import "log.jnc"
+
 //.............................................................................
 
 enum SerialMonLogRecordCode

@@ -1,0 +1,91 @@
+//.............................................................................
+//
+// Pipe Monitor log packet declarations and representer
+//
+
+import "log.jnc"
+
+//.............................................................................
+
+enum PipeMonLogRecordCode
+{
+	CaptureStarted = 0x100, // don't mix with PipeLogRecordCode
+	CaptureStopped,
+	CaptureError,
+	ServerFileOpened, 
+	ClientFileOpened, 
+	FileClosed,
+	ConnectionAccepted,
+	ConnectionClosed,	
+}
+
+//.............................................................................
+
+bool representPipeMonLog  (
+	log.RepresenterTarget* target,
+	uint_t recordCode,
+	void const* p,
+	size_t size,
+	uint_t foldFlags
+	)
+{
+	switch (recordCode)
+	{
+	case PipeMonLogRecordCode.CaptureStarted:
+		char const* nameFilter = (char const*) p;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Listen;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText ($"Capture started with filter \e[34m$nameFilter");
+		break;
+
+	case PipeMonLogRecordCode.CaptureStopped:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.StopListen;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText ("Capture stopped");
+		break;
+
+	case PipeMonLogRecordCode.CaptureError:
+		std.Error const* error = (std.Error const*) p;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
+		target.addHyperText ($"Unable to start capture: $(error.m_description)");
+		break;
+
+	case PipeMonLogRecordCode.ServerFileOpened:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText ("Server file opened");
+		break;
+
+	case PipeMonLogRecordCode.ClientFileOpened:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Connect;
+		target.addHyperText ("Server file opened");
+		break;
+
+	case PipeMonLogRecordCode.FileClosed:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
+		target.addHyperText ("File closed");
+		break;
+
+	case PipeMonLogRecordCode.ConnectionAccepted:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Connect;
+		target.addHyperText ("Connection accepted");
+		break;
+
+	case PipeMonLogRecordCode.ConnectionClosed:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
+		target.addHyperText ("Connection closed");
+		break;
+
+	default:
+		return false;
+	}
+
+	return true;
+}
+
+//.............................................................................
