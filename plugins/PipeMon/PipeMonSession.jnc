@@ -72,6 +72,7 @@ public:
 protected:
 	onCapture ();
 	onReadyRead (uint_t syncId);
+	setFileId (intptr loFileId);
 
 	createUi ();
 	reactor m_uiReactor ();
@@ -192,6 +193,15 @@ void PipeMonSession.restoreDefaultProperties ()
 	m_nameProp.m_value = "*mypipe*";
 }
 
+PipeMonSession.setFileId (intptr loFileId)
+{
+	uint32_t lastFileId = m_fileIdMgr.m_lastHiFileId;
+	uint32_t fileId = m_fileIdMgr.getHiFileId (loFileId);
+
+	if (fileId != lastFileId)
+		writeLog (PipeMonLogRecordCode.FileIdChanged, &fileId, sizeof (fileId));
+}
+
 PipeMonSession.onReadyRead (uint_t syncId)
 {
 	if (syncId != m_pipeMon.m_syncId)
@@ -200,49 +210,60 @@ PipeMonSession.onReadyRead (uint_t syncId)
 	io.NamedPipeMonEventParams params;
 	try m_pipeMon.read (&params);
 
-	uint32_t lastFileId = m_fileIdMgr.m_lastHiFileId;
-	uint32_t fileId = m_fileIdMgr.getHiFileId (params.m_fileId);
-
-	if (params.m_eventKind >= io.NamedPipeMonEvent.FileClose && fileId != lastFileId)
-		writeLog (PipeMonLogRecordCode.FileIdChanged, &fileId, sizeof (fileId));
 
 	switch (params.m_eventKind)
 	{
 	case io.NamedPipeMonEvent.ClientFileOpen:
 	case io.NamedPipeMonEvent.ServerFileOpen:
-		static uint_t openCodeTable [2] [2] =
+		static uint_t codeTable [2] [2] =
 		{
 			{ PipeMonLogRecordCode.ClientFileOpened, PipeMonLogRecordCode.ClientFileOpenError },
 			{ PipeMonLogRecordCode.ServerFileOpened, PipeMonLogRecordCode.ServerFileOpenError },
 		};
 		
-		size_t i = params.m_eventKind == io.NamedPipeMonEvent.ServerFileOpen;
-		size_t j = params.m_error != null;
+		uint_t code;		
+		char const* logParams;
 
-		char const* logParams = params.m_error ? 
-			memcat (params.m_error, params.m_error.m_size, params.m_data, params.m_dataSize) :
-			memcat (&fileId, sizeof (fileId), params.m_data, params.m_dataSize);
+		size_t row = params.m_eventKind == io.NamedPipeMonEvent.ServerFileOpen;
 
-		writeLog (openCodeTable [i] [j], logParams, dynamic sizeof (logParams));
+		if (params.m_error)
+		{
+			code = codeTable [row] [1];
+			logParams = memcat (params.m_error, params.m_error.m_size, params.m_data, params.m_dataSize);
+		}
+		else
+		{
+			code = codeTable [row] [0];
+			uint32_t fileId = m_fileIdMgr.getHiFileId (params.m_fileId);
+			logParams = memcat (&fileId, sizeof (fileId), params.m_data, params.m_dataSize);
+		}
+		
+		writeLog (code, logParams, dynamic sizeof (logParams));
 		break;	
 
 	case io.NamedPipeMonEvent.FileClose:
+		setFileId (params.m_fileId);
+		m_fileIdMgr.removeLowFileId (params.m_fileId);
 		writeLog (PipeMonLogRecordCode.FileClosed);
 		break;
 
 	case io.NamedPipeMonEvent.ConnectionAccept:
+		setFileId (params.m_fileId);
 		writeLog (PipeMonLogRecordCode.ConnectionAccepted);
 		break;
 
 	case io.NamedPipeMonEvent.ConnectionClose:
+		setFileId (params.m_fileId);
 		writeLog (PipeMonLogRecordCode.ConnectionClosed);
 		break;
 
 	case io.NamedPipeMonEvent.RxData:
+		setFileId (params.m_fileId);
 		writeLog (log.StdRecordCode.Rx, params.m_data, params.m_dataSize);
 		break;
 
 	case io.NamedPipeMonEvent.TxData:
+		setFileId (params.m_fileId);
 		writeLog (log.StdRecordCode.Tx, params.m_data, params.m_dataSize);
 		break;
 	} 

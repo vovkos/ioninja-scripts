@@ -9,7 +9,7 @@ import "log.jnc"
 
 enum PipeMonLogRecordCode
 {
-	CaptureStarted = 0x100, // don't mix with PipeLogRecordCode
+	CaptureStarted, // don't mix with PipeLogRecordCode
 	CaptureStopped,
 	CaptureError,
 	ServerFileOpened, 
@@ -18,8 +18,14 @@ enum PipeMonLogRecordCode
 	ClientFileOpenError, 
 	FileClosed,
 	ConnectionAccepted,
-	ConnectionClosed,	
+	ConnectionClosed,
 	FileIdChanged,
+}
+
+enum PipemonLogPartCode
+{
+	Prefix = log.PartCodeFlags.MergeableForward | 1,
+	Suffix = log.PartCodeFlags.MergeableBackward | 1,
 }
 
 //.............................................................................
@@ -88,27 +94,27 @@ bool representPipeMonLog  (
 
 	case PipeMonLogRecordCode.FileClosed:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
-		target.addHyperText ("File closed");
+		target.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;		
+		target.addHyperText (PipemonLogPartCode.Suffix, "File closed");
 		break;
 
 	case PipeMonLogRecordCode.ConnectionAccepted:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText ("Connection accepted");
+		target.addHyperText (PipemonLogPartCode.Suffix, "Connection accepted");
 		break;
 
 	case PipeMonLogRecordCode.ConnectionClosed:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText ("Connection closed");
+		target.addHyperText (PipemonLogPartCode.Suffix, "Connection closed");
 		break;
 
 	case PipeMonLogRecordCode.FileIdChanged:
 		uint32_t fileId = *(uint32_t const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Connect;
-		target.addHyperText ($"File \e[34m#$fileId");
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText (PipemonLogPartCode.Prefix, $"File \e[34m#$fileId: ");
 		break;
 
 	default:
