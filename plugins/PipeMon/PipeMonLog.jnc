@@ -93,6 +93,7 @@ bool representPipeMonLog  (
 		break;
 
 	case PipeMonLogRecordCode.FileClosed:
+		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;		
 		target.addHyperText (PipemonLogPartCode.Suffix, "File closed");
