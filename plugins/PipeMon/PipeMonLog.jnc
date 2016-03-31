@@ -13,10 +13,13 @@ enum PipeMonLogRecordCode
 	CaptureStopped,
 	CaptureError,
 	ServerFileOpened, 
+	ServerFileOpenError, 
 	ClientFileOpened, 
+	ClientFileOpenError, 
 	FileClosed,
 	ConnectionAccepted,
 	ConnectionClosed,	
+	FileIdChanged,
 }
 
 //.............................................................................
@@ -48,19 +51,39 @@ bool representPipeMonLog  (
 		std.Error const* error = (std.Error const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		target.addHyperText ($"Unable to start capture: $(error.m_description)");
+		target.addHyperText ($"Cannot start capture: $(error.m_description)");
 		break;
 
 	case PipeMonLogRecordCode.ServerFileOpened:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText ("Server file opened");
+		uint32_t fileId = *(uint32_t const*) p;
+		char const* name = (char const*) (p + sizeof (fileId));
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Connect;		
+		target.addHyperText ($"File \e[34m#$fileId\e[m: Server file opened: \e[34m$name");
+		break;
+
+	case PipeMonLogRecordCode.ServerFileOpenError:
+		std.Error const* error = (std.Error const*) p;
+		char const* name = (char const*) (error + 1);
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
+		target.addHyperText ($"Cannot open server file \e[34m$name\e[m$: $(error.m_description)");
 		break;
 
 	case PipeMonLogRecordCode.ClientFileOpened:
+		uint32_t fileId = *(uint32_t const*) p;
+		char const* name = (char const*) (p + sizeof (fileId));
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Connect;
-		target.addHyperText ("Server file opened");
+		target.addHyperText ($"File \e[34m#$fileId\e[m: Client file opened: \e[34m$name");
+		break;
+
+	case PipeMonLogRecordCode.ClientFileOpenError:
+		std.Error const* error = (std.Error const*) p;
+		char const* name = (char const*) (error + 1);
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
+		target.addHyperText ($"Cannot open client file \e[34m$name\e[m: $(error.m_description)");
 		break;
 
 	case PipeMonLogRecordCode.FileClosed:
@@ -70,15 +93,22 @@ bool representPipeMonLog  (
 		break;
 
 	case PipeMonLogRecordCode.ConnectionAccepted:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Connect;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText ("Connection accepted");
 		break;
 
 	case PipeMonLogRecordCode.ConnectionClosed:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText ("Connection closed");
+		break;
+
+	case PipeMonLogRecordCode.FileIdChanged:
+		uint32_t fileId = *(uint32_t const*) p;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Connect;
+		target.addHyperText ($"File \e[34m#$fileId");
 		break;
 
 	default:

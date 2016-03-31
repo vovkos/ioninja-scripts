@@ -1,0 +1,71 @@
+//.............................................................................
+//
+// File ID manager
+//
+
+import "std_HashTable.jnc"
+
+//.............................................................................
+
+class FileIdMgr
+{
+protected:
+	uint32_t m_hiFileIdCounter;
+	std.VariantHashTable m_fileIdMap;
+
+public:
+	intptr readonly m_lastLoFileId; // FILE_OBJECT* actually
+	uint32_t readonly m_lastHiFileId;
+
+public:
+	reset ();
+	
+	uint32_t getHiFileId (intptr loFileId);
+	removeLowFileId  (intptr loFileId);
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+FileIdMgr.reset ()
+{
+	m_fileIdMap.clear ();
+	m_lastLoFileId = 0;
+	m_lastHiFileId = 0;
+	m_hiFileIdCounter = 0;
+}
+
+uint32_t FileIdMgr.getHiFileId (intptr loFileId)
+{
+	if (loFileId == m_lastLoFileId)
+		return m_lastHiFileId;
+	
+	uint32_t hiFileId;
+	variant hiFileIdVariant;
+	bool isFound = m_fileIdMap.find (loFileId, &hiFileIdVariant);
+	if (isFound)
+	{
+		hiFileId = hiFileIdVariant;
+	}
+	else
+	{
+		hiFileId = ++m_hiFileIdCounter;
+		m_fileIdMap.insert (loFileId, hiFileId);
+	}
+	
+	m_lastLoFileId = loFileId;
+	m_lastHiFileId = hiFileId;
+	return hiFileId;
+}
+
+FileIdMgr.removeLowFileId  (intptr lowFileId)
+{
+	if (lowFileId == m_lastLoFileId)
+	{
+		m_lastLoFileId = 0;
+		m_lastHiFileId = 0;		
+	}
+	
+	m_fileIdMap.remove (lowFileId);
+}
+
+//.............................................................................

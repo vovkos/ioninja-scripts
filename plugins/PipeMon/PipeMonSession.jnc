@@ -39,11 +39,12 @@ protected:
 	}
 
 protected:
-	// serial port
+	// named pipe monitor
 
 	State bindable m_state;
 	io.NamedPipeMon m_pipeMon;
-
+	FileIdMgr m_fileIdMgr;
+		
 	// toolbar, status bar & menu
 
 	gui.Action* m_actionTable [ActionId._Count];
@@ -138,6 +139,7 @@ bool errorcode PipeMonSession.capture ()
 	m_pipeMon.capture (name);
 	writeLogString (PipeMonLogRecordCode.CaptureStarted, name);
 
+	m_fileIdMgr.reset ();
 	m_state = State.Opened;
 	return true;
 
@@ -194,29 +196,45 @@ PipeMonSession.onReadyRead (uint_t syncId)
 {
 	if (syncId != m_pipeMon.m_syncId)
 		return;
-		
+
 	io.NamedPipeMonEventParams params;
 	try m_pipeMon.read (&params);
-	
+
+	uint32_t lastFileId = m_fileIdMgr.m_lastHiFileId;
+	uint32_t fileId = m_fileIdMgr.getHiFileId (params.m_fileId);
+
+	if (params.m_eventKind >= io.NamedPipeMonEvent.FileClose && fileId != lastFileId)
+		writeLog (PipeMonLogRecordCode.FileIdChanged, &fileId, sizeof (fileId));
+
 	switch (params.m_eventKind)
 	{
-	case io.NamedPipeMonEvent.ClientFileOpened:
-		writeLog (PipeMonLogRecordCode.ClientFileOpened);
+	case io.NamedPipeMonEvent.ClientFileOpen:
+	case io.NamedPipeMonEvent.ServerFileOpen:
+		static uint_t openCodeTable [2] [2] =
+		{
+			{ PipeMonLogRecordCode.ClientFileOpened, PipeMonLogRecordCode.ClientFileOpenError },
+			{ PipeMonLogRecordCode.ServerFileOpened, PipeMonLogRecordCode.ServerFileOpenError },
+		};
+		
+		size_t i = params.m_eventKind == io.NamedPipeMonEvent.ServerFileOpen;
+		size_t j = params.m_error != null;
+
+		char const* logParams = params.m_error ? 
+			memcat (params.m_error, params.m_error.m_size, params.m_data, params.m_dataSize) :
+			memcat (&fileId, sizeof (fileId), params.m_data, params.m_dataSize);
+
+		writeLog (openCodeTable [i] [j], logParams, dynamic sizeof (logParams));
 		break;	
 
-	case io.NamedPipeMonEvent.ServerFileOpened:
-		writeLog (PipeMonLogRecordCode.ServerFileOpened);
-		break;	
-
-	case io.NamedPipeMonEvent.FileClosed:
+	case io.NamedPipeMonEvent.FileClose:
 		writeLog (PipeMonLogRecordCode.FileClosed);
 		break;
 
-	case io.NamedPipeMonEvent.ConnectionAccepted:
+	case io.NamedPipeMonEvent.ConnectionAccept:
 		writeLog (PipeMonLogRecordCode.ConnectionAccepted);
 		break;
 
-	case io.NamedPipeMonEvent.ConnectionClosed:
+	case io.NamedPipeMonEvent.ConnectionClose:
 		writeLog (PipeMonLogRecordCode.ConnectionClosed);
 		break;
 
@@ -227,7 +245,6 @@ PipeMonSession.onReadyRead (uint_t syncId)
 	case io.NamedPipeMonEvent.TxData:
 		writeLog (log.StdRecordCode.Tx, params.m_data, params.m_dataSize);
 		break;
-
 	} 
 }
 
