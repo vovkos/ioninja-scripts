@@ -3,6 +3,8 @@
 // Pipe Listener log packet declarations and representer
 //
 
+import "log.jnc"
+
 //.............................................................................
 
 enum PipeListenerLogRecordCode

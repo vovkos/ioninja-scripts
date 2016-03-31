@@ -3,6 +3,8 @@
 // Generic file log packet declarations and representer
 //
 
+import "log.jnc"
+
 //.............................................................................
 
 enum FileLogRecordCode
@@ -11,7 +13,6 @@ enum FileLogRecordCode
 	OpenError,
 	Closed,	
 	Eof,
-	IoError
 }
 
 //.............................................................................
@@ -38,7 +39,7 @@ bool representFileLog (
 		std.Error const* error = (std.Error const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		target.addHyperText ($"Cannot open file ($(error.m_description))");
+		target.addHyperText ($"Cannot open file: $(error.m_description)");
 		break;
 
 	case FileLogRecordCode.Closed:
@@ -52,13 +53,6 @@ bool representFileLog (
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText ("EOF reached");
-		break;
-
-	case FileLogRecordCode.IoError:
-		std.Error const* error = (std.Error const*) p;
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		target.addHyperText ($"IO error: $(error.m_description)");
 		break;
 
 	default:
