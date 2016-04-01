@@ -158,8 +158,7 @@ PipeListenerSession.onListen ()
 bool errorcode PipeListenerSession.listen ()
 {
 	stopListen ();
-
-	writeLog (log.StdRecordCode.SessionStarted);
+	startSession ();
 	
 	m_pipeNameCombo.addEditTextToHistory ();
 

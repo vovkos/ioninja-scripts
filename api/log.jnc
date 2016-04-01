@@ -12,7 +12,6 @@ namespace log {
 bitflag enum RecordCodeFlags
 {
 	Foldable = 0x80000000,
-	Epoch    = 0x40000000, // epoch for relative timestamps
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -42,9 +41,9 @@ enum StdRecordCode
 	PlainText      = 0x03000000 | PartCodeFlags.Mergeable,
 	HyperText      = 0x04000000 | PartCodeFlags.Mergeable,
 	Bin            = 0x05000000 | PartCodeFlags.Mergeable,
-	SessionStarted = 0x06000000 | RecordCodeFlags.Epoch,
+	Error          = 0x06000000,
 	RetroColorize  = 0x07000000,
-	Error          = 0x08000000,
+	SessionStarted = 0x08000000,
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -295,6 +294,7 @@ opaque class Log
 
 	Writer* readonly m_writer;
 	RepresenterFunc thin* autoget property m_representerFunc;
+	uint64_t autoget property m_baseTimestamp;
 
 	destruct ();
 

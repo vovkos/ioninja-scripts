@@ -192,8 +192,7 @@ TcpListenerSession.onListen ()
 bool errorcode TcpListenerSession.listen ()
 {
 	stopListen ();
-
-	writeLog (log.StdRecordCode.SessionStarted);
+	startSession ();
 	
 	m_portCombo.addEditTextToHistory ();
 

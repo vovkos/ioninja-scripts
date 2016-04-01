@@ -141,6 +141,13 @@ class Session: Plugin
 	{
 		return size;
 	}
+	
+	startSession ()
+	{
+		uint64_t timestamp = std.getTimestamp ();
+		m_pluginHost.m_log.m_baseTimestamp = timestamp;
+		m_pluginHost.m_log.m_writer.write (timestamp, log.StdRecordCode.SessionStarted);
+	}
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .

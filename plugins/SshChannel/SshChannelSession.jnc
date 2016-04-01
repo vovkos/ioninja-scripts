@@ -235,8 +235,7 @@ SshChannelSession.onConnect ()
 bool errorcode SshChannelSession.connect ()
 {
 	disconnect ();
-
-	writeLog (log.StdRecordCode.SessionStarted);
+	startSession ();
 	
 	char const* addressString = m_addressCombo.m_editText;
 	m_addressCombo.addEditTextToHistory ();

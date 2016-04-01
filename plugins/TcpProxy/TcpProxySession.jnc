@@ -251,8 +251,7 @@ TcpProxySession.onListen ()
 bool errorcode TcpProxySession.listen ()
 {
 	stopListen ();
-
-	writeLog (log.StdRecordCode.SessionStarted);
+	startSession ();
 	
 	//m_addressCombo.addEditTextToHistory ();
 	//m_serverPortCombo.addEditTextToHistory ();

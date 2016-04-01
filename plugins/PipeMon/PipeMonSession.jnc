@@ -131,8 +131,7 @@ PipeMonSession.onCapture ()
 bool errorcode PipeMonSession.capture ()
 {
 	stopCapture ();
-
-	writeLog (log.StdRecordCode.SessionStarted);
+	startSession ();
 
 	m_nameCombo.addEditTextToHistory ();
 

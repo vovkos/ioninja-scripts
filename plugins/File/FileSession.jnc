@@ -167,8 +167,7 @@ FileSession.onOpen ()
 bool errorcode FileSession.open ()
 {
 	close ();
-
-	writeLog (log.StdRecordCode.SessionStarted);
+	startSession ();
 	
 	m_fileNameCombo.addEditTextToHistory ();
 

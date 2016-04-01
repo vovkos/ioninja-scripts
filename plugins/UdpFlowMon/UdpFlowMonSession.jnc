@@ -267,8 +267,7 @@ bool errorcode UdpFlowMonSession.capture (
 	)
 {
 	stopCapture ();
-		
-	writeLog (log.StdRecordCode.SessionStarted);
+	startSession ();
 	
 	char const* filterString = createFilterString (filterAddress);
 	writeLogString (UdpFlowMonLogRecordCode.StartingCapture, filterString);

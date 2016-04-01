@@ -238,8 +238,7 @@ bool errorcode SnifferSession.capture (
 	)
 {
 	stopCapture ();
-
-	writeLog (log.StdRecordCode.SessionStarted);
+	startSession ();
 	
 	writeLogString (SnifferLogRecordCode.StartingCapture, filterString);
 	

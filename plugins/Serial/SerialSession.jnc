@@ -385,8 +385,7 @@ SerialSession.onOpen ()
 bool errorcode SerialSession.open ()
 {
 	close ();
-
-	writeLog (log.StdRecordCode.SessionStarted);
+	startSession ();
 	
 	char const* name = m_portCombo.m_currentText;
 

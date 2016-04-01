@@ -185,8 +185,7 @@ SerialMonSession.onCapture ()
 bool errorcode SerialMonSession.capture ()
 {
 	stopCapture ();
-
-	writeLog (log.StdRecordCode.SessionStarted);
+	startSession ();
 	
 	char const* name = m_portCombo.m_currentText;
 
