@@ -294,7 +294,7 @@ opaque class Log
 
 	Writer* readonly m_writer;
 	RepresenterFunc thin* autoget property m_representerFunc;
-	uint64_t autoget property m_baseTimestamp;
+	uint64_t property m_baseTimestamp;
 
 	destruct ();
 
