@@ -396,7 +396,7 @@ bool errorcode SerialSession.open ()
 	m_serial.m_dataBits = m_dataBitsCombo.m_currentData;
 	m_serial.m_stopBits = m_stopBitsCombo.m_currentData;
 	m_serial.m_flowControl = m_flowControlCombo.m_currentData;
-	m_serial.m_parity = m_parityProp.m_value;
+	m_serial.m_parity = m_parityCombo.m_currentData;
 	m_serial.m_dtr = m_actionTable [ActionId.Dtr].m_isChecked;
 	m_serial.m_rts = m_actionTable [ActionId.Rts].m_isChecked;
 
