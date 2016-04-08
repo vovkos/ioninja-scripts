@@ -3,7 +3,7 @@
 // Packet header definitions for TCP/IP protocol stack
 //
 
-import "io_Packet.jnc"
+import "io_TcpIp.jnc"
 
 alignment (1);
 
@@ -14,11 +14,15 @@ struct EthernetFrame
 	io.EthernetHdr m_ethernet;
 }
 
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
 struct ArpFrame
 {
 	io.EthernetHdr m_ethernet;
 	io.ArpHdr m_arp;
 }
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 struct IpFrame
 {
@@ -26,27 +30,26 @@ struct IpFrame
 	io.IpHdr m_ip;
 
 	[ packetTemplateAction ]
-
 	initialize ()
 	{
 		initializeEthernetIpHdr (&m_ethernet, &m_ip, (io.IpProtocol) 0);
 	}	
 	
 	[ packetTemplateAction ]
-
 	calcLength ()
 	{		
 		m_ip.m_totalLength = dynamic sizeof (&m_ip);
 	}	
 	
 	[ packetTemplateAction ]
-
 	calcChecksum ()
 	{		
 		m_ip.m_headerChecksum = 0;
 		m_ip.m_headerChecksum = calcIpHdrChecksum (&m_ip);
 	}	
 }
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 struct IcmpFrame
 {
@@ -55,7 +58,6 @@ struct IcmpFrame
 	io.IcmpHdr m_icmp;
 
 	[ packetTemplateAction ]
-
 	initialize ()
 	{
 		initializeEthernetIpHdr (&m_ethernet, &m_ip, io.IpProtocol.Icmp);
@@ -63,20 +65,20 @@ struct IcmpFrame
 	}	
 	
 	[ packetTemplateAction ]
-
 	calcLength ()
 	{		
 		m_ip.m_totalLength = dynamic sizeof (&m_ip);
 	}	
 
-	[ packetTemplateAction ]
-	
+	[ packetTemplateAction ]	
 	calcChecksum ()
 	{		
 		m_ip.m_headerChecksum = 0;
 		m_ip.m_headerChecksum = calcIpHdrChecksum (&m_ip);
 	}	
 }
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 struct TcpFrame
 {
@@ -85,7 +87,6 @@ struct TcpFrame
 	io.TcpHdr m_tcp;
 	
 	[ packetTemplateAction ]
-
 	initialize ()
 	{
 		initializeEthernetIpHdr (&m_ethernet, &m_ip, io.IpProtocol.Tcp);
@@ -93,14 +94,12 @@ struct TcpFrame
 	}
 
 	[ packetTemplateAction ]
-
 	calcLength ()
 	{		
 		m_ip.m_totalLength = dynamic sizeof (&m_ip);
 	}	
 
 	[ packetTemplateAction ]
-
 	calcChecksum ()
 	{	
 		m_ip.m_headerChecksum = 0;
@@ -110,6 +109,8 @@ struct TcpFrame
 	}	
 }
 
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
 struct UdpFrame
 {
 	io.EthernetHdr m_ethernet;
@@ -117,7 +118,6 @@ struct UdpFrame
 	io.UdpHdr m_udp;
 
 	[ packetTemplateAction ]
-
 	initialize ()
 	{
 		initializeEthernetIpHdr (&m_ethernet, &m_ip, io.IpProtocol.Udp);
@@ -125,15 +125,13 @@ struct UdpFrame
 	}
 	
 	[ packetTemplateAction ]
-
 	calcLength ()
 	{		
 		m_ip.m_totalLength = dynamic sizeof (&m_ip);
 		m_udp.m_length = dynamic sizeof (&m_udp);
 	}	
 	
-	[ packetTemplateAction ]
-	
+	[ packetTemplateAction ]	
 	calcChecksum ()
 	{		
 		m_ip.m_headerChecksum = 0;

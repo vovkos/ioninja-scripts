@@ -236,42 +236,57 @@ PipeMonSession.onReadyRead (uint_t syncId)
 			logParams = memcat (&fileId, sizeof (fileId), params.m_data, params.m_dataSize);
 		}
 		
-		writeLog (code, logParams, dynamic sizeof (logParams));
+		m_pluginHost.m_log.m_writer.write (
+			params.m_timestamp, 
+			code, 
+			logParams, 
+			dynamic sizeof (logParams)
+			);
 		break;	
 
 	case io.NamedPipeMonEvent.FileClose:
 		setFileId (params.m_fileId);
 		m_fileIdMgr.removeLowFileId (params.m_fileId);
-		writeLog (PipeMonLogRecordCode.FileClosed);
+		m_pluginHost.m_log.m_writer.write (params.m_timestamp, PipeMonLogRecordCode.FileClosed);
 		break;
 
 	case io.NamedPipeMonEvent.ConnectionAccept:
-		if (!params.m_error)
-		{		
-			setFileId (params.m_fileId);
-			writeLog (PipeMonLogRecordCode.ConnectionAccepted);
-		}
+		if (params.m_error)
+			break;
+
+		setFileId (params.m_fileId);
+		m_pluginHost.m_log.m_writer.write (params.m_timestamp, PipeMonLogRecordCode.ConnectionAccepted);		
 		break;
 
 	case io.NamedPipeMonEvent.ConnectionClose:
 		setFileId (params.m_fileId);
-		writeLog (PipeMonLogRecordCode.ConnectionClosed);
+		m_pluginHost.m_log.m_writer.write (params.m_timestamp, PipeMonLogRecordCode.ConnectionClosed);
 		break;
 
 	case io.NamedPipeMonEvent.RxData:
-		if (params.m_dataSize)
-		{
-			setFileId (params.m_fileId);
-			writeLog (log.StdRecordCode.Rx, params.m_data, params.m_dataSize);
-		}
+		if (!params.m_dataSize)
+			break;
+
+		setFileId (params.m_fileId);
+		m_pluginHost.m_log.m_writer.write (
+			params.m_timestamp, 
+			log.StdRecordCode.Rx, 
+			params.m_data, 
+			params.m_dataSize
+			);
 		break;
 
 	case io.NamedPipeMonEvent.TxData:
-		if (params.m_dataSize)
-		{
-			setFileId (params.m_fileId);
-			writeLog (log.StdRecordCode.Tx, params.m_data, params.m_dataSize);
-		}
+		if (!params.m_dataSize)
+			break;
+
+		setFileId (params.m_fileId);
+		m_pluginHost.m_log.m_writer.write (
+			params.m_timestamp, 
+			log.StdRecordCode.Tx, 
+			params.m_data, 
+			params.m_dataSize
+			);
 		break;
 	} 
 }

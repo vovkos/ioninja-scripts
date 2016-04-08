@@ -270,51 +270,101 @@ SerialMonSession.onReadyRead (uint_t syncId)
 	switch (params.m_eventKind)
 	{
 	case io.SerialMonEvent.DeviceOpened:
-		writeLog (SerialMonLogRecordCode.DeviceOpened);
+		m_pluginHost.m_log.m_writer.write (params.m_timestamp, SerialMonLogRecordCode.DeviceOpened);
 		break;	
 
 	case io.SerialMonEvent.DeviceClosed:		
-		writeLog (SerialMonLogRecordCode.DeviceClosed);
+		m_pluginHost.m_log.m_writer.write (params.m_timestamp, SerialMonLogRecordCode.DeviceClosed);
 		break;
 		
 	case io.SerialMonEvent.RxData:
-		writeLog (log.StdRecordCode.Rx, params.m_data, params.m_dataSize);
+		m_pluginHost.m_log.m_writer.write (
+			params.m_timestamp, 
+			log.StdRecordCode.Rx, 
+			params.m_data, 
+			params.m_dataSize
+			);
 		break;
 
 	case io.SerialMonEvent.TxData:
-		writeLog (log.StdRecordCode.Tx, params.m_data, params.m_dataSize);
+		m_pluginHost.m_log.m_writer.write (
+			params.m_timestamp, 
+			log.StdRecordCode.Tx, 
+			params.m_data, 
+			params.m_dataSize
+			);
 		break;
 
 	case io.SerialMonEvent.BaudRateChanged:
-		writeLog (SerialLogRecordCode.BaudRateChanged, &params.m_baudRate, sizeof (params.m_baudRate));
+		m_pluginHost.m_log.m_writer.write (
+			params.m_timestamp, 
+			SerialLogRecordCode.BaudRateChanged, 
+			&params.m_baudRate, 
+			sizeof (params.m_baudRate)
+			);
 		break;
 
 	case io.SerialMonEvent.FlowControlChanged:
-		writeLog (SerialLogRecordCode.FlowControlChanged, &params.m_flowControl, sizeof (params.m_flowControl));
+		m_pluginHost.m_log.m_writer.write (
+			params.m_timestamp, 
+			SerialLogRecordCode.FlowControlChanged, 
+			&params.m_flowControl, 
+			sizeof (params.m_flowControl)
+			);
 		break;
 
 	case io.SerialMonEvent.DataBitsChanged:
-		writeLog (SerialLogRecordCode.DataBitsChanged, &params.m_dataBits, sizeof (params.m_dataBits));
+		m_pluginHost.m_log.m_writer.write (
+			params.m_timestamp, 
+			SerialLogRecordCode.DataBitsChanged, 
+			&params.m_dataBits, 
+			sizeof (params.m_dataBits)
+			);
 		break;
 
 	case io.SerialMonEvent.StopBitsChanged:
-		writeLog (SerialLogRecordCode.StopBitsChanged, &params.m_stopBits, sizeof (params.m_stopBits));
+		m_pluginHost.m_log.m_writer.write (
+			params.m_timestamp, 
+			SerialLogRecordCode.StopBitsChanged, 
+			&params.m_stopBits, 		
+			sizeof (params.m_stopBits)
+			);
 		break;
 
 	case io.SerialMonEvent.ParityChanged:
-		writeLog (SerialLogRecordCode.ParityChanged, &params.m_parity, sizeof (params.m_parity));
+		m_pluginHost.m_log.m_writer.write (
+			params.m_timestamp, 
+			SerialLogRecordCode.ParityChanged, 
+			&params.m_parity, 
+			sizeof (params.m_parity)
+			);
 		break;
 
 	case io.SerialMonEvent.StatusLineChanged:
-		writeLog (SerialLogRecordCode.StatusLineChanged, &params.m_statusLines, sizeof (uint_t) * 2);
+		m_pluginHost.m_log.m_writer.write (
+			params.m_timestamp, 
+			SerialLogRecordCode.StatusLineChanged, 
+			&params.m_statusLines, 
+			sizeof (uint_t) * 2
+			);
 		break;
 
 	case io.SerialMonEvent.DtrChanged:
-		writeLog (SerialLogRecordCode.DtrChanged, &params.m_dtr, sizeof (params.m_dtr));
+		m_pluginHost.m_log.m_writer.write (
+			params.m_timestamp, 
+			SerialLogRecordCode.DtrChanged, 
+			&params.m_dtr, 
+			sizeof (params.m_dtr)
+			);
 		break;
 
 	case io.SerialMonEvent.RtsChanged:
-		writeLog (SerialLogRecordCode.RtsChanged, &params.m_rts, sizeof (params.m_rts));
+		m_pluginHost.m_log.m_writer.write (
+			params.m_timestamp,
+			SerialLogRecordCode.RtsChanged, 
+			&params.m_rts, 
+			sizeof (params.m_rts)
+			);
 		break;
 	} 
 }

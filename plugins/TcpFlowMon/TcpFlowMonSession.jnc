@@ -5,7 +5,7 @@
 
 import "io_base.jncx"
 import "io_pcap.jncx"
-import "io_Packet.jnc"
+import "io_TcpIp.jnc"
 import "io_SocketAddress.jnc"
 import "io_SocketAddressResolver.jnc"
 import "doc_Plugin.jnc"

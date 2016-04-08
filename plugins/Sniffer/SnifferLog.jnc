@@ -3,7 +3,7 @@
 // Sniffer log packet declarations and representer
 //
 
-import "io_Packet.jnc"
+import "io_TcpIp.jnc"
 
 //.............................................................................
 

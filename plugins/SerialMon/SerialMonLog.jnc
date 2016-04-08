@@ -9,7 +9,7 @@ import "log.jnc"
 
 enum SerialMonLogRecordCode
 {
-	CaptureStarted = 0x100, // don't mix with SerialLogRecordCode
+	CaptureStarted = 0x100, // avoid conflicts with SerialLogRecordCode
 	CaptureStopped,
 	CaptureError,
 	DeviceOpened, 

@@ -1,6 +1,11 @@
+//.............................................................................
+//
 // Use this file to quickly add your packet templates 
+//
 
 alignment (1);
+
+//.............................................................................
 
 struct MyPacket
 {
@@ -15,8 +20,7 @@ struct MyPacket
 
 	// ...
 
-	[ packetTemplateAction ]
-	
+	[ packetTemplateAction ]	
 	void initialize ()
 	{
 		m_field1 = 1;
@@ -24,10 +28,11 @@ struct MyPacket
 		m_field3 = 3;
 	}
 
-	[ packetTemplateAction ]
-	
+	[ packetTemplateAction ]	
 	void calcChecksum ()
 	{
 		m_checksum = (m_field1 + m_field2 + m_field3) * 10;
 	}
 }
+
+//.............................................................................

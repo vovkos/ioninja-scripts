@@ -1,6 +1,6 @@
 //.............................................................................
 //
-// Packet definitions for standard protocols
+// Packet definitions for TCP/IP stack
 //
 
 namespace io {
