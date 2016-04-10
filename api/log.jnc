@@ -309,6 +309,8 @@ opaque class Log
 		ListenerFunc* listenerFunc,
 		ListenerSensitivity sensitivity = ListenerSensitivity.LiveRecordsOnly
 		);
+		
+	removeAllLayers ();
 }
 
 //.............................................................................
