@@ -52,6 +52,7 @@ protected:
 	// socket
 		
 	State bindable m_state;
+	UdpLogFilter m_logFilter;
 	io.Socket m_socket;
 	io.SocketAddressResolver m_resolver;
 	ResolveState m_resolveState;
@@ -75,6 +76,8 @@ protected:
 	gui.BoolProperty* m_autoRemoteAddressProp;
 	gui.EnumProperty* m_adapterProp;
 	gui.IntProperty* m_localPortProp;
+	gui.BoolProperty* m_packetHdrVisibleProp;
+	
 		
 public:
 	construct (doc.PluginHost* pluginHost);
@@ -114,6 +117,7 @@ UdpSession.construct (doc.PluginHost* pluginHost)
 	basetype.construct(pluginHost);
 	
 	pluginHost.m_log.m_representerFunc = representUdpLog;
+	pluginHost.m_log.attachFilter (m_logFilter);
 
 	m_state = State.Closed;
 	m_socket.m_onSocketEvent += onSocketEvent @ pluginHost.m_mainThreadScheduler;
@@ -179,6 +183,11 @@ UdpSession.createGui()
 		"Local UDP port to listen to"
 		);
 
+	m_packetHdrVisibleProp = m_pluginHost.m_propertyGrid.createBoolProperty (
+		"Show packet headers",
+		"Display packet header info records (or filter them out)"
+		);
+
 	m_uiReactor.start();
 }
 
@@ -234,6 +243,7 @@ UdpSession.load (doc.Storage* storage)
 	m_localPortCombo.m_editText = storage.readString ("localPort");
 	m_remoteAddressCombo.m_editText = storage.readString ("remoteAddress");	
 	m_actionTable [ActionId.AutoRemoteAddress].m_isChecked = storage.readInt ("autoRemoteAddress");	
+	m_logFilter.m_isPacketHdrVisible = storage.readBool ("isPacketHdrVisible", true);
 }
 
 UdpSession.save (doc.Storage* storage)
@@ -242,6 +252,7 @@ UdpSession.save (doc.Storage* storage)
 	storage.writeString ("localPort", m_localPortCombo.m_editText);
 	storage.writeString ("remoteAddress", m_remoteAddressCombo.m_editText);
 	storage.writeInt ("autoRemoteAddress", m_actionTable [ActionId.AutoRemoteAddress].m_isChecked);
+	storage.writeBool ("isPacketHdrVisible", m_logFilter.m_isPacketHdrVisible);
 }
 
 UdpSession.updateProperties ()
@@ -249,6 +260,7 @@ UdpSession.updateProperties ()
 	m_autoRemoteAddressProp.m_value = m_actionTable [ActionId.AutoRemoteAddress].m_isChecked;
 	m_remoteAddressProp.m_value = m_remoteAddressCombo.m_editText;
 	m_localPortProp.m_value = atoi (m_localPortCombo.m_editText);
+	m_packetHdrVisibleProp.m_value = m_logFilter.m_isPacketHdrVisible;
 }
 
 bool errorcode UdpSession.applyProperties ()
@@ -256,6 +268,7 @@ bool errorcode UdpSession.applyProperties ()
 	m_actionTable [ActionId.AutoRemoteAddress].m_isChecked = m_autoRemoteAddressProp.m_value;
 	m_remoteAddressCombo.m_editText = m_remoteAddressProp.m_value;
 	m_localPortCombo.m_editText = $"$(m_localPortProp.m_value)";
+	m_logFilter.m_isPacketHdrVisible = m_packetHdrVisibleProp.m_value;
 	return true;
 }
 
@@ -265,6 +278,7 @@ UdpSession.restoreDefaultProperties ()
 	m_localPortProp.m_value = 0;
 	m_remoteAddressProp.m_value = "127.0.0.1:1001";
 	m_autoRemoteAddressProp.m_value = false;
+	m_packetHdrVisibleProp.m_value = true;
 }
 
 size_t errorcode UdpSession.transmit (

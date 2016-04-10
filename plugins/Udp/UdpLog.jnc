@@ -3,8 +3,11 @@
 // UDP log packet declarations and representer
 //
 
-//.............................................................................
+import "log.jnc"
+import "io_base.jncx"
+import "io_Socket.jnc"
 
+//.............................................................................
 
 enum UdpRecordCode
 {
@@ -89,3 +92,44 @@ bool representUdpLog (
 	
 	return true;
 }
+
+//.............................................................................
+
+class UdpLogFilter: log.Filter
+{
+	bool m_isPacketHdrVisible;
+
+	construct ();
+
+	override bool filter (
+		uint_t recordCode,
+		void const* p,
+		size_t size
+		);
+}
+
+//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+UdpLogFilter.construct ()
+{
+	m_isPacketHdrVisible = true;
+}
+
+bool UdpLogFilter.filter (
+	uint_t recordCode,
+	void const* p,
+	size_t size
+	)
+{
+	switch (recordCode)
+	{
+	case UdpRecordCode.TxPacket:
+	case UdpRecordCode.RxPacket:
+		return m_isPacketHdrVisible;
+
+	default:
+		return true; // everything else is visible
+	}
+}
+
+//.............................................................................
