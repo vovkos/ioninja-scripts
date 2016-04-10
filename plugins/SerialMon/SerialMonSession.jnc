@@ -221,9 +221,9 @@ SerialMonSession.stopCapture ()
 void SerialMonSession.load (doc.Storage* storage)
 {
 	m_portCombo.m_editText = storage.readString ("portName");
-	m_logFilter.m_isSettingChangedVisible = storage.readBool ("isSettingChangedVisible");
-	m_logFilter.m_isControlLineChangedVisible = storage.readBool ("isControlLineChangedVisible");
-	m_logFilter.m_isStatusLineChangedVisible = storage.readBool ("isStatusLineChangedVisible");
+	m_logFilter.m_isSettingChangedVisible = storage.readBool ("isSettingChangedVisible", true);
+	m_logFilter.m_isControlLineChangedVisible = storage.readBool ("isControlLineChangedVisible", true);
+	m_logFilter.m_isStatusLineChangedVisible = storage.readBool ("isStatusLineChangedVisible", true);
 }
 
 void SerialMonSession.save (doc.Storage* storage)

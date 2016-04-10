@@ -454,9 +454,9 @@ void SerialSession.load (doc.Storage* storage)
 	m_flowControlCombo.m_currentIndex = storage.readInt ("flowControl");
 	m_parityCombo.m_currentIndex = storage.readInt ("parity");
 	
-	m_logFilter.m_isSettingChangedVisible = storage.readBool ("isSettingChangedVisible");
-	m_logFilter.m_isControlLineChangedVisible = storage.readBool ("isControlLineChangedVisible");
-	m_logFilter.m_isStatusLineChangedVisible = storage.readBool ("isStatusLineChangedVisible");
+	m_logFilter.m_isSettingChangedVisible = storage.readBool ("isSettingChangedVisible", true);
+	m_logFilter.m_isControlLineChangedVisible = storage.readBool ("isControlLineChangedVisible", true);
+	m_logFilter.m_isStatusLineChangedVisible = storage.readBool ("isStatusLineChangedVisible", true);
 }
 
 void SerialSession.save (doc.Storage* storage)
