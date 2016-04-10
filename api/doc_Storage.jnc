@@ -14,9 +14,12 @@ opaque class Storage
 	destruct ();
 	void clear ();
 
-	bool readBool (char const* name)
+	bool readBool (
+		char const* name, 
+		bool defaultValue = false
+		)
 	{
-		return readInt (name) != 0;
+		return readInt (name, defaultValue) != 0;
 	}
 
 	void writeBool (
@@ -27,14 +30,20 @@ opaque class Storage
 		return writeInt (name, value);
 	}
 
-	int readInt (char const* name);
+	int readInt (
+		char const* name,
+		int defaultValue = 0
+		);
 
 	void writeInt (
 		char const* name, 
 		int value
 		);
 
-	char const* readString (char const* name);
+	char const* readString (
+		char const* name,
+		char const* defaultValue = null		
+		);
 
 	void writeString (
 		char const* name, 
