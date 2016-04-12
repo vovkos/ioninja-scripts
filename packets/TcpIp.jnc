@@ -3,6 +3,8 @@
 // Packet header definitions for TCP/IP protocol stack
 //
 
+import "io_base.jncx"
+import "io_SocketAddress.jnc"
 import "io_TcpIp.jnc"
 
 alignment (1);
@@ -47,6 +49,24 @@ struct IpFrame
 		m_ip.m_headerChecksum = 0;
 		m_ip.m_headerChecksum = calcIpHdrChecksum (&m_ip);
 	}	
+	
+	[ packetTemplateAction ]	
+	setSrcAddress (char const* addressString)
+	{
+		io.Address_ip4 addr;
+		bool result = try addr.parse (addressString);
+		if (result)
+			m_ip.m_srcAddress = addr.m_i32;
+	}
+
+	[ packetTemplateAction ]	
+	setDstAddress (char const* addressString)
+	{
+		io.Address_ip4 addr;
+		bool result = try addr.parse (addressString);
+		if (result)
+			m_ip.m_dstAddress = addr.m_i32;
+	}
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -75,7 +95,25 @@ struct IcmpFrame
 	{		
 		m_ip.m_headerChecksum = 0;
 		m_ip.m_headerChecksum = calcIpHdrChecksum (&m_ip);
-	}	
+	}
+	
+	[ packetTemplateAction ]	
+	setSrcAddress (char const* addressString)
+	{
+		io.Address_ip4 addr;
+		bool result = try addr.parse (addressString);
+		if (result)
+			m_ip.m_srcAddress = addr.m_i32;
+	}
+
+	[ packetTemplateAction ]	
+	setDstAddress (char const* addressString)
+	{
+		io.Address_ip4 addr;
+		bool result = try addr.parse (addressString);
+		if (result)
+			m_ip.m_dstAddress = addr.m_i32;
+	}
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -106,7 +144,37 @@ struct TcpFrame
 		m_ip.m_headerChecksum = calcIpHdrChecksum (&m_ip);
 		m_tcp.m_checksum = 0;
 		m_tcp.m_checksum = calcTcpUdpChecksum (&m_ip, &m_tcp, dynamic sizeof (&m_tcp));
-	}	
+	}
+
+	[ packetTemplateAction ]	
+	setSrcAddress (char const* addressString)
+	{
+		io.SocketAddress_ip4 addr;
+		bool result = try addr.parse (addressString);
+		if (result)
+		{
+			if (addr.m_address.m_i32)
+				m_ip.m_srcAddress = addr.m_address.m_i32;
+			
+			if (addr.m_port)
+				m_tcp.m_srcPort = addr.m_port;
+		}
+	}
+
+	[ packetTemplateAction ]	
+	setDstAddress (char const* addressString)
+	{
+		io.SocketAddress_ip4 addr;
+		bool result = try addr.parse (addressString);
+		if (result)
+		{
+			if (addr.m_address.m_i32)
+				m_ip.m_dstAddress = addr.m_address.m_i32;
+
+			if (addr.m_port)
+				m_tcp.m_dstPort = addr.m_port;
+		}
+	}
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -139,6 +207,36 @@ struct UdpFrame
 		m_udp.m_checksum = 0;
 		m_udp.m_checksum = calcTcpUdpChecksum (&m_ip, &m_udp, dynamic sizeof (&m_udp));
 	}	
+
+	[ packetTemplateAction ]	
+	setSrcAddress (char const* addressString)
+	{
+		io.SocketAddress_ip4 addr;
+		bool result = try addr.parse (addressString);
+		if (result)
+		{
+			if (addr.m_address.m_i32)
+				m_ip.m_srcAddress = addr.m_address.m_i32;
+			
+			if (addr.m_port)
+				m_udp.m_srcPort = addr.m_port;
+		}
+	}
+
+	[ packetTemplateAction ]	
+	setDstAddress (char const* addressString)
+	{
+		io.SocketAddress_ip4 addr;
+		bool result = try addr.parse (addressString);
+		if (result)
+		{
+			if (addr.m_address.m_i32)
+				m_ip.m_dstAddress = addr.m_address.m_i32;
+
+			if (addr.m_port)
+				m_udp.m_dstPort = addr.m_port;
+		}
+	}
 }
 
 //.............................................................................
@@ -161,7 +259,7 @@ initializeEthernetIpHdr (
 }
 
 uint_t calcChecksum16 (
-	const void* p0, 
+	void const* p0, 
 	size_t size
 	) 
 {
@@ -179,14 +277,16 @@ uint_t calcChecksum16 (
 	return checksum;
 }
 
-uint16_t adjustIpCheckSum (uint_t checksum) 
+bigendian uint16_t adjustIpCheckSum (uint_t checksum) 
 {
 	checksum = (checksum >> 16) + (checksum & 0xffff);
 	checksum += checksum >> 16;
-	return ~checksum;
+	checksum = ~checksum;
+	
+	return *(bigendian uint16_t thin*) &checksum; // bswap16
 }
 
-uint16_t calcIpHdrChecksum (io.IpHdr const* ipHdr)
+bigendian uint16_t calcIpHdrChecksum (io.IpHdr const* ipHdr)
 {
 	size_t size = ipHdr.m_headerLength * 4;
 	size_t maxSize = dynamic sizeof (ipHdr);
@@ -198,7 +298,7 @@ uint16_t calcIpHdrChecksum (io.IpHdr const* ipHdr)
 	return adjustIpCheckSum (checksum);
 }
 
-uint16_t calcTcpUdpChecksum (
+bigendian uint16_t calcTcpUdpChecksum (
 	io.IpHdr const* ipHdr,
 	void const* p, 
 	size_t size
