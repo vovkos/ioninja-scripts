@@ -45,11 +45,16 @@ class Plugin
 		size_t size
 		);
 
-	size_t errorcode transmitString (char const* s)
+	virtual size_t errorcode transmitTo (
+		void const* p,
+		size_t size,
+		void const* address,
+		size_t addressSize
+		)
 	{
-		return try transmit (s, strlen (s));
-	}	
-
+		return transmit (p, size);
+	}		
+		
 	writeLog (
 		uint_t recordCode,
 		void const* p,
@@ -170,6 +175,13 @@ class Layer: Plugin
 	size_t transmitNext (
 		void const* p,
 		size_t size
+		);
+
+	size_t transmitToNext (
+		void const* p,
+		size_t size,
+		void const* address,
+		size_t addressSize
 		);
 }
 

@@ -28,6 +28,11 @@ protected:
 	}
 
 	jnc.AutomatonResult automaton scanRx (jnc.Recognizer* recognizer);
+
+	size_t transmitString (char const* s)
+	{
+		transmitNext (s, strlen (s));
+	}		
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .

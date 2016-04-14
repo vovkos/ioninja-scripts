@@ -96,6 +96,13 @@ public:
 		size_t size
 		);
 
+	override size_t errorcode transmitTo (
+		void const* p,
+		size_t size,
+		void const* address,
+		size_t addressSize
+		);
+
 protected:
 	void reportError();
 
@@ -336,6 +343,24 @@ size_t errorcode UdpSession.transmit (
 catch:
 	reportError ();
 	return -1;
+}
+
+size_t errorcode UdpSession.transmitTo (
+	void const* p,
+	size_t size,
+	void const* address,
+	size_t addressSize
+	)
+{
+	if (m_state == State.Closed || addressSize < sizeof (io.SocketAddress))
+		return -1;
+
+	io.SocketAddress const* remoteAddress = (io.SocketAddress const*) address;		
+	m_socket.sendTo (p, size, remoteAddress);
+		
+	m_pluginHost.m_log.m_writer.write (UdpRecordCode.TxPacket, remoteAddress, sizeof (io.SocketAddress));
+	m_pluginHost.m_log.m_writer.write (log.StdRecordCode.Tx, p, size);	
+	return size;
 }
 
 UdpSession.reportError()
