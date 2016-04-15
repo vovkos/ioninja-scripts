@@ -136,6 +136,9 @@ bool errorcode PipeMonSession.capture ()
 	m_nameCombo.addEditTextToHistory ();
 
 	char const* name = m_nameCombo.m_currentText;
+	if (!name || !*name)
+		name = "*"; // null wildcard means we will be also notified by already-opened "nameless" files
+	
 	m_pipeMon.capture (name);
 	writeLogString (PipeMonLogRecordCode.CaptureStarted, name);
 
