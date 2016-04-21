@@ -76,6 +76,7 @@ protected:
 	gui.BoolProperty* m_autoRemoteAddressProp;
 	gui.EnumProperty* m_adapterProp;
 	gui.IntProperty* m_localPortProp;
+	gui.BoolProperty* m_reuseAddressProp;
 	gui.BoolProperty* m_packetHdrVisibleProp;
 	
 		
@@ -190,6 +191,11 @@ UdpSession.createGui()
 		"Local UDP port to listen to"
 		);
 
+	m_reuseAddressProp = m_pluginHost.m_propertyGrid.createBoolProperty (
+		"Re-use UDP port",
+		"Allow multiple UDP sockets to share the same port"
+		);
+
 	m_packetHdrVisibleProp = m_pluginHost.m_propertyGrid.createBoolProperty (
 		"Show packet headers",
 		"Display packet header info records (or filter them out)"
@@ -217,7 +223,7 @@ UdpSession.openSocket ()
 	io.SocketAddress address = *(io.SocketAddress const*) m_adapterCombo.m_currentData;
 	address.m_ip4.m_port = (uint16_t) atoi (portString); // same for IPv4/IPv6
 
-	if (!try m_socket.open (io.Protocol.Udp, &address))
+	if (!try m_socket.open (io.Protocol.Udp, &address, m_reuseAddressProp.m_value))
 	{
 		reportError ();
 		return;
@@ -248,6 +254,7 @@ UdpSession.load (doc.Storage* storage)
 {	
 	m_adapterCombo.m_currentIndex  = storage.readInt ("adapterIdx");
 	m_localPortCombo.m_editText = storage.readString ("localPort");
+	m_reuseAddressProp.m_value = storage.readBool ("reuseAddress");
 	m_remoteAddressCombo.m_editText = storage.readString ("remoteAddress");	
 	m_actionTable [ActionId.AutoRemoteAddress].m_isChecked = storage.readInt ("autoRemoteAddress");	
 	m_logFilter.m_isPacketHdrVisible = storage.readBool ("isPacketHdrVisible", true);
@@ -257,6 +264,7 @@ UdpSession.save (doc.Storage* storage)
 {
 	storage.writeInt ("adapterIdx", (int) m_adapterCombo.m_currentIndex);
 	storage.writeString ("localPort", m_localPortCombo.m_editText);
+	storage.writeBool ("reuseAddress", m_reuseAddressProp.m_value);
 	storage.writeString ("remoteAddress", m_remoteAddressCombo.m_editText);
 	storage.writeInt ("autoRemoteAddress", m_actionTable [ActionId.AutoRemoteAddress].m_isChecked);
 	storage.writeBool ("isPacketHdrVisible", m_logFilter.m_isPacketHdrVisible);
