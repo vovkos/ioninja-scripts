@@ -11,8 +11,8 @@ id          = mailslot
 monitor     = true
 group       = servers
 guid        = 8383248D-607F-431A-9414-178C23FD9603
-icon        = images/file.png
-small-icon  = images/file-16x16.png
+icon        = images/mailslot.png
+small-icon  = images/mailslot-16x16.png
 
 session-class        = MailslotSession
 log-representer-func = representMailslotLog
