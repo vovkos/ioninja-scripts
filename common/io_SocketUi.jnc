@@ -5,6 +5,7 @@
 
 import "gui_Base.jnc"
 import "gui_PropertyGrid.jnc"
+import "io_base.jncx"
 import "io_Socket.jnc"
 import "io_NetworkAdapter.jnc"
 

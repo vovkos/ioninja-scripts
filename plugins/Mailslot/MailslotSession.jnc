@@ -213,7 +213,7 @@ MailslotSession.onMailslotEvent (io.MailslotEventParams const* params)
 
 reactor MailslotSession.m_uiReactor ()
 {
-	m_title = $"File $(m_nameCombo.m_editText)";
+	m_title = $"Mailslot $(m_nameCombo.m_editText)";
 	m_isTransmitEnabled = m_state == State.Opened;
 	m_actionTable [ActionId.Open].m_text = m_state ? "Close" : "Open";
 	m_actionTable [ActionId.Open].m_icon = m_iconTable [m_state ? IconId.Close : IconId.Open];

@@ -20,5 +20,4 @@ log-representer-func  = representPipeMonLog
 [scripts]
 
 PipeMonLog.jnc
-FileIdMgr.jnc
 PipeMonSession.jnc

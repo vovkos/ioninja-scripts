@@ -5,6 +5,8 @@
 
 import "std_HashTable.jnc"
 
+namespace io {
+
 //.............................................................................
 
 class FileIdMgr
@@ -69,3 +71,5 @@ FileIdMgr.removeLowFileId  (intptr lowFileId)
 }
 
 //.............................................................................
+
+} // namespace io {
