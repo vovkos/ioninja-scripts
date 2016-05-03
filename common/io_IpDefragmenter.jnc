@@ -86,7 +86,7 @@ io.IpHdr const* IpDefragmenter.defragment (
 	void const* payload = (char const*) ipHdr + ipHdrSize;
 	size = ipHdr.m_totalLength - ipHdrSize;	
 	
-	uint64_t timestamp = std.getTimestamp ();
+	uint64_t timestamp = sys.getTimestamp ();
 	uint64_t key = (uint64_t) ipHdr.m_srcAddress | (ipHdr.m_identification << 32);
 	Chain* chain = m_chainHashTable.m_map [key];
 	if (!chain)
@@ -190,7 +190,7 @@ io.IpHdr const* IpDefragmenter.assembleChain (IpDefragmenter.Chain* chain)
 
 IpDefragmenter.removeTimedOutChains ()
 {
-	uint64_t timestamp = std.getTimestamp ();
+	uint64_t timestamp = sys.getTimestamp ();
 	
 	while (m_chainList.m_count)
 	{

@@ -204,7 +204,7 @@ opaque class Writer
 		size_t size = 0
 		)
 	{
-		write (std.getTimestamp (), recordCode, p, size);
+		write (sys.getTimestamp (), recordCode, p, size);
 	}
 	
 	retroColorize (
