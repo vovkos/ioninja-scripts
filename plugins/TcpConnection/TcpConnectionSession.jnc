@@ -235,7 +235,7 @@ bool errorcode TcpConnectionSession.connect (io.SocketAddress const* remoteAddre
 nestedscope:
 	if (!m_useLocalAddressProp.m_value)
 	{
-		m_socket.open (io.Protocol.Tcp, remoteAddress.m_family);
+		m_socket.open (remoteAddress.m_family, io.Protocol.Tcp, io.SocketOpenFlags.Asynchronous);
 	}
 	else
 	{
@@ -247,7 +247,7 @@ nestedscope:
 			
 		localAddress.m_ip4.m_port = (uint16_t) m_localPortProp.m_value; // same for IPv4/IPv6
 
-		m_socket.open (io.Protocol.Tcp, &localAddress);
+		m_socket.open (io.Protocol.Tcp, &localAddress, io.SocketOpenFlags.Asynchronous);
 	}
 
 	m_remoteAddress = *remoteAddress;
@@ -315,6 +315,8 @@ TcpConnectionSession.disconnect ()
 			&params,
 			sizeof (params)
 			);
+			
+		m_isTransmitEnabled = false;
 		break;
 	}
 
@@ -376,11 +378,14 @@ size_t errorcode TcpConnectionSession.transmit (
 	)
 {
 	if (m_state != State.Connected)
-		return -1;
+		return 0;
 
-	size_t result = try m_socket.send (p, size);
-	if (result != -1)
+	size_t result = m_socket.send (p, size);
+	if (result)
 		writeLog (log.StdRecordCode.Tx, p, result);
+	
+	if (result < size)
+		m_isTransmitEnabled = false;
 
 	return result;
 }
@@ -395,6 +400,7 @@ TcpConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 	case io.SocketEvent.ConnectCompleted:
 		writeLog (TcpConnectionLogRecordCode.ConnectCompleted);
 		m_state = State.Connected;
+		m_isTransmitEnabled = true;
 		break;
 
 	case io.SocketEvent.ConnectError:
@@ -417,6 +423,7 @@ TcpConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 
 		m_socket.close ();
 		m_state = State.Closed;
+		m_isTransmitEnabled = false;
 		break;
 
 	case io.SocketEvent.IncomingData:
@@ -424,6 +431,10 @@ TcpConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 		size_t result = try m_socket.recv (buffer, sizeof (buffer));
 		if (result != -1)
 			writeLog (log.StdRecordCode.Rx, buffer, result);
+		break;
+
+	case io.SocketEvent.TransmitBufferReady:
+		m_isTransmitEnabled = true;
 		break;
 	}
 }
@@ -455,7 +466,6 @@ TcpConnectionSession.onResolverEvent (io.SocketAddressResolverEventParams const*
 reactor TcpConnectionSession.m_uiReactor ()
 {
 	m_title = $"TCP $(m_addressCombo.m_editText)";
-	m_isTransmitEnabled = m_state == State.Connected;
 	m_adapterProp.m_isEnabled = m_useLocalAddressProp.m_value;
 	m_localPortProp.m_isEnabled = m_useLocalAddressProp.m_value;
 	m_actionTable [ActionId.Connect].m_text = m_state ? "Disconnect" : "Connect";

@@ -268,7 +268,7 @@ bool errorcode TcpProxySession.listen ()
 		io.SocketAddress address = *(io.SocketAddress const*) m_adapterCombo.m_currentData;
 		address.m_ip4.m_port = (uint16_t) atoi (m_serverPortCombo.m_editText); // same for IPv4/IPv6
 
-		m_listenerSocket.open (io.Protocol.Tcp, &address);
+		m_listenerSocket.open (io.Protocol.Tcp, &address, io.SocketOpenFlags.Asynchronous);
 		m_listenerSocket.listen ();
 
 		writeLog (
@@ -360,7 +360,7 @@ bool TcpProxySession.connectTarget ()
 		sizeof (m_clientRemoteAddress)
 		);
 
-	m_clientConnnectionSocket.open (io.Protocol.Tcp);
+	m_clientConnnectionSocket.open (io.Protocol.Tcp, io.SocketOpenFlags.Asynchronous);
 	m_clientConnnectionSocket.connect (&m_clientRemoteAddress);
 
 	m_clientConnectionState = ClientConnectionState.Connecting;
@@ -623,7 +623,7 @@ TcpProxySession.onResolverEvent (io.SocketAddressResolverEventParams const* para
 		io.SocketAddress address = *(io.SocketAddress const*) m_adapterCombo.m_currentData;
 		address.m_ip4.m_port = (uint16_t) atoi (m_serverPortCombo.m_editText); // same for IPv4/IPv6
 
-		m_listenerSocket.open (io.Protocol.Tcp, &address);
+		m_listenerSocket.open (io.Protocol.Tcp, &address, io.SocketOpenFlags.Asynchronous);
 		m_listenerSocket.listen ();
 
 		writeLog (

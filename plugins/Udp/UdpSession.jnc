@@ -223,7 +223,11 @@ UdpSession.openSocket ()
 	io.SocketAddress address = *(io.SocketAddress const*) m_adapterCombo.m_currentData;
 	address.m_ip4.m_port = (uint16_t) atoi (portString); // same for IPv4/IPv6
 
-	if (!try m_socket.open (io.Protocol.Udp, &address, m_reuseAddressProp.m_value))
+	io.SocketOpenFlags flags = io.SocketOpenFlags.Asynchronous;
+	if (m_reuseAddressProp.m_value)
+		flags |= io.SocketOpenFlags.ReuseAddress;
+	
+	if (!try m_socket.open (io.Protocol.Udp, &address, flags))
 	{
 		reportError ();
 		return;

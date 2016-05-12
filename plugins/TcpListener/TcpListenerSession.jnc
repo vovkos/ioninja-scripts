@@ -199,7 +199,7 @@ bool errorcode TcpListenerSession.listen ()
 	io.SocketAddress address = *(io.SocketAddress const*) m_adapterCombo.m_currentData;
 	address.m_ip4.m_port = (uint16_t) atoi (m_portCombo.m_editText); // same for IPv4/IPv6
 	
-	m_listenerSocket.open (io.Protocol.Tcp, &address);
+	m_listenerSocket.open (io.Protocol.Tcp, &address, io.SocketOpenFlags.Asynchronous);
 	m_listenerSocket.m_closeKind = (io.SocketCloseKind) m_closeKindProp.m_value;
 	m_listenerSocket.m_isNagleEnabled = m_isNagleEnabledProp.m_value;
 	m_listenerSocket.listen ();
