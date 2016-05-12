@@ -644,10 +644,6 @@ SerialSession.onSerialEvent (io.SerialEventParams const* params)
 		m_serialStatusLines = params.m_lines;
 		break;
 
-	case io.SerialEvent.TransmitBufferOverflow:
-		m_isTransmitEnabled = false;
-		break;
-
 	case io.SerialEvent.TransmitBufferReady:
 		m_isTransmitEnabled = true;
 		break;

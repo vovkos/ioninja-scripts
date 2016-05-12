@@ -327,10 +327,13 @@ size_t errorcode TcpListenerSession.transmit (
 	if (m_connectionState != ConnectionState.Connected)
 		return -1;
 
-	size_t result = try m_connectionSocket.send (p, size);
-	if (result != -1)
+	size_t result = m_connectionSocket.send (p, size);
+	if (result)
 		writeLog (log.StdRecordCode.Tx, p, result);
 
+	if (result < size)
+		m_isTransmitEnabled = false;
+		
 	return result;
 }
 
@@ -411,6 +414,10 @@ TcpListenerSession.onConnectionSocketEvent (io.SocketEventParams const* params)
 		size_t result = try m_connectionSocket.recv (buffer, sizeof (buffer));
 		if (result != -1)
 			writeLog (log.StdRecordCode.Rx, buffer, result);
+		break;
+
+	case io.SocketEvent.TransmitBufferReady:
+		m_isTransmitEnabled = true;
 		break;
 	}
 }

@@ -471,8 +471,8 @@ size_t errorcode SshChannelSession.transmit (
 	if (m_state != State.Connected)
 		return -1;
 
-	size_t result = try m_channel.write (p, size);
-	if (result != -1)
+	size_t result = m_channel.write (p, size);
+	if (result)
 		writeLog (log.StdRecordCode.Tx, p, result);
 
 	return result;
@@ -546,6 +546,10 @@ SshChannelSession.onSshEvent (io.SshEventParams const* params)
 		size_t result = try m_channel.read (buffer, sizeof (buffer));
 		if (result != -1)
 			writeLog (log.StdRecordCode.Rx, buffer, result);
+		break;
+
+	case io.SshEvent.TransmitBufferReady:
+		m_isTransmitEnabled = true;
 		break;
 	}
 }

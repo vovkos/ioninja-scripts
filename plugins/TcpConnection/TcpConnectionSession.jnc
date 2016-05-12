@@ -378,7 +378,7 @@ size_t errorcode TcpConnectionSession.transmit (
 	)
 {
 	if (m_state != State.Connected)
-		return 0;
+		return -1;
 
 	size_t result = m_socket.send (p, size);
 	if (result)

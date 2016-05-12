@@ -249,8 +249,8 @@ size_t errorcode FileSession.transmit (
 	if (m_state != State.Opened)
 		return -1;
 
-	size_t result = try m_file.write (p, size);
-	if (result != -1)
+	size_t result = m_file.write (p, size);
+	if (result)
 		writeLog (log.StdRecordCode.Tx, p, result);
 
 	return result;
@@ -277,6 +277,10 @@ FileSession.onFileStreamEvent (io.FileStreamEventParams const* params)
 			close ();
 		break;
 
+	case io.FileStreamEvent.TransmitBufferReady:
+		m_isTransmitEnabled = true;
+		break;
+		
 	case io.FileStreamEvent.IoError:
 		writeLog (log.StdRecordCode.Error, params.m_error, params.m_error.m_size);
 		close ();
