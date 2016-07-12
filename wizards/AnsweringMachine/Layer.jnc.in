@@ -31,7 +31,7 @@ protected:
 
 	size_t transmitString (char const* s)
 	{
-		transmitNext (s, strlen (s));
+		return transmitNext (s, strlen (s));
 	}		
 }
 
