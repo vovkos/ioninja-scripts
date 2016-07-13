@@ -1,0 +1,56 @@
+//.............................................................................
+//
+// $(pluginName) log record declarations and representer
+//
+
+//.............................................................................
+
+import "log.jnc"
+
+//.............................................................................
+
+enum $(logRecordCodeEnum)
+{
+	InfoMessage = 100,
+	WarningMessage,
+	ErrorMessage,
+}
+
+//.............................................................................
+
+bool $(logRepresenterFunc) (
+	log.RepresenterTarget* target,
+	uint_t recordCode,
+	void const* p,
+	size_t size,
+	uint_t foldFlags
+	)
+{
+	switch (recordCode)
+	{
+	case $(logRecordCodeEnum).InfoMessage:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText ("InfoMessage");
+		break;
+
+	case $(logRecordCodeEnum).WarningMessage:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Warning;
+		target.addHyperText ("WarningMessage");
+		break;
+
+	case $(logRecordCodeEnum).ErrorMessage:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
+		target.addHyperText ("ErrorMessage");
+		break;
+
+	default:
+		return false;
+	}
+
+	return true;
+}
+
+//.............................................................................
