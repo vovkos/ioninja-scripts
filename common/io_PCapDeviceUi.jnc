@@ -5,7 +5,7 @@
 
 import "gui_Base.jnc"
 import "gui_PropertyGrid.jnc"
-import "io_PCap.jncx"
+import "io_pcap.jncx"
 
 namespace io {
 
