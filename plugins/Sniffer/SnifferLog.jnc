@@ -152,7 +152,7 @@ representColorizedBin (
 	gui.TextAttr attr;
 	attr.m_backColor = gui.ColorFlags.Transparent;
 	
-	intptr retroOffset = -size;	
+	intptr_t retroOffset = -size;	
 	for (size_t i = 0; i < hdrCount; i++)
 	{
 		size_t size = hdrSizeTable [i];

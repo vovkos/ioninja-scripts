@@ -128,7 +128,7 @@ opaque class RepresenterTarget
 		);
 
 	void retroColorize (
-		intptr retroOffset,
+		intptr_t retroOffset,
 		size_t length,
 		gui.TextAttr attr
 		);
@@ -208,7 +208,7 @@ opaque class Writer
 	}
 	
 	retroColorize (
-		intptr retroOffset,
+		intptr_t retroOffset,
 		size_t length,
 		gui.TextAttr attr
 		)
@@ -222,7 +222,7 @@ opaque class Writer
 	}
 
 	retroColorize (
-		intptr retroOffset,
+		intptr_t retroOffset,
 		size_t length,
 		uint_t color
 		)

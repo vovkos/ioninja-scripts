@@ -16,14 +16,14 @@ protected:
 	std.VariantHashTable m_fileIdMap;
 
 public:
-	intptr readonly m_lastLoFileId; // FILE_OBJECT* actually
+	intptr_t readonly m_lastLoFileId; // FILE_OBJECT* actually
 	uint32_t readonly m_lastHiFileId;
 
 public:
 	reset ();
 	
-	uint32_t getHiFileId (intptr loFileId);
-	removeLowFileId  (intptr loFileId);
+	uint32_t getHiFileId (intptr_t loFileId);
+	removeLowFileId  (intptr_t loFileId);
 }
 
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -36,7 +36,7 @@ FileIdMgr.reset ()
 	m_hiFileIdCounter = 0;
 }
 
-uint32_t FileIdMgr.getHiFileId (intptr loFileId)
+uint32_t FileIdMgr.getHiFileId (intptr_t loFileId)
 {
 	if (loFileId == m_lastLoFileId)
 		return m_lastHiFileId;
@@ -59,7 +59,7 @@ uint32_t FileIdMgr.getHiFileId (intptr loFileId)
 	return hiFileId;
 }
 
-FileIdMgr.removeLowFileId  (intptr lowFileId)
+FileIdMgr.removeLowFileId  (intptr_t lowFileId)
 {
 	if (lowFileId == m_lastLoFileId)
 	{

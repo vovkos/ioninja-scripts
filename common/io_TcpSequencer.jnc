@@ -77,7 +77,7 @@ TcpSequencer.write (
 	size_t size
 	)
 {
-	if ((intptr) (seqNumber - m_seqNumber) > 0)
+	if ((intptr_t) (seqNumber - m_seqNumber) > 0)
 	{
 		addOutOfSeqSegment (seqNumber, p, size);
 	}
@@ -146,7 +146,7 @@ TcpSequencer.writeInSeqSegment (
 	size_t size
 	)
 {
-	if ((intptr) (m_seqNumber - seqNumber) > 0) // retransmission
+	if ((intptr_t) (m_seqNumber - seqNumber) > 0) // retransmission
 	{
 		size_t skip = m_seqNumber - seqNumber;
 		if (skip >= size)

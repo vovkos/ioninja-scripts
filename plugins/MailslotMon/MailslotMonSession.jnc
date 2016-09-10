@@ -73,7 +73,7 @@ public:
 protected:
 	onCapture ();
 	onReadyRead (uint_t syncId);
-	setFileId (intptr loFileId);
+	setFileId (intptr_t loFileId);
 
 	createUi ();
 	reactor m_uiReactor ();
@@ -196,7 +196,7 @@ void MailslotMonSession.restoreDefaultProperties ()
 	m_nameProp.m_value = "*mymailslot*";
 }
 
-MailslotMonSession.setFileId (intptr loFileId)
+MailslotMonSession.setFileId (intptr_t loFileId)
 {
 	uint32_t lastFileId = m_fileIdMgr.m_lastHiFileId;
 	uint32_t fileId = m_fileIdMgr.getHiFileId (loFileId);
