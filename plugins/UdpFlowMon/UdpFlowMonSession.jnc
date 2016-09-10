@@ -44,13 +44,13 @@ protected:
 protected:
 	// pending capture (post-resolve)
 	
-	io.PCapDeviceDesc const* m_pendingDevice;
+	io.PcapDeviceDesc const* m_pendingDevice;
 	char const* m_pendingFileName;
 	
 	// pcap
 
 	State bindable m_state;
-	io.PCap m_pcap;	
+	io.Pcap m_pcap;	
 	io.IpDefragmenter m_ipDefragmenter;
 	io.SocketAddressResolver m_resolver;
 	io.SocketAddress m_filterAddress;
@@ -78,7 +78,7 @@ public:
 	bool errorcode capture ();
 	
 	bool errorcode capture (
-		io.PCapDeviceDesc const* device,
+		io.PcapDeviceDesc const* device,
 		io.SocketAddress const* filterAddress
 		);
 	
@@ -99,7 +99,7 @@ protected:
 	onCapture ();	
 	onFileDlgCompleted (gui.StdDlgButton button);
 	onSetFilter ();
-	onPCapEvent (io.PCapEventParams const* params);
+	onPcapEvent (io.PcapEventParams const* params);
 	onResolverEvent (io.SocketAddressResolverEventParams const* params);
 
 	char const* createFilterString (io.SocketAddress const* filterAddress);
@@ -126,7 +126,7 @@ UdpFlowMonSession.construct (doc.PluginHost* pluginHost)
 	pluginHost.m_log.m_representerFunc = representUdpFlowMonLog;
 
 	m_state = 0;
-	m_pcap.m_onPCapEvent += onPCapEvent @ pluginHost.m_mainThreadScheduler;
+	m_pcap.m_onPcapEvent += onPcapEvent @ pluginHost.m_mainThreadScheduler;
 	m_resolver.m_onResolverEvent += onResolverEvent @ pluginHost.m_mainThreadScheduler;
 
 	createUi ();
@@ -137,7 +137,7 @@ UdpFlowMonSession.createUi ()
 	// toolbar
 
 	m_pluginHost.m_toolBar.addLabel ("Device:");
-	m_deviceCombo = io.createPCapDeviceComboBox (m_pluginHost.m_toolBar);
+	m_deviceCombo = io.createPcapDeviceComboBox (m_pluginHost.m_toolBar);
 	m_deviceCombo.m_onEnter += onCapture;
 
 	m_pluginHost.m_toolBar.addLabel ("Filter:");
@@ -157,7 +157,7 @@ UdpFlowMonSession.createUi ()
 
 	// property grid
 
-	m_deviceProp = io.createPCapDeviceProperty (
+	m_deviceProp = io.createPcapDeviceProperty (
 		m_pluginHost.m_propertyGrid,,
 		"Device",
 		"Specify the device to capture on"
@@ -232,7 +232,7 @@ bool errorcode UdpFlowMonSession.capture ()
 	if (m_deviceCombo.m_currentIndex == -1)
 		return false;
 
-	io.PCapDeviceDesc const* device = m_deviceCombo.m_currentData;
+	io.PcapDeviceDesc const* device = m_deviceCombo.m_currentData;
 	if (!device)
 	{
 		if (!m_fileDlg)
@@ -262,7 +262,7 @@ bool errorcode UdpFlowMonSession.capture ()
 }
 
 bool errorcode UdpFlowMonSession.capture (
-	io.PCapDeviceDesc const* device,
+	io.PcapDeviceDesc const* device,
 	io.SocketAddress const* filterAddress
 	)
 {
@@ -460,9 +460,9 @@ UdpFlowMonSession.onResolverEvent (io.SocketAddressResolverEventParams const* pa
 
 	m_state &= ~State.Resolving;
 
-	switch (params.m_eventKind)
+	switch (params.m_eventCode)
 	{
-	case io.SocketAddressResolverEvent.ResolveCompleted:
+	case io.SocketAddressResolverEventCode.ResolveCompleted:
 		writeLog (
 			UdpFlowMonLogRecordCode.ResolveCompleted,
 			params.m_addressTable,
@@ -478,20 +478,20 @@ UdpFlowMonSession.onResolverEvent (io.SocketAddressResolverEventParams const* pa
 
 		break;
 
-	case io.SocketAddressResolverEvent.ResolveError:
+	case io.SocketAddressResolverEventCode.ResolveError:
 		writeLogError (UdpFlowMonLogRecordCode.ResolveError, params.m_error);
 		break;
 	}
 }
 
-UdpFlowMonSession.onPCapEvent (io.PCapEventParams const* params)
+UdpFlowMonSession.onPcapEvent (io.PcapEventParams const* params)
 {
 	if (params.m_syncId != m_pcap.m_syncId)
 		return;
 
-	switch (params.m_eventKind)
+	switch (params.m_eventCode)
 	{
-	case io.PCapEventKind.ReadyRead:
+	case io.PcapEventCode.ReadyRead:
 		static char buffer [1600]; // static is OK -- we read in main thread
 		size_t result = try m_pcap.read (buffer, sizeof (buffer));
 		if (result != -1)
@@ -499,7 +499,7 @@ UdpFlowMonSession.onPCapEvent (io.PCapEventParams const* params)
 		
 		break;
 	
-	case io.PCapEventKind.Eof:
+	case io.PcapEventCode.Eof:
 		stopCapture ();
 		break;
 	}

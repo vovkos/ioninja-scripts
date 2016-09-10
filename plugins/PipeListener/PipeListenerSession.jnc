@@ -292,22 +292,22 @@ PipeListenerSession.onConnectionPipeEvent (io.FileStreamEventParams const* param
 	if (params.m_syncId != m_connectionSyncId)
 		return;
 
-	switch (params.m_eventKind)
+	switch (params.m_eventCode)
 	{
-	case io.FileStreamEvent.Eof:
+	case io.FileStreamEventCode.Eof:
 		disconnect ();
 		break;
 
-	case io.FileStreamEvent.TransmitBufferReady:
+	case io.FileStreamEventCode.TransmitBufferReady:
 		m_isTransmitEnabled = true;
 		break;
 		
-	case io.FileStreamEvent.IoError:
+	case io.FileStreamEventCode.IoError:
 		writeLog (log.StdRecordCode.Error, params.m_error, params.m_error.m_size);
 		disconnect ();
 		break;
 
-	case io.FileStreamEvent.IncomingData:
+	case io.FileStreamEventCode.IncomingData:
 		static char buffer [512];
 		size_t result = try m_connectionPipe.read (buffer, sizeof (buffer));
 		if (result != -1)

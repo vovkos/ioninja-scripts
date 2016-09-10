@@ -629,26 +629,26 @@ SerialSession.onSerialEvent (io.SerialEventParams const* params)
 	if (params.m_syncId != m_serial.m_syncId)
 		return;
 		
-	switch (params.m_eventKind)
+	switch (params.m_eventCode)
 	{
-	case io.SerialEvent.IncomingData:
+	case io.SerialEventCode.IncomingData:
 		static char buffer [512];
 		size_t result = try m_serial.read (buffer, sizeof (buffer));
 		if (result != -1)
 			writeLog (log.StdRecordCode.Rx, buffer, result);
 		break;
 		
-	case io.SerialEvent.StatusLineChanged:
+	case io.SerialEventCode.StatusLineChanged:
 		char const* p = $"$(params.m_lines; B)$(params.m_mask; B)";
 		writeLog (SerialLogRecordCode.StatusLineChanged, p, dynamic sizeof (p));
 		m_serialStatusLines = params.m_lines;
 		break;
 
-	case io.SerialEvent.TransmitBufferReady:
+	case io.SerialEventCode.TransmitBufferReady:
 		m_isTransmitEnabled = true;
 		break;
 
-	case io.SerialEvent.IoError:
+	case io.SerialEventCode.IoError:
 		writeLog (SerialLogRecordCode.IoError, params.m_error, params.m_error.m_size);
 		close ();
 		break;

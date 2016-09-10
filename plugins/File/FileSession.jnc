@@ -261,27 +261,27 @@ FileSession.onFileStreamEvent (io.FileStreamEventParams const* params)
 	if (params.m_syncId != m_file.m_syncId)
 		return;
 
-	switch (params.m_eventKind)
+	switch (params.m_eventCode)
 	{	
-	case io.FileStreamEvent.IncomingData:
+	case io.FileStreamEventCode.IncomingData:
 		static char buffer [512];
 		size_t result = try m_file.read (buffer, sizeof (buffer));
 		if (result != -1)
 			writeLog (log.StdRecordCode.Rx, buffer, result);
 		break;	
 		
-	case io.FileStreamEvent.Eof:
+	case io.FileStreamEventCode.Eof:
 		writeLog (FileLogRecordCode.Eof);
 
 		if (m_file.m_kind != io.FileStreamKind.Disk)
 			close ();
 		break;
 
-	case io.FileStreamEvent.TransmitBufferReady:
+	case io.FileStreamEventCode.TransmitBufferReady:
 		m_isTransmitEnabled = true;
 		break;
 		
-	case io.FileStreamEvent.IoError:
+	case io.FileStreamEventCode.IoError:
 		writeLog (log.StdRecordCode.Error, params.m_error, params.m_error.m_size);
 		close ();
 		break;		

@@ -54,12 +54,12 @@ protected:
 	
 	// pending capture (post-resolve)
 	
-	io.PCapDeviceDesc const* m_pendingDevice;
+	io.PcapDeviceDesc const* m_pendingDevice;
 	char const* m_pendingFileName;
 
 	// pcap & tcp decoding
 
-	io.PCap m_pcap;	
+	io.Pcap m_pcap;	
 	io.IpDefragmenter m_ipDefragmenter;
 	io.SocketAddressResolver m_resolver;
 	io.SocketAddress m_filterAddress;
@@ -90,7 +90,7 @@ public:
 	bool errorcode capture ();
 
 	bool errorcode capture (
-		io.PCapDeviceDesc const* device,
+		io.PcapDeviceDesc const* device,
 		io.SocketAddress const* filterAddress
 		);
 		
@@ -111,7 +111,7 @@ protected:
 	onCapture ();	
 	onFileDlgCompleted (gui.StdDlgButton button);
 	onSetFilter ();
-	onPCapEvent (io.PCapEventParams const* params);
+	onPcapEvent (io.PcapEventParams const* params);
 	onResolverEvent (io.SocketAddressResolverEventParams const* params);
 
 	onData (
@@ -153,7 +153,7 @@ TcpFlowMonSession.construct (doc.PluginHost* pluginHost)
 	pluginHost.m_log.m_representerFunc = representTcpFlowMonLog;
 
 	m_state = 0;
-	m_pcap.m_onPCapEvent += onPCapEvent @ pluginHost.m_mainThreadScheduler;
+	m_pcap.m_onPcapEvent += onPcapEvent @ pluginHost.m_mainThreadScheduler;
 	m_resolver.m_onResolverEvent += onResolverEvent @ pluginHost.m_mainThreadScheduler;
 	m_tcpPeer1.m_tcpSequencer.m_onData = onData ~(log.StdRecordCode.Rx);
 	m_tcpPeer1.m_tcpSequencer.m_onDataDrop = onDataDrop;
@@ -168,7 +168,7 @@ TcpFlowMonSession.createUi ()
 	// toolbar
 
 	m_pluginHost.m_toolBar.addLabel ("Device:");
-	m_deviceCombo = io.createPCapDeviceComboBox (m_pluginHost.m_toolBar);
+	m_deviceCombo = io.createPcapDeviceComboBox (m_pluginHost.m_toolBar);
 	m_deviceCombo.m_onEnter += onCapture;
 
 	m_pluginHost.m_toolBar.addLabel ("Filter:");
@@ -188,7 +188,7 @@ TcpFlowMonSession.createUi ()
 
 	// property grid
 
-	m_deviceProp = io.createPCapDeviceProperty (
+	m_deviceProp = io.createPcapDeviceProperty (
 		m_pluginHost.m_propertyGrid,,
 		"Device",
 		"Specify the device to capture on"
@@ -268,7 +268,7 @@ bool errorcode TcpFlowMonSession.capture ()
 	if (m_deviceCombo.m_currentIndex == -1)
 		return false;
 
-	io.PCapDeviceDesc const* device = m_deviceCombo.m_currentData;
+	io.PcapDeviceDesc const* device = m_deviceCombo.m_currentData;
 	if (!device)
 	{
 		if (!m_fileDlg)
@@ -298,7 +298,7 @@ bool errorcode TcpFlowMonSession.capture ()
 }
 
 bool errorcode TcpFlowMonSession.capture (
-	io.PCapDeviceDesc const* device,
+	io.PcapDeviceDesc const* device,
 	io.SocketAddress const* filterAddress
 	)
 {
@@ -501,9 +501,9 @@ TcpFlowMonSession.onResolverEvent (io.SocketAddressResolverEventParams const* pa
 
 	m_state &= ~State.Resolving;
 
-	switch (params.m_eventKind)
+	switch (params.m_eventCode)
 	{
-	case io.SocketAddressResolverEvent.ResolveCompleted:
+	case io.SocketAddressResolverEventCode.ResolveCompleted:
 		writeLog (
 			TcpFlowMonLogRecordCode.ResolveCompleted,
 			params.m_addressTable,
@@ -519,20 +519,20 @@ TcpFlowMonSession.onResolverEvent (io.SocketAddressResolverEventParams const* pa
 
 		break;
 
-	case io.SocketAddressResolverEvent.ResolveError:
+	case io.SocketAddressResolverEventCode.ResolveError:
 		writeLogError (TcpFlowMonLogRecordCode.ResolveError, params.m_error);
 		break;
 	}
 }
 
-TcpFlowMonSession.onPCapEvent (io.PCapEventParams const* params)
+TcpFlowMonSession.onPcapEvent (io.PcapEventParams const* params)
 {
 	if (params.m_syncId != m_pcap.m_syncId)
 		return;
 
-	switch (params.m_eventKind)
+	switch (params.m_eventCode)
 	{
-	case io.PCapEventKind.ReadyRead:
+	case io.PcapEventCode.ReadyRead:
 		static char buffer [1600]; // static is OK -- we read in main thread
 		size_t result = try m_pcap.read (buffer, sizeof (buffer));
 		if (result != -1)
@@ -540,7 +540,7 @@ TcpFlowMonSession.onPCapEvent (io.PCapEventParams const* params)
 		
 		break;
 	
-	case io.PCapEventKind.Eof:
+	case io.PcapEventCode.Eof:
 		stopCapture ();
 		break;
 	}

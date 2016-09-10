@@ -454,9 +454,9 @@ TcpProxySession.onListenerSocketEvent (io.SocketEventParams const* params)
 	if (params.m_syncId != m_listenerSocket.m_syncId)
 		return;
 
-	switch (params.m_eventKind)
+	switch (params.m_eventCode)
 	{
-	case io.SocketEvent.IncomingConnection:
+	case io.SocketEventCode.IncomingConnection:
 		io.SocketAddress address;
 		io.Socket* socket = try m_listenerSocket.accept (&address);
 		if (!socket)
@@ -504,9 +504,9 @@ TcpProxySession.onListenerConnectionSocketEvent (io.SocketEventParams const* par
 	if (params.m_syncId != m_serverConnectionSyncId)
 		return;
 
-	switch (params.m_eventKind)
+	switch (params.m_eventCode)
 	{
-	case io.SocketEvent.Disconnected:
+	case io.SocketEventCode.Disconnected:
 		writeLog (
 			TcpProxyLogRecordCode.ClientDisconnected,
 			&m_serverRemoteAddress,
@@ -520,7 +520,7 @@ TcpProxySession.onListenerConnectionSocketEvent (io.SocketEventParams const* par
 		disconnectTarget ();
 		break;
 
-	case io.SocketEvent.IncomingData:
+	case io.SocketEventCode.IncomingData:
 		static char buffer [512];
 		size_t result = try m_serverConnectionSocket.recv (buffer, sizeof (buffer));
 		if (result != -1)
@@ -540,9 +540,9 @@ TcpProxySession.onTargetSocketEvent (io.SocketEventParams const* params)
 	if (params.m_syncId != m_clientConnnectionSocket.m_syncId)
 		return;
 	
-	switch (params.m_eventKind)
+	switch (params.m_eventCode)
 	{
-	case io.SocketEvent.ConnectCompleted:
+	case io.SocketEventCode.ConnectCompleted:
 		writeLog (TcpProxyLogRecordCode.TargetConnectCompleted);
 		m_clientConnectionState = ClientConnectionState.Connected;
 		
@@ -556,14 +556,14 @@ TcpProxySession.onTargetSocketEvent (io.SocketEventParams const* params)
 		}
 		break;
 
-	case io.SocketEvent.ConnectCancelled:
+	case io.SocketEventCode.ConnectCancelled:
 		writeLog (TcpProxyLogRecordCode.TargetConnectCancelled);
 		m_clientConnectionState = ClientConnectionState.Closed;
 		
 		disconnect ();
 		break;
 
-	case io.SocketEvent.ConnectError:
+	case io.SocketEventCode.ConnectError:
 		writeLog (
 			TcpProxyLogRecordCode.TargetConnectError,
 			params.m_error,
@@ -574,7 +574,7 @@ TcpProxySession.onTargetSocketEvent (io.SocketEventParams const* params)
 		disconnect ();
 		break;
 
-	case io.SocketEvent.Disconnected:
+	case io.SocketEventCode.Disconnected:
 		writeLog (
 			TcpProxyLogRecordCode.TargetDisconnected,
 			&m_clientRemoteAddress,
@@ -585,7 +585,7 @@ TcpProxySession.onTargetSocketEvent (io.SocketEventParams const* params)
 		disconnect ();
 		break;
 
-	case io.SocketEvent.IncomingData:
+	case io.SocketEventCode.IncomingData:
 		static char buffer [512];
 		size_t result = try m_clientConnnectionSocket.recv (buffer, sizeof (buffer));
 		if (result != -1)
@@ -604,9 +604,9 @@ TcpProxySession.onResolverEvent (io.SocketAddressResolverEventParams const* para
 	if (params.m_syncId != m_resolverSyncId)
 		return;
 	
-	switch (params.m_eventKind)
+	switch (params.m_eventCode)
 	{
-	case io.SocketAddressResolverEvent.ResolveCompleted:
+	case io.SocketAddressResolverEventCode.ResolveCompleted:
 		writeLog (
 			TcpProxyLogRecordCode.TargetResolveCompleted,
 			params.m_addressTable,
@@ -636,7 +636,7 @@ TcpProxySession.onResolverEvent (io.SocketAddressResolverEventParams const* para
 		m_listenerState = ListenerState.Listening;
 		break;
 
-	case io.SocketAddressResolverEvent.ResolveError:
+	case io.SocketAddressResolverEventCode.ResolveError:
 		writeLog (
 			TcpProxyLogRecordCode.TargetResolvingError,
 			params.m_error,

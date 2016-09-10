@@ -213,10 +213,10 @@ MailslotMonSession.onReadyRead (uint_t syncId)
 	io.MailslotMonEventParams params;
 	try m_pipeMon.read (&params);
 
-	switch (params.m_eventKind)
+	switch (params.m_eventCode)
 	{
-	case io.MailslotMonEvent.ClientFileOpen:
-	case io.MailslotMonEvent.ServerFileOpen:
+	case io.MailslotMonEventCode.ClientFileOpen:
+	case io.MailslotMonEventCode.ServerFileOpen:
 		static uint_t codeTable [2] [2] =
 		{
 			{ MailslotMonLogRecordCode.ClientFileOpened, MailslotMonLogRecordCode.ClientFileOpenError },
@@ -226,7 +226,7 @@ MailslotMonSession.onReadyRead (uint_t syncId)
 		uint_t code;		
 		char const* logParams;
 
-		size_t row = params.m_eventKind == io.MailslotMonEvent.ServerFileOpen;
+		size_t row = params.m_eventCode == io.MailslotMonEventCode.ServerFileOpen;
 
 		if (params.m_error)
 		{
@@ -248,13 +248,13 @@ MailslotMonSession.onReadyRead (uint_t syncId)
 			);
 		break;	
 
-	case io.MailslotMonEvent.FileClose:
+	case io.MailslotMonEventCode.FileClose:
 		setFileId (params.m_fileId);
 		m_fileIdMgr.removeLowFileId (params.m_fileId);
 		m_pluginHost.m_log.m_writer.write (params.m_timestamp, MailslotMonLogRecordCode.FileClosed);
 		break;
 
-	case io.MailslotMonEvent.RxData:
+	case io.MailslotMonEventCode.RxData:
 		if (!params.m_dataSize)
 			break;
 
@@ -267,7 +267,7 @@ MailslotMonSession.onReadyRead (uint_t syncId)
 			);
 		break;
 
-	case io.MailslotMonEvent.TxData:
+	case io.MailslotMonEventCode.TxData:
 		if (!params.m_dataSize)
 			break;
 

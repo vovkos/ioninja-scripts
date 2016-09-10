@@ -213,10 +213,10 @@ PipeMonSession.onReadyRead (uint_t syncId)
 	io.NamedPipeMonEventParams params;
 	try m_pipeMon.read (&params);
 
-	switch (params.m_eventKind)
+	switch (params.m_eventCode)
 	{
-	case io.NamedPipeMonEvent.ClientFileOpen:
-	case io.NamedPipeMonEvent.ServerFileOpen:
+	case io.NamedPipeMonEventCode.ClientFileOpen:
+	case io.NamedPipeMonEventCode.ServerFileOpen:
 		static uint_t codeTable [2] [2] =
 		{
 			{ PipeMonLogRecordCode.ClientFileOpened, PipeMonLogRecordCode.ClientFileOpenError },
@@ -226,7 +226,7 @@ PipeMonSession.onReadyRead (uint_t syncId)
 		uint_t code;		
 		char const* logParams;
 
-		size_t row = params.m_eventKind == io.NamedPipeMonEvent.ServerFileOpen;
+		size_t row = params.m_eventCode == io.NamedPipeMonEventCode.ServerFileOpen;
 
 		if (params.m_error)
 		{
@@ -248,13 +248,13 @@ PipeMonSession.onReadyRead (uint_t syncId)
 			);
 		break;	
 
-	case io.NamedPipeMonEvent.FileClose:
+	case io.NamedPipeMonEventCode.FileClose:
 		setFileId (params.m_fileId);
 		m_fileIdMgr.removeLowFileId (params.m_fileId);
 		m_pluginHost.m_log.m_writer.write (params.m_timestamp, PipeMonLogRecordCode.FileClosed);
 		break;
 
-	case io.NamedPipeMonEvent.ConnectionAccept:
+	case io.NamedPipeMonEventCode.ConnectionAccept:
 		if (params.m_error)
 			break;
 
@@ -262,12 +262,12 @@ PipeMonSession.onReadyRead (uint_t syncId)
 		m_pluginHost.m_log.m_writer.write (params.m_timestamp, PipeMonLogRecordCode.ConnectionAccepted);		
 		break;
 
-	case io.NamedPipeMonEvent.ConnectionClose:
+	case io.NamedPipeMonEventCode.ConnectionClose:
 		setFileId (params.m_fileId);
 		m_pluginHost.m_log.m_writer.write (params.m_timestamp, PipeMonLogRecordCode.ConnectionClosed);
 		break;
 
-	case io.NamedPipeMonEvent.RxData:
+	case io.NamedPipeMonEventCode.RxData:
 		if (!params.m_dataSize)
 			break;
 
@@ -280,7 +280,7 @@ PipeMonSession.onReadyRead (uint_t syncId)
 			);
 		break;
 
-	case io.NamedPipeMonEvent.TxData:
+	case io.NamedPipeMonEventCode.TxData:
 		if (!params.m_dataSize)
 			break;
 

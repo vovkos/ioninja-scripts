@@ -195,16 +195,16 @@ MailslotSession.onMailslotEvent (io.MailslotEventParams const* params)
 	if (params.m_syncId != m_mailslot.m_syncId)
 		return;
 
-	switch (params.m_eventKind)
+	switch (params.m_eventCode)
 	{	
-	case io.MailslotEvent.IncomingData:
+	case io.MailslotEventCode.IncomingData:
 		static char buffer [512];
 		size_t result = try m_mailslot.read (buffer, sizeof (buffer));
 		if (result != -1)
 			writeLog (log.StdRecordCode.Rx, buffer, result);
 		break;	
 		
-	case io.MailslotEvent.IoError:
+	case io.MailslotEventCode.IoError:
 		writeLog (log.StdRecordCode.Error, params.m_error, params.m_error.m_size);
 		close ();
 		break;		

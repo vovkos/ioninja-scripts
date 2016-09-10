@@ -483,7 +483,7 @@ SshChannelSession.onSshEvent (io.SshEventParams const* params)
 	if (params.m_syncId != m_channel.m_syncId)
 		return;
 
-	switch (params.m_eventKind)
+	switch (params.m_eventCode)
 	{
 	case io.SshEvent.TcpConnectCompleted:
 		writeLog (SshChannelLogRecordCode.TcpConnectCompleted);
@@ -559,9 +559,9 @@ SshChannelSession.onResolverEvent (io.SocketAddressResolverEventParams const* pa
 	if (params.m_syncId != m_channel.m_syncId)
 		return;
 		
-	switch (params.m_eventKind)
+	switch (params.m_eventCode)
 	{
-	case io.SocketAddressResolverEvent.ResolveCompleted:
+	case io.SocketAddressResolverEventCode.ResolveCompleted:
 		writeLog (
 			SshChannelLogRecordCode.ResolveCompleted,
 			params.m_addressTable,
@@ -573,7 +573,7 @@ SshChannelSession.onResolverEvent (io.SocketAddressResolverEventParams const* pa
 		try connect (params.m_addressTable);
 		break;
 
-	case io.SocketAddressResolverEvent.ResolveError:
+	case io.SocketAddressResolverEventCode.ResolveError:
 		handleConnectError (params.m_error);
 		break;
 	}

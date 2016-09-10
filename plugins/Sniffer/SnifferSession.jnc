@@ -42,7 +42,7 @@ protected:
 	// pcap
 
 	State bindable m_state;
-	io.PCap m_pcap;	
+	io.Pcap m_pcap;	
 	io.IpDefragmenter m_ipDefragmenter;
 	
 	// toolbar, status bar & menu
@@ -68,7 +68,7 @@ public:
 	bool errorcode capture ();
 	
 	bool errorcode capture (
-		io.PCapDeviceDesc const* device,
+		io.PcapDeviceDesc const* device,
 		char const* filterString
 		);		
 
@@ -94,7 +94,7 @@ protected:
 	onCapture ();
 	onFileDlgCompleted (gui.StdDlgButton button);
 	onSetFilter ();
-	onPCapEvent (io.PCapEventParams const* params);
+	onPcapEvent (io.PcapEventParams const* params);
 
 	bool errorcode applyFilter ();
 
@@ -116,7 +116,7 @@ SnifferSession.construct (doc.PluginHost* pluginHost)
 	pluginHost.m_log.m_representerFunc = representSnifferLog;
 
 	m_state = State.Closed;
-	m_pcap.m_onPCapEvent += onPCapEvent @ pluginHost.m_mainThreadScheduler;
+	m_pcap.m_onPcapEvent += onPcapEvent @ pluginHost.m_mainThreadScheduler;
 
 	createUi ();
 }
@@ -126,7 +126,7 @@ SnifferSession.createUi ()
 	// toolbar
 
 	m_pluginHost.m_toolBar.addLabel ("Device:");
-	m_deviceCombo = io.createPCapDeviceComboBox (m_pluginHost.m_toolBar);
+	m_deviceCombo = io.createPcapDeviceComboBox (m_pluginHost.m_toolBar);
 	m_deviceCombo.m_onEnter += onCapture;
 
 	m_pluginHost.m_toolBar.addLabel ("Filter:");
@@ -146,7 +146,7 @@ SnifferSession.createUi ()
 
 	// property grid
 
-	m_deviceProp = io.createPCapDeviceProperty (
+	m_deviceProp = io.createPcapDeviceProperty (
 		m_pluginHost.m_propertyGrid,,
 		"Device",
 		"Specify the device to capture on"
@@ -210,7 +210,7 @@ bool errorcode SnifferSession.capture ()
 	if (m_deviceCombo.m_currentIndex == -1)
 		return false;
 
-	io.PCapDeviceDesc const* device = m_deviceCombo.m_currentData;
+	io.PcapDeviceDesc const* device = m_deviceCombo.m_currentData;
 	if (!device)
 	{
 		if (!m_fileDlg)
@@ -233,7 +233,7 @@ bool errorcode SnifferSession.capture ()
 }
 
 bool errorcode SnifferSession.capture (
-	io.PCapDeviceDesc const* device,
+	io.PcapDeviceDesc const* device,
 	char const* filterString
 	)
 {
@@ -373,14 +373,14 @@ size_t errorcode SnifferSession.transmit (
 	return result;
 }
 
-SnifferSession.onPCapEvent (io.PCapEventParams const* params)
+SnifferSession.onPcapEvent (io.PcapEventParams const* params)
 {
 	if (params.m_syncId != m_pcap.m_syncId)
 		return;
 
-	switch (params.m_eventKind)
+	switch (params.m_eventCode)
 	{
-	case io.PCapEventKind.ReadyRead:
+	case io.PcapEventCode.ReadyRead:
 		static char buffer [1600]; // static is OK -- we read in main thread
 		size_t result = try m_pcap.read (buffer, sizeof (buffer));
 		if (result != -1)
@@ -388,7 +388,7 @@ SnifferSession.onPCapEvent (io.PCapEventParams const* params)
 		
 		break;
 	
-	case io.PCapEventKind.Eof:
+	case io.PcapEventCode.Eof:
 		stopCapture ();
 		break;
 	}
@@ -427,7 +427,7 @@ SnifferSession.processPacket (
 
 reactor SnifferSession.m_uiReactor ()
 {
-	m_title = $"PCap $(m_deviceCombo.m_currentText)";
+	m_title = $"Pcap $(m_deviceCombo.m_currentText)";
 	m_isTransmitEnabled = m_state == State.Capturing;
 	m_actionTable [ActionId.Capture].m_text = m_state ? "Stop Capture" : "Capture";
 	m_actionTable [ActionId.Capture].m_icon = m_iconTable [m_state ? IconId.StopCapture : IconId.Capture];

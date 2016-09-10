@@ -342,9 +342,9 @@ TcpListenerSession.onListenerSocketEvent (io.SocketEventParams const* params)
 	if (params.m_syncId != m_listenerSocket.m_syncId)
 		return;
 
-	switch (params.m_eventKind)
+	switch (params.m_eventCode)
 	{
-	case io.SocketEvent.IncomingConnection:
+	case io.SocketEventCode.IncomingConnection:
 		io.SocketAddress address;
 		io.Socket* socket = try m_listenerSocket.accept (&address);
 		if (!socket)
@@ -387,9 +387,9 @@ TcpListenerSession.onConnectionSocketEvent (io.SocketEventParams const* params)
 	if (params.m_syncId != m_connectionSyncId)
 		return;
 
-	switch (params.m_eventKind)
+	switch (params.m_eventCode)
 	{
-	case io.SocketEvent.Disconnected:
+	case io.SocketEventCode.Disconnected:
 		TcpDisconnectLogRecordParams recordParams;
 		recordParams.m_address = m_remoteAddress;		
 		recordParams.m_flags = TcpDisconnectLogRecordFlags.Remote;
@@ -409,14 +409,14 @@ TcpListenerSession.onConnectionSocketEvent (io.SocketEventParams const* params)
 		m_connectionSyncId++;
 		break;
 
-	case io.SocketEvent.IncomingData:
+	case io.SocketEventCode.IncomingData:
 		static char buffer [512];
 		size_t result = try m_connectionSocket.recv (buffer, sizeof (buffer));
 		if (result != -1)
 			writeLog (log.StdRecordCode.Rx, buffer, result);
 		break;
 
-	case io.SocketEvent.TransmitBufferReady:
+	case io.SocketEventCode.TransmitBufferReady:
 		m_isTransmitEnabled = true;
 		break;
 	}

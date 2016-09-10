@@ -267,17 +267,17 @@ SerialMonSession.onReadyRead (uint_t syncId)
 	io.SerialMonEventParams params;
 	try m_serialMon.read (&params);
 	
-	switch (params.m_eventKind)
+	switch (params.m_eventCode)
 	{
-	case io.SerialMonEvent.DeviceOpened:
+	case io.SerialMonEventCode.DeviceOpened:
 		m_pluginHost.m_log.m_writer.write (params.m_timestamp, SerialMonLogRecordCode.DeviceOpened);
 		break;	
 
-	case io.SerialMonEvent.DeviceClosed:		
+	case io.SerialMonEventCode.DeviceClosed:		
 		m_pluginHost.m_log.m_writer.write (params.m_timestamp, SerialMonLogRecordCode.DeviceClosed);
 		break;
 		
-	case io.SerialMonEvent.RxData:
+	case io.SerialMonEventCode.RxData:
 		m_pluginHost.m_log.m_writer.write (
 			params.m_timestamp, 
 			log.StdRecordCode.Rx, 
@@ -286,7 +286,7 @@ SerialMonSession.onReadyRead (uint_t syncId)
 			);
 		break;
 
-	case io.SerialMonEvent.TxData:
+	case io.SerialMonEventCode.TxData:
 		m_pluginHost.m_log.m_writer.write (
 			params.m_timestamp, 
 			log.StdRecordCode.Tx, 
@@ -295,7 +295,7 @@ SerialMonSession.onReadyRead (uint_t syncId)
 			);
 		break;
 
-	case io.SerialMonEvent.BaudRateChanged:
+	case io.SerialMonEventCode.BaudRateChanged:
 		m_pluginHost.m_log.m_writer.write (
 			params.m_timestamp, 
 			SerialLogRecordCode.BaudRateChanged, 
@@ -304,7 +304,7 @@ SerialMonSession.onReadyRead (uint_t syncId)
 			);
 		break;
 
-	case io.SerialMonEvent.FlowControlChanged:
+	case io.SerialMonEventCode.FlowControlChanged:
 		m_pluginHost.m_log.m_writer.write (
 			params.m_timestamp, 
 			SerialLogRecordCode.FlowControlChanged, 
@@ -313,7 +313,7 @@ SerialMonSession.onReadyRead (uint_t syncId)
 			);
 		break;
 
-	case io.SerialMonEvent.DataBitsChanged:
+	case io.SerialMonEventCode.DataBitsChanged:
 		m_pluginHost.m_log.m_writer.write (
 			params.m_timestamp, 
 			SerialLogRecordCode.DataBitsChanged, 
@@ -322,7 +322,7 @@ SerialMonSession.onReadyRead (uint_t syncId)
 			);
 		break;
 
-	case io.SerialMonEvent.StopBitsChanged:
+	case io.SerialMonEventCode.StopBitsChanged:
 		m_pluginHost.m_log.m_writer.write (
 			params.m_timestamp, 
 			SerialLogRecordCode.StopBitsChanged, 
@@ -331,7 +331,7 @@ SerialMonSession.onReadyRead (uint_t syncId)
 			);
 		break;
 
-	case io.SerialMonEvent.ParityChanged:
+	case io.SerialMonEventCode.ParityChanged:
 		m_pluginHost.m_log.m_writer.write (
 			params.m_timestamp, 
 			SerialLogRecordCode.ParityChanged, 
@@ -340,7 +340,7 @@ SerialMonSession.onReadyRead (uint_t syncId)
 			);
 		break;
 
-	case io.SerialMonEvent.StatusLineChanged:
+	case io.SerialMonEventCode.StatusLineChanged:
 		m_pluginHost.m_log.m_writer.write (
 			params.m_timestamp, 
 			SerialLogRecordCode.StatusLineChanged, 
@@ -349,7 +349,7 @@ SerialMonSession.onReadyRead (uint_t syncId)
 			);
 		break;
 
-	case io.SerialMonEvent.DtrChanged:
+	case io.SerialMonEventCode.DtrChanged:
 		m_pluginHost.m_log.m_writer.write (
 			params.m_timestamp, 
 			SerialLogRecordCode.DtrChanged, 
@@ -358,7 +358,7 @@ SerialMonSession.onReadyRead (uint_t syncId)
 			);
 		break;
 
-	case io.SerialMonEvent.RtsChanged:
+	case io.SerialMonEventCode.RtsChanged:
 		m_pluginHost.m_log.m_writer.write (
 			params.m_timestamp,
 			SerialLogRecordCode.RtsChanged, 

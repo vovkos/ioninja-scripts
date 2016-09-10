@@ -395,19 +395,19 @@ TcpConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 	if (params.m_syncId != m_socket.m_syncId)
 		return;
 
-	switch (params.m_eventKind)
+	switch (params.m_eventCode)
 	{
-	case io.SocketEvent.ConnectCompleted:
+	case io.SocketEventCode.ConnectCompleted:
 		writeLog (TcpConnectionLogRecordCode.ConnectCompleted);
 		m_state = State.Connected;
 		m_isTransmitEnabled = true;
 		break;
 
-	case io.SocketEvent.ConnectError:
+	case io.SocketEventCode.ConnectError:
 		handleConnectError (params.m_error);
 		break;
 
-	case io.SocketEvent.Disconnected:
+	case io.SocketEventCode.Disconnected:
 		TcpDisconnectLogRecordParams recordParams;
 		recordParams.m_address = m_remoteAddress;		
 		recordParams.m_flags = TcpDisconnectLogRecordFlags.Remote;
@@ -426,14 +426,14 @@ TcpConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 		m_isTransmitEnabled = false;
 		break;
 
-	case io.SocketEvent.IncomingData:
+	case io.SocketEventCode.IncomingData:
 		static char buffer [512];
 		size_t result = try m_socket.recv (buffer, sizeof (buffer));
 		if (result != -1)
 			writeLog (log.StdRecordCode.Rx, buffer, result);
 		break;
 
-	case io.SocketEvent.TransmitBufferReady:
+	case io.SocketEventCode.TransmitBufferReady:
 		m_isTransmitEnabled = true;
 		break;
 	}
@@ -444,9 +444,9 @@ TcpConnectionSession.onResolverEvent (io.SocketAddressResolverEventParams const*
 	if (params.m_syncId != m_socket.m_syncId)
 		return;
 
-	switch (params.m_eventKind)
+	switch (params.m_eventCode)
 	{
-	case io.SocketAddressResolverEvent.ResolveCompleted:
+	case io.SocketAddressResolverEventCode.ResolveCompleted:
 		writeLog (
 			TcpConnectionLogRecordCode.ResolveCompleted,
 			params.m_addressTable,
@@ -457,7 +457,7 @@ TcpConnectionSession.onResolverEvent (io.SocketAddressResolverEventParams const*
 		try connect (params.m_addressTable);
 		break;
 
-	case io.SocketAddressResolverEvent.ResolveError:
+	case io.SocketAddressResolverEventCode.ResolveError:
 		handleConnectError (params.m_error);
 		break;
 	}

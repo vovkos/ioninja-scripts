@@ -1,6 +1,6 @@
 //.............................................................................
 //
-// PCap device user interface
+// Pcap device user interface
 //
 
 import "gui_Base.jnc"
@@ -11,10 +11,10 @@ namespace io {
 
 //.............................................................................
 
-gui.EnumPropertyOption const* createPCapDeviceOptionArray (bool canOpenFile = true)
+gui.EnumPropertyOption const* createPcapDeviceOptionArray (bool canOpenFile = true)
 {
 	size_t count;
-	io.PCapDeviceDesc const* device = io.createPCapDeviceDescList (&count);
+	io.PcapDeviceDesc const* device = io.createPcapDeviceDescList (&count);
 
 	if (canOpenFile)
 		count++;
@@ -43,14 +43,14 @@ gui.EnumPropertyOption const* createPCapDeviceOptionArray (bool canOpenFile = tr
 
 //.............................................................................
 
-gui.EnumProperty* createPCapDeviceProperty (
+gui.EnumProperty* createPcapDeviceProperty (
 	gui.PropertyGrid* propertyGrid,
 	bool canOpenFile = true,
 	char const* name,
 	char const* toolTipText
 	)
 {
-	gui.EnumPropertyOption const* optionArray = createPCapDeviceOptionArray (canOpenFile);
+	gui.EnumPropertyOption const* optionArray = createPcapDeviceOptionArray (canOpenFile);
 	size_t optionCount = dynamic countof (optionArray);
 
 	return propertyGrid.createEnumProperty (		
@@ -64,13 +64,13 @@ gui.EnumProperty* createPCapDeviceProperty (
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 gui.ComboBox* 
-createPCapDeviceComboBox (
+createPcapDeviceComboBox (
 	gui.ToolBar* toolBar,
 	bool canOpenFile = true,
 	uint_t width = -1
 	)
 {
-	gui.EnumPropertyOption const* optionArray = createPCapDeviceOptionArray (canOpenFile);
+	gui.EnumPropertyOption const* optionArray = createPcapDeviceOptionArray (canOpenFile);
 	size_t optionCount = dynamic countof (optionArray);
 
 	gui.ComboBox* comboBox = toolBar.addComboBox (width);
