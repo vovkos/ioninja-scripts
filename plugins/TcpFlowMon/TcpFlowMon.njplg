@@ -22,4 +22,4 @@ TcpFlowMonSession.jnc
 TcpFlowMonLog.jnc
 ../../common/io_IpDefragmenter.jnc
 ../../common/io_TcpSequencer.jnc
-../../common/io_PCapDeviceUi.jnc
+../../common/io_PcapDeviceUi.jnc
