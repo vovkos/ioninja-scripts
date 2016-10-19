@@ -1,9 +1,9 @@
-//.............................................................................
+//..............................................................................
 //
 // TCP Monitor log record declarations and representer
 //
 
-//.............................................................................
+//..............................................................................
 
 enum TcpFlowMonLogRecordCode
 {
@@ -37,7 +37,7 @@ enum TcpFlowMonLogPartCode
 	ConnectCompleted = 4 | log.PartCodeFlags.MergeableBackward,
 }
 
-//.............................................................................
+//..............................................................................
 
 bool representTcpFlowMonLog (
 	log.RepresenterTarget* target,
@@ -56,12 +56,12 @@ bool representTcpFlowMonLog (
 		target.addHyperText (TcpFlowMonLogPartCode.Resolving, $"Resolving \e[34m$addressString\e[m...");
 		break;
 
-	case TcpFlowMonLogRecordCode.ResolveCompleted:		
+	case TcpFlowMonLogRecordCode.ResolveCompleted:
 		char const* addressString = ((io.SocketAddress const*) p).getString ();
 		target.addHyperText (TcpFlowMonLogPartCode.ResolveCompleted, $"ok (\e[34m$addressString\e[m)");
 		break;
 
-	case TcpFlowMonLogRecordCode.ResolveCancelled:		
+	case TcpFlowMonLogRecordCode.ResolveCancelled:
 		target.addPlainText (TcpFlowMonLogPartCode.ResolveCompleted, "cancelled");
 		break;
 
@@ -72,7 +72,7 @@ bool representTcpFlowMonLog (
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
 		target.addPlainText (TcpFlowMonLogPartCode.ResolveCompleted, $"error: $(error.m_description)");
 		break;
-		
+
 	case TcpFlowMonLogRecordCode.StartingCapture:
 		char const* filter = (char const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
@@ -162,4 +162,4 @@ bool representTcpFlowMonLog (
 	return true;
 }
 
-//.............................................................................
+//..............................................................................

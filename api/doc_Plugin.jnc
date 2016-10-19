@@ -1,4 +1,4 @@
-//.............................................................................
+//..............................................................................
 //
 // Ninja document model: plugins (sessions and protocols)
 //
@@ -8,7 +8,7 @@ import "doc_Storage.jnc"
 
 namespace doc {
 
-//.............................................................................
+//..............................................................................
 
 class Plugin
 {
@@ -18,17 +18,17 @@ class Plugin
 	{
 		m_pluginHost = host;
 	}
-	
+
 	virtual void load (Storage* storage)
-	{		
+	{
 	}
 
 	virtual void save (Storage* storage)
-	{		
+	{
 	}
 
 	virtual void updateProperties ()
-	{		
+	{
 	}
 
 	virtual bool errorcode applyProperties ()
@@ -37,7 +37,7 @@ class Plugin
 	}
 
 	virtual void restoreDefaultProperties ()
-	{		
+	{
 	}
 
 	abstract size_t errorcode transmit (
@@ -53,8 +53,8 @@ class Plugin
 		)
 	{
 		return transmit (p, size);
-	}		
-		
+	}
+
 	writeLog (
 		uint_t recordCode,
 		void const* p,
@@ -101,14 +101,14 @@ class Plugin
 		char const* text,
 		char const* iconFileName,
 		bool isCheckable = false,
-		bool isChecked = false		
+		bool isChecked = false
 		)
 	{
 		return createAction (text, new gui.Icon (iconFileName), isCheckable, isChecked);
 	}
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 gui.Action* Plugin.createAction (
 	char const* text,
@@ -120,14 +120,14 @@ gui.Action* Plugin.createAction (
 	gui.Action* action = new gui.Action (text, icon);
 	action.m_isCheckable = isCheckable;
 	if (isCheckable)
-		action.m_isChecked = isChecked;	
-	
+		action.m_isChecked = isChecked;
+
 	m_pluginHost.m_menu.addAction (action);
 	m_pluginHost.m_toolBar.addAction (action);
 	return action;
 }
 
-//.............................................................................
+//..............................................................................
 
 class Session: Plugin
 {
@@ -146,7 +146,7 @@ class Session: Plugin
 	{
 		return size;
 	}
-	
+
 	startSession ()
 	{
 		uint64_t timestamp = sys.getTimestamp ();
@@ -155,7 +155,7 @@ class Session: Plugin
 	}
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 class Layer: Plugin
 {
@@ -185,7 +185,7 @@ class Layer: Plugin
 		);
 }
 
-//.............................................................................
+//..............................................................................
 
 } // namespace doc {
 

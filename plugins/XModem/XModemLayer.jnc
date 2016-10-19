@@ -3,7 +3,7 @@ import "io_MappedFile.jnc"
 import "doc_Plugin.jnc"
 import "gui_Dialog.jnc"
 
-//.............................................................................
+//..............................................................................
 
 class XModemLayer: doc.Layer
 {
@@ -25,10 +25,10 @@ protected:
 	}
 
 	State bindable m_state;
-	
+
 	gui.Action* m_actionTable [ActionId._Count];
 	gui.FileDlg m_fileDlg;
-	
+
 	XModemTransmitter m_transmitter;
 	XModemReceiver m_receiver;
 
@@ -41,11 +41,11 @@ public:
 
 	transmitFile ();
 	receiveFile ();
-	cancelFileTranfer  ();	
+	cancelFileTranfer  ();
 
 protected:
-	createUi ();	
-	
+	createUi ();
+
 	onLogRecord (
 		uint64_t timestamp,
 		uint_t recordCode,
@@ -57,14 +57,14 @@ protected:
 	onProgressDlgButtonClicked (gui.StdDlgButton button);
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 XModemLayer.construct (doc.PluginHost* pluginHost)
 {
-	basetype1.construct (pluginHost);	
+	basetype1.construct (pluginHost);
 	m_transmitter.construct (this);
 	m_receiver.construct (this);
-	
+
 	m_fileDlg.m_onCompleted += onFileDlgCompleted;
 	m_progressDlg.m_onButtonClicked += onProgressDlgButtonClicked;
 	pluginHost.m_log.attachListener (onLogRecord @ pluginHost.m_mainThreadScheduler);
@@ -93,14 +93,14 @@ XModemLayer.transmitFile ()
 	m_fileDlg.m_title = "Transmit File with XModem...";
 	m_fileDlg.m_filter = "All files (*.*)";
 	m_fileDlg.show ();
-	
+
 	m_state = State.TransmitFileDlg;
 }
 
 XModemLayer.receiveFile ()
 {
 	cancelFileTranfer ();
-	
+
 	m_fileDlg.m_kind = gui.FileDlgKind.Save;
 	m_fileDlg.m_title = "Receive File with XModem...";
 	m_fileDlg.m_filter = "All files (*.*)";
@@ -115,7 +115,7 @@ XModemLayer.cancelFileTranfer ()
 	{
 	case State.Idle:
 		return;
-	
+
 	case State.Transmitting:
 		m_transmitter.cancel ();
 		break;
@@ -149,7 +149,7 @@ XModemLayer.onFileDlgCompleted (gui.StdDlgButton button)
 	case State.TransmitFileDlg:
 		m_state = State.Transmitting;
 		m_file.open (
-			m_fileDlg.m_filePath, 
+			m_fileDlg.m_filePath,
 			io.FileOpenFlags.OpenExisting | io.FileOpenFlags.ReadOnly
 			);
 		m_transmitter.start ();
@@ -161,10 +161,10 @@ XModemLayer.onFileDlgCompleted (gui.StdDlgButton button)
 		m_receiver.start ();
 		break;
 	}
-	
+
 catch:
 	m_progressDlg.m_status = std.getLastError ().m_description;
-	m_progressDlg.m_buttons = gui.StdDlgButtons.Close;	
+	m_progressDlg.m_buttons = gui.StdDlgButtons.Close;
 }
 
 XModemLayer.onProgressDlgButtonClicked (gui.StdDlgButton button)
@@ -203,4 +203,4 @@ XModemLayer.onLogRecord (
 		}
 }
 
-//.............................................................................
+//..............................................................................

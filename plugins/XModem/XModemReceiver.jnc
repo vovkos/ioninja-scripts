@@ -1,4 +1,4 @@
-//.............................................................................
+//..............................................................................
 
 class XModemReceiver
 {
@@ -8,24 +8,24 @@ protected:
 		Idle,
 		Data,
 		Eot,
-	}	
-	
+	}
+
 	State m_state;
-	uint64_t m_offset;	
+	uint64_t m_offset;
 
 	XModemLayer* m_parent;
-	
+
 public:
 	construct (XModemLayer* parent);
-	
+
 	start  ();
 	cancel ();
-	
+
 	onRx (
 		void const* p,
 		size_t size
 		);
-	
+
 protected:
 	onRx_Data (XModemBlock const* block);
 
@@ -33,10 +33,10 @@ protected:
 	sendNextDataBlock ();
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 XModemReceiver.construct (XModemLayer* parent)
-{		
+{
 	m_state = State.Idle;
 	m_parent = parent;
 }
@@ -90,13 +90,13 @@ XModemReceiver.onRx (
 
 		break;
 
-	case XModemChar.Can: 
+	case XModemChar.Can:
 		m_parent.m_progressDlg.m_status = "XModem transfer cancelled by remote node";
 		complete ();
 		break;
 
 	case XModemChar.Eot:
-		static char c = XModemChar.Ack;	
+		static char c = XModemChar.Ack;
 		try m_parent.transmit (&c, sizeof (c));
 
 		m_parent.m_progressDlg.m_status = "XModem transfer completed successfully";
@@ -108,7 +108,7 @@ XModemReceiver.onRx (
 XModemReceiver.onRx_Data (XModemBlock const* block)
 {
 	static char ack = XModemChar.Ack;
-	static char nak = XModemChar.Nak;	
+	static char nak = XModemChar.Nak;
 
 	uchar_t blockNumber = (uchar_t) (m_offset / XModemBlockSize + 1);
 	if (block.m_blockNumber != blockNumber)
@@ -127,15 +127,15 @@ XModemReceiver.onRx_Data (XModemBlock const* block)
 	}
 
 	m_parent.transmit (&ack, sizeof (ack));
-	
+
 	void* p = m_parent.m_file.view (m_offset, XModemBlockSize);
-	memcpy (p, block.m_data, XModemBlockSize);	
+	memcpy (p, block.m_data, XModemBlockSize);
 	m_offset += XModemBlockSize;
 	m_parent.m_file.m_size = m_offset;
-	
+
 catch:
 	m_parent.m_progressDlg.m_status = std.getLastError ().m_description;
 	complete ();
 }
 
-//.............................................................................
+//..............................................................................

@@ -1,4 +1,4 @@
-//.............................................................................
+//..............................................................................
 //
 // UDP log packet declarations and representer
 //
@@ -7,7 +7,7 @@ import "log.jnc"
 import "io_base.jncx"
 import "io_Socket.jnc"
 
-//.............................................................................
+//..............................................................................
 
 enum UdpRecordCode
 {
@@ -26,7 +26,7 @@ enum UdpRecordPartCode
 	ResolveCompleted  = 1 | log.PartCodeFlags.MergeableBackward,
 }
 
-//.............................................................................
+//..............................................................................
 
 bool representUdpLog (
 	log.RepresenterTarget* target,
@@ -37,7 +37,7 @@ bool representUdpLog (
 	)
 {
 	switch (recordCode)
-	{	
+	{
 	case UdpRecordCode.Open:
 		char const* addressString = ((io.SocketAddress const*) p).getString ();
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
@@ -89,11 +89,11 @@ bool representUdpLog (
 	default:
 		return false;
 	}
-	
+
 	return true;
 }
 
-//.............................................................................
+//..............................................................................
 
 class UdpLogFilter: log.Filter
 {
@@ -108,7 +108,7 @@ class UdpLogFilter: log.Filter
 		);
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 UdpLogFilter.construct ()
 {
@@ -132,4 +132,4 @@ bool UdpLogFilter.filter (
 	}
 }
 
-//.............................................................................
+//..............................................................................

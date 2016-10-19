@@ -1,10 +1,10 @@
-//.............................................................................
+//..............................................................................
 //
 // $(pluginName) syntax highlighter
-// by default it uses C programming language syntax 
+// by default it uses C programming language syntax
 //
 
-//.............................................................................
+//..............................................................................
 
 enum TokenColor
 {
@@ -15,7 +15,7 @@ enum TokenColor
 	DqLiteral = gui.StdColor.Purple,
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 class $(highlighterClass)
 {
@@ -33,7 +33,7 @@ public:
 	}
 
 	write (
-		log.Writer* writer, 
+		log.Writer* writer,
 		void const* p,
 		size_t size
 		);
@@ -45,7 +45,7 @@ protected:
 		jnc.AutomatonFunc* automatonFunc,
 		uint_t stickyColor
 		);
-	
+
 	leaveStickyState ();
 
 	stickyColorize ();
@@ -54,13 +54,13 @@ protected:
 	jnc.AutomatonResult automaton scanSlComment (jnc.Recognizer* recognizer);
 	jnc.AutomatonResult automaton scanMlComment (jnc.Recognizer* recognizer);
 	jnc.AutomatonResult automaton scanSqLiteral (jnc.Recognizer* recognizer);
-	jnc.AutomatonResult automaton scanDqLiteral (jnc.Recognizer* recognizer); 
+	jnc.AutomatonResult automaton scanDqLiteral (jnc.Recognizer* recognizer);
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 $(highlighterClass).write (
-	log.Writer* writer, 
+	log.Writer* writer,
 	void const* p,
 	size_t size
 	)
@@ -69,9 +69,9 @@ $(highlighterClass).write (
 	m_stickyOffset = -size;
 	m_recognizer.m_currentOffset = -size;
 	try m_recognizer.write (p, size);
-	
+
 	if (m_isStickyState)
-		stickyColorize ();	
+		stickyColorize ();
 }
 
 $(highlighterClass).finalize (log.Writer* writer)
@@ -109,7 +109,7 @@ $(highlighterClass).leaveStickyState ()
 $(highlighterClass).stickyColorize ()
 {
 	size_t length = m_recognizer.m_currentOffset - m_stickyOffset;
-	
+
 	if (length)
 		m_writer.retroColorize (m_stickyOffset, length, m_stickyColor);
 }
@@ -121,14 +121,14 @@ jnc.AutomatonResult automaton $(highlighterClass).scanBase (jnc.Recognizer* reco
 		"for" | "goto" | "if" | "int" | "long" | "register" | "return" | \
 		"short" | "signed" | "sizeof" | "static" | "struct" | "switch" | \
 		"typedef" | "union" | "unsigned" | "void" | "volatile" | "while"
-		
+
 		m_writer.retroColorize (
 			recognizer.m_lexemeOffset,
 			recognizer.m_lexemeLength,
 			TokenColor.Keyword
 			);
 
-	%% [_a-zA-Z] [_a-zA-Z0-9]*		
+	%% [_a-zA-Z] [_a-zA-Z0-9]*
 		// distinguish identifiers from keywords
 
 	%% "//"
@@ -144,49 +144,49 @@ jnc.AutomatonResult automaton $(highlighterClass).scanBase (jnc.Recognizer* reco
 		enterStickyState (scanDqLiteral, TokenColor.DqLiteral);
 
 	%% .
-		// ignore the rest		
+		// ignore the rest
 }
 
 jnc.AutomatonResult automaton $(highlighterClass).scanSlComment (jnc.Recognizer* recognizer)
 {
 	%% '\n'
 		leaveStickyState ();
-	
+
 	%% .
-		// ignore the rest		
+		// ignore the rest
 }
 
 jnc.AutomatonResult automaton $(highlighterClass).scanMlComment (jnc.Recognizer* recognizer)
 {
 	%% "*/"
 		leaveStickyState ();
-	
+
 	%% .
-		// ignore the rest		
+		// ignore the rest
 }
 
 jnc.AutomatonResult automaton $(highlighterClass).scanSqLiteral (jnc.Recognizer* recognizer)
 {
 	%% '\''
 		leaveStickyState ();
-	
+
 	%% "\\'"
 		// distinguish escape-protected quotation mark
 
 	%% .
-		// ignore the rest		
+		// ignore the rest
 }
 
 jnc.AutomatonResult automaton $(highlighterClass).scanDqLiteral (jnc.Recognizer* recognizer)
 {
 	%% '"'
 		leaveStickyState ();
-	
+
 	%% "\\\""
 		// distinguish escape-protected quotation mark
 
 	%% .
-		// ignore the rest		
+		// ignore the rest
 }
 
-//.............................................................................
+//..............................................................................

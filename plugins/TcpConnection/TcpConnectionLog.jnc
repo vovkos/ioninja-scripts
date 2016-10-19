@@ -1,9 +1,9 @@
-//.............................................................................
+//..............................................................................
 //
 // TCP Connection log packet declarations and representer
 //
 
-//.............................................................................
+//..............................................................................
 
 enum TcpConnectionLogRecordCode
 {
@@ -26,7 +26,7 @@ enum TcpConnectionPartCode
 bitflag enum TcpDisconnectLogRecordFlags
 {
 	Remote,
-	Reset,	
+	Reset,
 }
 
 struct TcpDisconnectLogRecordParams
@@ -35,7 +35,7 @@ struct TcpDisconnectLogRecordParams
 	uint_t m_flags;
 }
 
-//.............................................................................
+//..............................................................................
 
 bool representTcpConnectionLog (
 	log.RepresenterTarget* target,
@@ -60,7 +60,7 @@ bool representTcpConnectionLog (
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText (TcpConnectionPartCode.Connecting, $"Connecting to \e[34m$addressString\e[m...");
 		break;
-		
+
 	case TcpConnectionLogRecordCode.ConnectingFrom:
 		char const* remoteAddressString = ((io.SocketAddress const*) p).getString ();
 		char const* localAddressString = ((io.SocketAddress const*) p + 1).getString ();
@@ -101,7 +101,7 @@ bool representTcpConnectionLog (
 		char const* initiator = (params.m_flags & TcpDisconnectLogRecordFlags.Remote) ? "remote" : "local";
 
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;	
+		target.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
 		target.addHyperText ($"Disconnected from \e[34m$addressString\e[m ($closeKind by $initiator node)");
 		break;
 
@@ -112,4 +112,4 @@ bool representTcpConnectionLog (
 	return true;
 }
 
-//.............................................................................
+//..............................................................................

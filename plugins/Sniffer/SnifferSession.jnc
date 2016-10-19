@@ -1,4 +1,4 @@
-//.............................................................................
+//..............................................................................
 //
 // Sniffer session
 //
@@ -8,7 +8,7 @@ import "io_pcap.jncx"
 import "doc_Plugin.jnc"
 import "gui_Dialog.jnc"
 
-//.............................................................................
+//..............................................................................
 
 class SnifferSession: doc.Session
 {
@@ -42,20 +42,20 @@ protected:
 	// pcap
 
 	State bindable m_state;
-	io.Pcap m_pcap;	
+	io.Pcap m_pcap;
 	io.IpDefragmenter m_ipDefragmenter;
-	
+
 	// toolbar, status bar & menu
-	
+
 	gui.Action* m_actionTable [ActionId._Count];
 	gui.Icon* m_iconTable [IconId._Count];
 	gui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
 	gui.ComboBox* m_deviceCombo;
 	gui.ComboBox* m_filterCombo;
 	gui.FileDlg* m_fileDlg;
-	
+
 	// property grid
-	
+
 	gui.EnumProperty* m_deviceProp;
 	gui.BoolProperty* m_promisciousProp;
 	gui.StringProperty* m_filterProp;
@@ -66,11 +66,11 @@ public:
 	construct (doc.PluginHost* pluginHost);
 
 	bool errorcode capture ();
-	
+
 	bool errorcode capture (
 		io.PcapDeviceDesc const* device,
 		char const* filterString
-		);		
+		);
 
 	bool errorcode openCapFile (
 		char const* fileName,
@@ -107,7 +107,7 @@ protected:
 	reactor m_uiReactor ();
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 SnifferSession.construct (doc.PluginHost* pluginHost)
 {
@@ -141,7 +141,7 @@ SnifferSession.createUi ()
 	m_actionTable [ActionId.Capture].m_onTriggered += onCapture;
 
 	// status bar
-	
+
 	m_statusPaneTable [StatusPaneId.State] = m_pluginHost.m_statusBar.addPane (, 80);
 
 	// property grid
@@ -188,14 +188,14 @@ SnifferSession.onSetFilter ()
 	if (!m_state)
 		try capture ();
 	else
-		try applyFilter ();	
+		try applyFilter ();
 }
 
 SnifferSession.onFileDlgCompleted (gui.StdDlgButton button)
 {
 	if (button != gui.StdDlgButton.Ok)
 		return;
-	
+
 	char const* fileName = m_fileDlg.m_filePath;
 	char const* filterString = m_filterCombo.m_editText;
 	m_filterCombo.addEditTextToHistory ();
@@ -206,7 +206,7 @@ SnifferSession.onFileDlgCompleted (gui.StdDlgButton button)
 bool errorcode SnifferSession.capture ()
 {
 	stopCapture ();
-	
+
 	if (m_deviceCombo.m_currentIndex == -1)
 		return false;
 
@@ -216,9 +216,9 @@ bool errorcode SnifferSession.capture ()
 		if (!m_fileDlg)
 		{
 			m_fileDlg = new gui.FileDlg;
-			m_fileDlg.m_onCompleted += onFileDlgCompleted;			
+			m_fileDlg.m_onCompleted += onFileDlgCompleted;
 		}
-		
+
 		m_fileDlg.m_kind = gui.FileDlgKind.Open;
 		m_fileDlg.m_title = "Open Wireshark File (*.cap; *.pcap)...";
 		m_fileDlg.m_filter = "Wireshark .cap files (*.cap; *.pcap);; All files (*.*)";
@@ -239,15 +239,15 @@ bool errorcode SnifferSession.capture (
 {
 	stopCapture ();
 	startSession ();
-	
+
 	writeLogString (SnifferLogRecordCode.StartingCapture, filterString);
-	
+
 	bool result = try m_pcap.openDevice (
-		device.m_name, 
+		device.m_name,
 		filterString,
 		m_promisciousProp.m_value
 		);
-		
+
 	if (!result)
 	{
 		writeLogLastError (SnifferLogRecordCode.CaptureError);
@@ -265,12 +265,12 @@ bool errorcode SnifferSession.openCapFile (
 	)
 {
 	writeLogString (SnifferLogRecordCode.StartingCapture, filterString);
-	
+
 	bool result = try m_pcap.openFile (
-		fileName, 
+		fileName,
 		filterString
 		);
-		
+
 	if (!result)
 	{
 		writeLogLastError (SnifferLogRecordCode.CaptureError);
@@ -307,7 +307,7 @@ bool errorcode SnifferSession.applyFilter ()
 		writeLogLastError (SnifferLogRecordCode.FilterError);
 		return false;
 	}
-	
+
 	writeLog (SnifferLogRecordCode.FilterChanged);
 	return true;
 }
@@ -342,10 +342,10 @@ bool errorcode SnifferSession.applyProperties ()
 	m_filterCombo.m_editText = m_filterProp.m_value;
 	m_ipDefragmenter.m_fragmentLimit = m_ipFragmentLimitProp.m_value;
 	m_ipDefragmenter.m_timeout = m_ipFragmentTimeoutProp.m_value;
-	
+
 	if (m_state)
 		try applyFilter ();
-	
+
 	return true;
 }
 
@@ -385,9 +385,9 @@ SnifferSession.onPcapEvent (io.PcapEventParams const* params)
 		size_t result = try m_pcap.read (buffer, sizeof (buffer));
 		if (result != -1)
 			processPacket (buffer, result);
-		
+
 		break;
-	
+
 	case io.PcapEventCode.Eof:
 		stopCapture ();
 		break;
@@ -402,17 +402,17 @@ SnifferSession.processPacket (
 	writeLog (SnifferLogRecordCode.Packet, p, size);
 
 	// defragment IPv4
-	
+
 	if (size < sizeof (io.EthernetHdr) + sizeof (io.IpHdr))
 		return;
-	
+
 	io.EthernetHdr const* ethernetHdr = (io.EthernetHdr const*) p;
 	if (ethernetHdr.m_type != io.EthernetType.Ip)
 		return;
 
 	p += sizeof (io.EthernetHdr);
 	size -= sizeof (io.EthernetHdr);
-	
+
 	io.IpHdr const* ipHdr = (io.IpHdr const*) p;
 	if ((ipHdr.m_flags & io.IpFlags.Mf) || ipHdr.m_fragmentOffset)
 	{
@@ -434,4 +434,4 @@ reactor SnifferSession.m_uiReactor ()
 	m_statusPaneTable [StatusPaneId.State].m_text = m_state ? "Capturing" : "Closed";
 }
 
-//.............................................................................
+//..............................................................................

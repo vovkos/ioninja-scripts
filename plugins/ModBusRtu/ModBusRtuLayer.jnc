@@ -1,4 +1,4 @@
-//.............................................................................
+//..............................................................................
 //
 // ModBus RTU Protocol Analyzer layer
 //
@@ -7,21 +7,21 @@ import "io_ModBus.jnc"
 import "doc_Plugin.jnc"
 import "crc16.jnc"
 
-//.............................................................................
+//..............................................................................
 
-class ModBusRtuLayer: 
+class ModBusRtuLayer:
 	doc.Layer,
 	log.Converter
 {
-	// checking for correct modbus delays (1.5/3.5 chars) is not possible 
-	// due to  insufficient precision of timestamps	(we get timestamp of read 
+	// checking for correct modbus delays (1.5/3.5 chars) is not possible
+	// due to  insufficient precision of timestamps	(we get timestamp of read
 	// completion and no timestamps of individual bytes)
-	
+
 	enum: uint64_t
 	{
 		MinInterFrameDelay = 500 * 10000, // 500 ms
 	}
-	
+
 protected:
 	uint_t m_lastRecordCode;
 	uint64_t m_lastRecordTimestamp;
@@ -38,7 +38,7 @@ public:
 		void const* p,
 		size_t size
 		);
-		
+
 protected:
 	bool convertImpl (
 		log.Writer* writer,
@@ -50,7 +50,7 @@ protected:
 		);
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 ModBusRtuLayer.construct (doc.PluginHost* pluginHost)
 {
@@ -77,19 +77,19 @@ bool ModBusRtuLayer.convert (
 	case log.StdRecordCode.Tx:
 		role = io.ModBusRole.Master;
 		break;
-		
+
 	case log.StdRecordCode.Rx:
 		role = io.ModBusRole.Slave;
 		break;
-		
+
 	default:
 		return false;
-	}	
-	
+	}
+
 	bool isNewFrame =
 		recordCode != m_lastRecordCode ||
 		(timestamp - m_lastRecordTimestamp) >= MinInterFrameDelay;
-	
+
 	if (isNewFrame)
 	{
 		result = convertImpl (writer, timestamp, recordCode, role, p, size);
@@ -108,7 +108,7 @@ bool ModBusRtuLayer.convert (
 	{
 		m_dataBuffer = memcat (m_dataBuffer, m_dataSize, p, size);
 		m_dataSize += size;
-			
+
 		result = convertImpl (writer, timestamp, recordCode, role, m_dataBuffer, m_dataSize);
 		if (result)
 		{
@@ -136,7 +136,7 @@ bool ModBusRtuLayer.convertImpl (
 
 	if (aduSize == -1 || size < aduSize)
 		return false;
-	
+
 	size_t checksumOffset = aduSize - sizeof (uint16_t);
 	uint16_t correctChecksum = crc16_ansi (p, checksumOffset, 0xffff);
 	uint16_t actualChecksum = *(uint16_t const*) (p + checksumOffset);
@@ -145,17 +145,17 @@ bool ModBusRtuLayer.convertImpl (
 		return false;
 
 	writer.write (timestamp, recordCode, p, size);
-		
+
 	ModBusRtuLogPacket packet;
 	packet.m_role = role;
 	packet.m_deviceAddress = aduHdr.m_deviceAddress;
 	packet.m_checksum = actualChecksum;
-	
+
 	size_t pduSize = aduSize - sizeof (io.ModBusRtuAduHdr) - sizeof (uint16_t);
-	void const* params = memcat (&packet, sizeof (packet), aduHdr + 1, pduSize);	
+	void const* params = memcat (&packet, sizeof (packet), aduHdr + 1, pduSize);
 	writer.write (timestamp, ModBusRtuLogRecordCode.Packet, params, sizeof (packet) + pduSize);
-	
+
 	return true;
 }
 
-//.............................................................................
+//..............................................................................

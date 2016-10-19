@@ -1,4 +1,4 @@
-//.............................................................................
+//..............................................................................
 //
 // Socket & network adapter user interface
 //
@@ -9,7 +9,7 @@ import "io_Serial.jnc"
 
 namespace io {
 
-//.............................................................................
+//..............................................................................
 
 gui.EnumPropertyOption* createSerialPortPropertyOptionArray (
 	SerialPortDesc const* portList,
@@ -25,7 +25,7 @@ gui.EnumPropertyOption* createSerialPortPropertyOptionArray (
 		portOption.m_text = port->m_deviceName;
 		portOption.m_value = 0;
 	}
-	
+
 	return portOptionArray;
 }
 
@@ -57,6 +57,6 @@ void updateSerialPortProperty (
 	prop.setOptions (portOptionArray, portCount);
 }
 
-//.............................................................................
+//..............................................................................
 
 } // namespace io {

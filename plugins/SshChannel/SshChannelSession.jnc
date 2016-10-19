@@ -1,4 +1,4 @@
-//.............................................................................
+//..............................................................................
 //
 // SSH Connection session
 //
@@ -10,7 +10,7 @@ import "io_SocketAddressResolver.jnc"
 import "doc_Plugin.jnc"
 import "gui_Dialog.jnc"
 
-//.............................................................................
+//..............................................................................
 
 class SshChannelSession: doc.Session
 {
@@ -24,7 +24,7 @@ protected:
 		Connected
 	}
 
-	static char const* m_stateStringTable [] = 
+	static char const* m_stateStringTable [] =
 	{
 		"Closed",
 		"Resolving...",
@@ -38,14 +38,14 @@ protected:
 		Connect,
 		_Count,
 	}
-	
+
 	enum IconId
 	{
 		Connect,
 		Disconnect,
 		_Count,
 	}
-	
+
 	enum StatusPaneId
 	{
 		RemoteAddress,
@@ -54,15 +54,15 @@ protected:
 	}
 
 protected:
-	// ssh 
-	
+	// ssh
+
 	State bindable m_state;
 	io.SshChannel m_channel;
 	io.SocketAddressResolver m_resolver;
 	io.SocketAddress m_remoteAddress;
-	
+
 	// toolbar, status bar & menu
-	
+
 	gui.Action* m_actionTable [ActionId._Count];
 	gui.Icon* m_iconTable [IconId._Count];
 	gui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
@@ -104,18 +104,18 @@ public:
 protected:
 	handleConnectError (std.Error const* error);
 	handleSshAuthError (std.Error const* error);
-	
+
 	onConnect ();
 	onSshEvent (io.SshEventParams const* params);
 	onResolverEvent (io.SocketAddressResolverEventParams const* params);
 	onLoginDlgCompleted (gui.StdDlgButton button);
 	onConsoleSizeChanged ();
 
-	createUi ();	
+	createUi ();
 	reactor m_uiReactor ();
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 SshChannelSession.construct (doc.PluginHost* pluginHost)
 {
@@ -147,7 +147,7 @@ SshChannelSession.createUi ()
 	m_actionTable [ActionId.Connect].m_onTriggered += onConnect;
 
 	// status bar
-	
+
 	m_statusPaneTable [StatusPaneId.RemoteAddress] = m_pluginHost.m_statusBar.addPane (, 100);
 	m_statusPaneTable [StatusPaneId.RemoteAddress].m_color = gui.StdColor.Blue;
 	m_statusPaneTable [StatusPaneId.State] = m_pluginHost.m_statusBar.addPane (, 80);
@@ -163,7 +163,7 @@ SshChannelSession.createUi ()
 		"User name",
 		"User name for SSH authentification"
 		);
-		
+
 	m_passwordProp = m_pluginHost.m_propertyGrid.createStringProperty (
 		"Password",
 		"Password for SSH authentification"
@@ -194,7 +194,7 @@ SshChannelSession.createUi ()
 
 	m_closeKindProp = m_pluginHost.m_propertyGrid.createEnumProperty (
 		"TCP disconnect",
-		"How to close TCP connection (graceful / reset)", 
+		"How to close TCP connection (graceful / reset)",
 		closeKindTable,
 		countof (closeKindTable)
 		);
@@ -236,7 +236,7 @@ bool errorcode SshChannelSession.connect ()
 {
 	disconnect ();
 	startSession ();
-	
+
 	char const* addressString = m_addressCombo.m_editText;
 	m_addressCombo.addEditTextToHistory ();
 
@@ -244,7 +244,7 @@ bool errorcode SshChannelSession.connect ()
 	bool isDirectAddress = try address.parse (addressString);
 	if (isDirectAddress)
 		return try connect (&address);
-		
+
 	m_state = State.Resolving;
 
 	writeLog (
@@ -286,7 +286,7 @@ bool errorcode SshChannelSession.connect (io.SocketAddress const* remoteAddress)
 			localAddress = *adapterAddress;
 		else
 			localAddress.m_family = remoteAddress.m_family;
-			
+
 		localAddress.m_ip4.m_port = (uint16_t) m_localPortProp.m_value; // same for IPv4/IPv6
 
 		m_channel.open (&localAddress);
@@ -302,8 +302,8 @@ bool errorcode SshChannelSession.connect (io.SocketAddress const* remoteAddress)
 		);
 
 	m_channel.connect (
-		remoteAddress, 
-		m_userNameProp.m_value, 
+		remoteAddress,
+		m_userNameProp.m_value,
 		m_passwordProp.m_value,
 		m_channelTypeProp.m_value,
 		m_processTypeProp.m_value,
@@ -326,7 +326,7 @@ SshChannelSession.handleConnectError (std.Error const* error)
 		error,
 		error.m_size
 		);
-		
+
 	m_channel.close ();
 	m_state = State.Closed;
 }
@@ -338,17 +338,17 @@ SshChannelSession.handleSshAuthError (std.Error const* error)
 		error,
 		error.m_size
 		);
-	
+
 	if (!m_loginDlg)
 	{
 		m_loginDlg = new gui.LoginDlg;
 		m_loginDlg.m_onCompleted += onLoginDlgCompleted;
 	}
-	
+
 	m_loginDlg.m_userName = m_userNameProp.m_value;
 	m_loginDlg.m_password = m_passwordProp.m_value;
-	m_loginDlg.show ();	
-	
+	m_loginDlg.show ();
+
 	m_state = State.RequestingLogin;
 }
 
@@ -363,12 +363,12 @@ SshChannelSession.onLoginDlgCompleted (gui.StdDlgButton button)
 		m_state = State.Closed;
 		return;
 	}
-	
+
 	m_userNameProp.m_value = m_loginDlg.m_userName;
 	m_passwordProp.m_value = m_loginDlg.m_password;
 	m_channel.authenticate (m_userNameProp.m_value, m_passwordProp.m_value);
 	m_state = State.Connecting;
-	
+
 catch:
 	m_channel.close ();
 	m_state = State.Closed;
@@ -378,11 +378,11 @@ SshChannelSession.onConsoleSizeChanged ()
 {
 	if (m_state != State.Connected)
 		return; // actually, need to handle console size change during connection process also
-	
+
 	try m_channel.resizePty (
 		m_pluginHost.m_terminal.m_consoleWidth,
 		m_pluginHost.m_terminal.m_consoleHeight
-		);	
+		);
 }
 
 SshChannelSession.disconnect ()
@@ -405,7 +405,7 @@ SshChannelSession.disconnect ()
 			);
 		break;
 	}
-	
+
 	m_channel.close ();
 	m_state = State.Closed;
 }
@@ -528,7 +528,7 @@ SshChannelSession.onSshEvent (io.SshEventParams const* params)
 			&m_remoteAddress,
 			sizeof (m_remoteAddress)
 			);
-		
+
 		m_channel.close ();
 		m_state = State.Closed;
 		break;
@@ -558,7 +558,7 @@ SshChannelSession.onResolverEvent (io.SocketAddressResolverEventParams const* pa
 {
 	if (params.m_syncId != m_channel.m_syncId)
 		return;
-		
+
 	switch (params.m_eventCode)
 	{
 	case io.SocketAddressResolverEventCode.ResolveCompleted:
@@ -569,7 +569,7 @@ SshChannelSession.onResolverEvent (io.SocketAddressResolverEventParams const* pa
 			);
 
 		m_state = State.Closed;
-		
+
 		try connect (params.m_addressTable);
 		break;
 
@@ -595,4 +595,4 @@ reactor SshChannelSession.m_uiReactor ()
 	m_statusPaneTable [StatusPaneId.RemoteAddress].m_isVisible = m_state > State.Resolving;
 }
 
-//.............................................................................
+//..............................................................................

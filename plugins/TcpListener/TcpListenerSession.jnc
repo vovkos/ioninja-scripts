@@ -1,4 +1,4 @@
-//.............................................................................
+//..............................................................................
 //
 // TCP Listener session
 //
@@ -7,7 +7,7 @@ import "io_base.jncx"
 import "io_Socket.jnc"
 import "doc_Plugin.jnc"
 
-//.............................................................................
+//..............................................................................
 
 class TcpListenerSession: doc.Session
 {
@@ -59,9 +59,9 @@ protected:
 	uint_t m_connectionSyncId;
 	io.Socket* m_connectionSocket;
 	io.SocketAddress m_remoteAddress;
-	
+
 	// toolbar, status bar & menu
-	
+
 	gui.Action* m_actionTable [ActionId._Count];
 	gui.Icon* m_iconTable [IconId._Count];
 	gui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
@@ -95,7 +95,7 @@ public:
 		);
 
 protected:
-	onListen ();	
+	onListen ();
 	onListenerSocketEvent (io.SocketEventParams const* params);
 	onConnectionSocketEvent (io.SocketEventParams const* params);
 
@@ -103,7 +103,7 @@ protected:
 	reactor m_uiReactor ();
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 TcpListenerSession.construct (doc.PluginHost* pluginHost)
 {
@@ -122,10 +122,10 @@ TcpListenerSession.createUi ()
 {
 	// toolbar
 
-	m_pluginHost.m_toolBar.addLabel ("Adapter:");	
+	m_pluginHost.m_toolBar.addLabel ("Adapter:");
 	m_adapterCombo = io.createNetworkAdapterComboBox (m_pluginHost.m_toolBar, io.NetworkAdapterUsage.Listener);
 
-	m_pluginHost.m_toolBar.addLabel ("Port:");	
+	m_pluginHost.m_toolBar.addLabel ("Port:");
 	m_portCombo = m_pluginHost.m_toolBar.addComboBox ();
 	m_portCombo.m_isEditable = true;
 	m_portCombo.m_onEnter += listen;
@@ -185,7 +185,7 @@ TcpListenerSession.onListen ()
 {
 	if (m_listenerState)
 		stopListen ();
-	else 
+	else
 		try listen ();
 }
 
@@ -193,12 +193,12 @@ bool errorcode TcpListenerSession.listen ()
 {
 	stopListen ();
 	startSession ();
-	
+
 	m_portCombo.addEditTextToHistory ();
 
 	io.SocketAddress address = *(io.SocketAddress const*) m_adapterCombo.m_currentData;
 	address.m_ip4.m_port = (uint16_t) atoi (m_portCombo.m_editText); // same for IPv4/IPv6
-	
+
 	m_listenerSocket.open (io.Protocol.Tcp, &address, io.SocketOpenFlags.Asynchronous);
 	m_listenerSocket.m_closeKind = (io.SocketCloseKind) m_closeKindProp.m_value;
 	m_listenerSocket.m_isNagleEnabled = m_isNagleEnabledProp.m_value;
@@ -223,7 +223,7 @@ catch:
 		error,
 		error.m_size
 		);
-		
+
 	m_listenerSocket.close ();
 	return false;
 }
@@ -248,7 +248,7 @@ TcpListenerSession.disconnect ()
 		return;
 
 	TcpDisconnectLogRecordParams params;
-	params.m_address = m_remoteAddress;		
+	params.m_address = m_remoteAddress;
 	params.m_flags = 0;
 
 	if (m_closeKindProp.m_value == io.SocketCloseKind.Reset)
@@ -259,7 +259,7 @@ TcpListenerSession.disconnect ()
 		&params,
 		sizeof (params)
 		);
-		
+
 	m_connectionSocket.close ();
 	m_connectionSocket = null;
 	m_connectionState = ConnectionState.Closed;
@@ -291,7 +291,7 @@ void TcpListenerSession.updateProperties ()
 }
 
 bool errorcode TcpListenerSession.applyProperties ()
-{	
+{
 	m_portCombo.m_editText = $"$(m_portProp.m_value)";
 	m_adapterCombo.m_currentIndex = m_adapterProp.m_currentIndex;
 
@@ -333,7 +333,7 @@ size_t errorcode TcpListenerSession.transmit (
 
 	if (result < size)
 		m_isTransmitEnabled = false;
-		
+
 	return result;
 }
 
@@ -375,8 +375,8 @@ TcpListenerSession.onListenerSocketEvent (io.SocketEventParams const* params)
 
 		m_remoteAddress = address;
 		m_connectionSocket = socket;
-		m_connectionState = ConnectionState.Connected;		
-		
+		m_connectionState = ConnectionState.Connected;
+
 		socket.firePendingEvents ();
 		break;
 	}
@@ -391,19 +391,19 @@ TcpListenerSession.onConnectionSocketEvent (io.SocketEventParams const* params)
 	{
 	case io.SocketEventCode.Disconnected:
 		TcpDisconnectLogRecordParams recordParams;
-		recordParams.m_address = m_remoteAddress;		
+		recordParams.m_address = m_remoteAddress;
 		recordParams.m_flags = TcpDisconnectLogRecordFlags.Remote;
-		
+
 		if (params.m_flags & io.SocketDisconnectEventFlags.Reset)
-			recordParams.m_flags |= TcpDisconnectLogRecordFlags.Reset;			
-		
+			recordParams.m_flags |= TcpDisconnectLogRecordFlags.Reset;
+
 		writeLog (
 			TcpListenerLogRecordCode.ClientDisconnected,
 			&recordParams,
 			sizeof (recordParams)
 			);
 
-		m_connectionSocket.close ();	
+		m_connectionSocket.close ();
 		m_connectionSocket = null;
 		m_connectionState = ConnectionState.Closed;
 		m_connectionSyncId++;
@@ -434,4 +434,4 @@ reactor TcpListenerSession.m_uiReactor ()
 	m_statusPaneTable [StatusPaneId.RemoteAddress].m_isVisible = m_connectionState != ConnectionState.Closed;
 }
 
-//.............................................................................
+//..............................................................................

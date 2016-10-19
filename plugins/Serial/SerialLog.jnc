@@ -1,9 +1,9 @@
-//.............................................................................
+//..............................................................................
 //
 // Serial log packet declarations and representer
 //
 
-//.............................................................................
+//..............................................................................
 
 enum SerialLogRecordCode
 {
@@ -21,7 +21,7 @@ enum SerialLogRecordCode
 	IoError,
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 struct SerialOpenParams
 {
@@ -34,7 +34,7 @@ struct SerialOpenParams
 	// followed by port name
 };
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 char const* getTableString (
 	uint_t value,
@@ -49,7 +49,7 @@ char const* getLineString (uint_t line)
 	return line ? "\e[31mon\e[m" : "\e[90moff\e[m";
 }
 
-//.............................................................................
+//..............................................................................
 
 bool representSerialLog (
 	log.RepresenterTarget* target,
@@ -59,21 +59,21 @@ bool representSerialLog (
 	uint_t foldFlags
 	)
 {
-	static char const* flowControlStringTable [] = 
+	static char const* flowControlStringTable [] =
 	{
 		"None",
 		"RTS/CTS",
 		"XON/XOFF"
 	};
 
-	static char const* stopBitsStringTable [] = 
+	static char const* stopBitsStringTable [] =
 	{
 		"1 bit",
 		"1.5 bits",
 		"2 bits"
 	};
 
-	static char const* parityStringTable [] = 
+	static char const* parityStringTable [] =
 	{
 		"None",
 		"Odd",
@@ -186,7 +186,7 @@ bool representSerialLog (
 	case SerialLogRecordCode.StatusLineChanged:
 		uint_t lines = ((uint_t const*) p) [0];
 		uint_t mask  = ((uint_t const*) p) [1];
-		
+
 		char const* string = "Status line(s) changed:";
 		if (mask & io.SerialStatusLines.Dsr)
 		{
@@ -210,7 +210,7 @@ bool representSerialLog (
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText (string);
 		break;
-		
+
 	case SerialLogRecordCode.IoError:
 		std.Error const* error = (std.Error const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
@@ -225,7 +225,7 @@ bool representSerialLog (
 	return true;
 }
 
-//.............................................................................
+//..............................................................................
 
 class SerialLogFilter: log.Filter
 {
@@ -242,7 +242,7 @@ class SerialLogFilter: log.Filter
 		);
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 SerialLogFilter.construct ()
 {
@@ -278,4 +278,4 @@ bool SerialLogFilter.filter (
 	}
 }
 
-//.............................................................................
+//..............................................................................

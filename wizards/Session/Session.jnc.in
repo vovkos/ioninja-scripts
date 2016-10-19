@@ -1,11 +1,11 @@
-//.............................................................................
+//..............................................................................
 //
 // $(pluginName) plugin
 //
 
 import "doc_Plugin.jnc"
 
-//.............................................................................
+//..............................................................................
 
 class $(sessionClass): doc.Session
 {
@@ -16,7 +16,7 @@ protected:
 		Connected,
 	}
 
-	static char const* m_stateStringTable [] = 
+	static char const* m_stateStringTable [] =
 	{
 		"Closed",
 		"Connected",
@@ -77,14 +77,14 @@ public:
 		size_t size
 		) throws;
 
-protected:	
+protected:
 	onConnect ();
-	
+
 	createUi ();
 	reactor m_uiReactor ();
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 $(sessionClass).construct (doc.PluginHost* pluginHost)
 {
@@ -111,11 +111,11 @@ $(sessionClass).createUi ()
 	m_actionTable [ActionId.Connect].m_onTriggered += onConnect;
 
 	// status bar
-	
+
 	m_statusPaneTable [StatusPaneId.Address] = m_pluginHost.m_statusBar.addPane (, 100);
 	m_statusPaneTable [StatusPaneId.Address].m_color = gui.StdColor.Blue;
 	m_statusPaneTable [StatusPaneId.State] = m_pluginHost.m_statusBar.addPane (, 80);
- 
+
 	// property grid
 
 	m_addressProp = m_pluginHost.m_propertyGrid.createStringProperty (
@@ -130,7 +130,7 @@ $(sessionClass).onConnect ()
 {
 	if (m_state)
 		disconnect ();
-	else 
+	else
 		try	connect ();
 }
 
@@ -141,7 +141,7 @@ bool $(sessionClass).connect () throws
 	char const* address = m_addressCombo.m_editText;
 	m_addressCombo.addEditTextToHistory ();
 
-	writeLog ($(logRecordCodeEnum).Connected, address, strlen (address));	
+	writeLog ($(logRecordCodeEnum).Connected, address, strlen (address));
 	m_address = strdup (address);
 	m_state = State.Connected;
 	return true;
@@ -205,4 +205,4 @@ reactor $(sessionClass).m_uiReactor ()
 	m_statusPaneTable [StatusPaneId.Address].m_isVisible = m_state == State.Connected;
 }
 
-//.............................................................................
+//..............................................................................

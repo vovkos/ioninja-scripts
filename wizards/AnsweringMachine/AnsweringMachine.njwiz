@@ -1,6 +1,6 @@
-//.............................................................................
+//..............................................................................
 //
-//  IO Ninja IDE Wizard -- Answering Machine layer 
+//  IO Ninja IDE Wizard -- Answering Machine layer
 //
 
 [wizard]
@@ -35,7 +35,7 @@ readOnly    = true
 value       = $(layerClass).jnc
 rebuildOn   = layerClass
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 [file]
 source = Layer.njplg.in

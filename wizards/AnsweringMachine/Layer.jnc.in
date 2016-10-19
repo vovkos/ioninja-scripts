@@ -1,18 +1,18 @@
-//.............................................................................
+//..............................................................................
 //
 // $(pluginName) layer
 //
 
 import "doc_Plugin.jnc"
 
-//.............................................................................
+//..............................................................................
 
 class $(layerClass): doc.Layer
 {
 protected:
 	jnc.Recognizer m_rxScanner;
 
-public:	
+public:
 	construct (doc.PluginHost* pluginHost);
 
 protected:
@@ -32,10 +32,10 @@ protected:
 	size_t transmitString (char const* s)
 	{
 		return transmitNext (s, strlen (s));
-	}		
+	}
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 $(layerClass).construct (doc.PluginHost* pluginHost)
 {
@@ -54,9 +54,9 @@ jnc.AutomatonResult automaton $(layerClass).scanRx (jnc.Recognizer* recognizer)
 
 	%% "help" [\r\n]
 		try transmitString ("This plugin is a starting point for writing your test utility\r\n");
-		
+
 	%% .
 		// ignore everything else
 }
 
-//.............................................................................
+//..............................................................................

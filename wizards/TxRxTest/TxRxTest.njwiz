@@ -1,6 +1,6 @@
-//.............................................................................
+//..............................................................................
 //
-//  IO Ninja IDE Wizard -- TX/RX test layer 
+//  IO Ninja IDE Wizard -- TX/RX test layer
 //
 
 [wizard]
@@ -62,7 +62,7 @@ readOnly    = true
 value       = $(pluginPrefix)Log.jnc
 rebuildOn   = pluginPrefix
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 [file]
 source = Layer.njplg.in

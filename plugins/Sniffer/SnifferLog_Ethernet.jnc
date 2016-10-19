@@ -1,15 +1,15 @@
-//.............................................................................
+//..............................................................................
 //
-// Sniffer log ethernet packets handling 
+// Sniffer log ethernet packets handling
 //
 
-//.............................................................................
+//..............................................................................
 
 char const* formatEthernetString (uint8_t const* ethernet)
 {
 	return std.format (
-		"%02X:%02X:%02X:%02X:%02X:%02X", 
-		ethernet [0], ethernet [1], ethernet [2], 
+		"%02X:%02X:%02X:%02X:%02X:%02X",
+		ethernet [0], ethernet [1], ethernet [2],
 		ethernet [3], ethernet [4], ethernet [5]
 		);
 }
@@ -43,24 +43,24 @@ representEthernet (
 			"   \e[90mTYPE: \e^!%d,%d\e[34m%04Xh\n"
 			"   \e[90mSRC:  \e^!%d,%d\e[34m%s\n"
 			"   \e[90mDST:  \e^!%d,%d\e[34m%s",
-	
-			offsetof (ethernetHdr.m_type), 
-			sizeof (ethernetHdr.m_type), 
+
+			offsetof (ethernetHdr.m_type),
+			sizeof (ethernetHdr.m_type),
 			ethernetHdr.m_type,
 
-			offsetof (ethernetHdr.m_srcAddress), 
-			sizeof (ethernetHdr.m_srcAddress), 
+			offsetof (ethernetHdr.m_srcAddress),
+			sizeof (ethernetHdr.m_srcAddress),
 			formatEthernetString (ethernetHdr.m_srcAddress),
 
-			offsetof (ethernetHdr.m_dstAddress), 
-			sizeof (ethernetHdr.m_dstAddress), 
+			offsetof (ethernetHdr.m_dstAddress),
+			sizeof (ethernetHdr.m_dstAddress),
 			formatEthernetString (ethernetHdr.m_dstAddress)
 			));
-		
+
 		size_t hdrSizeTable [8] = { sizeof (io.EthernetHdr) };
 		uint_t hdrColorTable [8] = { SnifferLogHdrColor.Ethernet };
 		size_t hdrCount = 1;
-		
+
 		if (ethernetHdr->m_type == io.EthernetType.Ip)
 			hdrCount = representIpHdr (target, p, size, sizeof (io.EthernetHdr), hdrSizeTable, hdrColorTable, 1);
 
@@ -79,10 +79,10 @@ representEthernet (
 			formatEthernetString (ethernetHdr->m_srcAddress),
 			formatEthernetString (ethernetHdr->m_dstAddress),
 			ethernetHdr->m_type
-			));	 	
+			));
 
 		representPacketData (target, p, size, sizeof (io.EthernetHdr), -1);
 	}
 }
 
-//.............................................................................
+//..............................................................................

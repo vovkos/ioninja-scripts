@@ -1,4 +1,4 @@
-//.............................................................................
+//..............................................................................
 //
 // ModBus Protocol Analyzer log record declarations and representer
 //
@@ -6,7 +6,7 @@
 import "log.jnc"
 import "io_ModBus.jnc"
 
-//.............................................................................
+//..............................................................................
 
 representModBusCoils (
 	log.RepresenterTarget* target,
@@ -30,7 +30,7 @@ representModBusCoils (
 	{
 		target.addHyperText ($"[\e^-1\e[34m-\e[m] Values [$count]");
 		representModBusCoilValues (target, p, count);
-	}	
+	}
 	else
 	{
 		target.addHyperText ($"[\e^+1\e[34m+\e[m] Values [$count]");
@@ -48,7 +48,7 @@ representModBusCoilValues (
 	for (size_t j = 0; j < size; j++)
 	{
 		uint8_t c = p [j];
-		
+
 		for (uint8_t mask = 1; mask; i++, mask <<= 1)
 		{
 			bool value = (c & mask) != 0;
@@ -57,7 +57,7 @@ representModBusCoilValues (
 	}
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 representModBusRegisters (
 	log.RepresenterTarget* target,
@@ -71,7 +71,7 @@ representModBusRegisters (
 		target.addHyperText ($"Value:    0x%(1; 04X)/%1" (p [0]));
 		return;
 	}
-	
+
 	if (count <= 4)
 	{
 		target.addHyperText ($"Values [$count]");
@@ -81,11 +81,11 @@ representModBusRegisters (
 	{
 		target.addHyperText ($"[\e^-1\e[34m-\e[m] Values [$count]");
 		representModBusRegisterValues (target, p, count);
-	}	
+	}
 	else
 	{
 		target.addHyperText ($"[\e^+1\e[34m+\e[m] Values [$count]");
-	}	
+	}
 }
 
 representModBusRegisterValues (
@@ -98,7 +98,7 @@ representModBusRegisterValues (
 		target.addHyperText ($"    #%(1; -3d): 0x%(2; 04X)/%2" (i, p [i]));
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 representModBusPdu (
 	log.RepresenterTarget* target,
@@ -131,14 +131,14 @@ representModBusPdu (
 		{
 			io.ModBusReadReplyPdu const* pdu = (io.ModBusReadReplyPdu const*) hdr;
 			target.addHyperText ($"Size:     $(pdu.m_size)");
-			
+
 			if (hdr.m_func <= io.ModBusFunc.ReadDiscreteInputs)
 				representModBusCoils (target, (uint8_t const*) (pdu + 1), pdu.m_size / 8, foldFlags);
 			else
 				representModBusRegisters (target, (bigendian uint16_t const*) (pdu + 1), pdu.m_size / 2, foldFlags);
 		}
 		break;
-	
+
 	case io.ModBusFunc.WriteCoil:
 	case io.ModBusFunc.WriteRegister:
 		io.ModBusWritePdu const* pdu = (io.ModBusWritePdu const*) hdr;
@@ -165,7 +165,7 @@ representModBusPdu (
 					pdu.m_size
 					)
 				);
-					
+
 			if (hdr.m_func == io.ModBusFunc.WriteMultipleCoils)
 				representModBusCoils (target, (uint8_t const*) (pdu + 1), pdu.m_count, foldFlags);
 			else
@@ -196,13 +196,13 @@ representModBusPdu (
 	case io.ModBusFunc.ReadFifoQueue:
 	case io.ModBusFunc.EncapsulatedInterface:
 		break; // not supported yet
-	
+
 	default:
 		if (hdr.m_func & io.ModBusFunc.ExceptionFlag)
 		{
-			
-		}		
+
+		}
 	}
 }
 
-//.............................................................................
+//..............................................................................

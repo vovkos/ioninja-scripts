@@ -1,9 +1,9 @@
-//.............................................................................
+//..............................................................................
 //
 // TCP Listener log packet declarations and representer
 //
 
-//.............................................................................
+//..............................................................................
 
 enum TcpListenerLogRecordCode
 {
@@ -18,7 +18,7 @@ enum TcpListenerLogRecordCode
 bitflag enum TcpDisconnectLogRecordFlags
 {
 	Remote,
-	Reset,	
+	Reset,
 }
 
 struct TcpDisconnectLogRecordParams
@@ -27,7 +27,7 @@ struct TcpDisconnectLogRecordParams
 	uint_t m_flags;
 }
 
-//.............................................................................
+//..............................................................................
 
 bool representTcpListenerLog (
 	log.RepresenterTarget* target,
@@ -92,4 +92,4 @@ bool representTcpListenerLog (
 	return true;
 }
 
-//.............................................................................
+//..............................................................................

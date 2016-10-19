@@ -1,4 +1,4 @@
-//.............................................................................
+//..............................................................................
 //
 // Socket & network adapter user interface
 //
@@ -11,7 +11,7 @@ import "io_NetworkAdapter.jnc"
 
 namespace io {
 
-//.............................................................................
+//..............................................................................
 
 gui.EnumProperty* createSocketCloseKindProperty (
 	gui.PropertyGrid* propertyGrid,
@@ -33,15 +33,15 @@ gui.EnumProperty* createSocketCloseKindProperty (
 		);
 }
 
-//.............................................................................
+//..............................................................................
 
 enum NetworkAdapterUsage
 {
 	Connection,
-	Listener,	
+	Listener,
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 gui.EnumPropertyOption const* createNetworkAdapterOptionArray (NetworkAdapterUsage usage)
 {
@@ -57,20 +57,20 @@ gui.EnumPropertyOption const* createNetworkAdapterOptionArray (NetworkAdapterUsa
 		addressCount++; // include 'Auto'
 		optionArray = new gui.EnumPropertyOption [addressCount];
 		option = optionArray;
-	
+
 		option.m_text = "Auto";
 		option.m_value = null;
 		option++;
 		break;
-		
+
 	case NetworkAdapterUsage.Listener:
 		static io.SocketAddress autoAddress_ip4 = { m_family = io.AddressFamily.Ip4 };
 		static io.SocketAddress autoAddress_ip6 = { m_family = io.AddressFamily.Ip6 };
-	
+
 		addressCount += 2; // include 'All IPv4/IPv6 adapters'
 		optionArray = new gui.EnumPropertyOption [addressCount];
 		option = optionArray;
-	
+
 		option.m_text = "All IPv4 adapters";
 		option.m_value = &autoAddress_ip4;
 		option++;
@@ -80,7 +80,7 @@ gui.EnumPropertyOption const* createNetworkAdapterOptionArray (NetworkAdapterUsa
 		option++;
 		break;
 	}
-	
+
 	io.NetworkAdapterDesc const* adapter = adapterList;
 	for (; adapter; adapter = adapter->m_next)
 	{
@@ -88,18 +88,18 @@ gui.EnumPropertyOption const* createNetworkAdapterOptionArray (NetworkAdapterUsa
 		for (; address; address = address->m_next, option++)
 		{
 			option.m_text = $"%1 - %2" (
-				adapter->m_description,				
+				adapter->m_description,
 				address.m_address.getString ()
 				);
-	
+
 			option.m_value = &address.m_address;
 		}
 	}
-	
+
 	return optionArray;
 }
 
-//.............................................................................
+//..............................................................................
 
 gui.EnumProperty* createNetworkAdapterProperty (
 	gui.PropertyGrid* propertyGrid,
@@ -111,7 +111,7 @@ gui.EnumProperty* createNetworkAdapterProperty (
 	gui.EnumPropertyOption const* optionArray = createNetworkAdapterOptionArray (usage);
 	size_t optionCount = dynamic countof (optionArray);
 
-	return propertyGrid.createEnumProperty (		
+	return propertyGrid.createEnumProperty (
 		name,
 		toolTipText,
 		optionArray,
@@ -119,9 +119,9 @@ gui.EnumProperty* createNetworkAdapterProperty (
 		);
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-gui.ComboBox* 
+gui.ComboBox*
 createNetworkAdapterComboBox (
 	gui.ToolBar* toolBar,
 	NetworkAdapterUsage usage,
@@ -132,16 +132,16 @@ createNetworkAdapterComboBox (
 	size_t optionCount = dynamic countof (optionArray);
 
 	gui.ComboBox* comboBox = toolBar.addComboBox (width);
-	
+
 	for (size_t i = 0; i < optionCount; i++)
 		comboBox.addItem (
-			optionArray [i].m_text, 
+			optionArray [i].m_text,
 			optionArray [i].m_value
 			);
-	
+
 	return comboBox;
 }
 
-//.............................................................................
+//..............................................................................
 
 } // namespace io {

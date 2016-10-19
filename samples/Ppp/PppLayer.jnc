@@ -1,11 +1,11 @@
-//.............................................................................
+//..............................................................................
 //
 // Ppp layer
 //
 
-//.............................................................................
+//..............................................................................
 
-class PppLayer: 
+class PppLayer:
 	doc.Layer,
 	log.Converter
 {
@@ -15,9 +15,9 @@ protected:
 		Normal,
 		Escape,
 	}
-	
+
 	State m_state;
-	
+
 public:
 	construct (doc.PluginHost* pluginHost);
 
@@ -30,15 +30,15 @@ public:
 		);
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 PppLayer.construct (doc.PluginHost* pluginHost)
 {
-	basetype1.construct (pluginHost);	
+	basetype1.construct (pluginHost);
 
 	pluginHost.m_log.m_representer = new PppLogRepresenter;
 	pluginHost.m_log.attachFilter (this);
-	
+
 	m_state = State.Normal;
 }
 
@@ -54,18 +54,18 @@ bool PppLayer.convert (
 		return false;
 
 	void const* p0 = p;
-	void const* end = p + size;	
+	void const* end = p + size;
 
 	for (; p < end; p++)
 	{
-		char c = *(char const*) p;		
+		char c = *(char const*) p;
 		if (m_state != State.Escape)
 		{
 			if (c == '\\')
 			{
 				if (p > p0)
 					writer.write (timestamp, recordCode, p0, p - p0);
-				
+
 				m_state = State.Escape;
 			}
 		}
@@ -90,19 +90,19 @@ bool PppLayer.convert (
 			case 'd':
 				writer.write (timestamp, PppLogRecordCode.Disconnect, null, 0);
 				break;
-				
+
 			default:
 				p0 = p;
 			}
-			
+
 			m_state = State.Normal;
 		}
 	}
 
 	if (p > p0)
 		writer.write (timestamp, recordCode, p0, p - p0);
-	
+
 	return true;
 }
 
-//.............................................................................
+//..............................................................................

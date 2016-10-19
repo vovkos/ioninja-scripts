@@ -1,11 +1,11 @@
-//.............................................................................
+//..............................................................................
 //
 // Ninja document model: structured storage for plugin serialization
 //
 
 namespace doc {
 
-//.............................................................................
+//..............................................................................
 
 opaque class Storage
 {
@@ -15,7 +15,7 @@ opaque class Storage
 	void clear ();
 
 	bool readBool (
-		char const* name, 
+		char const* name,
 		bool defaultValue = false
 		)
 	{
@@ -23,7 +23,7 @@ opaque class Storage
 	}
 
 	void writeBool (
-		char const* name, 
+		char const* name,
 		bool value
 		)
 	{
@@ -36,21 +36,21 @@ opaque class Storage
 		);
 
 	void writeInt (
-		char const* name, 
+		char const* name,
 		int value
 		);
 
 	char const* readString (
 		char const* name,
-		char const* defaultValue = null		
+		char const* defaultValue = null
 		);
 
 	void writeString (
-		char const* name, 
+		char const* name,
 		char const* value
 		);
 }
 
-//.............................................................................
+//..............................................................................
 
 } // namespace doc {

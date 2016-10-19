@@ -1,4 +1,4 @@
-//.............................................................................
+//..............................................................................
 
 class SitaraLayer: doc.Layer
 {
@@ -19,7 +19,7 @@ protected:
 	}
 
 	State bindable m_state;
-	
+
 	gui.Action* m_actionTable [ActionId._Count];
 
 	XModemTransmitter m_xmodemTransmitter;
@@ -33,14 +33,14 @@ public:
 	construct (doc.PluginHost* pluginHost);
 
 	transmitFile ();
-	cancelFileTranfer  ();	
+	cancelFileTranfer  ();
 
 	xmodemTransmit ();
 	ymodemTransmit ();
-	
+
 protected:
-	createUi ();	
-	
+	createUi ();
+
 	onLogRecord (
 		uint64_t timestamp,
 		uint_t recordCode,
@@ -52,14 +52,14 @@ protected:
 	onProgressDlgButtonClicked (gui.StdDlgButton button);
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 SitaraLayer.construct (doc.PluginHost* pluginHost)
 {
-	basetype1.construct (pluginHost);	
+	basetype1.construct (pluginHost);
 	m_xmodemTransmitter.construct (this);
 	m_ymodemTransmitter.construct (this);
-	
+
 	pluginHost.m_fileDlg.m_onCompleted += onFileDlgCompleted;
 	pluginHost.m_progressDlg.m_onButtonClicked += onProgressDlgButtonClicked;
 	pluginHost.m_log.attachListener (onLogRecord @ pluginHost.m_mainThreadScheduler);
@@ -93,7 +93,7 @@ SitaraLayer.transmitFile ()
 	m_pluginHost.m_fileDlg.m_title = "Transmit File #1 with XModem...";
 	m_pluginHost.m_fileDlg.m_filter = "All files (*.*)";
 	m_pluginHost.m_fileDlg.show ();
-	
+
 	m_state = State.XModemTransmitFileDlg;
 }
 
@@ -103,7 +103,7 @@ SitaraLayer.cancelFileTranfer ()
 	{
 	case State.Idle:
 		return;
-	
+
 	case State.XModemTransmitting:
 		m_xmodemTransmitter.cancel ();
 		break;
@@ -132,7 +132,7 @@ SitaraLayer.onFileDlgCompleted (gui.StdDlgButton button)
 	{
 	case State.XModemTransmitFileDlg:
 		m_file1.open (
-			m_pluginHost.m_fileDlg.m_filePath, 
+			m_pluginHost.m_fileDlg.m_filePath,
 			io.FileOpenFlags.OpenExisting | io.FileOpenFlags.ReadOnly
 			);
 
@@ -140,19 +140,19 @@ SitaraLayer.onFileDlgCompleted (gui.StdDlgButton button)
 		m_pluginHost.m_fileDlg.m_title = "Transmit File #2 with YModem...";
 		m_pluginHost.m_fileDlg.m_filter = "All files (*.*)";
 		m_pluginHost.m_fileDlg.show ();
-	
+
 		m_state = State.YModemTransmitFileDlg;
 		break;
 
 	case State.YModemTransmitFileDlg:
 		m_file2.open (
-			m_pluginHost.m_fileDlg.m_filePath, 
+			m_pluginHost.m_fileDlg.m_filePath,
 			io.FileOpenFlags.OpenExisting | io.FileOpenFlags.ReadOnly
 			);
-			
+
 		xmodemTransmit ();
 		break;
-		
+
 //	--> causes compiler crash
 
 //	default:
@@ -161,7 +161,7 @@ SitaraLayer.onFileDlgCompleted (gui.StdDlgButton button)
 
 catch:
 	m_pluginHost.m_progressDlg.m_status = std.getLastError ().m_description;
-	m_pluginHost.m_progressDlg.m_buttons = gui.StdDlgButtons.Close;		
+	m_pluginHost.m_progressDlg.m_buttons = gui.StdDlgButtons.Close;
 }
 
 SitaraLayer.xmodemTransmit ()
@@ -212,4 +212,4 @@ SitaraLayer.onLogRecord (
 		}
 }
 
-//.............................................................................
+//..............................................................................

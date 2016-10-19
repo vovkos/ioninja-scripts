@@ -1,6 +1,6 @@
-//.............................................................................
+//..............................................................................
 //
-//  IO Ninja IDE Wizard -- Syntax highlighter layer 
+//  IO Ninja IDE Wizard -- Syntax highlighter layer
 //
 
 [wizard]
@@ -55,7 +55,7 @@ readOnly    = true
 value       = $(highlighterClass).jnc
 rebuildOn   = highlighterClass
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 [file]
 source = Layer.njplg.in

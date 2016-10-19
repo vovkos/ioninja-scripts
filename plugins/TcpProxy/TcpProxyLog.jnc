@@ -1,9 +1,9 @@
-//.............................................................................
+//..............................................................................
 //
 // TCP Proxy log packet declarations and representer
 //
 
-//.............................................................................
+//..............................................................................
 
 enum TcpProxyLogRecordCode
 {
@@ -30,7 +30,7 @@ enum TcpProxyPartCode
 	TargetConnectCompleted = 1 | log.PartCodeFlags.MergeableBackward,
 }
 
-//.............................................................................
+//..............................................................................
 
 bool representTcpProxyLog (
 	log.RepresenterTarget* target,
@@ -121,19 +121,19 @@ bool representTcpProxyLog (
 		target.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
 		target.addHyperText ($"Disconnected from \e[34m$addressString");
 		break;
-		
+
 	case TcpProxyLogRecordCode.TargetResolving:
 		char const* addressString = (char const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText (TcpProxyPartCode.TargetConnecting, $"Resolving \e[34m$addressString\e[m...");
 		break;
-		
+
 	case TcpProxyLogRecordCode.TargetResolveCompleted:
 		char const* addressString = ((io.SocketAddress const*) p).getString ();
 		target.addHyperText (TcpProxyPartCode.TargetConnectCompleted, $"ok (\e[34m$addressString\e[m)");
 		break;
-		
+
 	case TcpProxyLogRecordCode.TargetResolvingError:
 		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;

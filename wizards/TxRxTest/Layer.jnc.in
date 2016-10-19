@@ -1,4 +1,4 @@
-//.............................................................................
+//..............................................................................
 //
 // $(pluginName) plugin for performing transmit-receive tests
 //
@@ -6,7 +6,7 @@
 import "doc_Plugin.jnc"
 import "sys_Timer.jnc"
 
-//.............................................................................
+//..............................................................................
 
 class $(layerClass): doc.Layer
 {
@@ -17,14 +17,14 @@ protected:
 	gui.IntProperty* m_retransmitCountProp;
 	gui.IntProperty* m_retransmitDelayProp;
 	gui.BoolProperty* m_analyzeRxProp;
-	
+
 	sys.Timer m_retransmitTimer;
-	
+
 	void const* m_packet;
 	size_t m_packetSize;
 	size_t m_retransmitNumber;
 
-public:	
+public:
 	construct (doc.PluginHost* pluginHost);
 
 	override void load (doc.Storage* storage);
@@ -47,7 +47,7 @@ protected:
 		if (recordCode == log.StdRecordCode.Rx)
 			try m_rxScanner.write (p, size);
 	}
-	
+
 	onRetransmitTimer ();
 
 	jnc.AutomatonResult automaton scanRx (jnc.Recognizer* recognizer);
@@ -56,7 +56,7 @@ protected:
 	reactor m_uiReactor ();
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 $(layerClass).construct (doc.PluginHost* pluginHost)
 {
@@ -75,14 +75,14 @@ $(layerClass).createUi ()
 		"Analyze incoming data",
 		"When checked, incoming packets will be analyzed"
 		);
-	
+
 	m_retransmitCountProp = m_pluginHost.m_propertyGrid.createIntProperty (
 		"Transmit count",
 		"How many times total to send the packet"
 		);
 
 	m_retransmitDelayProp = m_pluginHost.m_propertyGrid.createIntProperty (
-		"Retransmit delay (ms)",		
+		"Retransmit delay (ms)",
 		"Specify the delay between retransmissions (in milliseconds)"
 		);
 
@@ -90,7 +90,7 @@ $(layerClass).createUi ()
 		"Analyze incoming data",
 		"When checked, incoming packets will be analyzed"
 		);
-		
+
 	m_uiReactor.start ();
 }
 
@@ -124,27 +124,27 @@ size_t errorcode $(layerClass).transmit (
 	)
 {
 	size_t result = transmitNext (p, size);
-	
+
 	m_retransmitTimer.stop ();
-	
+
 	if (m_enableRetransmitProp.m_value && m_retransmitCountProp.m_value)
 	{
 		m_retransmitNumber = 0;
 		m_packet = memdup (p, size);
 		m_packetSize = size;
-		
+
 		m_retransmitTimer.startPeriodicTimer (onRetransmitTimer, m_retransmitDelayProp.m_value);
 	}
-	
+
 	return result;
-}		
+}
 
 $(layerClass).onRetransmitTimer ()
 {
 	transmitNext (m_packet, m_packetSize);
 
 	m_retransmitNumber++;
-	
+
 	if (m_retransmitNumber >= m_retransmitCountProp.m_value)
 		m_retransmitTimer.stop ();
 }
@@ -159,7 +159,7 @@ jnc.AutomatonResult automaton $(layerClass).scanRx (jnc.Recognizer* recognizer)
 
 	%% "error" [\r\n]
 		writeLog ($(logRecordCodeEnum).ErrorMessage);
-		
+
 	%% .
 		// ignore everything else
 }
@@ -170,4 +170,4 @@ reactor $(layerClass).m_uiReactor ()
 	m_retransmitDelayProp.m_isEnabled = m_enableRetransmitProp.m_value;
 }
 
-//.............................................................................
+//..............................................................................

@@ -1,21 +1,21 @@
-//.............................................................................
+//..............................................................................
 //
 // Mailslot Monitor log packet declarations and representer
 //
 
 import "log.jnc"
 
-//.............................................................................
+//..............................................................................
 
 enum MailslotMonLogRecordCode
 {
 	CaptureStarted, // don't mix with MailslotLogRecordCode
 	CaptureStopped,
 	CaptureError,
-	ServerFileOpened, 
-	ServerFileOpenError, 
-	ClientFileOpened, 
-	ClientFileOpenError, 
+	ServerFileOpened,
+	ServerFileOpenError,
+	ClientFileOpened,
+	ClientFileOpenError,
 	FileClosed,
 	FileIdChanged,
 }
@@ -26,7 +26,7 @@ enum MailslotMonLogPartCode
 	Suffix = log.PartCodeFlags.MergeableBackward | 1,
 }
 
-//.............................................................................
+//..............................................................................
 
 bool representMailslotMonLog  (
 	log.RepresenterTarget* target,
@@ -62,7 +62,7 @@ bool representMailslotMonLog  (
 		uint32_t fileId = *(uint32_t const*) p;
 		char const* name = (char const*) (p + sizeof (fileId));
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Connect;		
+		target.m_lineAttr.m_backColor = log.StdLogColor.Connect;
 		target.addHyperText ($"File \e[34m#$fileId\e[m: Server file opened: \e[34m$name");
 		break;
 
@@ -93,7 +93,7 @@ bool representMailslotMonLog  (
 	case MailslotMonLogRecordCode.FileClosed:
 		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;		
+		target.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
 		target.addHyperText (MailslotMonLogPartCode.Suffix, "File closed");
 		break;
 
@@ -111,4 +111,4 @@ bool representMailslotMonLog  (
 	return true;
 }
 
-//.............................................................................
+//..............................................................................

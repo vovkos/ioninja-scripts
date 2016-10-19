@@ -1,4 +1,4 @@
-//.............................................................................
+//..............................................................................
 //
 // Ninja log engine declarations
 //
@@ -7,14 +7,14 @@ import "gui_Base.jnc"
 
 namespace log {
 
-//.............................................................................
+//..............................................................................
 
 bitflag enum RecordCodeFlags
 {
 	Foldable = 0x80000000,
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 bitflag enum PartCodeFlags
 {
@@ -23,7 +23,7 @@ bitflag enum PartCodeFlags
 	Mergeable         = 0x30000000,
 }
 
-//.............................................................................
+//..............................................................................
 
 enum PartKind
 {
@@ -32,11 +32,11 @@ enum PartKind
 	Bin,
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 enum StdRecordCode
 {
-	Tx             = 0x01000000 | PartCodeFlags.Mergeable, 
+	Tx             = 0x01000000 | PartCodeFlags.Mergeable,
 	Rx             = 0x02000000 | PartCodeFlags.Mergeable,
 	PlainText      = 0x03000000 | PartCodeFlags.Mergeable,
 	HyperText      = 0x04000000 | PartCodeFlags.Mergeable,
@@ -46,7 +46,7 @@ enum StdRecordCode
 	SessionStarted = 0x08000000,
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 struct RetroColorizeParams
 {
@@ -55,7 +55,7 @@ struct RetroColorizeParams
 	gui.TextAttr m_attr;
 }
 
-//.............................................................................
+//..............................................................................
 
 // visual attributes
 
@@ -79,7 +79,7 @@ enum StdLogIcon
 	_Count,
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 enum StdLogColor
 {
@@ -93,7 +93,7 @@ enum StdLogColor
 	Rx         = gui.StdColor.Green,
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 bitflag enum LineAttrFlags
 {
@@ -102,7 +102,7 @@ bitflag enum LineAttrFlags
 	Override,
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 struct LineAttr: gui.TextAttr
 {
@@ -110,7 +110,7 @@ struct LineAttr: gui.TextAttr
 	uint_t m_iconIdx;
 }
 
-//.............................................................................
+//..............................................................................
 
 // represneter-target pair
 
@@ -132,7 +132,7 @@ opaque class RepresenterTarget
 		size_t length,
 		gui.TextAttr attr
 		);
-		
+
 	void addPlainText (
 		uint_t partCode,
 		char const* text
@@ -177,7 +177,7 @@ opaque class RepresenterTarget
 	}
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 typedef bool RepresenterFunc (
 	RepresenterTarget* target,
@@ -187,7 +187,7 @@ typedef bool RepresenterFunc (
 	uint_t foldFlags
 	);
 
-//.............................................................................
+//..............................................................................
 
 opaque class Writer
 {
@@ -206,7 +206,7 @@ opaque class Writer
 	{
 		write (sys.getTimestamp (), recordCode, p, size);
 	}
-	
+
 	retroColorize (
 		intptr_t retroOffset,
 		size_t length,
@@ -217,7 +217,7 @@ opaque class Writer
 		params.m_retroOffset = retroOffset;
 		params.m_length = length;
 		params.m_attr = attr;
-		
+
 		write (StdRecordCode.RetroColorize, &params, sizeof (params));
 	}
 
@@ -230,12 +230,12 @@ opaque class Writer
 		gui.TextAttr attr;
 		attr.m_textColor = color;
 		attr.m_backColor = gui.ColorFlags.Transparent;
-		
+
 		retroColorize (retroOffset, length, attr);
 	}
 }
 
-//.............................................................................
+//..............................................................................
 
 class Filter
 {
@@ -250,7 +250,7 @@ class Filter
 	}
 }
 
-//.............................................................................
+//..............................................................................
 
 class Converter
 {
@@ -267,15 +267,15 @@ class Converter
 	}
 }
 
-//.............................................................................
+//..............................................................................
 
 enum ListenerSensitivity
 {
 	AllRecords,
-	LiveRecordsOnly,	
+	LiveRecordsOnly,
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 typedef ListenerFunc (
 	uint64_t timestamp,
@@ -284,7 +284,7 @@ typedef ListenerFunc (
 	size_t size
 	);
 
-//.............................................................................
+//..............................................................................
 
 // log engine
 
@@ -309,10 +309,10 @@ opaque class Log
 		ListenerFunc* listenerFunc,
 		ListenerSensitivity sensitivity = ListenerSensitivity.LiveRecordsOnly
 		);
-		
+
 	removeAllLayers ();
 }
 
-//.............................................................................
+//..............................................................................
 
 } // namespace log {

@@ -1,4 +1,4 @@
-//.............................................................................
+//..............................................................................
 //
 // TCP Connection session
 //
@@ -8,7 +8,7 @@ import "io_Socket.jnc"
 import "io_SocketAddressResolver.jnc"
 import "doc_Plugin.jnc"
 
-//.............................................................................
+//..............................................................................
 
 class TcpConnectionSession: doc.Session
 {
@@ -22,7 +22,7 @@ protected:
 		Connected,
 	}
 
-	static char const* m_stateStringTable [] = 
+	static char const* m_stateStringTable [] =
 	{
 		"Closed",
 		"Resolving...",
@@ -94,7 +94,7 @@ public:
 		size_t size
 		);
 
-protected:	
+protected:
 	handleConnectError (std.Error const* error);
 
 	onConnect ();
@@ -105,7 +105,7 @@ protected:
 	reactor m_uiReactor ();
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 TcpConnectionSession.construct (doc.PluginHost* pluginHost)
 {
@@ -136,11 +136,11 @@ TcpConnectionSession.createUi ()
 	m_actionTable [ActionId.Connect].m_onTriggered += onConnect;
 
 	// status bar
-	
+
 	m_statusPaneTable [StatusPaneId.RemoteAddress] = m_pluginHost.m_statusBar.addPane (, 100);
 	m_statusPaneTable [StatusPaneId.RemoteAddress].m_color = gui.StdColor.Blue;
 	m_statusPaneTable [StatusPaneId.State] = m_pluginHost.m_statusBar.addPane (, 80);
- 
+
 	// property grid
 
 	m_addressProp = m_pluginHost.m_propertyGrid.createStringProperty (
@@ -183,7 +183,7 @@ TcpConnectionSession.onConnect ()
 {
 	if (m_state)
 		disconnect ();
-	else 
+	else
 		try connect ();
 }
 
@@ -216,7 +216,7 @@ bool errorcode TcpConnectionSession.connect ()
 		if (adapterAddress)
 			addressFamily = adapterAddress.m_family;
 	}
-		
+
 	m_resolver.m_syncId = m_socket.m_syncId;
 	m_resolver.resolve (addressString, addressFamily);
 	return true;
@@ -244,7 +244,7 @@ nestedscope:
 			localAddress = *adapterAddress;
 		else
 			localAddress.m_family = remoteAddress.m_family;
-			
+
 		localAddress.m_ip4.m_port = (uint16_t) m_localPortProp.m_value; // same for IPv4/IPv6
 
 		m_socket.open (io.Protocol.Tcp, &localAddress, io.SocketOpenFlags.Asynchronous);
@@ -256,7 +256,7 @@ nestedscope:
 	m_socket.m_closeKind = (io.SocketCloseKind) m_closeKindProp.m_value;
 	m_socket.m_isNagleEnabled = m_isNagleEnabledProp.m_value;
 	m_socket.connect (remoteAddress);
-	
+
 	localAddress = m_socket.m_address;
 
 	char const* p = $"$(*remoteAddress; B)$(localAddress; B)";
@@ -302,20 +302,20 @@ TcpConnectionSession.disconnect ()
 		writeLog (TcpConnectionLogRecordCode.ConnectCancelled);
 		break;
 
-	case State.Connected:		
+	case State.Connected:
 		TcpDisconnectLogRecordParams params;
-		params.m_address = m_remoteAddress;		
+		params.m_address = m_remoteAddress;
 		params.m_flags = 0;
 
 		if (m_closeKindProp.m_value == io.SocketCloseKind.Reset)
 			params.m_flags |= TcpDisconnectLogRecordFlags.Reset;
-		
+
 		writeLog (
 			TcpConnectionLogRecordCode.Disconnected,
 			&params,
 			sizeof (params)
 			);
-			
+
 		m_isTransmitEnabled = false;
 		break;
 	}
@@ -352,7 +352,7 @@ void TcpConnectionSession.updateProperties ()
 bool errorcode TcpConnectionSession.applyProperties ()
 {
 	m_addressCombo.m_editText = m_addressProp.m_value;
-	
+
 	if (m_socket.m_isOpen)
 	{
 		m_socket.m_closeKind = (io.SocketCloseKind) m_closeKindProp.m_value;
@@ -383,7 +383,7 @@ size_t errorcode TcpConnectionSession.transmit (
 	size_t result = m_socket.send (p, size);
 	if (result)
 		writeLog (log.StdRecordCode.Tx, p, result);
-	
+
 	if (result < size)
 		m_isTransmitEnabled = false;
 
@@ -409,12 +409,12 @@ TcpConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 
 	case io.SocketEventCode.Disconnected:
 		TcpDisconnectLogRecordParams recordParams;
-		recordParams.m_address = m_remoteAddress;		
+		recordParams.m_address = m_remoteAddress;
 		recordParams.m_flags = TcpDisconnectLogRecordFlags.Remote;
-		
+
 		if (params.m_flags & io.SocketDisconnectEventFlags.Reset)
-			recordParams.m_flags |= TcpDisconnectLogRecordFlags.Reset;			
-		
+			recordParams.m_flags |= TcpDisconnectLogRecordFlags.Reset;
+
 		writeLog (
 			TcpConnectionLogRecordCode.Disconnected,
 			&recordParams,
@@ -475,4 +475,4 @@ reactor TcpConnectionSession.m_uiReactor ()
 	m_statusPaneTable [StatusPaneId.RemoteAddress].m_isVisible = m_state > State.Resolving;
 }
 
-//.............................................................................
+//..............................................................................

@@ -1,4 +1,4 @@
-//.............................................................................
+//..............................................................................
 //
 // Pcap device user interface
 //
@@ -9,7 +9,7 @@ import "io_pcap.jncx"
 
 namespace io {
 
-//.............................................................................
+//..............................................................................
 
 gui.EnumPropertyOption const* createPcapDeviceOptionArray (bool canOpenFile = true)
 {
@@ -20,8 +20,8 @@ gui.EnumPropertyOption const* createPcapDeviceOptionArray (bool canOpenFile = tr
 		count++;
 
 	gui.EnumPropertyOption* optionArray = new gui.EnumPropertyOption [count];
-	gui.EnumPropertyOption* option = optionArray;	
-	
+	gui.EnumPropertyOption* option = optionArray;
+
 	for (; device; device = device->m_next, option++)
 	{
 		option.m_text = $"%1 - %2" (
@@ -41,7 +41,7 @@ gui.EnumPropertyOption const* createPcapDeviceOptionArray (bool canOpenFile = tr
 	return optionArray;
 }
 
-//.............................................................................
+//..............................................................................
 
 gui.EnumProperty* createPcapDeviceProperty (
 	gui.PropertyGrid* propertyGrid,
@@ -53,7 +53,7 @@ gui.EnumProperty* createPcapDeviceProperty (
 	gui.EnumPropertyOption const* optionArray = createPcapDeviceOptionArray (canOpenFile);
 	size_t optionCount = dynamic countof (optionArray);
 
-	return propertyGrid.createEnumProperty (		
+	return propertyGrid.createEnumProperty (
 		name,
 		toolTipText,
 		optionArray,
@@ -61,9 +61,9 @@ gui.EnumProperty* createPcapDeviceProperty (
 		);
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-gui.ComboBox* 
+gui.ComboBox*
 createPcapDeviceComboBox (
 	gui.ToolBar* toolBar,
 	bool canOpenFile = true,
@@ -77,13 +77,13 @@ createPcapDeviceComboBox (
 
 	for (size_t i = 0; i < optionCount; i++)
 		comboBox.addItem (
-			optionArray [i].m_text, 
+			optionArray [i].m_text,
 			optionArray [i].m_value
 			);
-	                                      
+
 	return comboBox;
 }
 
-//.............................................................................
+//..............................................................................
 
 } // namespace io {

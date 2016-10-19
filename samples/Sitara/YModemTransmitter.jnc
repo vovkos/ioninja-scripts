@@ -1,7 +1,7 @@
-//.............................................................................
+//..............................................................................
 
 class YModemTransmitter
-{	
+{
 protected:
 	enum State
 	{
@@ -13,33 +13,33 @@ protected:
 		EotWaitReceiver,
 		EotNullFileName,
 	}
-	
+
 	State m_state;
 	uint64_t m_offset;
 
 	SitaraLayer* m_parent;
-	
+
 public:
 	construct (SitaraLayer* parent);
-	
-	start  ();	
-	cancel ();	
+
+	start  ();
+	cancel ();
 
 	onRx (
 		void const* p,
 		size_t size
 		);
-		
+
 protected:
 	complete ();
 	sendFileNameBlock ();
 	sendNextDataBlock ();
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 YModemTransmitter.construct (SitaraLayer* parent)
-{		
+{
 	m_state = State.Idle;
 	m_parent = parent;
 }
@@ -51,7 +51,7 @@ YModemTransmitter.start  ()
 	m_parent.m_pluginHost.m_progressDlg.m_status = "Waiting for the peer to accept YModem transfer...";
 	m_state = State.WaitReceiver;
 	m_offset = 0;
-}		
+}
 
 YModemTransmitter.cancel ()
 {
@@ -81,14 +81,14 @@ YModemTransmitter.sendFileNameBlock ()
 	block.m_blockNumber = 0;
 	block.m_code = YModemChar.Soh;
 	block.m_complement = (uchar_t) (block.m_blockNumber ^ 0xff);
-	
+
 	if (m_state == State.FileName)
 	{
-		char const* sizeString = $"$(m_parent.m_file2.m_size)";	
+		char const* sizeString = $"$(m_parent.m_file2.m_size)";
 		memcpy (block.m_data, "u-boot.img", 10);
 		memcpy (&block.m_data [11], sizeString, strlen (sizeString));
 	}
-	
+
 	block.m_crc16 = crc16 (block.m_data, sizeof (block.m_data));
 	m_parent.transmit (&block, sizeof (block));
 
@@ -105,7 +105,7 @@ YModemTransmitter.sendNextDataBlock ()
 	size_t size = (size_t) (m_parent.m_file2.m_size - m_offset);
 	if (size > YModemBlockSize)
 		size = YModemBlockSize;
-	
+
 	void const* p = m_parent.m_file2.view (m_offset, size);
 
 	YModemBlock block;
@@ -115,11 +115,11 @@ YModemTransmitter.sendNextDataBlock ()
 
 	memcpy (block.m_data, p, size);
 	block.m_crc16 = crc16 (block.m_data, sizeof (block.m_data));
-	
+
 	m_parent.transmit (&block, sizeof (block));
 
 	m_parent.m_pluginHost.m_progressDlg.m_progress = (int) ((m_offset + size / 2) * 100 / m_parent.m_file2.m_size);
-	m_offset += size;	
+	m_offset += size;
 
 catch:
 	m_parent.m_pluginHost.m_progressDlg.m_status = std.getLastError ().m_description;
@@ -132,7 +132,7 @@ YModemTransmitter.onRx (
 	)
 {
 	char c = *(char const*) p;
-	
+
 	switch (m_state)
 	{
 	case State.WaitReceiver:
@@ -145,7 +145,7 @@ YModemTransmitter.onRx (
 			sendFileNameBlock ();
 			break;
 		}
-		
+
 		break;
 
 	case State.FileName:
@@ -159,7 +159,7 @@ YModemTransmitter.onRx (
 
 		case YModemChar.Nak:
 			sendFileNameBlock (); // retransmit file name
-			break; 
+			break;
 		}
 
 		break;
@@ -202,7 +202,7 @@ YModemTransmitter.onRx (
 		case YModemChar.Ack:
 			m_parent.m_pluginHost.m_progressDlg.m_status = "Finishing YModem transfer...";
 			m_state = State.EotWaitReceiver;
-			break; 
+			break;
 
 		case YModemChar.Nak:
 			static char c = YModemChar.Eot; // retransmit eot
@@ -222,7 +222,7 @@ YModemTransmitter.onRx (
 			sendFileNameBlock ();
 			break;
 		}
-		
+
 		break;
 
 	case State.EotNullFileName:
@@ -235,11 +235,11 @@ YModemTransmitter.onRx (
 
 		case YModemChar.Nak:
 			sendFileNameBlock (); // retransmit file name
-			break; 
+			break;
 		}
-		
+
 		break;
 	}
-}		
+}
 
-//.............................................................................
+//..............................................................................

@@ -1,7 +1,7 @@
-//.............................................................................
+//..............................................................................
 
 class XModemTransmitter
-{	
+{
 protected:
 	enum State
 	{
@@ -10,30 +10,30 @@ protected:
 		Data,
 		Eot,
 	}
-	
+
 	enum ChecksumKind
 	{
 		Default,
 		Crc16
 	}
-	
+
 	State m_state;
 	ChecksumKind m_checksumKind;
 	uint64_t m_offset;
 
 	SitaraLayer* m_parent;
-	
+
 public:
 	construct (SitaraLayer* parent);
-	
-	start  ();	
-	cancel ();	
+
+	start  ();
+	cancel ();
 
 	onRx (
 		void const* p,
 		size_t size
 		);
-		
+
 protected:
 	onRx_WaitNak (char c);
 	onRx_Data (char c);
@@ -43,10 +43,10 @@ protected:
 	sendNextDataBlock ();
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 XModemTransmitter.construct (SitaraLayer* parent)
-{		
+{
 	m_state = State.Idle;
 	m_checksumKind = ChecksumKind.Default;
 	m_parent = parent;
@@ -59,7 +59,7 @@ XModemTransmitter.start  ()
 	m_parent.m_pluginHost.m_progressDlg.m_status = "Waiting for the peer to accept XModem transfer...";
 	m_state = State.WaitNak;
 	m_offset = 0;
-}		
+}
 
 XModemTransmitter.cancel ()
 {
@@ -91,7 +91,7 @@ XModemTransmitter.sendNextDataBlock ()
 	size_t size = (size_t) (m_parent.m_file1.m_size - m_offset);
 	if (size > XModemBlockSize)
 		size = XModemBlockSize;
-	
+
 	void const* p = m_parent.m_file1.view (m_offset, size);
 
 	XModemBlock block;
@@ -100,16 +100,16 @@ XModemTransmitter.sendNextDataBlock ()
 	block.m_complement = (uchar_t) (block.m_blockNumber ^ 0xff);
 
 	memcpy (block.m_data, p, size);
-	
+
 	if (m_checksumKind == ChecksumKind.Crc16)
 		block.m_crc16 = crc16 (block.m_data, sizeof (block.m_data));
 	else
 		block.m_checksum = calcXModemChecksum (block.m_data);
-	
+
 	m_parent.transmit (&block, sizeof (block));
 
 	m_parent.m_pluginHost.m_progressDlg.m_progress = (int) ((m_offset + size / 2) * 100 / m_parent.m_file1.m_size);
-	m_offset += size;	
+	m_offset += size;
 
 catch:
 	m_parent.m_pluginHost.m_progressDlg.m_status = std.getLastError ().m_description;
@@ -135,7 +135,7 @@ XModemTransmitter.onRx (
 		onRx_Eot (*(char const*) p);
 		break;
 	}
-}		
+}
 
 XModemTransmitter.onRx_WaitNak (char c)
 {
@@ -148,7 +148,7 @@ XModemTransmitter.onRx_WaitNak (char c)
 		m_checksumKind = c == XModemChar.C ? ChecksumKind.Crc16 : ChecksumKind.Default;
 		sendNextDataBlock ();
 		break;
-		
+
 	default:
 		m_parent.m_pluginHost.m_progressDlg.m_status = "Invalid XModem transfer request";
 		// and ignore it
@@ -213,4 +213,4 @@ XModemTransmitter.onRx_Eot (char c)
 	}
 }
 
-//.............................................................................
+//..............................................................................

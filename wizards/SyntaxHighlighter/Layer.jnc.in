@@ -1,20 +1,20 @@
-//.............................................................................
+//..............................................................................
 //
 // $(pluginName) layer
 //
 
 import "doc_Plugin.jnc"
 
-//.............................................................................
+//..............................................................................
 
-class $(layerClass): 
+class $(layerClass):
 	doc.Layer,
 	log.Converter
 {
 protected:
 	$(highlighterClass) m_txHighlighter;
 	$(highlighterClass) m_rxHighlighter;
-	
+
 public:
 	construct (doc.PluginHost* pluginHost);
 
@@ -24,10 +24,10 @@ public:
 		uint_t recordCode,
 		void const* p,
 		size_t size
-		);	
+		);
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 $(layerClass).construct (doc.PluginHost* pluginHost)
 {
@@ -66,4 +66,4 @@ bool $(layerClass).convert (
 	return true;
 }
 
-//.............................................................................
+//..............................................................................

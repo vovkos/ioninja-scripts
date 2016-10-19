@@ -1,4 +1,4 @@
-//.............................................................................
+//..............................................................................
 //
 // Packet definitions for ModBus
 //
@@ -7,7 +7,7 @@ namespace io {
 
 alignment (1);
 
-//.............................................................................
+//..............................................................................
 
 // ModBus protocol variations
 
@@ -19,7 +19,7 @@ enum ModBusProtocol: uint8_t
 	RtuIp,
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 // ModBus node roles
 
@@ -29,7 +29,7 @@ enum ModBusRole: uint8_t
 	Slave,
 }
 
-//.............................................................................
+//..............................................................................
 
 // function codes
 
@@ -58,14 +58,14 @@ enum ModBusFunc: uint8_t
 	ExceptionFlag              = 0x80,
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 char const* getModBusFuncString (ModBusFunc func)
 {
-	static char const* stringTable [] = 
+	static char const* stringTable [] =
 	{
 		"Unknown",                       // 0
-		"Read Coils",                    // ReadCoils                  = 1,       
+		"Read Coils",                    // ReadCoils                  = 1,
 		"Read Discrete Inputs",          // ReadDiscreteInputs         = 2,
 		"Read Holding Registers",        // ReadHoldingRegisters       = 3,
 		"Read Input Registers",          // ReadInputRegisters         = 4,
@@ -90,18 +90,18 @@ char const* getModBusFuncString (ModBusFunc func)
 		"Read Write Multiple Registers", // ReadWriteMultipleRegisters = 23,
 		"Read Fifo Queue",               // ReadFifoQueue              = 24,
 	};
-	
-	return 
-		func < countof (stringTable) ? 
+
+	return
+		func < countof (stringTable) ?
 			stringTable [func] :
-		func == ModBusFunc.EncapsulatedInterface ? 
+		func == ModBusFunc.EncapsulatedInterface ?
 			"Encapsulated Interface" :
-		(func & ModBusFunc.ExceptionFlag) ? 
+		(func & ModBusFunc.ExceptionFlag) ?
 			"Exception" :
 			"Unknown";
 }
 
-//.............................................................................
+//..............................................................................
 
 // exception codes
 
@@ -118,11 +118,11 @@ enum ModBusExceptionCode: uint8_t
 	GatewayDeviceNoResponse = 11,
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 char const* getModBusFuncString (ModBusExceptionCode code)
 {
-	static char const* stringTable [] = 
+	static char const* stringTable [] =
 	{
 		"Unknown",                    // 0
 		"Illegal Function",           // IllegalFunction               = 1,
@@ -137,11 +137,11 @@ char const* getModBusFuncString (ModBusExceptionCode code)
 		"Gateway Path Unavailable",   // GatewayPathUnavailable        = 10,
 		"Gateway Device No Response", // GatewayTargetDeviceNoResponse = 11,
 	};
-	
+
 	return code < countof (stringTable) ? stringTable [code] : "Unknown";
 }
 
-//.............................................................................
+//..............................................................................
 
 // particular function code PDUs
 
@@ -150,14 +150,14 @@ struct ModBusPduHdr
 	io.ModBusFunc m_func;
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 struct ModBusExceptionPdu: ModBusPduHdr
 {
 	ModBusExceptionCode m_exceptionCode;
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 struct ModBusReadPdu: ModBusPduHdr
 {
@@ -165,7 +165,7 @@ struct ModBusReadPdu: ModBusPduHdr
 	bigendian uint16_t m_count;
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 struct ModBusReadReplyPdu: ModBusPduHdr
 {
@@ -174,7 +174,7 @@ struct ModBusReadReplyPdu: ModBusPduHdr
 	// followed by read data
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 struct ModBusWritePdu: ModBusPduHdr
 {
@@ -182,7 +182,7 @@ struct ModBusWritePdu: ModBusPduHdr
 	bigendian uint16_t m_value;
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 struct ModBusWriteMultiplePdu: ModBusPduHdr
 {
@@ -193,7 +193,7 @@ struct ModBusWriteMultiplePdu: ModBusPduHdr
 	// followed by write data
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 struct ModBusWriteMultipleReplyPdu: ModBusPduHdr
 {
@@ -201,7 +201,7 @@ struct ModBusWriteMultipleReplyPdu: ModBusPduHdr
 	bigendian uint16_t m_count;
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 struct ModBusMaskWritePdu: ModBusPduHdr
 {
@@ -210,18 +210,18 @@ struct ModBusMaskWritePdu: ModBusPduHdr
 	bigendian uint16_t m_orMask;
 }
 
-//.............................................................................
+//..............................................................................
 
 // calculates the actual size of PDU (-1 on error)
 
 size_t getModBusPduSize (
 	ModBusRole role,
-	ModBusPduHdr const* pduHdr,	
+	ModBusPduHdr const* pduHdr,
 	size_t size
 	)
 {
 	if (size < sizeof (ModBusPduHdr))
-		return -1;		
+		return -1;
 
 	switch (pduHdr.m_func)
 	{
@@ -231,27 +231,27 @@ size_t getModBusPduSize (
 	case io.ModBusFunc.ReadInputRegisters:
 		if (role == ModBusRole.Master)
 			return size >= sizeof (ModBusReadPdu) ? sizeof (ModBusReadPdu) : -1;
-		
+
 		if (size < sizeof (ModBusReadReplyPdu))
 			return -1;
-		
+
 		ModBusReadReplyPdu const* replyPdu = (ModBusReadReplyPdu const*) pduHdr;
 		size_t pduSize = sizeof (ModBusReadReplyPdu) + replyPdu.m_size;
 
 		return size >= pduSize ? pduSize : -1;
-		
+
 	case io.ModBusFunc.WriteCoil:
 	case io.ModBusFunc.WriteRegister:
 		return size >= sizeof (ModBusWritePdu) ? sizeof (ModBusWritePdu) : -1;
-		
+
 	case io.ModBusFunc.WriteMultipleCoils:
 	case io.ModBusFunc.WriteMultipleRegisters:
 		if (role == ModBusRole.Slave)
 			return size >= sizeof (ModBusWriteMultipleReplyPdu) ? sizeof (ModBusWriteMultipleReplyPdu) : -1;
-		
+
 		if (size < sizeof (ModBusWriteMultiplePdu))
 			return -1;
-		
+
 		ModBusWriteMultiplePdu const* pdu = (ModBusWriteMultiplePdu const*) pduHdr;
 		size_t pduSize = sizeof (ModBusWriteMultiplePdu) + pdu.m_size;
 		return size >= pduSize ? pduSize : -1;
@@ -270,32 +270,32 @@ size_t getModBusPduSize (
 	case io.ModBusFunc.ReadFifoQueue:
 	case io.ModBusFunc.EncapsulatedInterface:
 		return -1; // not yet supported
-		
+
 	default:
-		return (pduHdr.m_func & ModBusFunc.ExceptionFlag) && size >= sizeof (ModBusExceptionPdu) ? 
-			sizeof (ModBusExceptionPdu) : 
+		return (pduHdr.m_func & ModBusFunc.ExceptionFlag) && size >= sizeof (ModBusExceptionPdu) ?
+			sizeof (ModBusExceptionPdu) :
 			-1;
 	}
-}		
+}
 
-//.............................................................................
+//..............................................................................
 
-// ModBus RTU 
+// ModBus RTU
 
 struct ModBusRtuAduHdr
 {
 	uint8_t m_deviceAddress;
-	
+
 	// followed by PDU and CRC16 checksum
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 // calculates the actual size of ModBus RTU ADU (-1 on error)
 
 size_t getModBusRtuAduSize (
 	ModBusRole role,
-	ModBusRtuAduHdr const* aduHdr, 
+	ModBusRtuAduHdr const* aduHdr,
 	size_t size
 	)
 {
@@ -306,11 +306,11 @@ size_t getModBusRtuAduSize (
 	size_t pduSize = getModBusPduSize (role, pduHdr, size - sizeof (ModBusRtuAduHdr));
 	if (pduSize == -1)
 		return -1;
-	
-	size_t aduSize = pduSize + sizeof (uint8_t) + sizeof (uint16_t);	
+
+	size_t aduSize = pduSize + sizeof (uint8_t) + sizeof (uint16_t);
 	return size >= aduSize ? aduSize : -1;
 }
 
-//.............................................................................
+//..............................................................................
 
 } // namespace io {

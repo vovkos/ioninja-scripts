@@ -1,4 +1,4 @@
-//.............................................................................
+//..............................................................................
 //
 // Generic file session
 //
@@ -7,7 +7,7 @@ import "io_base.jncx"
 import "io_Mailslot.jnc"
 import "doc_Plugin.jnc"
 
-//.............................................................................
+//..............................................................................
 
 class MailslotSession: doc.Session
 {
@@ -50,7 +50,7 @@ protected:
 	gui.Icon* m_iconTable [IconId._Count];
 	gui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
 	gui.ComboBox* m_nameCombo;
-	
+
 	// property grid
 
 	gui.StringProperty* m_nameProp;
@@ -76,12 +76,12 @@ protected:
 	reactor m_uiReactor ();
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 MailslotSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
-	
+
 	pluginHost.m_log.m_representerFunc = representFileLog;
 
 	m_state = State.Closed;
@@ -93,7 +93,7 @@ MailslotSession.construct (doc.PluginHost* pluginHost)
 MailslotSession.createUi ()
 {
 	// toolbar
-		
+
 	m_pluginHost.m_toolBar.addLabel ("Mailslot:");
 	m_nameCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_nameCombo.m_isEditable = true;
@@ -123,7 +123,7 @@ MailslotSession.onOpen ()
 {
 	if (m_state)
 		close ();
-	else 
+	else
 		try	open ();
 }
 
@@ -131,13 +131,13 @@ bool errorcode MailslotSession.open ()
 {
 	close ();
 	startSession ();
-	
+
 	m_nameCombo.addEditTextToHistory ();
 
 	char const* fileName = m_nameCombo.m_editText;
-	
+
 	m_mailslot.open (fileName);
-	
+
 	writeLogString (MailslotLogRecordCode.Opened, fileName);
 	m_state = State.Opened;
 	return true;
@@ -196,18 +196,18 @@ MailslotSession.onMailslotEvent (io.MailslotEventParams const* params)
 		return;
 
 	switch (params.m_eventCode)
-	{	
+	{
 	case io.MailslotEventCode.IncomingData:
 		static char buffer [512];
 		size_t result = try m_mailslot.read (buffer, sizeof (buffer));
 		if (result != -1)
 			writeLog (log.StdRecordCode.Rx, buffer, result);
-		break;	
-		
+		break;
+
 	case io.MailslotEventCode.IoError:
 		writeLog (log.StdRecordCode.Error, params.m_error, params.m_error.m_size);
 		close ();
-		break;		
+		break;
 	}
 }
 
@@ -220,4 +220,4 @@ reactor MailslotSession.m_uiReactor ()
 	m_statusPaneTable [StatusPaneId.State].m_text = m_state ? "Opened" : "Closed";
 }
 
-//.............................................................................
+//..............................................................................

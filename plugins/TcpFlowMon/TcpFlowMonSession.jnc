@@ -1,4 +1,4 @@
-//.............................................................................
+//..............................................................................
 //
 // TCP Monitor session
 //
@@ -11,7 +11,7 @@ import "io_SocketAddressResolver.jnc"
 import "doc_Plugin.jnc"
 import "gui_Dialog.jnc"
 
-//.............................................................................
+//..............................................................................
 
 class TcpFlowMonSession: doc.Session
 {
@@ -40,43 +40,43 @@ protected:
 	enum StatusPaneId
 	{
 		State,
-		_Count, 
+		_Count,
 	}
 
 	class TcpPeer
 	{
 		io.SocketAddress m_address;
 		io.TcpSequencer m_tcpSequencer;
-	};	
+	};
 
 protected:
 	State bindable m_state;
-	
+
 	// pending capture (post-resolve)
-	
+
 	io.PcapDeviceDesc const* m_pendingDevice;
 	char const* m_pendingFileName;
 
 	// pcap & tcp decoding
 
-	io.Pcap m_pcap;	
+	io.Pcap m_pcap;
 	io.IpDefragmenter m_ipDefragmenter;
 	io.SocketAddressResolver m_resolver;
 	io.SocketAddress m_filterAddress;
 	TcpPeer m_tcpPeer1;
 	TcpPeer m_tcpPeer2;
-	
+
 	// toolbar, status bar & menu
-	
+
 	gui.Action* m_actionTable [ActionId._Count];
 	gui.Icon* m_iconTable [IconId._Count];
 	gui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
 	gui.ComboBox* m_deviceCombo;
 	gui.ComboBox* m_filterCombo;
 	gui.FileDlg* m_fileDlg;
-	
+
 	// property grid
-	
+
 	gui.EnumProperty* m_deviceProp;
 	gui.BoolProperty* m_promisciousProp;
 	gui.StringProperty* m_filterProp;
@@ -93,12 +93,12 @@ public:
 		io.PcapDeviceDesc const* device,
 		io.SocketAddress const* filterAddress
 		);
-		
+
 	bool errorcode openCapFile (
 		char const* fileName,
 		io.SocketAddress const* filterAddress
 		);
-	
+
 	stopCapture ();
 
 	override void load (doc.Storage* storage);
@@ -108,7 +108,7 @@ public:
 	override void restoreDefaultProperties ();
 
 protected:
-	onCapture ();	
+	onCapture ();
 	onFileDlgCompleted (gui.StdDlgButton button);
 	onSetFilter ();
 	onPcapEvent (io.PcapEventParams const* params);
@@ -119,7 +119,7 @@ protected:
 		void const* p,
 		size_t size
 		);
-	
+
 	onDataDrop ();
 
 	char const* createFilterString (io.SocketAddress const* filterAddress);
@@ -134,7 +134,7 @@ protected:
 		);
 
 	decodeTcpPacket (
-		TcpPeer* peer,		
+		TcpPeer* peer,
 		io.TcpHdr const* tcpHdr,
 		void const* p,
 		size_t size
@@ -144,7 +144,7 @@ protected:
 	reactor m_uiReactor ();
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 TcpFlowMonSession.construct (doc.PluginHost* pluginHost)
 {
@@ -159,7 +159,7 @@ TcpFlowMonSession.construct (doc.PluginHost* pluginHost)
 	m_tcpPeer1.m_tcpSequencer.m_onDataDrop = onDataDrop;
 	m_tcpPeer2.m_tcpSequencer.m_onData = onData ~(log.StdRecordCode.Tx);
 	m_tcpPeer2.m_tcpSequencer.m_onDataDrop = onDataDrop;
-	
+
 	createUi ();
 }
 
@@ -183,7 +183,7 @@ TcpFlowMonSession.createUi ()
 	m_actionTable [ActionId.Capture].m_onTriggered += onCapture;
 
 	// status bar
-	
+
 	m_statusPaneTable [StatusPaneId.State] = m_pluginHost.m_statusBar.addPane (, 80);
 
 	// property grid
@@ -228,13 +228,13 @@ TcpFlowMonSession.onCapture ()
 		stopCapture ();
 	else
 		try capture ();
-}		
+}
 
 TcpFlowMonSession.onFileDlgCompleted (gui.StdDlgButton button)
 {
 	if (button != gui.StdDlgButton.Ok)
 		return;
-	
+
 	char const* fileName = m_fileDlg.m_filePath;
 	char const* addressString = m_filterCombo.m_editText;
 	m_filterCombo.addEditTextToHistory ();
@@ -246,7 +246,7 @@ TcpFlowMonSession.onFileDlgCompleted (gui.StdDlgButton button)
 		try openCapFile (fileName, &filterAddress);
 	}
 	else
-	{	
+	{
 		m_pendingDevice = null;
 		m_pendingFileName = fileName;
 		try resolve (addressString);
@@ -258,13 +258,13 @@ TcpFlowMonSession.onSetFilter ()
 	if (!m_state)
 		try capture ();
 	else
-		try applyFilter ();	
+		try applyFilter ();
 }
-		
+
 bool errorcode TcpFlowMonSession.capture ()
 {
 	stopCapture ();
-	
+
 	if (m_deviceCombo.m_currentIndex == -1)
 		return false;
 
@@ -276,7 +276,7 @@ bool errorcode TcpFlowMonSession.capture ()
 			m_fileDlg = new gui.FileDlg;
 			m_fileDlg.m_onCompleted += onFileDlgCompleted;
 		}
-		
+
 		m_fileDlg.m_kind = gui.FileDlgKind.Open;
 		m_fileDlg.m_title = "Open Wireshark File (*.cap; *.pcap)...";
 		m_fileDlg.m_filter = "Wireshark .cap files (*.cap; *.pcap);; All files (*.*)";
@@ -304,16 +304,16 @@ bool errorcode TcpFlowMonSession.capture (
 {
 	stopCapture ();
 	startSession ();
-	
+
 	char const* filterString = createFilterString (filterAddress);
 	writeLogString (TcpFlowMonLogRecordCode.StartingCapture, filterString);
-	
+
 	bool result = try m_pcap.openDevice (
-		device.m_name, 
+		device.m_name,
 		filterString,
 		m_promisciousProp.m_value
 		);
-		
+
 	if (!result)
 	{
 		writeLogLastError (TcpFlowMonLogRecordCode.CaptureError);
@@ -333,12 +333,12 @@ bool errorcode TcpFlowMonSession.openCapFile (
 {
 	char const* filterString = createFilterString (filterAddress);
 	writeLogString (TcpFlowMonLogRecordCode.StartingCapture, filterString);
-	
+
 	bool result = try m_pcap.openFile (
-		fileName, 
+		fileName,
 		filterString
 		);
-		
+
 	if (!result)
 	{
 		writeLogLastError (TcpFlowMonLogRecordCode.CaptureError);
@@ -357,11 +357,11 @@ TcpFlowMonSession.stopCapture ()
 		return;
 
 	if (m_state & State.Resolving)
-		writeLog (TcpFlowMonLogRecordCode.ResolveCancelled);		
-	
+		writeLog (TcpFlowMonLogRecordCode.ResolveCancelled);
+
 	if (m_state & State.Capturing)
 		writeLog (TcpFlowMonLogRecordCode.CaptureStopped);
-	
+
 	m_pcap.close ();
 	m_ipDefragmenter.reset ();
 	m_state = 0;
@@ -380,8 +380,8 @@ bool errorcode TcpFlowMonSession.resolve (char const* addressString)
 	}
 
 	m_state = State.Resolving;
-	return true;	
-}	
+	return true;
+}
 
 bool errorcode TcpFlowMonSession.applyFilter ()
 {
@@ -393,11 +393,11 @@ bool errorcode TcpFlowMonSession.applyFilter ()
 	if (isDirectAddress)
 	{
 		m_state &= ~State.Resolving;
-		return try setFilter (&filterAddress);	
+		return try setFilter (&filterAddress);
 	}
 
 	writeLogString (TcpFlowMonLogRecordCode.Resolving, filterString);
-		
+
 	m_resolver.m_syncId = m_pcap.m_syncId;
 	bool result = try m_resolver.resolve (filterString);
 	if (!result)
@@ -405,7 +405,7 @@ bool errorcode TcpFlowMonSession.applyFilter ()
 		writeLogLastError (TcpFlowMonLogRecordCode.ResolveError);
 		return false;
 	}
-	
+
 	m_state |= State.Resolving;
 	return true;
 }
@@ -423,14 +423,14 @@ bool errorcode TcpFlowMonSession.setFilter (io.SocketAddress const* filterAddres
 		writeLogLastError (TcpFlowMonLogRecordCode.FilterError);
 		return false;
 	}
-	
+
 	writeLog (TcpFlowMonLogRecordCode.FilterChanged);
 	return true;
 }
 
 char const* TcpFlowMonSession.createFilterString (io.SocketAddress const* filterAddress)
 {
-	char const* filterString = 
+	char const* filterString =
 		filterAddress.m_family == io.AddressFamily.Ip6 ? $"tcp and host $(filterAddress.m_ip6.m_address.getString ())" :
 		filterAddress.m_ip4.m_address.m_i32 ? $"tcp and host $(filterAddress.m_ip4.m_address.getString ())" :
 		"tcp";
@@ -439,7 +439,7 @@ char const* TcpFlowMonSession.createFilterString (io.SocketAddress const* filter
 
 	// if (filterAddress.m_ip4.m_port)
 	//	filterString = $"$filterString and port $(filterAddress.m_ip4.m_port)";
-	
+
 	return filterString;
 }
 
@@ -477,10 +477,10 @@ bool errorcode TcpFlowMonSession.applyProperties ()
 	m_ipDefragmenter.m_timeout = m_ipFragmentTimeoutProp.m_value;
 	m_tcpPeer1.m_tcpSequencer.m_outOfSeqLimit = m_tcpOutOfSeqLimitProp.m_value;
 	m_tcpPeer2.m_tcpSequencer.m_outOfSeqLimit = m_tcpOutOfSeqLimitProp.m_value;
-	
+
 	if (m_state.Capturing)
 		applyFilter ();
-	
+
 	return true;
 }
 
@@ -537,9 +537,9 @@ TcpFlowMonSession.onPcapEvent (io.PcapEventParams const* params)
 		size_t result = try m_pcap.read (buffer, sizeof (buffer));
 		if (result != -1)
 			decodePacket (buffer, result);
-		
+
 		break;
-	
+
 	case io.PcapEventCode.Eof:
 		stopCapture ();
 		break;
@@ -567,7 +567,7 @@ bool TcpFlowMonSession.decodePacket (
 {
 	if (size < sizeof (io.EthernetHdr))
 		return false;
-	
+
 	io.EthernetHdr const* ethernetHdr = (io.EthernetHdr const*) p;
 	p += sizeof (io.EthernetHdr);
 	size -= sizeof (io.EthernetHdr);
@@ -580,7 +580,7 @@ bool TcpFlowMonSession.decodePacket (
 	case io.EthernetType.Ip:
 		if (size < sizeof (io.IpHdr))
 			return false;
-		
+
 		io.IpHdr const* ipHdr = (io.IpHdr const*) p;
 		size_t ipHdrSize = ipHdr.m_headerLength * 4;
 
@@ -589,7 +589,7 @@ bool TcpFlowMonSession.decodePacket (
 			ipHdrSize > ipHdr.m_totalLength ||
 			ipHdr.m_totalLength > size)
 			return false;
-		
+
 		if ((ipHdr.m_flags & io.IpFlags.Mf) || ipHdr.m_fragmentOffset) // fragmented ip
 		{
 			ipHdr = m_ipDefragmenter.defragment (ipHdr, size);
@@ -604,17 +604,17 @@ bool TcpFlowMonSession.decodePacket (
 			p += ipHdrSize;
 			size = ipHdr.m_totalLength - ipHdrSize;
 		}
-		
+
 		srcAddress.m_family = io.AddressFamily.Ip4;
 		srcAddress.m_ip4.m_address.m_i32 = ipHdr.m_srcAddress;
 		dstAddress.m_family = io.AddressFamily.Ip4;
-		dstAddress.m_ip4.m_address.m_i32 = ipHdr.m_dstAddress;		
+		dstAddress.m_ip4.m_address.m_i32 = ipHdr.m_dstAddress;
 		break;
 
 	case io.EthernetType.Ip6:
 		if (size < sizeof (io.Ip6Hdr))
 			return false;
-		
+
 		io.Ip6Hdr const* ip6Hdr = (io.Ip6Hdr const*) p;
 
 		if (ip6Hdr.m_nextHeader != io.Protocol.Tcp ||
@@ -627,18 +627,18 @@ bool TcpFlowMonSession.decodePacket (
 		srcAddress.m_family = io.AddressFamily.Ip6;
 		srcAddress.m_ip6.m_address = *(io.Address_ip6 const*) ip6Hdr.m_srcAddress;
 		dstAddress.m_family = io.AddressFamily.Ip6;
-		dstAddress.m_ip6.m_address = *(io.Address_ip6 const*) ip6Hdr.m_dstAddress;		
+		dstAddress.m_ip6.m_address = *(io.Address_ip6 const*) ip6Hdr.m_dstAddress;
 		break;
 
 	default:
 		return false;
-	}	
+	}
 
 	if (size < sizeof (io.TcpHdr))
 		return false;
 
 	io.TcpHdr const* tcpHdr = (io.TcpHdr const*) p;
-	size_t tcpHdrSize = tcpHdr.m_dataOffset * 4;	
+	size_t tcpHdrSize = tcpHdr.m_dataOffset * 4;
 	if (tcpHdrSize < sizeof (io.TcpHdr) || tcpHdrSize > size)
 		return false;
 
@@ -668,13 +668,13 @@ bool TcpFlowMonSession.decodePacket (
 			m_tcpPeer2.m_address = srcAddress;
 			m_tcpPeer2.m_tcpSequencer.reset (tcpHdr.m_seqNumber + seqNumberDelta);
 		}
-		else 
+		else
 		{
 			return false;
 		}
-		
+
 		char const* params = $"$(srcAddress; B)$(dstAddress; B)";
-		
+
 		if (!(tcpHdr.m_flags & io.TcpFlags.Syn))
 		{
 			writeLog (
@@ -689,8 +689,8 @@ bool TcpFlowMonSession.decodePacket (
 				TcpFlowMonLogRecordCode.Connecting,
 				params,
 				dynamic sizeof (params)
-				);			
-			
+				);
+
 			m_state |= State.TcpSyn;
 		}
 		else // Syn + Ack
@@ -699,12 +699,12 @@ bool TcpFlowMonSession.decodePacket (
 				TcpFlowMonLogRecordCode.Connecting,
 				params,
 				dynamic sizeof (params)
-				);			
+				);
 
-			writeLog (TcpFlowMonLogRecordCode.ConnectCompleted);			
+			writeLog (TcpFlowMonLogRecordCode.ConnectCompleted);
 		}
-		
-		m_state |= State.TcpConnection;		
+
+		m_state |= State.TcpConnection;
 	}
 
 	if (
@@ -734,7 +734,7 @@ TcpFlowMonSession.decodeTcpPacket (
 	size_t size
 	)
 {
-	if ((tcpHdr.m_flags & io.TcpFlags.Rst) || 
+	if ((tcpHdr.m_flags & io.TcpFlags.Rst) ||
 		(tcpHdr.m_flags & io.TcpFlags.Fin))
 	{
 		writeLog (
@@ -742,20 +742,20 @@ TcpFlowMonSession.decodeTcpPacket (
 			peer.m_address,
 			sizeof (peer.m_address)
 			);
-		
+
 		m_state &= ~(State.TcpConnection | State.TcpSyn);
 	}
 	else if (
-		(tcpHdr.m_flags & io.TcpFlags.Syn) && 
+		(tcpHdr.m_flags & io.TcpFlags.Syn) &&
 		(tcpHdr.m_flags & io.TcpFlags.Ack) &&
 		m_state & State.TcpSyn)
 	{
-		writeLog (TcpFlowMonLogRecordCode.ConnectCompleted);		
+		writeLog (TcpFlowMonLogRecordCode.ConnectCompleted);
 		peer.m_tcpSequencer.reset (tcpHdr.m_seqNumber + 1);
 		m_state &= ~State.TcpSyn;
 	}
 	else if (size)
-	{	
+	{
 		peer.m_tcpSequencer.write (tcpHdr.m_seqNumber, p, size);
 	}
 }
@@ -765,10 +765,10 @@ reactor TcpFlowMonSession.m_uiReactor ()
 	m_title = $"TCP Mon $(m_filterCombo.m_currentText)";
 	m_actionTable [ActionId.Capture].m_text = m_state ? "Stop Capture" : "Capture";
 	m_actionTable [ActionId.Capture].m_icon = m_iconTable [m_state ? IconId.StopCapture : IconId.Capture];
-	m_statusPaneTable [StatusPaneId.State].m_text = 
+	m_statusPaneTable [StatusPaneId.State].m_text =
 		(m_state & State.Capturing) ? "Capturing" :
 		(m_state & State.Resolving) ? "Resolving" :
 		"Closed";
 }
 
-//.............................................................................
+//..............................................................................

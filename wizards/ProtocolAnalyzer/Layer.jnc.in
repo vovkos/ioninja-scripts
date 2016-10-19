@@ -1,13 +1,13 @@
-//.............................................................................
+//..............................................................................
 //
 // $(pluginName) layer
 //
 
 import "doc_Plugin.jnc"
 
-//.............................................................................
+//..............................................................................
 
-class $(layerClass): 
+class $(layerClass):
 	doc.Layer,
 	log.Converter
 {
@@ -20,7 +20,7 @@ protected:
 	uint_t m_recordCode;
 	void const* m_p;
 	size_t m_offset;
-	
+
 public:
 	construct (doc.PluginHost* pluginHost);
 
@@ -30,15 +30,15 @@ public:
 		uint_t recordCode,
 		void const* p,
 		size_t size
-		);	
+		);
 
 protected:
 	jnc.AutomatonResult automaton scanStream (jnc.Recognizer* recognizer);
-	
+
 	writeOriginalData (jnc.Recognizer* recognizer);
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 $(layerClass).construct (doc.PluginHost* pluginHost)
 {
@@ -80,12 +80,12 @@ bool $(layerClass).convert (
 	m_recordCode = recordCode;
 	m_p = p;
 	m_offset = recognizer.m_currentOffset;
-	
+
 	try recognizer.write (p, size);
 
 	// write the rest of original data
 
-	writeOriginalData (recognizer);	
+	writeOriginalData (recognizer);
 	return true;
 }
 
@@ -94,7 +94,7 @@ $(layerClass).writeOriginalData (jnc.Recognizer* recognizer)
 	size_t chunkLength = recognizer.m_currentOffset - m_offset;
 	if (!chunkLength)
 		return;
-		
+
 	m_writer.write (m_timestamp, m_recordCode, m_p, chunkLength);
 
 	m_p += chunkLength;
@@ -107,18 +107,18 @@ jnc.AutomatonResult automaton $(layerClass).scanStream (jnc.Recognizer* recogniz
 		// write original data first...
 
 		writeOriginalData (recognizer);
-		
+
 		// ...and then the decoded in-band command
-		
+
 		m_writer.write (
-			m_timestamp, 
-			$(logRecordCodeEnum).InBandCommand, 
-			recognizer.m_lexeme + 1, 
+			m_timestamp,
+			$(logRecordCodeEnum).InBandCommand,
+			recognizer.m_lexeme + 1,
 			recognizer.m_lexemeLength - 2
 			);
-	
+
 	%% .
-		// ignore the rest		
+		// ignore the rest
 }
 
-//.............................................................................
+//..............................................................................

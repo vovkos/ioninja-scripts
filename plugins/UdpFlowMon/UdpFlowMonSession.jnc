@@ -1,4 +1,4 @@
-//.............................................................................
+//..............................................................................
 //
 // UDP Flow Monitor session
 //
@@ -11,7 +11,7 @@ import "io_SocketAddressResolver.jnc"
 import "doc_Plugin.jnc"
 import "gui_Dialog.jnc"
 
-//.............................................................................
+//..............................................................................
 
 class UdpFlowMonSession: doc.Session
 {
@@ -38,34 +38,34 @@ protected:
 	enum StatusPaneId
 	{
 		State,
-		_Count, 
+		_Count,
 	}
 
 protected:
 	// pending capture (post-resolve)
-	
+
 	io.PcapDeviceDesc const* m_pendingDevice;
 	char const* m_pendingFileName;
-	
+
 	// pcap
 
 	State bindable m_state;
-	io.Pcap m_pcap;	
+	io.Pcap m_pcap;
 	io.IpDefragmenter m_ipDefragmenter;
 	io.SocketAddressResolver m_resolver;
 	io.SocketAddress m_filterAddress;
-	
+
 	// toolbar, status bar & menu
-	
+
 	gui.Action* m_actionTable [ActionId._Count];
 	gui.Icon* m_iconTable [IconId._Count];
 	gui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
 	gui.ComboBox* m_deviceCombo;
 	gui.ComboBox* m_filterCombo;
 	gui.FileDlg* m_fileDlg;
-	
+
 	// property grid
-	
+
 	gui.EnumProperty* m_deviceProp;
 	gui.BoolProperty* m_promisciousProp;
 	gui.StringProperty* m_filterProp;
@@ -76,17 +76,17 @@ public:
 	construct (doc.PluginHost* pluginHost);
 
 	bool errorcode capture ();
-	
+
 	bool errorcode capture (
 		io.PcapDeviceDesc const* device,
 		io.SocketAddress const* filterAddress
 		);
-	
+
 	bool errorcode openCapFile (
 		char const* fileName,
 		io.SocketAddress const* filterAddress
 		);
-	
+
 	stopCapture ();
 
 	override void load (doc.Storage* storage);
@@ -96,7 +96,7 @@ public:
 	override void restoreDefaultProperties ();
 
 protected:
-	onCapture ();	
+	onCapture ();
 	onFileDlgCompleted (gui.StdDlgButton button);
 	onSetFilter ();
 	onPcapEvent (io.PcapEventParams const* params);
@@ -117,7 +117,7 @@ protected:
 	reactor m_uiReactor ();
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 UdpFlowMonSession.construct (doc.PluginHost* pluginHost)
 {
@@ -152,7 +152,7 @@ UdpFlowMonSession.createUi ()
 	m_actionTable [ActionId.Capture].m_onTriggered += onCapture;
 
 	// status bar
-	
+
 	m_statusPaneTable [StatusPaneId.State] = m_pluginHost.m_statusBar.addPane (, 80);
 
 	// property grid
@@ -198,7 +198,7 @@ UdpFlowMonSession.onFileDlgCompleted (gui.StdDlgButton button)
 {
 	if (button != gui.StdDlgButton.Ok)
 		return;
-	
+
 	char const* fileName = m_fileDlg.m_filePath;
 	char const* addressString = m_filterCombo.m_editText;
 	m_filterCombo.addEditTextToHistory ();
@@ -210,7 +210,7 @@ UdpFlowMonSession.onFileDlgCompleted (gui.StdDlgButton button)
 		try openCapFile (fileName, &filterAddress);
 	}
 	else
-	{	
+	{
 		m_pendingDevice = null;
 		m_pendingFileName = fileName;
 		try resolve (addressString);
@@ -222,13 +222,13 @@ UdpFlowMonSession.onSetFilter ()
 	if (!m_state)
 		try capture ();
 	else
-		try applyFilter ();	
+		try applyFilter ();
 }
 
 bool errorcode UdpFlowMonSession.capture ()
 {
 	stopCapture ();
-	
+
 	if (m_deviceCombo.m_currentIndex == -1)
 		return false;
 
@@ -238,9 +238,9 @@ bool errorcode UdpFlowMonSession.capture ()
 		if (!m_fileDlg)
 		{
 			m_fileDlg = new gui.FileDlg;
-			m_fileDlg.m_onCompleted += onFileDlgCompleted;			
+			m_fileDlg.m_onCompleted += onFileDlgCompleted;
 		}
-		
+
 		m_fileDlg.m_kind = gui.FileDlgKind.Open;
 		m_fileDlg.m_title = "Open Wireshark File (*.cap; *.pcap)...";
 		m_fileDlg.m_filter = "Wireshark .cap files (*.cap; *.pcap);; All files (*.*)";
@@ -268,16 +268,16 @@ bool errorcode UdpFlowMonSession.capture (
 {
 	stopCapture ();
 	startSession ();
-	
+
 	char const* filterString = createFilterString (filterAddress);
 	writeLogString (UdpFlowMonLogRecordCode.StartingCapture, filterString);
-	
+
 	bool result = try m_pcap.openDevice (
-		device.m_name, 
+		device.m_name,
 		filterString,
 		m_promisciousProp.m_value
 		);
-		
+
 	if (!result)
 	{
 		writeLogLastError (UdpFlowMonLogRecordCode.CaptureError);
@@ -297,12 +297,12 @@ bool errorcode UdpFlowMonSession.openCapFile (
 {
 	char const* filterString = createFilterString (filterAddress);
 	writeLogString (UdpFlowMonLogRecordCode.StartingCapture, filterString);
-	
+
 	bool result = try m_pcap.openFile (
-		fileName, 
+		fileName,
 		filterString
 		);
-		
+
 	if (!result)
 	{
 		writeLogLastError (UdpFlowMonLogRecordCode.CaptureError);
@@ -321,11 +321,11 @@ UdpFlowMonSession.stopCapture ()
 		return;
 
 	if (m_state & State.Resolving)
-		writeLog (UdpFlowMonLogRecordCode.ResolveCancelled);		
-	
+		writeLog (UdpFlowMonLogRecordCode.ResolveCancelled);
+
 	if (m_state & State.Capturing)
 		writeLog (UdpFlowMonLogRecordCode.CaptureStopped);
-	
+
 	m_pcap.close ();
 	m_ipDefragmenter.reset ();
 	m_state = 0;
@@ -344,8 +344,8 @@ bool errorcode UdpFlowMonSession.resolve (char const* addressString)
 	}
 
 	m_state = State.Resolving;
-	return true;	
-}	
+	return true;
+}
 
 bool errorcode UdpFlowMonSession.applyFilter ()
 {
@@ -357,11 +357,11 @@ bool errorcode UdpFlowMonSession.applyFilter ()
 	if (isDirectAddress)
 	{
 		m_state &= ~State.Resolving;
-		return try setFilter (&filterAddress);	
+		return try setFilter (&filterAddress);
 	}
 
 	writeLogString (UdpFlowMonLogRecordCode.Resolving, filterString);
-		
+
 	m_resolver.m_syncId = m_pcap.m_syncId;
 	bool result = try m_resolver.resolve (filterString);
 	if (!result)
@@ -369,7 +369,7 @@ bool errorcode UdpFlowMonSession.applyFilter ()
 		writeLogLastError (UdpFlowMonLogRecordCode.ResolveError);
 		return false;
 	}
-	
+
 	m_state |= State.Resolving;
 	return true;
 }
@@ -387,23 +387,23 @@ bool errorcode UdpFlowMonSession.setFilter (io.SocketAddress const* filterAddres
 		writeLogLastError (UdpFlowMonLogRecordCode.FilterError);
 		return false;
 	}
-	
+
 	writeLog (UdpFlowMonLogRecordCode.FilterChanged);
 	return true;
 }
 
 char const* UdpFlowMonSession.createFilterString (io.SocketAddress const* filterAddress)
 {
-	char const* filterString = 
+	char const* filterString =
 		filterAddress.m_family == io.AddressFamily.Ip6 ? $"udp and host $(filterAddress.m_ip6.m_address.getString ())" :
 		filterAddress.m_ip4.m_address.m_i32 ? $"udp and host $(filterAddress.m_ip4.m_address.getString ())" :
 		"udp";
 
 	// fragmentated datagrams will not satisfy port filter
-	
+
 	// if (filterAddress.m_ip4.m_port)
 	//	filterString = $"$filterString and port $(filterAddress.m_ip4.m_port)";
-	
+
 	return filterString;
 }
 
@@ -496,9 +496,9 @@ UdpFlowMonSession.onPcapEvent (io.PcapEventParams const* params)
 		size_t result = try m_pcap.read (buffer, sizeof (buffer));
 		if (result != -1)
 			decodePacket (buffer, result);
-		
+
 		break;
-	
+
 	case io.PcapEventCode.Eof:
 		stopCapture ();
 		break;
@@ -512,7 +512,7 @@ bool UdpFlowMonSession.decodePacket (
 {
 	if (size < sizeof (io.EthernetHdr))
 		return false;
-	
+
 	io.EthernetHdr const* ethernetHdr = (io.EthernetHdr const*) p;
 	p += sizeof (io.EthernetHdr);
 	size -= sizeof (io.EthernetHdr);
@@ -523,7 +523,7 @@ bool UdpFlowMonSession.decodePacket (
 	case io.EthernetType.Ip:
 		if (size < sizeof (io.IpHdr))
 			return false;
-		
+
 		io.IpHdr const* ipHdr = (io.IpHdr const*) p;
 		size_t ipHdrSize = ipHdr.m_headerLength * 4;
 
@@ -551,26 +551,26 @@ bool UdpFlowMonSession.decodePacket (
 		params.m_srcAddress.m_family = io.AddressFamily.Ip4;
 		params.m_srcAddress.m_ip4.m_address.m_i32 = ipHdr.m_srcAddress;
 		params.m_dstAddress.m_family = io.AddressFamily.Ip4;
-		params.m_dstAddress.m_ip4.m_address.m_i32 = ipHdr.m_dstAddress;		
+		params.m_dstAddress.m_ip4.m_address.m_i32 = ipHdr.m_dstAddress;
 		break;
 
 	case io.EthernetType.Ip6:
 		if (size < sizeof (io.Ip6Hdr))
 			return false;
-		
+
 		io.Ip6Hdr const* ip6Hdr = (io.Ip6Hdr const*) p;
 
 		if (ip6Hdr.m_nextHeader != io.Protocol.Udp ||
 			ip6Hdr.m_payloadLength + sizeof (io.Ip6Hdr) > size)
 			return false;
-		
+
 		p += sizeof (io.Ip6Hdr);
 		size = ip6Hdr.m_payloadLength;
 
 		params.m_srcAddress.m_family = io.AddressFamily.Ip6;
 		params.m_srcAddress.m_ip6.m_address = *(io.Address_ip6 const*) ip6Hdr.m_srcAddress;
 		params.m_dstAddress.m_family = io.AddressFamily.Ip6;
-		params.m_dstAddress.m_ip6.m_address = *(io.Address_ip6 const*) ip6Hdr.m_dstAddress;		
+		params.m_dstAddress.m_ip6.m_address = *(io.Address_ip6 const*) ip6Hdr.m_dstAddress;
 		break;
 
 	default:
@@ -593,12 +593,12 @@ bool UdpFlowMonSession.decodePacket (
 
 	if (params.m_srcAddress.isMatch (m_filterAddress))
 	{
-		writeLog (UdpFlowMonLogRecordCode.RxPacket, &params, sizeof (params));		
+		writeLog (UdpFlowMonLogRecordCode.RxPacket, &params, sizeof (params));
 		writeLog (log.StdRecordCode.Rx, p, size);
 	}
 	else if (params.m_dstAddress.isMatch (m_filterAddress))
 	{
-		writeLog (UdpFlowMonLogRecordCode.TxPacket, &params, sizeof (params));		
+		writeLog (UdpFlowMonLogRecordCode.TxPacket, &params, sizeof (params));
 		writeLog (log.StdRecordCode.Tx, p, size);
 	}
 	else
@@ -614,10 +614,10 @@ reactor UdpFlowMonSession.m_uiReactor ()
 	m_title = $"UDP Mon $(m_filterCombo.m_currentText)";
 	m_actionTable [ActionId.Capture].m_text = m_state ? "Stop Capture" : "Capture";
 	m_actionTable [ActionId.Capture].m_icon = m_iconTable [m_state ? IconId.StopCapture : IconId.Capture];
-	m_statusPaneTable [StatusPaneId.State].m_text = 
-		(m_state & State.Capturing) ? "Capturing" : 
+	m_statusPaneTable [StatusPaneId.State].m_text =
+		(m_state & State.Capturing) ? "Capturing" :
 		(m_state & State.Resolving) ? "Resolving" :
 		"Closed";
 }
 
-//.............................................................................
+//..............................................................................

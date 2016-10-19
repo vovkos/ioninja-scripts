@@ -1,4 +1,4 @@
-//.............................................................................
+//..............................................................................
 //
 // Generic file session
 //
@@ -7,7 +7,7 @@ import "io_base.jncx"
 import "io_FileStream.jnc"
 import "doc_Plugin.jnc"
 
-//.............................................................................
+//..............................................................................
 
 class FileSession: doc.Session
 {
@@ -58,7 +58,7 @@ protected:
 	gui.Icon* m_iconTable [IconId._Count];
 	gui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
 	gui.ComboBox* m_fileNameCombo;
-	
+
 	// property grid
 
 	gui.StringProperty* m_fileNameProp;
@@ -91,12 +91,12 @@ protected:
 	reactor m_uiReactor ();
 }
 
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 FileSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
-	
+
 	pluginHost.m_log.m_representerFunc = representFileLog;
 
 	m_state = State.Closed;
@@ -108,7 +108,7 @@ FileSession.construct (doc.PluginHost* pluginHost)
 FileSession.createUi ()
 {
 	// toolbar
-		
+
 	m_pluginHost.m_toolBar.addLabel ("File:");
 	m_fileNameCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_fileNameCombo.m_isEditable = true;
@@ -157,7 +157,7 @@ FileSession.onOpen ()
 {
 	if (m_state)
 		close ();
-	else 
+	else
 		try	open ();
 }
 
@@ -165,18 +165,18 @@ bool errorcode FileSession.open ()
 {
 	close ();
 	startSession ();
-	
+
 	m_fileNameCombo.addEditTextToHistory ();
 
 	char const* fileName = m_fileNameCombo.m_editText;
-	
+
 	Access access = (Access) m_accessProp.m_value;
-	io.FileOpenFlags openFlags = 
+	io.FileOpenFlags openFlags =
 		access == Access.ReadOnly ? io.FileOpenFlags.ReadOnly :
 		access == Access.WriteOnly ? io.FileOpenFlags.WriteOnly : 0;
-	
+
 	m_file.open (fileName, openFlags);
-	
+
 	char const* p = $"$(m_file.m_kind; B)$fileName";
 	writeLog (FileLogRecordCode.Opened, p, dynamic sizeof (p));
 	m_state = State.Opened;
@@ -262,14 +262,14 @@ FileSession.onFileStreamEvent (io.FileStreamEventParams const* params)
 		return;
 
 	switch (params.m_eventCode)
-	{	
+	{
 	case io.FileStreamEventCode.IncomingData:
 		static char buffer [512];
 		size_t result = try m_file.read (buffer, sizeof (buffer));
 		if (result != -1)
 			writeLog (log.StdRecordCode.Rx, buffer, result);
-		break;	
-		
+		break;
+
 	case io.FileStreamEventCode.Eof:
 		writeLog (FileLogRecordCode.Eof);
 
@@ -280,11 +280,11 @@ FileSession.onFileStreamEvent (io.FileStreamEventParams const* params)
 	case io.FileStreamEventCode.TransmitBufferReady:
 		m_isTransmitEnabled = true;
 		break;
-		
+
 	case io.FileStreamEventCode.IoError:
 		writeLog (log.StdRecordCode.Error, params.m_error, params.m_error.m_size);
 		close ();
-		break;		
+		break;
 	}
 }
 
@@ -298,4 +298,4 @@ reactor FileSession.m_uiReactor ()
 	m_statusPaneTable [StatusPaneId.State].m_text = m_state ? "Opened" : "Closed";
 }
 
-//.............................................................................
+//..............................................................................

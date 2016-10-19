@@ -1,9 +1,9 @@
-//.............................................................................
+//..............................................................................
 //
 // SSH Connection log packet declarations and representer
 //
 
-//.............................................................................
+//..............................................................................
 
 enum SshChannelLogRecordCode
 {
@@ -30,7 +30,7 @@ enum SshChannelLogPartCode
 	ConnectCompleted = 1 | log.PartCodeFlags.MergeableBackward,
 }
 
-//.............................................................................
+//..............................................................................
 
 bool representSshChannelLog (
 	log.RepresenterTarget* target,
@@ -76,7 +76,7 @@ bool representSshChannelLog (
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, "ok");
-		
+
 		// and fall through...
 
 	case SshChannelLogRecordCode.SshAuthenticating:
@@ -119,7 +119,7 @@ bool representSshChannelLog (
 		target.addHyperText ("SSH channel established");
 		break;
 
-	case SshChannelLogRecordCode.ConnectCancelled:	
+	case SshChannelLogRecordCode.ConnectCancelled:
 		target.addHyperText (SshChannelLogPartCode.ConnectCompleted, "cancelled");
 		break;
 
@@ -152,4 +152,4 @@ bool representSshChannelLog (
 	return true;
 }
 
-//.............................................................................
+//..............................................................................
