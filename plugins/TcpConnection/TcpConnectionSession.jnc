@@ -408,6 +408,16 @@ TcpConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 		break;
 
 	case io.SocketEventCode.Disconnected:
+		for (;;)
+		{
+			static char buffer [512];
+			size_t result = try m_socket.recv (buffer, sizeof (buffer));
+			if (!result || result == -1)
+				break;
+
+			writeLog (log.StdRecordCode.Rx, buffer, result);
+		}
+
 		TcpDisconnectLogRecordParams recordParams;
 		recordParams.m_address = m_remoteAddress;
 		recordParams.m_flags = TcpDisconnectLogRecordFlags.Remote;
@@ -431,6 +441,7 @@ TcpConnectionSession.onSocketEvent (io.SocketEventParams const* params)
 		size_t result = try m_socket.recv (buffer, sizeof (buffer));
 		if (result != -1)
 			writeLog (log.StdRecordCode.Rx, buffer, result);
+
 		break;
 
 	case io.SocketEventCode.TransmitBufferReady:

@@ -377,7 +377,7 @@ TcpListenerSession.onListenerSocketEvent (io.SocketEventParams const* params)
 		m_connectionSocket = socket;
 		m_connectionState = ConnectionState.Connected;
 
-		socket.firePendingEvents ();
+		socket.m_isSocketEventEnabled = true;
 		break;
 	}
 }
@@ -390,6 +390,16 @@ TcpListenerSession.onConnectionSocketEvent (io.SocketEventParams const* params)
 	switch (params.m_eventCode)
 	{
 	case io.SocketEventCode.Disconnected:
+		for (;;)
+		{
+			static char buffer [512];
+			size_t result = try m_connectionSocket.recv (buffer, sizeof (buffer));
+			if (!result || result == -1)
+				break;
+
+			writeLog (log.StdRecordCode.Rx, buffer, result);
+		}
+
 		TcpDisconnectLogRecordParams recordParams;
 		recordParams.m_address = m_remoteAddress;
 		recordParams.m_flags = TcpDisconnectLogRecordFlags.Remote;
@@ -414,6 +424,7 @@ TcpListenerSession.onConnectionSocketEvent (io.SocketEventParams const* params)
 		size_t result = try m_connectionSocket.recv (buffer, sizeof (buffer));
 		if (result != -1)
 			writeLog (log.StdRecordCode.Rx, buffer, result);
+
 		break;
 
 	case io.SocketEventCode.TransmitBufferReady:
