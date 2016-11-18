@@ -485,44 +485,44 @@ SshChannelSession.onSshEvent (io.SshEventParams const* params)
 
 	switch (params.m_eventCode)
 	{
-	case io.SshEvent.TcpConnectCompleted:
+	case io.SshEventCode.TcpConnectCompleted:
 		writeLog (SshChannelLogRecordCode.TcpConnectCompleted);
 		break;
 
-	case io.SshEvent.SshHandshakeCompleted:
+	case io.SshEventCode.SshHandshakeCompleted:
 		writeLog (SshChannelLogRecordCode.SshHandshakeCompleted);
 		break;
 
-	case io.SshEvent.SshAuthCompleted:
+	case io.SshEventCode.SshAuthCompleted:
 		writeLog (SshChannelLogRecordCode.SshAuthCompleted);
 		break;
 
-	case io.SshEvent.SshChannelOpened:
+	case io.SshEventCode.SshChannelOpened:
 		writeLog (SshChannelLogRecordCode.SshChannelOpened);
 		break;
 
-	case io.SshEvent.SshPtyRequested:
+	case io.SshEventCode.SshPtyRequested:
 		writeLog (SshChannelLogRecordCode.SshPtyRequested);
 		break;
 
-	case io.SshEvent.SshProcessStarted:
+	case io.SshEventCode.SshProcessStarted:
 		writeLog (SshChannelLogRecordCode.SshProcessStarted);
 		break;
 
-	case io.SshEvent.ConnectCompleted:
+	case io.SshEventCode.ConnectCompleted:
 		writeLog (SshChannelLogRecordCode.ConnectCompleted);
 		m_state = State.Connected;
 		break;
 
-	case io.SshEvent.SshAuthError:
+	case io.SshEventCode.SshAuthError:
 		handleSshAuthError (params.m_error);
 		break;
 
-	case io.SshEvent.ConnectError:
+	case io.SshEventCode.ConnectError:
 		handleConnectError (params.m_error);
 		break;
 
-	case io.SshEvent.Disconnected:
+	case io.SshEventCode.Disconnected:
 		writeLog (
 			SshChannelLogRecordCode.Disconnected,
 			&m_remoteAddress,
@@ -533,22 +533,22 @@ SshChannelSession.onSshEvent (io.SshEventParams const* params)
 		m_state = State.Closed;
 		break;
 
-	case io.SshEvent.ReauthenticateInitiated:
+	case io.SshEventCode.ReauthenticateInitiated:
 		writeLog (SshChannelLogRecordCode.SshAuthenticating);
 		break;
 
-	case io.SshEvent.ReconnectInitiated:
+	case io.SshEventCode.ReconnectInitiated:
 		writeLog (SshChannelLogRecordCode.Reconnecting);
 		break;
 
-	case io.SshEvent.IncomingData:
+	case io.SshEventCode.IncomingData:
 		static char buffer [512];
 		size_t result = try m_channel.read (buffer, sizeof (buffer));
 		if (result != -1)
 			writeLog (log.StdRecordCode.Rx, buffer, result);
 		break;
 
-	case io.SshEvent.TransmitBufferReady:
+	case io.SshEventCode.TransmitBufferReady:
 		m_isTransmitEnabled = true;
 		break;
 	}
