@@ -1,0 +1,416 @@
+//..............................................................................
+//
+// USB session
+//
+
+import "io_usb.jncx"
+import "doc_Plugin.jnc"
+
+//..............................................................................
+
+class UsbSession: doc.Session
+{
+protected:
+	enum State
+	{
+		Closed,
+		Opened,
+		Claimed,
+	}
+
+	enum ActionId
+	{
+		Info,
+		Open,
+		Claim,
+		_Count,
+	}
+
+	enum IconId
+	{
+		Open,
+		Close,
+		_Count,
+	}
+
+	enum StatusPaneId
+	{
+		State,
+		_Count,
+	}
+
+protected:
+	// usb
+
+	State bindable m_state;
+
+	io.UsbDb m_usbDb;
+	io.UsbDevice* m_device;
+	io.UsbInterface* m_interface;
+	io.UsbEndpoint* m_txEndpoint;
+	io.UsbEndpoint* m_rxEndpoint;
+
+	// toolbar, status bar & menu
+
+	gui.Action* m_actionTable [ActionId._Count];
+	gui.Icon* m_iconTable [IconId._Count];
+	gui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
+	gui.ComboBox* m_deviceCombo;
+	gui.ComboBox* m_interfaceCombo;
+	gui.ComboBox* m_txEndpointCombo;
+	gui.ComboBox* m_rxEndpointCombo;
+
+	// property grid
+
+	gui.EnumProperty* m_deviceProp;
+	gui.EnumProperty* m_interfaceProp;
+	gui.EnumProperty* m_txEndpointProp;
+	gui.EnumProperty* m_rxEndpointProp;
+
+public:
+	construct (doc.PluginHost* pluginHost);
+
+	openDevice ();
+	closeDevice ();
+	claimInterface ();
+	releaseInterface ();
+
+	override void load (doc.Storage* storage);
+	override void save (doc.Storage* storage);
+	override void updateProperties ();
+	override errorcode bool applyProperties ();
+	override void restoreDefaultProperties ();
+
+	override size_t errorcode transmit (
+		void const* p,
+		size_t size
+		);
+
+protected:
+	reportError();
+	enumerateDevices ();
+
+	onOpenDevice ();
+	onClaimInterface ();
+
+	onTxEndpointChanged ();
+	onRxEndpointChanged ();
+	onRxEndpointEvent(io.UsbEndpointEventParams const* params);
+
+	createGui ();
+	reactor m_uiReactor ();
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+UsbSession.construct (doc.PluginHost* pluginHost)
+{
+	basetype.construct(pluginHost);
+
+	pluginHost.m_log.m_representerFunc = representUsbLog;
+
+	m_state = State.Closed;
+
+	try m_usbDb.load ("../../common/usb.ids"); // ignore if failed
+	createGui ();
+}
+
+UsbSession.createGui ()
+{
+	// toolbar
+
+	m_iconTable [IconId.Open] = new gui.Icon ("images/open.png");
+	m_iconTable [IconId.Close] = new gui.Icon ("images/close.png");
+
+	m_pluginHost.m_toolBar.addLabel ("Device:");
+	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox (-1);
+
+	m_actionTable [ActionId.Open] = createAction("Open device", m_iconTable [IconId.Open]);
+	m_actionTable [ActionId.Open].m_onTriggered += onOpenDevice;
+
+	m_pluginHost.m_toolBar.addLabel ("Iface:");
+	m_interfaceCombo = m_pluginHost.m_toolBar.addComboBox ();
+
+	m_actionTable [ActionId.Claim] = createAction("Claim interface", m_iconTable [IconId.Open]);
+	m_actionTable [ActionId.Claim].m_onTriggered += onClaimInterface;
+
+	m_pluginHost.m_toolBar.addLabel ("TX:");
+	m_txEndpointCombo = m_pluginHost.m_toolBar.addComboBox ();
+	m_txEndpointCombo.m_onChanged += onTxEndpointChanged;
+
+	m_pluginHost.m_toolBar.addLabel ("RX:");
+	m_rxEndpointCombo = m_pluginHost.m_toolBar.addComboBox ();
+	m_rxEndpointCombo.m_onChanged += onRxEndpointChanged;
+
+	// status bar
+
+	m_statusPaneTable [StatusPaneId.State] = m_pluginHost.m_statusBar.addPane (, 80);
+
+	// property grid
+
+	m_deviceProp = m_pluginHost.m_propertyGrid.createEnumProperty (
+		"Device",
+		"Target USB device",
+		null, 0
+		);
+
+	m_interfaceProp = m_pluginHost.m_propertyGrid.createEnumProperty (
+		"Interface",
+		"Target USB interface",
+		null, 0
+		);
+
+	m_txEndpointProp = m_pluginHost.m_propertyGrid.createEnumProperty (
+		"TX endpoint",
+		"Transmitting USB endpoint",
+		null, 0
+		);
+
+	m_rxEndpointProp = m_pluginHost.m_propertyGrid.createEnumProperty (
+		"TX endpoint",
+		"Transmitting USB endpoint",
+		null, 0
+		);
+
+	enumerateDevices ();
+
+	m_uiReactor.start ();
+	m_state = State.Closed;
+}
+
+UsbSession.onOpenDevice ()
+{
+	if (m_state >= State.Opened)
+		closeDevice ();
+	else
+		openDevice ();
+}
+
+UsbSession.onClaimInterface ()
+{
+	if (m_state >= State.Claimed)
+		releaseInterface ();
+	else
+		claimInterface ();
+}
+
+UsbSession.enumerateDevices ()
+{
+	m_deviceCombo.clear ();
+
+	io.UsbDevice* const* deviceArray = io.createUsbDeviceArray ();
+	size_t count = dynamic countof (deviceArray);
+
+	gui.EnumPropertyOption* optionTable = new gui.EnumPropertyOption [count];
+
+	for (size_t i = 0; i < count; i++)
+	{
+		io.UsbDevice* device = deviceArray [i];
+		io.UsbDeviceDesc const* deviceDesc = device.m_deviceDesc;
+		io.UsbVendor const* vendor = m_usbDb.findVendor (deviceDesc.m_vendorId);
+		io.UsbProduct const* product = vendor ? vendor.findProduct (deviceDesc.m_productId) : null;
+
+		char const* text = $"@%(1;03d):%(2;03d) %3 %4" (
+			device.m_bus,
+			device.m_address,
+			vendor ? vendor.m_name : $"VID_$(deviceDesc.m_vendorId ;04x)",
+			product ? product.m_name : $"PID_$(deviceDesc.m_productId ;04x)"
+			);
+
+		m_deviceCombo.addItem (text, device);
+
+		optionTable [i].m_text = text;
+		optionTable [i].m_value = device;
+	}
+
+	m_deviceProp.setOptions (optionTable, count);
+}
+
+UsbSession.openDevice ()
+{
+	closeDevice ();
+
+	startSession ();
+	m_state = State.Opened;
+}
+
+UsbSession.closeDevice ()
+{
+	if (m_state == State.Closed)
+		return;
+
+	m_state = State.Closed;
+}
+
+UsbSession.claimInterface ()
+{
+	releaseInterface ();
+
+	m_state = State.Claimed;
+}
+
+UsbSession.releaseInterface ()
+{
+	if (m_state == State.Opened)
+		return;
+
+	m_state = State.Opened;
+}
+
+UsbSession.load (doc.Storage* storage)
+{
+/*	m_adapterCombo.m_currentIndex  = storage.readInt ("adapterIdx");
+	m_localPortCombo.m_editText = storage.readString ("localPort");
+	m_reuseAddressProp.m_value = storage.readBool ("reuseAddress");
+	m_remoteAddressCombo.m_editText = storage.readString ("remoteAddress"); */
+}
+
+UsbSession.save (doc.Storage* storage)
+{
+/*	storage.writeInt ("adapterIdx", (int) m_adapterCombo.m_currentIndex);
+	storage.writeString ("localPort", m_localPortCombo.m_editText);
+	storage.writeBool ("reuseAddress", m_reuseAddressProp.m_value);
+	storage.writeString ("remoteAddress", m_remoteAddressCombo.m_editText); */
+}
+
+UsbSession.updateProperties ()
+{
+/*	m_remoteAddressProp.m_value = m_remoteAddressCombo.m_editText;
+	m_localPortProp.m_value = atoi (m_localPortCombo.m_editText); */
+}
+
+bool errorcode UsbSession.applyProperties ()
+{
+/*	m_remoteAddressCombo.m_editText = m_remoteAddressProp.m_value;
+	m_localPortCombo.m_editText = $"$(m_localPortProp.m_value)"; */
+	return true;
+}
+
+UsbSession.restoreDefaultProperties ()
+{
+/*	m_adapterProp.m_currentIndex = 0;
+	m_localPortProp.m_value = 0;
+	m_remoteAddressProp.m_value = "127.0.0.1:1001";
+	m_autoRemoteAddressProp.m_value = false;
+	m_packetHdrVisibleProp.m_value = true; */
+}
+
+size_t errorcode UsbSession.transmit (
+	void const* p,
+	size_t size
+	)
+{
+	if (m_state == State.Closed)
+		return -1;
+/*
+	char const* addressString = m_remoteAddressCombo.m_editText;
+	m_remoteAddressCombo.addEditTextToHistory ();
+
+	io.SocketAddress remoteAddress;
+	bool isDirectAddress = try remoteAddress.parse (addressString);
+	if (isDirectAddress || m_resolveState == ResolveState.Resolved)
+	{
+		if (isDirectAddress)
+			m_remoteAddress = remoteAddress;
+		else
+			remoteAddress = m_remoteAddress; // resolved address
+
+		m_socket.sendTo (p, size, &remoteAddress);
+
+		m_pluginHost.m_log.m_writer.write (UsbRecordCode.TxPacket, &remoteAddress, sizeof (io.SocketAddress));
+		m_pluginHost.m_log.m_writer.write (log.StdRecordCode.Tx, p, size);
+	}
+	else
+	{
+		m_pendingDataSize = size;
+		m_pendingData = new char [m_pendingDataSize];
+		memcpy (m_pendingData, p, m_pendingDataSize);
+
+		if (m_resolveState == ResolveState.Unresolved)
+		{
+			writeLog (
+				UsbRecordCode.Resolving,
+				addressString,
+				strlen (addressString)
+				);
+
+			io.AddressFamily addressFamily = io.AddressFamily.Undefined;
+			io.SocketAddress const* adapterAddress = m_adapterCombo.m_currentData;
+			if (adapterAddress)
+				addressFamily = adapterAddress.m_family;
+
+			m_resolver.m_syncId = m_socket.m_syncId;
+			m_resolver.resolve (addressString, addressFamily);
+			m_resolveState = ResolveState.Resolving;
+		}
+	} */
+
+	return size;
+
+catch:
+	reportError ();
+	return -1;
+}
+
+UsbSession.reportError()
+{
+	std.Error const* error = std.getLastError ();
+	writeLog (UsbRecordCode.Error, error, error.m_size);
+}
+
+UsbSession.onTxEndpointChanged ()
+{
+}
+
+UsbSession.onRxEndpointChanged ()
+{
+}
+
+UsbSession.onRxEndpointEvent (io.UsbEndpointEventParams const* params)
+{
+	if (params.m_syncId != m_rxEndpoint.m_syncId)
+		return;
+/*
+	switch (params.m_eventCode)
+	{
+	case io.SocketEventCode.IncomingData:
+		io.SocketAddress remoteAddress;
+		static char buffer [1600]; // static is OK -- we read in main thread
+		size_t size = try m_socket.recvFrom (buffer, sizeof (buffer), &remoteAddress);
+		if (size == -1)
+			break;
+
+		if (m_actionTable [ActionId.AutoRemoteAddress].m_isChecked)
+			m_remoteAddressCombo.m_editText = remoteAddress.getString ();
+
+		writeLog (UsbRecordCode.RxPacket, &remoteAddress, sizeof (io.SocketAddress));
+		writeLog (log.StdRecordCode.Rx, buffer, size);
+		break;
+	} */
+}
+
+reactor UsbSession.m_uiReactor ()
+{
+	m_title = $"USB $(m_deviceCombo.m_currentText)";
+
+	bindable bool m_isOpened = m_state >= State.Opened;
+	bindable bool m_isClaimed = m_state == State.Claimed;
+
+	m_actionTable [ActionId.Open].m_text = m_isOpened ? "Close Device" : "Open Device";
+	m_actionTable [ActionId.Open].m_icon = m_iconTable [m_isOpened];
+	m_actionTable [ActionId.Claim].m_text = m_isClaimed ? "Release Interface" : "Claim Interface";
+	m_actionTable [ActionId.Claim].m_icon = m_iconTable [m_isClaimed];
+	m_actionTable [ActionId.Claim].m_isEnabled = m_isOpened;
+
+	m_interfaceCombo.m_isEnabled = m_isOpened;
+	m_interfaceProp.m_isEnabled = m_isOpened;
+	m_txEndpointCombo.m_isEnabled = m_isClaimed;
+	m_txEndpointProp.m_isEnabled = m_isClaimed;
+	m_rxEndpointCombo.m_isEnabled = m_isClaimed;
+	m_rxEndpointProp.m_isEnabled = m_isClaimed;
+	m_isTransmitEnabled = m_isClaimed;
+
+	m_statusPaneTable [StatusPaneId.State].m_text = m_isClaimed ? "Claimed" : m_isOpened ? "Opened" : "Closed";
+}
+
+//..............................................................................

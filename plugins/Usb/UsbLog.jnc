@@ -1,0 +1,96 @@
+//..............................................................................
+//
+// USB log packet declarations and representer
+//
+
+import "log.jnc"
+import "io_base.jncx"
+import "io_Socket.jnc"
+
+//..............................................................................
+
+enum UsbRecordCode
+{
+	Open,
+	Close,
+	TxPacket,
+	RxPacket,
+	Error,
+	Resolving,
+	ResolveCompleted,
+}
+
+enum UsbRecordPartCode
+{
+	Resolving         = 1 | log.PartCodeFlags.MergeableForward,
+	ResolveCompleted  = 1 | log.PartCodeFlags.MergeableBackward,
+}
+
+//..............................................................................
+
+bool representUsbLog (
+	log.RepresenterTarget* target,
+	uint_t recordCode,
+	void const* p,
+	size_t size,
+	uint_t foldFlags
+	)
+{
+	switch (recordCode)
+	{
+	case UsbRecordCode.Open:
+		char const* addressString = ((io.SocketAddress const*) p).getString ();
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Connect;
+		target.addHyperText($"Opened socket at \e[34m$addressString");
+		break;
+
+	case UsbRecordCode.Close:
+		char const* addressString = ((io.SocketAddress const*) p).getString ();
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
+		target.addHyperText($"Socket at \e[34m$addressString\e[m closed");
+		break;
+
+	case UsbRecordCode.TxPacket:
+		char const* remoteAddress = ((io.SocketAddress const*) p).getString ();
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.TxPacket;
+		target.m_lineAttr.m_backColor = gui.StdColor.PastelGray;
+		target.addHyperText ($"To \e[34m$remoteAddress");
+		break;
+
+	case UsbRecordCode.RxPacket:
+		char const* remoteAddress = ((io.SocketAddress const*) p).getString ();
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.RxPacket;
+		target.m_lineAttr.m_backColor = gui.StdColor.PastelGray;
+		target.addHyperText ($"From \e[34m$remoteAddress");
+		break;
+
+	case UsbRecordCode.Error:
+		std.Error const* error = (std.Error const*) p;
+		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
+		target.addHyperText (UsbRecordPartCode.ResolveCompleted, $"error: $(error.m_description)");
+		break;
+
+	case UsbRecordCode.Resolving:
+		char const* addressString = (char const*) p;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText (UsbRecordPartCode.Resolving, $"Resolving \e[34m$addressString\e[m...");
+		break;
+
+	case UsbRecordCode.ResolveCompleted:
+		char const* addressString = ((io.SocketAddress const*) p).getString ();
+		target.addHyperText (UsbRecordPartCode.ResolveCompleted, $"ok (\e[34m$addressString\e[m)");
+		break;
+
+	default:
+		return false;
+	}
+
+	return true;
+}
+
+//..............................................................................
