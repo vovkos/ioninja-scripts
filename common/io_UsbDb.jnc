@@ -147,24 +147,18 @@ bool errorcode UsbDb.Parser.parse (
 
 jnc.AutomatonResult automaton UsbDb.Parser.scanner (jnc.Recognizer* recognizer)
 {
-	%% (\h{4}) \s+ ([^\n]+) \n
+	%% (\h{4}) \s+ ([^\n]+ [^\s]) [ \t\r]* \n
 		m_vendor = m_db.addVendor (
 			strtol (recognizer.m_subLexemeArray [0].m_text,, 16),
 			recognizer.m_subLexemeArray [1].m_text
 			);
 
-		// printf ("Vendor: ID: %04x %s\n", m_vendor.m_id, m_vendor.m_name);
-
-	%% \t (\h{4}) \s+ ([^\n]+) \n
+	%% \t (\h{4}) \s+ ([^\n]+ [^\s]) [ \t\r]* \n
 		if (m_vendor)
-		{
-			UsbProduct* product = m_vendor.addProduct (
+			m_vendor.addProduct (
 				strtol (recognizer.m_subLexemeArray [0].m_text,, 16),
 				recognizer.m_subLexemeArray [1].m_text
 				);
-
-		// printf ("\tProduct: ID: %04x %s\n", product.m_id, product.m_name);
-		}
 
 	%% '#' [^\n]* \n
 		// ignore comment lines
@@ -174,9 +168,7 @@ jnc.AutomatonResult automaton UsbDb.Parser.scanner (jnc.Recognizer* recognizer)
 
 	%% [^\n]+ \n
 		// any other line stops
-		// printf ("non-VID/PID: %s\n", recognizer.m_lexeme.m_text);
 		return jnc.AutomatonResult.Stop;
-
 }
 
 //..............................................................................

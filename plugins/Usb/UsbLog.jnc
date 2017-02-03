@@ -98,14 +98,14 @@ bool representUsbLog (
 		uint8_t ifaceId = *(uint8_t const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Warning;
-		target.addHyperText($"Kernel driver detached from interface ID $ifaceId");
+		target.addHyperText($"Kernel driver detached from interface ID \e[34m$ifaceId");
 		break;
 
 	case UsbRecordCode.InterfaceClaimed:
 		InterfaceParams const* params = (InterfaceParams const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText($"Interface claimed: ID $(params.m_interfaceId):$(params.m_altSettingId)");
+		target.addHyperText($"Interface claimed: ID \e[34m$(params.m_interfaceId):$(params.m_altSettingId)");
 		break;
 
 	case UsbRecordCode.InterfaceClaimError:
@@ -125,7 +125,7 @@ bool representUsbLog (
 		uint8_t endpointId = *(uint8_t const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText($"Reading started from IN endpoint ID $(endpointId; 02x)");
+		target.addHyperText($"Reading started from endpoint ID \e[34m$(endpointId; 02x)");
 		break;
 
 	case UsbRecordCode.ReadingStopped:
