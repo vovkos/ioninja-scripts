@@ -368,7 +368,7 @@ bool UsbSession.startReading ()
 
 	io.UsbEndpointDesc const* endpointDesc = m_inEndpointCombo.m_currentData;
 	m_inEndpoint = m_interface.openEndpoint (endpointDesc.m_endpointId);
-	m_inEndpoint.m_onEndpointEvent += onInEndpointEvent;
+	m_inEndpoint.m_onEndpointEvent += onInEndpointEvent @ m_pluginHost.m_mainThreadScheduler;
 	m_inEndpoint.m_isEndpointEventEnabled = true;
 
 	writeLog (UsbRecordCode.ReadingStarted, &endpointDesc.m_endpointId, sizeof (endpointDesc.m_endpointId));
@@ -433,11 +433,12 @@ size_t errorcode UsbSession.transmit (
 	if (!m_outEndpoint || m_outEndpoint.m_endpointDesc.m_endpointId != endpointDesc.m_endpointId)
 		m_outEndpoint = m_interface.openEndpoint (endpointDesc.m_endpointId);
 
-	size = m_outEndpoint.write (p, size);
+	size = m_outEndpoint.write (p, size, 1000);
 	writeLog (log.StdRecordCode.Tx, p, size);
 	return size;
 
 catch:
+	writeLogLastError (UsbRecordCode.IoError);
 	return -1;
 }
 
@@ -453,6 +454,10 @@ UsbSession.onInEndpointEvent (io.UsbEndpointEventParams const* params)
 		size_t size = try m_inEndpoint.read (buffer, sizeof (buffer));
 		if (size != -1)
 			writeLog (log.StdRecordCode.Rx, buffer, size);
+		break;
+
+	case io.UsbEndpointEventCode.IoError:
+		writeLogError (UsbRecordCode.IoError, params.m_error);
 		break;
 	}
 }
