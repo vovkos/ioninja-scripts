@@ -4,6 +4,7 @@
 //
 
 import "io_usb.jncx"
+import "io_UsbDb.jnc"
 import "doc_Plugin.jnc"
 
 //..............................................................................
@@ -426,7 +427,7 @@ size_t errorcode UsbSession.transmit (
 	size_t size
 	)
 {
-	if (m_state <= State.Claimed || m_outEndpointCombo.m_currentIndex == -1)
+	if (m_state < State.Claimed || m_outEndpointCombo.m_currentIndex == -1)
 		return -1;
 
 	io.UsbEndpointDesc const* endpointDesc = m_outEndpointCombo.m_currentData;
