@@ -182,27 +182,27 @@ SerialSession.createUi ()
 		{ "256000 bps", 256000 },
 		{ "460800 bps", 460800 },
 		{ "921600 bps", 921600 },
-	};
+	}
 
 	static gui.EnumPropertyOption flowControlTable [] =
 	{
 		{ "None",     io.SerialFlowControl.None },
 		{ "RTS/CTS",  io.SerialFlowControl.RtsCts },
 		{ "XON/XOFF", io.SerialFlowControl.XOnXOff },
-	};
+	}
 
 	static gui.EnumPropertyOption dataBitsTable [] =
 	{
 		{ "7 bits", 7 },
 		{ "8 bits", 8 },
-	};
+	}
 
 	static gui.EnumPropertyOption stopBitsTable [] =
 	{
 		{ "1 bit",    io.SerialStopBits._1 },
 		{ "1.5 bits", io.SerialStopBits._15 },
 		{ "2 bits",   io.SerialStopBits._2 },
-	};
+	}
 
 	static gui.EnumPropertyOption parityTable [] =
 	{
@@ -211,7 +211,7 @@ SerialSession.createUi ()
 		{ "Even",  io.SerialParity.Even },
 		{ "Mark",  io.SerialParity.Mark },
 		{ "Space", io.SerialParity.Space },
-	};
+	}
 
 	// toolbar
 

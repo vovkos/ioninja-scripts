@@ -23,7 +23,7 @@ gui.EnumProperty* createSocketCloseKindProperty (
 	{
 		{ "Graceful", SocketCloseKind.Graceful },
 		{ "Reset",    SocketCloseKind.Reset },
-	};
+	}
 
 	return propertyGrid.createEnumProperty (
 		name,
@@ -64,8 +64,8 @@ gui.EnumPropertyOption const* createNetworkAdapterOptionArray (NetworkAdapterUsa
 		break;
 
 	case NetworkAdapterUsage.Listener:
-		static io.SocketAddress autoAddress_ip4 = { m_family = io.AddressFamily.Ip4 };
-		static io.SocketAddress autoAddress_ip6 = { m_family = io.AddressFamily.Ip6 };
+		static io.SocketAddress autoAddress_ip4 = { m_family = io.AddressFamily.Ip4 }
+		static io.SocketAddress autoAddress_ip6 = { m_family = io.AddressFamily.Ip6 }
 
 		addressCount += 2; // include 'All IPv4/IPv6 adapters'
 		optionArray = new gui.EnumPropertyOption [addressCount];
@@ -82,13 +82,13 @@ gui.EnumPropertyOption const* createNetworkAdapterOptionArray (NetworkAdapterUsa
 	}
 
 	io.NetworkAdapterDesc const* adapter = adapterList;
-	for (; adapter; adapter = adapter->m_next)
+	for (; adapter; adapter = adapter.m_next)
 	{
-		io.NetworkAdapterAddress const* address = adapter->m_address;
-		for (; address; address = address->m_next, option++)
+		io.NetworkAdapterAddress const* address = adapter.m_address;
+		for (; address; address = address.m_next, option++)
 		{
 			option.m_text = $"%1 - %2" (
-				adapter->m_description,
+				adapter.m_description,
 				address.m_address.getString ()
 				);
 

@@ -221,7 +221,7 @@ MailslotMonSession.onReadyRead (uint_t syncId)
 		{
 			{ MailslotMonLogRecordCode.ClientFileOpened, MailslotMonLogRecordCode.ClientFileOpenError },
 			{ MailslotMonLogRecordCode.ServerFileOpened, MailslotMonLogRecordCode.ServerFileOpenError },
-		};
+		}
 
 		uint_t code;
 		char const* logParams;

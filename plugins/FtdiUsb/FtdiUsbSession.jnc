@@ -13,9 +13,10 @@ import "doc_Plugin.jnc"
 
 enum EpctlCode
 {
-	SetReadBufferSize = 1,
-	Close             = 0,
-	Close2            = 3,
+	SetReadBufferSize  = 1,
+	SetWriteBufferSize = 2,
+	Close              = 0,
+	Close2             = 3,
 }
 
 struct EpctlParams
@@ -61,7 +62,8 @@ protected:
 
 	enum
 	{
-		ReadBufferSize = 4 * 1024,
+		ReadBufferSize	= 4 * 1024,
+		WriteBufferSize = 4 * 1024,
 	}
 
 protected:
@@ -108,7 +110,13 @@ public:
 
 protected:
 	enumerateDevices ();
-	enableRead ();
+
+	bool errorcode epctl (
+		uint8_t endpointId,
+		EpctlCode code,
+		size_t size,
+		uint_t timeout = 1000
+		);
 
 	onOpenDevice ();
 	onEndpoint82Event (io.UsbEndpointEventParams const* params);
@@ -203,18 +211,25 @@ FtdiUsbSession.enumerateDevices ()
 	m_deviceProp.setOptions (optionTable, count);
 }
 
-FtdiUsbSession.enableRead ()
+bool errorcode FtdiUsbSession.epctl (
+	uint8_t endpointId,
+	EpctlCode code,
+	size_t size,
+	uint_t timeout
+	)
 {
 	EpctlParams params;
 	params.m_seqId = m_epctlSeqId++;
-	params.m_endpointId = 0x82;
-	params.m_command = EpctlCode.SetReadBufferSize;
-	params.m_size = ReadBufferSize;
+	params.m_endpointId = endpointId;
+	params.m_command = code;
+	params.m_size = size;
 
-	m_endpoint01.write (&params, sizeof (params), 1000);
+	m_endpoint01.write (&params, sizeof (params), timeout);
+	return true;
 
 catch:
 	writeLogLastError (UsbRecordCode.IoError);
+	return false;
 }
 
 bool FtdiUsbSession.openDevice ()
@@ -238,7 +253,8 @@ bool FtdiUsbSession.openDevice ()
 	m_endpoint82.m_onEndpointEvent += onEndpoint82Event @ m_pluginHost.m_mainThreadScheduler;
 	m_endpoint82.m_isEndpointEventEnabled = true;
 
-	enableRead ();
+	epctl (0x02, EpctlCode.SetWriteBufferSize, WriteBufferSize);
+	epctl (0x82, EpctlCode.SetReadBufferSize, ReadBufferSize);
 
 	DeviceParams params;
 	params.m_bus = m_device.m_bus;
@@ -332,6 +348,8 @@ size_t errorcode FtdiUsbSession.transmit (
 	size_t size
 	)
 {
+	// epctl (0x02, EpctlCode.SetWriteBufferSize, WriteBufferSize);
+
 	size = m_endpoint02.write (p, size, 1000); // currently -- 1 sec timeout
 	writeLog (log.StdRecordCode.Tx, p, size);
 	return size;
@@ -352,7 +370,7 @@ FtdiUsbSession.onEndpoint82Event (io.UsbEndpointEventParams const* params)
 		static char buffer [ReadBufferSize]; // static is OK -- we read in main thread
 		size_t size = m_endpoint82.read (buffer, sizeof (buffer));
 		writeLog (log.StdRecordCode.Rx, buffer, size);
-		enableRead ();
+		epctl (0x82, EpctlCode.SetReadBufferSize, ReadBufferSize);
 		break;
 
 	case io.UsbEndpointEventCode.IoError:

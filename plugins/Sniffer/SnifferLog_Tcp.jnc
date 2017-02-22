@@ -121,7 +121,7 @@ representTcp (
 
 	io.TcpHdr const* tcpHdr = (io.TcpHdr const*) (p + baseOffset);
 	size_t dataOffset = tcpHdr.m_dataOffset * 4;
-	size_t dataSize = ipHdr->m_totalLength - sizeof (io.IpHdr) - dataOffset;
+	size_t dataSize = ipHdr.m_totalLength - sizeof (io.IpHdr) - dataOffset;
 
 	baseOffset += dataOffset;
 	if (baseOffset > size)

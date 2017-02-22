@@ -29,7 +29,7 @@ protected:
 		"Opening...",
 		"Connecting...",
 		"Connected",
-	};
+	}
 
 	enum ActionId
 	{

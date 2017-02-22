@@ -89,7 +89,7 @@ char const* getModBusFuncString (ModBusFunc func)
 		"Mask Write Register",           // MaskWriteRegister          = 22,
 		"Read Write Multiple Registers", // ReadWriteMultipleRegisters = 23,
 		"Read Fifo Queue",               // ReadFifoQueue              = 24,
-	};
+	}
 
 	return
 		func < countof (stringTable) ?
@@ -136,7 +136,7 @@ char const* getModBusFuncString (ModBusExceptionCode code)
 		"Unknown",                    // 9
 		"Gateway Path Unavailable",   // GatewayPathUnavailable        = 10,
 		"Gateway Device No Response", // GatewayTargetDeviceNoResponse = 11,
-	};
+	}
 
 	return code < countof (stringTable) ? stringTable [code] : "Unknown";
 }

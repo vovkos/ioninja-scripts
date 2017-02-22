@@ -32,7 +32,7 @@ struct SerialOpenParams
 	uint_t m_parity;
 
 	// followed by port name
-};
+}
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
@@ -64,14 +64,14 @@ bool representSerialLog (
 		"None",
 		"RTS/CTS",
 		"XON/XOFF"
-	};
+	}
 
 	static char const* stopBitsStringTable [] =
 	{
 		"1 bit",
 		"1.5 bits",
 		"2 bits"
-	};
+	}
 
 	static char const* parityStringTable [] =
 	{
@@ -80,7 +80,7 @@ bool representSerialLog (
 		"Even",
 		"Mark",
 		"Space",
-	};
+	}
 
 	switch (recordCode)
 	{

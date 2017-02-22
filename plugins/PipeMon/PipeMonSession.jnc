@@ -221,7 +221,7 @@ PipeMonSession.onReadyRead (uint_t syncId)
 		{
 			{ PipeMonLogRecordCode.ClientFileOpened, PipeMonLogRecordCode.ClientFileOpenError },
 			{ PipeMonLogRecordCode.ServerFileOpened, PipeMonLogRecordCode.ServerFileOpenError },
-		};
+		}
 
 		uint_t code;
 		char const* logParams;

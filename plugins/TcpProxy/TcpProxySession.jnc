@@ -25,7 +25,7 @@ protected:
 		"Not listening",
 		"Resolving...",
 		"Listening",
-	};
+	}
 
 	enum ServerConnectionState
 	{
@@ -45,7 +45,7 @@ protected:
 		"Not connected",
 		"Connecting...",
 		"Connected",
-	};
+	}
 
 	enum ActionId
 	{

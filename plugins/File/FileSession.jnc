@@ -141,7 +141,7 @@ FileSession.createUi ()
 		{ "Read/Write",  Access.ReadWrite },
 		{ "Read-only",   Access.ReadOnly  },
 		{ "Write-only",  Access.WriteOnly },
-	};
+	}
 
 	m_accessProp = m_pluginHost.m_propertyGrid.createEnumProperty (
 		"Access mode",

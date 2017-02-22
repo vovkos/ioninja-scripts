@@ -48,7 +48,7 @@ struct EnumPropertyOption
 {
 	char const* m_text;
 	variant m_value;
-};
+}
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
@@ -58,14 +58,14 @@ opaque class EnumProperty: Property
 	{
 		variant autoget m_value;
 		set (variant value);
-		alias bindable event m_onPropChanged () = m_onChanged;
+		bindable alias m_onPropChanged = m_onChanged;
 	}
 
 	property m_currentIndex
 	{
 		size_t autoget m_value;
 		set (size_t value);
-		alias bindable event m_onPropChanged () = m_onChanged;
+		bindable alias m_onPropChanged = m_onChanged;
 	}
 
 	construct (char const* name);

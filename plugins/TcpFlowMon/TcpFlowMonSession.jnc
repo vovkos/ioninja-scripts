@@ -47,7 +47,7 @@ protected:
 	{
 		io.SocketAddress m_address;
 		io.TcpSequencer m_tcpSequencer;
-	};
+	}
 
 protected:
 	State bindable m_state;

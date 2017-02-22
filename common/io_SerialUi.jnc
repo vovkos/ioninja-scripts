@@ -20,9 +20,9 @@ gui.EnumPropertyOption* createSerialPortPropertyOptionArray (
 	gui.EnumPropertyOption* portOption = portOptionArray;
 
 	SerialPortDesc const* port = portList;
-	for (; port; port = port->m_next, portOption++)
+	for (; port; port = port.m_next, portOption++)
 	{
-		portOption.m_text = port->m_deviceName;
+		portOption.m_text = port.m_deviceName;
 		portOption.m_value = 0;
 	}
 

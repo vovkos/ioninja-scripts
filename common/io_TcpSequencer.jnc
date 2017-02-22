@@ -23,7 +23,7 @@ protected:
 		uint32_t m_seqNumber;
 		void* m_p;
 		size_t m_size;
-	};
+	}
 
 	std.List m_outOfSeqList;
 

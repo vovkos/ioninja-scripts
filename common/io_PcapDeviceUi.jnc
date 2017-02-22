@@ -22,11 +22,11 @@ gui.EnumPropertyOption const* createPcapDeviceOptionArray (bool canOpenFile = tr
 	gui.EnumPropertyOption* optionArray = new gui.EnumPropertyOption [count];
 	gui.EnumPropertyOption* option = optionArray;
 
-	for (; device; device = device->m_next, option++)
+	for (; device; device = device.m_next, option++)
 	{
 		option.m_text = $"%1 - %2" (
-			device->m_description ? device->m_description : device->m_name,
-			device->m_address.m_address.getString ()
+			device.m_description ? device.m_description : device.m_name,
+			device.m_address.m_address.getString ()
 			);
 
 		option.m_value = device;

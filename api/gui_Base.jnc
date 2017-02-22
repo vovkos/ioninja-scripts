@@ -117,7 +117,7 @@ opaque class ComboBox
 	{
 		char const* autoget m_value;
 		set (char const* value);
-		alias bindable event m_onPropChanged () = m_onChanged;
+		bindable alias m_onPropChanged = m_onChanged;
 	}
 
 	char const* autoget property m_toolTipText;
