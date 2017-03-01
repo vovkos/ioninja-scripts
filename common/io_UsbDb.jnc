@@ -122,7 +122,7 @@ UsbVendor* UsbDb.addVendor (
 
 bool errorcode UsbDb.load (char const* fileName)
 {
-	io.MappedFile file;
+	disposable io.MappedFile file;
 	file.open (fileName, io.FileOpenFlags.ReadOnly);
 
 	size_t size = file.m_size;

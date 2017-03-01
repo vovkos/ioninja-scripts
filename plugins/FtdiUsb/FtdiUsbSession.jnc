@@ -43,12 +43,14 @@ protected:
 
 	enum ActionId
 	{
+		Refresh,
 		Open,
 		_Count,
 	}
 
 	enum IconId
 	{
+		Refresh,
 		Open,
 		Close,
 		_Count,
@@ -143,12 +145,15 @@ FtdiUsbSession.createGui ()
 {
 	// toolbar
 
+	m_iconTable [IconId.Refresh] = new gui.Icon ("images/refresh.png");
 	m_iconTable [IconId.Open] = new gui.Icon ("images/open.png");
 	m_iconTable [IconId.Close] = new gui.Icon ("images/close.png");
 
 	m_pluginHost.m_toolBar.addLabel ("Device:");
 	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 
+	m_actionTable [ActionId.Refresh]  = createAction ("Re-enumerate devices", m_iconTable [IconId.Refresh]);
+	m_actionTable [ActionId.Refresh].m_onTriggered += enumerateDevices;
 	m_actionTable [ActionId.Open] = createAction("Open device", m_iconTable [IconId.Open]);
 	m_actionTable [ActionId.Open].m_onTriggered += onOpenDevice;
 
@@ -187,6 +192,7 @@ FtdiUsbSession.enumerateDevices ()
 
 	gui.EnumPropertyOption* optionTable = new gui.EnumPropertyOption [count];
 
+	size_t ftdiCount = 0;
 	for (size_t i = 0; i < count; i++)
 	{
 		io.UsbDevice* device = deviceArray [i];
@@ -204,11 +210,12 @@ FtdiUsbSession.enumerateDevices ()
 
 		m_deviceCombo.addItem (text, device);
 
-		optionTable [i].m_text = text;
-		optionTable [i].m_value = device;
+		optionTable [ftdiCount].m_text = text;
+		optionTable [ftdiCount].m_value = device;
+		ftdiCount++;
 	}
 
-	m_deviceProp.setOptions (optionTable, count);
+	m_deviceProp.setOptions (optionTable, ftdiCount);
 }
 
 bool errorcode FtdiUsbSession.epctl (

@@ -22,6 +22,7 @@ protected:
 
 	enum ActionId
 	{
+		Refresh,
 		Info,
 		Open,
 		Claim,
@@ -31,6 +32,7 @@ protected:
 
 	enum IconId
 	{
+		Refresh,
 		Open,
 		Close,
 		_Count,
@@ -121,11 +123,15 @@ UsbSession.createGui ()
 {
 	// toolbar
 
+	m_iconTable [IconId.Refresh] = new gui.Icon ("images/refresh.png");
 	m_iconTable [IconId.Open] = new gui.Icon ("images/open.png");
 	m_iconTable [IconId.Close] = new gui.Icon ("images/close.png");
 
 	m_pluginHost.m_toolBar.addLabel ("Device:");
 	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox (-1);
+
+	m_actionTable [ActionId.Refresh]  = createAction ("Re-enumerate devices", m_iconTable [IconId.Refresh]);
+	m_actionTable [ActionId.Refresh].m_onTriggered += enumerateDevices;
 
 	m_actionTable [ActionId.Open] = createAction("Open device", m_iconTable [IconId.Open]);
 	m_actionTable [ActionId.Open].m_onTriggered += onOpenDevice;
