@@ -20,18 +20,23 @@ enum TokenColor
 class $(highlighterClass)
 {
 protected:
-	jnc.Recognizer m_recognizer;
+	enum StickyMode
+	{
+		None = 0,
+		SlComment,
+		MlComment,
+		SqLiteral,
+		DqLiteral,
+	}
+
+protected:
 	log.Writer* m_writer;
-	bool m_isStickyState;
+	jnc.RegExState m_scannerState;
+	StickyMode m_stickyMode;
 	intptr m_stickyOffset;
 	uint_t m_stickyColor;
 
 public:
-	construct ()
-	{
-		m_recognizer.construct (scanBase);
-	}
-
 	write (
 		log.Writer* writer,
 		void const* p,
@@ -41,20 +46,19 @@ public:
 	finalize (log.Writer* writer);
 
 protected:
-	enterStickyState (
-		jnc.AutomatonFunc* automatonFunc,
-		uint_t stickyColor
+	enterStickyMode (
+		StickyMode mode,
+		uint_t color
 		);
 
-	leaveStickyState ();
+	leaveStickyMode ();
 
 	stickyColorize ();
 
-	jnc.AutomatonResult automaton scanBase (jnc.Recognizer* recognizer);
-	jnc.AutomatonResult automaton scanSlComment (jnc.Recognizer* recognizer);
-	jnc.AutomatonResult automaton scanMlComment (jnc.Recognizer* recognizer);
-	jnc.AutomatonResult automaton scanSqLiteral (jnc.Recognizer* recognizer);
-	jnc.AutomatonResult automaton scanDqLiteral (jnc.Recognizer* recognizer);
+	scan (
+		char const* p,
+		size_t length
+		);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -67,126 +71,169 @@ $(highlighterClass).write (
 {
 	m_writer = writer;
 	m_stickyOffset = -size;
-	m_recognizer.m_currentOffset = -size;
-	try m_recognizer.write (p, size);
+	m_scannerState.m_currentOffset = -size;
+	scan (p, size);
 
-	if (m_isStickyState)
+	if (m_stickyMode)
 		stickyColorize ();
 }
 
 $(highlighterClass).finalize (log.Writer* writer)
 {
 	m_writer = writer;
-	try m_recognizer.eof ();
-	m_recognizer.m_automatonFunc = scanBase;
+	scan (null, 0); // process eof
+	m_stickyState = StickyState.None;
 }
 
-$(highlighterClass).enterStickyState (
-	jnc.AutomatonFunc* automatonFunc,
-	uint_t stickyColor
+$(highlighterClass).enterStickyMode (
+	StickyMode mode,
+	uint_t color
 	)
 {
 	m_writer.retroColorize (
-		m_recognizer.m_lexemeOffset,
-		m_recognizer.m_lexemeLength,
-		stickyColor
+		m_scannerState.m_match.m_offset,
+		m_scannerState.m_match.m_length,
+		сolor
 		);
 
-	m_isStickyState = true;
-	m_stickyOffset = m_recognizer.m_currentOffset;
-	m_stickyColor = stickyColor;
-	m_recognizer.m_automatonFunc = automatonFunc;
+	m_stickyMode = mode;
+	m_stickyOffset = m_scannerState.m_currentOffset;
+	m_stickyColor = сolor;
 }
 
-$(highlighterClass).leaveStickyState ()
+$(highlighterClass).leaveStickyMode ()
 {
 	stickyColorize ();
-
-	m_recognizer.m_automatonFunc = scanBase;
-	m_isStickyState = false;
+	m_stickyMode = StickyMode.None;
 }
 
 $(highlighterClass).stickyColorize ()
 {
-	size_t length = m_recognizer.m_currentOffset - m_stickyOffset;
+	size_t length = m_scannerState.m_currentOffset - m_stickyOffset;
 
 	if (length)
 		m_writer.retroColorize (m_stickyOffset, length, m_stickyColor);
 }
 
-jnc.AutomatonResult automaton $(highlighterClass).scanBase (jnc.Recognizer* recognizer)
+$(highlighterClass).scan (
+	char const* p,
+	size_t length
+	)
 {
-	%%	"auto" | "break" | "case" | "char" | "const" | "continue" | \
-		"default" | "do" | "double" | "else" | "enum" | "extern" | "float" | \
-		"for" | "goto" | "if" | "int" | "long" | "register" | "return" | \
-		"short" | "signed" | "sizeof" | "static" | "struct" | "switch" | \
-		"typedef" | "union" | "unsigned" | "void" | "volatile" | "while"
+	char const* end = p + length;
 
-		m_writer.retroColorize (
-			recognizer.m_lexemeOffset,
-			recognizer.m_lexemeLength,
-			TokenColor.Keyword
-			);
+	do
+	{
+		switch (m_stickyMode)
+		{
+		case StickyMode.None:
+			regex switch (m_scannerState, p, length)
+			{
+			case
+				"auto|break|case|char|const|continue|default|do|"
+				"double|else|enum|extern|float|for|goto|if|int|long|"
+				"register|return|short|signed|sizeof|static|struct|"
+				"switch|typedef|union|unsigned|void|volatile|while":
 
-	%% [_a-zA-Z] [_a-zA-Z0-9]*
-		// distinguish identifiers from keywords
+				m_writer.retroColorize (
+					m_scannerState.m_match.m_offset,
+					m_scannerState.m_match.m_length,
+					TokenColor.Keyword
+					);
+				break;
 
-	%% "//"
-		enterStickyState (scanSlComment, TokenColor.SlComment);
+			case "[_a-zA-Z][_a-zA-Z0-9]*":
+				// distinguish identifiers from keywords
+				break;
 
-	%% "/*"
-		enterStickyState (scanMlComment, TokenColor.MlComment);
+			case "//":
+				enterStickyMode (StickyMode.SlComment, TokenColor.SlComment);
+				break;
 
-	%% '\''
-		enterStickyState (scanSqLiteral, TokenColor.SqLiteral);
+			case r"/\*":
+				enterStickyMode (StickyMode.MlComment, TokenColor.MlComment);
+				break;
 
-	%% '"'
-		enterStickyState (scanDqLiteral, TokenColor.DqLiteral);
+			case "\'":
+				enterStickyMode (StickyMode.SqLiteral, TokenColor.SqLiteral);
+				break;
 
-	%% .
-		// ignore the rest
-}
+			case "\"":
+				enterStickyMode (StickyMode.DqLiteral, TokenColor.DqLiteral);
+				break;
 
-jnc.AutomatonResult automaton $(highlighterClass).scanSlComment (jnc.Recognizer* recognizer)
-{
-	%% '\n'
-		leaveStickyState ();
+			case ".":
+				// ignore the rest
+				break;
+			}
+			break;
 
-	%% .
-		// ignore the rest
-}
+		case StickyMode.SlComment:
+			regex switch (m_scannerState, p, length)
+			{
+			case "\n":
+				leaveStickyMode ();
+				break;
 
-jnc.AutomatonResult automaton $(highlighterClass).scanMlComment (jnc.Recognizer* recognizer)
-{
-	%% "*/"
-		leaveStickyState ();
+			case ".":
+				// ignore the rest
+				break;
+			}
+			break;
 
-	%% .
-		// ignore the rest
-}
+		case StickyMode.MlComment:
+			regex switch (m_scannerState, p, length)
+			{
+			case r"\*/":
+				leaveStickyMode ();
+				break;
 
-jnc.AutomatonResult automaton $(highlighterClass).scanSqLiteral (jnc.Recognizer* recognizer)
-{
-	%% '\''
-		leaveStickyState ();
+			case ".":
+				// ignore the rest
+				break;
+			}
+			break;
 
-	%% "\\'"
-		// distinguish escape-protected quotation mark
+		case StickyMode.SqLiteral:
+			regex switch (m_scannerState, p, length)
+			{
+			case "'":
+				leaveStickyMode ();
+				break;
 
-	%% .
-		// ignore the rest
-}
+			case "\\\'":
+				// distinguish escape-protected quotation mark
+				break;
 
-jnc.AutomatonResult automaton $(highlighterClass).scanDqLiteral (jnc.Recognizer* recognizer)
-{
-	%% '"'
-		leaveStickyState ();
+			case ".":
+				// ignore the rest
+				break;
+			}
+			break;
 
-	%% "\\\""
-		// distinguish escape-protected quotation mark
+		case StickyMode.DqLiteral:
+			regex switch (m_scannerState, p, length)
+			{
+			case "\"":
+				leaveStickyMode ();
+				break;
 
-	%% .
-		// ignore the rest
+			case "\\\"":
+				// distinguish escape-protected quotation mark
+				break;
+
+			case ".":
+				// ignore the rest
+				break;
+			}
+			break;
+
+		default:
+			assert (false);
+		}
+
+		p += m_scannerState.m_consumedLength;
+	} (p < end);
 }
 
 //..............................................................................

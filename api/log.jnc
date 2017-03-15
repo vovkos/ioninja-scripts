@@ -290,7 +290,7 @@ typedef ListenerFunc (
 
 opaque class Log
 {
-	gui.Icon* indexed property m_iconTable (size_t i);
+	gui.Icon* property m_iconTable (size_t i);
 
 	Writer* readonly m_writer;
 	RepresenterFunc thin* autoget property m_representerFunc;

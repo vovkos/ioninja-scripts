@@ -11,7 +11,7 @@ import "sys_Timer.jnc"
 class $(layerClass): doc.Layer
 {
 protected:
-	jnc.Recognizer m_rxScanner;
+	jnc.RegExState m_rxScannerState;
 
 	gui.BoolProperty* m_enableRetransmitProp;
 	gui.IntProperty* m_retransmitCountProp;
@@ -45,12 +45,15 @@ protected:
 		)
 	{
 		if (recordCode == log.StdRecordCode.Rx)
-			try m_rxScanner.write (p, size);
+			scanRx (p, size);
 	}
 
 	onRetransmitTimer ();
 
-	jnc.AutomatonResult automaton scanRx (jnc.Recognizer* recognizer);
+	scanRx (
+		char const* p,
+		size_t length
+		);
 
 	createUi ();
 	reactor m_uiReactor ();
@@ -61,7 +64,7 @@ protected:
 $(layerClass).construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
-	m_rxScanner.construct (scanRx);
+	m_rxScannerState.construct (scanRx);
 
 	createUi ();
 
@@ -149,19 +152,35 @@ $(layerClass).onRetransmitTimer ()
 		m_retransmitTimer.stop ();
 }
 
-jnc.AutomatonResult automaton $(layerClass).scanRx (jnc.Recognizer* recognizer)
+$(layerClass).scanRx (
+	char const* p,
+	size_t length
+	)
 {
-	%% "info" [\r\n]
-		writeLog ($(logRecordCodeEnum).InfoMessage);
+	char const* end = p + length;
+	while (p < end)
+	{
+		regex switch (state, p, length)
+		{
+		case r"info[\r\n]":
+			writeLog ($(logRecordCodeEnum).InfoMessage);
+			break;
 
-	%% "warning" [\r\n]
-		writeLog ($(logRecordCodeEnum).WarningMessage);
+		case r"warning[\r\n]":
+			writeLog ($(logRecordCodeEnum).WarningMessage);
+			break;
 
-	%% "error" [\r\n]
-		writeLog ($(logRecordCodeEnum).ErrorMessage);
+		case r"error[\r\n]":
+			writeLog ($(logRecordCodeEnum).ErrorMessage);
+			break;
 
-	%% .
-		// ignore everything else
+		case ".":
+			// ignore everything else
+			break;
+		}
+
+		p += state.m_consumedLength;
+	}
 }
 
 reactor $(layerClass).m_uiReactor ()

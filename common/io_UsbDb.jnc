@@ -62,24 +62,6 @@ UsbProduct* UsbVendor.addProduct (
 class UsbDb
 {
 protected:
-	class Parser
-	{
-	protected:
-		UsbDb* m_db;
-		UsbVendor* m_vendor;
-
-	public:
-		bool errorcode parse (
-			UsbDb* db,
-			void const* p,
-			size_t size
-			);
-
-	protected:
-		jnc.AutomatonResult automaton scanner (jnc.Recognizer* recognizer);
-	}
-
-protected:
 	std.VariantHashTable m_vendorMap;
 
 public:
@@ -122,53 +104,58 @@ UsbVendor* UsbDb.addVendor (
 
 bool errorcode UsbDb.load (char const* fileName)
 {
+	m_vendorMap.clear ();
+
 	disposable io.MappedFile file;
 	file.open (fileName, io.FileOpenFlags.ReadOnly);
 
 	size_t size = file.m_size;
 	char const* p = file.view (0, size, false);
+	char const* end = p + size;
 
-	Parser parser;
-	return parser.parse (this, p, size);
-}
+	jnc.RegExState state;
+	UsbVendor* vendor;
 
-bool errorcode UsbDb.Parser.parse (
-	UsbDb* db,
-	void const* p,
-	size_t size
-	)
-{
-	m_db = db;
-	m_vendor = null;
-
-	jnc.Recognizer recognizer (scanner);
-	return recognizer.recognize (p, size);
-}
-
-jnc.AutomatonResult automaton UsbDb.Parser.scanner (jnc.Recognizer* recognizer)
-{
-	%% (\h{4}) \s+ ([^\n]+ [^\s]) [ \t\r]* \n
-		m_vendor = m_db.addVendor (
-			strtol (recognizer.m_subLexemeArray [0].m_text,, 16),
-			recognizer.m_subLexemeArray [1].m_text
-			);
-
-	%% \t (\h{4}) \s+ ([^\n]+ [^\s]) [ \t\r]* \n
-		if (m_vendor)
-			m_vendor.addProduct (
-				strtol (recognizer.m_subLexemeArray [0].m_text,, 16),
-				recognizer.m_subLexemeArray [1].m_text
+	while (p < end)
+	{
+		regex switch (state, p, end - p)
+		{
+		case r"(\h{4})\s+([^\n]+[^\s])[ \t\r]*\n":
+			vendor = addVendor (
+				strtol (state.m_subMatchArray [0].m_text,, 16),
+				state.m_subMatchArray [1].m_text
 				);
+			break;
 
-	%% '#' [^\n]* \n
-		// ignore comment lines
+		case r"\t(\h{4})\s+([^\n]+[^\s])[ \t\r]*\n":
+			if (!vendor)
+			{
+				std.setError ("invalid USB database file format");
+				return false;
+			}
 
-	%% [ \t\r]* \n
-		// ignore empty lines
+			vendor.addProduct (
+				strtol (state.m_subMatchArray [0].m_text,, 16),
+				state.m_subMatchArray [1].m_text
+				);
+			break;
 
-	%% [^\n]+ \n
-		// any other line stops
-		return jnc.AutomatonResult.Stop;
+		case r"#[^\n]*\n":
+			// ignore comment lines
+			break;
+
+		case r"[ \t\r]*\n":
+			// ignore empty lines
+			break;
+
+		default:
+			break2; // any other line stops parsing
+		}
+
+		p += state.m_consumedLength;
+	}
+
+	return true;
 }
 
 //..............................................................................

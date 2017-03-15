@@ -10,7 +10,7 @@ import "doc_Plugin.jnc"
 class $(layerClass): doc.Layer
 {
 protected:
-	jnc.Recognizer m_rxScanner;
+	jnc.RegEx m_rxScannerState;
 
 public:
 	construct (doc.PluginHost* pluginHost);
@@ -24,10 +24,13 @@ protected:
 		)
 	{
 		if (recordCode == log.StdRecordCode.Rx)
-			try m_rxScanner.write (p, size);
+			scanRx (p, size);
 	}
 
-	jnc.AutomatonResult automaton scanRx (jnc.Recognizer* recognizer);
+	scanRx (
+		char const* p,
+		size_t length
+		);
 
 	size_t transmitString (char const* s)
 	{
@@ -40,23 +43,39 @@ protected:
 $(layerClass).construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
-	m_rxScanner.construct (scanRx);
 	pluginHost.m_log.attachListener (onLogRecord @ pluginHost.m_mainThreadScheduler);
+	m_rxScannerState.m_isIncremental = true;
 }
 
-jnc.AutomatonResult automaton $(layerClass).scanRx (jnc.Recognizer* recognizer)
+$(layerClass).scanRx (
+	char const* p,
+	size_t length
+	)
 {
-	%% "about" [\r\n]
-		try transmitString ("IO Ninja - $(pluginName)\r\n");
+	char const* end = p + length;
+	while (p < end)
+	{
+		regex switch (m_rxScannerState, p, length)
+		{
+		case r"about[\r\n]":
+			transmitString ("IO Ninja - $(pluginName)\r\n");
+			break;
 
-	%% "version" [\r\n]
-		try transmitString ("Version 1.0.0\r\n");
+		case r"version[\r\n]":
+			transmitString ("Version 1.0.0\r\n");
+			break;
 
-	%% "help" [\r\n]
-		try transmitString ("This plugin is a starting point for writing your test utility\r\n");
+		case r"help[\r\n]":
+			transmitString ("This plugin is a starting point for writing your test utility\r\n");
+			break;
 
-	%% .
-		// ignore everything else
+		case ".":
+			// ignore everything else
+			break;
+		}
+
+		p += m_rxScannerState.m_consumedLength;
+	}
 }
 
 //..............................................................................

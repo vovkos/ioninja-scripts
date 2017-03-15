@@ -135,8 +135,8 @@ opaque class ComboBox
 
 	void clear ();
 
-	char const* indexed property m_itemText (size_t index);
-	variant indexed property m_itemData (size_t index);
+	char const* property m_itemText (size_t index);
+	variant property m_itemData (size_t index);
 
 	property m_currentIndex
 	{
@@ -210,7 +210,7 @@ opaque class StatusBar
 		);
 
 	size_t readonly m_paneCount;
-	StatusPane* indexed const property m_pane (size_t index);
+	StatusPane* const property m_pane (size_t index);
 
 	StatusPane* addPane (
 		char const* text = null,

@@ -12,8 +12,8 @@ class $(layerClass):
 	log.Converter
 {
 protected:
-	jnc.Recognizer m_txScanner;
-	jnc.Recognizer m_rxScanner;
+	jnc.RegExState m_txScannerState;
+	jnc.RegExState m_rxScannerState;
 
 	log.Writer* m_writer;
 	uint64_t m_timestamp;
@@ -33,9 +33,13 @@ public:
 		);
 
 protected:
-	jnc.AutomatonResult automaton scanStream (jnc.Recognizer* recognizer);
+	scanStream (
+		jnc.RegExState* state,
+		char const* p,
+		size_t length
+		);
 
-	writeOriginalData (jnc.Recognizer* recognizer);
+	writeOriginalData (jnc.RegExState* state);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -43,10 +47,10 @@ protected:
 $(layerClass).construct (doc.PluginHost* pluginHost)
 {
 	basetype1.construct (pluginHost);
-	m_txScanner.construct (scanStream);
-	m_rxScanner.construct (scanStream);
-
 	pluginHost.m_log.attachConverter (this, $(logRepresenterFunc));
+
+	m_txScannerState.m_isIncremental = true;
+	m_rxScannerState.m_isIncremental = true;
 }
 
 bool $(layerClass).convert (
@@ -57,41 +61,43 @@ bool $(layerClass).convert (
 	size_t size
 	)
 {
-	jnc.Recognizer* recognizer;
+	jnc.RegExState* state;
 
 	switch (recordCode)
 	{
 	case log.StdRecordCode.Tx:
-		recognizer = &m_txScanner;
+		state = &m_txScannerState;
 		break;
 
 	case log.StdRecordCode.Rx:
-		recognizer = &m_rxScanner;
+		state = &m_rxScannerState;
 		break;
 
 	default:
 		return false; // don't convert other records
 	}
 
-	// prepare context for scanner automaton
+	// prepare context for the scanner
 
 	m_writer = writer;
 	m_timestamp = timestamp;
 	m_recordCode = recordCode;
 	m_p = p;
-	m_offset = recognizer.m_currentOffset;
+	m_offset = state.m_currentOffset;
 
-	try recognizer.write (p, size);
+	// scan
+
+	scanStream (state, p, size);
 
 	// write the rest of original data
 
-	writeOriginalData (recognizer);
+	writeOriginalData (state);
 	return true;
 }
 
-$(layerClass).writeOriginalData (jnc.Recognizer* recognizer)
+$(layerClass).writeOriginalData (jnc.RegExState* state)
 {
-	size_t chunkLength = recognizer.m_currentOffset - m_offset;
+	size_t chunkLength = state.m_currentOffset - m_offset;
 	if (!chunkLength)
 		return;
 
@@ -101,24 +107,40 @@ $(layerClass).writeOriginalData (jnc.Recognizer* recognizer)
 	m_offset += chunkLength;
 }
 
-jnc.AutomatonResult automaton $(layerClass).scanStream (jnc.Recognizer* recognizer)
+$(layerClass).scanStream (
+	jnc.RegExState* state,
+	char const* p,
+	size_t length
+	)
 {
-	%% '<' [^>]* '>'
-		// write original data first...
+	char const* end = p + length;
+	while (p < end)
+	{
+		regex switch (state, p, length)
+		{
+		case r"<[^>]*>":
+			// write original data first...
 
-		writeOriginalData (recognizer);
+			writeOriginalData (state);
 
-		// ...and then the decoded in-band command
+			// ...and then the decoded in-band command
 
-		m_writer.write (
-			m_timestamp,
-			$(logRecordCodeEnum).InBandCommand,
-			recognizer.m_lexeme + 1,
-			recognizer.m_lexemeLength - 2
-			);
+			m_writer.write (
+				m_timestamp,
+				$(logRecordCodeEnum).InBandCommand,
+				state.m_match.m_text + 1,
+				state.m_match.m_length - 2
+				);
 
-	%% .
-		// ignore the rest
+			break;
+
+		case ".":
+			// ignore the rest
+			break;
+		}
+
+		p += state.m_consumedLength;
+	}
 }
 
 //..............................................................................
