@@ -88,13 +88,13 @@ io.IpHdr const* IpDefragmenter.defragment (
 
 	uint64_t timestamp = sys.getTimestamp ();
 	uint64_t key = (uint64_t) ipHdr.m_srcAddress | (ipHdr.m_identification << 32);
-	Chain* chain = m_chainHashTable.m_map [key];
+	Chain* chain = m_chainHashTable [key];
 	if (!chain)
 	{
 		chain = new Chain;
 		chain.m_key = key;
 		chain.m_listEntry = m_chainList.insertTail (chain);
-		m_chainHashTable.m_map [key] = chain;
+		m_chainHashTable [key] = chain;
 	}
 	else if (
 		chain.m_deadlineTimestamp < timestamp || // chain timed out

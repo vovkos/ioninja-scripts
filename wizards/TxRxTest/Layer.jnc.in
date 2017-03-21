@@ -11,7 +11,7 @@ import "sys_Timer.jnc"
 class $(layerClass): doc.Layer
 {
 protected:
-	jnc.RegExState m_rxScannerState;
+	jnc.RegexState m_rxScannerState;
 
 	gui.BoolProperty* m_enableRetransmitProp;
 	gui.IntProperty* m_retransmitCountProp;
@@ -160,7 +160,7 @@ $(layerClass).scanRx (
 	char const* end = p + length;
 	while (p < end)
 	{
-		regex switch (state, p, length)
+		reswitch (state, p, length)
 		{
 		case r"info[\r\n]":
 			writeLog ($(logRecordCodeEnum).InfoMessage);

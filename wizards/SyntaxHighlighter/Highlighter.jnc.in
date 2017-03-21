@@ -31,7 +31,7 @@ protected:
 
 protected:
 	log.Writer* m_writer;
-	jnc.RegExState m_scannerState;
+	jnc.RegexState m_scannerState;
 	StickyMode m_stickyMode;
 	intptr m_stickyOffset;
 	uint_t m_stickyColor;
@@ -127,7 +127,7 @@ $(highlighterClass).scan (
 		switch (m_stickyMode)
 		{
 		case StickyMode.None:
-			regex switch (m_scannerState, p, length)
+			reswitch (m_scannerState, p, length)
 			{
 			case
 				"auto|break|case|char|const|continue|default|do|"
@@ -169,7 +169,7 @@ $(highlighterClass).scan (
 			break;
 
 		case StickyMode.SlComment:
-			regex switch (m_scannerState, p, length)
+			reswitch (m_scannerState, p, length)
 			{
 			case "\n":
 				leaveStickyMode ();
@@ -182,7 +182,7 @@ $(highlighterClass).scan (
 			break;
 
 		case StickyMode.MlComment:
-			regex switch (m_scannerState, p, length)
+			reswitch (m_scannerState, p, length)
 			{
 			case r"\*/":
 				leaveStickyMode ();
@@ -195,7 +195,7 @@ $(highlighterClass).scan (
 			break;
 
 		case StickyMode.SqLiteral:
-			regex switch (m_scannerState, p, length)
+			reswitch (m_scannerState, p, length)
 			{
 			case "'":
 				leaveStickyMode ();
@@ -212,7 +212,7 @@ $(highlighterClass).scan (
 			break;
 
 		case StickyMode.DqLiteral:
-			regex switch (m_scannerState, p, length)
+			reswitch (m_scannerState, p, length)
 			{
 			case "\"":
 				leaveStickyMode ();

@@ -10,7 +10,7 @@ import "doc_Plugin.jnc"
 class $(layerClass): doc.Layer
 {
 protected:
-	jnc.RegEx m_rxScannerState;
+	jnc.RegexState m_rxScannerState;
 
 public:
 	construct (doc.PluginHost* pluginHost);
@@ -55,7 +55,7 @@ $(layerClass).scanRx (
 	char const* end = p + length;
 	while (p < end)
 	{
-		regex switch (m_rxScannerState, p, length)
+		reswitch (m_rxScannerState, p, length)
 		{
 		case r"about[\r\n]":
 			transmitString ("IO Ninja - $(pluginName)\r\n");

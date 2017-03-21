@@ -12,8 +12,8 @@ class $(layerClass):
 	log.Converter
 {
 protected:
-	jnc.RegExState m_txScannerState;
-	jnc.RegExState m_rxScannerState;
+	jnc.RegexState m_txScannerState;
+	jnc.RegexState m_rxScannerState;
 
 	log.Writer* m_writer;
 	uint64_t m_timestamp;
@@ -34,12 +34,12 @@ public:
 
 protected:
 	scanStream (
-		jnc.RegExState* state,
+		jnc.RegexState* state,
 		char const* p,
 		size_t length
 		);
 
-	writeOriginalData (jnc.RegExState* state);
+	writeOriginalData (jnc.RegexState* state);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -61,7 +61,7 @@ bool $(layerClass).convert (
 	size_t size
 	)
 {
-	jnc.RegExState* state;
+	jnc.RegexState* state;
 
 	switch (recordCode)
 	{
@@ -95,7 +95,7 @@ bool $(layerClass).convert (
 	return true;
 }
 
-$(layerClass).writeOriginalData (jnc.RegExState* state)
+$(layerClass).writeOriginalData (jnc.RegexState* state)
 {
 	size_t chunkLength = state.m_currentOffset - m_offset;
 	if (!chunkLength)
@@ -108,7 +108,7 @@ $(layerClass).writeOriginalData (jnc.RegExState* state)
 }
 
 $(layerClass).scanStream (
-	jnc.RegExState* state,
+	jnc.RegexState* state,
 	char const* p,
 	size_t length
 	)
@@ -116,7 +116,7 @@ $(layerClass).scanStream (
 	char const* end = p + length;
 	while (p < end)
 	{
-		regex switch (state, p, length)
+		reswitch (state, p, length)
 		{
 		case r"<[^>]*>":
 			// write original data first...
