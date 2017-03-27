@@ -23,7 +23,7 @@ struct UsbProduct
 class UsbVendor
 {
 protected:
-	std.VariantHashTable m_productMap;
+	std.HashTable m_productMap;
 
 public:
 	uint_t m_id;
@@ -37,7 +37,7 @@ public:
 
 	UsbProduct const* findProduct (uint_t productId) const
 	{
-		return m_productMap.find (productId);
+		return m_productMap.findValue (productId);
 	}
 }
 
@@ -52,7 +52,7 @@ UsbProduct* UsbVendor.addProduct (
 	product.m_id = id;
 	product.m_name = name;
 	product.m_vendor = this;
-	m_productMap.insert (id, product);
+	m_productMap [id] = product;
 
 	return product;
 }
@@ -62,7 +62,7 @@ UsbProduct* UsbVendor.addProduct (
 class UsbDb
 {
 protected:
-	std.VariantHashTable m_vendorMap;
+	std.HashTable m_vendorMap;
 
 public:
 	bool errorcode load (char const* fileName);
@@ -74,7 +74,7 @@ public:
 
 	UsbVendor const* findVendor (uint_t vendorId) const
 	{
-		return m_vendorMap.find (vendorId);
+		return m_vendorMap.findValue (vendorId);
 	}
 
 	UsbProduct const* findProduct (
@@ -82,7 +82,7 @@ public:
 		uint_t productId
 		)
 	{
-		UsbVendor* vendor =  m_vendorMap.find (vendorId);
+		UsbVendor* vendor =  m_vendorMap.findValue (vendorId);
 		return vendor ? vendor.findProduct (productId) : null;
 	}
 }
@@ -95,7 +95,7 @@ UsbVendor* UsbDb.addVendor (
 	UsbVendor* vendor = new UsbVendor;
 	vendor.m_id = id;
 	vendor.m_name = name;
-	m_vendorMap.insert (id, vendor);
+	m_vendorMap [id] = vendor;
 
 	return vendor;
 }

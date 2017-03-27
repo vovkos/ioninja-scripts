@@ -13,7 +13,7 @@ class FileIdMgr
 {
 protected:
 	uint32_t m_hiFileIdCounter;
-	std.VariantHashTable m_fileIdMap;
+	std.HashTable m_fileIdMap;
 
 public:
 	intptr_t readonly m_lastLoFileId; // FILE_OBJECT* actually
@@ -51,7 +51,7 @@ uint32_t FileIdMgr.getHiFileId (intptr_t loFileId)
 	else
 	{
 		hiFileId = ++m_hiFileIdCounter;
-		m_fileIdMap.insert (loFileId, hiFileId);
+		m_fileIdMap [loFileId] = hiFileId;
 	}
 
 	m_lastLoFileId = loFileId;

@@ -40,7 +40,7 @@ protected:
 	}
 
 	std.List m_chainList;
-	std.VariantHashTable m_chainHashTable;
+	std.HashTable m_chainHashTable;
 
 public:
 	size_t m_fragmentLimit;
@@ -101,7 +101,7 @@ io.IpHdr const* IpDefragmenter.defragment (
 		chain.m_fragmentList.m_count >= m_fragmentLimit) // too many fragments in chain
 	{
 		m_chainList.remove (chain.m_listEntry);
-		m_chainHashTable.remove (chain.m_key);
+		m_chainHashTable.removeKey (chain.m_key);
 		return null;
 	}
 
@@ -184,7 +184,7 @@ io.IpHdr const* IpDefragmenter.assembleChain (IpDefragmenter.Chain* chain)
 	}
 
 	m_chainList.remove (chain.m_listEntry);
-	m_chainHashTable.remove (chain.m_key);
+	m_chainHashTable.removeKey (chain.m_key);
 	return chain.m_ipHdr;
 }
 
@@ -199,7 +199,7 @@ IpDefragmenter.removeTimedOutChains ()
 			break;
 
 		m_chainList.remove (chain.m_listEntry);
-		m_chainHashTable.remove (chain.m_key);
+		m_chainHashTable.removeKey (chain.m_key);
 	}
 }
 
