@@ -41,16 +41,14 @@ uint32_t FileIdMgr.getHiFileId (intptr_t loFileId)
 	if (loFileId == m_lastLoFileId)
 		return m_lastHiFileId;
 
-	uint32_t hiFileId;
-	variant hiFileIdVariant;
-	bool isFound = m_fileIdMap.find (loFileId, &hiFileIdVariant);
-	if (isFound)
+	uint32_t hiFileId = m_fileIdMap.findValue (loFileId, 0);
+	if (!hiFileId)
 	{
-		hiFileId = hiFileIdVariant;
-	}
-	else
-	{
-		hiFileId = ++m_hiFileIdCounter;
+		m_hiFileIdCounter++;
+		if (!m_hiFileIdCounter)
+			m_hiFileIdCounter++; // never 0
+	
+		hiFileId = m_hiFileIdCounter;
 		m_fileIdMap [loFileId] = hiFileId;
 	}
 
@@ -67,7 +65,7 @@ FileIdMgr.removeLowFileId  (intptr_t lowFileId)
 		m_lastHiFileId = 0;
 	}
 
-	m_fileIdMap.remove (lowFileId);
+	m_fileIdMap.removeKey (lowFileId);
 }
 
 //..............................................................................
