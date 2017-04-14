@@ -39,12 +39,21 @@ protected:
 	{
 		Closed,
 		Opened,
+		Capturing,
+	}
+
+	static char const* m_stateStringTable [] =
+	{
+		"Closed",
+		"Opened",
+		"Capturing",
 	}
 
 	enum ActionId
 	{
 		Refresh,
 		Open,
+		Capture,
 		_Count,
 	}
 
@@ -53,6 +62,8 @@ protected:
 		Refresh,
 		Open,
 		Close,
+		Capture,
+		StopCapture,
 		_Count,
 	}
 
@@ -68,6 +79,12 @@ protected:
 		WriteBufferSize = 4 * 1024,
 	}
 
+	struct Frame
+	{
+		bigendian uint64_t m_timestamp : 48;
+		bigendian uint64_t m_lines     : 16;
+	}
+
 protected:
 	// usb
 
@@ -81,6 +98,7 @@ protected:
 	io.UsbEndpoint* m_endpoint82;
 
 	uint_t m_epctlSeqId;
+	uint64_t m_captureBaseTimestamp;
 
 	// toolbar, status bar & menu
 
@@ -96,8 +114,10 @@ protected:
 public:
 	construct (doc.PluginHost* pluginHost);
 
-	bool openDevice ();
+	bool errorcode openDevice ();
 	void closeDevice ();
+	bool errorcode capture ();
+	bool errorcode stopCapture ();
 
 	override void load (doc.Storage* storage);
 	override void save (doc.Storage* storage);
@@ -113,6 +133,11 @@ public:
 protected:
 	enumerateDevices ();
 
+	processFrames (
+		Frame const* frameArray,
+		size_t count
+		);
+
 	bool errorcode epctl (
 		uint8_t endpointId,
 		EpctlCode code,
@@ -121,6 +146,7 @@ protected:
 		);
 
 	onOpenDevice ();
+	onCapture ();
 	onEndpoint82Event (io.UsbEndpointEventParams const* params);
 
 	createGui ();
@@ -148,14 +174,18 @@ FtdiUsbSession.createGui ()
 	m_iconTable [IconId.Refresh] = new gui.Icon ("images/refresh.png");
 	m_iconTable [IconId.Open] = new gui.Icon ("images/open.png");
 	m_iconTable [IconId.Close] = new gui.Icon ("images/close.png");
+	m_iconTable [IconId.Capture] = new gui.Icon ("images/capture.png");
+	m_iconTable [IconId.StopCapture] = new gui.Icon ("images/pause.png");
 
 	m_pluginHost.m_toolBar.addLabel ("Device:");
 	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 
 	m_actionTable [ActionId.Refresh]  = createAction ("Re-enumerate devices", m_iconTable [IconId.Refresh]);
 	m_actionTable [ActionId.Refresh].m_onTriggered += enumerateDevices;
-	m_actionTable [ActionId.Open] = createAction("Open device", m_iconTable [IconId.Open]);
+	m_actionTable [ActionId.Open] = createAction ("Open device", m_iconTable [IconId.Open]);
 	m_actionTable [ActionId.Open].m_onTriggered += onOpenDevice;
+	m_actionTable [ActionId.Capture] = createAction ("Capture", m_iconTable [IconId.Open]);
+	m_actionTable [ActionId.Capture].m_onTriggered += onCapture;
 
 	// status bar
 
@@ -181,6 +211,14 @@ FtdiUsbSession.onOpenDevice ()
 		closeDevice ();
 	else
 		openDevice ();
+}
+
+FtdiUsbSession.onCapture ()
+{
+	if (m_state >= State.Capturing)
+		stopCapture ();
+	else
+		capture ();
 }
 
 FtdiUsbSession.enumerateDevices ()
@@ -239,7 +277,7 @@ catch:
 	return false;
 }
 
-bool FtdiUsbSession.openDevice ()
+bool errorcode FtdiUsbSession.openDevice ()
 {
 	if (m_deviceCombo.m_currentIndex == -1)
 		return false;
@@ -271,7 +309,7 @@ bool FtdiUsbSession.openDevice ()
 
 	writeLog (UsbRecordCode.DeviceOpened, &params, sizeof (params));
 	m_state = State.Opened;
-	return true;
+	return capture ();
 
 catch:
 	writeLogLastError (UsbRecordCode.DeviceOpenError);
@@ -324,6 +362,25 @@ FtdiUsbSession.closeDevice ()
 	}
 }
 
+bool errorcode FtdiUsbSession.capture ()
+{
+	static char packet [] = 0x"55 55 55 55";
+	transmit (packet, sizeof (packet));
+	m_captureBaseTimestamp = sys.getTimestamp ();
+	writeLog (UsbRecordCode.CaptureStarted);
+	m_state = State.Capturing;
+	return true;
+}
+
+bool errorcode FtdiUsbSession.stopCapture ()
+{
+	static char packet [] = 0x"aa aa aa aa";
+	transmit (packet, sizeof (packet));
+	writeLog (UsbRecordCode.CaptureStopped);
+	m_state = State.Opened;
+	return true;
+}
+
 FtdiUsbSession.load (doc.Storage* storage)
 {
 	m_deviceCombo.m_currentIndex  = storage.readInt ("deviceIdx");
@@ -355,6 +412,9 @@ size_t errorcode FtdiUsbSession.transmit (
 	size_t size
 	)
 {
+	// it seems like it's not necessary to set write buffer size before
+	// every write -- once after open is enough
+
 	// epctl (0x02, EpctlCode.SetWriteBufferSize, WriteBufferSize);
 
 	size = m_endpoint02.write (p, size, 1000); // currently -- 1 sec timeout
@@ -364,6 +424,22 @@ size_t errorcode FtdiUsbSession.transmit (
 catch:
 	writeLogLastError (UsbRecordCode.IoError);
 	return -1;
+}
+
+FtdiUsbSession.processFrames (
+	FtdiUsbSession.Frame const* frameArray,
+	size_t count
+	)
+{
+	Frame const* p = frameArray;
+	Frame const* end = p + count;
+	for (; p < end; p++)
+	{
+		uint64_t timestamp = m_captureBaseTimestamp + p.m_timestamp / 10;
+		uint16_t lines = p.m_lines;
+
+		m_pluginHost.m_log.m_writer.write (timestamp, log.StdRecordCode.Rx, &lines, 2);
+	}
 }
 
 FtdiUsbSession.onEndpoint82Event (io.UsbEndpointEventParams const* params)
@@ -376,7 +452,7 @@ FtdiUsbSession.onEndpoint82Event (io.UsbEndpointEventParams const* params)
 	case io.UsbEndpointEventCode.ReadyRead:
 		static char buffer [ReadBufferSize]; // static is OK -- we read in main thread
 		size_t size = m_endpoint82.read (buffer, sizeof (buffer));
-		writeLog (log.StdRecordCode.Rx, buffer, size);
+		processFrames ((Frame const*) buffer, size / sizeof (Frame));
 		epctl (0x82, EpctlCode.SetReadBufferSize, ReadBufferSize);
 		break;
 
@@ -394,8 +470,11 @@ reactor FtdiUsbSession.m_uiReactor ()
 	m_title = $"FTDI USB $(m_deviceCombo.m_currentText)";
 	m_actionTable [ActionId.Open].m_text = m_state ? "Close Device" : "Open Device";
 	m_actionTable [ActionId.Open].m_icon = m_iconTable [m_state ? IconId.Close : IconId.Open];
+	m_actionTable [ActionId.Capture].m_text = m_state == State.Capturing ? "Stop Capture" : "Capture";
+	m_actionTable [ActionId.Capture].m_icon = m_iconTable [m_state == State.Capturing ? IconId.StopCapture : IconId.Capture];
+	m_actionTable [ActionId.Capture].m_isEnabled = m_state;
 	m_isTransmitEnabled = m_state;
-	m_statusPaneTable [StatusPaneId.State].m_text = m_state  ? "Opened" : "Closed";
+	m_statusPaneTable [StatusPaneId.State].m_text = m_stateStringTable [m_state];
 }
 
 //..............................................................................

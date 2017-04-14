@@ -13,6 +13,8 @@ enum UsbRecordCode
 	DeviceOpened,
 	DeviceOpenError,
 	DeviceClosed,
+	CaptureStarted,
+	CaptureStopped,
 	KernelDriverDetached,
 	InterfaceClaimed,
 	InterfaceClaimError,
@@ -93,7 +95,19 @@ bool representUsbLog (
 	case UsbRecordCode.DeviceClosed:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
-		target.addHyperText($"Device closed");
+		target.addHyperText("Device closed");
+		break;
+
+	case UsbRecordCode.CaptureStarted:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText("Capture started");
+		break;
+
+	case UsbRecordCode.CaptureStopped:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText("Capture stopped");
 		break;
 
 	case UsbRecordCode.KernelDriverDetached:
