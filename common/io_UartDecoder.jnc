@@ -37,11 +37,12 @@ protected:
 	io.SerialParity m_parity;
 
 	State m_state;
-	uint64_t m_startEdgeTimestamp;
 	bool m_lastLineState;
+	uint_t m_frame; // frame minus stop bit
 
 public:
-	protected uint_t m_data;
+	uint64_t readonly m_startEdgeTimestamp;
+	uchar_t m_data;
 
 public:
 	start (
@@ -75,7 +76,6 @@ UartDecoder.start (
 	m_baudTime = 10000000 / baudRate;
 	m_dataBits = dataBits;
 	m_parity = parity;
-
 	m_frameBitCount = dataBits + 2; // start, stop
 
 	if (parity)
@@ -131,7 +131,7 @@ UartDecodeResult UartDecoder.add (
 		}
 
 		m_state = State.MainLoop;
-		m_data = -1;
+		m_frame = 0;
 	}
 
 	if (bit < m_frameBitCount)
@@ -139,12 +139,12 @@ UartDecodeResult UartDecoder.add (
 		if (lineState == m_lastLineState)
 			return UartDecodeResult.Continue;
 
-		uint8_t mask = ~((1 << (bit - 1)) - 1);
+		uint_t mask = ~((1 << (bit - 1)) - 1);
 
 		if (lineState)
-			m_data &= ~mask;
+			m_frame |= mask;
 		else
-			m_data |= mask;
+			m_frame &= ~mask;
 
 		m_lastLineState = lineState;
 		return UartDecodeResult.Continue;
@@ -173,19 +173,20 @@ UartDecodeResult UartDecoder.onTimer ()
 UartDecodeResult UartDecoder.finalizeFrame ()
 {
 	UartDecodeResult result =
-		m_lastLineState ? UartDecodeResult.FramingError :
+		!m_lastLineState ? UartDecodeResult.FramingError :
 		m_parity && !checkParity () ? UartDecodeResult.ParityError :
 		UartDecodeResult.Char;
 
+	m_data = m_frame & ((1 << m_dataBits) - 1); // drop parity & stop bits
 	m_state = State.Idle;
 	return result;
 }
 
-bool isEvenNonZeroBitCount (uchar_t c)
+bool isEvenNonZeroBitCount (uint_t c)
 {
 	size_t count = 0;
 
-	for (; c; c >> 1)
+	for (; c; c >>= 1)
 		if (c & 1)
 			count++;
 
@@ -194,30 +195,25 @@ bool isEvenNonZeroBitCount (uchar_t c)
 
 bool UartDecoder.checkParity ()
 {
-	bool result = true;
-	uint_t mask = 1 << m_dataBits;
-
 	switch (m_parity)
 	{
 	case io.SerialParity.Mark:
-		result = (m_data & mask) == 0;
-		break;
+		return m_frame & (1 << m_dataBits);
 
 	case io.SerialParity.Space:
-		result = (m_data & mask) != 0;
-		break;
+		return !(m_frame & (1 << m_dataBits));
 
 	case io.SerialParity.Even:
-		result = (bool) (m_data & mask) == isEvenNonZeroBitCount (m_data);
-		break;
+		uint_t bits = m_frame & ((1 << (m_dataBits + 1)) - 1); // data + parity
+		return isEvenNonZeroBitCount (bits);
 
 	case io.SerialParity.Odd:
-		result = (bool) (m_data & mask) == !isEvenNonZeroBitCount (m_data);
-		break;
-	}
+		uint_t bits = m_frame & ((1 << (m_dataBits + 1)) - 1); // data + parity
+		return !isEvenNonZeroBitCount (bits);
 
-	m_data &= ~mask;
-	return result;
+	default:
+		return true;
+	}
 }
 
 //..............................................................................

@@ -82,10 +82,16 @@ protected:
 		WriteBufferSize = 4 * 1024,
 	}
 
-	struct Frame
+	struct Snapshot
 	{
 		bigendian uint64_t m_timestamp : 48;
 		bigendian uint64_t m_lines     : 16;
+	}
+
+	bitflag enum Lines
+	{
+		Rx,
+		Tx,
 	}
 
 protected:
@@ -149,9 +155,16 @@ protected:
 	enumerateDevices ();
 	applySerialSettings ();
 
-	processFrames (
-		Frame const* frameArray,
+	processSnapshots (
+		Snapshot const* snapshotArray,
 		size_t count
+		);
+
+	finalizeFrame (
+		io.UartDecodeResult result,
+		uint64_t timestamp,
+		uint_t recordCode,
+		uchar_t data
 		);
 
 	bool errorcode epctl (
@@ -243,13 +256,13 @@ FtdiUsbSession.createGui ()
 	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 
 	m_pluginHost.m_toolBar.addLabel ("Baud:");
-	gui.ComboBox* comboBox = m_pluginHost.m_toolBar.addComboBox ();
+	m_baudRateCombo = m_pluginHost.m_toolBar.addComboBox ();
 
 	for (size_t i = 0; i < countof (baudRateTable); i++)
-		comboBox.addItem (baudRateTable [i].m_text, baudRateTable [i].m_value);
+		m_baudRateCombo.addItem (baudRateTable [i].m_text, baudRateTable [i].m_value);
 
-	comboBox.adjustSizeToContents ();
-	comboBox.m_onChanged += applySerialSettings;
+	m_baudRateCombo.adjustSizeToContents ();
+	m_baudRateCombo.m_onChanged += applySerialSettings;
 
 	m_actionTable [ActionId.Refresh]  = createAction ("Re-enumerate devices", m_iconTable [IconId.Refresh]);
 	m_actionTable [ActionId.Refresh].m_onTriggered += enumerateDevices;
@@ -357,14 +370,14 @@ FtdiUsbSession.enumerateDevices ()
 
 FtdiUsbSession.applySerialSettings ()
 {
-	m_txDecoder.start (
+	m_rxDecoder.start (
 		m_baudRateCombo.m_currentData,
 		m_dataBitsProp.m_value,
 		m_stopBitsProp.m_value,
 		m_parityProp.m_value
 		);
 
-	m_rxDecoder.start (
+	m_txDecoder.start (
 		m_baudRateCombo.m_currentData,
 		m_dataBitsProp.m_value,
 		m_stopBitsProp.m_value,
@@ -535,12 +548,18 @@ bool errorcode FtdiUsbSession.applyProperties ()
 {
 	m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
 	m_baudRateCombo.m_currentIndex = m_baudRateProp.m_currentIndex;
+
+	applySerialSettings ();
 	return true;
 }
 
 FtdiUsbSession.restoreDefaultProperties ()
 {
 	m_deviceProp.m_currentIndex = 0;
+	m_baudRateProp.m_value = 38400;
+	m_dataBitsProp.m_value = 8;
+	m_stopBitsProp.m_value = io.SerialStopBits._1;
+	m_parityProp.m_value = io.SerialParity.None;
 }
 
 size_t errorcode FtdiUsbSession.transmit (
@@ -562,20 +581,45 @@ catch:
 	return -1;
 }
 
-FtdiUsbSession.processFrames (
-	FtdiUsbSession.Frame const* frameArray,
+FtdiUsbSession.processSnapshots (
+	FtdiUsbSession.Snapshot const* snapshotArray,
 	size_t count
 	)
 {
-	Frame const* p = frameArray;
-	Frame const* end = p + count;
+	Snapshot const* p = snapshotArray;
+	Snapshot const* end = p + count;
 	for (; p < end; p++)
 	{
 		uint64_t timestamp = m_captureBaseTimestamp + p.m_timestamp / 10;
 		uint16_t lines = p.m_lines;
 
-		m_pluginHost.m_log.m_writer.write (timestamp, log.StdRecordCode.Rx, &lines, 2);
+		bool rx = lines & 0x100;
+
+		io.UartDecodeResult result = m_rxDecoder.add (timestamp, rx);
+		if (result != io.UartDecodeResult.Continue)
+			finalizeFrame (
+				result,
+				m_rxDecoder.m_startEdgeTimestamp,
+				log.StdRecordCode.Rx,
+				m_rxDecoder.m_data
+				);
 	}
+}
+
+FtdiUsbSession.finalizeFrame (
+	io.UartDecodeResult result,
+	uint64_t timestamp,
+	uint_t recordCode,
+	uchar_t data
+	)
+{
+	// write data byte even in case of framing/parity errors
+	m_pluginHost.m_log.m_writer.write (timestamp, recordCode, &data, 1);
+
+	if (result == io.UartDecodeResult.FramingError)
+		m_pluginHost.m_log.m_writer.write (timestamp, UsbRecordCode.FramingError);
+	else if (result == io.UartDecodeResult.ParityError)
+		m_pluginHost.m_log.m_writer.write (timestamp, UsbRecordCode.ParityError);
 }
 
 FtdiUsbSession.onEndpoint82Event (io.UsbEndpointEventParams const* params)
@@ -588,7 +632,7 @@ FtdiUsbSession.onEndpoint82Event (io.UsbEndpointEventParams const* params)
 	case io.UsbEndpointEventCode.ReadyRead:
 		static char buffer [ReadBufferSize]; // static is OK -- we read in main thread
 		size_t size = m_endpoint82.read (buffer, sizeof (buffer));
-		processFrames ((Frame const*) buffer, size / sizeof (Frame));
+		processSnapshots ((Snapshot const*) buffer, size / sizeof (Snapshot));
 		epctl (0x82, EpctlCode.SetReadBufferSize, ReadBufferSize);
 		break;
 
@@ -603,8 +647,16 @@ catch:
 
 FtdiUsbSession.onUartTimer ()
 {
-	m_txDecoder.onTimer ();
-	m_rxDecoder.onTimer ();
+	io.UartDecodeResult result;
+
+	result = m_rxDecoder.onTimer ();
+	if (result != io.UartDecodeResult.Continue)
+		finalizeFrame (
+			result,
+			m_rxDecoder.m_startEdgeTimestamp,
+			log.StdRecordCode.Rx,
+			m_rxDecoder.m_data
+			);
 }
 
 reactor FtdiUsbSession.m_uiReactor ()
