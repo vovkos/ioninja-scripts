@@ -3,9 +3,12 @@
 // USB session
 //
 
+import "io_base.jncx"
 import "io_usb.jncx"
+import "io_Serial.jnc"
 import "io_UsbDb.jnc"
 import "doc_Plugin.jnc"
+import "sys_Timer.jnc"
 
 //..............................................................................
 
@@ -106,10 +109,22 @@ protected:
 	gui.Icon* m_iconTable [IconId._Count];
 	gui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
 	gui.ComboBox* m_deviceCombo;
+	gui.ComboBox* m_baudRateCombo;
+
+	gui.EnumProperty* m_baudRateProp;
+	gui.EnumProperty* m_dataBitsProp;
+	gui.EnumProperty* m_stopBitsProp;
+	gui.EnumProperty* m_parityProp;
 
 	// property grid
 
 	gui.EnumProperty* m_deviceProp;
+
+	// uart decoder
+
+	io.UartDecoder m_rxDecoder;
+	io.UartDecoder m_txDecoder;
+	sys.Timer m_uartTimer;
 
 public:
 	construct (doc.PluginHost* pluginHost);
@@ -132,6 +147,7 @@ public:
 
 protected:
 	enumerateDevices ();
+	applySerialSettings ();
 
 	processFrames (
 		Frame const* frameArray,
@@ -148,6 +164,7 @@ protected:
 	onOpenDevice ();
 	onCapture ();
 	onEndpoint82Event (io.UsbEndpointEventParams const* params);
+	onUartTimer ();
 
 	createGui ();
 	reactor m_uiReactor ();
@@ -169,6 +186,51 @@ FtdiUsbSession.construct (doc.PluginHost* pluginHost)
 
 FtdiUsbSession.createGui ()
 {
+	static gui.EnumPropertyOption baudRateTable [] =
+	{
+		{ "110 bps",    110 },
+		{ "300 bps",    300 },
+		{ "600 bps",    600 },
+		{ "1200 bps",   1200 },
+		{ "2400 bps",   2400 },
+		{ "4800 bps",   4800 },
+		{ "9600 bps",   9600 },
+		{ "14400 bps",  14400 },
+		{ "19200 bps",  19200 },
+		{ "38400 bps",  38400 },
+		{ "56000 bps",  56000 },
+		{ "57600 bps",  57600 },
+		{ "115200 bps", 115200 },
+		{ "128000 bps", 128000 },
+		{ "153600 bps", 153600 },
+		{ "230400 bps", 230400 },
+		{ "256000 bps", 256000 },
+		{ "460800 bps", 460800 },
+		{ "921600 bps", 921600 },
+	}
+
+	static gui.EnumPropertyOption dataBitsTable [] =
+	{
+		{ "7 bits", 7 },
+		{ "8 bits", 8 },
+	}
+
+	static gui.EnumPropertyOption stopBitsTable [] =
+	{
+		{ "1 bit",    io.SerialStopBits._1 },
+		{ "1.5 bits", io.SerialStopBits._15 },
+		{ "2 bits",   io.SerialStopBits._2 },
+	}
+
+	static gui.EnumPropertyOption parityTable [] =
+	{
+		{ "None",  io.SerialParity.None },
+		{ "Odd",   io.SerialParity.Odd },
+		{ "Even",  io.SerialParity.Even },
+		{ "Mark",  io.SerialParity.Mark },
+		{ "Space", io.SerialParity.Space },
+	}
+
 	// toolbar
 
 	m_iconTable [IconId.Refresh] = new gui.Icon ("images/refresh.png");
@@ -180,12 +242,49 @@ FtdiUsbSession.createGui ()
 	m_pluginHost.m_toolBar.addLabel ("Device:");
 	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 
+	m_pluginHost.m_toolBar.addLabel ("Baud:");
+	gui.ComboBox* comboBox = m_pluginHost.m_toolBar.addComboBox ();
+
+	for (size_t i = 0; i < countof (baudRateTable); i++)
+		comboBox.addItem (baudRateTable [i].m_text, baudRateTable [i].m_value);
+
+	comboBox.adjustSizeToContents ();
+	comboBox.m_onChanged += applySerialSettings;
+
 	m_actionTable [ActionId.Refresh]  = createAction ("Re-enumerate devices", m_iconTable [IconId.Refresh]);
 	m_actionTable [ActionId.Refresh].m_onTriggered += enumerateDevices;
 	m_actionTable [ActionId.Open] = createAction ("Open device", m_iconTable [IconId.Open]);
 	m_actionTable [ActionId.Open].m_onTriggered += onOpenDevice;
 	m_actionTable [ActionId.Capture] = createAction ("Capture", m_iconTable [IconId.Open]);
 	m_actionTable [ActionId.Capture].m_onTriggered += onCapture;
+
+	m_baudRateProp = m_pluginHost.m_propertyGrid.createEnumProperty (
+		"Baud rate",
+		"Serial baud rate",
+		baudRateTable,
+		countof (baudRateTable)
+		);
+
+	m_dataBitsProp = m_pluginHost.m_propertyGrid.createEnumProperty (
+		"Data bits",
+		"Serial data bit count (word size)",
+		dataBitsTable,
+		countof (dataBitsTable)
+		);
+
+	m_stopBitsProp = m_pluginHost.m_propertyGrid.createEnumProperty (
+		"Stop bits",
+		"Serial stop bit count",
+		stopBitsTable,
+		countof (stopBitsTable)
+		);
+
+	m_parityProp = m_pluginHost.m_propertyGrid.createEnumProperty (
+		"Parity",
+		"Serial parity check",
+		parityTable,
+		countof (parityTable)
+		);
 
 	// status bar
 
@@ -254,6 +353,23 @@ FtdiUsbSession.enumerateDevices ()
 	}
 
 	m_deviceProp.setOptions (optionTable, ftdiCount);
+}
+
+FtdiUsbSession.applySerialSettings ()
+{
+	m_txDecoder.start (
+		m_baudRateCombo.m_currentData,
+		m_dataBitsProp.m_value,
+		m_stopBitsProp.m_value,
+		m_parityProp.m_value
+		);
+
+	m_rxDecoder.start (
+		m_baudRateCombo.m_currentData,
+		m_dataBitsProp.m_value,
+		m_stopBitsProp.m_value,
+		m_parityProp.m_value
+		);
 }
 
 bool errorcode FtdiUsbSession.epctl (
@@ -367,6 +483,13 @@ bool errorcode FtdiUsbSession.capture ()
 	static char packet [] = 0x"55 55 55 55";
 	transmit (packet, sizeof (packet));
 	m_captureBaseTimestamp = sys.getTimestamp ();
+
+	// resolution of UART timer doesn't have to be bound to baudrate --
+	// the main purpose of this timer is to finalize data without stop-bit-start-bit edge
+
+	m_uartTimer.startPeriodicTimer (onUartTimer @ m_pluginHost.m_mainThreadScheduler, 200);
+	applySerialSettings ();
+
 	writeLog (UsbRecordCode.CaptureStarted);
 	m_state = State.Capturing;
 	return true;
@@ -376,6 +499,9 @@ bool errorcode FtdiUsbSession.stopCapture ()
 {
 	static char packet [] = 0x"aa aa aa aa";
 	transmit (packet, sizeof (packet));
+
+	m_uartTimer.stop ();
+
 	writeLog (UsbRecordCode.CaptureStopped);
 	m_state = State.Opened;
 	return true;
@@ -384,21 +510,31 @@ bool errorcode FtdiUsbSession.stopCapture ()
 FtdiUsbSession.load (doc.Storage* storage)
 {
 	m_deviceCombo.m_currentIndex  = storage.readInt ("deviceIdx");
+	m_baudRateCombo.m_currentIndex = storage.readInt ("baudRate");
+	m_dataBitsProp.m_currentIndex = storage.readInt ("dataBits");
+	m_stopBitsProp.m_currentIndex = storage.readInt ("stopBits");
+	m_parityProp.m_currentIndex = storage.readInt ("parity");
 }
 
 FtdiUsbSession.save (doc.Storage* storage)
 {
 	storage.writeInt ("deviceIdx", (int) m_deviceCombo.m_currentIndex);
+	storage.writeInt ("baudRate", m_baudRateCombo.m_currentIndex);
+	storage.writeInt ("dataBits", m_dataBitsProp.m_currentIndex);
+	storage.writeInt ("stopBits", m_stopBitsProp.m_currentIndex);
+	storage.writeInt ("parity", m_parityProp.m_currentIndex);
 }
 
 FtdiUsbSession.updateProperties ()
 {
 	m_deviceProp.m_currentIndex = m_deviceCombo.m_currentIndex;
+	m_baudRateProp.m_currentIndex = m_baudRateCombo.m_currentIndex;
 }
 
 bool errorcode FtdiUsbSession.applyProperties ()
 {
 	m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
+	m_baudRateCombo.m_currentIndex = m_baudRateProp.m_currentIndex;
 	return true;
 }
 
@@ -463,6 +599,12 @@ FtdiUsbSession.onEndpoint82Event (io.UsbEndpointEventParams const* params)
 
 catch:
 	writeLogLastError (UsbRecordCode.IoError);
+}
+
+FtdiUsbSession.onUartTimer ()
+{
+	m_txDecoder.onTimer ();
+	m_rxDecoder.onTimer ();
 }
 
 reactor FtdiUsbSession.m_uiReactor ()
