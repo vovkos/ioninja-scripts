@@ -81,33 +81,11 @@ opaque class EnumProperty: Property
 
 //..............................................................................
 
-opaque class GroupProperty
+opaque class GroupProperty: Property
 {
 	construct (char const* name);
 
 	addProperty (Property* prop);
-
-	BoolProperty* createBoolProperty (
-		char const* name,
-		char const* toolTipText
-		);
-
-	IntProperty* createIntProperty (
-		char const* name,
-		char const* toolTipText
-		);
-
-	StringProperty* createStringProperty (
-		char const* name,
-		char const* toolTipText
-		);
-
-	EnumProperty* createEnumProperty (
-		char const* name,
-		char const* toolTipText,
-		EnumPropertyOption const* optionArray,
-		size_t count
-		);
 }
 
 //..............................................................................
@@ -116,7 +94,36 @@ opaque class PropertyGrid
 {
 	addProperty (Property* prop);
 
+	GroupProperty* createGroupProperty (
+		GroupProperty* group,
+		char const* name,
+		char const* toolTipText
+		);
+
+	GroupProperty* createGroupProperty (
+		char const* name,
+		char const* toolTipText
+		)
+	{
+		return createGroupProperty (null, name, toolTipText);
+	}
+
 	BoolProperty* createBoolProperty (
+		GroupProperty* group,
+		char const* name,
+		char const* toolTipText
+		);
+
+	BoolProperty* createBoolProperty (
+		char const* name,
+		char const* toolTipText
+		)
+	{
+		return createBoolProperty (null, name, toolTipText);
+	}
+
+	IntProperty* createIntProperty (
+		GroupProperty* group,
 		char const* name,
 		char const* toolTipText
 		);
@@ -124,11 +131,31 @@ opaque class PropertyGrid
 	IntProperty* createIntProperty (
 		char const* name,
 		char const* toolTipText
+		)
+	{
+		return createIntProperty (null, name, toolTipText);
+	}
+
+	StringProperty* createStringProperty (
+		GroupProperty* group,
+		char const* name,
+		char const* toolTipText
 		);
 
 	StringProperty* createStringProperty (
 		char const* name,
 		char const* toolTipText
+		)
+	{
+		return createStringProperty (null, name, toolTipText);
+	}
+
+	EnumProperty* createEnumProperty (
+		GroupProperty* group,
+		char const* name,
+		char const* toolTipText,
+		EnumPropertyOption const* optionArray,
+		size_t count
 		);
 
 	EnumProperty* createEnumProperty (
@@ -136,50 +163,76 @@ opaque class PropertyGrid
 		char const* toolTipText,
 		EnumPropertyOption const* optionArray,
 		size_t count
-		);
-
-	EnumProperty* createNetworkAdapterProperty (
-		char const* name,
-		char const* toolTipText
-		);
+		)
+	{
+		return createEnumProperty (null, name, toolTipText, optionArray, count);
+	}
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
+GroupProperty* PropertyGrid.createGroupProperty (
+	GroupProperty* group,
+	char const* name,
+	char const* toolTipText
+	)
+{
+	GroupProperty* prop = new GroupProperty (name);
+	prop.m_toolTipText = toolTipText;
+	if (group)
+		group.addProperty (prop);
+	else
+		addProperty (prop);
+	return prop;
+}
+
 BoolProperty* PropertyGrid.createBoolProperty (
+	GroupProperty* group,
 	char const* name,
 	char const* toolTipText
 	)
 {
 	BoolProperty* prop = new BoolProperty (name);
 	prop.m_toolTipText = toolTipText;
-	addProperty (prop);
+	if (group)
+		group.addProperty (prop);
+	else
+		addProperty (prop);
 	return prop;
 }
 
 IntProperty* PropertyGrid.createIntProperty (
+	GroupProperty* group,
 	char const* name,
 	char const* toolTipText
 	)
 {
 	IntProperty* prop = new IntProperty (name);
 	prop.m_toolTipText = toolTipText;
-	addProperty (prop);
+	if (group)
+		group.addProperty (prop);
+	else
+		addProperty (prop);
 	return prop;
 }
 
 StringProperty* PropertyGrid.createStringProperty (
+	GroupProperty* group,
 	char const* name,
 	char const* toolTipText
 	)
 {
 	StringProperty* prop = new StringProperty (name);
 	prop.m_toolTipText = toolTipText;
-	addProperty (prop);
+	if (group)
+		group.addProperty (prop);
+	else
+		addProperty (prop);
 	return prop;
 }
 
 EnumProperty* PropertyGrid.createEnumProperty (
+	GroupProperty* group,
 	char const* name,
 	char const* toolTipText,
 	EnumPropertyOption const* optionArray,
@@ -189,7 +242,10 @@ EnumProperty* PropertyGrid.createEnumProperty (
 	EnumProperty* prop = new EnumProperty (name);
 	prop.m_toolTipText = toolTipText;
 	prop.setOptions (optionArray, count);
-	addProperty (prop);
+	if (group)
+		group.addProperty (prop);
+	else
+		addProperty (prop);
 	return prop;
 }
 
