@@ -1,41 +1,15 @@
 //..............................................................................
 //
-// USB session
+// Hardware Serial Monitor session
 //
 
-import "io_base.jncx"
 import "io_usb.jncx"
-import "io_Serial.jnc"
 import "io_UsbDb.jnc"
 import "doc_Plugin.jnc"
-import "sys_Timer.jnc"
 
 //..............................................................................
 
-// this packet has to be sent to IF00:EP01 to control endpoints
-
-enum EpctlCode
-{
-	SetReadBufferSize  = 1,
-	SetWriteBufferSize = 2,
-	Close              = 0,
-	Close2             = 3,
-}
-
-struct EpctlParams
-{
-	uint32_t m_seqId;
-	uint8_t m_endpointId;
-	uint8_t m_command;
-	uint16_t m_padding;
-	uint32_t m_size;
-	uint32_t m_padding2;
-	uint32_t m_padding3;
-}
-
-//..............................................................................
-
-class FtdiUsbSession: doc.Session
+class HwSerialMonSession: doc.Session
 {
 protected:
 	enum State
@@ -78,20 +52,35 @@ protected:
 
 	enum
 	{
-		ReadBufferSize	= 4 * 1024,
-		WriteBufferSize = 4 * 1024,
+		ReadBufferSize	= 8 * 1024,
+		WriteBufferSize = 8 * 1024,
 	}
 
-	struct Snapshot
+	// this packet has to be sent to IF00:EP01 to control endpoints
+
+	enum EpctlCode
+	{
+		SetReadBufferSize  = 1,
+		SetWriteBufferSize = 2,
+		Close              = 0,
+		Close2             = 3,
+	}
+
+	struct EpctlParams
+	{
+		uint32_t m_seqId;
+		uint8_t m_endpointId;
+		uint8_t m_command;
+		uint16_t m_padding;
+		uint32_t m_size;
+		uint32_t m_padding2;
+		uint32_t m_padding3;
+	}
+
+	struct SignalEdge
 	{
 		bigendian uint64_t m_timestamp : 48;
 		bigendian uint64_t m_lines     : 16;
-	}
-
-	bitflag enum Lines
-	{
-		Rx,
-		Tx,
 	}
 
 protected:
@@ -107,7 +96,7 @@ protected:
 	io.UsbEndpoint* m_endpoint82;
 
 	uint_t m_epctlSeqId;
-	uint64_t m_captureBaseTimestamp;
+	uint64_t m_captureBaseTime;
 
 	// toolbar, status bar & menu
 
@@ -115,22 +104,19 @@ protected:
 	gui.Icon* m_iconTable [IconId._Count];
 	gui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
 	gui.ComboBox* m_deviceCombo;
-	gui.ComboBox* m_baudRateCombo;
-
-	gui.EnumProperty* m_baudRateProp;
-	gui.EnumProperty* m_dataBitsProp;
-	gui.EnumProperty* m_stopBitsProp;
-	gui.EnumProperty* m_parityProp;
 
 	// property grid
 
 	gui.EnumProperty* m_deviceProp;
+	gui.EnumProperty* m_serialIfaceProp;
 
-	// uart decoder
+	// current serial iface
 
-	io.UartDecoder m_rxDecoder;
-	io.UartDecoder m_txDecoder;
-	sys.Timer m_uartTimer;
+	SerialIface* m_capturingSerialIface;
+
+	Uart m_uart;
+	Spi m_spi;
+	I2c m_i2c;
 
 public:
 	construct (doc.PluginHost* pluginHost);
@@ -153,19 +139,6 @@ public:
 
 protected:
 	enumerateDevices ();
-	applySerialSettings ();
-
-	processSnapshots (
-		Snapshot const* snapshotArray,
-		size_t count
-		);
-
-	finalizeFrame (
-		io.UartDecodeResult result,
-		uint64_t timestamp,
-		uint_t recordCode,
-		uchar_t data
-		);
 
 	bool errorcode epctl (
 		uint8_t endpointId,
@@ -177,7 +150,6 @@ protected:
 	onOpenDevice ();
 	onCapture ();
 	onEndpoint82Event (io.UsbEndpointEventParams const* params);
-	onUartTimer ();
 
 	createGui ();
 	reactor m_uiReactor ();
@@ -185,9 +157,12 @@ protected:
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-FtdiUsbSession.construct (doc.PluginHost* pluginHost)
+HwSerialMonSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct(pluginHost);
+	m_uart.construct(pluginHost);
+	m_spi.construct(pluginHost);
+	m_i2c.construct(pluginHost);
 
 	pluginHost.m_log.m_representerFunc = representUsbLog;
 
@@ -197,53 +172,8 @@ FtdiUsbSession.construct (doc.PluginHost* pluginHost)
 	createGui ();
 }
 
-FtdiUsbSession.createGui ()
+HwSerialMonSession.createGui ()
 {
-	static gui.EnumPropertyOption baudRateTable [] =
-	{
-		{ "110 bps",    110 },
-		{ "300 bps",    300 },
-		{ "600 bps",    600 },
-		{ "1200 bps",   1200 },
-		{ "2400 bps",   2400 },
-		{ "4800 bps",   4800 },
-		{ "9600 bps",   9600 },
-		{ "14400 bps",  14400 },
-		{ "19200 bps",  19200 },
-		{ "38400 bps",  38400 },
-		{ "56000 bps",  56000 },
-		{ "57600 bps",  57600 },
-		{ "115200 bps", 115200 },
-		{ "128000 bps", 128000 },
-		{ "153600 bps", 153600 },
-		{ "230400 bps", 230400 },
-		{ "256000 bps", 256000 },
-		{ "460800 bps", 460800 },
-		{ "921600 bps", 921600 },
-	}
-
-	static gui.EnumPropertyOption dataBitsTable [] =
-	{
-		{ "7 bits", 7 },
-		{ "8 bits", 8 },
-	}
-
-	static gui.EnumPropertyOption stopBitsTable [] =
-	{
-		{ "1 bit",    io.SerialStopBits._1 },
-		{ "1.5 bits", io.SerialStopBits._15 },
-		{ "2 bits",   io.SerialStopBits._2 },
-	}
-
-	static gui.EnumPropertyOption parityTable [] =
-	{
-		{ "None",  io.SerialParity.None },
-		{ "Odd",   io.SerialParity.Odd },
-		{ "Even",  io.SerialParity.Even },
-		{ "Mark",  io.SerialParity.Mark },
-		{ "Space", io.SerialParity.Space },
-	}
-
 	// toolbar
 
 	m_iconTable [IconId.Refresh] = new gui.Icon ("images/refresh.png");
@@ -252,64 +182,45 @@ FtdiUsbSession.createGui ()
 	m_iconTable [IconId.Capture] = new gui.Icon ("images/capture.png");
 	m_iconTable [IconId.StopCapture] = new gui.Icon ("images/pause.png");
 
-	m_pluginHost.m_toolBar.addLabel ("Device:");
+	m_pluginHost.m_toolBar.addLabel ("Sniffer:");
 	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 
-	m_pluginHost.m_toolBar.addLabel ("Baud:");
-	m_baudRateCombo = m_pluginHost.m_toolBar.addComboBox ();
-
-	for (size_t i = 0; i < countof (baudRateTable); i++)
-		m_baudRateCombo.addItem (baudRateTable [i].m_text, baudRateTable [i].m_value);
-
-	m_baudRateCombo.adjustSizeToContents ();
-	m_baudRateCombo.m_onChanged += applySerialSettings;
-
-	m_actionTable [ActionId.Refresh]  = createAction ("Re-enumerate devices", m_iconTable [IconId.Refresh]);
+	m_actionTable [ActionId.Refresh] = createAction ("Re-enumerate Devices", m_iconTable [IconId.Refresh]);
 	m_actionTable [ActionId.Refresh].m_onTriggered += enumerateDevices;
-	m_actionTable [ActionId.Open] = createAction ("Open device", m_iconTable [IconId.Open]);
+	m_actionTable [ActionId.Open] = createAction ("Open Sniffer Device", m_iconTable [IconId.Open]);
 	m_actionTable [ActionId.Open].m_onTriggered += onOpenDevice;
 	m_actionTable [ActionId.Capture] = createAction ("Capture", m_iconTable [IconId.Open]);
 	m_actionTable [ActionId.Capture].m_onTriggered += onCapture;
 
-	m_baudRateProp = m_pluginHost.m_propertyGrid.createEnumProperty (
-		"Baud rate",
-		"Serial baud rate",
-		baudRateTable,
-		countof (baudRateTable)
+	// property grid
+
+	m_deviceProp = m_pluginHost.m_propertyGrid.createEnumProperty (
+		"Sniffer Device",
+		"Target USB device",
+		null, 0
 		);
 
-	m_dataBitsProp = m_pluginHost.m_propertyGrid.createEnumProperty (
-		"Data bits",
-		"Serial data bit count (word size)",
-		dataBitsTable,
-		countof (dataBitsTable)
+	gui.EnumPropertyOption serialIfaceTable [] =
+	{
+		{ m_uart.m_name, m_uart },
+		{ m_spi.m_name,  m_spi },
+		{ m_i2c.m_name,  m_i2c },
+	}
+
+	m_serialIfaceProp  = m_pluginHost.m_propertyGrid.createEnumProperty (
+		"Serial Interface",
+		"Serial interface type",
+		serialIfaceTable,
+		countof (serialIfaceTable)
 		);
 
-	m_stopBitsProp = m_pluginHost.m_propertyGrid.createEnumProperty (
-		"Stop bits",
-		"Serial stop bit count",
-		stopBitsTable,
-		countof (stopBitsTable)
-		);
-
-	m_parityProp = m_pluginHost.m_propertyGrid.createEnumProperty (
-		"Parity",
-		"Serial parity check",
-		parityTable,
-		countof (parityTable)
-		);
+	m_uart.createProperties ();
+	m_spi.createProperties ();
+	m_i2c.createProperties ();
 
 	// status bar
 
 	m_statusPaneTable [StatusPaneId.State] = m_pluginHost.m_statusBar.addPane (, 80);
-
-	// property grid
-
-	m_deviceProp = m_pluginHost.m_propertyGrid.createEnumProperty (
-		"Device",
-		"Target USB device",
-		null, 0
-		);
 
 	enumerateDevices ();
 
@@ -317,7 +228,7 @@ FtdiUsbSession.createGui ()
 	m_state = State.Closed;
 }
 
-FtdiUsbSession.onOpenDevice ()
+HwSerialMonSession.onOpenDevice ()
 {
 	if (m_state >= State.Opened)
 		closeDevice ();
@@ -325,7 +236,7 @@ FtdiUsbSession.onOpenDevice ()
 		openDevice ();
 }
 
-FtdiUsbSession.onCapture ()
+HwSerialMonSession.onCapture ()
 {
 	if (m_state >= State.Capturing)
 		stopCapture ();
@@ -333,7 +244,7 @@ FtdiUsbSession.onCapture ()
 		capture ();
 }
 
-FtdiUsbSession.enumerateDevices ()
+HwSerialMonSession.enumerateDevices ()
 {
 	m_deviceCombo.clear ();
 
@@ -368,26 +279,9 @@ FtdiUsbSession.enumerateDevices ()
 	m_deviceProp.setOptions (optionTable, ftdiCount);
 }
 
-FtdiUsbSession.applySerialSettings ()
-{
-	m_rxDecoder.start (
-		m_baudRateCombo.m_currentData,
-		m_dataBitsProp.m_value,
-		m_stopBitsProp.m_value,
-		m_parityProp.m_value
-		);
-
-	m_txDecoder.start (
-		m_baudRateCombo.m_currentData,
-		m_dataBitsProp.m_value,
-		m_stopBitsProp.m_value,
-		m_parityProp.m_value
-		);
-}
-
-bool errorcode FtdiUsbSession.epctl (
+bool errorcode HwSerialMonSession.epctl (
 	uint8_t endpointId,
-	EpctlCode code,
+	HwSerialMonSession.EpctlCode code,
 	size_t size,
 	uint_t timeout
 	)
@@ -406,7 +300,7 @@ catch:
 	return false;
 }
 
-bool errorcode FtdiUsbSession.openDevice ()
+bool errorcode HwSerialMonSession.openDevice ()
 {
 	if (m_deviceCombo.m_currentIndex == -1)
 		return false;
@@ -446,7 +340,7 @@ catch:
 	return false;
 }
 
-FtdiUsbSession.closeDevice ()
+HwSerialMonSession.closeDevice ()
 {
 	if (m_endpoint82)
 	{
@@ -491,78 +385,74 @@ FtdiUsbSession.closeDevice ()
 	}
 }
 
-bool errorcode FtdiUsbSession.capture ()
+bool errorcode HwSerialMonSession.capture ()
 {
 	static char packet [] = 0x"55 55 55 55";
 	transmit (packet, sizeof (packet));
-	m_captureBaseTimestamp = sys.getTimestamp ();
+	m_captureBaseTime = sys.getTimestamp ();
 
-	// resolution of UART timer doesn't have to be bound to baudrate --
-	// the main purpose of this timer is to finalize data without stop-bit-start-bit edge
+	m_capturingSerialIface = m_serialIfaceProp.m_value;
+	m_capturingSerialIface.start ();
 
-	m_uartTimer.startPeriodicTimer (onUartTimer @ m_pluginHost.m_mainThreadScheduler, 200);
-	applySerialSettings ();
-
-	writeLog (UsbRecordCode.CaptureStarted);
+	writeLogString (UsbRecordCode.CaptureStarted, m_capturingSerialIface.m_name);
 	m_state = State.Capturing;
 	return true;
 }
 
-bool errorcode FtdiUsbSession.stopCapture ()
+bool errorcode HwSerialMonSession.stopCapture ()
 {
 	static char packet [] = 0x"aa aa aa aa";
 	transmit (packet, sizeof (packet));
 
-	m_uartTimer.stop ();
+	m_capturingSerialIface.stop ();
+	m_capturingSerialIface = null;
 
 	writeLog (UsbRecordCode.CaptureStopped);
 	m_state = State.Opened;
 	return true;
 }
 
-FtdiUsbSession.load (doc.Storage* storage)
+HwSerialMonSession.load (doc.Storage* storage)
 {
 	m_deviceCombo.m_currentIndex  = storage.readInt ("deviceIdx");
-	m_baudRateCombo.m_currentIndex = storage.readInt ("baudRate");
-	m_dataBitsProp.m_currentIndex = storage.readInt ("dataBits");
-	m_stopBitsProp.m_currentIndex = storage.readInt ("stopBits");
-	m_parityProp.m_currentIndex = storage.readInt ("parity");
+	m_serialIfaceProp.m_currentIndex  = storage.readInt ("serialInterface");
+	m_uart.loadProperties (storage);
+	m_spi.loadProperties (storage);
 }
 
-FtdiUsbSession.save (doc.Storage* storage)
+HwSerialMonSession.save (doc.Storage* storage)
 {
-	storage.writeInt ("deviceIdx", (int) m_deviceCombo.m_currentIndex);
-	storage.writeInt ("baudRate", m_baudRateCombo.m_currentIndex);
-	storage.writeInt ("dataBits", m_dataBitsProp.m_currentIndex);
-	storage.writeInt ("stopBits", m_stopBitsProp.m_currentIndex);
-	storage.writeInt ("parity", m_parityProp.m_currentIndex);
+	storage.writeInt ("deviceIdx", m_deviceCombo.m_currentIndex);
+	storage.writeInt ("serialInterface", m_serialIfaceProp.m_currentIndex);
+	m_uart.saveProperties (storage);
+	m_spi.saveProperties (storage);
 }
 
-FtdiUsbSession.updateProperties ()
+HwSerialMonSession.updateProperties ()
 {
 	m_deviceProp.m_currentIndex = m_deviceCombo.m_currentIndex;
-	m_baudRateProp.m_currentIndex = m_baudRateCombo.m_currentIndex;
 }
 
-bool errorcode FtdiUsbSession.applyProperties ()
+bool errorcode HwSerialMonSession.applyProperties ()
 {
 	m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
-	m_baudRateCombo.m_currentIndex = m_baudRateProp.m_currentIndex;
 
-	applySerialSettings ();
+	if (m_state == State.Capturing)
+		m_capturingSerialIface.start (); // restart capturing with the new parameters
+
 	return true;
 }
 
-FtdiUsbSession.restoreDefaultProperties ()
+HwSerialMonSession.restoreDefaultProperties ()
 {
 	m_deviceProp.m_currentIndex = 0;
-	m_baudRateProp.m_value = 38400;
-	m_dataBitsProp.m_value = 8;
-	m_stopBitsProp.m_value = io.SerialStopBits._1;
-	m_parityProp.m_value = io.SerialParity.None;
+	m_serialIfaceProp.m_currentIndex = 0;
+
+	m_uart.restoreDefaultProperties ();
+	m_spi.restoreDefaultProperties ();
 }
 
-size_t errorcode FtdiUsbSession.transmit (
+size_t errorcode HwSerialMonSession.transmit (
 	void const* p,
 	size_t size
 	)
@@ -581,48 +471,7 @@ catch:
 	return -1;
 }
 
-FtdiUsbSession.processSnapshots (
-	FtdiUsbSession.Snapshot const* snapshotArray,
-	size_t count
-	)
-{
-	Snapshot const* p = snapshotArray;
-	Snapshot const* end = p + count;
-	for (; p < end; p++)
-	{
-		uint64_t timestamp = m_captureBaseTimestamp + p.m_timestamp / 10;
-		uint16_t lines = p.m_lines;
-
-		bool rx = lines & 0x100;
-
-		io.UartDecodeResult result = m_rxDecoder.add (timestamp, rx);
-		if (result != io.UartDecodeResult.Continue)
-			finalizeFrame (
-				result,
-				m_rxDecoder.m_startEdgeTimestamp,
-				log.StdRecordCode.Rx,
-				m_rxDecoder.m_data
-				);
-	}
-}
-
-FtdiUsbSession.finalizeFrame (
-	io.UartDecodeResult result,
-	uint64_t timestamp,
-	uint_t recordCode,
-	uchar_t data
-	)
-{
-	// write data byte even in case of framing/parity errors
-	m_pluginHost.m_log.m_writer.write (timestamp, recordCode, &data, 1);
-
-	if (result == io.UartDecodeResult.FramingError)
-		m_pluginHost.m_log.m_writer.write (timestamp, UsbRecordCode.FramingError);
-	else if (result == io.UartDecodeResult.ParityError)
-		m_pluginHost.m_log.m_writer.write (timestamp, UsbRecordCode.ParityError);
-}
-
-FtdiUsbSession.onEndpoint82Event (io.UsbEndpointEventParams const* params)
+HwSerialMonSession.onEndpoint82Event (io.UsbEndpointEventParams const* params)
 {
 	if (params.m_syncId != m_endpoint82.m_syncId)
 		return;
@@ -632,7 +481,15 @@ FtdiUsbSession.onEndpoint82Event (io.UsbEndpointEventParams const* params)
 	case io.UsbEndpointEventCode.ReadyRead:
 		static char buffer [ReadBufferSize]; // static is OK -- we read in main thread
 		size_t size = m_endpoint82.read (buffer, sizeof (buffer));
-		processSnapshots ((Snapshot const*) buffer, size / sizeof (Snapshot));
+
+		SignalEdge const* p = (SignalEdge const*) buffer;
+		SignalEdge const* end = p + size / sizeof (SignalEdge);
+		for (; p < end; p++)
+		{
+			uint64_t timestamp = m_captureBaseTime + p.m_timestamp / 10;
+			m_capturingSerialIface.processSignal (timestamp, p.m_lines);
+		}
+
 		epctl (0x82, EpctlCode.SetReadBufferSize, ReadBufferSize);
 		break;
 
@@ -645,28 +502,19 @@ catch:
 	writeLogLastError (UsbRecordCode.IoError);
 }
 
-FtdiUsbSession.onUartTimer ()
+reactor HwSerialMonSession.m_uiReactor ()
 {
-	io.UartDecodeResult result;
-
-	result = m_rxDecoder.onTimer ();
-	if (result != io.UartDecodeResult.Continue)
-		finalizeFrame (
-			result,
-			m_rxDecoder.m_startEdgeTimestamp,
-			log.StdRecordCode.Rx,
-			m_rxDecoder.m_data
-			);
-}
-
-reactor FtdiUsbSession.m_uiReactor ()
-{
-	m_title = $"FTDI USB $(m_deviceCombo.m_currentText)";
-	m_actionTable [ActionId.Open].m_text = m_state ? "Close Device" : "Open Device";
+	m_title = $"HW Serial Mon $(m_deviceCombo.m_currentText)";
+	m_actionTable [ActionId.Open].m_text = m_state ? "Close Sniffer Device" : "Open Sniffer Device";
 	m_actionTable [ActionId.Open].m_icon = m_iconTable [m_state ? IconId.Close : IconId.Open];
 	m_actionTable [ActionId.Capture].m_text = m_state == State.Capturing ? "Stop Capture" : "Capture";
 	m_actionTable [ActionId.Capture].m_icon = m_iconTable [m_state == State.Capturing ? IconId.StopCapture : IconId.Capture];
 	m_actionTable [ActionId.Capture].m_isEnabled = m_state;
+
+	m_serialIfaceProp.m_isEnabled = m_state < State.Capturing;
+	m_uart.m_groupProp.m_isEnabled = m_serialIfaceProp.m_value == m_uart;
+	m_spi.m_groupProp.m_isEnabled = m_serialIfaceProp.m_value == m_spi;
+
 	m_isTransmitEnabled = m_state;
 	m_statusPaneTable [StatusPaneId.State].m_text = m_stateStringTable [m_state];
 }

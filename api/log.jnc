@@ -44,6 +44,7 @@ enum StdRecordCode
 	Error          = 0x06000000,
 	RetroColorize  = 0x07000000,
 	SessionStarted = 0x08000000,
+	Break          = 0x09000000,
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
