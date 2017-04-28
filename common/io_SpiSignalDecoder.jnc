@@ -12,8 +12,11 @@ namespace io {
 enum SpiDecodeResult
 {
 	Continue,
-	Packet,
+	Start,
+	Stop,
+	EmptyMessage,
 	FramingError,
+	Char,
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -27,14 +30,11 @@ protected:
 
 	bool m_lastSclk;
 	bool m_lastSs;
-
-	uint8_t m_mosiChar;
-	uint8_t m_misoChar;
 	uint8_t m_bit;
 
 public:
-	std.Buffer readonly m_mosiBuffer;
-	std.Buffer readonly m_misoBuffer;
+	uint8_t m_mosiChar;
+	uint8_t m_misoChar;
 
 public:
 	start (
@@ -109,32 +109,37 @@ SpiDecodeResult SpiSignalDecoder.add (
 			return SpiDecodeResult.Continue;
 
 		m_lastSs = true;
-
 		return
-			m_bit ? SpiDecodeResult.FramingError :
-			m_mosiBuffer.m_size ? SpiDecodeResult.Packet : SpiDecodeResult.Continue;
+			m_bit == 0 ? SpiDecodeResult.Stop :
+			m_bit == (m_isLittleEndian ? 0x01 : 0x80) ? SpiDecodeResult.EmptyMessage :
+			SpiDecodeResult.FramingError;
 	}
+
+	SpiDecodeResult result = SpiDecodeResult.Continue;
 
 	if (m_lastSs)
 	{
 		m_lastSs = false;
 		m_lastSclk = m_cpol;
-		m_mosiBuffer.clear ();
-		m_misoBuffer.clear ();
+		m_bit = m_isLittleEndian ? 0x01 : 0x80;
 		m_mosiChar = 0;
 		m_misoChar = 0;
-		m_bit = 0;
+		result = SpiDecodeResult.Start;
 	}
 
 	if (sclk == m_lastSclk)
-		return SpiDecodeResult.Continue;
+		return result;
 
 	m_lastSclk = sclk;
 
 	if (spiSelectorTable [m_cpol] [m_cpha] [sclk])
 	{
 		if (!m_bit)
+		{
 			m_bit = m_isLittleEndian ? 0x01 : 0x80;
+			m_mosiChar = 0;
+			m_misoChar = 0;
+		}
 
 		if (mosi)
 			m_mosiChar |= m_bit;
@@ -145,16 +150,10 @@ SpiDecodeResult SpiSignalDecoder.add (
 		m_isLittleEndian ? m_bit <<= 1 : m_bit >>= 1;
 
 		if (!m_bit)
-		{
-			m_mosiBuffer.append (&m_mosiChar, 1);
-			m_misoBuffer.append (&m_misoChar, 1);
-
-			m_mosiChar = 0;
-			m_misoChar = 0;
-		}
+			result = SpiDecodeResult.Char;
 	}
 
-	return SpiDecodeResult.Continue;
+	return result;
 }
 
 //..............................................................................

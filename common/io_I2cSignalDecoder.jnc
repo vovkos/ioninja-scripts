@@ -14,11 +14,11 @@ enum I2cDecodeResult
 	Continue,
 	Start,
 	Stop,
+	EmptyMessage,
 	PreemptiveStart,
 	PreemptiveStop,
 	CharAck,
 	CharNack,
-	EmptyMessage,
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .

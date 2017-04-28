@@ -26,10 +26,12 @@ enum UsbRecordCode
 
 	UartRtsChanged,
 	UartCtsChanged,
+	I2cEmptyMessage,
 	I2cPreemptiveStart,
 	I2cPreemptiveStop,
-	I2cEmptyMessage,
 	I2cCharNack,
+	SpiFramingError,
+	SpiEmptyMessage,
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -197,28 +199,40 @@ bool representUsbLog (
 		target.addHyperText ($"CTS changed: $ctsString");
 		break;
 
+	case UsbRecordCode.I2cEmptyMessage:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Warning;
+		target.addHyperText ("I\u00b2C empty message");
+		break;
+
 	case UsbRecordCode.I2cPreemptiveStart:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Warning;
-		target.addHyperText("I\u00b2C preemptive start bit");
+		target.addHyperText ("I\u00b2C preemptive start bit");
 		break;
 
 	case UsbRecordCode.I2cPreemptiveStop:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		target.addHyperText("I\u00b2C preemptive stop bit");
-		break;
-
-	case UsbRecordCode.I2cEmptyMessage:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Warning;
-		target.addHyperText("I\u00b2C empty message");
+		target.addHyperText ("I\u00b2C preemptive stop bit");
 		break;
 
 	case UsbRecordCode.I2cCharNack:
 		target.m_lineAttr.m_textColor = log.StdLogColor.Rx;
 		target.m_lineAttr.m_fontFlags = gui.FontFlags.Strikeout;
 		target.addBin (log.StdRecordCode.Rx, p, size);
+		break;
+
+	case UsbRecordCode.SpiEmptyMessage:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Warning;
+		target.addHyperText ("SPI empty message");
+		break;
+
+	case UsbRecordCode.SpiFramingError:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
+		target.addHyperText ("SPI framing error");
 		break;
 
 	default:

@@ -114,28 +114,35 @@ Spi.processSignal (
 		lines & Lines.Ss
 		);
 
-	if (result == io.SpiDecodeResult.Continue)
-		return;
-
-	if (m_decoder.m_mosiBuffer.m_size)
+	switch (result)
 	{
-		m_pluginHost.m_log.m_writer.write (
-			timestamp,
-			log.StdRecordCode.Tx,
-			m_decoder.m_mosiBuffer.m_p,
-			m_decoder.m_mosiBuffer.m_size
-			);
+	case io.SpiDecodeResult.Continue:
+	case io.SpiDecodeResult.Start:
+		break;
+
+	case io.SpiDecodeResult.Stop:
+		m_pluginHost.m_log.m_writer.write (timestamp, log.StdRecordCode.Break);
+		break;
+
+	case io.SpiDecodeResult.Char:
+		char buffer [2] = { m_decoder.m_mosiChar, m_decoder.m_misoChar }
 
 		m_pluginHost.m_log.m_writer.write (
 			timestamp,
-			log.StdRecordCode.Rx,
-			m_decoder.m_misoBuffer.m_p,
-			m_decoder.m_misoBuffer.m_size
+			log.StdRecordCode.TxRx,
+			buffer,
+			sizeof (buffer)
 			);
+		break;
+
+	case io.SpiDecodeResult.FramingError:
+		m_pluginHost.m_log.m_writer.write (timestamp, UsbRecordCode.SpiFramingError);
+		break;
+
+	case io.SpiDecodeResult.EmptyMessage:
+		m_pluginHost.m_log.m_writer.write (timestamp, UsbRecordCode.SpiEmptyMessage);
+		break;
 	}
-
-	if (result == io.SpiDecodeResult.FramingError)
-		writeLogIoError (timestamp, "SPI framing error");
 }
 
 //..............................................................................
