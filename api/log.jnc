@@ -30,6 +30,7 @@ enum PartKind
 	PlainText = 0,
 	HyperText,
 	Bin,
+	DualBin,
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -45,6 +46,7 @@ enum StdRecordCode
 	RetroColorize  = 0x07000000,
 	SessionStarted = 0x08000000,
 	Break          = 0x09000000,
+	TxRx           = 0x0a000000 | PartCodeFlags.Mergeable,
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -77,6 +79,7 @@ enum StdLogIcon
 	Packet,
 	Tx,
 	Rx,
+	TxRx,
 	_Count,
 }
 
@@ -120,6 +123,7 @@ opaque class RepresenterTarget
 	uint64_t readonly m_timestamp;
 	uint_t readonly m_recordCode;
 	LineAttr m_lineAttr;
+	gui.TextAttr m_auxTextAttr; // for dual bin
 
 	void addPart (
 		PartKind partKind,
@@ -175,6 +179,26 @@ opaque class RepresenterTarget
 		)
 	{
 		addPart (PartKind.Bin, m_recordCode, p, size);
+	}
+
+	void addDualBin (
+		uint_t partCode,
+		void const* p1,
+		void const* p2,
+		size_t size
+		)
+	{
+		void const* p = memcat (p1, size, p2, size);
+		addPart (PartKind.DualBin, partCode, p, size * 2);
+	}
+
+	void addDualBin (
+		void const* p1,
+		void const* p2,
+		size_t size
+		)
+	{
+		addDualBin (m_recordCode, p1, p2, size);
 	}
 }
 
