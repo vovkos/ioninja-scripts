@@ -32,9 +32,9 @@ protected:
 
 	enum IconId
 	{
-		Refresh,
 		Open,
 		Close,
+		Refresh,
 		_Count,
 	}
 
@@ -123,9 +123,9 @@ UsbSession.createGui ()
 {
 	// toolbar
 
-	m_iconTable [IconId.Refresh] = new gui.Icon ("images/refresh.png");
 	m_iconTable [IconId.Open] = new gui.Icon ("images/open.png");
 	m_iconTable [IconId.Close] = new gui.Icon ("images/close.png");
+	m_iconTable [IconId.Refresh] = new gui.Icon ("images/refresh.png");
 
 	m_pluginHost.m_toolBar.addLabel ("Device:");
 	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox (-1);
@@ -265,11 +265,16 @@ bool UsbSession.openDevice ()
 	m_interfaceCombo.clear ();
 
 	io.UsbConfigurationDesc const* confDesc = m_device.m_activeConfigurationDesc;
+	gui.EnumPropertyOption* optionTable = new gui.EnumPropertyOption [confDesc.m_interfaceCount];
+
 	for (size_t i = 0; i < confDesc.m_interfaceCount; i++)
 	{
 		io.UsbInterfaceDesc const* ifaceDesc = &confDesc.m_interfaceTable [i];
+		char const* name =  $"$(ifaceDesc.m_interfaceId)";
+		optionTable [i].m_text = name;
+		optionTable [i].m_value = ifaceDesc;
 
-		m_interfaceCombo.addItem ($"$(ifaceDesc.m_interfaceId)", ifaceDesc);
+		m_interfaceCombo.addItem (name, ifaceDesc);
 
 		io.UsbInterfaceDesc const* ifaceAltDesc = ifaceDesc.m_nextAltSettingInterface;
 		for (; ifaceAltDesc; ifaceAltDesc = ifaceAltDesc.m_nextAltSettingInterface)
@@ -280,6 +285,8 @@ bool UsbSession.openDevice ()
 				);
 		}
 	}
+
+	m_interfaceProp.setOptions (optionTable, confDesc.m_interfaceCount);
 
 	DeviceParams params;
 	params.m_bus = m_device.m_bus;
@@ -330,15 +337,36 @@ bool UsbSession.claimInterface ()
 	m_outEndpointCombo.clear ();
 	m_inEndpointCombo.clear ();
 
+	gui.EnumPropertyOption* outEnpointOptionTable = new gui.EnumPropertyOption [ifaceDesc.m_endpointCount];
+	gui.EnumPropertyOption* inEnpointOptionTable = new gui.EnumPropertyOption [ifaceDesc.m_endpointCount];
+
+	size_t outEndpointCount = 0;
+	size_t inEndpointCount = 0;
+
 	for (size_t i = 0; i < ifaceDesc.m_endpointCount; i++)
 	{
 		io.UsbEndpointDesc const* endpointDesc = &ifaceDesc.m_endpointTable [i];
 
+		char const* name = $"$(endpointDesc.m_endpointId; 02x)";
+
 		if (endpointDesc.m_endpointId & 0x80)
-			m_inEndpointCombo.addItem ($"$(endpointDesc.m_endpointId; 02x)", endpointDesc);
+		{
+			m_inEndpointCombo.addItem (name, endpointDesc);
+			inEnpointOptionTable [inEndpointCount].m_text = name;
+			inEnpointOptionTable [inEndpointCount].m_value = endpointDesc;
+			inEndpointCount++;
+		}
 		else
-			m_outEndpointCombo.addItem ($"$(endpointDesc.m_endpointId; 02x)", endpointDesc);
+		{
+			m_outEndpointCombo.addItem (name, endpointDesc);
+			outEnpointOptionTable [outEndpointCount].m_text = name;
+			outEnpointOptionTable [outEndpointCount].m_value = endpointDesc;
+			outEndpointCount++;
+		}
 	}
+
+	m_outEndpointProp.setOptions (outEnpointOptionTable, outEndpointCount);
+	m_inEndpointProp.setOptions (inEnpointOptionTable, inEndpointCount);
 
 	InterfaceParams params;
 	params.m_interfaceId = ifaceDesc.m_interfaceId;
@@ -414,11 +442,17 @@ UsbSession.save (doc.Storage* storage)
 UsbSession.updateProperties ()
 {
 	m_deviceProp.m_currentIndex = m_deviceCombo.m_currentIndex;
+	m_interfaceProp.m_currentIndex = m_interfaceCombo.m_currentIndex;
+	m_outEndpointProp.m_currentIndex = m_outEndpointCombo.m_currentIndex;
+	m_inEndpointProp.m_currentIndex = m_inEndpointCombo.m_currentIndex;
 }
 
 bool errorcode UsbSession.applyProperties ()
 {
 	m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
+	m_interfaceCombo.m_currentIndex = m_interfaceProp.m_currentIndex;
+	m_outEndpointCombo.m_currentIndex = m_outEndpointProp.m_currentIndex;
+	m_inEndpointCombo.m_currentIndex = m_inEndpointProp.m_currentIndex;
 	return true;
 }
 
