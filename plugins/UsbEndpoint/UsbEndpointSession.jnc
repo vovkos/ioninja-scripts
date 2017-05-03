@@ -1,6 +1,6 @@
 //..............................................................................
 //
-// USB session
+// USB Endpoint terminal session
 //
 
 import "io_usb.jncx"
@@ -9,7 +9,7 @@ import "doc_Plugin.jnc"
 
 //..............................................................................
 
-class UsbSession: doc.Session
+class UsbEndpointSession: doc.Session
 {
 protected:
 	enum State
@@ -108,7 +108,7 @@ protected:
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-UsbSession.construct (doc.PluginHost* pluginHost)
+UsbEndpointSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct(pluginHost);
 
@@ -119,7 +119,7 @@ UsbSession.construct (doc.PluginHost* pluginHost)
 	createGui ();
 }
 
-UsbSession.createGui ()
+UsbEndpointSession.createGui ()
 {
 	// toolbar
 
@@ -192,7 +192,7 @@ UsbSession.createGui ()
 	m_state = State.Closed;
 }
 
-UsbSession.onOpenDevice ()
+UsbEndpointSession.onOpenDevice ()
 {
 	if (m_state >= State.Opened)
 		closeDevice ();
@@ -200,7 +200,7 @@ UsbSession.onOpenDevice ()
 		openDevice ();
 }
 
-UsbSession.onClaimInterface ()
+UsbEndpointSession.onClaimInterface ()
 {
 	if (m_state >= State.Claimed)
 		releaseInterface ();
@@ -208,7 +208,7 @@ UsbSession.onClaimInterface ()
 		claimInterface ();
 }
 
-UsbSession.onReadEndpoint ()
+UsbEndpointSession.onReadEndpoint ()
 {
 	if (m_state >= State.Reading)
 		stopReading ();
@@ -216,7 +216,7 @@ UsbSession.onReadEndpoint ()
 		startReading ();
 }
 
-UsbSession.enumerateDevices ()
+UsbEndpointSession.enumerateDevices ()
 {
 	m_deviceCombo.clear ();
 
@@ -248,7 +248,7 @@ UsbSession.enumerateDevices ()
 	m_deviceProp.setOptions (optionTable, count);
 }
 
-bool UsbSession.openDevice ()
+bool UsbEndpointSession.openDevice ()
 {
 	if (m_deviceCombo.m_currentIndex == -1)
 		return false;
@@ -303,7 +303,7 @@ catch:
 	return false;
 }
 
-UsbSession.closeDevice ()
+UsbEndpointSession.closeDevice ()
 {
 	if (m_state == State.Closed)
 		return;
@@ -316,7 +316,7 @@ UsbSession.closeDevice ()
 	m_state = State.Closed;
 }
 
-bool UsbSession.claimInterface ()
+bool UsbEndpointSession.claimInterface ()
 {
 	if (m_interfaceCombo.m_currentIndex == -1)
 		return false;
@@ -381,7 +381,7 @@ catch:
 	return false;
 }
 
-UsbSession.releaseInterface ()
+UsbEndpointSession.releaseInterface ()
 {
 	if (m_state <= State.Opened)
 		return;
@@ -394,7 +394,7 @@ UsbSession.releaseInterface ()
 	m_state = State.Opened;
 }
 
-bool UsbSession.startReading ()
+bool UsbEndpointSession.startReading ()
 {
 	if (m_inEndpointCombo.m_currentIndex == -1)
 		return false;
@@ -415,7 +415,7 @@ catch:
 	return false;
 }
 
-UsbSession.stopReading ()
+UsbEndpointSession.stopReading ()
 {
 	if (m_state <= State.Claimed)
 		return;
@@ -427,19 +427,19 @@ UsbSession.stopReading ()
 	m_state = State.Claimed;
 }
 
-UsbSession.load (doc.Storage* storage)
+UsbEndpointSession.load (doc.Storage* storage)
 {
 	m_deviceCombo.m_currentIndex  = storage.readInt ("deviceIdx");
 	m_autoDetachKernelDriverProp.m_value = storage.readBool ("autoDetachKernelDriver");
 }
 
-UsbSession.save (doc.Storage* storage)
+UsbEndpointSession.save (doc.Storage* storage)
 {
 	storage.writeInt ("deviceIdx", (int) m_deviceCombo.m_currentIndex);
 	storage.writeBool ("autoDetachKernelDriver", m_autoDetachKernelDriverProp.m_value);
 }
 
-UsbSession.updateProperties ()
+UsbEndpointSession.updateProperties ()
 {
 	m_deviceProp.m_currentIndex = m_deviceCombo.m_currentIndex;
 	m_interfaceProp.m_currentIndex = m_interfaceCombo.m_currentIndex;
@@ -447,7 +447,7 @@ UsbSession.updateProperties ()
 	m_inEndpointProp.m_currentIndex = m_inEndpointCombo.m_currentIndex;
 }
 
-bool errorcode UsbSession.applyProperties ()
+bool errorcode UsbEndpointSession.applyProperties ()
 {
 	m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
 	m_interfaceCombo.m_currentIndex = m_interfaceProp.m_currentIndex;
@@ -456,13 +456,13 @@ bool errorcode UsbSession.applyProperties ()
 	return true;
 }
 
-UsbSession.restoreDefaultProperties ()
+UsbEndpointSession.restoreDefaultProperties ()
 {
 	m_deviceProp.m_currentIndex = 0;
 	m_autoDetachKernelDriverProp.m_value = true;
 }
 
-size_t errorcode UsbSession.transmit (
+size_t errorcode UsbEndpointSession.transmit (
 	void const* p,
 	size_t size
 	)
@@ -483,7 +483,7 @@ catch:
 	return -1;
 }
 
-UsbSession.onInEndpointEvent (io.UsbEndpointEventParams const* params)
+UsbEndpointSession.onInEndpointEvent (io.UsbEndpointEventParams const* params)
 {
 	if (params.m_syncId != m_inEndpoint.m_syncId)
 		return;
@@ -503,7 +503,7 @@ UsbSession.onInEndpointEvent (io.UsbEndpointEventParams const* params)
 	}
 }
 
-reactor UsbSession.m_uiReactor ()
+reactor UsbEndpointSession.m_uiReactor ()
 {
 	m_title = $"USB $(m_deviceCombo.m_currentText)";
 

@@ -13,8 +13,6 @@ enum UsbRecordCode
 	DeviceOpened,
 	DeviceOpenError,
 	DeviceClosed,
-	CaptureStarted,
-	CaptureStopped,
 	KernelDriverDetached,
 	InterfaceClaimed,
 	InterfaceClaimError,
@@ -23,15 +21,6 @@ enum UsbRecordCode
 	ReadingStopped,
 	EndpointOpenError,
 	IoError,
-
-	UartRtsChanged,
-	UartCtsChanged,
-	I2cEmptyMessage,
-	I2cPreemptiveStart,
-	I2cPreemptiveStop,
-	I2cCharNack,
-	SpiFramingError,
-	SpiEmptyMessage,
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -166,73 +155,6 @@ bool representUsbLog (
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
 		target.addHyperText($"IO error: $(error.m_description)");
-		break;
-
-	case UsbRecordCode.CaptureStarted:
-		char const* ifaceName = p;
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText($"Capture started on \e[34m$ifaceName\e[m interface");
-		break;
-
-	case UsbRecordCode.CaptureStopped:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText("Capture stopped");
-		break;
-
-	case UsbRecordCode.UartRtsChanged:
-		bool rts = *(bool const*) p;
-		char const* rtsString = getLineString (rts);
-
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText ($"RTS changed: $rtsString");
-		break;
-
-	case UsbRecordCode.UartCtsChanged:
-		bool dtr = *(bool const*) p;
-		char const* ctsString = getLineString (dtr);
-
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText ($"CTS changed: $ctsString");
-		break;
-
-	case UsbRecordCode.I2cEmptyMessage:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Warning;
-		target.addHyperText ("I\u00b2C empty message");
-		break;
-
-	case UsbRecordCode.I2cPreemptiveStart:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Warning;
-		target.addHyperText ("I\u00b2C preemptive start bit");
-		break;
-
-	case UsbRecordCode.I2cPreemptiveStop:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		target.addHyperText ("I\u00b2C preemptive stop bit");
-		break;
-
-	case UsbRecordCode.I2cCharNack:
-		target.m_lineAttr.m_textColor = log.StdLogColor.Rx;
-		target.m_lineAttr.m_fontFlags = gui.FontFlags.Strikeout;
-		target.addBin (log.StdRecordCode.Rx, p, size);
-		break;
-
-	case UsbRecordCode.SpiEmptyMessage:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Warning;
-		target.addHyperText ("SPI empty message");
-		break;
-
-	case UsbRecordCode.SpiFramingError:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		target.addHyperText ("SPI framing error");
 		break;
 
 	default:
