@@ -136,11 +136,11 @@ Spi.processSignal (
 		break;
 
 	case io.SpiDecodeResult.FramingError:
-		m_pluginHost.m_log.m_writer.write (timestamp, UsbRecordCode.SpiFramingError);
+		m_pluginHost.m_log.m_writer.write (timestamp, HwSerialMonRecordCode.SpiFramingError);
 		break;
 
 	case io.SpiDecodeResult.EmptyMessage:
-		m_pluginHost.m_log.m_writer.write (timestamp, UsbRecordCode.SpiEmptyMessage);
+		m_pluginHost.m_log.m_writer.write (timestamp, HwSerialMonRecordCode.SpiEmptyMessage);
 		break;
 	}
 }

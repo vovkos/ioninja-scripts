@@ -212,13 +212,13 @@ Uart.processSignal (
 	if (changedLines & Lines.Rts)
 	{
 		bool state = !(lines & Lines.Rts);
-		m_pluginHost.m_log.m_writer.write (timestamp, UsbRecordCode.UartRtsChanged, &state, sizeof (state));
+		m_pluginHost.m_log.m_writer.write (timestamp, HwSerialMonRecordCode.UartRtsChanged, &state, sizeof (state));
 	}
 
 	if (changedLines & Lines.Cts)
 	{
 		bool state = !(lines & Lines.Cts);
-		m_pluginHost.m_log.m_writer.write (timestamp, UsbRecordCode.UartCtsChanged, &state, sizeof (state));
+		m_pluginHost.m_log.m_writer.write (timestamp, HwSerialMonRecordCode.UartCtsChanged, &state, sizeof (state));
 	}
 
 	if (changedLines & Lines.Tx)
@@ -259,11 +259,11 @@ Uart.finalizeFrame (
 	switch (result)
 	{
 	case io.UartDecodeResult.FramingError:
-		writeLogIoError (timestamp, "UART framing error");
+		m_pluginHost.m_log.m_writer.write (timestamp, HwSerialMonRecordCode.UartFramingError);
 		break;
 
 	case io.UartDecodeResult.ParityError:
-		writeLogIoError (timestamp, "UART parity error");
+		m_pluginHost.m_log.m_writer.write (timestamp, HwSerialMonRecordCode.UartParityError);
 		break;
 	}
 }

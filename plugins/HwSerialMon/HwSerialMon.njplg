@@ -1,6 +1,6 @@
 //.............................................................................
 //
-// FTDI FT60x USB Board plugin
+// Hardware Serial Monitor plugin
 //
 
 [plugin]
@@ -9,22 +9,23 @@ name                  = Hardware Serial Monitor
 description           = "FTDI FT60x-powered Serial Monitor"
 id                    = hw-serialmon
 group                 = monitors
-monitor               = false
+monitor               = true
 guid                  = d6d46d35-892d-42ad-bdc2-958c83a45843
 icon                  = images/serialmon.png
 small-icon            = images/serialmon-16x16.png
 
 session-class         = HwSerialMonSession
-log-representer-func  = representUsbLog
+log-representer-func  = representHwSerialMonLog
 
 [scripts]
 
-HwSerialMonSession.jnc
-SerialIface.jnc
-Uart.jnc
-Spi.jnc
-I2c.jnc
 ../../common/io_UartSignalDecoder.jnc
 ../../common/io_SpiSignalDecoder.jnc
 ../../common/io_I2cSignalDecoder.jnc
-../Usb/UsbLog.jnc
+../UsbEndpoint/UsbLog.jnc
+Uart.jnc
+I2c.jnc
+Spi.jnc
+HwSerialMonSession.jnc
+HwSerialMonLog.jnc
+SerialIface.jnc

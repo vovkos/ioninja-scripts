@@ -109,6 +109,7 @@ protected:
 
 	gui.EnumProperty* m_deviceProp;
 	gui.EnumProperty* m_serialIfaceProp;
+	gui.BoolProperty* m_showRawDataProp;
 
 	// current serial iface
 
@@ -132,13 +133,13 @@ public:
 	override errorcode bool applyProperties ();
 	override void restoreDefaultProperties ();
 
-	override size_t errorcode transmit (
+protected:
+	enumerateDevices ();
+
+	size_t errorcode writeEp02 (
 		void const* p,
 		size_t size
 		);
-
-protected:
-	enumerateDevices ();
 
 	bool errorcode epctl (
 		uint8_t endpointId,
@@ -164,7 +165,7 @@ HwSerialMonSession.construct (doc.PluginHost* pluginHost)
 	m_spi.construct(pluginHost);
 	m_i2c.construct(pluginHost);
 
-	pluginHost.m_log.m_representerFunc = representUsbLog;
+	pluginHost.m_log.m_representerFunc = representHwSerialMonLog;
 
 	m_state = State.Closed;
 	m_epctlSeqId = sys.getTimestamp () & 0xff; // set somewhat random seq id
@@ -198,6 +199,11 @@ HwSerialMonSession.createGui ()
 		"Sniffer Device",
 		"Target USB device",
 		null, 0
+		);
+
+	m_showRawDataProp = m_pluginHost.m_propertyGrid.createBoolProperty (
+		"Show Raw Data",
+		"Show raw data packets from HW sniffer"
 		);
 
 	gui.EnumPropertyOption serialIfaceTable [] =
@@ -388,13 +394,13 @@ HwSerialMonSession.closeDevice ()
 bool errorcode HwSerialMonSession.capture ()
 {
 	static char packet [] = 0x"55 55 55 55";
-	transmit (packet, sizeof (packet));
+	writeEp02 (packet, sizeof (packet));
 	m_captureBaseTime = sys.getTimestamp ();
 
 	m_capturingSerialIface = m_serialIfaceProp.m_value;
 	m_capturingSerialIface.start ();
 
-	writeLogString (UsbRecordCode.CaptureStarted, m_capturingSerialIface.m_name);
+	writeLogString (HwSerialMonRecordCode.CaptureStarted, m_capturingSerialIface.m_name);
 	m_state = State.Capturing;
 	return true;
 }
@@ -402,12 +408,12 @@ bool errorcode HwSerialMonSession.capture ()
 bool errorcode HwSerialMonSession.stopCapture ()
 {
 	static char packet [] = 0x"aa aa aa aa";
-	transmit (packet, sizeof (packet));
+	writeEp02 (packet, sizeof (packet));
 
 	m_capturingSerialIface.stop ();
 	m_capturingSerialIface = null;
 
-	writeLog (UsbRecordCode.CaptureStopped);
+	writeLog (HwSerialMonRecordCode.CaptureStopped);
 	m_state = State.Opened;
 	return true;
 }
@@ -415,6 +421,7 @@ bool errorcode HwSerialMonSession.stopCapture ()
 HwSerialMonSession.load (doc.Storage* storage)
 {
 	m_deviceCombo.m_currentIndex  = storage.readInt ("deviceIdx");
+	m_showRawDataProp.m_value = storage.readBool ("showRawData");
 	m_serialIfaceProp.m_currentIndex  = storage.readInt ("serialInterface");
 	m_uart.loadProperties (storage);
 	m_spi.loadProperties (storage);
@@ -423,6 +430,7 @@ HwSerialMonSession.load (doc.Storage* storage)
 HwSerialMonSession.save (doc.Storage* storage)
 {
 	storage.writeInt ("deviceIdx", m_deviceCombo.m_currentIndex);
+	storage.writeBool ("showRawData", m_showRawDataProp.m_value);
 	storage.writeInt ("serialInterface", m_serialIfaceProp.m_currentIndex);
 	m_uart.saveProperties (storage);
 	m_spi.saveProperties (storage);
@@ -452,7 +460,7 @@ HwSerialMonSession.restoreDefaultProperties ()
 	m_spi.restoreDefaultProperties ();
 }
 
-size_t errorcode HwSerialMonSession.transmit (
+size_t errorcode HwSerialMonSession.writeEp02 (
 	void const* p,
 	size_t size
 	)
@@ -462,13 +470,11 @@ size_t errorcode HwSerialMonSession.transmit (
 
 	// epctl (0x02, EpctlCode.SetWriteBufferSize, WriteBufferSize);
 
-	size = m_endpoint02.write (p, size, 1000); // currently -- 1 sec timeout
-	writeLog (log.StdRecordCode.Tx, p, size);
-	return size;
+	size_t result = try m_endpoint02.write (p, size, 1000); // currently -- 1 sec timeout
+	if (result == -1)
+		writeLogLastError (UsbRecordCode.IoError);
 
-catch:
-	writeLogLastError (UsbRecordCode.IoError);
-	return -1;
+	return result;
 }
 
 HwSerialMonSession.onEndpoint82Event (io.UsbEndpointEventParams const* params)
@@ -487,6 +493,10 @@ HwSerialMonSession.onEndpoint82Event (io.UsbEndpointEventParams const* params)
 		for (; p < end; p++)
 		{
 			uint64_t timestamp = m_captureBaseTime + p.m_timestamp / 10;
+
+			if (m_showRawDataProp.m_value)
+				m_pluginHost.m_log.m_writer.write (timestamp, HwSerialMonRecordCode.RawPacket, p, sizeof (SignalEdge));
+
 			m_capturingSerialIface.processSignal (timestamp, p.m_lines);
 		}
 

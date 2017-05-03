@@ -70,22 +70,22 @@ override I2c.processSignal (
 	case io.I2cDecodeResult.CharNack:
 		m_pluginHost.m_log.m_writer.write (
 			timestamp,
-			UsbRecordCode.I2cCharNack,
+			HwSerialMonRecordCode.I2cCharNack,
 			&m_decoder.m_char,
 			1
 			);
 		break;
 
 	case io.I2cDecodeResult.PreemptiveStart:
-		m_pluginHost.m_log.m_writer.write (timestamp, UsbRecordCode.I2cPreemptiveStart);
+		m_pluginHost.m_log.m_writer.write (timestamp, HwSerialMonRecordCode.I2cPreemptiveStart);
 		break;
 
 	case io.I2cDecodeResult.PreemptiveStop:
-		m_pluginHost.m_log.m_writer.write (timestamp, UsbRecordCode.I2cPreemptiveStop);
+		m_pluginHost.m_log.m_writer.write (timestamp, HwSerialMonRecordCode.I2cPreemptiveStop);
 		break;
 
 	case io.I2cDecodeResult.EmptyMessage:
-		m_pluginHost.m_log.m_writer.write (timestamp, UsbRecordCode.I2cEmptyMessage);
+		m_pluginHost.m_log.m_writer.write (timestamp, HwSerialMonRecordCode.I2cEmptyMessage);
 		break;
 	}
 }

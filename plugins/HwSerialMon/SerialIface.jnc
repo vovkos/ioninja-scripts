@@ -48,17 +48,6 @@ public:
 		uint64_t timestamp,
 		uint16_t lines
 		);
-
-protected:
-	writeLogIoError (
-		uint64_t timestamp,
-		char const* message
-		)
-	{
-		std.setError (message);
-		std.Error const* error = std.getLastError ();
-		m_pluginHost.m_log.m_writer.write (timestamp, UsbRecordCode.IoError, error, error.m_size);
-	}
 }
 
 //..............................................................................
