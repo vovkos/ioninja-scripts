@@ -13,7 +13,6 @@ class EchoLayer: doc.Layer
 	{
 		basetype.construct (pluginHost);
 		pluginHost.m_log.attachListener (onLogRecord @ pluginHost.m_mainThreadScheduler);
-
 	}
 
 	onLogRecord (
