@@ -23,6 +23,7 @@ class Terminal
 
 opaque class MainThreadScheduler: jnc.Scheduler
 {
+	override schedule (function* f ());
 }
 
 //..............................................................................
