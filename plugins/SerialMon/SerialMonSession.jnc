@@ -114,6 +114,8 @@ SerialMonSession.createUi ()
 	for (; port; port = port.m_next)
 		m_portCombo.addItem (port.m_deviceName, null);
 
+	m_portCombo.adjustSizeToContents ();
+
 	m_actionTable [ActionId.Refresh] = createAction ("Refresh port list", "images/refresh.png");
 	m_actionTable [ActionId.Refresh].m_onTriggered += onRefresh;
 
