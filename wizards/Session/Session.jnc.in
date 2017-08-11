@@ -63,19 +63,19 @@ protected:
 public:
 	construct (doc.PluginHost* pluginHost);
 
-	bool connect () throws;
+	bool errorcode connect ();
 	disconnect ();
 
 	override void load (doc.Storage* storage);
 	override void save (doc.Storage* storage);
 	override void updateProperties ();
-	override bool applyProperties () throws;
+	override bool errorcode applyProperties ();
 	override void restoreDefaultProperties ();
 
-	override size_t transmit (
+	override size_t errorcode transmit (
 		void const* p,
 		size_t size
-		) throws;
+		);
 
 protected:
 	onConnect ();
@@ -134,12 +134,16 @@ $(sessionClass).onConnect ()
 		try	connect ();
 }
 
-bool $(sessionClass).connect () throws
+bool errorcode $(sessionClass).connect ()
 {
 	disconnect ();
 
 	char const* address = m_addressCombo.m_editText;
 	m_addressCombo.addEditTextToHistory ();
+
+	startSession ();
+
+	// connection implementation...
 
 	writeLog ($(logRecordCodeEnum).Connected, address, strlen (address));
 	m_address = strdup (address);
@@ -151,6 +155,8 @@ $(sessionClass).disconnect ()
 {
 	if (!m_state)
 		return;
+
+	// disconnection implementation...
 
 	writeLog ($(logRecordCodeEnum).Disconnected, m_address, strlen (m_address));
 	m_state = State.Closed;
@@ -171,7 +177,7 @@ void $(sessionClass).updateProperties ()
 	m_addressProp.m_value = m_addressCombo.m_editText;
 }
 
-bool $(sessionClass).applyProperties () throws
+bool errorcode $(sessionClass).applyProperties ()
 {
 	m_addressCombo.m_editText = m_addressProp.m_value;
 	return true;
@@ -182,13 +188,15 @@ void $(sessionClass).restoreDefaultProperties ()
 	m_addressProp.m_value = "remote-address";
 }
 
-size_t $(sessionClass).transmit (
+size_t errorcode $(sessionClass).transmit (
 	void const* p,
 	size_t size
-	) throws
+	)
 {
 	if (m_state != State.Connected)
 		return -1;
+
+	// transmission implementation...
 
 	writeLog (log.StdRecordCode.Tx, p, size);
 	return size;
