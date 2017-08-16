@@ -20,12 +20,20 @@ enum PipeMonLogRecordCode
 	ConnectionAccepted,
 	ConnectionClosed,
 	FileIdChanged,
+	Transaction,
 }
 
 enum PipeMonLogPartCode
 {
 	Prefix = log.PartCodeFlags.MergeableForward | 1,
 	Suffix = log.PartCodeFlags.MergeableBackward | 1,
+}
+
+struct PipeMonLogTransactionParams
+{
+	uint32_t m_fileId;
+	uint32_t m_txDataSize;
+	uint32_t m_rxDataSize;
 }
 
 //..............................................................................
@@ -116,6 +124,13 @@ bool representPipeMonLog  (
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText (PipeMonLogPartCode.Prefix, $"File \e[34m#$fileId: ");
+		break;
+
+	case PipeMonLogRecordCode.Transaction:
+		PipeMonLogTransactionParams const* params = (PipeMonLogTransactionParams const*) p;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.TxRx;
+		target.m_lineAttr.m_backColor = gui.StdColor.PastelGray;
+		target.addHyperText (PipeMonLogPartCode.Prefix, $"Pipe transaction: TX: $(params.m_txDataSize)B; RX: $(params.m_rxDataSize)B");
 		break;
 
 	default:

@@ -292,6 +292,31 @@ PipeMonSession.onReadyRead (uint_t syncId)
 			params.m_dataSize
 			);
 		break;
+
+	case io.NamedPipeMonEventCode.Transaction:
+		if (!params.m_dataSize)
+			break;
+
+		PipeMonLogTransactionParams transactionParams;
+		transactionParams.m_fileId  = m_fileIdMgr.getHiFileId (params.m_fileId);
+		transactionParams.m_txDataSize = params.m_dataSize;
+		transactionParams.m_rxDataSize = params.m_auxDataSize;
+
+		void* logParams = memcat (
+			&transactionParams,
+			sizeof (transactionParams),
+			params.m_data,
+			params.m_dataSize
+			);
+
+		setFileId (params.m_fileId);
+		m_pluginHost.m_log.m_writer.write (
+			params.m_timestamp,
+			PipeMonLogRecordCode.Transaction,
+			logParams,
+			dynamic sizeof (logParams)
+			);
+		break;
 	}
 }
 
