@@ -64,6 +64,7 @@ protected:
 	// property grid
 
 	gui.StringProperty* m_pipeNameProp;
+	gui.EnumProperty* m_pipeModeProp;
 	gui.BoolProperty* m_overrideOldConnectionProp;
 
 public:
@@ -134,9 +135,22 @@ PipeListenerSession.createUi ()
 
 	// property grid
 
+	static gui.EnumPropertyOption pipeModeTable [] =
+	{
+		{ "Stream",  io.NamedPipeMode.Stream },
+		{ "Message", io.NamedPipeMode.Message },
+	}
+
 	m_pipeNameProp = m_pluginHost.m_propertyGrid.createStringProperty (
 		"Pipe name",
 		"Specify pipe name to listen on"
+		);
+
+	m_pipeModeProp =  m_pluginHost.m_propertyGrid.createEnumProperty (
+		"Pipe mode",
+		"Specify pipe IO mode",
+		pipeModeTable,
+		countof (pipeModeTable)
 		);
 
 	m_overrideOldConnectionProp = m_pluginHost.m_propertyGrid.createBoolProperty (
@@ -163,7 +177,7 @@ bool errorcode PipeListenerSession.listen ()
 	m_pipeNameCombo.addEditTextToHistory ();
 
 	char const* name = m_pipeNameCombo.m_editText;
-	m_listenerPipe.open (name);
+	m_listenerPipe.open (name, m_pipeModeProp.m_value);
 
 	writeLog (
 		PipeListenerLogRecordCode.Listening,
@@ -217,12 +231,14 @@ PipeListenerSession.disconnect ()
 void PipeListenerSession.load (doc.Storage* storage)
 {
 	m_pipeNameCombo.m_editText = storage.readString ("pipeName");
+	m_pipeModeProp.m_value = storage.readInt ("pipeMode");
 	m_overrideOldConnectionProp.m_value = storage.readBool ("overrideOldConnection");
 }
 
 void PipeListenerSession.save (doc.Storage* storage)
 {
 	storage.writeString ("pipeName", m_pipeNameCombo.m_editText);
+	storage.writeInt ("pipeMode", m_pipeModeProp.m_value);
 	storage.writeBool ("overrideOldConnection", m_overrideOldConnectionProp.m_value);
 }
 
