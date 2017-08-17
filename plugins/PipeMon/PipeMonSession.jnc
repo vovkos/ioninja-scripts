@@ -299,23 +299,32 @@ PipeMonSession.onReadyRead (uint_t syncId)
 
 		PipeMonLogTransactionParams transactionParams;
 		transactionParams.m_fileId  = m_fileIdMgr.getHiFileId (params.m_fileId);
-		transactionParams.m_txDataSize = params.m_dataSize;
-		transactionParams.m_rxDataSize = params.m_auxDataSize;
-
-		void* logParams = memcat (
-			&transactionParams,
-			sizeof (transactionParams),
-			params.m_data,
-			params.m_dataSize
-			);
+		transactionParams.m_txDataSize = params.m_auxSize <= params.m_dataSize ? params.m_auxSize : params.m_dataSize;
+		transactionParams.m_rxDataSize = params.m_dataSize - transactionParams.m_txDataSize;
 
 		setFileId (params.m_fileId);
 		m_pluginHost.m_log.m_writer.write (
 			params.m_timestamp,
 			PipeMonLogRecordCode.Transaction,
-			logParams,
-			dynamic sizeof (logParams)
+			&transactionParams,
+			 sizeof (transactionParams)
 			);
+
+		if (transactionParams.m_txDataSize)
+			m_pluginHost.m_log.m_writer.write (
+				params.m_timestamp,
+				log.StdRecordCode.Tx,
+				params.m_data,
+				transactionParams.m_txDataSize
+				);
+
+		if (transactionParams.m_rxDataSize)
+			m_pluginHost.m_log.m_writer.write (
+				params.m_timestamp,
+				log.StdRecordCode.Rx,
+				params.m_data + transactionParams.m_txDataSize,
+				transactionParams.m_rxDataSize
+				);
 		break;
 	}
 }

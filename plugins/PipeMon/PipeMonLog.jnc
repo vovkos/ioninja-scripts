@@ -19,8 +19,8 @@ enum PipeMonLogRecordCode
 	FileClosed,
 	ConnectionAccepted,
 	ConnectionClosed,
-	FileIdChanged,
 	Transaction,
+	FileIdChanged,
 }
 
 enum PipeMonLogPartCode
@@ -119,18 +119,18 @@ bool representPipeMonLog  (
 		target.addHyperText (PipeMonLogPartCode.Suffix, "Connection closed");
 		break;
 
+	case PipeMonLogRecordCode.Transaction:
+		PipeMonLogTransactionParams const* params = (PipeMonLogTransactionParams const*) p;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.TxRx;
+		target.m_lineAttr.m_backColor = gui.StdColor.PastelGray;
+		target.addHyperText (PipeMonLogPartCode.Suffix, $"Pipe transaction: TX: \e[34m$(params.m_txDataSize)\e[m B; RX: \e[34m$(params.m_rxDataSize)\e[m B");
+		break;
+
 	case PipeMonLogRecordCode.FileIdChanged:
 		uint32_t fileId = *(uint32_t const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText (PipeMonLogPartCode.Prefix, $"File \e[34m#$fileId: ");
-		break;
-
-	case PipeMonLogRecordCode.Transaction:
-		PipeMonLogTransactionParams const* params = (PipeMonLogTransactionParams const*) p;
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.TxRx;
-		target.m_lineAttr.m_backColor = gui.StdColor.PastelGray;
-		target.addHyperText (PipeMonLogPartCode.Prefix, $"Pipe transaction: TX: $(params.m_txDataSize)B; RX: $(params.m_rxDataSize)B");
 		break;
 
 	default:
