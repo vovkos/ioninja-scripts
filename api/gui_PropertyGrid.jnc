@@ -30,6 +30,9 @@ opaque class IntProperty: Property
 	construct (char const* name);
 
 	int autoget bindable property m_value;
+	int autoget property m_minValue;
+	int autoget property m_maxValue;
+	int autoget property m_spinBoxStep;
 }
 
 //..............................................................................
