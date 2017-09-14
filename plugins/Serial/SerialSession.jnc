@@ -48,6 +48,17 @@ protected:
 		_Count,
 	}
 
+	enum Defaults
+	{
+		BaudRate       = 38400,
+		DataBits       = 8,
+		StopBits       = io.SerialStopBits._1,
+		Parity         = io.SerialParity.None,
+		FlowControl    = io.SerialFlowControl.None,
+		InterCharDelay = 200,
+		ReadBufferSize = 4 * 1024,
+	}
+
 protected:
 	// serial port
 
@@ -58,6 +69,8 @@ protected:
 	uint_t bindable m_serialStatusLines;
 	bool bindable m_serialDtr;
 	bool bindable m_serialRts;
+	void* m_readBuffer;
+	size_t m_readBufferSize;
 
 	// inter-char delay
 
@@ -85,6 +98,7 @@ protected:
 	gui.EnumProperty* m_parityProp;
 	gui.BoolProperty* m_useInterCharDelayProp;
 	gui.IntProperty* m_interCharDelayProp;
+	gui.IntProperty* m_readBufferSizeProp;
 
 	// filter property grid
 
@@ -155,6 +169,9 @@ SerialSession.construct (doc.PluginHost* pluginHost)
 
 	m_state = State.Closed;
 	m_serial.m_onSerialEvent += onSerialEvent @ pluginHost.m_mainThreadScheduler;
+
+	m_readBuffer = try new char [Defaults.ReadBufferSize];
+	m_readBufferSize = Defaults.ReadBufferSize;
 
 	createUi ();
 }
@@ -328,6 +345,14 @@ SerialSession.createUi ()
 		"Transmission inter-character delay (in millisceonds)"
 		);
 
+	m_readBufferSizeProp = m_pluginHost.m_propertyGrid.createIntProperty (
+		"RX buffer size (B)",
+		"Size of the read buffer (affects throughput)"
+		);
+
+	m_readBufferSizeProp.m_minValue = 1;
+	m_readBufferSizeProp.m_spinBoxStep = 1024; // 1K step
+
 	// filter
 
 	m_settingChangedVisibleProp = m_pluginHost.m_propertyGrid.createBoolProperty (
@@ -458,17 +483,23 @@ SerialSession.close ()
 void SerialSession.load (doc.Storage* storage)
 {
 	m_portCombo.m_editText = storage.readString ("portName");
-	m_baudRateCombo.m_currentIndex = storage.readInt ("baudRate");
-	m_dataBitsProp.m_currentIndex = storage.readInt ("dataBits");
+	m_baudRateCombo.m_currentIndex = storage.readInt ("baudRate", 9); // 38400
+	m_dataBitsProp.m_currentIndex = storage.readInt ("dataBits", 1);  // 8-bits by default
 	m_stopBitsProp.m_currentIndex = storage.readInt ("stopBits");
 	m_flowControlCombo.m_currentIndex = storage.readInt ("flowControl");
 	m_parityProp.m_currentIndex = storage.readInt ("parity");
-	m_useInterCharDelayProp.m_value = storage.readBool ("useInterCharDelay");
-	m_interCharDelayProp.m_value = storage.readInt ("interCharDelay", 200);
+	m_useInterCharDelayProp.m_value = storage.readBool ("useInterCharDelay", false);
+	m_interCharDelayProp.m_value = storage.readInt ("interCharDelay", Defaults.InterCharDelay);
+	m_readBufferSizeProp.m_value = storage.readInt ("readBufferSize", Defaults.ReadBufferSize);
 
 	m_logFilter.m_isSettingChangedVisible = storage.readBool ("isSettingChangedVisible", true);
 	m_logFilter.m_isControlLineChangedVisible = storage.readBool ("isControlLineChangedVisible", true);
 	m_logFilter.m_isStatusLineChangedVisible = storage.readBool ("isStatusLineChangedVisible", true);
+
+	if (dynamic sizeof (m_readBuffer) < m_readBufferSizeProp.m_value)
+		m_readBuffer = new char [m_readBufferSizeProp.m_value];
+
+	m_readBufferSize = m_readBufferSizeProp.m_value;
 }
 
 void SerialSession.save (doc.Storage* storage)
@@ -481,6 +512,7 @@ void SerialSession.save (doc.Storage* storage)
 	storage.writeInt ("parity", m_parityProp.m_currentIndex);
 	storage.writeBool ("useInterCharDelay", m_useInterCharDelayProp.m_value);
 	storage.writeInt ("interCharDelay", m_interCharDelayProp.m_value);
+	storage.writeInt ("readBufferSize", m_readBufferSizeProp.m_value);
 
 	storage.writeBool ("isSettingChangedVisible", m_logFilter.m_isSettingChangedVisible);
 	storage.writeBool ("isControlLineChangedVisible", m_logFilter.m_isControlLineChangedVisible);
@@ -507,6 +539,11 @@ bool errorcode SerialSession.applyProperties ()
 	m_logFilter.m_isSettingChangedVisible = m_settingChangedVisibleProp.m_value;
 	m_logFilter.m_isControlLineChangedVisible = m_controlLineChangedVisibleProp.m_value;
 	m_logFilter.m_isStatusLineChangedVisible = m_statusLineChangedVisibleProp.m_value;
+
+	if (dynamic sizeof (m_readBuffer) < m_readBufferSizeProp.m_value)
+		m_readBuffer = new char [m_readBufferSizeProp.m_value];
+
+	m_readBufferSize = m_readBufferSizeProp.m_value;
 
 	if (m_state != State.Opened)
 		return true;
@@ -543,13 +580,14 @@ bool errorcode SerialSession.applyProperties ()
 void SerialSession.restoreDefaultProperties ()
 {
 	m_portProp.m_value = m_portCombo.m_itemText [0];
-	m_baudRateProp.m_value = 38400;
-	m_flowControlProp.m_value = io.SerialFlowControl.None;
-	m_dataBitsProp.m_value = 8;
-	m_stopBitsProp.m_value = io.SerialStopBits._1;
-	m_parityProp.m_value = io.SerialParity.None;
+	m_baudRateProp.m_value = Defaults.BaudRate;
+	m_flowControlProp.m_value = Defaults.FlowControl;
+	m_dataBitsProp.m_value = Defaults.DataBits;
+	m_stopBitsProp.m_value = Defaults.StopBits;
+	m_parityProp.m_value = Defaults.Parity;
 	m_useInterCharDelayProp.m_value = false;
-	m_interCharDelayProp.m_value = 200;
+	m_interCharDelayProp.m_value = Defaults.InterCharDelay;
+	m_readBufferSizeProp.m_value = Defaults.ReadBufferSize;
 
 	m_settingChangedVisibleProp.m_value = true;
 	m_controlLineChangedVisibleProp.m_value = true;
@@ -632,10 +670,16 @@ SerialSession.onSerialEvent (io.SerialEventParams const* params)
 	switch (params.m_eventCode)
 	{
 	case io.SerialEventCode.IncomingData:
-		static char buffer [512];
-		size_t result = try m_serial.read (buffer, sizeof (buffer));
+		size_t result = try m_serial.read (m_readBuffer, m_readBufferSize);
+
+		printf (
+			"io.SerialEventCode.IncomingData: dynamic sizeof (m_readBuffer) = %d; result = %d\n",
+			dynamic sizeof (m_readBuffer),
+			result
+			);
+
 		if (result != -1)
-			writeLog (log.StdRecordCode.Rx, buffer, result);
+			writeLog (log.StdRecordCode.Rx, m_readBuffer, result);
 		break;
 
 	case io.SerialEventCode.StatusLineChanged:
