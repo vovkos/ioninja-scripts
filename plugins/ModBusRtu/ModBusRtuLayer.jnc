@@ -5,6 +5,7 @@
 
 import "io_ModBus.jnc"
 import "doc_Plugin.jnc"
+import "std_Buffer.jnc"
 import "crc16.jnc"
 
 //..............................................................................
@@ -25,8 +26,7 @@ class ModBusRtuLayer:
 protected:
 	uint_t m_lastRecordCode;
 	uint64_t m_lastRecordTimestamp;
-	void const* m_dataBuffer;
-	size_t m_dataSize;
+	std.Buffer m_dataBuffer;
 
 public:
 	construct (doc.PluginHost* pluginHost);
@@ -35,16 +35,6 @@ public:
 		log.Writer* writer,
 		uint64_t timestamp,
 		uint_t recordCode,
-		void const* p,
-		size_t size
-		);
-
-protected:
-	bool convertImpl (
-		log.Writer* writer,
-		uint64_t timestamp,
-		uint_t recordCode,
-		io.ModBusRole role,
 		void const* p,
 		size_t size
 		);
@@ -71,89 +61,68 @@ bool ModBusRtuLayer.convert (
 {
 	bool result;
 	io.ModBusRole role;
+	ModBusRtuLogRecordCode packetRecordeCode;
 
 	switch (recordCode)
 	{
 	case log.StdRecordCode.Tx:
 		role = io.ModBusRole.Master;
+		packetRecordeCode = ModBusRtuLogRecordCode.MasterPacket;
 		break;
 
 	case log.StdRecordCode.Rx:
 		role = io.ModBusRole.Slave;
+		packetRecordeCode = ModBusRtuLogRecordCode.SlavePacket;
 		break;
 
 	default:
 		return false;
 	}
 
-	bool isNewFrame =
-		recordCode != m_lastRecordCode ||
-		(timestamp - m_lastRecordTimestamp) >= MinInterFrameDelay;
+	bool isNewFrame = false;
 
-	if (isNewFrame)
+	if (recordCode != m_lastRecordCode)
 	{
-		result = convertImpl (writer, timestamp, recordCode, role, p, size);
-		if (result)
-		{
-			m_dataBuffer = null;
-			m_dataSize = 0;
-		}
-		else // save for possible frame continuation...
-		{
-			m_dataBuffer = memdup (p, size);
-			m_dataSize = size;
-		}
+		isNewFrame = true;
 	}
-	else
+	else if (timestamp - m_lastRecordTimestamp >= MinInterFrameDelay)
 	{
-		m_dataBuffer = memcat (m_dataBuffer, m_dataSize, p, size);
-		m_dataSize += size;
-
-		result = convertImpl (writer, timestamp, recordCode, role, m_dataBuffer, m_dataSize);
-		if (result)
-		{
-			m_dataBuffer = null;
-			m_dataSize = 0;
-		}
+		isNewFrame = true;
+		writer.write (log.StdRecordCode.Break);
 	}
 
-	m_lastRecordCode = recordCode;
-	m_lastRecordTimestamp = timestamp;
-	return result;
-}
+	if (isNewFrame) // drop the previous data (if any)
+		m_dataBuffer.clear ();
 
-bool ModBusRtuLayer.convertImpl (
-	log.Writer* writer,
-	uint64_t timestamp,
-	uint_t recordCode,
-	io.ModBusRole role,
-	void const* p,
-	size_t size
-	)
-{
-	io.ModBusRtuAduHdr const* aduHdr = (io.ModBusRtuAduHdr const*) p;
-	size_t aduSize = io.getModBusRtuAduSize (role, aduHdr, size);
+	m_lastRecordCode = 0;
+	m_dataBuffer.append (p, size);
 
-	if (aduSize == -1 || size < aduSize)
+	io.ModBusRtuAduHdr const* aduHdr = (io.ModBusRtuAduHdr const*) m_dataBuffer.m_p;
+	size_t aduSize = io.getModBusRtuAduSize (role, aduHdr, m_dataBuffer.m_size);
+	if (aduSize == -1)
+	{
+		uint8_t code = *(uint8_t const*) (aduHdr + 1);
+		writer.write (timestamp, ModBusRtuLogRecordCode.InvalidFunction, &code, sizeof (code));
+		return false; // unknown or unsupported function
+	}
+
+	if (m_dataBuffer.m_size < aduSize) // wait for the next chunk of data
+	{
+		m_lastRecordCode = recordCode;
+		m_lastRecordTimestamp = timestamp;
 		return false;
+	}
 
-	size_t checksumOffset = aduSize - sizeof (uint16_t);
-	uint16_t correctChecksum = crc16_ansi (p, checksumOffset, 0xffff);
-	uint16_t actualChecksum = *(uint16_t const*) (p + checksumOffset);
+	writer.write (timestamp, recordCode, p, size); // actual data first
+	writer.write (timestamp, packetRecordeCode, aduHdr, aduSize);
 
-	if (actualChecksum != correctChecksum)
-		return false;
-
-	writer.write (timestamp, recordCode, p, size);
-
-	ModBusRtuLogPacket packet;
-	packet.m_role = role;
-	packet.m_deviceAddress = aduHdr.m_deviceAddress;
-	packet.m_checksum = actualChecksum;
-
-	size_t pduSize = aduSize - sizeof (io.ModBusRtuAduHdr) - sizeof (uint16_t);
-	void const* params = memcat (&packet, sizeof (packet), aduHdr + 1, pduSize);
-	writer.write (timestamp, ModBusRtuLogRecordCode.Packet, params, sizeof (packet) + pduSize);
+	if (m_dataBuffer.m_size > aduSize)
+		writer.write (
+			timestamp,
+			recordCode,
+			m_dataBuffer.m_p + aduSize,
+			m_dataBuffer.m_size - aduSize
+			);
 
 	return true;
 }

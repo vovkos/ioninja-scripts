@@ -221,7 +221,7 @@ size_t getModBusPduSize (
 	)
 {
 	if (size < sizeof (ModBusPduHdr))
-		return -1;
+		return sizeof (ModBusPduHdr);
 
 	switch (pduHdr.m_func)
 	{
@@ -229,35 +229,24 @@ size_t getModBusPduSize (
 	case io.ModBusFunc.ReadDiscreteInputs:
 	case io.ModBusFunc.ReadHoldingRegisters:
 	case io.ModBusFunc.ReadInputRegisters:
-		if (role == ModBusRole.Master)
-			return size >= sizeof (ModBusReadPdu) ? sizeof (ModBusReadPdu) : -1;
-
-		if (size < sizeof (ModBusReadReplyPdu))
-			return -1;
-
-		ModBusReadReplyPdu const* replyPdu = (ModBusReadReplyPdu const*) pduHdr;
-		size_t pduSize = sizeof (ModBusReadReplyPdu) + replyPdu.m_size;
-
-		return size >= pduSize ? pduSize : -1;
+		return
+			role == ModBusRole.Master ? sizeof (ModBusReadPdu) :
+			size < sizeof (ModBusReadReplyPdu) ? sizeof (ModBusReadReplyPdu) :
+			sizeof (ModBusReadReplyPdu) + ((ModBusReadReplyPdu const*) pduHdr).m_size;
 
 	case io.ModBusFunc.WriteCoil:
 	case io.ModBusFunc.WriteRegister:
-		return size >= sizeof (ModBusWritePdu) ? sizeof (ModBusWritePdu) : -1;
+		return sizeof (ModBusWritePdu);
 
 	case io.ModBusFunc.WriteMultipleCoils:
 	case io.ModBusFunc.WriteMultipleRegisters:
-		if (role == ModBusRole.Slave)
-			return size >= sizeof (ModBusWriteMultipleReplyPdu) ? sizeof (ModBusWriteMultipleReplyPdu) : -1;
-
-		if (size < sizeof (ModBusWriteMultiplePdu))
-			return -1;
-
-		ModBusWriteMultiplePdu const* pdu = (ModBusWriteMultiplePdu const*) pduHdr;
-		size_t pduSize = sizeof (ModBusWriteMultiplePdu) + pdu.m_size;
-		return size >= pduSize ? pduSize : -1;
+		return
+			role == ModBusRole.Slave ? sizeof (ModBusWriteMultipleReplyPdu) :
+			size < sizeof (ModBusWriteMultiplePdu) ? sizeof (ModBusWriteMultiplePdu) :
+			sizeof (ModBusWriteMultiplePdu) + ((ModBusWriteMultiplePdu const*) pduHdr).m_size;
 
 	case io.ModBusFunc.MaskWriteRegister:
-		return size >= sizeof (ModBusMaskWritePdu) ? sizeof (ModBusMaskWritePdu) : -1;
+		return sizeof (ModBusMaskWritePdu);
 
 	case io.ModBusFunc.ReadExceptionStatus:
 	case io.ModBusFunc.Diagnostics:
@@ -272,9 +261,9 @@ size_t getModBusPduSize (
 		return -1; // not yet supported
 
 	default:
-		return (pduHdr.m_func & ModBusFunc.ExceptionFlag) && size >= sizeof (ModBusExceptionPdu) ?
+		return (pduHdr.m_func & ModBusFunc.ExceptionFlag) ?
 			sizeof (ModBusExceptionPdu) :
-			-1;
+			-1; // unknown function code
 	}
 }
 
@@ -300,15 +289,11 @@ size_t getModBusRtuAduSize (
 	)
 {
 	if (size < sizeof (ModBusRtuAduHdr))
-		return -1;
+		return sizeof (ModBusRtuAduHdr);
 
 	ModBusPduHdr const* pduHdr = (ModBusPduHdr const*) (aduHdr + 1);
 	size_t pduSize = getModBusPduSize (role, pduHdr, size - sizeof (ModBusRtuAduHdr));
-	if (pduSize == -1)
-		return -1;
-
-	size_t aduSize = pduSize + sizeof (uint8_t) + sizeof (uint16_t);
-	return size >= aduSize ? aduSize : -1;
+	return pduSize != -1 ? pduSize + sizeof (uint8_t) + sizeof (uint16_t) : -1;
 }
 
 //..............................................................................
