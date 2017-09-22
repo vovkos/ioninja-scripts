@@ -127,6 +127,8 @@ $(highlighterClass).scan (
 
 	do
 	{
+		length = end - p;
+	
 		switch (m_stickyMode)
 		{
 		case StickyMode.None:
