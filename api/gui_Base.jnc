@@ -47,6 +47,15 @@ enum StdColor
 	PastelPurple = 0xe2dafd,
 }
 
+uint_t rgb (
+	uint8_t r,
+	uint8_t g,
+	uint8_t b
+	)
+{
+	return (r << 16) + (g << 8) + b;
+}
+
 //..............................................................................
 
 // text
