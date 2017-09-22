@@ -16,6 +16,18 @@ opaque class Property
 
 //..............................................................................
 
+opaque class GroupProperty: Property
+{
+	construct (char const* name);
+
+	addProperty (
+		Property* prop,
+		Property* beforeProp = null
+		);
+}
+
+//..............................................................................
+
 opaque class BoolProperty: Property
 {
 	construct (char const* name);
@@ -84,35 +96,72 @@ opaque class EnumProperty: Property
 
 //..............................................................................
 
-opaque class GroupProperty: Property
+struct FlagPropertyOption
+{
+	char const* m_text;
+	uint_t m_value;
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+opaque class FlagProperty: Property
+{
+	uint_t autoget bindable property m_value;
+
+	construct (char const* name);
+	destruct ();
+
+	setOptions (
+		FlagPropertyOption const* optionArray,
+		size_t count
+		);
+}
+
+//..............................................................................
+
+opaque class ColorProperty: Property
 {
 	construct (char const* name);
 
-	addProperty (Property* prop);
+	uint_t autoget bindable property m_value;
+}
+
+//..............................................................................
+
+opaque class ActionProperty: Property
+{
+	construct (char const* name);
+
+	function* m_onAction ();
 }
 
 //..............................................................................
 
 opaque class PropertyGrid
 {
-	addProperty (Property* prop);
-
-	GroupProperty* createGroupProperty (
-		GroupProperty* group,
-		char const* name,
-		char const* toolTipText
+	addProperty (
+		Property* prop,
+		Property* beforeProp = null
 		);
 
 	GroupProperty* createGroupProperty (
+		GroupProperty* group = null,
+		Property* beforeProp = null,
+		char const* name,
+		char const* toolTipText
+		);
+
+	GroupProperty* createGroupProperty (
 		char const* name,
 		char const* toolTipText
 		)
 	{
-		return createGroupProperty (null, name, toolTipText);
+		return createGroupProperty (,, name, toolTipText);
 	}
 
 	BoolProperty* createBoolProperty (
-		GroupProperty* group,
+		GroupProperty* group = null,
+		Property* beforeProp = null,
 		char const* name,
 		char const* toolTipText
 		);
@@ -122,11 +171,12 @@ opaque class PropertyGrid
 		char const* toolTipText
 		)
 	{
-		return createBoolProperty (null, name, toolTipText);
+		return createBoolProperty (,, name, toolTipText);
 	}
 
 	IntProperty* createIntProperty (
-		GroupProperty* group,
+		GroupProperty* group = null,
+		Property* beforeProp = null,
 		char const* name,
 		char const* toolTipText
 		);
@@ -136,11 +186,12 @@ opaque class PropertyGrid
 		char const* toolTipText
 		)
 	{
-		return createIntProperty (null, name, toolTipText);
+		return createIntProperty (,, name, toolTipText);
 	}
 
 	StringProperty* createStringProperty (
-		GroupProperty* group,
+		GroupProperty* group = null,
+		Property* beforeProp = null,
 		char const* name,
 		char const* toolTipText
 		);
@@ -150,11 +201,12 @@ opaque class PropertyGrid
 		char const* toolTipText
 		)
 	{
-		return createStringProperty (null, name, toolTipText);
+		return createStringProperty (,, name, toolTipText);
 	}
 
 	EnumProperty* createEnumProperty (
-		GroupProperty* group,
+		GroupProperty* group = null,
+		Property* beforeProp = null,
 		char const* name,
 		char const* toolTipText,
 		EnumPropertyOption const* optionArray,
@@ -168,7 +220,56 @@ opaque class PropertyGrid
 		size_t count
 		)
 	{
-		return createEnumProperty (null, name, toolTipText, optionArray, count);
+		return createEnumProperty (,, name, toolTipText, optionArray, count);
+	}
+
+	FlagProperty* createFlagProperty (
+		GroupProperty* group = null,
+		Property* beforeProp = null,
+		char const* name,
+		char const* toolTipText,
+		FlagPropertyOption const* optionArray,
+		size_t count
+		);
+
+	FlagProperty* createFlagProperty (
+		char const* name,
+		char const* toolTipText,
+		FlagPropertyOption const* optionArray,
+		size_t count
+		)
+	{
+		return createFlagProperty (,, name, toolTipText, optionArray, count);
+	}
+
+	ColorProperty* createColorProperty (
+		GroupProperty* group = null,
+		Property* beforeProp = null,
+		char const* name,
+		char const* toolTipText
+		);
+
+	ColorProperty* createColorProperty (
+		char const* name,
+		char const* toolTipText
+		)
+	{
+		return createColorProperty (,, name, toolTipText);
+	}
+
+	ActionProperty* createActionProperty (
+		GroupProperty* group = null,
+		Property* beforeProp = null,
+		char const* name,
+		char const* toolTipText
+		);
+
+	ActionProperty* createActionProperty (
+		char const* name,
+		char const* toolTipText
+		)
+	{
+		return createActionProperty (,, name, toolTipText);
 	}
 }
 
@@ -176,6 +277,7 @@ opaque class PropertyGrid
 
 GroupProperty* PropertyGrid.createGroupProperty (
 	GroupProperty* group,
+	Property* beforeProp,
 	char const* name,
 	char const* toolTipText
 	)
@@ -183,14 +285,15 @@ GroupProperty* PropertyGrid.createGroupProperty (
 	GroupProperty* prop = new GroupProperty (name);
 	prop.m_toolTipText = toolTipText;
 	if (group)
-		group.addProperty (prop);
+		group.addProperty (prop, beforeProp);
 	else
-		addProperty (prop);
+		addProperty (prop, beforeProp);
 	return prop;
 }
 
 BoolProperty* PropertyGrid.createBoolProperty (
 	GroupProperty* group,
+	Property* beforeProp,
 	char const* name,
 	char const* toolTipText
 	)
@@ -198,14 +301,15 @@ BoolProperty* PropertyGrid.createBoolProperty (
 	BoolProperty* prop = new BoolProperty (name);
 	prop.m_toolTipText = toolTipText;
 	if (group)
-		group.addProperty (prop);
+		group.addProperty (prop, beforeProp);
 	else
-		addProperty (prop);
+		addProperty (prop, beforeProp);
 	return prop;
 }
 
 IntProperty* PropertyGrid.createIntProperty (
 	GroupProperty* group,
+	Property* beforeProp,
 	char const* name,
 	char const* toolTipText
 	)
@@ -213,14 +317,15 @@ IntProperty* PropertyGrid.createIntProperty (
 	IntProperty* prop = new IntProperty (name);
 	prop.m_toolTipText = toolTipText;
 	if (group)
-		group.addProperty (prop);
+		group.addProperty (prop, beforeProp);
 	else
-		addProperty (prop);
+		addProperty (prop, beforeProp);
 	return prop;
 }
 
 StringProperty* PropertyGrid.createStringProperty (
 	GroupProperty* group,
+	Property* beforeProp,
 	char const* name,
 	char const* toolTipText
 	)
@@ -228,14 +333,15 @@ StringProperty* PropertyGrid.createStringProperty (
 	StringProperty* prop = new StringProperty (name);
 	prop.m_toolTipText = toolTipText;
 	if (group)
-		group.addProperty (prop);
+		group.addProperty (prop, beforeProp);
 	else
-		addProperty (prop);
+		addProperty (prop, beforeProp);
 	return prop;
 }
 
 EnumProperty* PropertyGrid.createEnumProperty (
 	GroupProperty* group,
+	Property* beforeProp,
 	char const* name,
 	char const* toolTipText,
 	EnumPropertyOption const* optionArray,
@@ -246,9 +352,60 @@ EnumProperty* PropertyGrid.createEnumProperty (
 	prop.m_toolTipText = toolTipText;
 	prop.setOptions (optionArray, count);
 	if (group)
-		group.addProperty (prop);
+		group.addProperty (prop, beforeProp);
 	else
-		addProperty (prop);
+		addProperty (prop, beforeProp);
+	return prop;
+}
+
+FlagProperty* PropertyGrid.createFlagProperty (
+	GroupProperty* group,
+	Property* beforeProp,
+	char const* name,
+	char const* toolTipText,
+	FlagPropertyOption const* optionArray,
+	size_t count
+	)
+{
+	FlagProperty* prop = new FlagProperty (name);
+	prop.m_toolTipText = toolTipText;
+	prop.setOptions (optionArray, count);
+	if (group)
+		group.addProperty (prop, beforeProp);
+	else
+		addProperty (prop, beforeProp);
+	return prop;
+}
+
+ColorProperty* PropertyGrid.createColorProperty (
+	GroupProperty* group,
+	Property* beforeProp,
+	char const* name,
+	char const* toolTipText
+	)
+{
+	ColorProperty* prop = new ColorProperty (name);
+	prop.m_toolTipText = toolTipText;
+	if (group)
+		group.addProperty (prop, beforeProp);
+	else
+		addProperty (prop, beforeProp);
+	return prop;
+}
+
+ActionProperty* PropertyGrid.createActionProperty (
+	GroupProperty* group,
+	Property* beforeProp,
+	char const* name,
+	char const* toolTipText
+	)
+{
+	ActionProperty* prop = new ActionProperty (name);
+	prop.m_toolTipText = toolTipText;
+	if (group)
+		group.addProperty (prop, beforeProp);
+	else
+		addProperty (prop, beforeProp);
 	return prop;
 }
 
