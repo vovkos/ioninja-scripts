@@ -6,6 +6,7 @@
 import "io_base.jncx"
 import "io_ssh.jncx"
 import "io_Socket.jnc"
+import "io_MappedFile.jnc"
 import "io_SocketAddressResolver.jnc"
 import "doc_Plugin.jnc"
 import "gui_Dialog.jnc"
@@ -73,7 +74,8 @@ protected:
 
 	gui.StringProperty* m_addressProp;
 	gui.StringProperty* m_userNameProp;
-	gui.StringProperty* m_passwordProp;
+	gui.EnumProperty* m_authenticationMethodProp;
+	gui.FileProperty* m_privateKeyFileProp;
 	gui.StringProperty* m_channelTypeProp;
 	gui.StringProperty* m_processTypeProp;
 	gui.StringProperty* m_ptyTypeProp;
@@ -164,12 +166,26 @@ SshChannelSession.createUi ()
 		"User name for SSH authentification"
 		);
 
-	m_passwordProp = m_pluginHost.m_propertyGrid.createStringProperty (
-		"Password",
-		"Password for SSH authentification"
+	static gui.EnumPropertyOption authenticationMethodTable [] =
+	{
+		{ "Password",    gui.AuthenticationMethod.Password },
+		{ "Private key", gui.AuthenticationMethod.PrivateKey },
+	}
+
+	m_authenticationMethodProp = m_pluginHost.m_propertyGrid.createEnumProperty (
+		"User authentication",
+		"How to authentify a user (password / private key)",
+		authenticationMethodTable,
+		countof (authenticationMethodTable)
 		);
 
-	m_passwordProp.m_isPassword = true;
+	m_privateKeyFileProp = m_pluginHost.m_propertyGrid.createFileProperty (
+		"Private key file",
+		"Private key file (PEM) for SSH authentification"
+		);
+
+	m_privateKeyFileProp.m_fileDialogCaption = "Select Private Key File";
+	m_privateKeyFileProp.m_filter = "SSH identity files (id_dsa id_rsa);;PEM files (*.pem);;All files (*.*)";
 
 	m_channelTypeProp = m_pluginHost.m_propertyGrid.createStringProperty (
 		"SSH channel",
@@ -301,10 +317,26 @@ bool errorcode SshChannelSession.connect (io.SocketAddress const* remoteAddress)
 		sizeof (io.SocketAddress)
 		);
 
+	void const* privateKey;
+	char const* password;
+
+	if (m_authenticationMethodProp.m_value == gui.AuthenticationMethod.PrivateKey)
+	{
+		privateKey = loadFile (m_privateKeyFileProp.m_value);
+		password = m_loginDlg ? m_loginDlg.m_privateKeyPassphrase : null;
+	}
+	else
+	{
+		privateKey = null;
+		password = m_loginDlg ? m_loginDlg.m_password : null;
+	}
+
 	m_channel.connect (
 		remoteAddress,
 		m_userNameProp.m_value,
-		m_passwordProp.m_value,
+		privateKey,
+		dynamic sizeof (privateKey),
+		password,
 		m_channelTypeProp.m_value,
 		m_processTypeProp.m_value,
 		m_ptyTypeProp.m_value,
@@ -346,7 +378,8 @@ SshChannelSession.handleSshAuthError (std.Error const* error)
 	}
 
 	m_loginDlg.m_userName = m_userNameProp.m_value;
-	m_loginDlg.m_password = m_passwordProp.m_value;
+	m_loginDlg.m_authenticationMethod = m_authenticationMethodProp.m_value;
+	m_loginDlg.m_privateKeyFileName = m_privateKeyFileProp.m_value;
 	m_loginDlg.show ();
 
 	m_state = State.RequestingLogin;
@@ -364,9 +397,27 @@ SshChannelSession.onLoginDlgCompleted (gui.StdDlgButton button)
 		return;
 	}
 
+	switch (m_loginDlg.m_authenticationMethod)
+	{
+	case gui.AuthenticationMethod.Password:
+		m_channel.authenticate (m_loginDlg.m_userName, null, 0, m_loginDlg.m_password);
+		break;
+
+	case gui.AuthenticationMethod.PrivateKey:
+		void const* privateKey = loadFile (m_loginDlg.m_privateKeyFileName);
+
+		m_channel.authenticate (
+			m_loginDlg.m_userName,
+			privateKey,
+			dynamic sizeof (privateKey),
+			m_loginDlg.m_privateKeyPassphrase
+			);
+		break;
+	}
+
 	m_userNameProp.m_value = m_loginDlg.m_userName;
-	m_passwordProp.m_value = m_loginDlg.m_password;
-	m_channel.authenticate (m_userNameProp.m_value, m_passwordProp.m_value);
+	m_authenticationMethodProp.m_value = m_loginDlg.m_authenticationMethod;
+	m_privateKeyFileProp.m_value = m_loginDlg.m_privateKeyFileName;
 	m_state = State.Connecting;
 
 catch:
@@ -414,6 +465,8 @@ void SshChannelSession.load (doc.Storage* storage)
 {
 	m_addressCombo.m_editText = storage.readString ("address");
 	m_userNameProp.m_value = storage.readString ("userName");
+	m_authenticationMethodProp.m_value = storage.readInt ("authenticationMethod");
+	m_privateKeyFileProp.m_value = storage.readString ("privateKeyFile");
 	m_channelTypeProp.m_value = storage.readString ("channelType");
 	m_processTypeProp.m_value = storage.readString ("processType");
 	m_ptyTypeProp.m_value = storage.readString ("ptyType");
@@ -428,6 +481,8 @@ void SshChannelSession.save (doc.Storage* storage)
 {
 	storage.writeString ("address", m_addressCombo.m_editText);
 	storage.writeString ("userName", m_userNameProp.m_value);
+	storage.writeInt ("authenticationMethod", m_authenticationMethodProp.m_value);
+	storage.writeString ("privateKeyFile", m_privateKeyFileProp.m_value);
 	storage.writeString ("channelType", m_channelTypeProp.m_value);
 	storage.writeString ("processType", m_processTypeProp.m_value);
 	storage.writeString ("ptyType", m_ptyTypeProp.m_value);
@@ -453,6 +508,8 @@ void SshChannelSession.restoreDefaultProperties ()
 {
 	m_addressProp.m_value = "sdf.org:22";
 	m_userNameProp.m_value = "new";
+	m_authenticationMethodProp.m_value = gui.AuthenticationMethod.Password;
+	m_privateKeyFileProp.m_value = "";
 	m_channelTypeProp.m_value = "session";
 	m_processTypeProp.m_value = "shell";
 	m_ptyTypeProp.m_value = "xterm";
@@ -472,6 +529,9 @@ size_t errorcode SshChannelSession.transmit (
 		return -1;
 
 	size_t result = m_channel.write (p, size);
+
+	printf ("SshChannelSession.transmit: %d\n", result);
+
 	if (result)
 		writeLog (log.StdRecordCode.Tx, p, result);
 
@@ -586,6 +646,7 @@ reactor SshChannelSession.m_uiReactor ()
 {
 	m_title = $"SSH $(m_addressCombo.m_currentText)";
 	m_isTransmitEnabled = m_state == State.Connected;
+	m_privateKeyFileProp.m_isEnabled = m_authenticationMethodProp.m_value == gui.AuthenticationMethod.PrivateKey;
 	m_adapterProp.m_isEnabled = m_useLocalAddressProp.m_value;
 	m_localPortProp.m_isEnabled = m_useLocalAddressProp.m_value;
 	m_actionTable [ActionId.Connect].m_text = m_state ? "Disconnect" : "Connect";
@@ -593,6 +654,26 @@ reactor SshChannelSession.m_uiReactor ()
 	m_statusPaneTable [StatusPaneId.State].m_text = m_stateStringTable [m_state];
 	m_statusPaneTable [StatusPaneId.RemoteAddress].m_text = m_state > State.Resolving ? m_remoteAddress.getString () : "<peer-address>";
 	m_statusPaneTable [StatusPaneId.RemoteAddress].m_isVisible = m_state > State.Resolving;
+}
+
+//..............................................................................
+
+// simple helper to load private key files (returning null is OK)
+
+void const* loadFile (char const* fileName)
+{
+	if (!fileName || !*fileName)
+		return null;
+
+	io.File file;
+	file.open (fileName, io.FileOpenFlags.ReadOnly);
+	size_t size = file.m_size; // cache size (file may change)
+	void* p = new char [size];
+	file.read (p, size);
+	return p;
+
+catch:
+	return null;
 }
 
 //..............................................................................
