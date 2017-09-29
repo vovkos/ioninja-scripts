@@ -86,7 +86,6 @@ protected:
 	gui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
 	gui.ComboBox* m_portCombo;
 	gui.ComboBox* m_baudRateCombo;
-	gui.ComboBox* m_flowControlCombo;
 
 	// serial property grid
 
@@ -129,7 +128,6 @@ protected:
 	onSerialEvent (io.SerialEventParams const* params);
 	onDelayedWriteTimer ();
 	onBaudRateChanged ();
-	onFlowControlChanged ();
 	onDtrChanged ();
 	onRtsChanged ();
 
@@ -253,13 +251,6 @@ SerialSession.createUi ()
 		baudRateTable,
 		countof (baudRateTable),
 		onBaudRateChanged
-		);
-
-	m_flowControlCombo = createSerialSettingComboBox (
-		"Flow:",
-		flowControlTable,
-		countof (flowControlTable),
-		onFlowControlChanged
 		);
 
 	m_iconTable [IconId.Open] = new gui.Icon ("images/connect.png");
@@ -428,7 +419,7 @@ bool errorcode SerialSession.open ()
 	m_serial.m_baudRate = m_baudRateCombo.m_currentData;
 	m_serial.m_dataBits = m_dataBitsProp.m_value;
 	m_serial.m_stopBits = m_stopBitsProp.m_value;
-	m_serial.m_flowControl = m_flowControlCombo.m_currentData;
+	m_serial.m_flowControl = m_flowControlProp.m_value;
 	m_serial.m_parity = m_parityProp.m_value;
 	m_serial.m_dtr = m_actionTable [ActionId.Dtr].m_isChecked;
 	m_serial.m_rts = m_actionTable [ActionId.Rts].m_isChecked;
@@ -486,7 +477,7 @@ void SerialSession.load (doc.Storage* storage)
 	m_baudRateCombo.m_currentIndex = storage.readInt ("baudRate", 9); // 38400
 	m_dataBitsProp.m_currentIndex = storage.readInt ("dataBits", 1);  // 8-bits by default
 	m_stopBitsProp.m_currentIndex = storage.readInt ("stopBits");
-	m_flowControlCombo.m_currentIndex = storage.readInt ("flowControl");
+	m_flowControlProp.m_currentIndex = storage.readInt ("flowControl");
 	m_parityProp.m_currentIndex = storage.readInt ("parity");
 	m_useInterCharDelayProp.m_value = storage.readBool ("useInterCharDelay", false);
 	m_interCharDelayProp.m_value = storage.readInt ("interCharDelay", Defaults.InterCharDelay);
@@ -508,7 +499,7 @@ void SerialSession.save (doc.Storage* storage)
 	storage.writeInt ("baudRate", m_baudRateCombo.m_currentIndex);
 	storage.writeInt ("dataBits", m_dataBitsProp.m_currentIndex);
 	storage.writeInt ("stopBits", m_stopBitsProp.m_currentIndex);
-	storage.writeInt ("flowControl", m_flowControlCombo.m_currentIndex);
+	storage.writeInt ("flowControl", m_flowControlProp.m_currentIndex);
 	storage.writeInt ("parity", m_parityProp.m_currentIndex);
 	storage.writeBool ("useInterCharDelay", m_useInterCharDelayProp.m_value);
 	storage.writeInt ("interCharDelay", m_interCharDelayProp.m_value);
@@ -523,8 +514,6 @@ void SerialSession.updateProperties ()
 {
 	m_portProp.m_value = m_portCombo.m_editText;
 	m_baudRateProp.m_currentIndex = m_baudRateCombo.m_currentIndex;
-	m_flowControlProp.m_currentIndex = m_flowControlCombo.m_currentIndex;
-
 	m_settingChangedVisibleProp.m_value = m_logFilter.m_isSettingChangedVisible;
 	m_controlLineChangedVisibleProp.m_value = m_logFilter.m_isControlLineChangedVisible;
 	m_statusLineChangedVisibleProp.m_value = m_logFilter.m_isStatusLineChangedVisible;
@@ -534,8 +523,6 @@ bool errorcode SerialSession.applyProperties ()
 {
 	m_portCombo.m_editText = m_portProp.m_value;
 	m_baudRateCombo.m_currentIndex = m_baudRateProp.m_currentIndex;
-	m_flowControlCombo.m_currentIndex = m_flowControlProp.m_currentIndex;
-
 	m_logFilter.m_isSettingChangedVisible = m_settingChangedVisibleProp.m_value;
 	m_logFilter.m_isControlLineChangedVisible = m_controlLineChangedVisibleProp.m_value;
 	m_logFilter.m_isStatusLineChangedVisible = m_statusLineChangedVisibleProp.m_value;
@@ -733,16 +720,6 @@ SerialSession.onBaudRateChanged ()
 	uint_t value = m_baudRateCombo.m_currentData;
 	m_serial.m_baudRate = value;
 	writeLog (SerialLogRecordCode.BaudRateChanged, &value, sizeof (value));
-}
-
-SerialSession.onFlowControlChanged ()
-{
-	if (m_state != State.Opened)
-		return;
-
-	io.SerialFlowControl value = m_flowControlCombo.m_currentData;
-	m_serial.m_flowControl = value;
-	writeLog (SerialLogRecordCode.FlowControlChanged, &value, sizeof (value));
 }
 
 SerialSession.onDtrChanged ()
