@@ -1,0 +1,180 @@
+//..............................................................................
+//
+// Regex Colorizer layer
+//
+
+import "doc_Plugin.jnc"
+
+//..............................................................................
+
+class RegexColorizerLayer:
+	doc.Layer,
+	log.Converter
+{
+protected:
+	enum
+	{
+		MaxPatternCount = 1
+	}
+
+protected:
+	RegexColorizerHighlighter m_txHighlighter;
+	RegexColorizerHighlighter m_rxHighlighter;
+	std.Array m_patternArray;
+
+	gui.ActionProperty* m_addPatternProp;
+
+public:
+	construct (doc.PluginHost* pluginHost);
+
+	override void load (doc.Storage* storage);
+	override void save (doc.Storage* storage);
+	override bool errorcode applyProperties ();
+
+	override bool convert (
+		log.Writer* writer,
+		uint64_t timestamp,
+		uint_t recordCode,
+		void const* p,
+		size_t size
+		);
+
+protected:
+	createUi ();
+
+	onAddPattern ();
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+RegexColorizerLayer.construct (doc.PluginHost* pluginHost)
+{
+	basetype1.construct (pluginHost);
+	pluginHost.m_log.attachConverter (this);
+
+	createUi ();
+	onAddPattern (); // add pattern #1
+}
+
+RegexColorizerLayer.createUi ()
+{
+	m_addPatternProp = m_pluginHost.m_propertyGrid.createActionProperty (
+		"Add another pattern...",
+		"Add an extra pattern to search and colorize"
+		);
+
+	m_addPatternProp.m_onAction = onAddPattern;
+}
+
+RegexColorizerLayer.onAddPattern ()
+{
+	RegexPattern* pattern = new RegexPattern (
+		m_pluginHost.m_propertyGrid,
+		m_addPatternProp,
+		m_patternArray.m_count
+		);
+
+	m_patternArray.append (pattern);
+}
+
+void RegexColorizerLayer.load (doc.Storage* storage)
+{
+	((RegexPattern*) m_patternArray [0]).load (storage);
+
+	m_patternArray.m_count = 1; // drop the rest
+
+	for (size_t i = 1;; i++)
+	{
+		storage.m_directory = $"pattern$i";
+
+		char const* regexString = storage.readString ("regex");
+		if (!strlen (regexString))
+			break;
+
+		RegexPattern* pattern = new RegexPattern (
+			m_pluginHost.m_propertyGrid,
+			m_addPatternProp,
+			m_patternArray.m_count
+			);
+
+		pattern.load (storage);
+		m_patternArray.append (pattern);
+	}
+
+	applyProperties ();
+}
+
+void RegexColorizerLayer.save (doc.Storage* storage)
+{
+	for (size_t i = 0, j = 0; i < m_patternArray.m_count; i++)
+	{
+		RegexPattern* pattern = m_patternArray [i];
+
+		char const* regexString = pattern.m_regexProp.m_value;
+		if (!strlen (regexString))
+			continue;
+
+		storage.m_directory = $"pattern$(j++)";
+		pattern.save (storage);
+	}
+}
+
+bool errorcode RegexColorizerLayer.applyProperties ()
+{
+	m_txHighlighter.clear ();
+	m_rxHighlighter.clear ();
+
+	for (size_t i = 0; i < m_patternArray.m_count; i++)
+	{
+		RegexPattern* pattern = m_patternArray [i];
+
+		char const* regexString = pattern.m_regexProp.m_value;
+		if (!strlen (regexString))
+			continue;
+
+		gui.TextAttr attr = pattern.buildTextAttr ();
+
+		if (pattern.m_isTxEnabledProp.m_value)
+			m_txHighlighter.addPattern (regexString, attr);
+
+		if (pattern.m_isRxEnabledProp.m_value)
+			m_rxHighlighter.addPattern (regexString, attr);
+	}
+
+	m_txHighlighter.finalize ();
+	m_rxHighlighter.finalize ();
+	return true;
+}
+
+bool RegexColorizerLayer.convert (
+	log.Writer* writer,
+	uint64_t timestamp,
+	uint_t recordCode,
+	void const* p,
+	size_t size
+	)
+{
+	switch (recordCode)
+	{
+	case log.StdRecordCode.Tx:
+		m_rxHighlighter.finalize (writer);
+		writer.write (timestamp, recordCode, p, size);
+		m_txHighlighter.write (writer, p, size);
+		break;
+
+	case log.StdRecordCode.Rx:
+		m_txHighlighter.finalize (writer);
+		writer.write (timestamp, recordCode, p, size);
+		m_rxHighlighter.write (writer, p, size);
+		break;
+
+	default:
+		m_txHighlighter.finalize (writer);
+		m_rxHighlighter.finalize (writer);
+		writer.write (timestamp, recordCode, p, size);
+	}
+
+	return true;
+}
+
+//..............................................................................

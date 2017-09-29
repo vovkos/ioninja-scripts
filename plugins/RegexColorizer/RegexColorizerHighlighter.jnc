@@ -1,0 +1,112 @@
+//..............................................................................
+//
+// Regex Colorizer syntax highlighter
+// by default it uses C programming language syntax
+//
+
+import "std_Array.jnc"
+
+//..............................................................................
+
+class RegexColorizerHighlighter
+{
+protected:
+	enum StickyMode
+	{
+		None = 0,
+		SlComment,
+		MlComment,
+		SqLiteral,
+		DqLiteral,
+	}
+
+protected:
+	jnc.RegexDfa m_regexDfa;
+	jnc.RegexState m_regexState;
+	std.Array m_attrArray;
+
+public:
+	construct ()
+	{
+		m_regexState.m_isIncremental = true;
+	}
+
+	clear ();
+
+	bool errorcode addPattern (
+		char const* regexString,
+		gui.TextAttr attr
+		);
+
+	bool errorcode finalize ();
+
+	write (
+		log.Writer* writer,
+		void const* p,
+		size_t size
+		);
+
+	finalize (log.Writer* writer)
+	{
+		write (writer, null, 0); // send eof
+		m_regexState.reset ();
+	}
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+RegexColorizerHighlighter.clear ()
+{
+	m_regexDfa.clear ();
+	m_regexState.reset ();
+	m_attrArray.clear ();
+}
+
+bool errorcode RegexColorizerHighlighter.addPattern (
+	char const* regexString,
+	gui.TextAttr attr
+	)
+{
+	m_regexDfa.incrementalCompile (regexString);
+	m_attrArray.append (attr);
+	return true;
+}
+
+bool errorcode RegexColorizerHighlighter.finalize ()
+{
+	if (!m_attrArray.m_count) // empty
+		return true;
+
+	return m_regexDfa.incrementalCompile (".") && m_regexDfa.finalize ();
+}
+
+RegexColorizerHighlighter.write (
+	log.Writer* writer,
+	void const* p,
+	size_t size
+	)
+{
+	if (!m_attrArray.m_count)
+		return;
+
+	m_regexState.m_currentOffset = -size;
+
+	void const* end = p + size;
+
+	do
+	{
+		size_t length = end - p;
+		size_t result = try m_regexDfa.match (m_regexState, p, length);
+
+		if (result < m_attrArray.m_count)
+			writer.retroColorize (
+				m_regexState.m_match.m_offset,
+				m_regexState.m_match.m_length,
+				(gui.TextAttr) m_attrArray [result]
+				);
+
+		p += m_regexState.m_consumedLength;
+	} while (p < end);
+}
+
+//..............................................................................
