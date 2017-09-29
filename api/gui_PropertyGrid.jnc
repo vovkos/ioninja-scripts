@@ -137,6 +137,18 @@ opaque class ActionProperty: Property
 
 //..............................................................................
 
+opaque class FileProperty: Property
+{
+	construct (char const* name);
+
+	char const* autoget bindable property m_value;
+	char const* autoget property m_fileDialogCaption;
+	char const* autoget property m_initialDirectory;
+	char const* autoget property m_filter;
+}
+
+//..............................................................................
+
 opaque class PropertyGrid
 {
 	addProperty (
@@ -271,6 +283,21 @@ opaque class PropertyGrid
 	{
 		return createActionProperty (,, name, toolTipText);
 	}
+
+	FileProperty* createFileProperty (
+		GroupProperty* group = null,
+		Property* beforeProp = null,
+		char const* name,
+		char const* toolTipText
+		);
+
+	FileProperty* createFileProperty (
+		char const* name,
+		char const* toolTipText
+		)
+	{
+		return createFileProperty (,, name, toolTipText);
+	}
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -401,6 +428,22 @@ ActionProperty* PropertyGrid.createActionProperty (
 	)
 {
 	ActionProperty* prop = new ActionProperty (name);
+	prop.m_toolTipText = toolTipText;
+	if (group)
+		group.addProperty (prop, beforeProp);
+	else
+		addProperty (prop, beforeProp);
+	return prop;
+}
+
+FileProperty* PropertyGrid.createFileProperty (
+	GroupProperty* group,
+	Property* beforeProp,
+	char const* name,
+	char const* toolTipText
+	)
+{
+	FileProperty* prop = new FileProperty (name);
 	prop.m_toolTipText = toolTipText;
 	if (group)
 		group.addProperty (prop, beforeProp);
