@@ -165,7 +165,7 @@ HwSerialMonSession.construct (doc.PluginHost* pluginHost)
 	m_spi.construct(pluginHost);
 	m_i2c.construct(pluginHost);
 
-	pluginHost.m_log.m_representerFunc = representHwSerialMonLog;
+	pluginHost.m_log.attachRepresenter (representHwSerialMonLog);
 
 	m_state = State.Closed;
 	m_epctlSeqId = sys.getTimestamp () & 0xff; // set somewhat random seq id

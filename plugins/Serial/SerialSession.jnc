@@ -162,7 +162,7 @@ SerialSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
 
-	pluginHost.m_log.m_representerFunc = representSerialLog;
+	pluginHost.m_log.attachRepresenter (representSerialLog);
 	pluginHost.m_log.attachFilter (m_logFilter);
 
 	m_state = State.Closed;

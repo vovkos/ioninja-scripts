@@ -90,7 +90,7 @@ protected:
 SerialMonSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
-	pluginHost.m_log.m_representerFunc = representSerialMonLog;
+	pluginHost.m_log.attachRepresenter (representSerialMonLog);
 	pluginHost.m_log.attachFilter (m_logFilter);
 
 	m_state = State.Closed;

@@ -82,7 +82,7 @@ MailslotSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
 
-	pluginHost.m_log.m_representerFunc = representFileLog;
+	pluginHost.m_log.attachRepresenter (representFileLog);
 
 	m_state = State.Closed;
 	m_mailslot.m_onMailslotEvent += onMailslotEvent @ pluginHost.m_mainThreadScheduler;

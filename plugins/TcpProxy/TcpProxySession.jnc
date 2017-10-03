@@ -149,7 +149,7 @@ TcpProxySession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
 
-	pluginHost.m_log.m_representerFunc = representTcpProxyLog;
+	pluginHost.m_log.attachRepresenter (representTcpProxyLog);
 
 	// listener
 

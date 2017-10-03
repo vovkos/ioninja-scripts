@@ -150,7 +150,7 @@ TcpFlowMonSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
 
-	pluginHost.m_log.m_representerFunc = representTcpFlowMonLog;
+	pluginHost.m_log.attachRepresenter (representTcpFlowMonLog);
 
 	m_state = 0;
 	m_pcap.m_onPcapEvent += onPcapEvent @ pluginHost.m_mainThreadScheduler;

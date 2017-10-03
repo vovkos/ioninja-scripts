@@ -123,7 +123,7 @@ UdpFlowMonSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
 
-	pluginHost.m_log.m_representerFunc = representUdpFlowMonLog;
+	pluginHost.m_log.attachRepresenter (representUdpFlowMonLog);
 
 	m_state = 0;
 	m_pcap.m_onPcapEvent += onPcapEvent @ pluginHost.m_mainThreadScheduler;

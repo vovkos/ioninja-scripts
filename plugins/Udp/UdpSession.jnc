@@ -124,7 +124,7 @@ UdpSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct(pluginHost);
 
-	pluginHost.m_log.m_representerFunc = representUdpLog;
+	pluginHost.m_log.attachRepresenter (representUdpLog);
 	pluginHost.m_log.attachFilter (m_logFilter);
 
 	m_state = State.Closed;

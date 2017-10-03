@@ -15,7 +15,7 @@ class ModBusRtuLayer:
 	log.Converter
 {
 	// checking for correct modbus delays (1.5/3.5 chars) is not possible
-	// due to  insufficient precision of timestamps	(we get timestamp of read
+	// due to insufficient precision of timestamps	(we get timestamp of read
 	// completion and no timestamps of individual bytes)
 
 	enum: uint64_t
@@ -48,7 +48,11 @@ ModBusRtuLayer.construct (doc.PluginHost* pluginHost)
 
 	m_lastRecordCode = 0;
 
-	pluginHost.m_log.attachConverter (this, representModBusRtuLog);
+	pluginHost.m_log.attachConverter (
+		this,
+		&pluginHost.m_pluginGuid,
+		representModBusRtuLog
+		);
 }
 
 bool ModBusRtuLayer.convert (
@@ -61,18 +65,18 @@ bool ModBusRtuLayer.convert (
 {
 	bool result;
 	io.ModBusRole role;
-	ModBusRtuLogRecordCode packetRecordeCode;
+	ModBusRtuLogRecordCode packetRecordCode;
 
 	switch (recordCode)
 	{
 	case log.StdRecordCode.Tx:
 		role = io.ModBusRole.Master;
-		packetRecordeCode = ModBusRtuLogRecordCode.MasterPacket;
+		packetRecordCode = ModBusRtuLogRecordCode.MasterPacket;
 		break;
 
 	case log.StdRecordCode.Rx:
 		role = io.ModBusRole.Slave;
-		packetRecordeCode = ModBusRtuLogRecordCode.SlavePacket;
+		packetRecordCode = ModBusRtuLogRecordCode.SlavePacket;
 		break;
 
 	default:
@@ -101,9 +105,10 @@ bool ModBusRtuLayer.convert (
 	size_t aduSize = io.getModBusRtuAduSize (role, aduHdr, m_dataBuffer.m_size);
 	if (aduSize == -1)
 	{
-		uint8_t code = *(uint8_t const*) (aduHdr + 1);
-		writer.write (timestamp, ModBusRtuLogRecordCode.InvalidFunction, &code, sizeof (code));
-		return false; // unknown or unsupported function
+		writer.write (timestamp, recordCode, p, size); // actual data first
+		writer.write (timestamp, ModBusRtuLogRecordCode.InvalidFunction, aduHdr + 1, sizeof (uint8_t));
+		m_dataBuffer.clear ();
+		return true;
 	}
 
 	if (m_dataBuffer.m_size < aduSize) // wait for the next chunk of data
@@ -114,7 +119,7 @@ bool ModBusRtuLayer.convert (
 	}
 
 	writer.write (timestamp, recordCode, p, size); // actual data first
-	writer.write (timestamp, packetRecordeCode, aduHdr, aduSize);
+	writer.write (timestamp, packetRecordCode, aduHdr, aduSize);
 
 	if (m_dataBuffer.m_size > aduSize)
 		writer.write (
@@ -124,6 +129,7 @@ bool ModBusRtuLayer.convert (
 			m_dataBuffer.m_size - aduSize
 			);
 
+	m_dataBuffer.clear ();
 	return true;
 }
 

@@ -84,7 +84,7 @@ protected:
 MailslotMonSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
-	pluginHost.m_log.m_representerFunc = representMailslotMonLog;
+	pluginHost.m_log.attachRepresenter (representMailslotMonLog);
 
 	m_state = State.Closed;
 	m_pipeMon.m_onReadyRead += onReadyRead @ pluginHost.m_mainThreadScheduler;

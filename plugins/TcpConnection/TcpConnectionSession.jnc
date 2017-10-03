@@ -111,7 +111,7 @@ TcpConnectionSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
 
-	pluginHost.m_log.m_representerFunc = representTcpConnectionLog;
+	pluginHost.m_log.attachRepresenter (representTcpConnectionLog);
 
 	m_state = State.Closed;
 	m_socket.m_onSocketEvent += onSocketEvent @ pluginHost.m_mainThreadScheduler;

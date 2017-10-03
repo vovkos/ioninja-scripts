@@ -113,7 +113,7 @@ SnifferSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
 
-	pluginHost.m_log.m_representerFunc = representSnifferLog;
+	pluginHost.m_log.attachRepresenter (representSnifferLog);
 
 	m_state = State.Closed;
 	m_pcap.m_onPcapEvent += onPcapEvent @ pluginHost.m_mainThreadScheduler;

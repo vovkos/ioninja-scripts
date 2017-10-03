@@ -318,15 +318,21 @@ opaque class Log
 	gui.Icon* property m_iconTable (size_t i);
 
 	Writer* readonly m_writer;
-	RepresenterFunc thin* autoget property m_representerFunc;
 	uint64_t autoget property m_baseTimestamp;
 
 	destruct ();
+
+	suspend ();
+	resume ();
+
+	attachRepresenter (RepresenterFunc thin* representerFunc);
+	removeAllRepresenters ();
 
 	attachFilter (Filter* filter);
 
 	attachConverter (
 		Converter* converter,
+		std.Guid const* classGuid = null,
 		RepresenterFunc thin* representerFunc = null
 		);
 

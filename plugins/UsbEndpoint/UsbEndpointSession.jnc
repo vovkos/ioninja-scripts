@@ -112,7 +112,7 @@ UsbEndpointSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct(pluginHost);
 
-	pluginHost.m_log.m_representerFunc = representUsbLog;
+	pluginHost.m_log.attachRepresenter (representUsbLog);
 
 	m_state = State.Closed;
 

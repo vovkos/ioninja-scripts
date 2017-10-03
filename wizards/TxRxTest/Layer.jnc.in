@@ -68,7 +68,7 @@ $(layerClass).construct (doc.PluginHost* pluginHost)
 
 	createUi ();
 
-	pluginHost.m_log.m_representerFunc = $(logRepresenterFunc);
+	pluginHost.m_log.attachRepresenter ($(logRepresenterFunc));
 	pluginHost.m_log.attachListener (onLogRecord @ pluginHost.m_mainThreadScheduler);
 }
 

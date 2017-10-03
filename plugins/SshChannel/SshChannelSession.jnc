@@ -123,7 +123,7 @@ SshChannelSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
 
-	pluginHost.m_log.m_representerFunc = representSshChannelLog;
+	pluginHost.m_log.attachRepresenter (representSshChannelLog);
 
 	m_state = State.Closed;
 	m_channel.m_onSshEvent += onSshEvent @ pluginHost.m_mainThreadScheduler;

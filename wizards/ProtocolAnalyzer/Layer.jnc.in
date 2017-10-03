@@ -47,7 +47,11 @@ protected:
 $(layerClass).construct (doc.PluginHost* pluginHost)
 {
 	basetype1.construct (pluginHost);
-	pluginHost.m_log.attachConverter (this, $(logRepresenterFunc));
+	pluginHost.m_log.attachConverter (
+		this,
+		&pluginHost.m_pluginGuid,
+		$(logRepresenterFunc)
+		);
 
 	m_txScannerState.m_isIncremental = true;
 	m_rxScannerState.m_isIncremental = true;

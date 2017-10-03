@@ -109,7 +109,7 @@ TcpListenerSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
 
-	pluginHost.m_log.m_representerFunc = representTcpListenerLog;
+	pluginHost.m_log.attachRepresenter (representTcpListenerLog);
 
 	m_connectionState = ConnectionState.Closed;
 	m_listenerState = ListenerState.Closed;

@@ -43,7 +43,7 @@ bool representModBusRtuLog (
 		target.m_lineAttr.m_backColor = gui.StdColor.PastelYellow;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
 		target.addHyperText ($"Invalid or unsupported function: \e[31m0x%(1; 02X)/%1\e[m" (code));
-		break;
+		return true;
 
 	default:
 		return false;
