@@ -24,6 +24,8 @@ opaque class GroupProperty: Property
 		Property* prop,
 		Property* beforeProp = null
 		);
+
+	removeProperty (Property* prop);
 }
 
 //..............................................................................
@@ -155,6 +157,8 @@ opaque class PropertyGrid
 		Property* prop,
 		Property* beforeProp = null
 		);
+
+	removeProperty (Property* prop);
 
 	GroupProperty* createGroupProperty (
 		GroupProperty* group = null,
