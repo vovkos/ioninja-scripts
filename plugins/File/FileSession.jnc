@@ -97,7 +97,7 @@ FileSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
 
-	pluginHost.m_log.addRepresenter (representFileLog);
+	pluginHost.m_log.attachRepresenter (representFileLog);
 
 	m_state = State.Closed;
 	m_file.m_onFileStreamEvent += onFileStreamEvent @ pluginHost.m_mainThreadScheduler;

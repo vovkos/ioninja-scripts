@@ -68,7 +68,7 @@ Spi.createProperties ()
 		);
 
 	m_modeProp = m_pluginHost.m_propertyGrid.createEnumProperty (
-		m_groupProp,
+		m_groupProp,,
 		"Mode",
 		"SPI mode (CPOL & CPHA)",
 		modeTable,
@@ -76,7 +76,7 @@ Spi.createProperties ()
 		);
 
 	m_endiannessProp = m_pluginHost.m_propertyGrid.createEnumProperty (
-		m_groupProp,
+		m_groupProp,,
 		"Endianness",
 		"SPI endianness (most/least significant bit first)",
 		endiannessTable,

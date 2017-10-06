@@ -120,7 +120,7 @@ Uart.createProperties ()
 		);
 
 	m_baudRateProp = m_pluginHost.m_propertyGrid.createEnumProperty (
-		m_groupProp,
+		m_groupProp,,
 		"Baud rate",
 		"Serial baud rate",
 		baudRateTable,
@@ -128,7 +128,7 @@ Uart.createProperties ()
 		);
 
 	m_dataBitsProp = m_pluginHost.m_propertyGrid.createEnumProperty (
-		m_groupProp,
+		m_groupProp,,
 		"Data bits",
 		"Serial data bit count (word size)",
 		dataBitsTable,
@@ -136,7 +136,7 @@ Uart.createProperties ()
 		);
 
 	m_stopBitsProp = m_pluginHost.m_propertyGrid.createEnumProperty (
-		m_groupProp,
+		m_groupProp,,
 		"Stop bits",
 		"Serial stop bit count",
 		stopBitsTable,
@@ -144,7 +144,7 @@ Uart.createProperties ()
 		);
 
 	m_parityProp = m_pluginHost.m_propertyGrid.createEnumProperty (
-		m_groupProp,
+		m_groupProp,,
 		"Parity",
 		"Serial parity check",
 		parityTable,
