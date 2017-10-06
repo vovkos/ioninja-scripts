@@ -141,8 +141,8 @@ void RegexColorizerLayer.save (doc.Storage* storage)
 
 bool errorcode RegexColorizerLayer.applyProperties ()
 {
-	m_txHighlighter.clear ();
-	m_rxHighlighter.clear ();
+	m_txHighlighter.prepareRegex_mt ();
+	m_rxHighlighter.prepareRegex_mt ();
 
 	for (size_t i = 0; i < m_patternArray.m_count; i++)
 	{
@@ -155,14 +155,14 @@ bool errorcode RegexColorizerLayer.applyProperties ()
 		gui.TextAttr attr = pattern.buildTextAttr ();
 
 		if (pattern.m_isTxEnabledProp.m_value)
-			m_txHighlighter.addPattern (regexString, attr);
+			m_txHighlighter.addRegexPattern_mt (regexString, attr);
 
 		if (pattern.m_isRxEnabledProp.m_value)
-			m_rxHighlighter.addPattern (regexString, attr);
+			m_rxHighlighter.addRegexPattern_mt (regexString, attr);
 	}
 
-	m_txHighlighter.finalize ();
-	m_rxHighlighter.finalize ();
+	m_txHighlighter.finalizeRegex_mt (m_pluginHost);
+	m_rxHighlighter.finalizeRegex_mt (m_pluginHost);
 	return true;
 }
 
@@ -177,20 +177,20 @@ bool RegexColorizerLayer.convert (
 	switch (recordCode)
 	{
 	case log.StdRecordCode.Tx:
-		m_rxHighlighter.finalize (writer);
+		m_rxHighlighter.finalizeWrite_lt (writer);
 		writer.write (timestamp, recordCode, p, size);
-		m_txHighlighter.write (writer, p, size);
+		m_txHighlighter.write_lt (writer, p, size);
 		break;
 
 	case log.StdRecordCode.Rx:
-		m_txHighlighter.finalize (writer);
+		m_txHighlighter.finalizeWrite_lt (writer);
 		writer.write (timestamp, recordCode, p, size);
-		m_rxHighlighter.write (writer, p, size);
+		m_rxHighlighter.write_lt (writer, p, size);
 		break;
 
 	default:
-		m_txHighlighter.finalize (writer);
-		m_rxHighlighter.finalize (writer);
+		m_txHighlighter.finalizeWrite_lt (writer);
+		m_rxHighlighter.finalizeWrite_lt (writer);
 		writer.write (timestamp, recordCode, p, size);
 	}
 

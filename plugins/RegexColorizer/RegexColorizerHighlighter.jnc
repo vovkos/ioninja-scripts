@@ -21,9 +21,12 @@ protected:
 	}
 
 protected:
-	jnc.RegexDfa m_regexDfa;
+	jnc.RegexDfa* m_regexDfa_mt;
+	jnc.RegexDfa* m_regexDfa_lt;
+	std.Array* m_attrArray_mt;
+	std.Array* m_attrArray_lt;
+
 	jnc.RegexState m_regexState;
-	std.Array m_attrArray;
 
 public:
 	construct ()
@@ -31,62 +34,81 @@ public:
 		m_regexState.m_isIncremental = true;
 	}
 
-	clear ();
+	prepareRegex_mt ();
 
-	bool errorcode addPattern (
+	bool errorcode addRegexPattern_mt (
 		char const* regexString,
 		gui.TextAttr attr
 		);
 
-	bool errorcode finalize ();
+	bool errorcode finalizeRegex_mt (doc.PluginHost* pluginHost);
 
-	write (
+	write_lt (
 		log.Writer* writer,
 		void const* p,
-		size_t size
+		size_t sizev
 		);
 
-	finalize (log.Writer* writer)
+	finalizeWrite_lt (log.Writer* writer)
 	{
-		write (writer, null, 0); // send eof
+		write_lt (writer, null, 0); // send eof
 		m_regexState.reset ();
 	}
+
+protected:
+	finalizeRegex_lt (
+		jnc.RegexDfa* regexDfa,
+		std.Array* attrArray
+		);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-RegexColorizerHighlighter.clear ()
+RegexColorizerHighlighter.prepareRegex_mt ()
 {
-	m_regexDfa.clear ();
-	m_regexState.reset ();
-	m_attrArray.clear ();
+	m_regexDfa_mt = new jnc.RegexDfa;
+	m_attrArray_mt = new std.Array;
 }
 
-bool errorcode RegexColorizerHighlighter.addPattern (
+bool errorcode RegexColorizerHighlighter.addRegexPattern_mt (
 	char const* regexString,
 	gui.TextAttr attr
 	)
 {
-	m_regexDfa.incrementalCompile (regexString);
-	m_attrArray.append (attr);
+	m_regexDfa_mt.incrementalCompile (regexString);
+	m_attrArray_mt.append (attr);
 	return true;
 }
 
-bool errorcode RegexColorizerHighlighter.finalize ()
+bool errorcode RegexColorizerHighlighter.finalizeRegex_mt (doc.PluginHost* pluginHost)
 {
-	if (!m_attrArray.m_count) // empty
-		return true;
+	if (m_attrArray_mt.m_count)
+	{
+		m_regexDfa_mt.incrementalCompile (".");
+		m_regexDfa_mt.finalize ();
+	}
 
-	return m_regexDfa.incrementalCompile (".") && m_regexDfa.finalize ();
+	(finalizeRegex_lt @ pluginHost.m_logThreadScheduler) (m_regexDfa_mt, m_attrArray_mt);
+	return true;
 }
 
-RegexColorizerHighlighter.write (
+RegexColorizerHighlighter.finalizeRegex_lt (
+	jnc.RegexDfa* regexDfa,
+	std.Array* attrArray
+	)
+{
+	m_regexState.reset ();
+	m_regexDfa_lt = regexDfa;
+	m_attrArray_lt = attrArray;
+}
+
+RegexColorizerHighlighter.write_lt (
 	log.Writer* writer,
 	void const* p,
 	size_t size
 	)
 {
-	if (!m_attrArray.m_count)
+	if (!m_attrArray_lt.m_count)
 		return;
 
 	m_regexState.m_currentOffset = -size;
@@ -96,13 +118,13 @@ RegexColorizerHighlighter.write (
 	do
 	{
 		size_t length = end - p;
-		size_t result = try m_regexDfa.match (m_regexState, p, length);
+		size_t result = try m_regexDfa_lt.match (m_regexState, p, length);
 
-		if (result < m_attrArray.m_count)
+		if (result < m_attrArray_lt.m_count)
 			writer.retroColorize (
 				m_regexState.m_match.m_offset,
 				m_regexState.m_match.m_length,
-				(gui.TextAttr) m_attrArray [result]
+				(gui.TextAttr) m_attrArray_lt [result]
 				);
 
 		p += m_regexState.m_consumedLength;
