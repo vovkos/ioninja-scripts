@@ -23,6 +23,7 @@ protected:
 	std.Array m_patternArray;
 
 	gui.ActionProperty* m_addPatternProp;
+	gui.ActionProperty* m_removeAllExtraPatternsProp;
 
 public:
 	construct (doc.PluginHost* pluginHost);
@@ -43,6 +44,7 @@ protected:
 	createUi ();
 
 	onAddPattern ();
+	onRemoveAllExtraPatterns ();
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -59,11 +61,18 @@ RegexColorizerLayer.construct (doc.PluginHost* pluginHost)
 RegexColorizerLayer.createUi ()
 {
 	m_addPatternProp = m_pluginHost.m_propertyGrid.createActionProperty (
-		"Add another pattern...",
+		"Add extra pattern...",
 		"Add an extra pattern to search and colorize"
 		);
 
 	m_addPatternProp.m_onAction = onAddPattern;
+
+	m_removeAllExtraPatternsProp = m_pluginHost.m_propertyGrid.createActionProperty (
+		"Remove all extra patterns",
+		"Remove all pattern except the main one (Pattern #1)"
+		);
+
+	m_removeAllExtraPatternsProp.m_onAction = onRemoveAllExtraPatterns;
 }
 
 RegexColorizerLayer.onAddPattern ()
@@ -75,6 +84,17 @@ RegexColorizerLayer.onAddPattern ()
 		);
 
 	m_patternArray.append (pattern);
+}
+
+RegexColorizerLayer.onRemoveAllExtraPatterns ()
+{
+	for (size_t i = 1; i < m_patternArray.m_count; i++)
+	{
+		RegexPattern* pattern = m_patternArray [i];
+		m_pluginHost.m_propertyGrid.removeProperty (pattern.m_groupProp);
+	}
+
+	m_patternArray.setCount (1);
 }
 
 void RegexColorizerLayer.load (doc.Storage* storage)

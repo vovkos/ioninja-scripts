@@ -4,6 +4,7 @@ import "gui_PropertyGrid.jnc"
 
 class RegexPattern
 {
+	gui.GroupProperty* m_groupProp;
 	gui.BoolProperty* m_isTxEnabledProp;
 	gui.BoolProperty* m_isRxEnabledProp;
 	gui.StringProperty* m_regexProp;
@@ -33,7 +34,7 @@ RegexPattern.construct (
 	size_t index
 	)
 {
-	gui.GroupProperty* group = propertyGrid.createGroupProperty (
+	m_groupProp = propertyGrid.createGroupProperty (
 		null,
 		beforeProp,
 		$"Pattern #$(index + 1)",
@@ -41,25 +42,25 @@ RegexPattern.construct (
 		);
 
 	m_isTxEnabledProp = propertyGrid.createBoolProperty (
-		group,,
+		m_groupProp,,
 		"Apply to TX",
 		"Select whether or not to search for this pattern in TX stream"
 		);
 
 	m_isRxEnabledProp = propertyGrid.createBoolProperty (
-		group,,
+		m_groupProp,,
 		"Apply to RX",
 		"Select whether or not to search for this pattern in RX stream"
 		);
 
 	m_regexProp = propertyGrid.createStringProperty (
-		group,,
+		m_groupProp,,
 		"Regular expression",
 		"Write a regular expression describing this pattern"
 		);
 
 	m_colorProp = propertyGrid.createColorProperty (
-		group,,
+		m_groupProp,,
 		"Color",
 		"Select a color to apply when this pattern is found"
 		);
@@ -73,7 +74,7 @@ RegexPattern.construct (
 	}
 
 	m_fontFlagProp = propertyGrid.createFlagProperty (
-		group,,
+		m_groupProp,,
 		"Font",
 		"Specify font decorations to apply when this pattern is found",
 		fontFlagTable,
