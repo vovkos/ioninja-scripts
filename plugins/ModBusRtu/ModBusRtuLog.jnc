@@ -71,7 +71,7 @@ bool representModBusRtuLog (
 	if (actualChecksum == expectedChecksum)
 	{
 		target.addHyperText (
-			$"Checksum:  \e^!-%1,%2\e[34m0x%(3; 04X)/%3 [\e[32mOK\e[m]" (
+			$"Checksum:  \e^!-%1,%2\e[34m0x%(3; 04X)/%3\e[m [\e[32mOK\e[m]" (
 			checksumOffset,
 			sizeof (uint16_t),
 			actualChecksum
@@ -80,7 +80,7 @@ bool representModBusRtuLog (
 	else
 	{
 		target.addHyperText (
-			$"Checksum:  \e^!-%1,%2\e[34m0x%(3; 04X)/%3\e[90m [\e[31mERROR\e[m] \e[90m(expected: 0x%(4; 04X)/%4)\e[m" (
+			$"Checksum:  \e^!-%1,%2\e[34m0x%(3; 04X)/%3\e[m [\e[31mERROR\e[m] \e[90m(expected: 0x%(4; 04X)/%4)\e[m" (
 			checksumOffset,
 			sizeof (uint16_t),
 			actualChecksum,

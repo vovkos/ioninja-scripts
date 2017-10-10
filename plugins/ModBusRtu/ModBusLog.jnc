@@ -16,31 +16,38 @@ representModBusCoils (
 	uint_t foldFlags
 	)
 {
-	if (count == 1)
+	switch (count)
 	{
+	case 0:
+		target.addHyperText ("Value:     [\e[31mNONE\e[m]");
+		break;
+
+	case 1:
 		target.addHyperText (
 			$"Value:     \e^!-%1,%2\e[34m%3\e[m" (
 			baseOffset,
 			sizeof (uint8_t),
 			*p & 1
 			));
+		break;
 
-		return;
-	}
-
-	if (count <= 4)
-	{
+	case 2:
+	case 3:
+	case 4:
 		target.addHyperText ($"Values [$count]");
 		representModBusCoilValues (target, p, count, baseOffset);
-	}
-	else if (foldFlags)
-	{
-		target.addHyperText ($"[\e^-1\e[34m-\e[m] Values [$count]");
-		representModBusCoilValues (target, p, count, baseOffset);
-	}
-	else
-	{
-		target.addHyperText ($"[\e^+1\e[34m+\e[m] Values [$count]");
+		break;
+
+	default:
+		if (foldFlags)
+		{
+			target.addHyperText ($"[\e^-1\e[34m-\e[m] Values [$count]");
+			representModBusCoilValues (target, p, count, baseOffset);
+		}
+		else
+		{
+			target.addHyperText ($"[\e^+1\e[34m+\e[m] Values [$count]");
+		}
 	}
 }
 
@@ -52,18 +59,21 @@ representModBusCoilValues (
 	)
 {
 	size_t size = count / 8;
+	if (count & 7)
+		size++;
+
 	size_t i = 0;
-	for (size_t j = 0; j < size; j++)
+	for (size_t j = 0; i < count && j < size; j++)
 	{
 		uint8_t c = p [j];
 
-		for (uint8_t mask = 1; mask; i++, mask <<= 1)
+		for (uint8_t mask = 1; i < count && mask; i++, mask <<= 1)
 		{
 			bool value = (c & mask) != 0;
 			target.addHyperText (
 				$"    #%(1; -3d): \e^!-%2,%3\e[34m%4\e[m" (
 				i,
-				baseOffset + i,
+				baseOffset + j,
 				sizeof (uint8_t),
 				value
 				));
@@ -81,31 +91,38 @@ representModBusRegisters (
 	uint_t foldFlags
 	)
 {
-	if (count == 1)
+	switch (count)
 	{
+	case 0:
+		target.addHyperText ("Value:     [\e[31mNONE\e[m]");
+		break;
+
+	case 1:
 		target.addHyperText (
 			$"Value:     \e^!-%1,%2\e[34m0x%(3; 04X)/%3\e[m" (
 			baseOffset,
 			sizeof (uint16_t),
 			p [0]
 			));
+		break;
 
-		return;
-	}
-
-	if (count <= 4)
-	{
+	case 2:
+	case 3:
+	case 4:
 		target.addHyperText ($"Values [$count]");
 		representModBusRegisterValues (target, p, count, baseOffset);
-	}
-	else if (foldFlags)
-	{
-		target.addHyperText ($"[\e^-1\e[34m-\e[m] Values [$count]");
-		representModBusRegisterValues (target, p, count, baseOffset);
-	}
-	else
-	{
-		target.addHyperText ($"[\e^+1\e[34m+\e[m] Values [$count]");
+		break;
+
+	default:
+		if (foldFlags)
+		{
+			target.addHyperText ($"[\e^-1\e[34m-\e[m] Values [$count]");
+			representModBusRegisterValues (target, p, count, baseOffset);
+		}
+		else
+		{
+			target.addHyperText ($"[\e^+1\e[34m+\e[m] Values [$count]");
+		}
 	}
 }
 
@@ -116,6 +133,8 @@ representModBusRegisterValues (
 	size_t baseOffset
 	)
 {
+	printf ("representModBusRegisterValues: count: %d\n", count);
+
 	for (size_t i = 0; i < count; i++)
 		target.addHyperText (
 			$"    #%(1; -3d): \e^!-%2,%3\e[34m0x%(4; 04X)/%4\e[m" (
@@ -170,28 +189,41 @@ representModBusPdu (
 		else
 		{
 			io.ModBusReadReplyPdu const* pdu = (io.ModBusReadReplyPdu const*) hdr;
-			target.addHyperText (
-				$"Size:      \e^!-%1,%2\e[34m%3\e[m" (
-				baseOffset + offsetof (pdu.m_size),
-				sizeof (pdu.m_size),
-				pdu.m_size
-				));
 
 			if (hdr.m_func <= io.ModBusFunc.ReadDiscreteInputs)
+			{
+				target.addHyperText (
+					$"Size:      \e^!-%1,%2\e[34m%3\e[m" (
+					baseOffset + offsetof (pdu.m_size),
+					sizeof (pdu.m_size),
+					pdu.m_size
+					));
+
 				representModBusCoils (
 					target,
 					(uint8_t const*) (pdu + 1),
-					pdu.m_size / 8,
+					pdu.m_size * 8,
 					baseOffset + sizeof (io.ModBusReadReplyPdu),
 					foldFlags
 					);
+			}
 			else
+			{
+				target.addHyperText (
+					$"Size:      \e^!-%1,%2\e[34m%3\e[m%4" (
+					baseOffset + offsetof (pdu.m_size),
+					sizeof (pdu.m_size),
+					pdu.m_size,
+					(pdu.m_size & 1) ? " [\e[31mINVALID\e[m] \e[90m(expected: a multiple of 2)" : ""
+					));
+
 				representModBusRegisters (
 					target, (bigendian uint16_t const*) (pdu + 1),
 					pdu.m_size / 2,
 					baseOffset + sizeof (io.ModBusReadReplyPdu),
 					foldFlags
 					);
+			}
 		}
 		break;
 
