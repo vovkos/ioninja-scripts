@@ -28,12 +28,14 @@ protected:
 	uint64_t m_lastRecordTimestamp;
 	std.Buffer m_dataBuffer;
 	gui.EnumProperty* m_streamRoleProp;
+	bool volatile m_isInvertedStreamRole; // we need a volatile duplicate (main thread vs log thread)
 
 public:
 	construct (doc.PluginHost* pluginHost);
 
 	override void load (doc.Storage* storage);
 	override void save (doc.Storage* storage);
+	override bool applyProperties ();
 	override void restoreDefaultProperties ();
 
 	override bool convert (
@@ -76,6 +78,7 @@ ModBusRtuLayer.construct (doc.PluginHost* pluginHost)
 void ModBusRtuLayer.load (doc.Storage* storage)
 {
 	m_streamRoleProp.m_value = storage.readBool ("streamRole");
+	m_isInvertedStreamRole = m_streamRoleProp.m_value;
 }
 
 void ModBusRtuLayer.save (doc.Storage* storage)
@@ -83,9 +86,16 @@ void ModBusRtuLayer.save (doc.Storage* storage)
 	storage.writeBool ("streamRole", m_streamRoleProp.m_value);
 }
 
+bool ModBusRtuLayer.applyProperties ()
+{
+	m_isInvertedStreamRole = m_streamRoleProp.m_value;
+	return true;
+}
+
 void ModBusRtuLayer.restoreDefaultProperties ()
 {
 	m_streamRoleProp.m_value = false;
+	m_isInvertedStreamRole = false;
 }
 
 bool ModBusRtuLayer.convert (
@@ -99,16 +109,14 @@ bool ModBusRtuLayer.convert (
 	bool result;
 	io.ModBusRole role;
 
-	// not really necessary to protect against a main-thead/log-thread race on m_streamRoleProp
-
 	switch (recordCode)
 	{
 	case log.StdRecordCode.Tx:
-		role = m_streamRoleProp.m_value ? io.ModBusRole.Slave : io.ModBusRole.Master;
+		role = m_isInvertedStreamRole ? io.ModBusRole.Slave : io.ModBusRole.Master;
 		break;
 
 	case log.StdRecordCode.Rx:
-		role = m_streamRoleProp.m_value ? io.ModBusRole.Master : io.ModBusRole.Slave;
+		role = m_isInvertedStreamRole ? io.ModBusRole.Master : io.ModBusRole.Slave;
 		break;
 
 	default:
