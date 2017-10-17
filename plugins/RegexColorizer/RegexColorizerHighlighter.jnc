@@ -115,11 +115,13 @@ RegexColorizerHighlighter.write_lt (
 
 	void const* end = p + size;
 
+	size_t result;
+
 	do
 	{
 		size_t length = end - p;
-		size_t result = try m_regexDfa_lt.match (m_regexState, p, length);
 
+		result = try m_regexDfa_lt.match (m_regexState, p, length);
 		if (result < m_attrArray_lt.m_count)
 			writer.retroColorize (
 				m_regexState.m_match.m_offset,
@@ -128,7 +130,7 @@ RegexColorizerHighlighter.write_lt (
 				);
 
 		p += m_regexState.m_consumedLength;
-	} while (p < end);
+	} while (result != -1);
 }
 
 //..............................................................................
