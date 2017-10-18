@@ -66,22 +66,22 @@ RegexColorizerLayer.construct (doc.PluginHost* pluginHost)
 RegexColorizerLayer.createUi ()
 {
 	m_addPatternProp = m_pluginHost.m_propertyGrid.createActionProperty (
-		"Add extra pattern",
-		"Add an extra pattern to search and colorize"
+		"Add extra regex pattern",
+		"Add an extra regular expression pattern to search and colorize"
 		);
 
 	m_addPatternProp.m_onAction = onAddPattern;
 
 	m_removeLastPatternProp = m_pluginHost.m_propertyGrid.createActionProperty (
-		"Remove last pattern",
-		"Removes the last added extra pattern"
+		"Remove last regex pattern",
+		"Removes the last added extra regular expression pattern"
 		);
 
 	m_removeLastPatternProp.m_onAction = onRemoveLastPattern;
 
 	m_removeAllExtraPatternsProp = m_pluginHost.m_propertyGrid.createActionProperty (
-		"Remove all extra patterns",
-		"Remove all patterns except the main one (Pattern #1)"
+		"Remove all extra regex patterns",
+		"Remove all regular expression patterns except the main one (Pattern #1)"
 		);
 
 	m_removeAllExtraPatternsProp.m_onAction = onRemoveAllExtraPatterns;
