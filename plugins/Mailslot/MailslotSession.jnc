@@ -6,6 +6,9 @@
 import "io_base.jncx"
 import "io_Mailslot.jnc"
 import "doc_Plugin.jnc"
+import "gui_History.jnc"
+
+using extension gui.ComboBoxHistory;
 
 //..............................................................................
 
@@ -166,11 +169,13 @@ MailslotSession.close ()
 
 void MailslotSession.load (doc.Storage* storage)
 {
+	m_nameCombo.loadHistory (storage, "nameHistory");
 	m_nameCombo.m_editText = storage.readString ("name");
 }
 
 void MailslotSession.save (doc.Storage* storage)
 {
+	m_nameCombo.saveHistory (storage, "nameHistory");
 	storage.writeString ("name", m_nameCombo.m_editText);
 }
 

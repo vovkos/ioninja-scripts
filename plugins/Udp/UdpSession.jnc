@@ -7,6 +7,9 @@ import "io_base.jncx"
 import "io_Socket.jnc"
 import "io_SocketAddressResolver.jnc"
 import "doc_Plugin.jnc"
+import "gui_History.jnc"
+
+using extension gui.ComboBoxHistory;
 
 //..............................................................................
 
@@ -256,6 +259,8 @@ UdpSession.closeSocket ()
 
 UdpSession.load (doc.Storage* storage)
 {
+	m_localPortCombo.loadHistory (storage, "localPortHistory");
+	m_remoteAddressCombo.loadHistory (storage, "remoteAddressHistory");
 	m_adapterCombo.m_currentIndex  = storage.readInt ("adapterIdx");
 	m_localPortCombo.m_editText = storage.readString ("localPort");
 	m_reuseAddressProp.m_value = storage.readBool ("reuseAddress");
@@ -266,6 +271,8 @@ UdpSession.load (doc.Storage* storage)
 
 UdpSession.save (doc.Storage* storage)
 {
+	m_localPortCombo.saveHistory (storage, "localPortHistory");
+	m_remoteAddressCombo.saveHistory (storage, "remoteAddressHistory");
 	storage.writeInt ("adapterIdx", (int) m_adapterCombo.m_currentIndex);
 	storage.writeString ("localPort", m_localPortCombo.m_editText);
 	storage.writeBool ("reuseAddress", m_reuseAddressProp.m_value);

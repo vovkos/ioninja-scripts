@@ -10,6 +10,9 @@ import "io_MappedFile.jnc"
 import "io_SocketAddressResolver.jnc"
 import "doc_Plugin.jnc"
 import "gui_Dialog.jnc"
+import "gui_History.jnc"
+
+using extension gui.ComboBoxHistory;
 
 //..............................................................................
 
@@ -463,6 +466,7 @@ SshChannelSession.disconnect ()
 
 void SshChannelSession.load (doc.Storage* storage)
 {
+	m_addressCombo.loadHistory (storage, "addressHistory");
 	m_addressCombo.m_editText = storage.readString ("address");
 	m_userNameProp.m_value = storage.readString ("userName");
 	m_authenticationMethodProp.m_value = storage.readInt ("authenticationMethod");
@@ -479,6 +483,7 @@ void SshChannelSession.load (doc.Storage* storage)
 
 void SshChannelSession.save (doc.Storage* storage)
 {
+	m_addressCombo.saveHistory (storage, "addressHistory");
 	storage.writeString ("address", m_addressCombo.m_editText);
 	storage.writeString ("userName", m_userNameProp.m_value);
 	storage.writeInt ("authenticationMethod", m_authenticationMethodProp.m_value);

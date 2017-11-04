@@ -6,6 +6,9 @@
 import "io_base.jncx"
 import "io_FileStream.jnc"
 import "doc_Plugin.jnc"
+import "gui_History.jnc"
+
+using extension gui.ComboBoxHistory;
 
 //..............................................................................
 
@@ -214,12 +217,14 @@ FileSession.clear ()
 
 void FileSession.load (doc.Storage* storage)
 {
+	m_fileNameCombo.loadHistory (storage, "fileNameHistory");
 	m_fileNameCombo.m_editText = storage.readString ("fileName");
 	m_accessProp.m_value = storage.readInt ("access");
 }
 
 void FileSession.save (doc.Storage* storage)
 {
+	m_fileNameCombo.saveHistory (storage, "fileNameHistory");
 	storage.writeString ("fileName", m_fileNameCombo.m_editText);
 	storage.writeInt ("access", m_accessProp.m_value);
 }

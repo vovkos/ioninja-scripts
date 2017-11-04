@@ -7,6 +7,9 @@ import "io_base.jncx"
 import "io_NamedPipe.jnc"
 import "io_FileStream.jnc"
 import "doc_Plugin.jnc"
+import "gui_History.jnc"
+
+using extension gui.ComboBoxHistory;
 
 //..............................................................................
 
@@ -230,6 +233,7 @@ PipeListenerSession.disconnect ()
 
 void PipeListenerSession.load (doc.Storage* storage)
 {
+	m_pipeNameCombo.loadHistory (storage, "pipeNameHistory");
 	m_pipeNameCombo.m_editText = storage.readString ("pipeName");
 	m_pipeModeProp.m_value = storage.readInt ("pipeMode");
 	m_overrideOldConnectionProp.m_value = storage.readBool ("overrideOldConnection");
@@ -237,6 +241,7 @@ void PipeListenerSession.load (doc.Storage* storage)
 
 void PipeListenerSession.save (doc.Storage* storage)
 {
+	m_pipeNameCombo.saveHistory (storage, "pipeNameHistory");
 	storage.writeString ("pipeName", m_pipeNameCombo.m_editText);
 	storage.writeInt ("pipeMode", m_pipeModeProp.m_value);
 	storage.writeBool ("overrideOldConnection", m_overrideOldConnectionProp.m_value);

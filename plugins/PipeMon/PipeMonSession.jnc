@@ -8,6 +8,9 @@ import "io_mon.jncx"
 import "io_NamedPipeMon.jnc"
 import "io_FileIdMgr.jnc"
 import "doc_Plugin.jnc"
+import "gui_History.jnc"
+
+using extension gui.ComboBoxHistory;
 
 //..............................................................................
 
@@ -172,11 +175,13 @@ PipeMonSession.stopCapture ()
 
 void PipeMonSession.load (doc.Storage* storage)
 {
+	m_nameCombo.loadHistory (storage, "nameHistory");
 	m_nameCombo.m_editText = storage.readString ("name");
 }
 
 void PipeMonSession.save (doc.Storage* storage)
 {
+	m_nameCombo.saveHistory (storage, "nameHistory");
 	storage.writeString ("name", m_nameCombo.m_currentText);
 }
 

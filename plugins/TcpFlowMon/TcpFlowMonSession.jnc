@@ -10,6 +10,9 @@ import "io_SocketAddress.jnc"
 import "io_SocketAddressResolver.jnc"
 import "doc_Plugin.jnc"
 import "gui_Dialog.jnc"
+import "gui_History.jnc"
+
+using extension gui.ComboBoxHistory;
 
 //..............................................................................
 
@@ -445,6 +448,7 @@ char const* TcpFlowMonSession.createFilterString (io.SocketAddress const* filter
 
 void TcpFlowMonSession.load (doc.Storage* storage)
 {
+	m_filterCombo.loadHistory (storage, "captureFilterHistory");
 	m_deviceCombo.m_currentIndex = storage.readInt ("deviceIdx");
 	m_promisciousProp.m_value = storage.readBool ("promiscious");
 	m_filterCombo.m_editText = storage.readString ("captureFilter");
@@ -455,6 +459,7 @@ void TcpFlowMonSession.load (doc.Storage* storage)
 
 void TcpFlowMonSession.save (doc.Storage* storage)
 {
+	m_filterCombo.saveHistory (storage, "captureFilterHistory");
 	storage.writeInt ("deviceIdx", (int) m_deviceCombo.m_currentIndex);
 	storage.writeBool ("promiscious", m_promisciousProp.m_value);
 	storage.writeString ("captureFilter", m_filterCombo.m_editText);

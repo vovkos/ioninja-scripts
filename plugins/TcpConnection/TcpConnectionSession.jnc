@@ -7,6 +7,9 @@ import "io_base.jncx"
 import "io_Socket.jnc"
 import "io_SocketAddressResolver.jnc"
 import "doc_Plugin.jnc"
+import "gui_History.jnc"
+
+using extension gui.ComboBoxHistory;
 
 //..............................................................................
 
@@ -187,6 +190,8 @@ TcpConnectionSession.onConnect ()
 		try connect ();
 }
 
+using extension gui.ComboBoxHistory;
+
 bool errorcode TcpConnectionSession.connect ()
 {
 	disconnect ();
@@ -326,6 +331,7 @@ TcpConnectionSession.disconnect ()
 
 void TcpConnectionSession.load (doc.Storage* storage)
 {
+	m_addressCombo.loadHistory (storage, "addressHistory");
 	m_addressCombo.m_editText = storage.readString ("address");
 	m_closeKindProp.m_value = storage.readInt ("closeKindProp");
 	m_isNagleEnabledProp.m_value = storage.readBool ("isNagleEnabledProp");
@@ -336,6 +342,7 @@ void TcpConnectionSession.load (doc.Storage* storage)
 
 void TcpConnectionSession.save (doc.Storage* storage)
 {
+	m_addressCombo.saveHistory (storage, "addressHistory");
 	storage.writeString ("address", m_addressCombo.m_editText);
 	storage.writeInt ("closeKindProp", m_closeKindProp.m_value);
 	storage.writeBool ("isNagleEnabledProp", m_isNagleEnabledProp.m_value);

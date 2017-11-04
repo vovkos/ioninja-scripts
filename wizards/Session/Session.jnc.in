@@ -4,6 +4,9 @@
 //
 
 import "doc_Plugin.jnc"
+import "gui_History.jnc"
+
+using extension gui.ComboBoxHistory;
 
 //..............................................................................
 
@@ -164,11 +167,13 @@ $(sessionClass).disconnect ()
 
 void $(sessionClass).load (doc.Storage* storage)
 {
+	m_addressCombo.loadHistory (storage, "addressHistory");
 	m_addressCombo.m_editText = storage.readString ("address");
 }
 
 void $(sessionClass).save (doc.Storage* storage)
 {
+	m_addressCombo.saveHistory (storage, "addressHistory");
 	storage.writeString ("address", m_addressCombo.m_editText);
 }
 

@@ -134,18 +134,29 @@ opaque class ComboBox
 
 	destruct ();
 
-	void addEditTextToHistory ();
 	void adjustSizeToContents ();
 
 	size_t addItem (
 		char const* text,
 		variant data = null
+		)
+	{
+		return insertItem (-1, text, data);
+	}
+
+	size_t insertItem (
+		size_t index,
+		char const* text,
+		variant data = null
 		);
 
+	bool removeItem (size_t index);
 	void clear ();
 
 	char const* property m_itemText (size_t index);
 	variant property m_itemData (size_t index);
+
+	size_t m_itemCount;
 
 	property m_currentIndex
 	{
