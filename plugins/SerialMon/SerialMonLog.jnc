@@ -12,8 +12,9 @@ enum SerialMonLogRecordCode
 	CaptureStarted = 0x100, // avoid conflicts with SerialLogRecordCode
 	CaptureStopped,
 	CaptureError,
-	DeviceOpened,
+	DeviceOpened_old,
 	DeviceClosed,
+	DeviceOpened,
 }
 
 //..............................................................................
@@ -48,10 +49,17 @@ bool representSerialMonLog  (
 		target.addHyperText ($"Cannot start capture: $(error.m_description)");
 		break;
 
-	case SerialMonLogRecordCode.DeviceOpened:
+	case SerialMonLogRecordCode.DeviceOpened_old:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Connect;
 		target.addHyperText ("Port opened");
+		break;
+
+	case SerialMonLogRecordCode.DeviceOpened:
+		uint32_t pid = *(uint32_t const*) p;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Connect;
+		target.addHyperText ($"PID \e[34m#$pid\e[m: Port opened");
 		break;
 
 	case SerialMonLogRecordCode.DeviceClosed:

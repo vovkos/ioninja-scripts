@@ -9,6 +9,7 @@ import "io_NamedPipeMon.jnc"
 import "io_FileIdMgr.jnc"
 import "doc_Plugin.jnc"
 import "gui_History.jnc"
+import "std_Buffer.jnc"
 
 using extension gui.ComboBoxHistory;
 
@@ -76,7 +77,11 @@ public:
 protected:
 	onCapture ();
 	onReadyRead (uint_t syncId);
-	setFileId (intptr_t loFileId);
+
+	setFileId (
+		uint64_t loFileId,
+		uint32_t processId
+		);
 
 	createUi ();
 	reactor m_uiReactor ();
@@ -201,13 +206,19 @@ void PipeMonSession.restoreDefaultProperties ()
 	m_nameProp.m_value = "*mypipe*";
 }
 
-PipeMonSession.setFileId (intptr_t loFileId)
+PipeMonSession.setFileId (
+	uint64_t loFileId,
+	uint32_t processId
+	)
 {
 	uint32_t lastFileId = m_fileIdMgr.m_lastHiFileId;
 	uint32_t fileId = m_fileIdMgr.getHiFileId (loFileId);
 
 	if (fileId != lastFileId)
-		writeLog (PipeMonLogRecordCode.FileIdChanged, &fileId, sizeof (fileId));
+	{
+		uint32_t ids [] = { fileId, processId }
+		writeLog (PipeMonLogRecordCode.FileIdChanged, ids, sizeof (ids));
+	}
 }
 
 PipeMonSession.onReadyRead (uint_t syncId)
@@ -229,32 +240,34 @@ PipeMonSession.onReadyRead (uint_t syncId)
 		}
 
 		uint_t code;
-		char const* logParams;
+		std.Buffer logParams;
 
 		size_t row = params.m_eventCode == io.NamedPipeMonEventCode.ServerFileOpen;
-
 		if (params.m_error)
 		{
 			code = codeTable [row] [1];
-			logParams = memcat (params.m_error, params.m_error.m_size, params.m_data, params.m_dataSize);
+			logParams.append (&params.m_processId, sizeof (params.m_processId));
+			logParams.append (params.m_error, params.m_error.m_size);
+			logParams.append (params.m_data, params.m_dataSize);
 		}
 		else
 		{
 			code = codeTable [row] [0];
 			uint32_t fileId = m_fileIdMgr.getHiFileId (params.m_fileId);
-			logParams = memcat (&fileId, sizeof (fileId), params.m_data, params.m_dataSize);
+			logParams.append (&fileId, sizeof (fileId));
+			logParams.append (&params.m_processId, sizeof (params.m_processId));
 		}
 
 		m_pluginHost.m_log.m_writer.write (
 			params.m_timestamp,
 			code,
-			logParams,
-			dynamic sizeof (logParams)
+			logParams.m_p,
+			logParams.m_size
 			);
 		break;
 
 	case io.NamedPipeMonEventCode.FileClose:
-		setFileId (params.m_fileId);
+		setFileId (params.m_fileId, params.m_processId);
 		m_fileIdMgr.removeLowFileId (params.m_fileId);
 		m_pluginHost.m_log.m_writer.write (params.m_timestamp, PipeMonLogRecordCode.FileClosed);
 		break;
@@ -263,12 +276,12 @@ PipeMonSession.onReadyRead (uint_t syncId)
 		if (params.m_error)
 			break;
 
-		setFileId (params.m_fileId);
+		setFileId (params.m_fileId, params.m_processId);
 		m_pluginHost.m_log.m_writer.write (params.m_timestamp, PipeMonLogRecordCode.ConnectionAccepted);
 		break;
 
 	case io.NamedPipeMonEventCode.ConnectionClose:
-		setFileId (params.m_fileId);
+		setFileId (params.m_fileId, params.m_processId);
 		m_pluginHost.m_log.m_writer.write (params.m_timestamp, PipeMonLogRecordCode.ConnectionClosed);
 		break;
 
@@ -276,7 +289,7 @@ PipeMonSession.onReadyRead (uint_t syncId)
 		if (!params.m_dataSize)
 			break;
 
-		setFileId (params.m_fileId);
+		setFileId (params.m_fileId, params.m_processId);
 		m_pluginHost.m_log.m_writer.write (
 			params.m_timestamp,
 			log.StdRecordCode.Rx,
@@ -289,7 +302,7 @@ PipeMonSession.onReadyRead (uint_t syncId)
 		if (!params.m_dataSize)
 			break;
 
-		setFileId (params.m_fileId);
+		setFileId (params.m_fileId, params.m_processId);
 		m_pluginHost.m_log.m_writer.write (
 			params.m_timestamp,
 			log.StdRecordCode.Tx,
@@ -307,7 +320,7 @@ PipeMonSession.onReadyRead (uint_t syncId)
 		transactionParams.m_txDataSize = params.m_auxSize <= params.m_dataSize ? params.m_auxSize : params.m_dataSize;
 		transactionParams.m_rxDataSize = params.m_dataSize - transactionParams.m_txDataSize;
 
-		setFileId (params.m_fileId);
+		setFileId (params.m_fileId, params.m_processId);
 		m_pluginHost.m_log.m_writer.write (
 			params.m_timestamp,
 			PipeMonLogRecordCode.Transaction,
@@ -336,7 +349,7 @@ PipeMonSession.onReadyRead (uint_t syncId)
 
 reactor PipeMonSession.m_uiReactor ()
 {
-	m_title = $"Mon $(m_nameCombo.m_currentText)";
+	m_title = $"Npfsmon $(m_nameCombo.m_currentText)";
 	m_actionTable [ActionId.Capture].m_text = m_state ? "Stop Capture" : "Capture";
 	m_actionTable [ActionId.Capture].m_icon = m_iconTable [m_state ? IconId.StopCapture : IconId.Capture];
 	m_statusPaneTable [StatusPaneId.State].m_text = m_state ? "Capturing" : "Closed";

@@ -270,7 +270,12 @@ SerialMonSession.onReadyRead (uint_t syncId)
 	switch (params.m_eventCode)
 	{
 	case io.SerialMonEventCode.DeviceOpened:
-		m_pluginHost.m_log.m_writer.write (params.m_timestamp, SerialMonLogRecordCode.DeviceOpened);
+		m_pluginHost.m_log.m_writer.write (
+			params.m_timestamp,
+			SerialMonLogRecordCode.DeviceOpened,
+			&params.m_processId,
+			sizeof (params.m_processId)
+			);
 		break;
 
 	case io.SerialMonEventCode.DeviceClosed:
