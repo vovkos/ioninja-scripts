@@ -149,7 +149,7 @@ class Session: Plugin
 
 	startSession ()
 	{
-		uint64_t timestamp = sys.getTimestamp ();
+		uint64_t timestamp = sys.getPreciseTimestamp ();
 		m_pluginHost.m_log.m_baseTimestamp = timestamp;
 		m_pluginHost.m_log.m_writer.write (timestamp, log.StdRecordCode.SessionStarted);
 	}
