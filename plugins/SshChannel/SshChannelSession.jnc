@@ -64,6 +64,7 @@ protected:
 	io.SshChannel m_channel;
 	io.SocketAddressResolver m_resolver;
 	io.SocketAddress m_remoteAddress;
+	bool m_hasConsoleSizeChanged;
 
 	// toolbar, status bar & menu
 
@@ -323,6 +324,7 @@ bool errorcode SshChannelSession.connect (io.SocketAddress const* remoteAddress)
 	}
 
 	m_state = State.Connecting;
+	m_hasConsoleSizeChanged = false;
 	m_remoteAddress = *remoteAddress;
 
 	writeLog (
@@ -442,7 +444,10 @@ catch:
 SshChannelSession.onConsoleSizeChanged ()
 {
 	if (m_state != State.Connected)
-		return; // actually, need to handle console size change during connection process also
+	{
+		m_hasConsoleSizeChanged = true;
+		return;
+	}
 
 	try m_channel.resizePty (
 		m_pluginHost.m_terminal.m_consoleWidth,
@@ -591,6 +596,13 @@ SshChannelSession.onSshEvent (io.SshEventParams const* params)
 	case io.SshEventCode.ConnectCompleted:
 		writeLog (SshChannelLogRecordCode.ConnectCompleted);
 		m_state = State.Connected;
+
+		if (m_hasConsoleSizeChanged)
+			try m_channel.resizePty (
+				m_pluginHost.m_terminal.m_consoleWidth,
+				m_pluginHost.m_terminal.m_consoleHeight
+				);			
+
 		break;
 
 	case io.SshEventCode.SshAuthError:
