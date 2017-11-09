@@ -78,6 +78,7 @@ protected:
 	gui.BoolProperty* m_useLocalAddressProp;
 	gui.EnumProperty* m_adapterProp;
 	gui.IntProperty* m_localPortProp;
+	gui.IntProperty* m_remotePortProp;
 
 public:
 	construct (doc.PluginHost* pluginHost);
@@ -151,6 +152,11 @@ TcpConnectionSession.createUi ()
 		"Remote address to connect to (IP-address or host-name followed by ':' port)"
 		);
 
+	m_remotePortProp = m_pluginHost.m_propertyGrid.createIntProperty (
+		"Remote TCP port (default)",
+		"Remote TCP port to connect to (if not specified in remote address)"
+		);
+
 	m_closeKindProp = io.createSocketCloseKindProperty (
 		m_pluginHost.m_propertyGrid,
 		"TCP disconnect",
@@ -190,8 +196,6 @@ TcpConnectionSession.onConnect ()
 		try connect ();
 }
 
-using extension gui.ComboBoxHistory;
-
 bool errorcode TcpConnectionSession.connect ()
 {
 	disconnect ();
@@ -204,7 +208,12 @@ bool errorcode TcpConnectionSession.connect ()
 	io.SocketAddress address;
 	bool isDirectAddress = try address.parse (addressString);
 	if (isDirectAddress)
+	{
+		if (!address.m_ip4.m_port) // IPv4 & IPv6 share the same port location
+			address.m_ip4.m_port = m_remotePortProp.m_value;
+
 		return try connect (&address);
+	}
 
 	m_state = State.Resolving;
 
@@ -338,6 +347,7 @@ void TcpConnectionSession.load (doc.Storage* storage)
 	m_useLocalAddressProp.m_value = storage.readBool ("useLocalAddress");
 	m_adapterProp.m_currentIndex = storage.readInt ("adapterIdx");
 	m_localPortProp.m_value = storage.readInt ("localPort");
+	m_remotePortProp.m_value = storage.readInt ("remotePort", 80);
 }
 
 void TcpConnectionSession.save (doc.Storage* storage)
@@ -349,6 +359,7 @@ void TcpConnectionSession.save (doc.Storage* storage)
 	storage.writeBool ("useLocalAddress", m_useLocalAddressProp.m_value);
 	storage.writeInt ("adapterIdx", (int) m_adapterProp.m_currentIndex);
 	storage.writeInt ("localPort", m_localPortProp.m_value);
+	storage.writeInt ("remotePort", m_remotePortProp.m_value);
 }
 
 void TcpConnectionSession.updateProperties ()
@@ -371,12 +382,13 @@ bool errorcode TcpConnectionSession.applyProperties ()
 
 void TcpConnectionSession.restoreDefaultProperties ()
 {
-	m_addressProp.m_value = "tibbo.com:80";
+	m_addressProp.m_value = "ioninja.com:80";
 	m_closeKindProp.m_value = io.SocketCloseKind.Graceful;
 	m_isNagleEnabledProp.m_value = true;
 	m_useLocalAddressProp.m_value = false;
 	m_adapterProp.m_value = 0;
 	m_localPortProp.m_value = 0;
+	m_remotePortProp.m_value = 80;
 }
 
 size_t errorcode TcpConnectionSession.transmit (
@@ -472,7 +484,12 @@ TcpConnectionSession.onResolverEvent (io.SocketAddressResolverEventParams const*
 			);
 
 		m_state = State.Closed;
-		try connect (params.m_addressTable);
+
+		io.SocketAddress address = params.m_addressTable [0];
+		if (!address.m_ip4.m_port) // IPv4 & IPv6 share the same port location
+			address.m_ip4.m_port = m_remotePortProp.m_value;
+
+		try connect (address);
 		break;
 
 	case io.SocketAddressResolverEventCode.ResolveError:

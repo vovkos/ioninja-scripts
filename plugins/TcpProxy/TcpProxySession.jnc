@@ -109,6 +109,7 @@ protected:
 	// property grid
 
 	gui.StringProperty* m_clientAddressProp;
+	gui.IntProperty* m_clientPortProp;
 	gui.IntProperty* m_serverPortProp;
 	gui.EnumProperty* m_adapterProp;
 	gui.BoolProperty* m_overrideConnectionProp;
@@ -223,6 +224,11 @@ TcpProxySession.createUi ()
 		"Address to connect to"
 		);
 
+	m_clientPortProp = m_pluginHost.m_propertyGrid.createIntProperty (
+		"Target TCP port (default)",
+		"Remote TCP port to connect to (if not specified in target address)"
+		);
+
 	m_adapterProp = io.createNetworkAdapterProperty (
 		m_pluginHost.m_propertyGrid,
 		io.NetworkAdapterUsage.Listener,
@@ -266,7 +272,12 @@ bool errorcode TcpProxySession.listen ()
 	if (isDirectAddress || m_isTargetAddressResolved)
 	{
 		if (isDirectAddress)
+		{
+			if (!targetAddress.m_ip4.m_port) // IPv4 & IPv6 share the same port location
+				targetAddress.m_ip4.m_port = m_clientPortProp.m_value;
+
 			m_clientRemoteAddress = targetAddress;
+		}
 
 		io.SocketAddress address = *(io.SocketAddress const*) m_adapterCombo.m_currentData;
 		address.m_ip4.m_port = (uint16_t) atoi (m_serverPortCombo.m_editText); // same for IPv4/IPv6
@@ -397,6 +408,7 @@ override void TcpProxySession.load (doc.Storage* storage)
 	m_adapterCombo.m_currentIndex  = storage.readInt ("adapterIdx");
 	m_serverPortCombo.m_editText = storage.readString ("port");
 	m_clientAddressCombo.m_editText = storage.readString ("targetAddress");
+	m_clientPortProp.m_value = storage.readInt ("targetPort", 80);
 	m_overrideConnectionProp.m_value = storage.readBool ("overrideConnection");
 	m_resetConnectionProp.m_value = storage.readBool ("resetConnection");
 }
@@ -408,6 +420,7 @@ override void TcpProxySession.save (doc.Storage* storage)
 	storage.writeInt ("adapterIdx", (int) m_adapterCombo.m_currentIndex);
 	storage.writeString ("port", m_serverPortCombo.m_editText);
 	storage.writeString ("targetAddress", m_clientAddressCombo.m_editText);
+	storage.writeInt ("targetPort", m_clientPortProp.m_value);
 	storage.writeBool ("overrideConnection", m_overrideConnectionProp.m_value);
 	storage.writeBool ("resetConnection", m_resetConnectionProp.m_value);
 }
@@ -428,8 +441,9 @@ override bool errorcode TcpProxySession.applyProperties ()
 override void TcpProxySession.restoreDefaultProperties ()
 {
 	m_adapterProp.m_currentIndex = 0;
-	m_serverPortProp.m_value = 1001;
-	m_clientAddressProp.m_value = "127.0.0.1:1002";
+	m_serverPortProp.m_value = 8080;
+	m_clientAddressProp.m_value = "ioninja.com:80";
+	m_clientPortProp.m_value = 80;
 	m_overrideConnectionProp.m_value = true;
 	m_resetConnectionProp.m_value = false;
 }
@@ -642,7 +656,9 @@ TcpProxySession.onResolverEvent (io.SocketAddressResolverEventParams const* para
 			sizeof (io.SocketAddress)
 			);
 
-		m_clientRemoteAddress = *params.m_addressTable;
+		m_clientRemoteAddress = params.m_addressTable [0];
+		if (!m_clientRemoteAddress.m_ip4.m_port) // IPv4 & IPv6 share the same port location
+			m_clientRemoteAddress.m_ip4.m_port = m_clientPortProp.m_value;
 
 		if (!m_wasTargetAddressChangedWhileResolving)
 			m_isTargetAddressResolved = true;

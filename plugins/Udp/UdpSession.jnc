@@ -79,6 +79,7 @@ protected:
 	gui.BoolProperty* m_autoRemoteAddressProp;
 	gui.EnumProperty* m_adapterProp;
 	gui.IntProperty* m_localPortProp;
+	gui.IntProperty* m_remotePortProp;
 	gui.BoolProperty* m_reuseAddressProp;
 	gui.BoolProperty* m_packetHdrVisibleProp;
 
@@ -177,6 +178,11 @@ UdpSession.createGui()
 		"Remote address to send to (IP-address or host-name followed by ':' port)"
 		);
 
+	m_remotePortProp = m_pluginHost.m_propertyGrid.createIntProperty (
+		"Remote UDP port (default)",
+		"Remote UDP port to send to (if not specified in remote address)"
+		);
+
 	m_autoRemoteAddressProp = m_pluginHost.m_propertyGrid.createBoolProperty (
 		"Auto-switch remote address",
 		"Automatically switch remote address upon receiving a datagram"
@@ -263,6 +269,7 @@ UdpSession.load (doc.Storage* storage)
 	m_remoteAddressCombo.loadHistory (storage, "remoteAddressHistory");
 	m_adapterCombo.m_currentIndex  = storage.readInt ("adapterIdx");
 	m_localPortCombo.m_editText = storage.readString ("localPort");
+	m_remotePortProp.m_value = storage.readInt ("remotePort", 1001);
 	m_reuseAddressProp.m_value = storage.readBool ("reuseAddress");
 	m_remoteAddressCombo.m_editText = storage.readString ("remoteAddress");
 	m_actionTable [ActionId.AutoRemoteAddress].m_isChecked = storage.readInt ("autoRemoteAddress");
@@ -275,6 +282,7 @@ UdpSession.save (doc.Storage* storage)
 	m_remoteAddressCombo.saveHistory (storage, "remoteAddressHistory");
 	storage.writeInt ("adapterIdx", (int) m_adapterCombo.m_currentIndex);
 	storage.writeString ("localPort", m_localPortCombo.m_editText);
+	storage.writeInt ("remotePort", m_remotePortProp.m_value);
 	storage.writeBool ("reuseAddress", m_reuseAddressProp.m_value);
 	storage.writeString ("remoteAddress", m_remoteAddressCombo.m_editText);
 	storage.writeInt ("autoRemoteAddress", m_actionTable [ActionId.AutoRemoteAddress].m_isChecked);
@@ -302,6 +310,7 @@ UdpSession.restoreDefaultProperties ()
 {
 	m_adapterProp.m_currentIndex = 0;
 	m_localPortProp.m_value = 0;
+	m_remotePortProp.m_value = 1001;
 	m_remoteAddressProp.m_value = "127.0.0.1:1001";
 	m_autoRemoteAddressProp.m_value = false;
 	m_packetHdrVisibleProp.m_value = true;
@@ -326,6 +335,9 @@ size_t errorcode UdpSession.transmit (
 			m_remoteAddress = remoteAddress;
 		else
 			remoteAddress = m_remoteAddress; // resolved address
+
+		if (!remoteAddress.m_ip4.m_port) // IPv4 & IPv6 share the same port location
+			remoteAddress.m_ip4.m_port = m_remotePortProp.m_value;
 
 		m_socket.sendTo (p, size, &remoteAddress);
 
@@ -438,7 +450,7 @@ UdpSession.onResolverEvent (io.SocketAddressResolverEventParams const* params)
 			sizeof (io.SocketAddress)
 			);
 
-		m_remoteAddress = *params.m_addressTable;
+		m_remoteAddress = params.m_addressTable [0];
 
 		m_resolveState = m_resolveState == ResolveState.ChangeWhileResolving ?
 			ResolveState.Unresolved :

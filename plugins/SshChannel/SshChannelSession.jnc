@@ -87,6 +87,7 @@ protected:
 	gui.BoolProperty* m_useLocalAddressProp;
 	gui.EnumProperty* m_adapterProp;
 	gui.IntProperty* m_localPortProp;
+	gui.IntProperty* m_remotePortProp;
 
 public:
 	construct (doc.PluginHost* pluginHost);
@@ -162,6 +163,11 @@ SshChannelSession.createUi ()
 	m_addressProp = m_pluginHost.m_propertyGrid.createStringProperty (
 		"Remote address",
 		"Remote address to connect to (IP-address or host-name followed by ':' port)"
+		);
+
+	m_remotePortProp = m_pluginHost.m_propertyGrid.createIntProperty (
+		"Remote TCP port (default)",
+		"Remote TCP port to connect to (if not specified in remote address)"
 		);
 
 	m_userNameProp = m_pluginHost.m_propertyGrid.createStringProperty (
@@ -262,7 +268,12 @@ bool errorcode SshChannelSession.connect ()
 	io.SocketAddress address;
 	bool isDirectAddress = try address.parse (addressString);
 	if (isDirectAddress)
+	{
+		if (!address.m_ip4.m_port) // IPv4 & IPv6 share the same port location
+			address.m_ip4.m_port = m_remotePortProp.m_value;
+
 		return try connect (&address);
+	}
 
 	m_state = State.Resolving;
 
@@ -479,6 +490,7 @@ void SshChannelSession.load (doc.Storage* storage)
 	m_useLocalAddressProp.m_value = storage.readBool ("useLocalAddress");
 	m_adapterProp.m_value = storage.readInt ("adapterIp");
 	m_localPortProp.m_value = storage.readInt ("localPort");
+	m_remotePortProp.m_value = storage.readInt ("remotePort", 22);
 }
 
 void SshChannelSession.save (doc.Storage* storage)
@@ -496,6 +508,7 @@ void SshChannelSession.save (doc.Storage* storage)
 	storage.writeBool ("useLocalAddress", m_useLocalAddressProp.m_value);
 	storage.writeInt ("adapterIp", m_adapterProp.m_value);
 	storage.writeInt ("localPort", m_localPortProp.m_value);
+	storage.writeInt ("remotePort", m_remotePortProp.m_value);
 }
 
 void SshChannelSession.updateProperties ()
@@ -523,6 +536,7 @@ void SshChannelSession.restoreDefaultProperties ()
 	m_useLocalAddressProp.m_value = false;
 	m_adapterProp.m_value = 0;
 	m_localPortProp.m_value = 0;
+	m_remotePortProp.m_value = 22;
 }
 
 size_t errorcode SshChannelSession.transmit (
@@ -635,7 +649,11 @@ SshChannelSession.onResolverEvent (io.SocketAddressResolverEventParams const* pa
 
 		m_state = State.Closed;
 
-		try connect (params.m_addressTable);
+		io.SocketAddress address = params.m_addressTable [0];
+		if (!address.m_ip4.m_port) // IPv4 & IPv6 share the same port location
+			address.m_ip4.m_port = m_remotePortProp.m_value;
+
+		try connect (&address);
 		break;
 
 	case io.SocketAddressResolverEventCode.ResolveError:
