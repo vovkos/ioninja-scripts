@@ -388,9 +388,19 @@ SnifferSession.onPcapEvent (io.PcapEventParams const* params)
 	case io.PcapEventCode.ReadyRead:
 		static char buffer [1600]; // static is OK -- we read in main thread
 		size_t result = try m_pcap.read (buffer, sizeof (buffer));
-		if (result != -1)
-			processPacket (buffer, result);
+		if (result == -1)
+		{
+			writeLog (log.StdRecordCode.Error, params.m_error, params.m_error.m_size);
+			stopCapture ();
+			break;
+		}
 
+		processPacket (buffer, result);
+		break;
+
+	case io.PcapEventCode.IoError:
+		writeLog (log.StdRecordCode.Error, params.m_error, params.m_error.m_size);
+		stopCapture ();
 		break;
 
 	case io.PcapEventCode.Eof:
