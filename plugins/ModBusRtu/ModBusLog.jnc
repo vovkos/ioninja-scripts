@@ -133,8 +133,6 @@ representModBusRegisterValues (
 	size_t baseOffset
 	)
 {
-	printf ("representModBusRegisterValues: count: %d\n", count);
-
 	for (size_t i = 0; i < count; i++)
 		target.addHyperText (
 			$"    #%(1; -3d): \e^!-%2,%3\e[34m0x%(4; 04X)/%4\e[m" (

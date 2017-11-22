@@ -658,13 +658,6 @@ SerialSession.onSerialEvent (io.SerialEventParams const* params)
 	{
 	case io.SerialEventCode.IncomingData:
 		size_t result = try m_serial.read (m_readBuffer, m_readBufferSize);
-
-		printf (
-			"io.SerialEventCode.IncomingData: dynamic sizeof (m_readBuffer) = %d; result = %d\n",
-			dynamic sizeof (m_readBuffer),
-			result
-			);
-
 		if (result != -1)
 			writeLog (log.StdRecordCode.Rx, m_readBuffer, result);
 		break;

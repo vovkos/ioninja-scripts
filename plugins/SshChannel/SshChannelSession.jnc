@@ -553,9 +553,6 @@ size_t errorcode SshChannelSession.transmit (
 		return -1;
 
 	size_t result = m_channel.write (p, size);
-
-	printf ("SshChannelSession.transmit: %d\n", result);
-
 	if (result)
 		writeLog (log.StdRecordCode.Tx, p, result);
 
