@@ -50,13 +50,19 @@ protected:
 
 	enum Defaults
 	{
-		BaudRate       = 38400,
-		DataBits       = 8,
-		StopBits       = io.SerialStopBits._1,
-		Parity         = io.SerialParity.None,
-		FlowControl    = io.SerialFlowControl.None,
-		InterCharDelay = 200,
-		ReadBufferSize = 4 * 1024,
+		BaudRate          = 38400,
+		DataBits          = 8,
+		StopBits          = io.SerialStopBits._1,
+		Parity            = io.SerialParity.None,
+		FlowControl       = io.SerialFlowControl.None,
+		InterCharDelay    = 200,
+		ReadCheckComstat  = false,
+		ReadWaitFirstChar = true,
+		ReadInterval      = 10,
+		ReadParallelism   = 4,
+		ReadBlockSize     = 1 * 1024,
+		ReadBufferSize    = 16 * 1024,
+		WriteBufferSize   = 16 * 1024,
 	}
 
 protected:
@@ -66,11 +72,12 @@ protected:
 	io.Serial m_serial;
 	SerialLogFilter m_logFilter;
 	char const* m_portName;
-	uint_t bindable m_serialStatusLines;
+	io.SerialStatusLines bindable m_serialStatusLines;
 	bool bindable m_serialDtr;
 	bool bindable m_serialRts;
 	void* m_readBuffer;
 	size_t m_readBufferSize;
+	uint_t m_syncId;
 
 	// inter-char delay
 
@@ -95,9 +102,18 @@ protected:
 	gui.EnumProperty* m_stopBitsProp;
 	gui.EnumProperty* m_flowControlProp;
 	gui.EnumProperty* m_parityProp;
+
 	gui.BoolProperty* m_useInterCharDelayProp;
 	gui.IntProperty* m_interCharDelayProp;
+
+	gui.BoolProperty* m_readCheckComstatProp;
+	gui.BoolProperty* m_readWaitFirstCharProp;
+
+	gui.IntProperty* m_readIntervalProp;
+	gui.IntProperty* m_readParallelismProp;
+	gui.IntProperty* m_readBlockSizeProp;
 	gui.IntProperty* m_readBufferSizeProp;
+	gui.IntProperty* m_writeBufferSizeProp;
 
 	// filter property grid
 
@@ -125,11 +141,15 @@ public:
 protected:
 	onRefresh ();
 	onOpen ();
-	onSerialEvent (io.SerialEventParams const* params);
 	onDelayedWriteTimer ();
 	onBaudRateChanged ();
 	onDtrChanged ();
 	onRtsChanged ();
+
+	onSerialEvent (
+		uint_t syncId,
+		io.SerialEvents triggeredEvents
+		);
 
 	createUi ();
 
@@ -150,6 +170,7 @@ protected:
 		size_t size
 		);
 
+	waitForSerialEvents ();
 	setDelayedWriteTimer ();
 	flushDelayedWrite ();
 
@@ -166,8 +187,6 @@ SerialSession.construct (doc.PluginHost* pluginHost)
 	pluginHost.m_log.attachFilter (m_logFilter);
 
 	m_state = State.Closed;
-	m_serial.m_onSerialEvent += onSerialEvent @ pluginHost.m_mainThreadScheduler;
-
 	m_readBuffer = try new char [Defaults.ReadBufferSize];
 	m_readBufferSize = Defaults.ReadBufferSize;
 
@@ -286,12 +305,19 @@ SerialSession.createUi ()
 
 	// property grid
 
+	gui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty (
+		"Serial Settings",
+		"Serial port-specific settings"
+		);
+
 	m_portProp = m_pluginHost.m_propertyGrid.createStringProperty (
+		group,,
 		"Port",
 		"Specify serial port to use"
 		);
 
 	m_baudRateProp = m_pluginHost.m_propertyGrid.createEnumProperty (
+		group,,
 		"Baud rate",
 		"Serial baud rate",
 		baudRateTable,
@@ -299,6 +325,7 @@ SerialSession.createUi ()
 		);
 
 	m_dataBitsProp = m_pluginHost.m_propertyGrid.createEnumProperty (
+		group,,
 		"Data bits",
 		"Serial data bit count (word size)",
 		dataBitsTable,
@@ -306,6 +333,7 @@ SerialSession.createUi ()
 		);
 
 	m_stopBitsProp = m_pluginHost.m_propertyGrid.createEnumProperty (
+		group,,
 		"Stop bits",
 		"Serial stop bit count",
 		stopBitsTable,
@@ -313,6 +341,7 @@ SerialSession.createUi ()
 		);
 
 	m_flowControlProp = m_pluginHost.m_propertyGrid.createEnumProperty (
+		group,,
 		"Flow control",
 		"Serial flow control",
 		flowControlTable,
@@ -320,43 +349,111 @@ SerialSession.createUi ()
 		);
 
 	m_parityProp = m_pluginHost.m_propertyGrid.createEnumProperty (
+		group,,
 		"Parity",
 		"Serial parity check",
 		parityTable,
 		countof (parityTable)
 		);
 
+	group = m_pluginHost.m_propertyGrid.createGroupProperty (
+		"Transmission inter-char delay",
+		"Insert delay between transmitted characters"
+		);
+
 	m_useInterCharDelayProp = m_pluginHost.m_propertyGrid.createBoolProperty (
-		"Use inter-char delay",
+		group,,
+		"Use TX inter-char delay",
 		"Insert inter-character delays during transmission"
 		);
 
 	m_interCharDelayProp = m_pluginHost.m_propertyGrid.createIntProperty (
-		"Inter-char delay (ms)",
+		group,,
+		"TX inter-char delay (ms)",
 		"Transmission inter-character delay (in millisceonds)"
 		);
 
+	group = m_pluginHost.m_propertyGrid.createGroupProperty (
+		"Performance & compatibility",
+		"Advanced options controlling performance, throughtput and compatibility"
+		);
+
+	m_readCheckComstatProp = m_pluginHost.m_propertyGrid.createBoolProperty (
+		group,,
+		"Read checks COMSTAT",
+		"Don't issue read requests unless the driver reports COMSTAT.cbInQue"
+		);
+
+	m_readWaitFirstCharProp = m_pluginHost.m_propertyGrid.createBoolProperty (
+		group,,
+		"Read waits for char",
+		"Read request waits until a character is received and then returns immediately"
+		);
+
+	m_readParallelismProp  = m_pluginHost.m_propertyGrid.createIntProperty (
+		group,,
+		"Read parallelism",
+		"Maximum number of read requests to issue in parallel (affects throughput)"
+		);
+
+	m_readParallelismProp.m_minValue = 1;
+
+	m_readIntervalProp = m_pluginHost.m_propertyGrid.createIntProperty (
+		group,,
+		"Read max inter-char interval (ms)",
+		"Maximum inter-character delay during read request (in millisceonds)"
+		);
+
+	m_readIntervalProp.m_minValue = 1;
+
+	m_readBlockSizeProp = m_pluginHost.m_propertyGrid.createIntProperty (
+		group,,
+		"Read block size (B)",
+		"Size of each individual read block passed to the driver (affects throughput)"
+		);
+
+	m_readBlockSizeProp.m_minValue = 1;
+	m_readBlockSizeProp.m_spinBoxStep = 1024; // 1K step
+
 	m_readBufferSizeProp = m_pluginHost.m_propertyGrid.createIntProperty (
+		group,,
 		"RX buffer size (B)",
-		"Size of the read buffer (affects throughput)"
+		"Total size of the read buffer (increase if data is dropped)"
 		);
 
 	m_readBufferSizeProp.m_minValue = 1;
 	m_readBufferSizeProp.m_spinBoxStep = 1024; // 1K step
 
+	m_writeBufferSizeProp = m_pluginHost.m_propertyGrid.createIntProperty (
+		group,,
+		"TX buffer size (B)",
+		"Total size of the write buffer"
+		);
+
+	m_writeBufferSizeProp.m_minValue = 1;
+	m_writeBufferSizeProp.m_spinBoxStep = 1024; // 1K step
+
 	// filter
 
+	group = m_pluginHost.m_propertyGrid.createGroupProperty (
+		"Log filter",
+		"Specify which unwanted log messages to filter out"
+		);
+
 	m_settingChangedVisibleProp = m_pluginHost.m_propertyGrid.createBoolProperty (
+		group,,
 		"Show setting changes",
 		"Display setting change log records (or filter them out)"
 		);
 
 	m_controlLineChangedVisibleProp = m_pluginHost.m_propertyGrid.createBoolProperty (
+		group,,
 		"Show control line changes",
 		"Display control line change log records (or filter them out)"
 		);
 
 	m_statusLineChangedVisibleProp = m_pluginHost.m_propertyGrid.createBoolProperty (
+		group,,
 		"Show status line changes",
 		"Display status line change log records (or filter them out)"
 		);
@@ -413,9 +510,23 @@ bool errorcode SerialSession.open ()
 
 	char const* name = m_portCombo.m_currentText;
 
-	// open and configure
+	// configure and open
 
-	m_serial.open (name);
+	io.SerialCompatibilityFlags compatFlags;
+	if (m_readCheckComstatProp.m_value)
+		compatFlags |= io.SerialCompatibilityFlags.WinReadCheckComstat;
+
+	if (m_readWaitFirstCharProp.m_value)
+		compatFlags |= io.SerialCompatibilityFlags.WinReadWaitFirstChar;
+
+	m_serial.m_readInterval = m_readCheckComstatProp.m_value ? 0 : m_readIntervalProp.m_value;
+	m_serial.m_readParallelism = m_readParallelismProp.m_value;
+	m_serial.m_readBlockSize = m_readBlockSizeProp.m_value;
+	m_serial.m_readBufferSize = m_readBufferSizeProp.m_value;
+	m_serial.m_writeBufferSize = m_writeBufferSizeProp.m_value;
+
+	m_serial.m_compatibilityFlags = compatFlags;
+
 	m_serial.m_baudRate = m_baudRateCombo.m_currentData;
 	m_serial.m_dataBits = m_dataBitsProp.m_value;
 	m_serial.m_stopBits = m_stopBitsProp.m_value;
@@ -423,6 +534,8 @@ bool errorcode SerialSession.open ()
 	m_serial.m_parity = m_parityProp.m_value;
 	m_serial.m_dtr = m_actionTable [ActionId.Dtr].m_isChecked;
 	m_serial.m_rts = m_actionTable [ActionId.Rts].m_isChecked;
+
+	m_serial.open (name);
 
 	SerialOpenParams params;
 	params.m_baudRate = m_serial.m_baudRate;
@@ -440,17 +553,19 @@ bool errorcode SerialSession.open ()
 	m_serialStatusLines = m_serial.m_statusLines;
 	m_state = State.Opened;
 
+	waitForSerialEvents ();
 	return true;
 
 catch:
 	m_serial.close ();
-
 	std.Error const* error = std.getLastError ();
+
 	writeLog (
 		SerialLogRecordCode.PortOpenError,
 		error,
 		error.m_size
 		);
+
 	return false;
 }
 
@@ -469,6 +584,7 @@ SerialSession.close ()
 	m_delayedWriteTimer.stop ();
 	m_delayedWriteList.clear ();
 	m_state = State.Closed;
+	m_syncId++;
 }
 
 void SerialSession.load (doc.Storage* storage)
@@ -479,9 +595,17 @@ void SerialSession.load (doc.Storage* storage)
 	m_stopBitsProp.m_currentIndex = storage.readInt ("stopBits");
 	m_flowControlProp.m_currentIndex = storage.readInt ("flowControl");
 	m_parityProp.m_currentIndex = storage.readInt ("parity");
+
 	m_useInterCharDelayProp.m_value = storage.readBool ("useInterCharDelay", false);
 	m_interCharDelayProp.m_value = storage.readInt ("interCharDelay", Defaults.InterCharDelay);
+
+	m_readCheckComstatProp.m_value = storage.readBool ("readCheckComstat", Defaults.ReadCheckComstat);
+	m_readWaitFirstCharProp.m_value = storage.readBool ("readWaitFirstChar", Defaults.ReadWaitFirstChar);
+	m_readIntervalProp.m_value = storage.readInt ("readInterval", Defaults.ReadInterval);
+	m_readParallelismProp.m_value = storage.readInt ("readParallelism", Defaults.ReadParallelism);
+	m_readBlockSizeProp.m_value = storage.readInt ("readBlockSize", Defaults.ReadBlockSize);
 	m_readBufferSizeProp.m_value = storage.readInt ("readBufferSize", Defaults.ReadBufferSize);
+	m_writeBufferSizeProp.m_value = storage.readInt ("writeBufferSize", Defaults.WriteBufferSize);
 
 	m_logFilter.m_isSettingChangedVisible = storage.readBool ("isSettingChangedVisible", true);
 	m_logFilter.m_isControlLineChangedVisible = storage.readBool ("isControlLineChangedVisible", true);
@@ -501,9 +625,17 @@ void SerialSession.save (doc.Storage* storage)
 	storage.writeInt ("stopBits", m_stopBitsProp.m_currentIndex);
 	storage.writeInt ("flowControl", m_flowControlProp.m_currentIndex);
 	storage.writeInt ("parity", m_parityProp.m_currentIndex);
+
 	storage.writeBool ("useInterCharDelay", m_useInterCharDelayProp.m_value);
 	storage.writeInt ("interCharDelay", m_interCharDelayProp.m_value);
+
+	storage.writeInt ("readCheckComstat", m_readCheckComstatProp.m_value);
+	storage.writeInt ("readWaitFirstChar", m_readWaitFirstCharProp.m_value);
+	storage.writeInt ("readInterval", m_readIntervalProp.m_value);
+	storage.writeInt ("readParallelism", m_readParallelismProp.m_value);
+	storage.writeInt ("readBlockSize", m_readBlockSizeProp.m_value);
 	storage.writeInt ("readBufferSize", m_readBufferSizeProp.m_value);
+	storage.writeInt ("writeBufferSize", m_writeBufferSizeProp.m_value);
 
 	storage.writeBool ("isSettingChangedVisible", m_logFilter.m_isSettingChangedVisible);
 	storage.writeBool ("isControlLineChangedVisible", m_logFilter.m_isControlLineChangedVisible);
@@ -534,6 +666,20 @@ bool errorcode SerialSession.applyProperties ()
 
 	if (m_state != State.Opened)
 		return true;
+
+	io.SerialCompatibilityFlags compatFlags;
+	if (m_readCheckComstatProp.m_value)
+		compatFlags |= io.SerialCompatibilityFlags.WinReadCheckComstat;
+
+	if (m_readWaitFirstCharProp.m_value)
+		compatFlags |= io.SerialCompatibilityFlags.WinReadWaitFirstChar;
+
+	m_serial.m_readInterval = m_readCheckComstatProp.m_value ? 0 : m_readIntervalProp.m_value;
+	m_serial.m_readParallelism = m_readParallelismProp.m_value;
+	m_serial.m_readBlockSize = m_readBlockSizeProp.m_value;
+	m_serial.m_readBufferSize = m_readBufferSizeProp.m_value;
+	m_serial.m_writeBufferSize = m_writeBufferSizeProp.m_value;
+	m_serial.m_compatibilityFlags = compatFlags;
 
 	uint_t dataBitsValue = m_dataBitsProp.m_value;
 	if (m_serial.m_dataBits != dataBitsValue)
@@ -572,9 +718,17 @@ void SerialSession.restoreDefaultProperties ()
 	m_dataBitsProp.m_value = Defaults.DataBits;
 	m_stopBitsProp.m_value = Defaults.StopBits;
 	m_parityProp.m_value = Defaults.Parity;
+
 	m_useInterCharDelayProp.m_value = false;
 	m_interCharDelayProp.m_value = Defaults.InterCharDelay;
+
+	m_readCheckComstatProp.m_value = Defaults.ReadCheckComstat;
+	m_readWaitFirstCharProp.m_value = Defaults.ReadWaitFirstChar;
+	m_readIntervalProp.m_value = Defaults.ReadInterval;
+	m_readParallelismProp.m_value = Defaults.ReadParallelism;
+	m_readBlockSizeProp.m_value = Defaults.ReadBlockSize;
 	m_readBufferSizeProp.m_value = Defaults.ReadBufferSize;
+	m_writeBufferSizeProp.m_value = Defaults.WriteBufferSize;
 
 	m_settingChangedVisibleProp.m_value = true;
 	m_controlLineChangedVisibleProp.m_value = true;
@@ -589,9 +743,17 @@ size_t errorcode SerialSession.transmit (
 	if (m_state != State.Opened)
 		return -1;
 
-	return m_useInterCharDelayProp.m_value && m_interCharDelayProp.m_value ?
+	size_t result = m_useInterCharDelayProp.m_value && m_interCharDelayProp.m_value ?
 		addDelayedWrite (p, size) :
 		write (p, size);
+
+	if (result < size)
+	{
+		m_isTransmitEnabled = false;
+		waitForSerialEvents ();
+	}
+
+	return result;
 }
 
 size_t SerialSession.write (
@@ -649,34 +811,73 @@ SerialSession.setDelayedWriteTimer ()
 		);
 }
 
-SerialSession.onSerialEvent (io.SerialEventParams const* params)
+SerialSession.waitForSerialEvents ()
 {
-	if (params.m_syncId != m_serial.m_syncId)
+	io.SerialEvents eventMask =
+		io.SerialEvents.IoError |
+		io.SerialEvents.ReceiveBufferFull |
+		io.SerialEvents.IncomingData;
+
+	if (!m_isTransmitEnabled)
+		eventMask |= io.SerialEvents.TransmitBufferReady;
+
+	eventMask |= (m_serialStatusLines & io.SerialStatusLines.Cts) ?
+		io.SerialEvents.CtsOff :
+		io.SerialEvents.CtsOn;
+
+	eventMask |= (m_serialStatusLines & io.SerialStatusLines.Dsr) ?
+		io.SerialEvents.DsrOff :
+		io.SerialEvents.DsrOn;
+
+	eventMask |= (m_serialStatusLines & io.SerialStatusLines.Dcd) ?
+		io.SerialEvents.DcdOff :
+		io.SerialEvents.DcdOn;
+
+	eventMask |= (m_serialStatusLines & io.SerialStatusLines.Ring) ?
+		io.SerialEvents.RingOff :
+		io.SerialEvents.RingOn;
+
+	m_serial.wait (eventMask, onSerialEvent ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
+}
+
+SerialSession.onSerialEvent (
+	uint_t syncId,
+	io.SerialEvents triggeredEvents
+	)
+{
+	if (syncId != m_syncId)
 		return;
 
-	switch (params.m_eventCode)
+	if (triggeredEvents & io.SerialEvents.IoError)
 	{
-	case io.SerialEventCode.IncomingData:
+		writeLog (SerialLogRecordCode.IoError, m_serial.m_ioError, m_serial.m_ioError.m_size);
+		close ();
+		return;
+	}
+
+	if (triggeredEvents & io.SerialEvents.ReceiveBufferFull)
+		writeLog (SerialLogRecordCode.RxBufferFull);
+
+	if (triggeredEvents & io.SerialEvents.IncomingData)
+	{
 		size_t result = try m_serial.read (m_readBuffer, m_readBufferSize);
 		if (result != -1)
 			writeLog (log.StdRecordCode.Rx, m_readBuffer, result);
-		break;
-
-	case io.SerialEventCode.StatusLineChanged:
-		char const* p = $"$(params.m_lines; B)$(params.m_mask; B)";
-		writeLog (SerialLogRecordCode.StatusLineChanged, p, dynamic sizeof (p));
-		m_serialStatusLines = params.m_lines;
-		break;
-
-	case io.SerialEventCode.TransmitBufferReady:
-		m_isTransmitEnabled = true;
-		break;
-
-	case io.SerialEventCode.IoError:
-		writeLog (SerialLogRecordCode.IoError, params.m_error, params.m_error.m_size);
-		close ();
-		break;
 	}
+
+	if (!m_isTransmitEnabled)
+		m_isTransmitEnabled = (triggeredEvents & io.SerialEvents.TransmitBufferReady);
+
+	io.SerialStatusLines statusLines = m_serial.m_statusLines;
+	io.SerialStatusLines statusLineMask = statusLines ^ m_serialStatusLines;
+	if (statusLineMask)
+	{
+		char const* p = $"$(statusLines; B)$(statusLineMask; B)";
+		writeLog (SerialLogRecordCode.StatusLineChanged, p, dynamic sizeof (p));
+		m_serialStatusLines = statusLines;
+	}
+
+	waitForSerialEvents ();
 }
 
 SerialSession.onDelayedWriteTimer ()
@@ -744,6 +945,8 @@ reactor SerialSession.m_uiReactor ()
 	m_title = $"$(m_portCombo.m_currentText) $(m_baudRateCombo.m_currentText)";
 	m_isTransmitEnabled = m_state == State.Opened;
 	m_interCharDelayProp.m_isEnabled = m_useInterCharDelayProp.m_value;
+	m_readParallelismProp.m_isEnabled = !m_readCheckComstatProp.m_value;
+	m_readIntervalProp.m_isEnabled = !m_readCheckComstatProp.m_value && !m_readWaitFirstCharProp.m_value;
 	m_statusPaneTable [StatusPaneId.PortName].m_text = m_portCombo.m_currentText;
 	m_statusPaneTable [StatusPaneId.PortName].m_isVisible = m_state != State.Closed;
 	m_statusPaneTable [StatusPaneId.State].m_text = m_state ? "Opened" : "Closed";

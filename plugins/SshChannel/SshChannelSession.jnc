@@ -23,9 +23,14 @@ protected:
 	{
 		Closed,
 		Resolving,
-		Connecting,
-		RequestingLogin,
-		Connected
+		TcpConnecting,
+		SshHandshaking,
+		SshAuthenticating,
+		WaitingLoginDlg,
+		SshOpeningChannel,
+		SshRequestingPty,
+		SshStartingProcess,
+		Connected,
 	}
 
 	static char const* m_stateStringTable [] =
@@ -33,7 +38,12 @@ protected:
 		"Closed",
 		"Resolving...",
 		"Connecting...",
-		"Requestin login...",
+		"Handhsaking...",
+		"Authenticating...",
+		"Authenticating...",
+		"Opening channel...",
+		"Requesting PTY...",
+		"Starting process...",
 		"Connected",
 	}
 
@@ -64,7 +74,7 @@ protected:
 	io.SshChannel m_channel;
 	io.SocketAddressResolver m_resolver;
 	io.SocketAddress m_remoteAddress;
-	bool m_hasConsoleSizeChanged;
+	uint_t m_syncId;
 
 	// toolbar, status bar & menu
 
@@ -110,13 +120,20 @@ public:
 
 protected:
 	handleConnectError (std.Error const* error);
-	handleSshAuthError (std.Error const* error);
+	handleSshAuthenticateError (std.Error const* error);
 
 	onConnect ();
-	onSshEvent (io.SshEventParams const* params);
+
+	onSshEvent (
+		uint_t syncId,
+		io.SshEvents triggeredEvents
+		);
+
 	onResolverEvent (io.SocketAddressResolverEventParams const* params);
 	onLoginDlgCompleted (gui.StdDlgButton button);
 	onConsoleSizeChanged ();
+
+	waitForSshEvents ();
 
 	createUi ();
 	reactor m_uiReactor ();
@@ -131,7 +148,6 @@ SshChannelSession.construct (doc.PluginHost* pluginHost)
 	pluginHost.m_log.attachRepresenter (representSshChannelLog);
 
 	m_state = State.Closed;
-	m_channel.m_onSshEvent += onSshEvent @ pluginHost.m_mainThreadScheduler;
 	m_resolver.m_onResolverEvent += onResolverEvent @ pluginHost.m_mainThreadScheduler;
 	m_pluginHost.m_terminal.m_onConsoleSizeChanged += onConsoleSizeChanged;
 
@@ -292,7 +308,7 @@ bool errorcode SshChannelSession.connect ()
 			addressFamily = adapterAddress.m_family;
 	}
 
-	m_resolver.m_syncId = m_channel.m_syncId;
+	m_resolver.m_syncId = m_syncId;
 	m_resolver.resolve (addressString, addressFamily);
 	return true;
 
@@ -323,8 +339,7 @@ bool errorcode SshChannelSession.connect (io.SocketAddress const* remoteAddress)
 		m_channel.open (&localAddress);
 	}
 
-	m_state = State.Connecting;
-	m_hasConsoleSizeChanged = false;
+	m_state = State.TcpConnecting;
 	m_remoteAddress = *remoteAddress;
 
 	writeLog (
@@ -360,11 +375,57 @@ bool errorcode SshChannelSession.connect (io.SocketAddress const* remoteAddress)
 		m_pluginHost.m_terminal.m_consoleHeight
 		);
 
+	waitForSshEvents ();
 	return true;
 
 catch:
 	handleConnectError (std.getLastError ());
 	return false;
+}
+
+SshChannelSession.waitForSshEvents ()
+{
+	io.SshEvents eventMask = io.SshEvents.IoError;
+
+	switch (m_state)
+	{
+	case State.TcpConnecting:
+		eventMask |= io.SshEvents.TcpConnectCompleted;
+		break;
+
+	case State.SshHandshaking:
+		eventMask |= io.SshEvents.SshHandshakeCompleted;
+		break;
+
+	case State.SshAuthenticating:
+		eventMask |= io.SshEvents.SshAuthenticateCompleted | io.SshEvents.SshAuthenticateError;
+		break;
+
+	case State.SshOpeningChannel:
+		eventMask |= io.SshEvents.SshChannelOpened;
+		break;
+
+	case State.SshRequestingPty:
+		eventMask |= io.SshEvents.SshPtyRequestCompleted;
+		break;
+
+	case State.SshStartingProcess:
+		eventMask |= io.SshEvents.SshConnectCompleted;
+		break;
+
+	case State.Connected:
+		eventMask |=
+			io.SshEvents.TcpDisconnected |
+			io.SshEvents.IncomingData |
+			io.SshEvents.ReceiveBufferFull;
+
+		if (!m_isTransmitEnabled)
+			eventMask |= io.SshEvents.TransmitBufferReady;
+
+		break;
+	}
+
+	m_channel.wait (eventMask, onSshEvent ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
 }
 
 SshChannelSession.handleConnectError (std.Error const* error)
@@ -379,7 +440,7 @@ SshChannelSession.handleConnectError (std.Error const* error)
 	m_state = State.Closed;
 }
 
-SshChannelSession.handleSshAuthError (std.Error const* error)
+SshChannelSession.handleSshAuthenticateError (std.Error const* error)
 {
 	writeLog (
 		SshChannelLogRecordCode.ConnectError,
@@ -398,12 +459,12 @@ SshChannelSession.handleSshAuthError (std.Error const* error)
 	m_loginDlg.m_privateKeyFileName = m_privateKeyFileProp.m_value;
 	m_loginDlg.show ();
 
-	m_state = State.RequestingLogin;
+	m_state = State.WaitingLoginDlg;
 }
 
 SshChannelSession.onLoginDlgCompleted (gui.StdDlgButton button)
 {
-	if (m_state != State.RequestingLogin)
+	if (m_state != State.WaitingLoginDlg)
 		return;
 
 	if (button != gui.StdDlgButton.Ok)
@@ -412,6 +473,11 @@ SshChannelSession.onLoginDlgCompleted (gui.StdDlgButton button)
 		m_state = State.Closed;
 		return;
 	}
+
+	printf ("ADD RE-AUTH/RE-CONNECT LOGIC!\n");
+
+	writeLog (SshChannelLogRecordCode.SshAuthenticating);
+//	writeLog (SshChannelLogRecordCode.Reconnecting);
 
 	switch (m_loginDlg.m_authenticationMethod)
 	{
@@ -434,7 +500,8 @@ SshChannelSession.onLoginDlgCompleted (gui.StdDlgButton button)
 	m_userNameProp.m_value = m_loginDlg.m_userName;
 	m_authenticationMethodProp.m_value = m_loginDlg.m_authenticationMethod;
 	m_privateKeyFileProp.m_value = m_loginDlg.m_privateKeyFileName;
-	m_state = State.Connecting;
+	m_state = State.SshAuthenticating;
+	waitForSshEvents ();
 
 catch:
 	m_channel.close ();
@@ -443,13 +510,7 @@ catch:
 
 SshChannelSession.onConsoleSizeChanged ()
 {
-	if (m_state != State.Connected)
-	{
-		m_hasConsoleSizeChanged = true;
-		return;
-	}
-
-	try m_channel.resizePty (
+	m_channel.resizePty (
 		m_pluginHost.m_terminal.m_consoleWidth,
 		m_pluginHost.m_terminal.m_consoleHeight
 		);
@@ -463,7 +524,13 @@ SshChannelSession.disconnect ()
 		return;
 
 	case State.Resolving:
-	case State.Connecting:
+	case State.TcpConnecting:
+	case State.SshHandshaking:
+	case State.SshAuthenticating:
+	case State.WaitingLoginDlg:
+	case State.SshOpeningChannel:
+	case State.SshRequestingPty:
+	case State.SshStartingProcess:
 		writeLog (SshChannelLogRecordCode.ConnectCancelled);
 		break;
 
@@ -559,58 +626,65 @@ size_t errorcode SshChannelSession.transmit (
 	return result;
 }
 
-SshChannelSession.onSshEvent (io.SshEventParams const* params)
+SshChannelSession.onSshEvent (
+	uint_t syncId,
+	io.SshEvents triggeredEvents
+	)
 {
-	if (params.m_syncId != m_channel.m_syncId)
+	if (syncId != m_syncId)
 		return;
 
-	switch (params.m_eventCode)
+	if (triggeredEvents & io.SshEvents.IoError)
 	{
-	case io.SshEventCode.TcpConnectCompleted:
+		handleConnectError (m_channel.m_ioError);
+		return;
+	}
+
+	if (triggeredEvents & io.SshEvents.SshAuthenticateError)
+	{
+		handleSshAuthenticateError (m_channel.m_ioError);
+		return;
+	}
+
+	if (triggeredEvents & io.SshEvents.TcpConnectCompleted)
+	{
 		writeLog (SshChannelLogRecordCode.TcpConnectCompleted);
-		break;
+		m_state = State.SshHandshaking;
+	}
 
-	case io.SshEventCode.SshHandshakeCompleted:
+	if (triggeredEvents & io.SshEvents.SshHandshakeCompleted)
+	{
 		writeLog (SshChannelLogRecordCode.SshHandshakeCompleted);
-		break;
+		m_state = State.SshAuthenticating;
+	}
 
-	case io.SshEventCode.SshAuthCompleted:
+	if (triggeredEvents & io.SshEvents.SshAuthenticateCompleted)
+	{
 		writeLog (SshChannelLogRecordCode.SshAuthCompleted);
-		break;
+		m_state = State.SshOpeningChannel;
+	}
 
-	case io.SshEventCode.SshChannelOpened:
+	if (triggeredEvents & io.SshEvents.SshChannelOpened)
+	{
 		writeLog (SshChannelLogRecordCode.SshChannelOpened);
-		break;
+		m_state = State.SshRequestingPty;
+	}
 
-	case io.SshEventCode.SshPtyRequested:
+	if (triggeredEvents & io.SshEvents.SshPtyRequestCompleted)
+	{
 		writeLog (SshChannelLogRecordCode.SshPtyRequested);
-		break;
+		m_state = State.SshStartingProcess;
+	}
 
-	case io.SshEventCode.SshProcessStarted:
+	if (triggeredEvents & io.SshEvents.SshConnectCompleted)
+	{
 		writeLog (SshChannelLogRecordCode.SshProcessStarted);
-		break;
-
-	case io.SshEventCode.ConnectCompleted:
 		writeLog (SshChannelLogRecordCode.ConnectCompleted);
 		m_state = State.Connected;
+	}
 
-		if (m_hasConsoleSizeChanged)
-			try m_channel.resizePty (
-				m_pluginHost.m_terminal.m_consoleWidth,
-				m_pluginHost.m_terminal.m_consoleHeight
-				);			
-
-		break;
-
-	case io.SshEventCode.SshAuthError:
-		handleSshAuthError (params.m_error);
-		break;
-
-	case io.SshEventCode.ConnectError:
-		handleConnectError (params.m_error);
-		break;
-
-	case io.SshEventCode.Disconnected:
+	if (triggeredEvents & io.SshEvents.TcpDisconnected)
+	{
 		writeLog (
 			SshChannelLogRecordCode.Disconnected,
 			&m_remoteAddress,
@@ -619,32 +693,26 @@ SshChannelSession.onSshEvent (io.SshEventParams const* params)
 
 		m_channel.close ();
 		m_state = State.Closed;
-		break;
+		return;
+	}
 
-	case io.SshEventCode.ReauthenticateInitiated:
-		writeLog (SshChannelLogRecordCode.SshAuthenticating);
-		break;
-
-	case io.SshEventCode.ReconnectInitiated:
-		writeLog (SshChannelLogRecordCode.Reconnecting);
-		break;
-
-	case io.SshEventCode.IncomingData:
+	if (triggeredEvents & io.SshEvents.IncomingData)
+	{
 		static char buffer [512];
 		size_t result = try m_channel.read (buffer, sizeof (buffer));
 		if (result != -1)
 			writeLog (log.StdRecordCode.Rx, buffer, result);
-		break;
-
-	case io.SshEventCode.TransmitBufferReady:
-		m_isTransmitEnabled = true;
-		break;
 	}
+
+	if (io.SshEvents.TransmitBufferReady)
+		m_isTransmitEnabled = true;
+
+	waitForSshEvents ();
 }
 
 SshChannelSession.onResolverEvent (io.SocketAddressResolverEventParams const* params)
 {
-	if (params.m_syncId != m_channel.m_syncId)
+	if (params.m_syncId != m_syncId)
 		return;
 
 	switch (params.m_eventCode)
