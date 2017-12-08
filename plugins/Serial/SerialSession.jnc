@@ -6,6 +6,7 @@
 import "io_base.jncx"
 import "io_Serial.jnc"
 import "std_List.jnc"
+import "std_Buffer.jnc"
 import "sys_Timer.jnc"
 import "doc_Plugin.jnc"
 
@@ -60,9 +61,6 @@ protected:
 		ReadWaitFirstChar = true,
 		ReadInterval      = 10,
 		ReadParallelism   = 4,
-		ReadBlockSize     = 1 * 1024,
-		ReadBufferSize    = 16 * 1024,
-		WriteBufferSize   = 16 * 1024,
 	}
 
 protected:
@@ -75,8 +73,7 @@ protected:
 	io.SerialStatusLines bindable m_serialStatusLines;
 	bool bindable m_serialDtr;
 	bool bindable m_serialRts;
-	void* m_readBuffer;
-	size_t m_readBufferSize;
+	std.Buffer m_readBuffer;
 	uint_t m_syncId;
 
 	// inter-char delay
@@ -102,18 +99,14 @@ protected:
 	gui.EnumProperty* m_stopBitsProp;
 	gui.EnumProperty* m_flowControlProp;
 	gui.EnumProperty* m_parityProp;
-
 	gui.BoolProperty* m_useInterCharDelayProp;
 	gui.IntProperty* m_interCharDelayProp;
-
 	gui.BoolProperty* m_readCheckComstatProp;
 	gui.BoolProperty* m_readWaitFirstCharProp;
-
 	gui.IntProperty* m_readIntervalProp;
 	gui.IntProperty* m_readParallelismProp;
-	gui.IntProperty* m_readBlockSizeProp;
-	gui.IntProperty* m_readBufferSizeProp;
-	gui.IntProperty* m_writeBufferSizeProp;
+
+	io.BufferPropertySet m_bufferPropertySet;
 
 	// filter property grid
 
@@ -174,6 +167,8 @@ protected:
 	setDelayedWriteTimer ();
 	flushDelayedWrite ();
 
+	io.SerialOptions getSerialOptions ();
+
 	reactor m_uiReactor ();
 }
 
@@ -187,8 +182,7 @@ SerialSession.construct (doc.PluginHost* pluginHost)
 	pluginHost.m_log.attachFilter (m_logFilter);
 
 	m_state = State.Closed;
-	m_readBuffer = try new char [Defaults.ReadBufferSize];
-	m_readBufferSize = Defaults.ReadBufferSize;
+	m_readBuffer.setSize (io.BufferPropertySet.Defaults.ReadBufferSize);
 
 	createUi ();
 }
@@ -306,7 +300,7 @@ SerialSession.createUi ()
 	// property grid
 
 	gui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty (
-		"Serial Settings",
+		"Serial settings",
 		"Serial port-specific settings"
 		);
 
@@ -374,7 +368,7 @@ SerialSession.createUi ()
 		);
 
 	group = m_pluginHost.m_propertyGrid.createGroupProperty (
-		"Performance & compatibility",
+		"Buffering & compatibility",
 		"Advanced options controlling performance, throughtput and compatibility"
 		);
 
@@ -406,32 +400,7 @@ SerialSession.createUi ()
 
 	m_readIntervalProp.m_minValue = 1;
 
-	m_readBlockSizeProp = m_pluginHost.m_propertyGrid.createIntProperty (
-		group,,
-		"Read block size (B)",
-		"Size of each individual read block passed to the driver (affects throughput)"
-		);
-
-	m_readBlockSizeProp.m_minValue = 1;
-	m_readBlockSizeProp.m_spinBoxStep = 1024; // 1K step
-
-	m_readBufferSizeProp = m_pluginHost.m_propertyGrid.createIntProperty (
-		group,,
-		"RX buffer size (B)",
-		"Total size of the read buffer (increase if data is dropped)"
-		);
-
-	m_readBufferSizeProp.m_minValue = 1;
-	m_readBufferSizeProp.m_spinBoxStep = 1024; // 1K step
-
-	m_writeBufferSizeProp = m_pluginHost.m_propertyGrid.createIntProperty (
-		group,,
-		"TX buffer size (B)",
-		"Total size of the write buffer"
-		);
-
-	m_writeBufferSizeProp.m_minValue = 1;
-	m_writeBufferSizeProp.m_spinBoxStep = 1024; // 1K step
+	m_bufferPropertySet.createProperties (m_pluginHost.m_propertyGrid, group);
 
 	// filter
 
@@ -503,6 +472,25 @@ SerialSession.onOpen ()
 		try open ();
 }
 
+io.SerialOptions SerialSession.getSerialOptions ()
+{
+	io.SerialOptions options;
+
+	if (m_bufferPropertySet.m_keepReadBlockSizeProp)
+		options |= io.SerialOptions.KeepReadBlockSize;
+
+	if (m_bufferPropertySet.m_keepWriteBlockSizeProp)
+		options |= io.SerialOptions.KeepWriteBlockSize;
+
+	if (m_readCheckComstatProp.m_value)
+		options |= io.SerialOptions.WinReadCheckComstat;
+
+	if (m_readWaitFirstCharProp.m_value)
+		options |= io.SerialOptions.WinReadWaitFirstChar;
+
+	return options;
+}
+
 bool errorcode SerialSession.open ()
 {
 	close ();
@@ -512,20 +500,12 @@ bool errorcode SerialSession.open ()
 
 	// configure and open
 
-	io.SerialCompatibilityFlags compatFlags;
-	if (m_readCheckComstatProp.m_value)
-		compatFlags |= io.SerialCompatibilityFlags.WinReadCheckComstat;
-
-	if (m_readWaitFirstCharProp.m_value)
-		compatFlags |= io.SerialCompatibilityFlags.WinReadWaitFirstChar;
-
 	m_serial.m_readInterval = m_readCheckComstatProp.m_value ? 0 : m_readIntervalProp.m_value;
 	m_serial.m_readParallelism = m_readParallelismProp.m_value;
-	m_serial.m_readBlockSize = m_readBlockSizeProp.m_value;
-	m_serial.m_readBufferSize = m_readBufferSizeProp.m_value;
-	m_serial.m_writeBufferSize = m_writeBufferSizeProp.m_value;
-
-	m_serial.m_compatibilityFlags = compatFlags;
+	m_serial.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
+	m_serial.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
+	m_serial.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
+	m_serial.m_options = getSerialOptions ();
 
 	m_serial.m_baudRate = m_baudRateCombo.m_currentData;
 	m_serial.m_dataBits = m_dataBitsProp.m_value;
@@ -603,18 +583,13 @@ void SerialSession.load (doc.Storage* storage)
 	m_readWaitFirstCharProp.m_value = storage.readBool ("readWaitFirstChar", Defaults.ReadWaitFirstChar);
 	m_readIntervalProp.m_value = storage.readInt ("readInterval", Defaults.ReadInterval);
 	m_readParallelismProp.m_value = storage.readInt ("readParallelism", Defaults.ReadParallelism);
-	m_readBlockSizeProp.m_value = storage.readInt ("readBlockSize", Defaults.ReadBlockSize);
-	m_readBufferSizeProp.m_value = storage.readInt ("readBufferSize", Defaults.ReadBufferSize);
-	m_writeBufferSizeProp.m_value = storage.readInt ("writeBufferSize", Defaults.WriteBufferSize);
 
 	m_logFilter.m_isSettingChangedVisible = storage.readBool ("isSettingChangedVisible", true);
 	m_logFilter.m_isControlLineChangedVisible = storage.readBool ("isControlLineChangedVisible", true);
 	m_logFilter.m_isStatusLineChangedVisible = storage.readBool ("isStatusLineChangedVisible", true);
 
-	if (dynamic sizeof (m_readBuffer) < m_readBufferSizeProp.m_value)
-		m_readBuffer = new char [m_readBufferSizeProp.m_value];
-
-	m_readBufferSize = m_readBufferSizeProp.m_value;
+	m_bufferPropertySet.load (storage);
+	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
 }
 
 void SerialSession.save (doc.Storage* storage)
@@ -633,13 +608,12 @@ void SerialSession.save (doc.Storage* storage)
 	storage.writeInt ("readWaitFirstChar", m_readWaitFirstCharProp.m_value);
 	storage.writeInt ("readInterval", m_readIntervalProp.m_value);
 	storage.writeInt ("readParallelism", m_readParallelismProp.m_value);
-	storage.writeInt ("readBlockSize", m_readBlockSizeProp.m_value);
-	storage.writeInt ("readBufferSize", m_readBufferSizeProp.m_value);
-	storage.writeInt ("writeBufferSize", m_writeBufferSizeProp.m_value);
 
 	storage.writeBool ("isSettingChangedVisible", m_logFilter.m_isSettingChangedVisible);
 	storage.writeBool ("isControlLineChangedVisible", m_logFilter.m_isControlLineChangedVisible);
 	storage.writeBool ("isStatusLineChangedVisible", m_logFilter.m_isStatusLineChangedVisible);
+
+	m_bufferPropertySet.save (storage);
 }
 
 void SerialSession.updateProperties ()
@@ -658,28 +632,17 @@ bool errorcode SerialSession.applyProperties ()
 	m_logFilter.m_isSettingChangedVisible = m_settingChangedVisibleProp.m_value;
 	m_logFilter.m_isControlLineChangedVisible = m_controlLineChangedVisibleProp.m_value;
 	m_logFilter.m_isStatusLineChangedVisible = m_statusLineChangedVisibleProp.m_value;
-
-	if (dynamic sizeof (m_readBuffer) < m_readBufferSizeProp.m_value)
-		m_readBuffer = new char [m_readBufferSizeProp.m_value];
-
-	m_readBufferSize = m_readBufferSizeProp.m_value;
+	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
 
 	if (m_state != State.Opened)
 		return true;
 
-	io.SerialCompatibilityFlags compatFlags;
-	if (m_readCheckComstatProp.m_value)
-		compatFlags |= io.SerialCompatibilityFlags.WinReadCheckComstat;
-
-	if (m_readWaitFirstCharProp.m_value)
-		compatFlags |= io.SerialCompatibilityFlags.WinReadWaitFirstChar;
-
 	m_serial.m_readInterval = m_readCheckComstatProp.m_value ? 0 : m_readIntervalProp.m_value;
 	m_serial.m_readParallelism = m_readParallelismProp.m_value;
-	m_serial.m_readBlockSize = m_readBlockSizeProp.m_value;
-	m_serial.m_readBufferSize = m_readBufferSizeProp.m_value;
-	m_serial.m_writeBufferSize = m_writeBufferSizeProp.m_value;
-	m_serial.m_compatibilityFlags = compatFlags;
+	m_serial.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
+	m_serial.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
+	m_serial.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
+	m_serial.m_options = getSerialOptions ();
 
 	uint_t dataBitsValue = m_dataBitsProp.m_value;
 	if (m_serial.m_dataBits != dataBitsValue)
@@ -726,13 +689,12 @@ void SerialSession.restoreDefaultProperties ()
 	m_readWaitFirstCharProp.m_value = Defaults.ReadWaitFirstChar;
 	m_readIntervalProp.m_value = Defaults.ReadInterval;
 	m_readParallelismProp.m_value = Defaults.ReadParallelism;
-	m_readBlockSizeProp.m_value = Defaults.ReadBlockSize;
-	m_readBufferSizeProp.m_value = Defaults.ReadBufferSize;
-	m_writeBufferSizeProp.m_value = Defaults.WriteBufferSize;
 
 	m_settingChangedVisibleProp.m_value = true;
 	m_controlLineChangedVisibleProp.m_value = true;
 	m_statusLineChangedVisibleProp.m_value = true;
+
+	m_bufferPropertySet.restoreDefaults ();
 }
 
 size_t errorcode SerialSession.transmit (
@@ -860,9 +822,9 @@ SerialSession.onSerialEvent (
 
 	if (triggeredEvents & io.SerialEvents.IncomingData)
 	{
-		size_t result = try m_serial.read (m_readBuffer, m_readBufferSize);
+		size_t result = try m_serial.read (m_readBuffer.m_p, m_readBuffer.m_size);
 		if (result != -1)
-			writeLog (log.StdRecordCode.Rx, m_readBuffer, result);
+			writeLog (log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 	}
 
 	if (!m_isTransmitEnabled)

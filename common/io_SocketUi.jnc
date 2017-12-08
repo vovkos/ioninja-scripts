@@ -103,6 +103,8 @@ gui.EnumPropertyOption const* createNetworkAdapterOptionArray (NetworkAdapterUsa
 
 gui.EnumProperty* createNetworkAdapterProperty (
 	gui.PropertyGrid* propertyGrid,
+	gui.GroupProperty* group = null,
+	gui.Property* insertBefore = null,
 	NetworkAdapterUsage usage,
 	char const* name,
 	char const* toolTipText
@@ -112,11 +114,23 @@ gui.EnumProperty* createNetworkAdapterProperty (
 	size_t optionCount = dynamic countof (optionArray);
 
 	return propertyGrid.createEnumProperty (
+		group,
+		insertBefore,
 		name,
 		toolTipText,
 		optionArray,
 		optionCount
 		);
+}
+
+gui.EnumProperty* createNetworkAdapterProperty (
+	gui.PropertyGrid* propertyGrid,
+	NetworkAdapterUsage usage,
+	char const* name,
+	char const* toolTipText
+	)
+{
+	return createNetworkAdapterProperty (propertyGrid,,, usage, name, toolTipText);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .

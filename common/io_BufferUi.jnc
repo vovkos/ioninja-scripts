@@ -1,0 +1,122 @@
+//..............................................................................
+//
+// IO Buffer configuration user interface
+//
+
+import "gui_PropertyGrid.jnc"
+
+namespace io {
+
+//..............................................................................
+
+class BufferPropertySet
+{
+	enum Defaults
+	{
+		ReadBlockSize          = 4 * 1024,
+		ReadBufferSize         = 16 * 1024,
+		WriteBufferSize        = 16 * 1024,
+		KeepReadBlockSizeProp  = false,
+		KeepWriteBlockSizeProp = false,
+	}
+
+	gui.IntProperty* m_readBlockSizeProp;
+	gui.IntProperty* m_readBufferSizeProp;
+	gui.IntProperty* m_writeBufferSizeProp;
+	gui.BoolProperty* m_keepReadBlockSizeProp;
+	gui.BoolProperty* m_keepWriteBlockSizeProp;
+
+	createProperties (
+		gui.PropertyGrid* propertyGrid,
+		gui.GroupProperty* group,
+		gui.Property* insertBefore = null
+		);
+
+	load (doc.Storage* storage);
+	save (doc.Storage* storage);
+	restoreDefaults ();
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+BufferPropertySet.createProperties (
+	gui.PropertyGrid* propertyGrid,
+	gui.GroupProperty* group,
+	gui.Property* insertBefore
+	)
+{
+	m_readBlockSizeProp = propertyGrid.createIntProperty (
+		group,
+		insertBefore,
+		"Read block size (B)",
+		"Size of each individual read block passed to the driver (affects throughput)"
+		);
+
+	m_readBlockSizeProp.m_minValue = 1;
+	m_readBlockSizeProp.m_spinBoxStep = 1024; // 1K step
+
+	m_readBufferSizeProp = propertyGrid.createIntProperty (
+		group,
+		insertBefore,
+		"RX buffer size (B)",
+		"Total size of the read buffer (increase if data is dropped)"
+		);
+
+	m_readBufferSizeProp.m_minValue = 1;
+	m_readBufferSizeProp.m_spinBoxStep = 1024; // 1K step
+
+	m_writeBufferSizeProp = propertyGrid.createIntProperty (
+		group,
+		insertBefore,
+		"TX buffer size (B)",
+		"Total size of the write buffer"
+		);
+
+	m_writeBufferSizeProp.m_minValue = 1;
+	m_writeBufferSizeProp.m_spinBoxStep = 1024; // 1K step
+
+	m_keepReadBlockSizeProp = propertyGrid.createBoolProperty (
+		group,
+		insertBefore,
+		"Keep read block size",
+		"Don't merge read blocks in RX buffer (keep the original size returned by lower IO provider)"
+		);
+
+	m_keepWriteBlockSizeProp = propertyGrid.createBoolProperty (
+		group,
+		insertBefore,
+		"Keep write block size",
+		"Don't merge write blocks in TX buffer (submit the original size to lower IO provider)"
+		);
+}
+
+BufferPropertySet.load (doc.Storage* storage)
+{
+	m_readBlockSizeProp.m_value = storage.readInt ("readBlockSize", Defaults.ReadBlockSize);
+	m_readBufferSizeProp.m_value = storage.readInt ("readBufferSize", Defaults.ReadBufferSize);
+	m_writeBufferSizeProp.m_value = storage.readInt ("writeBufferSize", Defaults.WriteBufferSize);
+	m_keepReadBlockSizeProp.m_value = storage.readBool ("keepReadBlockSizeProp", Defaults.KeepReadBlockSizeProp);
+	m_keepWriteBlockSizeProp.m_value = storage.readBool ("keepWriteBlockSizeProp", Defaults.KeepWriteBlockSizeProp);
+}
+
+BufferPropertySet.save (doc.Storage* storage)
+{
+	storage.writeInt ("readBlockSize", m_readBlockSizeProp.m_value);
+	storage.writeInt ("readBufferSize", m_readBufferSizeProp.m_value);
+	storage.writeInt ("writeBufferSize", m_writeBufferSizeProp.m_value);
+	storage.writeBool ("keepReadBlockSizeProp", m_keepReadBlockSizeProp.m_value);
+	storage.writeBool ("keepWriteBlockSizeProp", m_keepWriteBlockSizeProp.m_value);
+}
+
+BufferPropertySet.restoreDefaults ()
+{
+	m_readBlockSizeProp.m_value = Defaults.ReadBlockSize;
+	m_readBufferSizeProp.m_value = Defaults.ReadBufferSize;
+	m_writeBufferSizeProp.m_value = Defaults.WriteBufferSize;
+	m_keepReadBlockSizeProp.m_value = Defaults.KeepReadBlockSizeProp;
+	m_keepWriteBlockSizeProp.m_value = Defaults.KeepWriteBlockSizeProp;
+}
+
+//..............................................................................
+
+} // namespace io {
