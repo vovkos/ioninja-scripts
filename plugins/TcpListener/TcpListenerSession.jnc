@@ -5,6 +5,7 @@
 
 import "io_base.jncx"
 import "io_Socket.jnc"
+import "std_Buffer.jnc"
 import "doc_Plugin.jnc"
 import "gui_History.jnc"
 
@@ -55,13 +56,15 @@ protected:
 	ListenerState bindable m_listenerState;
 	io.Socket m_listenerSocket;
 	io.SocketAddress m_localAddress;
+	uint_t m_listenerSyncId;
 
 	// connection socket
 
 	ConnectionState bindable m_connectionState;
-	uint_t m_connectionSyncId;
 	io.Socket* m_connectionSocket;
 	io.SocketAddress m_remoteAddress;
+	std.Buffer m_readBuffer;
+	uint_t m_connectionSyncId;
 
 	// toolbar, status bar & menu
 
@@ -73,11 +76,9 @@ protected:
 
 	// property grid
 
-	gui.IntProperty* m_portProp;
-	gui.EnumProperty* m_adapterProp;
 	gui.BoolProperty* m_overrideOldConnectionProp;
-	gui.EnumProperty* m_closeKindProp;
-	gui.BoolProperty* m_isNagleEnabledProp;
+	io.SocketPropertySet m_socketPropertySet;
+	io.BufferPropertySet m_bufferPropertySet;
 
 public:
 	construct (doc.PluginHost* pluginHost);
@@ -99,8 +100,16 @@ public:
 
 protected:
 	onListen ();
-	onListenerSocketEvent (io.SocketEventParams const* params);
-	onConnectionSocketEvent (io.SocketEventParams const* params);
+
+	onListenerSocketEvent (
+		uint_t syncId,
+		io.SocketEvents triggeredEvents
+		);
+
+	onConnectionSocketEvent  (
+		uint_t syncId,
+		io.SocketEvents triggeredEvents
+		);
 
 	createUi ();
 	reactor m_uiReactor ();
@@ -116,7 +125,6 @@ TcpListenerSession.construct (doc.PluginHost* pluginHost)
 
 	m_connectionState = ConnectionState.Closed;
 	m_listenerState = ListenerState.Closed;
-	m_listenerSocket.m_onSocketEvent += onListenerSocketEvent @ pluginHost.m_mainThreadScheduler;
 
 	createUi ();
 }
@@ -153,33 +161,25 @@ TcpListenerSession.createUi ()
 
 	// property grid
 
-	m_adapterProp = io.createNetworkAdapterProperty (
-		m_pluginHost.m_propertyGrid,
-		io.NetworkAdapterUsage.Listener,
-		"Adapter",
-		"Network adapter to listen on"
+	gui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty (
+		"TCP socket",
+		"TCP-specific settings"
 		);
 
-	m_portProp = m_pluginHost.m_propertyGrid.createIntProperty (
-		"TCP Port",
-		"TCP port to listen on"
-		);
+	m_socketPropertySet.createProperties (m_pluginHost.m_propertyGrid, group);
 
 	m_overrideOldConnectionProp = m_pluginHost.m_propertyGrid.createBoolProperty (
+		group,,
 		"Override connections",
 		"Accept incoming connection even if already connected"
 		);
 
-	m_closeKindProp = io.createSocketCloseKindProperty (
-		m_pluginHost.m_propertyGrid,
-		"TCP disconnect",
-		"How to close TCP connection (graceful / reset)"
+	group = m_pluginHost.m_propertyGrid.createGroupProperty (
+		"Buffering",
+		"Advanced buffering options affecting throughtput and compatibility"
 		);
 
-	m_isNagleEnabledProp = m_pluginHost.m_propertyGrid.createBoolProperty (
-		"Use TCP Nagle algorithm",
-		"Specify whether to reduce the number of small TCP packets being sent"
-		);
+	m_bufferPropertySet.createProperties (m_pluginHost.m_propertyGrid, group);
 
 	m_uiReactor.start ();
 }
@@ -198,13 +198,16 @@ bool errorcode TcpListenerSession.listen ()
 	startSession ();
 
 	m_portCombo.addEditTextToHistory ();
-
 	io.SocketAddress address = *(io.SocketAddress const*) m_adapterCombo.m_currentData;
+
 	address.m_ip4.m_port = (uint16_t) atoi (m_portCombo.m_editText); // same for IPv4/IPv6
 
-	m_listenerSocket.open (io.Protocol.Tcp, &address, io.SocketOpenFlags.Asynchronous);
-	m_listenerSocket.m_closeKind = (io.SocketCloseKind) m_closeKindProp.m_value;
-	m_listenerSocket.m_isNagleEnabled = m_isNagleEnabledProp.m_value;
+	m_listenerSocket.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
+	m_listenerSocket.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
+	m_listenerSocket.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
+	m_listenerSocket.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
+	m_listenerSocket.m_options = io.getSocketOptions (m_socketPropertySet, m_bufferPropertySet);
+	m_listenerSocket.open (io.Protocol.Tcp, &address);
 	m_listenerSocket.listen ();
 
 	writeLog (
@@ -275,53 +278,52 @@ void TcpListenerSession.load (doc.Storage* storage)
 	m_adapterCombo.m_currentIndex  = storage.readInt ("adapterIdx");
 	m_portCombo.m_editText = storage.readString ("port");
 	m_overrideOldConnectionProp.m_value = storage.readBool ("overrideOldConnection");
-	m_closeKindProp.m_value = storage.readInt ("closeKindProp");
-	m_isNagleEnabledProp.m_value = storage.readBool ("isNagleEnabledProp");
+
+	m_socketPropertySet.load (storage);
+	m_bufferPropertySet.load (storage);
+	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
 }
 
 void TcpListenerSession.save (doc.Storage* storage)
 {
+	m_socketPropertySet.save (storage);
+	m_bufferPropertySet.save (storage);
+
 	m_portCombo.saveHistory (storage, "portHistory");
 	storage.writeInt ("adapterIdx", (int) m_adapterCombo.m_currentIndex);
 	storage.writeString ("port", m_portCombo.m_editText);
 	storage.writeBool ("overrideOldConnection", m_overrideOldConnectionProp.m_value);
-	storage.writeInt ("closeKindProp", m_closeKindProp.m_value);
-	storage.writeBool ("isNagleEnabledProp", m_isNagleEnabledProp.m_value);
 }
 
 void TcpListenerSession.updateProperties ()
 {
-	m_portProp.m_value = atoi (m_portCombo.m_editText);
-	m_adapterProp.m_currentIndex = m_adapterCombo.m_currentIndex;
+	m_socketPropertySet.m_localPortProp.m_value = atoi (m_portCombo.m_editText);
+	m_socketPropertySet.m_adapterProp.m_currentIndex = m_adapterCombo.m_currentIndex;
 }
 
 bool errorcode TcpListenerSession.applyProperties ()
 {
-	m_portCombo.m_editText = $"$(m_portProp.m_value)";
-	m_adapterCombo.m_currentIndex = m_adapterProp.m_currentIndex;
+	m_portCombo.m_editText = $"$(m_socketPropertySet.m_localPortProp.m_value)";
+	m_adapterCombo.m_currentIndex = m_socketPropertySet.m_adapterProp.m_currentIndex;
+
+	io.SocketOptions options = io.getSocketOptions (m_socketPropertySet, m_bufferPropertySet);
 
 	if (m_listenerSocket.m_isOpen)
-	{
-		m_listenerSocket.m_closeKind = (io.SocketCloseKind) m_closeKindProp.m_value;
-		m_listenerSocket.m_isNagleEnabled = m_isNagleEnabledProp.m_value;
-	}
+		m_listenerSocket.m_options = options;
 
 	if (m_connectionSocket)
-	{
-		m_connectionSocket.m_closeKind = (io.SocketCloseKind) m_closeKindProp.m_value;
-		m_connectionSocket.m_isNagleEnabled = m_isNagleEnabledProp.m_value;
-	}
+		m_connectionSocket.m_options = options;
 
 	return true;
 }
 
 void TcpListenerSession.restoreDefaultProperties ()
 {
+	m_socketPropertySet.restoreDefaults ();
+	m_bufferPropertySet.restoreDefaults ();
 	m_adapterProp.m_currentIndex = 0;
 	m_portProp.m_value = 1001;
 	m_overrideOldConnectionProp.m_value = true;
-	m_closeKindProp.m_value = io.SocketCloseKind.Graceful;
-	m_isNagleEnabledProp.m_value = true;
 }
 
 size_t errorcode TcpListenerSession.transmit (

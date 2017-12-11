@@ -22,8 +22,6 @@ class SshChannelSession: doc.Session
 protected:
 	enum Defaults
 	{
-		IsNagleEnabled       = false,
-		CloseKind            = io.SocketCloseKind.Graceful,
 		ServerPort           = 22,
 		AuthenticationMethod = gui.AuthenticationMethod.Password,
 		RememberLastPassword = false,
@@ -101,7 +99,6 @@ protected:
 
 	// property grid
 
-	gui.StringProperty* m_addressProp;
 	gui.StringProperty* m_userNameProp;
 	gui.EnumProperty* m_authenticationMethodProp;
 	gui.FileProperty* m_privateKeyFileProp;
@@ -109,12 +106,7 @@ protected:
 	gui.StringProperty* m_channelTypeProp;
 	gui.StringProperty* m_processTypeProp;
 	gui.StringProperty* m_ptyTypeProp;
-	gui.EnumProperty* m_closeKindProp;
-	gui.BoolProperty* m_isNagleEnabledProp;
-	gui.BoolProperty* m_useLocalAddressProp;
-	gui.EnumProperty* m_adapterProp;
-	gui.IntProperty* m_localPortProp;
-	gui.IntProperty* m_remotePortProp;
+	io.SocketPropertySet m_socketPropertySet;
 	io.BufferPropertySet m_bufferPropertySet;
 
 public:
@@ -150,7 +142,6 @@ protected:
 	waitForSshEvents ();
 	handleConnectError (std.Error const* error);
 	handleSshAuthenticateError (std.Error const* error);
-	io.SshOptions getSshOptions ();
 
 	reactor m_uiReactor ();
 }
@@ -196,60 +187,11 @@ SshChannelSession.createUi ()
 
 	gui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty (
 		"TCP connection",
-		"Remote host settings"
+		"TCP-specific settings"
 		);
 
-	m_addressProp = m_pluginHost.m_propertyGrid.createStringProperty (
-		group,,
-		"Remote address",
-		"Remote address to connect to (IP-address or host-name followed by ':' port)"
-		);
-
-	m_remotePortProp = m_pluginHost.m_propertyGrid.createIntProperty (
-		group,,
-		"Remote TCP port (default)",
-		"Remote TCP port to connect to (if not specified in remote address)"
-		);
-
-	m_useLocalAddressProp = m_pluginHost.m_propertyGrid.createBoolProperty (
-		group,,
-		"Use local address",
-		"Bind socket to the specified local address before connect"
-		);
-
-	m_adapterProp = io.createNetworkAdapterProperty (
-		m_pluginHost.m_propertyGrid,
-		group,,
-		io.NetworkAdapterUsage.Connection,
-		"Adapter",
-		"Adapter to bind to before connect"
-		);
-
-	m_localPortProp = m_pluginHost.m_propertyGrid.createIntProperty (
-		group,,
-		"Local TCP port",
-		"Local TCP port to bind to before connect (0 to auto-assign)"
-		);
-
-	static gui.EnumPropertyOption closeKindTable [] =
-	{
-		{ "Reset",    io.SocketCloseKind.Reset },
-		{ "Graceful", io.SocketCloseKind.Graceful },
-	}
-
-	m_closeKindProp = m_pluginHost.m_propertyGrid.createEnumProperty (
-		group,,
-		"TCP disconnect",
-		"How to close TCP connection (graceful / reset)",
-		closeKindTable,
-		countof (closeKindTable)
-		);
-
-	m_isNagleEnabledProp = m_pluginHost.m_propertyGrid.createBoolProperty (
-		group,,
-		"TCP Nagle algorithm",
-		"Specify whether to reduce the number of small TCP packets being sent"
-		);
+	m_socketPropertySet.createProperties (m_pluginHost.m_propertyGrid, group);
+	m_socketPropertySet.m_defaultRemotePort = Defaults.ServerPort;
 
 	group = m_pluginHost.m_propertyGrid.createGroupProperty (
 		"SSH Settings",
@@ -314,7 +256,11 @@ SshChannelSession.createUi ()
 		"Advanced buffering options affecting throughtput and compatibility"
 		);
 
-	m_bufferPropertySet.createProperties (m_pluginHost.m_propertyGrid, group);
+	m_bufferPropertySet.createProperties (
+		m_pluginHost.m_propertyGrid,
+		group,,
+		io.BufferPropertySet.PropertyId.AllButReadParallelism
+		);
 
 	m_uiReactor.start ();
 }
@@ -340,7 +286,7 @@ bool errorcode SshChannelSession.connect ()
 	if (isDirectAddress)
 	{
 		if (!address.m_ip4.m_port) // IPv4 & IPv6 share the same port location
-			address.m_ip4.m_port = m_remotePortProp.m_value;
+			address.m_ip4.m_port = m_socketPropertySet.m_remotePortProp.m_value;
 
 		return try connect (&address);
 	}
@@ -354,39 +300,20 @@ bool errorcode SshChannelSession.connect ()
 		);
 
 	io.AddressFamily addressFamily = io.AddressFamily.Undefined;
-	if (m_useLocalAddressProp.m_value)
+	if (m_socketPropertySet.m_useLocalAddressProp.m_value)
 	{
-		io.SocketAddress const* adapterAddress = m_adapterProp.m_value;
+		io.SocketAddress const* adapterAddress = m_socketPropertySet.m_adapterProp.m_value;
 		if (adapterAddress)
 			addressFamily = adapterAddress.m_family;
 	}
 
-	m_resolver.m_syncId = m_syncId;
+	m_resolver.m_syncId = ++m_syncId;
 	m_resolver.resolve (addressString, addressFamily);
 	return true;
 
 catch:
 	handleConnectError (std.getLastError ());
 	return false;
-}
-
-io.SshOptions SshChannelSession.getSshOptions ()
-{
-	io.SshOptions options;
-
-	if (m_bufferPropertySet.m_keepReadBlockSizeProp)
-		options |= io.SshOptions.KeepReadBlockSize;
-
-	if (m_bufferPropertySet.m_keepWriteBlockSizeProp)
-		options |= io.SshOptions.KeepWriteBlockSize;
-
-	if (m_isNagleEnabledProp.m_value)
-		options |= io.SshOptions.TcpNagle;
-
-	if (m_closeKindProp.m_value == io.SocketCloseKind.Reset)
-		options |= io.SshOptions.TcpReset;
-
-	return options;
 }
 
 bool errorcode SshChannelSession.connect (io.SocketAddress const* remoteAddress)
@@ -396,22 +323,22 @@ bool errorcode SshChannelSession.connect (io.SocketAddress const* remoteAddress)
 	m_ssh.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
 	m_ssh.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 	m_ssh.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
-	m_ssh.m_options = getSshOptions ();
+	m_ssh.m_options = io.getSocketOptions (m_socketPropertySet, m_bufferPropertySet);
 
-	if (!m_useLocalAddressProp.m_value)
+	if (!m_socketPropertySet.m_useLocalAddressProp.m_value)
 	{
-		m_ssh.open (); // any address
+		m_ssh.open (remoteAddress.m_family); // any address
 	}
 	else
 	{
 		io.SocketAddress localAddress;
-		io.SocketAddress const* adapterAddress = m_adapterProp.m_value;
+		io.SocketAddress const* adapterAddress = m_socketPropertySet.m_adapterProp.m_value;
 		if (adapterAddress)
 			localAddress = *adapterAddress;
 		else
 			localAddress.m_family = remoteAddress.m_family;
 
-		localAddress.m_ip4.m_port = (uint16_t) m_localPortProp.m_value; // same for IPv4/IPv6
+		localAddress.m_ip4.m_port = (uint16_t) m_socketPropertySet.m_localPortProp.m_value; // same for IPv4/IPv6
 
 		m_ssh.open (&localAddress);
 	}
@@ -630,6 +557,7 @@ SshChannelSession.disconnect ()
 
 	m_ssh.close ();
 	m_state = State.Closed;
+	m_syncId++;
 }
 
 void SshChannelSession.load (doc.Storage* storage)
@@ -643,19 +571,17 @@ void SshChannelSession.load (doc.Storage* storage)
 	m_channelTypeProp.m_value = storage.readString ("channelType", DefaultChannelType);
 	m_processTypeProp.m_value = storage.readString ("processType", DefaultProcessType);
 	m_ptyTypeProp.m_value = storage.readString ("ptyType", DefaultPtyType);
-	m_closeKindProp.m_value = storage.readInt ("closeKindProp", Defaults.CloseKind);
-	m_isNagleEnabledProp.m_value = storage.readBool ("isNagleEnabledProp", Defaults.IsNagleEnabled);
-	m_useLocalAddressProp.m_value = storage.readBool ("useLocalAddress", false);
-	m_adapterProp.m_value = storage.readInt ("adapterIp");
-	m_localPortProp.m_value = storage.readInt ("localPort", 0);
-	m_remotePortProp.m_value = storage.readInt ("remotePort", 22);
 
+	m_socketPropertySet.load (storage);
 	m_bufferPropertySet.load (storage);
 	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
 }
 
 void SshChannelSession.save (doc.Storage* storage)
 {
+	m_socketPropertySet.save (storage);
+	m_bufferPropertySet.save (storage);
+
 	m_addressCombo.saveHistory (storage, "addressHistory");
 	storage.writeString ("address", m_addressCombo.m_editText);
 	storage.writeString ("userName", m_userNameProp.m_value);
@@ -665,29 +591,22 @@ void SshChannelSession.save (doc.Storage* storage)
 	storage.writeString ("channelType", m_channelTypeProp.m_value);
 	storage.writeString ("processType", m_processTypeProp.m_value);
 	storage.writeString ("ptyType", m_ptyTypeProp.m_value);
-	storage.writeInt ("closeKindProp", m_closeKindProp.m_value);
-	storage.writeBool ("isNagleEnabledProp", m_isNagleEnabledProp.m_value);
-	storage.writeBool ("useLocalAddress", m_useLocalAddressProp.m_value);
-	storage.writeInt ("adapterIp", m_adapterProp.m_value);
-	storage.writeInt ("localPort", m_localPortProp.m_value);
-	storage.writeInt ("remotePort", m_remotePortProp.m_value);
-	m_bufferPropertySet.save (storage);
 }
 
 void SshChannelSession.updateProperties ()
 {
-	m_addressProp.m_value = m_addressCombo.m_editText;
+	m_socketPropertySet.m_remoteAddressProp.m_value = m_addressCombo.m_editText;
 }
 
 bool errorcode SshChannelSession.applyProperties ()
 {
-	m_addressCombo.m_editText = m_addressProp.m_value;
+	m_addressCombo.m_editText = m_socketPropertySet.m_remoteAddressProp.m_value;
 	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
 
 	if (!m_ssh.m_isOpen)
 		return true;
 
-	m_ssh.m_options = getSshOptions ();
+	m_ssh.m_options = io.getSocketOptions (m_socketPropertySet, m_bufferPropertySet);
 	return true;
 }
 
@@ -697,12 +616,8 @@ void SshChannelSession.restoreDefaultProperties ()
 	m_channelTypeProp.m_value = DefaultChannelType;
 	m_processTypeProp.m_value = DefaultProcessType;
 	m_ptyTypeProp.m_value = DefaultPtyType;
-	m_closeKindProp.m_value = Defaults.CloseKind;
-	m_isNagleEnabledProp.m_value = Defaults.IsNagleEnabled;
-	m_useLocalAddressProp.m_value = false;
-	m_adapterProp.m_value = 0;
-	m_localPortProp.m_value = 0;
-	m_remotePortProp.m_value = Defaults.ServerPort;
+
+	m_socketPropertySet.restoreDefaults ();
 	m_bufferPropertySet.restoreDefaults ();
 }
 
@@ -717,6 +632,12 @@ size_t errorcode SshChannelSession.transmit (
 	size_t result = m_ssh.write (p, size);
 	if (result)
 		writeLog (log.StdRecordCode.Tx, p, result);
+
+	if (result < size)
+	{
+		m_isTransmitEnabled = false;
+		waitForSshEvents ();
+	}
 
 	return result;
 }
@@ -776,6 +697,7 @@ SshChannelSession.onSshEvent (
 		writeLog (SshChannelLogRecordCode.SshProcessStarted);
 		writeLog (SshChannelLogRecordCode.ConnectCompleted);
 		m_state = State.Connected;
+		m_isTransmitEnabled = true;
 	}
 
 	if (triggeredEvents & io.SshEvents.TcpDisconnected)
@@ -793,9 +715,8 @@ SshChannelSession.onSshEvent (
 
 	if (triggeredEvents & io.SshEvents.IncomingData)
 	{
-		size_t result = try m_ssh.read (m_readBuffer.m_p, m_readBuffer.m_size);
-		if (result != -1)
-			writeLog (log.StdRecordCode.Rx, m_readBuffer.m_p, result);
+		size_t result = m_ssh.read (m_readBuffer.m_p, m_readBuffer.m_size);
+		writeLog (log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 	}
 
 	if (io.SshEvents.TransmitBufferReady)
@@ -822,27 +743,23 @@ SshChannelSession.onResolverEvent (io.SocketAddressResolverEventParams const* pa
 
 		io.SocketAddress address = params.m_addressTable [0];
 		if (!address.m_ip4.m_port) // IPv4 & IPv6 share the same port location
-			address.m_ip4.m_port = m_remotePortProp.m_value;
+			address.m_ip4.m_port = m_socketPropertySet.m_remotePortProp.m_value;
 
-		try connect (&address);
+		connect (&address);
 		break;
 
 	case io.SocketAddressResolverEventCode.ResolveError:
 		handleConnectError (params.m_error);
 		break;
 	}
-
-catch:
-	handleConnectError (std.getLastError ());
 }
 
 reactor SshChannelSession.m_uiReactor ()
 {
 	m_title = $"SSH $(m_addressCombo.m_currentText)";
-	m_isTransmitEnabled = m_state == State.Connected;
 	m_privateKeyFileProp.m_isEnabled = m_authenticationMethodProp.m_value == gui.AuthenticationMethod.PrivateKey;
-	m_adapterProp.m_isEnabled = m_useLocalAddressProp.m_value;
-	m_localPortProp.m_isEnabled = m_useLocalAddressProp.m_value;
+	m_socketPropertySet.m_adapterProp.m_isEnabled = m_socketPropertySet.m_useLocalAddressProp.m_value;
+	m_socketPropertySet.m_localPortProp.m_isEnabled = m_socketPropertySet.m_useLocalAddressProp.m_value;
 	m_actionTable [ActionId.Connect].m_text = m_state ? "Disconnect" : "Connect";
 	m_actionTable [ActionId.Connect].m_icon = m_iconTable [m_state ? IconId.Disconnect : IconId.Connect];
 	m_statusPaneTable [StatusPaneId.State].m_text = m_stateStringTable [m_state];

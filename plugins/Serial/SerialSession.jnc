@@ -60,7 +60,6 @@ protected:
 		ReadCheckComstat  = false,
 		ReadWaitFirstChar = true,
 		ReadInterval      = 10,
-		ReadParallelism   = 4,
 	}
 
 protected:
@@ -104,8 +103,6 @@ protected:
 	gui.BoolProperty* m_readCheckComstatProp;
 	gui.BoolProperty* m_readWaitFirstCharProp;
 	gui.IntProperty* m_readIntervalProp;
-	gui.IntProperty* m_readParallelismProp;
-
 	io.BufferPropertySet m_bufferPropertySet;
 
 	// filter property grid
@@ -300,7 +297,7 @@ SerialSession.createUi ()
 	// property grid
 
 	gui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty (
-		"Serial settings",
+		"Serial port",
 		"Serial port-specific settings"
 		);
 
@@ -383,14 +380,6 @@ SerialSession.createUi ()
 		"Read waits for char",
 		"Read request waits until a character is received and then returns immediately"
 		);
-
-	m_readParallelismProp  = m_pluginHost.m_propertyGrid.createIntProperty (
-		group,,
-		"Read parallelism",
-		"Maximum number of read requests to issue in parallel (affects throughput)"
-		);
-
-	m_readParallelismProp.m_minValue = 1;
 
 	m_readIntervalProp = m_pluginHost.m_propertyGrid.createIntProperty (
 		group,,
@@ -501,7 +490,7 @@ bool errorcode SerialSession.open ()
 	// configure and open
 
 	m_serial.m_readInterval = m_readCheckComstatProp.m_value ? 0 : m_readIntervalProp.m_value;
-	m_serial.m_readParallelism = m_readParallelismProp.m_value;
+	m_serial.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
 	m_serial.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
 	m_serial.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 	m_serial.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
@@ -582,7 +571,6 @@ void SerialSession.load (doc.Storage* storage)
 	m_readCheckComstatProp.m_value = storage.readBool ("readCheckComstat", Defaults.ReadCheckComstat);
 	m_readWaitFirstCharProp.m_value = storage.readBool ("readWaitFirstChar", Defaults.ReadWaitFirstChar);
 	m_readIntervalProp.m_value = storage.readInt ("readInterval", Defaults.ReadInterval);
-	m_readParallelismProp.m_value = storage.readInt ("readParallelism", Defaults.ReadParallelism);
 
 	m_logFilter.m_isSettingChangedVisible = storage.readBool ("isSettingChangedVisible", true);
 	m_logFilter.m_isControlLineChangedVisible = storage.readBool ("isControlLineChangedVisible", true);
@@ -607,7 +595,6 @@ void SerialSession.save (doc.Storage* storage)
 	storage.writeInt ("readCheckComstat", m_readCheckComstatProp.m_value);
 	storage.writeInt ("readWaitFirstChar", m_readWaitFirstCharProp.m_value);
 	storage.writeInt ("readInterval", m_readIntervalProp.m_value);
-	storage.writeInt ("readParallelism", m_readParallelismProp.m_value);
 
 	storage.writeBool ("isSettingChangedVisible", m_logFilter.m_isSettingChangedVisible);
 	storage.writeBool ("isControlLineChangedVisible", m_logFilter.m_isControlLineChangedVisible);
@@ -638,7 +625,7 @@ bool errorcode SerialSession.applyProperties ()
 		return true;
 
 	m_serial.m_readInterval = m_readCheckComstatProp.m_value ? 0 : m_readIntervalProp.m_value;
-	m_serial.m_readParallelism = m_readParallelismProp.m_value;
+	m_serial.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
 	m_serial.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
 	m_serial.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 	m_serial.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
@@ -688,7 +675,6 @@ void SerialSession.restoreDefaultProperties ()
 	m_readCheckComstatProp.m_value = Defaults.ReadCheckComstat;
 	m_readWaitFirstCharProp.m_value = Defaults.ReadWaitFirstChar;
 	m_readIntervalProp.m_value = Defaults.ReadInterval;
-	m_readParallelismProp.m_value = Defaults.ReadParallelism;
 
 	m_settingChangedVisibleProp.m_value = true;
 	m_controlLineChangedVisibleProp.m_value = true;
@@ -723,12 +709,9 @@ size_t SerialSession.write (
 	size_t size
 	)
 {
-	size_t result = try m_serial.write (p, size);
-	if (result != -1)
-	{
-		m_lastWriteTime = sys.getTimestamp ();
-		writeLog (log.StdRecordCode.Tx, p, result);
-	}
+	size_t result = m_serial.write (p, size);
+	writeLog (log.StdRecordCode.Tx, p, result);
+	m_lastWriteTime = sys.getTimestamp ();
 
 	return result;
 }
@@ -822,9 +805,8 @@ SerialSession.onSerialEvent (
 
 	if (triggeredEvents & io.SerialEvents.IncomingData)
 	{
-		size_t result = try m_serial.read (m_readBuffer.m_p, m_readBuffer.m_size);
-		if (result != -1)
-			writeLog (log.StdRecordCode.Rx, m_readBuffer.m_p, result);
+		size_t result = m_serial.read (m_readBuffer.m_p, m_readBuffer.m_size);
+		writeLog (log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 	}
 
 	if (!m_isTransmitEnabled)
@@ -907,7 +889,7 @@ reactor SerialSession.m_uiReactor ()
 	m_title = $"$(m_portCombo.m_currentText) $(m_baudRateCombo.m_currentText)";
 	m_isTransmitEnabled = m_state == State.Opened;
 	m_interCharDelayProp.m_isEnabled = m_useInterCharDelayProp.m_value;
-	m_readParallelismProp.m_isEnabled = !m_readCheckComstatProp.m_value;
+	m_bufferPropertySet.m_readParallelismProp.m_isEnabled = !m_readCheckComstatProp.m_value;
 	m_readIntervalProp.m_isEnabled = !m_readCheckComstatProp.m_value && !m_readWaitFirstCharProp.m_value;
 	m_statusPaneTable [StatusPaneId.PortName].m_text = m_portCombo.m_currentText;
 	m_statusPaneTable [StatusPaneId.PortName].m_isVisible = m_state != State.Closed;

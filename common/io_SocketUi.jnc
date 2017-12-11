@@ -8,30 +8,9 @@ import "gui_PropertyGrid.jnc"
 import "io_base.jncx"
 import "io_Socket.jnc"
 import "io_NetworkAdapter.jnc"
+import "io_BufferUi.jnc"
 
 namespace io {
-
-//..............................................................................
-
-gui.EnumProperty* createSocketCloseKindProperty (
-	gui.PropertyGrid* propertyGrid,
-	char const* name,
-	char const* toolTipText
-	)
-{
-	static gui.EnumPropertyOption closeKindTable [] =
-	{
-		{ "Graceful", SocketCloseKind.Graceful },
-		{ "Reset",    SocketCloseKind.Reset },
-	}
-
-	return propertyGrid.createEnumProperty (
-		name,
-		toolTipText,
-		closeKindTable,
-		countof (closeKindTable)
-		);
-}
 
 //..............................................................................
 
@@ -154,6 +133,219 @@ createNetworkAdapterComboBox (
 			);
 
 	return comboBox;
+}
+
+//..............................................................................
+
+class SocketPropertySet
+{
+	bitflag enum PropertyId
+	{
+		RemoteAddress,
+		RemotePort,
+		UseLocalAddress,
+		Adapter,
+		LocalPort,
+		TcpNagle,
+		TcpReset,
+
+		All =
+			RemoteAddress |
+			RemotePort |
+			UseLocalAddress |
+			Adapter |
+			LocalPort |
+			TcpNagle |
+			TcpReset,
+	}
+
+	enum Defaults
+	{
+		RemotePort = 80,
+		TcpNagle   = false,
+		TcpReset   = false,
+	}
+
+	static char DefaultRemoteAddress [] = "ioninja.com";
+
+	gui.StringProperty* m_remoteAddressProp;
+	gui.IntProperty* m_remotePortProp;
+	gui.BoolProperty* m_useLocalAddressProp;
+	gui.EnumProperty* m_adapterProp;
+	gui.IntProperty* m_localPortProp;
+	gui.BoolProperty* m_tcpNagleProp;
+	gui.BoolProperty* m_tcpResetProp;
+
+	uint16_t m_defaultRemotePort = 80; // Defaults.RemotePort;
+
+	createProperties (
+		gui.PropertyGrid* propertyGrid,
+		gui.GroupProperty* group = null,
+		gui.Property* insertBefore = null,
+		PropertyId propertySet = PropertyId.All
+		);
+
+	load (doc.Storage* storage);
+	save (doc.Storage* storage);
+	restoreDefaults ();
+}
+
+SocketPropertySet.createProperties (
+	gui.PropertyGrid* propertyGrid,
+	gui.GroupProperty* group,
+	gui.Property* insertBefore,
+	PropertyId propertySet
+	)
+{
+	if (propertySet & PropertyId.RemoteAddress)
+		m_remoteAddressProp = propertyGrid.createStringProperty (
+			group,
+			insertBefore,
+			"Remote address",
+			"Remote address to connect to (IP-address or host-name followed by ':' port)"
+			);
+
+	if (propertySet & PropertyId.RemotePort)
+		m_remotePortProp = propertyGrid.createIntProperty (
+			group,
+			insertBefore,
+			"Remote TCP port (default)",
+			"Remote TCP port to connect to (if not specified in remote address)"
+			);
+
+	if (propertySet & PropertyId.UseLocalAddress)
+		m_useLocalAddressProp = propertyGrid.createBoolProperty (
+			group,
+			insertBefore,
+			"Use local address",
+			"Bind socket to the specified local address before connect"
+			);
+
+	if (propertySet & PropertyId.Adapter)
+		m_adapterProp = io.createNetworkAdapterProperty (
+			propertyGrid,
+			group,
+			insertBefore,
+			io.NetworkAdapterUsage.Connection,
+			"Adapter",
+			"Adapter to bind to before connect"
+			);
+
+	if (propertySet & PropertyId.LocalPort)
+		m_localPortProp = propertyGrid.createIntProperty (
+			group,,
+			"Local TCP port",
+			"Local TCP port to bind to before connect"
+			);
+
+	if (propertySet & PropertyId.TcpNagle)
+		m_tcpNagleProp = propertyGrid.createBoolProperty (
+			group,
+			insertBefore,
+			"Use TCP Nagle algorithm",
+			"Specify whether to reduce the number of small TCP packets being sent"
+			);
+
+	if (propertySet & PropertyId.TcpReset)
+		m_tcpResetProp = propertyGrid.createBoolProperty (
+			group,
+			insertBefore,
+			"Use TCP reset",
+			"Specify whether to drop TCP connections abruptly (with TCP RST)"
+			);
+}
+
+SocketPropertySet.load (doc.Storage* storage)
+{
+	if (m_remoteAddressProp)
+		m_remoteAddressProp.m_value = storage.readString ("address", DefaultRemoteAddress);
+
+	if (m_remotePortProp)
+		m_remotePortProp.m_value = storage.readInt ("remotePort", m_defaultRemotePort);
+
+	if (m_useLocalAddressProp)
+		m_useLocalAddressProp.m_value = storage.readBool ("useLocalAddress");
+
+	if (m_adapterProp)
+		m_adapterProp.m_currentIndex = storage.readInt ("adapterIdx");
+
+	if (m_localPortProp)
+		m_localPortProp.m_value = storage.readInt ("localPort");
+
+	if (m_tcpNagleProp)
+		m_tcpNagleProp.m_value = storage.readBool ("isNagleEnabledProp", Defaults.TcpNagle);
+
+	if (m_tcpResetProp)
+		m_tcpResetProp.m_value = storage.readBool ("closeKindProp", Defaults.TcpReset);
+}
+
+SocketPropertySet.save (doc.Storage* storage)
+{
+	if (m_remoteAddressProp)
+		storage.writeString ("address", m_remoteAddressProp.m_value);
+
+	if (m_remotePortProp)
+		storage.writeInt ("remotePort", m_remotePortProp.m_value);
+
+	if (m_useLocalAddressProp)
+		storage.writeBool ("useLocalAddress", m_useLocalAddressProp.m_value);
+
+	if (m_adapterProp)
+		storage.writeInt ("adapterIdx", (int) m_adapterProp.m_currentIndex);
+
+	if (m_localPortProp)
+		storage.writeInt ("localPort", m_localPortProp.m_value);
+
+	if (m_tcpNagleProp)
+		storage.writeBool ("isNagleEnabledProp", m_tcpNagleProp.m_value);
+
+	if (m_tcpResetProp)
+		storage.writeBool ("closeKindProp", m_tcpResetProp.m_value);
+}
+
+SocketPropertySet.restoreDefaults ()
+{
+	if (m_remotePortProp)
+		m_remotePortProp.m_value = m_defaultRemotePort;
+
+	if (m_useLocalAddressProp)
+		m_useLocalAddressProp.m_value = false;
+
+	if (m_adapterProp)
+		m_adapterProp.m_value = 0;
+
+	if (m_localPortProp)
+		m_localPortProp.m_value = 0;
+
+	if (m_tcpNagleProp)
+		m_tcpNagleProp.m_value = Defaults.TcpNagle;
+
+	if (m_tcpResetProp)
+		m_tcpResetProp.m_value = Defaults.TcpReset;
+}
+
+//..............................................................................
+
+io.SocketOptions getSocketOptions (
+	io.SocketPropertySet* socketPropSet,
+	io.BufferPropertySet* bufferPropSet
+	)
+{
+	io.SocketOptions options;
+
+	if (socketPropSet.m_tcpNagleProp.m_value)
+		options |= io.SocketOptions.TcpNagle;
+
+	if (socketPropSet.m_tcpResetProp.m_value)
+		options |= io.SocketOptions.TcpReset;
+
+	if (bufferPropSet.m_keepReadBlockSizeProp.m_value)
+		options |= io.SocketOptions.KeepReadBlockSize;
+
+	if (bufferPropSet.m_keepWriteBlockSizeProp.m_value)
+		options |= io.SocketOptions.KeepWriteBlockSize;
+
+	return options;
 }
 
 //..............................................................................

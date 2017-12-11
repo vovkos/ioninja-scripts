@@ -13,6 +13,7 @@ class BufferPropertySet
 {
 	enum Defaults
 	{
+		ReadParallelism        = 4,
 		ReadBlockSize          = 4 * 1024,
 		ReadBufferSize         = 16 * 1024,
 		WriteBufferSize        = 16 * 1024,
@@ -20,6 +21,27 @@ class BufferPropertySet
 		KeepWriteBlockSizeProp = false,
 	}
 
+	bitflag enum PropertyId
+	{
+		ReadParallelism,
+		ReadBlockSize,
+		ReadBufferSize,
+		WriteBufferSize,
+		KeepReadBlockSize,
+		KeepWriteBlockSize,
+
+		All =
+			ReadParallelism |
+			ReadBlockSize |
+			ReadBufferSize |
+			WriteBufferSize |
+			KeepReadBlockSize |
+			KeepWriteBlockSize,
+
+		AllButReadParallelism = All & ~ReadParallelism,
+	}
+
+	gui.IntProperty* m_readParallelismProp;
 	gui.IntProperty* m_readBlockSizeProp;
 	gui.IntProperty* m_readBufferSizeProp;
 	gui.IntProperty* m_writeBufferSizeProp;
@@ -28,8 +50,9 @@ class BufferPropertySet
 
 	createProperties (
 		gui.PropertyGrid* propertyGrid,
-		gui.GroupProperty* group,
-		gui.Property* insertBefore = null
+		gui.GroupProperty* group = null,
+		gui.Property* insertBefore = null,
+		PropertyId propertySet = PropertyId.All
 		);
 
 	load (doc.Storage* storage);
@@ -42,79 +65,139 @@ class BufferPropertySet
 BufferPropertySet.createProperties (
 	gui.PropertyGrid* propertyGrid,
 	gui.GroupProperty* group,
-	gui.Property* insertBefore
+	gui.Property* insertBefore,
+	PropertyId propertySet
 	)
 {
-	m_readBlockSizeProp = propertyGrid.createIntProperty (
-		group,
-		insertBefore,
-		"Read block size (B)",
-		"Size of each individual read block passed to the driver (affects throughput)"
-		);
+	if (propertySet & PropertyId.ReadParallelism)
+	{
+		m_readParallelismProp  = propertyGrid.createIntProperty (
+			group,
+			insertBefore,
+			"Read parallelism",
+			"Maximum number of read requests to issue in parallel (affects throughput)"
+			);
 
-	m_readBlockSizeProp.m_minValue = 1;
-	m_readBlockSizeProp.m_spinBoxStep = 1024; // 1K step
+		m_readParallelismProp.m_minValue = 1;
+	}
 
-	m_readBufferSizeProp = propertyGrid.createIntProperty (
-		group,
-		insertBefore,
-		"RX buffer size (B)",
-		"Total size of the read buffer (increase if data is dropped)"
-		);
+	if (propertySet & PropertyId.ReadBlockSize)
+	{
+		m_readBlockSizeProp = propertyGrid.createIntProperty (
+			group,
+			insertBefore,
+			"Read block size (B)",
+			"Size of each individual read block passed to the driver (affects throughput)"
+			);
 
-	m_readBufferSizeProp.m_minValue = 1;
-	m_readBufferSizeProp.m_spinBoxStep = 1024; // 1K step
+		m_readBlockSizeProp.m_minValue = 1;
+		m_readBlockSizeProp.m_spinBoxStep = 1024; // 1K step
+	}
 
-	m_writeBufferSizeProp = propertyGrid.createIntProperty (
-		group,
-		insertBefore,
-		"TX buffer size (B)",
-		"Total size of the write buffer"
-		);
+	if (propertySet & PropertyId.ReadBufferSize)
+	{
+		m_readBufferSizeProp = propertyGrid.createIntProperty (
+			group,
+			insertBefore,
+			"RX buffer size (B)",
+			"Total size of the read buffer (increase if data is dropped)"
+			);
 
-	m_writeBufferSizeProp.m_minValue = 1;
-	m_writeBufferSizeProp.m_spinBoxStep = 1024; // 1K step
+		m_readBufferSizeProp.m_minValue = 1;
+		m_readBufferSizeProp.m_spinBoxStep = 1024; // 1K step
+	}
 
-	m_keepReadBlockSizeProp = propertyGrid.createBoolProperty (
-		group,
-		insertBefore,
-		"Keep read block size",
-		"Don't merge read blocks in RX buffer (keep the original size returned by lower IO provider)"
-		);
+	if (propertySet & PropertyId.WriteBufferSize)
+	{
+		m_writeBufferSizeProp = propertyGrid.createIntProperty (
+			group,
+			insertBefore,
+			"TX buffer size (B)",
+			"Total size of the write buffer"
+			);
 
-	m_keepWriteBlockSizeProp = propertyGrid.createBoolProperty (
-		group,
-		insertBefore,
-		"Keep write block size",
-		"Don't merge write blocks in TX buffer (submit the original size to lower IO provider)"
-		);
+		m_writeBufferSizeProp.m_minValue = 1;
+		m_writeBufferSizeProp.m_spinBoxStep = 1024; // 1K step
+	}
+
+	if (propertySet & PropertyId.KeepReadBlockSize)
+		m_keepReadBlockSizeProp = propertyGrid.createBoolProperty (
+			group,
+			insertBefore,
+			"Keep read block size",
+			"Don't merge read blocks in RX buffer (keep the original size returned by lower IO provider)"
+			);
+
+	if (propertySet & PropertyId.KeepWriteBlockSize)
+		m_keepWriteBlockSizeProp = propertyGrid.createBoolProperty (
+			group,
+			insertBefore,
+			"Keep write block size",
+			"Don't merge write blocks in TX buffer (submit the original size to lower IO provider)"
+			);
 }
 
 BufferPropertySet.load (doc.Storage* storage)
 {
-	m_readBlockSizeProp.m_value = storage.readInt ("readBlockSize", Defaults.ReadBlockSize);
-	m_readBufferSizeProp.m_value = storage.readInt ("readBufferSize", Defaults.ReadBufferSize);
-	m_writeBufferSizeProp.m_value = storage.readInt ("writeBufferSize", Defaults.WriteBufferSize);
-	m_keepReadBlockSizeProp.m_value = storage.readBool ("keepReadBlockSizeProp", Defaults.KeepReadBlockSizeProp);
-	m_keepWriteBlockSizeProp.m_value = storage.readBool ("keepWriteBlockSizeProp", Defaults.KeepWriteBlockSizeProp);
+	if (m_readParallelismProp)
+		m_readParallelismProp.m_value = storage.readInt ("readParallelism", Defaults.ReadParallelism);
+
+	if (m_readBlockSizeProp)
+		m_readBlockSizeProp.m_value = storage.readInt ("readBlockSize", Defaults.ReadBlockSize);
+
+	if (m_readBufferSizeProp)
+		m_readBufferSizeProp.m_value = storage.readInt ("readBufferSize", Defaults.ReadBufferSize);
+
+	if (m_writeBufferSizeProp)
+		m_writeBufferSizeProp.m_value = storage.readInt ("writeBufferSize", Defaults.WriteBufferSize);
+
+	if (m_keepReadBlockSizeProp)
+		m_keepReadBlockSizeProp.m_value = storage.readBool ("keepReadBlockSizeProp", Defaults.KeepReadBlockSizeProp);
+
+	if (m_keepWriteBlockSizeProp)
+		m_keepWriteBlockSizeProp.m_value = storage.readBool ("keepWriteBlockSizeProp", Defaults.KeepWriteBlockSizeProp);
 }
 
 BufferPropertySet.save (doc.Storage* storage)
 {
-	storage.writeInt ("readBlockSize", m_readBlockSizeProp.m_value);
-	storage.writeInt ("readBufferSize", m_readBufferSizeProp.m_value);
-	storage.writeInt ("writeBufferSize", m_writeBufferSizeProp.m_value);
-	storage.writeBool ("keepReadBlockSizeProp", m_keepReadBlockSizeProp.m_value);
-	storage.writeBool ("keepWriteBlockSizeProp", m_keepWriteBlockSizeProp.m_value);
+	if (m_readParallelismProp)
+		storage.writeInt ("readParallelism", m_readParallelismProp.m_value);
+
+	if (m_readBlockSizeProp)
+		storage.writeInt ("readBlockSize", m_readBlockSizeProp.m_value);
+
+	if (m_readBufferSizeProp)
+		storage.writeInt ("readBufferSize", m_readBufferSizeProp.m_value);
+
+	if (m_writeBufferSizeProp)
+		storage.writeInt ("writeBufferSize", m_writeBufferSizeProp.m_value);
+
+	if (m_keepReadBlockSizeProp)
+		storage.writeBool ("keepReadBlockSizeProp", m_keepReadBlockSizeProp.m_value);
+
+	if (m_keepWriteBlockSizeProp)
+		storage.writeBool ("keepWriteBlockSizeProp", m_keepWriteBlockSizeProp.m_value);
 }
 
 BufferPropertySet.restoreDefaults ()
 {
-	m_readBlockSizeProp.m_value = Defaults.ReadBlockSize;
-	m_readBufferSizeProp.m_value = Defaults.ReadBufferSize;
-	m_writeBufferSizeProp.m_value = Defaults.WriteBufferSize;
-	m_keepReadBlockSizeProp.m_value = Defaults.KeepReadBlockSizeProp;
-	m_keepWriteBlockSizeProp.m_value = Defaults.KeepWriteBlockSizeProp;
+	if (m_readParallelismProp)
+		m_readParallelismProp.m_value = Defaults.ReadParallelism;
+
+	if (m_readBlockSizeProp)
+		m_readBlockSizeProp.m_value = Defaults.ReadBlockSize;
+
+	if (m_readBufferSizeProp)
+		m_readBufferSizeProp.m_value = Defaults.ReadBufferSize;
+
+	if (m_writeBufferSizeProp)
+		m_writeBufferSizeProp.m_value = Defaults.WriteBufferSize;
+
+	if (m_keepReadBlockSizeProp)
+		m_keepReadBlockSizeProp.m_value = Defaults.KeepReadBlockSizeProp;
+
+	if (m_keepWriteBlockSizeProp)
+		m_keepWriteBlockSizeProp.m_value = Defaults.KeepWriteBlockSizeProp;
 }
 
 //..............................................................................
