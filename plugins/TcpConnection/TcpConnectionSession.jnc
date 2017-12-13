@@ -106,7 +106,7 @@ protected:
 		);
 
 	createUi ();
-	waitForSocketEvents ();
+	waitSocketEvents ();
 
 	reactor m_uiReactor ();
 }
@@ -149,8 +149,8 @@ TcpConnectionSession.createUi ()
 	// property grid
 
 	gui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty (
-		"TCP socket",
-		"TCP-specific settings"
+		"Connection",
+		"TCP-specific connection settings"
 		);
 
 	m_socketPropertySet.createProperties (m_pluginHost.m_propertyGrid, group);
@@ -256,7 +256,7 @@ nestedscope:
 	char const* p = $"$(*remoteAddress; B)$(localAddress; B)";
 	writeLog (TcpConnectionLogRecordCode.ConnectingFrom, p, dynamic sizeof (p));
 
-	waitForSocketEvents ();
+	waitSocketEvents ();
 	return true;
 
 catch:
@@ -274,7 +274,7 @@ catch:
 	return false;
 }
 
-TcpConnectionSession.waitForSocketEvents ()
+TcpConnectionSession.waitSocketEvents ()
 {
 	io.SocketEvents eventMask = io.SocketEvents.IoError;
 
@@ -408,7 +408,7 @@ size_t errorcode TcpConnectionSession.transmit (
 	if (result < size)
 	{
 		m_isTransmitEnabled = false;
-		waitForSocketEvents ();
+		waitSocketEvents ();
 	}
 
 	return result;
@@ -419,8 +419,6 @@ TcpConnectionSession.onSocketEvent (
 	io.SocketEvents triggeredEvents
 	)
 {
-	printf ("TcpConnectionSession.onSocketEvent (%d/%d, %x)\n", syncId, m_syncId, triggeredEvents);
-
 	if (syncId != m_syncId)
 		return;
 
@@ -471,13 +469,14 @@ TcpConnectionSession.onSocketEvent (
 	if (triggeredEvents & io.SocketEvents.IncomingData)
 	{
 		size_t result = m_socket.read (m_readBuffer.m_p, m_readBuffer.m_size);
-		writeLog (log.StdRecordCode.Rx, m_readBuffer.m_p, result);
+		if (result)
+			writeLog (log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 	}
 
 	if (io.SocketEvents.TransmitBufferReady)
 		m_isTransmitEnabled = true;
 
-	waitForSocketEvents ();
+	waitSocketEvents ();
 }
 
 TcpConnectionSession.onResolverEvent (io.SocketAddressResolverEventParams const* params)

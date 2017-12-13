@@ -12,12 +12,13 @@ import "io_Socket.jnc"
 enum UdpRecordCode
 {
 	Open,
+	OpenError,
 	Close,
 	TxPacket,
 	RxPacket,
-	Error,
 	Resolving,
 	ResolveCompleted,
+	ResolveError,
 }
 
 enum UdpRecordPartCode
@@ -45,6 +46,15 @@ bool representUdpLog (
 		target.addHyperText($"Opened socket at \e[34m$addressString");
 		break;
 
+	case UdpRecordCode.OpenError:
+		io.SocketAddress const* address = (io.SocketAddress const*) p;
+		char const* addressString = address.getString ();
+		std.Error const* error = (std.Error const*) (address + 1);
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
+		target.addHyperText ($"Cannot open socket at \e[34m$addressString\e[m: $(error.m_description)");
+		break;
+
 	case UdpRecordCode.Close:
 		char const* addressString = ((io.SocketAddress const*) p).getString ();
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
@@ -66,14 +76,6 @@ bool representUdpLog (
 		target.addHyperText ($"From \e[34m$remoteAddress");
 		break;
 
-	case UdpRecordCode.Error:
-		std.Error const* error = (std.Error const*) p;
-		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		target.addHyperText (UdpRecordPartCode.ResolveCompleted, $"error: $(error.m_description)");
-		break;
-
 	case UdpRecordCode.Resolving:
 		char const* addressString = (char const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
@@ -84,6 +86,14 @@ bool representUdpLog (
 	case UdpRecordCode.ResolveCompleted:
 		char const* addressString = ((io.SocketAddress const*) p).getString ();
 		target.addHyperText (UdpRecordPartCode.ResolveCompleted, $"ok (\e[34m$addressString\e[m)");
+		break;
+
+	case UdpRecordCode.ResolveError:
+		std.Error const* error = (std.Error const*) p;
+		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
+		target.addHyperText (UdpRecordPartCode.ResolveCompleted, $"error: $(error.m_description)");
 		break;
 
 	default:

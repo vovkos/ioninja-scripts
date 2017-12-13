@@ -144,24 +144,43 @@ class SocketPropertySet
 		RemoteAddress,
 		RemotePort,
 		UseLocalAddress,
-		Adapter,
+		ClientAdapter,
+		ServerAdapter,
 		LocalPort,
+		ReuseLocalAddress,
 		TcpNagle,
 		TcpReset,
 
-		All =
+		AllUdpClient =
+			RemoteAddress |
+			RemotePort |
+			ServerAdapter |
+			LocalPort |
+			ReuseLocalAddress,
+
+		AllTcpClient =
 			RemoteAddress |
 			RemotePort |
 			UseLocalAddress |
-			Adapter |
+			ClientAdapter |
 			LocalPort |
+			ReuseLocalAddress |
 			TcpNagle |
 			TcpReset,
+
+		AllTcpServer =
+			ServerAdapter |
+			LocalPort |
+			ReuseLocalAddress |
+			TcpNagle |
+			TcpReset,
+
 	}
 
 	enum Defaults
 	{
 		RemotePort = 80,
+		LocalPort  = 0,
 		TcpNagle   = false,
 		TcpReset   = false,
 	}
@@ -173,16 +192,18 @@ class SocketPropertySet
 	gui.BoolProperty* m_useLocalAddressProp;
 	gui.EnumProperty* m_adapterProp;
 	gui.IntProperty* m_localPortProp;
+	gui.BoolProperty* m_reuseLocalAddressProp;
 	gui.BoolProperty* m_tcpNagleProp;
 	gui.BoolProperty* m_tcpResetProp;
 
-	uint16_t m_defaultRemotePort = 80; // Defaults.RemotePort;
+	uint16_t m_defaultRemotePort = Defaults.RemotePort;
+	uint16_t m_defaultLocalPort = Defaults.LocalPort;
 
 	createProperties (
 		gui.PropertyGrid* propertyGrid,
 		gui.GroupProperty* group = null,
 		gui.Property* insertBefore = null,
-		PropertyId propertySet = PropertyId.All
+		PropertyId propertySet = PropertyId.AllTcpClient
 		);
 
 	load (doc.Storage* storage);
@@ -218,24 +239,34 @@ SocketPropertySet.createProperties (
 			group,
 			insertBefore,
 			"Use local address",
-			"Bind socket to the specified local address before connect"
+			"Bind socket to the specified local address"
 			);
 
-	if (propertySet & PropertyId.Adapter)
+	if (propertySet & (PropertyId.ClientAdapter | PropertyId.ServerAdapter))
 		m_adapterProp = io.createNetworkAdapterProperty (
 			propertyGrid,
 			group,
 			insertBefore,
-			io.NetworkAdapterUsage.Connection,
+			(propertySet & PropertyId.ClientAdapter) ?
+				io.NetworkAdapterUsage.Connection :
+				io.NetworkAdapterUsage.Listener,
 			"Adapter",
-			"Adapter to bind to before connect"
+			"Network adapter to bind to"
 			);
 
 	if (propertySet & PropertyId.LocalPort)
 		m_localPortProp = propertyGrid.createIntProperty (
 			group,,
 			"Local TCP port",
-			"Local TCP port to bind to before connect"
+			"Local TCP port to bind to"
+			);
+
+	if (propertySet & PropertyId.ReuseLocalAddress)
+		m_reuseLocalAddressProp = propertyGrid.createBoolProperty (
+			group,
+			insertBefore,
+			"Reuse address",
+			"Allow multiple sockets to share the same local address"
 			);
 
 	if (propertySet & PropertyId.TcpNagle)
@@ -270,7 +301,10 @@ SocketPropertySet.load (doc.Storage* storage)
 		m_adapterProp.m_currentIndex = storage.readInt ("adapterIdx");
 
 	if (m_localPortProp)
-		m_localPortProp.m_value = storage.readInt ("localPort");
+		m_localPortProp.m_value = storage.readInt ("localPort", m_defaultLocalPort);
+
+	if (m_reuseLocalAddressProp)
+		m_reuseLocalAddressProp.m_value = storage.readBool ("reuseLocalAddress", false);
 
 	if (m_tcpNagleProp)
 		m_tcpNagleProp.m_value = storage.readBool ("isNagleEnabledProp", Defaults.TcpNagle);
@@ -296,6 +330,9 @@ SocketPropertySet.save (doc.Storage* storage)
 	if (m_localPortProp)
 		storage.writeInt ("localPort", m_localPortProp.m_value);
 
+	if (m_reuseLocalAddressProp)
+		storage.writeBool ("reuseLocalAddress", m_reuseLocalAddressProp.m_value);
+
 	if (m_tcpNagleProp)
 		storage.writeBool ("isNagleEnabledProp", m_tcpNagleProp.m_value);
 
@@ -312,10 +349,13 @@ SocketPropertySet.restoreDefaults ()
 		m_useLocalAddressProp.m_value = false;
 
 	if (m_adapterProp)
-		m_adapterProp.m_value = 0;
+		m_adapterProp.m_currentIndex = 0;
 
 	if (m_localPortProp)
-		m_localPortProp.m_value = 0;
+		m_localPortProp.m_value = m_defaultLocalPort;
+
+	if (m_reuseLocalAddressProp)
+		m_reuseLocalAddressProp.m_value = false;
 
 	if (m_tcpNagleProp)
 		m_tcpNagleProp.m_value = Defaults.TcpNagle;
@@ -332,6 +372,9 @@ io.SocketOptions getSocketOptions (
 	)
 {
 	io.SocketOptions options;
+
+	if (socketPropSet.m_reuseLocalAddressProp.m_value)
+		options |= io.SocketOptions.ReuseAddress;
 
 	if (socketPropSet.m_tcpNagleProp.m_value)
 		options |= io.SocketOptions.TcpNagle;

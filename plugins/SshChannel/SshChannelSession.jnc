@@ -139,7 +139,7 @@ protected:
 		);
 
 	createUi ();
-	waitForSshEvents ();
+	waitSshEvents ();
 	handleConnectError (std.Error const* error);
 	handleSshAuthenticateError (std.Error const* error);
 
@@ -187,15 +187,15 @@ SshChannelSession.createUi ()
 
 	gui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty (
 		"TCP connection",
-		"TCP-specific settings"
+		"TCP-specific connection settings"
 		);
 
 	m_socketPropertySet.createProperties (m_pluginHost.m_propertyGrid, group);
 	m_socketPropertySet.m_defaultRemotePort = Defaults.ServerPort;
 
 	group = m_pluginHost.m_propertyGrid.createGroupProperty (
-		"SSH Settings",
-		"SSH-specific settings"
+		"SSH connection",
+		"SSH-specific connection settings"
 		);
 
 	m_userNameProp = m_pluginHost.m_propertyGrid.createStringProperty (
@@ -259,7 +259,7 @@ SshChannelSession.createUi ()
 	m_bufferPropertySet.createProperties (
 		m_pluginHost.m_propertyGrid,
 		group,,
-		io.BufferPropertySet.PropertyId.AllButReadParallelism
+		io.BufferPropertySet.PropertyId.All & ~io.BufferPropertySet.PropertyId.ReadParallelism
 		);
 
 	m_uiReactor.start ();
@@ -379,7 +379,7 @@ bool errorcode SshChannelSession.connect (io.SocketAddress const* remoteAddress)
 		m_pluginHost.m_terminal.m_consoleHeight
 		);
 
-	waitForSshEvents ();
+	waitSshEvents ();
 	return true;
 
 catch:
@@ -387,7 +387,7 @@ catch:
 	return false;
 }
 
-SshChannelSession.waitForSshEvents ()
+SshChannelSession.waitSshEvents ()
 {
 	io.SshEvents eventMask = io.SshEvents.IoError;
 
@@ -513,7 +513,7 @@ SshChannelSession.onLoginDlgCompleted (gui.StdDlgButton button)
 	m_authenticationMethodProp.m_value = m_loginDlg.m_authenticationMethod;
 	m_privateKeyFileProp.m_value = m_loginDlg.m_privateKeyFileName;
 	m_state = nextState;
-	waitForSshEvents ();
+	waitSshEvents ();
 
 catch:
 	m_ssh.close ();
@@ -636,7 +636,7 @@ size_t errorcode SshChannelSession.transmit (
 	if (result < size)
 	{
 		m_isTransmitEnabled = false;
-		waitForSshEvents ();
+		waitSshEvents ();
 	}
 
 	return result;
@@ -716,13 +716,14 @@ SshChannelSession.onSshEvent (
 	if (triggeredEvents & io.SshEvents.IncomingData)
 	{
 		size_t result = m_ssh.read (m_readBuffer.m_p, m_readBuffer.m_size);
-		writeLog (log.StdRecordCode.Rx, m_readBuffer.m_p, result);
+		if (result)
+			writeLog (log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 	}
 
 	if (io.SshEvents.TransmitBufferReady)
 		m_isTransmitEnabled = true;
 
-	waitForSshEvents ();
+	waitSshEvents ();
 }
 
 SshChannelSession.onResolverEvent (io.SocketAddressResolverEventParams const* params)

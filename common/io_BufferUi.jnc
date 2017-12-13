@@ -37,8 +37,6 @@ class BufferPropertySet
 			WriteBufferSize |
 			KeepReadBlockSize |
 			KeepWriteBlockSize,
-
-		AllButReadParallelism = All & ~ReadParallelism,
 	}
 
 	gui.IntProperty* m_readParallelismProp;

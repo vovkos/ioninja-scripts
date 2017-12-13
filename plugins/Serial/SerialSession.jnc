@@ -15,6 +15,19 @@ import "doc_Plugin.jnc"
 class SerialSession: doc.Session
 {
 protected:
+	enum Defaults
+	{
+		BaudRate          = 38400,
+		DataBits          = 8,
+		StopBits          = io.SerialStopBits._1,
+		Parity            = io.SerialParity.None,
+		FlowControl       = io.SerialFlowControl.None,
+		InterCharDelay    = 200,
+		ReadCheckComstat  = false,
+		ReadWaitFirstChar = true,
+		ReadInterval      = 10,
+	}
+
 	enum State
 	{
 		Closed,
@@ -47,19 +60,6 @@ protected:
 		Cts,
 		Dcd,
 		_Count,
-	}
-
-	enum Defaults
-	{
-		BaudRate          = 38400,
-		DataBits          = 8,
-		StopBits          = io.SerialStopBits._1,
-		Parity            = io.SerialParity.None,
-		FlowControl       = io.SerialFlowControl.None,
-		InterCharDelay    = 200,
-		ReadCheckComstat  = false,
-		ReadWaitFirstChar = true,
-		ReadInterval      = 10,
 	}
 
 protected:
@@ -160,7 +160,7 @@ protected:
 		size_t size
 		);
 
-	waitForSerialEvents ();
+	waitSerialEvents ();
 	setDelayedWriteTimer ();
 	flushDelayedWrite ();
 
@@ -297,8 +297,8 @@ SerialSession.createUi ()
 	// property grid
 
 	gui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty (
-		"Serial port",
-		"Serial port-specific settings"
+		"Connection",
+		"Serial port-specific connection settings"
 		);
 
 	m_portProp = m_pluginHost.m_propertyGrid.createStringProperty (
@@ -390,8 +390,6 @@ SerialSession.createUi ()
 	m_readIntervalProp.m_minValue = 1;
 
 	m_bufferPropertySet.createProperties (m_pluginHost.m_propertyGrid, group);
-
-	// filter
 
 	group = m_pluginHost.m_propertyGrid.createGroupProperty (
 		"Log filter",
@@ -522,7 +520,7 @@ bool errorcode SerialSession.open ()
 	m_serialStatusLines = m_serial.m_statusLines;
 	m_state = State.Opened;
 
-	waitForSerialEvents ();
+	waitSerialEvents ();
 	return true;
 
 catch:
@@ -698,7 +696,7 @@ size_t errorcode SerialSession.transmit (
 	if (result < size)
 	{
 		m_isTransmitEnabled = false;
-		waitForSerialEvents ();
+		waitSerialEvents ();
 	}
 
 	return result;
@@ -756,7 +754,7 @@ SerialSession.setDelayedWriteTimer ()
 		);
 }
 
-SerialSession.waitForSerialEvents ()
+SerialSession.waitSerialEvents ()
 {
 	io.SerialEvents eventMask =
 		io.SerialEvents.IoError |
@@ -806,7 +804,8 @@ SerialSession.onSerialEvent (
 	if (triggeredEvents & io.SerialEvents.IncomingData)
 	{
 		size_t result = m_serial.read (m_readBuffer.m_p, m_readBuffer.m_size);
-		writeLog (log.StdRecordCode.Rx, m_readBuffer.m_p, result);
+		if (result)
+			writeLog (log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 	}
 
 	if (!m_isTransmitEnabled)
@@ -821,7 +820,7 @@ SerialSession.onSerialEvent (
 		m_serialStatusLines = statusLines;
 	}
 
-	waitForSerialEvents ();
+	waitSerialEvents ();
 }
 
 SerialSession.onDelayedWriteTimer ()
