@@ -47,6 +47,9 @@ enum StdRecordCode
 	SessionStarted = 0x08000000,
 	Break          = 0x09000000,
 	TxRx           = 0x0a000000 | PartCodeFlags.Mergeable,
+	
+	RxBufferFullLossless = 0x0b000000,
+	RxBufferFullLossy    = 0x0c000000,
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
