@@ -793,13 +793,13 @@ SerialSession.onSerialEvent (
 
 	if (triggeredEvents & io.SerialEvents.IoError)
 	{
-		writeLog (SerialLogRecordCode.IoError, m_serial.m_ioError, m_serial.m_ioError.m_size);
+		writeLog (log.StdRecordCode.Error, m_serial.m_ioError, m_serial.m_ioError.m_size);
 		close ();
 		return;
 	}
 
 	if (triggeredEvents & io.SerialEvents.ReceiveBufferFull)
-		writeLog (SerialLogRecordCode.RxBufferFull);
+		writeLog (log.StdRecordCode.RxBufferFullLossy);
 
 	if (triggeredEvents & io.SerialEvents.IncomingData)
 	{

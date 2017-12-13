@@ -112,7 +112,7 @@ bool representTcpProxyLog (
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
 
 		std.Error const* error = (std.Error const*) p;
-		target.addHyperText (TcpProxyPartCode.TargetConnectCompleted, $"error ($(error.m_description))");
+		target.addHyperText (TcpProxyPartCode.TargetConnectCompleted, $"error: $(error.m_description)");
 		break;
 
 	case TcpProxyLogRecordCode.TargetDisconnected:
@@ -140,7 +140,7 @@ bool representTcpProxyLog (
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
 
 		std.Error const* error = (std.Error const*) p;
-		target.addHyperText (TcpProxyPartCode.TargetConnectCompleted, $"error ($(error.m_description))");
+		target.addHyperText (TcpProxyPartCode.TargetConnectCompleted, $"error: $(error.m_description)");
 		break;
 
 	default:

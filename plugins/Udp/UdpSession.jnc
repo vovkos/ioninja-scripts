@@ -405,11 +405,6 @@ size_t errorcode UdpSession.transmit (
 	}
 
 	return size;
-
-catch:
-	std.Error const* error = std.getLastError ();
-	writeLog (log.StdRecordCode.Error, error, error.m_size);
-	return -1;
 }
 
 size_t errorcode UdpSession.transmitTo (
@@ -439,11 +434,6 @@ size_t UdpSession.writeDatagram (
 		m_pluginHost.m_log.m_writer.write (log.StdRecordCode.Tx, p, result);
 
 	return result;
-
-catch:
-	std.Error const* error = std.getLastError ();
-	writeLog (log.StdRecordCode.Error, error, error.m_size);
-	return -1;
 }
 
 UdpSession.onRemoteAddressChanged ()
@@ -469,6 +459,9 @@ UdpSession.onSocketEvent (
 		m_isTransmitEnabled = false;
 		return;
 	}
+
+	if (triggeredEvents & io.SocketEvents.ReceiveBufferFull)
+		writeLog (log.StdRecordCode.RxBufferFullLossy);
 
 	if (triggeredEvents & io.SocketEvents.IncomingData)
 	{
@@ -522,6 +515,10 @@ UdpSession.onResolverEvent (io.SocketAddressResolverEventParams const* params)
 		m_resolveState = ResolveState.Unresolved;
 		break;
 	}
+
+catch:
+	std.Error const* error = std.getLastError ();
+	writeLog (log.StdRecordCode.Error, error, error.m_size);
 }
 
 reactor UdpSession.m_uiReactor ()

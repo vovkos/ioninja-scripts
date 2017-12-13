@@ -148,6 +148,7 @@ class SocketPropertySet
 		ServerAdapter,
 		LocalPort,
 		ReuseLocalAddress,
+		TcpKeepAlive,
 		TcpNagle,
 		TcpReset,
 
@@ -165,6 +166,7 @@ class SocketPropertySet
 			ClientAdapter |
 			LocalPort |
 			ReuseLocalAddress |
+			TcpKeepAlive |
 			TcpNagle |
 			TcpReset,
 
@@ -172,17 +174,18 @@ class SocketPropertySet
 			ServerAdapter |
 			LocalPort |
 			ReuseLocalAddress |
+			TcpKeepAlive |
 			TcpNagle |
 			TcpReset,
-
 	}
 
 	enum Defaults
 	{
-		RemotePort = 80,
-		LocalPort  = 0,
-		TcpNagle   = false,
-		TcpReset   = false,
+		RemotePort   = 80,
+		LocalPort    = 0,
+		TcpKeepAlive = false,
+		TcpNagle     = false,
+		TcpReset     = false,
 	}
 
 	static char DefaultRemoteAddress [] = "ioninja.com";
@@ -193,6 +196,7 @@ class SocketPropertySet
 	gui.EnumProperty* m_adapterProp;
 	gui.IntProperty* m_localPortProp;
 	gui.BoolProperty* m_reuseLocalAddressProp;
+	gui.BoolProperty* m_tcpKeepAliveProp;
 	gui.BoolProperty* m_tcpNagleProp;
 	gui.BoolProperty* m_tcpResetProp;
 
@@ -269,6 +273,14 @@ SocketPropertySet.createProperties (
 			"Allow multiple sockets to share the same local address"
 			);
 
+	if (propertySet & PropertyId.TcpKeepAlive)
+		m_tcpKeepAliveProp = propertyGrid.createBoolProperty (
+			group,
+			insertBefore,
+			"Use TCP keep-alives",
+			"Specify whether to detect lost connections with TCP keep-alive probes"
+			);
+
 	if (propertySet & PropertyId.TcpNagle)
 		m_tcpNagleProp = propertyGrid.createBoolProperty (
 			group,
@@ -306,11 +318,14 @@ SocketPropertySet.load (doc.Storage* storage)
 	if (m_reuseLocalAddressProp)
 		m_reuseLocalAddressProp.m_value = storage.readBool ("reuseLocalAddress", false);
 
+	if (m_tcpKeepAliveProp)
+		m_tcpKeepAliveProp.m_value = storage.readBool ("tcpKeepAlive", Defaults.TcpKeepAlive);
+
 	if (m_tcpNagleProp)
-		m_tcpNagleProp.m_value = storage.readBool ("isNagleEnabledProp", Defaults.TcpNagle);
+		m_tcpNagleProp.m_value = storage.readBool ("isNagleEnabled", Defaults.TcpNagle);
 
 	if (m_tcpResetProp)
-		m_tcpResetProp.m_value = storage.readBool ("closeKindProp", Defaults.TcpReset);
+		m_tcpResetProp.m_value = storage.readBool ("closeKind", Defaults.TcpReset);
 }
 
 SocketPropertySet.save (doc.Storage* storage)
@@ -333,11 +348,14 @@ SocketPropertySet.save (doc.Storage* storage)
 	if (m_reuseLocalAddressProp)
 		storage.writeBool ("reuseLocalAddress", m_reuseLocalAddressProp.m_value);
 
+	if (m_tcpKeepAliveProp)
+		storage.writeBool ("tcpKeepAlive", m_tcpKeepAliveProp.m_value);
+
 	if (m_tcpNagleProp)
-		storage.writeBool ("isNagleEnabledProp", m_tcpNagleProp.m_value);
+		storage.writeBool ("isNagleEnabled", m_tcpNagleProp.m_value);
 
 	if (m_tcpResetProp)
-		storage.writeBool ("closeKindProp", m_tcpResetProp.m_value);
+		storage.writeBool ("closeKind", m_tcpResetProp.m_value);
 }
 
 SocketPropertySet.restoreDefaults ()
@@ -357,6 +375,9 @@ SocketPropertySet.restoreDefaults ()
 	if (m_reuseLocalAddressProp)
 		m_reuseLocalAddressProp.m_value = false;
 
+	if (m_tcpKeepAliveProp)
+		m_tcpKeepAliveProp.m_value = Defaults.TcpKeepAlive;
+
 	if (m_tcpNagleProp)
 		m_tcpNagleProp.m_value = Defaults.TcpNagle;
 
@@ -373,19 +394,22 @@ io.SocketOptions getSocketOptions (
 {
 	io.SocketOptions options;
 
-	if (socketPropSet.m_reuseLocalAddressProp.m_value)
+	if (socketPropSet.m_reuseLocalAddressProp && socketPropSet.m_reuseLocalAddressProp.m_value)
 		options |= io.SocketOptions.ReuseAddress;
 
-	if (socketPropSet.m_tcpNagleProp.m_value)
+	if (socketPropSet.m_tcpKeepAliveProp && socketPropSet.m_tcpKeepAliveProp.m_value)
+		options |= io.SocketOptions.TcpKeepAlive;
+
+	if (socketPropSet.m_tcpNagleProp && socketPropSet.m_tcpNagleProp.m_value)
 		options |= io.SocketOptions.TcpNagle;
 
-	if (socketPropSet.m_tcpResetProp.m_value)
+	if (socketPropSet.m_tcpResetProp && socketPropSet.m_tcpResetProp.m_value)
 		options |= io.SocketOptions.TcpReset;
 
-	if (bufferPropSet.m_keepReadBlockSizeProp.m_value)
+	if (bufferPropSet.m_keepReadBlockSizeProp && bufferPropSet.m_keepReadBlockSizeProp.m_value)
 		options |= io.SocketOptions.KeepReadBlockSize;
 
-	if (bufferPropSet.m_keepWriteBlockSizeProp.m_value)
+	if (bufferPropSet.m_keepWriteBlockSizeProp && bufferPropSet.m_keepWriteBlockSizeProp.m_value)
 		options |= io.SocketOptions.KeepWriteBlockSize;
 
 	return options;

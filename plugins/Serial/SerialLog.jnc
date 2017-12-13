@@ -18,8 +18,6 @@ enum SerialLogRecordCode
 	RtsChanged,
 	DtrChanged,
 	StatusLineChanged,
-	RxBufferFull,
-	IoError,
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -210,19 +208,6 @@ bool representSerialLog (
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText (string);
-		break;
-
-	case SerialLogRecordCode.IoError:
-		std.Error const* error = (std.Error const*) p;
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		target.addHyperText ($"IO error: $(error.m_description)");
-		break;
-
-	case SerialLogRecordCode.RxBufferFull:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Warning;
-		target.addHyperText ($"RX buffer is full (data may be dropped)");
 		break;
 
 	default:

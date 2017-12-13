@@ -288,8 +288,7 @@ TcpConnectionSession.waitSocketEvents ()
 		eventMask |=
 			io.SocketEvents.Disconnected |
 			io.SocketEvents.Reset |
-			io.SocketEvents.IncomingData |
-			io.SocketEvents.ReceiveBufferFull;
+			io.SocketEvents.IncomingData;
 
 		if (!m_isTransmitEnabled)
 			eventMask |= io.SocketEvents.TransmitBufferReady;
@@ -439,12 +438,11 @@ TcpConnectionSession.onSocketEvent (
 	{
 		for (;;) // read all the buffered data
 		{
-			static char buffer [512];
-			size_t result = try m_socket.read (buffer, sizeof (buffer));
-			if (!result || result == -1)
+			size_t result = m_socket.read (m_readBuffer.m_p, m_readBuffer.m_size);
+			if (!result)
 				break;
 
-			writeLog (log.StdRecordCode.Rx, buffer, result);
+			writeLog (log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 		}
 
 		TcpDisconnectLogRecordParams recordParams;

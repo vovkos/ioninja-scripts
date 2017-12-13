@@ -420,8 +420,7 @@ SshChannelSession.waitSshEvents ()
 	case State.Connected:
 		eventMask |=
 			io.SshEvents.TcpDisconnected |
-			io.SshEvents.IncomingData |
-			io.SshEvents.ReceiveBufferFull;
+			io.SshEvents.IncomingData;
 
 		if (!m_isTransmitEnabled)
 			eventMask |= io.SshEvents.TransmitBufferReady;
@@ -702,6 +701,15 @@ SshChannelSession.onSshEvent (
 
 	if (triggeredEvents & io.SshEvents.TcpDisconnected)
 	{
+		for (;;) // read all the buffered data
+		{
+			size_t result = m_ssh.read (m_readBuffer.m_p, m_readBuffer.m_size);
+			if (!result)
+				break;
+
+			writeLog (log.StdRecordCode.Rx, m_readBuffer.m_p, result);
+		}
+
 		writeLog (
 			SshChannelLogRecordCode.Disconnected,
 			&m_remoteAddress,
