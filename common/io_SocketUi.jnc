@@ -277,24 +277,24 @@ SocketPropertySet.createProperties (
 		m_tcpKeepAliveProp = propertyGrid.createBoolProperty (
 			group,
 			insertBefore,
-			"Use TCP keep-alives",
-			"Specify whether to detect lost connections with TCP keep-alive probes"
+			"TCP keep-alives",
+			"Detect connection loss with TCP keep-alive probes"
 			);
 
 	if (propertySet & PropertyId.TcpNagle)
 		m_tcpNagleProp = propertyGrid.createBoolProperty (
 			group,
 			insertBefore,
-			"Use TCP Nagle algorithm",
-			"Specify whether to reduce the number of small TCP packets being sent"
+			"TCP Nagle algorithm",
+			"Reduce the number of small TCP packets being sent"
 			);
 
 	if (propertySet & PropertyId.TcpReset)
 		m_tcpResetProp = propertyGrid.createBoolProperty (
 			group,
 			insertBefore,
-			"Use TCP reset",
-			"Specify whether to drop TCP connections abruptly (with TCP RST)"
+			"TCP reset",
+			"Drop TCP connections abruptly with a TCP RST packet"
 			);
 }
 
