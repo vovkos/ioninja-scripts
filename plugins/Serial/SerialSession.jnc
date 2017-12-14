@@ -163,8 +163,12 @@ protected:
 	waitSerialEvents ();
 	setDelayedWriteTimer ();
 	flushDelayedWrite ();
-
 	io.SerialOptions getSerialOptions ();
+
+	uint_t getReadInterval ()
+	{
+		return sys.g_systemInfo.m_osKind != sys.OsKind.Windows || m_readCheckComstatProp.m_value ? 0 : m_readIntervalProp.m_value;
+	}
 
 	reactor m_uiReactor ();
 }
@@ -369,25 +373,37 @@ SerialSession.createUi ()
 		"Advanced options controlling performance, throughtput and compatibility"
 		);
 
-	m_readCheckComstatProp = m_pluginHost.m_propertyGrid.createBoolProperty (
-		group,,
-		"Read checks COMSTAT",
-		"Don't issue read requests unless the driver reports COMSTAT.cbInQue"
-		);
+	// these settings only make sense on Windows
+	// still, we want valid property pointers, so there's less checking
 
-	m_readWaitFirstCharProp = m_pluginHost.m_propertyGrid.createBoolProperty (
-		group,,
-		"Read waits for char",
-		"Read request waits until a character is received and then returns immediately"
-		);
+	if (sys.g_systemInfo.m_osKind == sys.OsKind.Windows)
+	{
+		m_readCheckComstatProp = m_pluginHost.m_propertyGrid.createBoolProperty (
+			group,,
+			"Read checks COMSTAT",
+			"Don't issue read requests unless the driver reports COMSTAT.cbInQue"
+			);
 
-	m_readIntervalProp = m_pluginHost.m_propertyGrid.createIntProperty (
-		group,,
-		"Read max inter-char interval (ms)",
-		"Maximum inter-character delay during read request (in millisceonds)"
-		);
+		m_readWaitFirstCharProp = m_pluginHost.m_propertyGrid.createBoolProperty (
+			group,,
+			"Read waits for char",
+			"Read request waits until a character is received and then returns immediately"
+			);
 
-	m_readIntervalProp.m_minValue = 1;
+		m_readIntervalProp = m_pluginHost.m_propertyGrid.createIntProperty (
+			group,,
+			"Read max inter-char interval (ms)",
+			"Maximum inter-character delay during read request (in millisceonds)"
+			);
+
+		m_readIntervalProp.m_minValue = 1;
+	}
+	else
+	{
+		m_readCheckComstatProp = new gui.BoolProperty (null);
+		m_readWaitFirstCharProp = new gui.BoolProperty (null);
+		m_readIntervalProp = new gui.IntProperty (null);
+	}
 
 	m_bufferPropertySet.createProperties (m_pluginHost.m_propertyGrid, group);
 
@@ -487,7 +503,7 @@ bool errorcode SerialSession.open ()
 
 	// configure and open
 
-	m_serial.m_readInterval = m_readCheckComstatProp.m_value ? 0 : m_readIntervalProp.m_value;
+	m_serial.m_readInterval = getReadInterval ();
 	m_serial.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
 	m_serial.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
 	m_serial.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
@@ -622,7 +638,7 @@ bool errorcode SerialSession.applyProperties ()
 	if (m_state != State.Opened)
 		return true;
 
-	m_serial.m_readInterval = m_readCheckComstatProp.m_value ? 0 : m_readIntervalProp.m_value;
+	m_serial.m_readInterval = getReadInterval ();
 	m_serial.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
 	m_serial.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
 	m_serial.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
