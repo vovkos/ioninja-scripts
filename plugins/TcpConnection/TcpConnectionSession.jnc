@@ -95,7 +95,7 @@ public:
 		);
 
 protected:
-	handleConnectError (std.Error const* error);
+	handleSocketError (std.Error const* error);
 
 	onConnect ();
 	onResolverEvent (io.SocketAddressResolverEventParams const* params);
@@ -213,7 +213,7 @@ bool errorcode TcpConnectionSession.connect ()
 	return true;
 
 catch:
-	handleConnectError (std.getLastError ());
+	handleSocketError (std.getLastError ());
 	return false;
 }
 
@@ -270,7 +270,7 @@ catch:
 		writeLog (TcpConnectionLogRecordCode.ConnectingFrom, p, dynamic sizeof (p));
 	}
 
-	handleConnectError (std.getLastError ());
+	handleSocketError (std.getLastError ());
 	return false;
 }
 
@@ -286,9 +286,9 @@ TcpConnectionSession.waitSocketEvents ()
 
 	case State.Connected:
 		eventMask |=
+			io.SocketEvents.IncomingData |
 			io.SocketEvents.Disconnected |
-			io.SocketEvents.Reset |
-			io.SocketEvents.IncomingData;
+			io.SocketEvents.Reset;
 
 		if (!m_isTransmitEnabled)
 			eventMask |= io.SocketEvents.TransmitBufferReady;
@@ -299,14 +299,13 @@ TcpConnectionSession.waitSocketEvents ()
 	m_socket.wait (eventMask, onSocketEvent ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
 }
 
-TcpConnectionSession.handleConnectError (std.Error const* error)
+TcpConnectionSession.handleSocketError (std.Error const* error)
 {
-	writeLog (
-		TcpConnectionLogRecordCode.ConnectError,
-		error,
-		error.m_size
-		);
+	uint_t recordCode = m_state < State.Connected ?
+		TcpConnectionLogRecordCode.ConnectError :
+		log.StdRecordCode.Error;
 
+	writeLog (recordCode, error, error.m_size);
 	m_socket.close ();
 	m_state = State.Closed;
 }
@@ -423,7 +422,7 @@ TcpConnectionSession.onSocketEvent (
 
 	if (triggeredEvents & io.SocketEvents.IoError)
 	{
-		handleConnectError (m_socket.m_ioError);
+		handleSocketError (m_socket.m_ioError);
 		return;
 	}
 
@@ -501,7 +500,7 @@ TcpConnectionSession.onResolverEvent (io.SocketAddressResolverEventParams const*
 		break;
 
 	case io.SocketAddressResolverEventCode.ResolveError:
-		handleConnectError (params.m_error);
+		handleSocketError (params.m_error);
 		break;
 	}
 }

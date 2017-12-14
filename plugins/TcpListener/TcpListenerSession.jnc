@@ -367,9 +367,9 @@ TcpListenerSession.waitConnectionSocketEvents ()
 {
 	m_connectionSocket.wait (
 		io.SocketEvents.IoError |
+		io.SocketEvents.IncomingData |
 		io.SocketEvents.Disconnected |
-		io.SocketEvents.Reset |
-		io.SocketEvents.IncomingData,
+		io.SocketEvents.Reset,
 		onConnectionSocketEvent ~(++m_connectionSyncId) @ m_pluginHost.m_mainThreadScheduler
 		);
 }

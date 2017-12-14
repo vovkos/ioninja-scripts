@@ -742,9 +742,9 @@ TcpProxySession.waitServerConnectionSocketEvents ()
 {
 	m_serverConnectionSocket.wait (
 		io.SocketEvents.IoError |
+		io.SocketEvents.IncomingData |
 		io.SocketEvents.Disconnected |
-		io.SocketEvents.Reset |
-		io.SocketEvents.IncomingData,
+		io.SocketEvents.Reset,
 		onServerConnectionSocketEvent ~(++m_serverConnectionSyncId) @ m_pluginHost.m_mainThreadScheduler
 		);
 }
@@ -757,9 +757,9 @@ TcpProxySession.waitClientConnectionSocketEvents ()
 		eventMask |= io.SocketEvents.Connected;
 	else
 		eventMask |=
+			io.SocketEvents.IncomingData |
 			io.SocketEvents.Disconnected |
-			io.SocketEvents.Reset |
-			io.SocketEvents.IncomingData;
+			io.SocketEvents.Reset;
 
 	m_clientConnectionSocket.wait (
 		eventMask,
