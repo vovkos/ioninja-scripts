@@ -358,7 +358,7 @@ bool errorcode SshChannelSession.connect (io.SocketAddress const* remoteAddress)
 	if (m_authenticationMethodProp.m_value == gui.AuthenticationMethod.PrivateKey)
 	{
 		privateKey = loadFile (m_privateKeyFileProp.m_value);
-		return m_loginDlg && m_rememberLastPasswordProp.m_value ? m_loginDlg.m_privateKeyPassphrase : null;
+		password = m_loginDlg && m_rememberLastPasswordProp.m_value ? m_loginDlg.m_privateKeyPassphrase : null;
 	}
 	else
 	{
