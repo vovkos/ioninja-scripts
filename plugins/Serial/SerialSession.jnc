@@ -479,10 +479,10 @@ io.SerialOptions SerialSession.getSerialOptions ()
 {
 	io.SerialOptions options;
 
-	if (m_bufferPropertySet.m_keepReadBlockSizeProp)
+	if (m_bufferPropertySet.m_keepReadBlockSizeProp.m_value)
 		options |= io.SerialOptions.KeepReadBlockSize;
 
-	if (m_bufferPropertySet.m_keepWriteBlockSizeProp)
+	if (m_bufferPropertySet.m_keepWriteBlockSizeProp.m_value)
 		options |= io.SerialOptions.KeepWriteBlockSize;
 
 	if (m_readCheckComstatProp.m_value)
