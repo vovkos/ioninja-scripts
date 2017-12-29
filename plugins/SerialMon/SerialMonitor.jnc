@@ -1,0 +1,74 @@
+//..............................................................................
+//
+// Serial Monitor session
+//
+
+import "io_Monitor.jnc"
+
+//..............................................................................
+
+class SerialMonitor: io.Monitor
+{
+protected:
+	io.SerialStatusLines m_statusLines;
+
+public:
+	construct (doc.PluginHost* pluginHost);
+
+	bool errorcode capture (char const* deviceName);
+
+protected:
+	override processNotification (io.DeviceMonitorNotifyHdr const* notifyHdr);
+
+	processNotification_win (io.DeviceMonitorNotifyHdr const* notifyHdr);
+	processNotification_lnx (io.DeviceMonitorNotifyHdr const* notifyHdr);
+
+	processIoctlNotification_win (
+		int ntStatus,
+		uint64_t timestamp,
+		uint_t code,
+		const void* inData,
+		size_t inDataSize,
+		const void* outData,
+		size_t outDataSize
+		);
+
+	processIoctlNotification_lnx (
+		int result,
+		uint64_t timestamp,
+		uint_t code,
+		long arg,
+		const void* argData,
+		size_t argDataSize
+		);
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+SerialMonitor.construct (doc.PluginHost* pluginHost)
+{
+	basetype.construct (pluginHost);
+}
+
+bool errorcode SerialMonitor.capture (char const* deviceName)
+{
+	basetype.capture (deviceName);
+	m_statusLines = (io.SerialStatusLines) -1; // special meaning: unintitalized
+	return true;
+}
+
+SerialMonitor.processNotification (io.DeviceMonitorNotifyHdr const* notifyHdr)
+{
+	switch (sys.g_systemInfo.m_osKind)
+	{
+	case sys.OsKind.Windows:
+		processNotification_win (notifyHdr);
+		break;
+
+	case sys.OsKind.Linux:
+		processNotification_lnx (notifyHdr);
+		break;
+	}
+}
+
+//..............................................................................

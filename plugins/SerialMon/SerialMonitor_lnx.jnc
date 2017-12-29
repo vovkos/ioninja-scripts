@@ -1,0 +1,78 @@
+//..............................................................................
+//
+// Serial Monitor notify processing for Linux
+//
+
+//..............................................................................
+
+SerialMonitor.processNotification_lnx (io.DeviceMonitorNotifyHdr const* notifyHdr)
+{
+	switch (notifyHdr.m_code)
+	{
+	case io.lnx.DeviceMonitorNotifyCode.Open:
+		m_pluginHost.m_log.m_writer.write (
+			notifyHdr.m_timestamp,
+			SerialMonLogRecordCode.DeviceOpened,
+			&notifyHdr.m_processId,
+			sizeof (notifyHdr. m_processId)
+			);
+		break;
+
+	case io.lnx.DeviceMonitorNotifyCode.Close:
+		m_pluginHost.m_log.m_writer.write (notifyHdr.m_timestamp, SerialMonLogRecordCode.DeviceClosed);
+		break;
+
+	case io.lnx.DeviceMonitorNotifyCode.Read:
+		io.lnx.DeviceMonitorReadWriteNotifyParams const* params = (io.lnx.DeviceMonitorReadWriteNotifyParams const*) (notifyHdr + 1);
+
+		if (params.m_dataSize)
+			m_pluginHost.m_log.m_writer.write (
+				notifyHdr.m_timestamp,
+				log.StdRecordCode.Rx,
+				params + 1,
+				params.m_dataSize
+				);
+		break;
+
+	case io.lnx.DeviceMonitorNotifyCode.Write:
+		io.lnx.DeviceMonitorReadWriteNotifyParams const* params = (io.lnx.DeviceMonitorReadWriteNotifyParams const*) (notifyHdr + 1);
+
+		if (params.m_dataSize)
+			m_pluginHost.m_log.m_writer.write (
+				notifyHdr.m_timestamp,
+				log.StdRecordCode.Tx,
+				params + 1,
+				params.m_dataSize
+				);
+		break;
+
+
+	case io.lnx.DeviceMonitorNotifyCode.UnlockedIoctl:
+	case io.lnx.DeviceMonitorNotifyCode.CompatIoctl:
+		io.lnx.DeviceMonitorIoctlNotifyParams const* params = (io.lnx.DeviceMonitorIoctlNotifyParams const*) (notifyHdr + 1);
+
+		processIoctlNotification_lnx (
+			notifyHdr.m_ntStatus,
+			notifyHdr.m_timestamp,
+			params.m_code,
+			params.m_arg,
+			params + 1,
+			params.m_argSize
+			);
+
+		break;
+	}
+}
+
+SerialMonitor.processIoctlNotification_lnx (
+	int result,
+	uint64_t timestamp,
+	uint_t code,
+	long arg,
+	const void* argData,
+	size_t argDataSize
+	)
+{
+}
+
+//..............................................................................

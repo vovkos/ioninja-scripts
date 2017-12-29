@@ -645,6 +645,13 @@ bool errorcode SerialSession.applyProperties ()
 	m_serial.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
 	m_serial.m_options = getSerialOptions ();
 
+	uint_t baudRate = m_baudRateProp.m_value;
+	if (m_serial.m_baudRate != baudRate)
+	{
+		m_serial.m_baudRate = baudRate;
+		writeLog (SerialLogRecordCode.BaudRateChanged, &baudRate, sizeof (baudRate));
+	}
+
 	uint_t dataBitsValue = m_dataBitsProp.m_value;
 	if (m_serial.m_dataBits != dataBitsValue)
 	{
@@ -657,6 +664,13 @@ bool errorcode SerialSession.applyProperties ()
 	{
 		m_serial.m_stopBits = stopBitsValue;
 		writeLog (SerialLogRecordCode.StopBitsChanged, &stopBitsValue, sizeof (stopBitsValue));
+	}
+
+	io.SerialFlowControl flowControl = m_flowControlProp.m_value;
+	if (m_serial.m_flowControl != flowControl)
+	{
+		m_serial.m_flowControl = flowControl;
+		writeLog (SerialLogRecordCode.FlowControlChanged, &flowControl, sizeof (flowControl));
 	}
 
 	io.SerialParity parityValue = (io.SerialParity) m_parityProp.m_value;
@@ -831,8 +845,8 @@ SerialSession.onSerialEvent (
 	io.SerialStatusLines statusLineMask = statusLines ^ m_serialStatusLines;
 	if (statusLineMask)
 	{
-		char const* p = $"$(statusLines; B)$(statusLineMask; B)";
-		writeLog (SerialLogRecordCode.StatusLineChanged, p, dynamic sizeof (p));
+		SerialStatusLineChangedParams params = { statusLines, statusLineMask }
+		writeLog (SerialLogRecordCode.StatusLineChanged, params, sizeof (params));
 		m_serialStatusLines = statusLines;
 	}
 

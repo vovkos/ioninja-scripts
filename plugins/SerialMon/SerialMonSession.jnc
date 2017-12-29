@@ -4,8 +4,9 @@
 //
 
 import "io_base.jncx"
-import "io_mon.jncx"
-import "io_SerialMon.jnc"
+import "io_devmon.jncx"
+import "io_DeviceMonitor.jnc"
+import "std_Buffer.jnc"
 import "doc_Plugin.jnc"
 
 //..............................................................................
@@ -13,6 +14,11 @@ import "doc_Plugin.jnc"
 class SerialMonSession: doc.Session
 {
 protected:
+	enum Defaults
+	{
+		PendingNotifySizeLimit = 1 * 1024 * 1024, // 1MB
+	}
+
 	enum State
 	{
 		Closed,
@@ -43,7 +49,7 @@ protected:
 	// serial port
 
 	State bindable m_state;
-	io.SerialMon m_serialMon;
+	SerialMonitor m_monitor;
 	SerialLogFilter m_logFilter;
 
 	// toolbar, status bar & menu
@@ -56,6 +62,8 @@ protected:
 	// serial mon property grid
 
 	gui.EnumProperty* m_portProp;
+	io.BufferPropertySet m_bufferPropertySet;
+	gui.IntProperty* m_pendingNotifySizeLimitProp;
 
 	// filter property grid
 
@@ -63,12 +71,11 @@ protected:
 	gui.BoolProperty* m_controlLineChangedVisibleProp;
 	gui.BoolProperty* m_statusLineChangedVisibleProp;
 
-
 public:
 	construct (doc.PluginHost* pluginHost);
 
 	bool errorcode capture ();
-	stopCapture ();
+	close ();
 
 	override void load (doc.Storage* storage);
 	override void save (doc.Storage* storage);
@@ -79,7 +86,6 @@ public:
 protected:
 	onRefresh ();
 	onCapture ();
-	onReadyRead (uint_t syncId);
 
 	createUi ();
 	reactor m_uiReactor ();
@@ -90,11 +96,12 @@ protected:
 SerialMonSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
+	m_monitor.construct (pluginHost);
+
 	pluginHost.m_log.attachRepresenter (representSerialMonLog);
 	pluginHost.m_log.attachFilter (m_logFilter);
 
 	m_state = State.Closed;
-	m_serialMon.m_onReadyRead += onReadyRead @ pluginHost.m_mainThreadScheduler;
 
 	createUi ();
 }
@@ -129,27 +136,63 @@ SerialMonSession.createUi ()
 
 	// property grid
 
+	gui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty (
+		"Device",
+		"Serial port monitor target device settings"
+		);
+
 	m_portProp = io.createSerialPortProperty (
 		m_pluginHost.m_propertyGrid,
+		group,,
 		"Port",
-		"Specify serial port to use",
+		"Specify serial port to monitor",
 		portList,
 		portCount
 		);
 
+	group = m_pluginHost.m_propertyGrid.createGroupProperty (
+		"Buffering & compatibility",
+		"Advanced options controlling performance, throughtput and compatibility"
+		);
+
+	m_bufferPropertySet.createProperties (
+		m_pluginHost.m_propertyGrid,
+		group,,
+		io.BufferPropertySet.PropertyId.ReadParallelism |
+		io.BufferPropertySet.PropertyId.ReadBufferSize |
+		io.BufferPropertySet.PropertyId.ReadBlockSize
+		);
+
+	m_pendingNotifySizeLimitProp = m_pluginHost.m_propertyGrid.createIntProperty (
+		group,,
+		"Pending notifaction limit",
+		"Set the maximum size of kernel notification queue (exceeding notification will be dropped)"
+		);
+
+	m_pendingNotifySizeLimitProp.m_minValue = 1;
+	m_pendingNotifySizeLimitProp.m_spinBoxStep = 1024; // 1KB
+
 	// filter
 
+	group = m_pluginHost.m_propertyGrid.createGroupProperty (
+		"Log filter",
+		"Specify which unwanted log messages to filter out"
+		);
+
 	m_settingChangedVisibleProp = m_pluginHost.m_propertyGrid.createBoolProperty (
+		group,,
 		"Show setting changes",
 		"Display setting change log records (or filter them out)"
 		);
 
 	m_controlLineChangedVisibleProp = m_pluginHost.m_propertyGrid.createBoolProperty (
+		group,,
 		"Show control line changes",
 		"Display control line change log records (or filter them out)"
 		);
 
 	m_statusLineChangedVisibleProp = m_pluginHost.m_propertyGrid.createBoolProperty (
+		group,,
 		"Show status line changes",
 		"Display status line change log records (or filter them out)"
 		);
@@ -177,26 +220,28 @@ SerialMonSession.onRefresh ()
 SerialMonSession.onCapture ()
 {
 	if (m_state)
-		stopCapture ();
+		close ();
 	else
 		try capture ();
 }
 
 bool errorcode SerialMonSession.capture ()
 {
-	stopCapture ();
+	close ();
 	startSession ();
 
 	char const* name = m_portCombo.m_currentText;
 
-	m_serialMon.capture (name);
+	m_monitor.applyProperties (m_bufferPropertySet, m_pendingNotifySizeLimitProp.m_value);
+	m_monitor.capture (name);
+
 	writeLog (SerialMonLogRecordCode.CaptureStarted, name, strlen (name));
 
 	m_state = State.Opened;
 	return true;
 
 catch:
-	m_serialMon.close ();
+	m_monitor.close ();
 
 	std.Error const* error = std.getLastError ();
 	writeLog (
@@ -207,14 +252,14 @@ catch:
 	return false;
 }
 
-SerialMonSession.stopCapture ()
+SerialMonSession.close ()
 {
 	if (m_state != State.Opened)
 		return;
 
 	writeLog (SerialMonLogRecordCode.CaptureStopped);
 
-	m_serialMon.close ();
+	m_monitor.close ();
 	m_state = State.Closed;
 }
 
@@ -224,6 +269,10 @@ void SerialMonSession.load (doc.Storage* storage)
 	m_logFilter.m_isSettingChangedVisible = storage.readBool ("isSettingChangedVisible", true);
 	m_logFilter.m_isControlLineChangedVisible = storage.readBool ("isControlLineChangedVisible", true);
 	m_logFilter.m_isStatusLineChangedVisible = storage.readBool ("isStatusLineChangedVisible", true);
+	m_pendingNotifySizeLimitProp.m_value = storage.readInt ("pendingNotifySizeLimit", Defaults.PendingNotifySizeLimit);
+
+	m_bufferPropertySet.load (storage);
+	m_monitor.setReadBufferSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
 }
 
 void SerialMonSession.save (doc.Storage* storage)
@@ -232,6 +281,9 @@ void SerialMonSession.save (doc.Storage* storage)
 	storage.writeBool ("isSettingChangedVisible", m_logFilter.m_isSettingChangedVisible);
 	storage.writeBool ("isControlLineChangedVisible", m_logFilter.m_isControlLineChangedVisible);
 	storage.writeBool ("isStatusLineChangedVisible", m_logFilter.m_isStatusLineChangedVisible);
+	storage.writeInt ("pendingNotifySizeLimit", m_pendingNotifySizeLimitProp.m_value);
+
+	m_bufferPropertySet.save (storage);
 }
 
 void SerialMonSession.updateProperties ()
@@ -248,6 +300,11 @@ bool errorcode SerialMonSession.applyProperties ()
 	m_logFilter.m_isSettingChangedVisible = m_settingChangedVisibleProp.m_value;
 	m_logFilter.m_isControlLineChangedVisible = m_controlLineChangedVisibleProp.m_value;
 	m_logFilter.m_isStatusLineChangedVisible = m_statusLineChangedVisibleProp.m_value;
+
+	if (m_state != State.Opened)
+		return true;
+
+	m_monitor.applyProperties (m_bufferPropertySet, m_pendingNotifySizeLimitProp.m_value);
 	return true;
 }
 
@@ -257,121 +314,9 @@ void SerialMonSession.restoreDefaultProperties ()
 	m_settingChangedVisibleProp.m_value = true;
 	m_controlLineChangedVisibleProp.m_value = true;
 	m_statusLineChangedVisibleProp.m_value = true;
-}
+	m_pendingNotifySizeLimitProp.m_value = Defaults.PendingNotifySizeLimit;
 
-SerialMonSession.onReadyRead (uint_t syncId)
-{
-	if (syncId != m_serialMon.m_syncId)
-		return;
-
-	io.SerialMonEventParams params;
-	try m_serialMon.read (&params);
-
-	switch (params.m_eventCode)
-	{
-	case io.SerialMonEventCode.DeviceOpened:
-		m_pluginHost.m_log.m_writer.write (
-			params.m_timestamp,
-			SerialMonLogRecordCode.DeviceOpened,
-			&params.m_processId,
-			sizeof (params.m_processId)
-			);
-		break;
-
-	case io.SerialMonEventCode.DeviceClosed:
-		m_pluginHost.m_log.m_writer.write (params.m_timestamp, SerialMonLogRecordCode.DeviceClosed);
-		break;
-
-	case io.SerialMonEventCode.RxData:
-		m_pluginHost.m_log.m_writer.write (
-			params.m_timestamp,
-			log.StdRecordCode.Rx,
-			params.m_data,
-			params.m_dataSize
-			);
-		break;
-
-	case io.SerialMonEventCode.TxData:
-		m_pluginHost.m_log.m_writer.write (
-			params.m_timestamp,
-			log.StdRecordCode.Tx,
-			params.m_data,
-			params.m_dataSize
-			);
-		break;
-
-	case io.SerialMonEventCode.BaudRateChanged:
-		m_pluginHost.m_log.m_writer.write (
-			params.m_timestamp,
-			SerialLogRecordCode.BaudRateChanged,
-			&params.m_baudRate,
-			sizeof (params.m_baudRate)
-			);
-		break;
-
-	case io.SerialMonEventCode.FlowControlChanged:
-		m_pluginHost.m_log.m_writer.write (
-			params.m_timestamp,
-			SerialLogRecordCode.FlowControlChanged,
-			&params.m_flowControl,
-			sizeof (params.m_flowControl)
-			);
-		break;
-
-	case io.SerialMonEventCode.DataBitsChanged:
-		m_pluginHost.m_log.m_writer.write (
-			params.m_timestamp,
-			SerialLogRecordCode.DataBitsChanged,
-			&params.m_dataBits,
-			sizeof (params.m_dataBits)
-			);
-		break;
-
-	case io.SerialMonEventCode.StopBitsChanged:
-		m_pluginHost.m_log.m_writer.write (
-			params.m_timestamp,
-			SerialLogRecordCode.StopBitsChanged,
-			&params.m_stopBits,
-			sizeof (params.m_stopBits)
-			);
-		break;
-
-	case io.SerialMonEventCode.ParityChanged:
-		m_pluginHost.m_log.m_writer.write (
-			params.m_timestamp,
-			SerialLogRecordCode.ParityChanged,
-			&params.m_parity,
-			sizeof (params.m_parity)
-			);
-		break;
-
-	case io.SerialMonEventCode.StatusLineChanged:
-		m_pluginHost.m_log.m_writer.write (
-			params.m_timestamp,
-			SerialLogRecordCode.StatusLineChanged,
-			&params.m_statusLines,
-			sizeof (uint_t) * 2
-			);
-		break;
-
-	case io.SerialMonEventCode.DtrChanged:
-		m_pluginHost.m_log.m_writer.write (
-			params.m_timestamp,
-			SerialLogRecordCode.DtrChanged,
-			&params.m_dtr,
-			sizeof (params.m_dtr)
-			);
-		break;
-
-	case io.SerialMonEventCode.RtsChanged:
-		m_pluginHost.m_log.m_writer.write (
-			params.m_timestamp,
-			SerialLogRecordCode.RtsChanged,
-			&params.m_rts,
-			sizeof (params.m_rts)
-			);
-		break;
-	}
+	m_bufferPropertySet.restoreDefaults ();
 }
 
 reactor SerialMonSession.m_uiReactor ()

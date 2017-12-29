@@ -23,5 +23,10 @@ log-representer-func = representSerialMonLog
 
 SerialMonSession.jnc
 SerialMonLog.jnc
+SerialMonitor.jnc
+SerialMonitor_win.jnc
+SerialMonitor_lnx.jnc
 ../Serial/SerialLog.jnc
+../../common/io_Monitor.jnc
 ../../common/io_SerialUi.jnc
+../../common/io_BufferUi.jnc

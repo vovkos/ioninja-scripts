@@ -35,6 +35,14 @@ struct SerialOpenParams
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
+struct SerialStatusLineChangedParams
+{
+	io.SerialStatusLines m_lines;
+	io.SerialStatusLines m_mask;
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
 char const* getTableString (
 	uint_t value,
 	char const* const* table
@@ -183,25 +191,24 @@ bool representSerialLog (
 		break;
 
 	case SerialLogRecordCode.StatusLineChanged:
-		uint_t lines = ((uint_t const*) p) [0];
-		uint_t mask  = ((uint_t const*) p) [1];
+		SerialStatusLineChangedParams const* params = (SerialStatusLineChangedParams const*) p;
 
 		char const* string = "Status line(s) changed:";
-		if (mask & io.SerialStatusLines.Dsr)
+		if (params.m_mask & io.SerialStatusLines.Dsr)
 		{
-			char const* dsrString = getLineString (lines & io.SerialStatusLines.Dsr);
+			char const* dsrString = getLineString (params.m_lines & io.SerialStatusLines.Dsr);
 			string = $"$string DSR: $dsrString";
 		}
 
-		if (mask & io.SerialStatusLines.Cts)
+		if (params.m_mask & io.SerialStatusLines.Cts)
 		{
-			char const* ctsString = getLineString (lines & io.SerialStatusLines.Cts);
+			char const* ctsString = getLineString (params.m_lines & io.SerialStatusLines.Cts);
 			string = $"$string CTS: $ctsString";
 		}
 
-		if (mask & io.SerialStatusLines.Dcd)
+		if (params.m_mask & io.SerialStatusLines.Dcd)
 		{
-			char const* dcdString = getLineString (lines & io.SerialStatusLines.Dcd);
+			char const* dcdString = getLineString (params.m_lines & io.SerialStatusLines.Dcd);
 			string = $"$string DCD: $dcdString";
 		}
 
