@@ -1,0 +1,198 @@
+//..............................................................................
+//
+// IO base monitor
+//
+
+import "io_devmon.jncx"
+import "io_BufferUi.jnc"
+import "io_FileIdMgr.jnc"
+import "std_Buffer.jnc"
+
+namespace io {
+
+//..............................................................................
+
+class Monitor
+{
+protected:
+	doc.PluginHost* m_pluginHost;
+	DeviceMonitor m_monitor;
+	std.Buffer m_notifyBuffer;
+	std.Buffer m_readBuffer;
+	FileIdMgr m_fileIdMgr;
+	uint_t m_syncId;
+
+public:
+	construct (doc.PluginHost* pluginHost)
+	{
+		m_pluginHost = pluginHost;
+	}
+
+	bool errorcode capture (
+		char const* deviceName,
+		char const* fileNameFilter = null
+		);
+
+	close ();
+
+	bool errorcode setReadBufferSize (size_t size)
+	{
+		return m_readBuffer.setSize (size);
+	}
+
+	bool errorcode applyProperties (
+		BufferPropertySet* propSet,
+		size_t pendingNotifySizeLimit
+		);
+
+protected:
+	onMonitorEvent (
+		uint_t syncId,
+		DeviceMonitorEvents triggeredEvents
+		);
+
+	createUi ();
+	waitMonitorEvents ();
+
+	bool addNotificationData (
+		void const* p,
+		size_t size
+		);
+
+	abstract processNotification (DeviceMonitorNotifyHdr const* notifyHdr);
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+bool errorcode Monitor.capture (
+	char const* deviceName,
+	char const* fileNameFilter
+	)
+{
+	m_monitor.open ();
+	m_monitor.connect (deviceName);
+	m_monitor.m_fileNameFilter = fileNameFilter;
+	m_monitor.m_isEnabled = true;
+	m_notifyBuffer.clear ();
+	m_fileIdMgr.reset ();
+	waitMonitorEvents ();
+	return true;
+}
+
+Monitor.close ()
+{
+	m_monitor.close ();
+	m_syncId++;
+}
+
+bool errorcode Monitor.applyProperties (
+	BufferPropertySet* bufferPropSet,
+	size_t pendingNotifySizeLimit
+	)
+{
+	m_monitor.m_readParallelism = bufferPropSet.m_readParallelismProp.m_value;
+	m_monitor.m_readBlockSize = bufferPropSet.m_readBlockSizeProp.m_value;
+	m_monitor.m_readBufferSize = bufferPropSet.m_readBufferSizeProp.m_value;
+	m_monitor.m_pendingNotifySizeLimit = pendingNotifySizeLimit;
+
+	return m_readBuffer.setSize (bufferPropSet.m_readBufferSizeProp.m_value);
+}
+
+Monitor.waitMonitorEvents ()
+{
+	DeviceMonitorEvents eventMask =
+		DeviceMonitorEvents.IoError |
+		DeviceMonitorEvents.ReceiveBufferFull |
+		DeviceMonitorEvents.IncomingData;
+
+	m_monitor.wait (eventMask, onMonitorEvent ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
+}
+
+Monitor.onMonitorEvent (
+	uint_t syncId,
+	DeviceMonitorEvents triggeredEvents
+	)
+{
+	if (syncId != m_syncId)
+		return;
+
+	if (triggeredEvents & DeviceMonitorEvents.IoError)
+	{
+		m_pluginHost.m_log.m_writer.write (log.StdRecordCode.Error, m_monitor.m_ioError, m_monitor.m_ioError.m_size);
+		close ();
+		return;
+	}
+
+	if (triggeredEvents & DeviceMonitorEvents.ReceiveBufferFull)
+		m_pluginHost.m_log.m_writer.write (log.StdRecordCode.RxBufferFullLossless);
+
+	if (triggeredEvents & DeviceMonitorEvents.IncomingData)
+	{
+		size_t size = m_monitor.read (m_readBuffer.m_p, m_readBuffer.m_size);
+		if (size)
+		{
+			bool result = addNotificationData (m_readBuffer.m_p, size);
+			if (!result)
+				return;
+		}
+
+	}
+
+	waitMonitorEvents ();
+}
+
+bool Monitor.addNotificationData (
+	void const* p,
+	size_t size
+	)
+{
+	while (size)
+	{
+		if (m_notifyBuffer.m_size < sizeof (DeviceMonitorNotifyHdr))
+		{
+			size_t leftoverSize = sizeof (DeviceMonitorNotifyHdr) - m_notifyBuffer.m_size;
+			if (size < leftoverSize)
+			{
+				m_notifyBuffer.append (p, size);
+				break;
+			}
+
+			m_notifyBuffer.append (p, leftoverSize);
+			p += leftoverSize;
+			size -= leftoverSize;
+		}
+
+		DeviceMonitorNotifyHdr const* notifyHdr = (DeviceMonitorNotifyHdr const*) m_notifyBuffer.m_p;
+		if (notifyHdr.m_signature != DeviceMonitorNotifyHdrSignature)
+		{
+			std.setError ("invalid signature in notification header");
+			std.Error const* error = std.getLastError ();
+			m_pluginHost.m_log.m_writer.write (log.StdRecordCode.Error, error, error.m_size);
+			close ();
+			return false;
+		}
+
+		size_t notifySize = sizeof (DeviceMonitorNotifyHdr) + notifyHdr.m_paramSize;
+		size_t leftoverSize = notifySize - m_notifyBuffer.m_size;
+
+		if (size < leftoverSize)
+		{
+			m_notifyBuffer.append (p, size);
+			break;
+		}
+
+		m_notifyBuffer.append (p, leftoverSize);
+		p += leftoverSize;
+		size -= leftoverSize;
+
+		notifyHdr = (DeviceMonitorNotifyHdr const*) m_notifyBuffer.m_p;
+		processNotification (notifyHdr);
+		m_notifyBuffer.clear ();
+	}
+
+	return true;
+}
+
+//..............................................................................
+
+} // namespace io
