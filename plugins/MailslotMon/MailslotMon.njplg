@@ -21,3 +21,6 @@ log-representer-func  = representMailslotMonLog
 
 MailslotMonLog.jnc
 MailslotMonSession.jnc
+MailslotMonitor.jnc
+../../common/io_Monitor.jnc
+../../common/io_BufferUi.jnc
