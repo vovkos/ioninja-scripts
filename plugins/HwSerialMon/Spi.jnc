@@ -28,7 +28,11 @@ public:
 		m_name = "SPI";
 	}
 
-	override createProperties ();
+	override createProperties (
+		gui.GroupProperty* group = null,
+		gui.Property* beforeProp = null
+		);
+
 	override loadProperties (doc.Storage* storage);
 	override saveProperties (doc.Storage* storage);
 	override restoreDefaultProperties ();
@@ -46,7 +50,10 @@ public:
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-Spi.createProperties ()
+Spi.createProperties (
+	gui.GroupProperty* group,
+	gui.Property* beforeProp
+	)
 {
 	static gui.EnumPropertyOption modeTable [] =
 	{
@@ -63,6 +70,8 @@ Spi.createProperties ()
 	}
 
 	m_groupProp = m_pluginHost.m_propertyGrid.createGroupProperty (
+		group,
+		beforeProp,
 		"SPI",
 		"SPI (Serial Peripherial Interface Bus)"
 		);

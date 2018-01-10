@@ -19,13 +19,14 @@ log-representer-func  = representHwSerialMonLog
 
 [scripts]
 
-../../common/io_UartSignalDecoder.jnc
-../../common/io_SpiSignalDecoder.jnc
-../../common/io_I2cSignalDecoder.jnc
-../UsbEndpoint/UsbLog.jnc
-Uart.jnc
-I2c.jnc
-Spi.jnc
 HwSerialMonSession.jnc
 HwSerialMonLog.jnc
 SerialIface.jnc
+Uart.jnc
+Spi.jnc
+I2c.jnc
+../../common/io_UartSignalDecoder.jnc
+../../common/io_SpiSignalDecoder.jnc
+../../common/io_I2cSignalDecoder.jnc
+../../common/io_BufferUi.jnc
+../UsbEndpoint/UsbLog.jnc

@@ -94,9 +94,10 @@ protected:
 	io.UsbEndpoint* m_endpoint01;
 	io.UsbEndpoint* m_endpoint02;
 	io.UsbEndpoint* m_endpoint82;
-
-	uint_t m_epctlSeqId;
+	std.Buffer m_readBuffer;
 	uint64_t m_captureBaseTime;
+	uint_t m_epctlSeqId;
+	uint_t m_endpoint82SyncId;
 
 	// toolbar, status bar & menu
 
@@ -110,6 +111,7 @@ protected:
 	gui.EnumProperty* m_deviceProp;
 	gui.EnumProperty* m_serialIfaceProp;
 	gui.BoolProperty* m_showRawDataProp;
+	io.BufferPropertySet m_bufferPropertySet;
 
 	// current serial iface
 
@@ -134,9 +136,18 @@ public:
 	override void restoreDefaultProperties ();
 
 protected:
+	onOpenDevice ();
+	onCapture ();
+
+	onEndpoint82Event (
+		uint_t syncId,
+		io.UsbEndpointEvents triggeredEvents
+		);
+
+	createUi ();
 	enumerateDevices ();
 
-	size_t errorcode writeEp02 (
+	size_t errorcode writeEndpoint02 (
 		void const* p,
 		size_t size
 		);
@@ -144,15 +155,11 @@ protected:
 	bool errorcode epctl (
 		uint8_t endpointId,
 		EpctlCode code,
-		size_t size,
-		uint_t timeout = 1000
+		size_t size
 		);
 
-	onOpenDevice ();
-	onCapture ();
-	onEndpoint82Event (io.UsbEndpointEventParams const* params);
+	waitEndpoint82Events ();
 
-	createGui ();
 	reactor m_uiReactor ();
 }
 
@@ -170,10 +177,10 @@ HwSerialMonSession.construct (doc.PluginHost* pluginHost)
 	m_state = State.Closed;
 	m_epctlSeqId = sys.getTimestamp () & 0xff; // set somewhat random seq id
 
-	createGui ();
+	createUi ();
 }
 
-HwSerialMonSession.createGui ()
+HwSerialMonSession.createUi ()
 {
 	// toolbar
 
@@ -195,13 +202,25 @@ HwSerialMonSession.createGui ()
 
 	// property grid
 
+	gui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty (
+		"Connection",
+		"Logic analyzer connection settings"
+		);
+
 	m_deviceProp = m_pluginHost.m_propertyGrid.createEnumProperty (
+		group,,
 		"Sniffer Device",
 		"Target USB device",
 		null, 0
 		);
 
+	group = m_pluginHost.m_propertyGrid.createGroupProperty (
+		"Decoding",
+		"Serial interface decoding settings"
+		);
+
 	m_showRawDataProp = m_pluginHost.m_propertyGrid.createBoolProperty (
+		group,,
 		"Show Raw Data",
 		"Show raw data packets from HW sniffer"
 		);
@@ -214,15 +233,28 @@ HwSerialMonSession.createGui ()
 	}
 
 	m_serialIfaceProp  = m_pluginHost.m_propertyGrid.createEnumProperty (
+		group,,
 		"Serial Interface",
 		"Serial interface type",
 		serialIfaceTable,
 		countof (serialIfaceTable)
 		);
 
-	m_uart.createProperties ();
-	m_spi.createProperties ();
-	m_i2c.createProperties ();
+	m_uart.createProperties (group);
+	m_spi.createProperties (group);
+	m_i2c.createProperties (group);
+
+	group = m_pluginHost.m_propertyGrid.createGroupProperty (
+		"Buffering",
+		"Advanced buffering options affecting throughtput and compatibility"
+		);
+
+	io.BufferPropertySet.PropertyId ids =
+		io.BufferPropertySet.PropertyId.ReadParallelism |
+		io.BufferPropertySet.PropertyId.ReadBlockSize |
+		io.BufferPropertySet.PropertyId.ReadBufferSize;
+
+	m_bufferPropertySet.createProperties (m_pluginHost.m_propertyGrid, group,, ids);
 
 	// status bar
 
@@ -288,8 +320,7 @@ HwSerialMonSession.enumerateDevices ()
 bool errorcode HwSerialMonSession.epctl (
 	uint8_t endpointId,
 	HwSerialMonSession.EpctlCode code,
-	size_t size,
-	uint_t timeout
+	size_t size
 	)
 {
 	EpctlParams params;
@@ -298,11 +329,11 @@ bool errorcode HwSerialMonSession.epctl (
 	params.m_command = code;
 	params.m_size = size;
 
-	m_endpoint01.write (&params, sizeof (params), timeout);
+	m_endpoint01.write (&params, sizeof (params));
 	return true;
 
 catch:
-	writeLogLastError (UsbRecordCode.IoError);
+	writeLogLastError (log.StdRecordCode.Error);
 	return false;
 }
 
@@ -324,8 +355,6 @@ bool errorcode HwSerialMonSession.openDevice ()
 	m_endpoint01 = m_iface0.openEndpoint (0x01);
 	m_endpoint02 = m_iface1.openEndpoint (0x02);
 	m_endpoint82 = m_iface1.openEndpoint (0x82);
-	m_endpoint82.m_onEndpointEvent += onEndpoint82Event @ m_pluginHost.m_mainThreadScheduler;
-	m_endpoint82.m_isEndpointEventEnabled = true;
 
 	epctl (0x02, EpctlCode.SetWriteBufferSize, WriteBufferSize);
 	epctl (0x82, EpctlCode.SetReadBufferSize, ReadBufferSize);
@@ -394,7 +423,7 @@ HwSerialMonSession.closeDevice ()
 bool errorcode HwSerialMonSession.capture ()
 {
 	static char packet [] = 0x"55 55 55 55";
-	writeEp02 (packet, sizeof (packet));
+	writeEndpoint02 (packet, sizeof (packet));
 	m_captureBaseTime = sys.getTimestamp ();
 
 	m_capturingSerialIface = m_serialIfaceProp.m_value;
@@ -402,20 +431,32 @@ bool errorcode HwSerialMonSession.capture ()
 
 	writeLogString (HwSerialMonRecordCode.CaptureStarted, m_capturingSerialIface.m_name);
 	m_state = State.Capturing;
+	waitEndpoint82Events ();
 	return true;
 }
 
 bool errorcode HwSerialMonSession.stopCapture ()
 {
 	static char packet [] = 0x"aa aa aa aa";
-	writeEp02 (packet, sizeof (packet));
+	writeEndpoint02 (packet, sizeof (packet));
 
 	m_capturingSerialIface.stop ();
 	m_capturingSerialIface = null;
 
 	writeLog (HwSerialMonRecordCode.CaptureStopped);
 	m_state = State.Opened;
+	m_endpoint82SyncId++;
 	return true;
+}
+
+HwSerialMonSession.waitEndpoint82Events  ()
+{
+	io.UsbEndpointEvents eventMask =
+		io.UsbEndpointEvents.IoError |
+		io.UsbEndpointEvents.ReceiveBufferFull |
+		io.UsbEndpointEvents.IncomingData;
+
+	m_endpoint82.wait (eventMask, onEndpoint82Event ~(++m_endpoint82SyncId) @ m_pluginHost.m_mainThreadScheduler);
 }
 
 HwSerialMonSession.load (doc.Storage* storage)
@@ -425,10 +466,13 @@ HwSerialMonSession.load (doc.Storage* storage)
 	m_serialIfaceProp.m_currentIndex  = storage.readInt ("serialInterface");
 	m_uart.loadProperties (storage);
 	m_spi.loadProperties (storage);
+	m_bufferPropertySet.load (storage);
+	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
 }
 
 HwSerialMonSession.save (doc.Storage* storage)
 {
+	m_bufferPropertySet.save (storage);
 	storage.writeInt ("deviceIdx", m_deviceCombo.m_currentIndex);
 	storage.writeBool ("showRawData", m_showRawDataProp.m_value);
 	storage.writeInt ("serialInterface", m_serialIfaceProp.m_currentIndex);
@@ -444,10 +488,16 @@ HwSerialMonSession.updateProperties ()
 bool errorcode HwSerialMonSession.applyProperties ()
 {
 	m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
+	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
 
-	if (m_state == State.Capturing)
-		m_capturingSerialIface.start (); // restart capturing with the new parameters
+	if (m_state != State.Capturing)
+		return true;
 
+	m_endpoint82.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
+	m_endpoint82.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
+	m_endpoint82.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
+
+	m_capturingSerialIface.start (); // restart capturing with the new parameters
 	return true;
 }
 
@@ -460,7 +510,7 @@ HwSerialMonSession.restoreDefaultProperties ()
 	m_spi.restoreDefaultProperties ();
 }
 
-size_t errorcode HwSerialMonSession.writeEp02 (
+size_t errorcode HwSerialMonSession.writeEndpoint02 (
 	void const* p,
 	size_t size
 	)
@@ -470,25 +520,33 @@ size_t errorcode HwSerialMonSession.writeEp02 (
 
 	// epctl (0x02, EpctlCode.SetWriteBufferSize, WriteBufferSize);
 
-	size_t result = try m_endpoint02.write (p, size, 1000); // currently -- 1 sec timeout
+	size_t result = try m_endpoint02.write (p, size);
 	if (result == -1)
-		writeLogLastError (UsbRecordCode.IoError);
+		writeLogLastError (log.StdRecordCode.Error);
 
 	return result;
 }
 
-HwSerialMonSession.onEndpoint82Event (io.UsbEndpointEventParams const* params)
+HwSerialMonSession.onEndpoint82Event (
+	uint_t syncId,
+	io.UsbEndpointEvents triggeredEvents
+	)
 {
-	if (params.m_syncId != m_endpoint82.m_syncId)
+	if (syncId != m_endpoint82SyncId)
 		return;
 
-	switch (params.m_eventCode)
+	if (triggeredEvents & io.UsbEndpointEvents.IoError)
 	{
-	case io.UsbEndpointEventCode.ReadyRead:
-		static char buffer [ReadBufferSize]; // static is OK -- we read in main thread
-		size_t size = m_endpoint82.read (buffer, sizeof (buffer));
+		writeLogError (log.StdRecordCode.Error, m_endpoint82.m_ioError);
+		stopCapture ();
+		return;
+	}
 
-		SignalEdge const* p = (SignalEdge const*) buffer;
+	if (triggeredEvents & io.UsbEndpointEvents.IncomingData)
+	{
+		size_t size = m_endpoint82.read (m_readBuffer.m_p, m_readBuffer.m_size);
+
+		SignalEdge const* p = (SignalEdge const*) m_readBuffer.m_p;
 		SignalEdge const* end = p + size / sizeof (SignalEdge);
 		for (; p < end; p++)
 		{
@@ -501,15 +559,9 @@ HwSerialMonSession.onEndpoint82Event (io.UsbEndpointEventParams const* params)
 		}
 
 		epctl (0x82, EpctlCode.SetReadBufferSize, ReadBufferSize);
-		break;
-
-	case io.UsbEndpointEventCode.IoError:
-		writeLogError (UsbRecordCode.IoError, params.m_error);
-		break;
 	}
 
-catch:
-	writeLogLastError (UsbRecordCode.IoError);
+	waitEndpoint82Events ();
 }
 
 reactor HwSerialMonSession.m_uiReactor ()

@@ -22,7 +22,10 @@ public:
 		m_pluginHost = pluginHost;
 	}
 
-	virtual createProperties ()
+	virtual createProperties (
+		gui.GroupProperty* group = null,
+		gui.Property* beforeProp = null
+		)
 	{
 	}
 

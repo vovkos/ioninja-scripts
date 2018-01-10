@@ -37,7 +37,11 @@ public:
 		m_name = "UART";
 	}
 
-	override createProperties ();
+	override createProperties (
+		gui.GroupProperty* group = null,
+		gui.Property* beforeProp = null
+		);
+
 	override loadProperties (doc.Storage* storage);
 	override saveProperties (doc.Storage* storage);
 	override restoreDefaultProperties ();
@@ -67,7 +71,10 @@ protected:
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-Uart.createProperties ()
+Uart.createProperties (
+	gui.GroupProperty* group,
+	gui.Property* beforeProp
+	)
 {
 	static gui.EnumPropertyOption baudRateTable [] =
 	{
@@ -115,6 +122,8 @@ Uart.createProperties ()
 	}
 
 	m_groupProp = m_pluginHost.m_propertyGrid.createGroupProperty (
+		group,
+		beforeProp,
 		"UART",
 		"UART (Universal Asynchronous Receiver/Transmitter)"
 		);
