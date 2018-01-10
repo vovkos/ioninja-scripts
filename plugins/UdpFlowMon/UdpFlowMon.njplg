@@ -23,3 +23,4 @@ UdpFlowMonSession.jnc
 UdpFlowMonLog.jnc
 ../../common/io_IpDefragmenter.jnc
 ../../common/io_PcapDeviceUi.jnc
+../../common/io_BufferUi.jnc
