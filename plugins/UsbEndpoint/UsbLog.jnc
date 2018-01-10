@@ -20,7 +20,6 @@ enum UsbRecordCode
 	ReadingStarted,
 	ReadingStopped,
 	EndpointOpenError,
-	IoError,
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -148,13 +147,6 @@ bool representUsbLog (
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
 		target.addHyperText($"Cannot open endpoint: $(error.m_description)");
-		break;
-
-	case UsbRecordCode.IoError:
-		std.Error const* error = (std.Error const*) p;
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		target.addHyperText($"IO error: $(error.m_description)");
 		break;
 
 	default:
