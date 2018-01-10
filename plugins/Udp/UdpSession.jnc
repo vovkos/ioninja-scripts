@@ -119,7 +119,13 @@ protected:
 	onOpen  ();
 
 	onRemoteAddressChanged ();
-	onResolverEvent (io.SocketAddressResolverEventParams const* params);
+
+	onResolveCompleted (
+		uint_t syncId,
+		io.SocketAddress const* addressTable,
+		size_t addressCount,
+		std.Error const* error
+		);
 
 	onSocketEvent (
 		uint_t syncId,
@@ -148,7 +154,6 @@ UdpSession.construct (doc.PluginHost* pluginHost)
 	pluginHost.m_log.attachFilter (m_logFilter);
 
 	m_state = State.Closed;
-	m_resolver.m_onResolverEvent += onResolverEvent @ pluginHost.m_mainThreadScheduler;
 	m_resolveState = ResolveState.Unresolved;
 	m_remoteAddressChanged = false;
 
@@ -398,8 +403,7 @@ size_t errorcode UdpSession.transmit (
 			if (adapterAddress)
 				addressFamily = adapterAddress.m_family;
 
-			m_resolver.m_syncId = ++m_resolverSyncId;
-			m_resolver.resolve (addressString, addressFamily);
+			m_resolver.resolve (addressString, addressFamily, onResolveCompleted ~(++m_resolverSyncId) @ m_pluginHost.m_mainThreadScheduler);
 			m_resolveState = ResolveState.Resolving;
 		}
 	}
@@ -483,38 +487,36 @@ UdpSession.onSocketEvent (
 	waitSocketEvents ();
 }
 
-UdpSession.onResolverEvent (io.SocketAddressResolverEventParams const* params)
+UdpSession.onResolveCompleted (
+	uint_t syncId,
+	io.SocketAddress const* addressTable,
+	size_t addressCount,
+	std.Error const* error
+	)
 {
-	if (params.m_syncId != m_resolverSyncId)
+	if (syncId != m_resolverSyncId)
 		return;
 
-	switch (params.m_eventCode)
+	if (error)
 	{
-	case io.SocketAddressResolverEventCode.ResolveCompleted:
-		writeLog (
-			UdpRecordCode.ResolveCompleted,
-			params.m_addressTable,
-			sizeof (io.SocketAddress)
-			);
-
-		m_remoteAddress = params.m_addressTable [0];
-
-		m_resolveState = m_resolveState == ResolveState.ChangeWhileResolving ?
-			ResolveState.Unresolved :
-			ResolveState.Resolved;
-
-		writeDatagram (m_pendingDatagram.m_p, m_pendingDatagram.m_size, &m_remoteAddress);
-		break;
-
-	case io.SocketAddressResolverEventCode.ResolveError:
-		writeLog (UdpRecordCode.ResolveError, params.m_error, params.m_error.m_size);
+		writeLog (UdpRecordCode.ResolveError, error, error.m_size);
 		m_resolveState = ResolveState.Unresolved;
-		break;
-
-	default:
-		m_resolveState = ResolveState.Unresolved;
-		break;
+		return;
 	}
+
+	writeLog (
+		UdpRecordCode.ResolveCompleted,
+		addressTable,
+		sizeof (io.SocketAddress)
+		);
+
+	m_remoteAddress = addressTable [0];
+
+	m_resolveState = m_resolveState == ResolveState.ChangeWhileResolving ?
+		ResolveState.Unresolved :
+		ResolveState.Resolved;
+
+	writeDatagram (m_pendingDatagram.m_p, m_pendingDatagram.m_size, &m_remoteAddress);
 
 catch:
 	std.Error const* error = std.getLastError ();
