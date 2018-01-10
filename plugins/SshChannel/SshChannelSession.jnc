@@ -129,7 +129,14 @@ public:
 
 protected:
 	onConnect ();
-	onResolverEvent (io.SocketAddressResolverEventParams const* params);
+
+	onResolveCompleted (
+		uint_t syncId,
+		io.SocketAddress const* addressTable,
+		size_t addressCount,
+		std.Error const* error
+		);
+
 	onLoginDlgCompleted (gui.StdDlgButton button);
 	onConsoleSizeChanged ();
 
@@ -155,7 +162,6 @@ SshChannelSession.construct (doc.PluginHost* pluginHost)
 	pluginHost.m_log.attachRepresenter (representSshChannelLog);
 
 	m_state = State.Closed;
-	m_resolver.m_onResolverEvent += onResolverEvent @ pluginHost.m_mainThreadScheduler;
 	m_pluginHost.m_terminal.m_onConsoleSizeChanged += onConsoleSizeChanged;
 	m_readBuffer.setSize (io.BufferPropertySet.Defaults.ReadBufferSize);
 
@@ -307,8 +313,7 @@ bool errorcode SshChannelSession.connect ()
 			addressFamily = adapterAddress.m_family;
 	}
 
-	m_resolver.m_syncId = ++m_syncId;
-	m_resolver.resolve (addressString, addressFamily);
+	m_resolver.resolve (addressString, addressFamily, onResolveCompleted ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
 	return true;
 
 catch:
@@ -734,33 +739,34 @@ SshChannelSession.onSshEvent (
 	waitSshEvents ();
 }
 
-SshChannelSession.onResolverEvent (io.SocketAddressResolverEventParams const* params)
+SshChannelSession.onResolveCompleted (
+	uint_t syncId,
+	io.SocketAddress const* addressTable,
+	size_t addressCount,
+	std.Error const* error
+	)
 {
-	if (params.m_syncId != m_syncId)
+	if (syncId != m_syncId)
 		return;
 
-	switch (params.m_eventCode)
+	if (error)
 	{
-	case io.SocketAddressResolverEventCode.ResolveCompleted:
-		writeLog (
-			SshChannelLogRecordCode.ResolveCompleted,
-			params.m_addressTable,
-			sizeof (io.SocketAddress)
-			);
-
-		m_state = State.Closed;
-
-		io.SocketAddress address = params.m_addressTable [0];
-		if (!address.m_ip4.m_port) // IPv4 & IPv6 share the same port location
-			address.m_ip4.m_port = m_socketPropertySet.m_remotePortProp.m_value;
-
-		connect (&address);
-		break;
-
-	case io.SocketAddressResolverEventCode.ResolveError:
-		handleConnectError (params.m_error);
-		break;
+		handleConnectError (error);
+		return;
 	}
+	writeLog (
+		SshChannelLogRecordCode.ResolveCompleted,
+		addressTable,
+		sizeof (io.SocketAddress)
+		);
+
+	m_state = State.Closed;
+
+	io.SocketAddress address = addressTable [0];
+	if (!address.m_ip4.m_port) // IPv4 & IPv6 share the same port location
+		address.m_ip4.m_port = m_socketPropertySet.m_remotePortProp.m_value;
+
+	connect (&address);
 }
 
 reactor SshChannelSession.m_uiReactor ()
