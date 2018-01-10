@@ -5,6 +5,7 @@
 
 import "io_base.jncx"
 import "io_Mailslot.jnc"
+import "std_Buffer.jnc"
 import "doc_Plugin.jnc"
 import "gui_History.jnc"
 
@@ -46,6 +47,8 @@ protected:
 
 	State bindable m_state;
 	io.Mailslot m_mailslot;
+	std.Buffer m_readBuffer;
+	uint_t m_syncId;
 
 	// toolbar, status bar & menu
 
@@ -57,6 +60,7 @@ protected:
 	// property grid
 
 	gui.StringProperty* m_nameProp;
+	io.BufferPropertySet m_bufferPropertySet;
 
 public:
 	construct (doc.PluginHost* pluginHost);
@@ -74,7 +78,14 @@ protected:
 	createUi ();
 
 	onOpen ();
-	onMailslotEvent (io.MailslotEventParams const* params);
+
+	onMailslotEvent (
+		uint_t syncId,
+		io.MailslotEvents triggeredEvents
+		);
+
+	io.MailslotOptions getMailslotOptions ();
+	waitMailslotEvents ();
 
 	reactor m_uiReactor ();
 }
@@ -88,7 +99,6 @@ MailslotSession.construct (doc.PluginHost* pluginHost)
 	pluginHost.m_log.attachRepresenter (representFileLog);
 
 	m_state = State.Closed;
-	m_mailslot.m_onMailslotEvent += onMailslotEvent @ pluginHost.m_mainThreadScheduler;
 
 	createUi ();
 }
@@ -114,10 +124,29 @@ MailslotSession.createUi ()
 
 	// property grid
 
+	gui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty (
+		"Connection",
+		"File stream-specific connection settings"
+		);
+
 	m_nameProp = m_pluginHost.m_propertyGrid.createStringProperty (
+		group,,
 		"Mailslot name",
 		"Specify the mailslot to open"
 		);
+
+	group = m_pluginHost.m_propertyGrid.createGroupProperty (
+		"Buffering",
+		"Advanced buffering options affecting throughtput and compatibility"
+		);
+
+	io.BufferPropertySet.PropertyId ids =
+		io.BufferPropertySet.PropertyId.ReadParallelism |
+		io.BufferPropertySet.PropertyId.ReadBlockSize |
+		io.BufferPropertySet.PropertyId.ReadBufferSize |
+		io.BufferPropertySet.PropertyId.KeepReadBlockSize;
+
+	m_bufferPropertySet.createProperties (m_pluginHost.m_propertyGrid, group,, ids);
 
 	m_uiReactor.start ();
 }
@@ -139,10 +168,16 @@ bool errorcode MailslotSession.open ()
 
 	char const* fileName = m_nameCombo.m_editText;
 
+	m_mailslot.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
+	m_mailslot.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
+	m_mailslot.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
+	m_mailslot.m_options = getMailslotOptions ();
 	m_mailslot.open (fileName);
 
 	writeLogString (MailslotLogRecordCode.Opened, fileName);
 	m_state = State.Opened;
+
+	waitMailslotEvents ();
 	return true;
 
 catch:
@@ -167,14 +202,39 @@ MailslotSession.close ()
 	m_state = State.Closed;
 }
 
+io.MailslotOptions MailslotSession.getMailslotOptions ()
+{
+	io.MailslotOptions options;
+
+	if (m_bufferPropertySet.m_keepReadBlockSizeProp.m_value)
+		options |= io.MailslotOptions.KeepReadBlockSize;
+
+	return options;
+}
+
+MailslotSession.waitMailslotEvents ()
+{
+	io.MailslotEvents eventMask =
+		io.MailslotEvents.IoError |
+		io.MailslotEvents.ReceiveBufferFull |
+		io.MailslotEvents.IncomingData;
+
+	m_mailslot.wait (eventMask, onMailslotEvent ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
+}
+
 void MailslotSession.load (doc.Storage* storage)
 {
 	m_nameCombo.loadHistory (storage, "nameHistory");
 	m_nameCombo.m_editText = storage.readString ("name");
+
+	m_bufferPropertySet.load (storage);
+	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
 }
 
 void MailslotSession.save (doc.Storage* storage)
 {
+	m_bufferPropertySet.save (storage);
+
 	m_nameCombo.saveHistory (storage, "nameHistory");
 	storage.writeString ("name", m_nameCombo.m_editText);
 }
@@ -187,32 +247,43 @@ void MailslotSession.updateProperties ()
 bool errorcode MailslotSession.applyProperties ()
 {
 	m_nameCombo.m_editText = m_nameProp.m_value;
+	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
+
+	if (!m_mailslot.m_isOpen)
+		return true;
+
+	m_mailslot.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
+	m_mailslot.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
+	m_mailslot.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
+	m_mailslot.m_options = getMailslotOptions ();
 	return true;
 }
 
 void MailslotSession.restoreDefaultProperties ()
 {
-	m_nameProp.m_value = "mymailslot0";
+	m_bufferPropertySet.restoreDefaults ();
 }
 
-MailslotSession.onMailslotEvent (io.MailslotEventParams const* params)
+MailslotSession.onMailslotEvent (
+	uint_t syncId,
+	io.MailslotEvents triggeredEvents
+	)
 {
-	if (params.m_syncId != m_mailslot.m_syncId)
+	if (syncId != m_mailslot.m_syncId)
 		return;
 
-	switch (params.m_eventCode)
+	if (triggeredEvents & io.MailslotEvents.IoError)
 	{
-	case io.MailslotEventCode.IncomingData:
-		static char buffer [512];
-		size_t result = try m_mailslot.read (buffer, sizeof (buffer));
-		if (result != -1)
-			writeLog (log.StdRecordCode.Rx, buffer, result);
-		break;
-
-	case io.MailslotEventCode.IoError:
-		writeLog (log.StdRecordCode.Error, params.m_error, params.m_error.m_size);
+		writeLog (log.StdRecordCode.Error, m_mailslot.m_ioError, m_mailslot.m_ioError.m_size);
 		close ();
-		break;
+		return;
+	}
+
+	if (triggeredEvents & io.MailslotEvents.IncomingData)
+	{
+		size_t result = m_mailslot.read (m_readBuffer.m_p, m_readBuffer.m_size);
+		if (result)
+			writeLog (log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 	}
 }
 
