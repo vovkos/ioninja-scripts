@@ -98,7 +98,13 @@ protected:
 	handleSocketError (std.Error const* error);
 
 	onConnect ();
-	onResolverEvent (io.SocketAddressResolverEventParams const* params);
+
+	onResolveCompleted (
+		uint_t syncId,
+		io.SocketAddress const* addressTable,
+		size_t addressCount,
+		std.Error const* error
+		);
 
 	onSocketEvent (
 		uint_t syncId,
@@ -120,8 +126,6 @@ TcpConnectionSession.construct (doc.PluginHost* pluginHost)
 	pluginHost.m_log.attachRepresenter (representTcpConnectionLog);
 
 	m_state = State.Closed;
-	m_resolver.m_onResolverEvent += onResolverEvent @ pluginHost.m_mainThreadScheduler;
-
 	createUi ();
 }
 
@@ -208,8 +212,7 @@ bool errorcode TcpConnectionSession.connect ()
 			addressFamily = adapterAddress.m_family;
 	}
 
-	m_resolver.m_syncId = m_syncId;
-	m_resolver.resolve (addressString, addressFamily);
+	m_resolver.resolve (addressString, addressFamily, onResolveCompleted ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
 	return true;
 
 catch:
@@ -463,6 +466,9 @@ TcpConnectionSession.onSocketEvent (
 		return;
 	}
 
+	if (triggeredEvents & io.SocketEvents.ReceiveBufferFull)
+		writeLog (log.StdRecordCode.RxBufferFullLossless);
+
 	if (triggeredEvents & io.SocketEvents.IncomingData)
 	{
 		size_t result = m_socket.read (m_readBuffer.m_p, m_readBuffer.m_size);
@@ -476,33 +482,35 @@ TcpConnectionSession.onSocketEvent (
 	waitSocketEvents ();
 }
 
-TcpConnectionSession.onResolverEvent (io.SocketAddressResolverEventParams const* params)
+TcpConnectionSession.onResolveCompleted (
+	uint_t syncId,
+	io.SocketAddress const* addressTable,
+	size_t addressCount,
+	std.Error const* error
+	)
 {
-	if (params.m_syncId != m_syncId)
+	if (syncId != m_syncId)
 		return;
 
-	switch (params.m_eventCode)
+	if (error)
 	{
-	case io.SocketAddressResolverEventCode.ResolveCompleted:
-		writeLog (
-			TcpConnectionLogRecordCode.ResolveCompleted,
-			params.m_addressTable,
-			sizeof (io.SocketAddress)
-			);
-
-		m_state = State.Closed;
-
-		io.SocketAddress address = params.m_addressTable [0];
-		if (!address.m_ip4.m_port) // IPv4 & IPv6 share the same port location
-			address.m_ip4.m_port = m_socketPropertySet.m_remotePortProp.m_value;
-
-		connect (address);
-		break;
-
-	case io.SocketAddressResolverEventCode.ResolveError:
-		handleSocketError (params.m_error);
-		break;
+		handleSocketError (error);
+		return;
 	}
+
+	writeLog (
+		TcpConnectionLogRecordCode.ResolveCompleted,
+		addressTable,
+		sizeof (io.SocketAddress)
+		);
+
+	m_state = State.Closed;
+
+	io.SocketAddress address = addressTable [0];
+	if (!address.m_ip4.m_port) // IPv4 & IPv6 share the same port location
+		address.m_ip4.m_port = m_socketPropertySet.m_remotePortProp.m_value;
+
+	connect (address);
 }
 
 reactor TcpConnectionSession.m_uiReactor ()
