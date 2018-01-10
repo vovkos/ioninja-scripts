@@ -5,6 +5,7 @@
 
 import "io_base.jncx"
 import "io_FileStream.jnc"
+import "std_Buffer.jnc"
 import "doc_Plugin.jnc"
 import "gui_History.jnc"
 
@@ -54,6 +55,8 @@ protected:
 
 	State bindable m_state;
 	io.FileStream m_file;
+	std.Buffer m_readBuffer;
+	uint_t m_syncId;
 
 	// toolbar, status bar & menu
 
@@ -66,6 +69,7 @@ protected:
 
 	gui.StringProperty* m_fileNameProp;
 	gui.EnumProperty* m_accessProp;
+	io.BufferPropertySet m_bufferPropertySet;
 
 public:
 	construct (doc.PluginHost* pluginHost);
@@ -86,10 +90,16 @@ public:
 		);
 
 protected:
-	createUi ();
-
 	onOpen ();
-	onFileStreamEvent (io.FileStreamEventParams const* params);
+
+	onFileStreamEvent (
+		uint_t syncId,
+		io.FileStreamEvents triggeredEvents
+		);
+
+	io.FileStreamOptions getFileStreamOptions ();
+	waitFileStreamEvents ();
+	createUi ();
 
 	reactor m_uiReactor ();
 }
@@ -103,7 +113,6 @@ FileSession.construct (doc.PluginHost* pluginHost)
 	pluginHost.m_log.attachRepresenter (representFileLog);
 
 	m_state = State.Closed;
-	m_file.m_onFileStreamEvent += onFileStreamEvent @ pluginHost.m_mainThreadScheduler;
 
 	createUi ();
 }
@@ -134,7 +143,13 @@ FileSession.createUi ()
 
 	// property grid
 
+	gui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty (
+		"Connection",
+		"File stream-specific connection settings"
+		);
+
 	m_fileNameProp = m_pluginHost.m_propertyGrid.createStringProperty (
+		group,,
 		"File name",
 		"Specify the file name to open"
 		);
@@ -147,11 +162,19 @@ FileSession.createUi ()
 	}
 
 	m_accessProp = m_pluginHost.m_propertyGrid.createEnumProperty (
+		group,,
 		"Access mode",
 		"Access mode for the file",
 		accessModeTable,
 		countof (accessModeTable)
 		);
+
+	group = m_pluginHost.m_propertyGrid.createGroupProperty (
+		"Buffering",
+		"Advanced buffering options affecting throughtput and compatibility"
+		);
+
+	m_bufferPropertySet.createProperties (m_pluginHost.m_propertyGrid, group);
 
 	m_uiReactor.start ();
 }
@@ -174,15 +197,23 @@ bool errorcode FileSession.open ()
 	char const* fileName = m_fileNameCombo.m_editText;
 
 	Access access = (Access) m_accessProp.m_value;
+
 	io.FileOpenFlags openFlags =
 		access == Access.ReadOnly ? io.FileOpenFlags.ReadOnly :
 		access == Access.WriteOnly ? io.FileOpenFlags.WriteOnly : 0;
 
+	m_file.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
+	m_file.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
+	m_file.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
+	m_file.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
+	m_file.m_options = getFileStreamOptions ();
 	m_file.open (fileName, openFlags);
 
 	char const* p = $"$(m_file.m_kind; B)$fileName";
 	writeLog (FileLogRecordCode.Opened, p, dynamic sizeof (p));
 	m_state = State.Opened;
+
+	waitFileStreamEvents ();
 	return true;
 
 catch:
@@ -205,6 +236,7 @@ FileSession.close ()
 	writeLog (FileLogRecordCode.Closed);
 	m_file.close ();
 	m_state = State.Closed;
+	m_syncId++;
 }
 
 FileSession.clear ()
@@ -215,15 +247,47 @@ FileSession.clear ()
 	try m_file.clear ();
 }
 
+io.FileStreamOptions FileSession.getFileStreamOptions ()
+{
+	io.FileStreamOptions options;
+
+	if (m_bufferPropertySet.m_keepReadBlockSizeProp.m_value)
+		options |= io.FileStreamOptions.KeepReadBlockSize;
+
+	if (m_bufferPropertySet.m_keepWriteBlockSizeProp.m_value)
+		options |= io.FileStreamOptions.KeepWriteBlockSize;
+
+	return options;
+}
+
+FileSession.waitFileStreamEvents ()
+{
+	io.FileStreamEvents eventMask =
+		io.FileStreamEvents.IoError |
+		io.FileStreamEvents.ReceiveBufferFull |
+		io.FileStreamEvents.IncomingData |
+		io.FileStreamEvents.Eof;
+
+	if (!m_isTransmitEnabled)
+		eventMask |= io.FileStreamEvents.TransmitBufferReady;
+
+	m_file.wait (eventMask, onFileStreamEvent ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
+}
+
 void FileSession.load (doc.Storage* storage)
 {
 	m_fileNameCombo.loadHistory (storage, "fileNameHistory");
 	m_fileNameCombo.m_editText = storage.readString ("fileName");
 	m_accessProp.m_value = storage.readInt ("access");
+
+	m_bufferPropertySet.load (storage);
+	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
 }
 
 void FileSession.save (doc.Storage* storage)
 {
+	m_bufferPropertySet.save (storage);
+
 	m_fileNameCombo.saveHistory (storage, "fileNameHistory");
 	storage.writeString ("fileName", m_fileNameCombo.m_editText);
 	storage.writeInt ("access", m_accessProp.m_value);
@@ -237,13 +301,23 @@ void FileSession.updateProperties ()
 bool errorcode FileSession.applyProperties ()
 {
 	m_fileNameCombo.m_editText = m_fileNameProp.m_value;
+	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
+
+	if (!m_file.m_isOpen)
+		return true;
+
+	m_file.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
+	m_file.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
+	m_file.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
+	m_file.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
+	m_file.m_options = getFileStreamOptions ();
 	return true;
 }
 
 void FileSession.restoreDefaultProperties ()
 {
-	m_fileNameProp.m_value = "\\\\.\\pipe\\mypipe0";
 	m_accessProp.m_value = Access.ReadWrite;
+	m_bufferPropertySet.restoreDefaults ();
 }
 
 size_t errorcode FileSession.transmit (
@@ -261,36 +335,43 @@ size_t errorcode FileSession.transmit (
 	return result;
 }
 
-FileSession.onFileStreamEvent (io.FileStreamEventParams const* params)
+FileSession.onFileStreamEvent (
+	uint_t syncId,
+	io.FileStreamEvents triggeredEvents
+	)
 {
-	if (params.m_syncId != m_file.m_syncId)
+	if (syncId != m_syncId)
 		return;
 
-	switch (params.m_eventCode)
+	if (triggeredEvents & io.FileStreamEvents.IoError)
 	{
-	case io.FileStreamEventCode.IncomingData:
-		static char buffer [512];
-		size_t result = try m_file.read (buffer, sizeof (buffer));
-		if (result != -1)
-			writeLog (log.StdRecordCode.Rx, buffer, result);
-		break;
+		writeLog (log.StdRecordCode.Error, m_file.m_ioError, m_file.m_ioError.m_size);
+		close ();
+		return;
+	}
 
-	case io.FileStreamEventCode.Eof:
+	if (triggeredEvents & io.FileStreamEvents.ReceiveBufferFull)
+		writeLog (log.StdRecordCode.RxBufferFullLossless);
+
+	if (triggeredEvents & io.FileStreamEvents.IncomingData)
+	{
+		size_t result = m_file.read (m_readBuffer.m_p, m_readBuffer.m_size);
+		if (result)
+			writeLog (log.StdRecordCode.Rx, m_readBuffer.m_p, result);
+	}
+
+	if (triggeredEvents & io.FileStreamEvents.Eof)
+	{
 		writeLog (FileLogRecordCode.Eof);
 
 		if (m_file.m_kind != io.FileStreamKind.Disk)
 			close ();
-		break;
-
-	case io.FileStreamEventCode.TransmitBufferReady:
-		m_isTransmitEnabled = true;
-		break;
-
-	case io.FileStreamEventCode.IoError:
-		writeLog (log.StdRecordCode.Error, params.m_error, params.m_error.m_size);
-		close ();
-		break;
 	}
+
+	if (io.FileStreamEvents.TransmitBufferReady)
+		m_isTransmitEnabled = true;
+
+	waitFileStreamEvents ();
 }
 
 reactor FileSession.m_uiReactor ()
