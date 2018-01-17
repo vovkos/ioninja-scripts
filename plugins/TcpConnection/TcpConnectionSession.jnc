@@ -467,7 +467,7 @@ TcpConnectionSession.onSocketEvent (
 	}
 
 	if (triggeredEvents & io.SocketEvents.ReceiveBufferFull)
-		writeLog (log.StdRecordCode.RxBufferFullLossless);
+		writeLog (log.StdRecordCode.RxBufferFull);
 
 	if (triggeredEvents & io.SocketEvents.IncomingData)
 	{

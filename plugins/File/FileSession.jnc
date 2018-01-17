@@ -351,7 +351,7 @@ FileSession.onFileStreamEvent (
 	}
 
 	if (triggeredEvents & io.FileStreamEvents.ReceiveBufferFull)
-		writeLog (log.StdRecordCode.RxBufferFullLossless);
+		writeLog (log.StdRecordCode.RxBufferFull);
 
 	if (triggeredEvents & io.FileStreamEvents.IncomingData)
 	{

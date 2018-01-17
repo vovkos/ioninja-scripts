@@ -486,7 +486,7 @@ SnifferSession.onPcapEvent (
 	}
 
 	if (triggeredEvents & io.PcapEvents.ReceiveBufferFull)
-		writeLog (log.StdRecordCode.RxBufferFullLossless);
+		writeLog (log.StdRecordCode.RxBufferFull);
 
 	if (triggeredEvents & io.PcapEvents.IncomingData)
 	{
