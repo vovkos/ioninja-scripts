@@ -60,6 +60,7 @@ protected:
 		);
 
 	abstract processNotification (DeviceMonitorNotifyHdr const* notifyHdr);
+	virtual processError (std.Error const* error);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -118,13 +119,12 @@ Monitor.onMonitorEvent (
 
 	if (triggeredEvents & DeviceMonitorEvents.IoError)
 	{
-		m_pluginHost.m_log.m_writer.write (log.StdRecordCode.Error, m_monitor.m_ioError, m_monitor.m_ioError.m_size);
-		close ();
+		processError (m_monitor.m_ioError);
 		return;
 	}
 
 	if (triggeredEvents & DeviceMonitorEvents.ReceiveBufferFull)
-		m_pluginHost.m_log.m_writer.write (log.StdRecordCode.RxBufferFullLossless);
+		m_pluginHost.m_log.m_writer.write (log.StdRecordCode.RxBufferFull);
 
 	if (triggeredEvents & DeviceMonitorEvents.IncomingData)
 	{
@@ -135,7 +135,6 @@ Monitor.onMonitorEvent (
 			if (!result)
 				return;
 		}
-
 	}
 
 	waitMonitorEvents ();
@@ -166,11 +165,12 @@ bool Monitor.addNotificationData (
 		if (notifyHdr.m_signature != DeviceMonitorNotifyHdrSignature)
 		{
 			std.setError ("invalid signature in notification header");
-			std.Error const* error = std.getLastError ();
-			m_pluginHost.m_log.m_writer.write (log.StdRecordCode.Error, error, error.m_size);
-			close ();
+			processError (std.getLastError ());
 			return false;
 		}
+
+		if (notifyHdr.m_flags & io.DeviceMonitorNotifyFlags.DataDropped)
+			m_pluginHost.m_log.m_writer.write (log.StdRecordCode.RxBufferFullLossy);
 
 		size_t notifySize = sizeof (DeviceMonitorNotifyHdr) + notifyHdr.m_paramSize;
 		size_t leftoverSize = notifySize - m_notifyBuffer.m_size;
@@ -191,6 +191,12 @@ bool Monitor.addNotificationData (
 	}
 
 	return true;
+}
+
+Monitor.processError (std.Error const* error)
+{
+	m_pluginHost.m_log.m_writer.write (log.StdRecordCode.Error, error, error.m_size);
+	close ();
 }
 
 //..............................................................................

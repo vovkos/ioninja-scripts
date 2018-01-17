@@ -80,6 +80,7 @@ public:
 
 protected:
 	onCapture ();
+	onMonitorError ();
 
 	createUi ();
 	reactor m_uiReactor ();
@@ -90,8 +91,8 @@ protected:
 PipeMonSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
-	m_npfsMonitor.construct (pluginHost);
-	m_lanmanMonitor.construct (pluginHost);
+	m_npfsMonitor.construct (this);
+	m_lanmanMonitor.construct (this);
 
 	pluginHost.m_log.attachRepresenter (representPipeMonLog);
 
@@ -134,7 +135,7 @@ PipeMonSession.createUi ()
 
 	m_useLanmanMonitorProp = m_pluginHost.m_propertyGrid.createBoolProperty (
 		group,,
-		"Monitor remote connection",
+		"Monitor remote connections",
 		"Attach and monitor pipe connections redirected over Windows LANMAN"
 		);
 
@@ -157,7 +158,9 @@ PipeMonSession.createUi ()
 		"Set the maximum size of kernel notification queue (exceeding notification will be dropped)"
 		);
 
-	m_pendingNotifySizeLimitProp.m_minValue = 1;
+	m_bufferPropertySet.m_readBlockSizeProp.m_minValue = 1024;
+	m_bufferPropertySet.m_readBufferSizeProp.m_minValue = 1024;
+	m_pendingNotifySizeLimitProp.m_minValue = 1024;
 	m_pendingNotifySizeLimitProp.m_spinBoxStep = 1024; // 1KB
 
 	m_uiReactor.start ();

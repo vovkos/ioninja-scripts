@@ -12,14 +12,15 @@ import "log.jnc"
 
 class MailslotMonitor: io.Monitor
 {
+protected:
+	MailslotMonSession* m_session;
+
 public:
-	construct (doc.PluginHost* pluginHost)
-	{
-		basetype.construct (pluginHost);
-	}
+	construct (MailslotMonSession* session);
 
 protected:
 	override processNotification (io.DeviceMonitorNotifyHdr const* notifyHdr);
+	override processError (std.Error const* error);
 
 	setFileId (
 		uint64_t timestamp,
@@ -41,6 +42,12 @@ protected:
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+MailslotMonitor.construct (MailslotMonSession* session)
+{
+	basetype.construct (session.m_pluginHost);
+	m_session = session;
+}
 
 MailslotMonitor.setFileId (
 	uint64_t timestamp,
@@ -90,7 +97,7 @@ MailslotMonitor.processNotification (io.DeviceMonitorNotifyHdr const* notifyHdr)
 
 		std.StringBuilder name;
 		name.copy ((utf16_t const*) (params + 1));
-		logParams.append (name.m_p, name.m_length + 1);
+		logParams.append (name.m_sz, name.m_length + 1);
 
 		m_pluginHost.m_log.m_writer.write (
 			notifyHdr.m_timestamp,
@@ -129,7 +136,7 @@ MailslotMonitor.processNotification (io.DeviceMonitorNotifyHdr const* notifyHdr)
 
 		std.StringBuilder name;
 		name.copy ((utf16_t const*) (params + 1));
-		logParams.append (name.m_p, name.m_length + 1);
+		logParams.append (name.m_sz, name.m_length + 1);
 
 		m_pluginHost.m_log.m_writer.write (
 			notifyHdr.m_timestamp,
@@ -163,6 +170,12 @@ MailslotMonitor.processNotification (io.DeviceMonitorNotifyHdr const* notifyHdr)
 			);
 		break;
 	}
+}
+
+MailslotMonitor.processError (std.Error const* error)
+{
+	m_pluginHost.m_log.m_writer.write (log.StdRecordCode.Error, error, error.m_size);
+	m_session.close ();
 }
 
 //..............................................................................

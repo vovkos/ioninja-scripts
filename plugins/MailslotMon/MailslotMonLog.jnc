@@ -77,7 +77,7 @@ bool representMailslotMonLog  (
 		char const* name = (char const*) (p + sizeof (fileId) + sizeof (pid));
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Connect;
-		target.addHyperText ($"File \e[34m#$fileId\e[m PID \e[34m#$pid\e[m: Server file opened: \e[34m$name");
+		target.addHyperText ($"PID \e[34m#$pid\e[m file \e[34m#$fileId\e[m: Server file opened: \e[34m$name");
 		break;
 
 	case MailslotMonLogRecordCode.ServerFileOpenError_old:
@@ -111,7 +111,7 @@ bool representMailslotMonLog  (
 		char const* name = (char const*) (p + sizeof (fileId) + sizeof (pid));
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Connect;
-		target.addHyperText ($"File \e[34m#$fileId\e[m PID \e[34m#$pid\e[m: Client file opened: \e[34m$name");
+		target.addHyperText ($"PID \e[34m#$pid\e[m file \e[34m#$fileId\e[m: Client file opened: \e[34m$name");
 		break;
 
 	case MailslotMonLogRecordCode.ClientFileOpenError_old:
@@ -150,7 +150,7 @@ bool representMailslotMonLog  (
 		uint32_t pid = *((uint32_t const*) p + 1);
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText (MailslotMonLogPartCode.Prefix, $"File \e[34m#$fileId\e[m PID \e[34m#$pid\e[m: ");
+		target.addHyperText (MailslotMonLogPartCode.Prefix, $"PID \e[34m#$pid\e[m file \e[34m#$fileId\e[m: ");
 		break;
 
 	default:

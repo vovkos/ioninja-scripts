@@ -96,7 +96,7 @@ protected:
 SerialMonSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
-	m_monitor.construct (pluginHost);
+	m_monitor.construct (this);
 
 	pluginHost.m_log.attachRepresenter (representSerialMonLog);
 	pluginHost.m_log.attachFilter (m_logFilter);
@@ -169,7 +169,9 @@ SerialMonSession.createUi ()
 		"Set the maximum size of kernel notification queue (exceeding notification will be dropped)"
 		);
 
-	m_pendingNotifySizeLimitProp.m_minValue = 1;
+	m_bufferPropertySet.m_readBlockSizeProp.m_minValue = 1024;
+	m_bufferPropertySet.m_readBufferSizeProp.m_minValue = 1024;
+	m_pendingNotifySizeLimitProp.m_minValue = 1024;
 	m_pendingNotifySizeLimitProp.m_spinBoxStep = 1024; // 1KB
 
 	// filter

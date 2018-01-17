@@ -90,8 +90,8 @@ protected:
 MailslotMonSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
-	m_msfsMonitor.construct (pluginHost);
-	m_lanmanMonitor.construct (pluginHost);
+	m_msfsMonitor.construct (this);
+	m_lanmanMonitor.construct (this);
 
 	pluginHost.m_log.attachRepresenter (representMailslotMonLog);
 
@@ -157,7 +157,9 @@ MailslotMonSession.createUi ()
 		"Set the maximum size of kernel notification queue (exceeding notification will be dropped)"
 		);
 
-	m_pendingNotifySizeLimitProp.m_minValue = 1;
+	m_bufferPropertySet.m_readBlockSizeProp.m_minValue = 1024;
+	m_bufferPropertySet.m_readBufferSizeProp.m_minValue = 1024;
+	m_pendingNotifySizeLimitProp.m_minValue = 1024;
 	m_pendingNotifySizeLimitProp.m_spinBoxStep = 1024; // 1KB
 
 	m_uiReactor.start ();

@@ -10,15 +10,17 @@ import "io_Monitor.jnc"
 class SerialMonitor: io.Monitor
 {
 protected:
+	SerialMonSession* m_session;
 	io.SerialStatusLines m_statusLines;
 
 public:
-	construct (doc.PluginHost* pluginHost);
+	construct (SerialMonSession* session);
 
 	bool errorcode capture (char const* deviceName);
 
 protected:
 	override processNotification (io.DeviceMonitorNotifyHdr const* notifyHdr);
+	override processError (std.Error const* error);
 
 	processNotification_win (io.DeviceMonitorNotifyHdr const* notifyHdr);
 	processNotification_lnx (io.DeviceMonitorNotifyHdr const* notifyHdr);
@@ -45,9 +47,10 @@ protected:
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-SerialMonitor.construct (doc.PluginHost* pluginHost)
+SerialMonitor.construct (SerialMonSession* session)
 {
-	basetype.construct (pluginHost);
+	basetype.construct (session.m_pluginHost);
+	m_session = session;
 }
 
 bool errorcode SerialMonitor.capture (char const* deviceName)
@@ -69,6 +72,12 @@ SerialMonitor.processNotification (io.DeviceMonitorNotifyHdr const* notifyHdr)
 		processNotification_lnx (notifyHdr);
 		break;
 	}
+}
+
+SerialMonitor.processError (std.Error const* error)
+{
+	m_pluginHost.m_log.m_writer.write (log.StdRecordCode.Error, error, error.m_size);
+	m_session.close ();
 }
 
 //..............................................................................
