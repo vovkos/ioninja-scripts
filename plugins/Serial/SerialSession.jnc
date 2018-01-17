@@ -12,15 +12,6 @@ import "doc_Plugin.jnc"
 
 //..............................................................................
 
-enum SerialReadMode
-{
-	CheckComstat,
-	WaitFirstChar,
-	IntervalBased
-}
-
-// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
 class SerialSession: doc.Session
 {
 protected:

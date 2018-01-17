@@ -25,6 +25,13 @@ enum SerialLogRecordCode
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
+enum SerialReadMode
+{
+	CheckComstat,
+	WaitFirstChar,
+	IntervalBased
+}
+
 struct SerialOpenParams
 {
 	uint_t m_baudRate;
@@ -154,10 +161,13 @@ bool representSerialLog (
 			if (params.m_osKind == sys.OsKind.Windows)
 			{
 				char const* readModeString = getTableString (params.m_readMode, readModeTable);
+				char const* readIntervalString = params.m_readMode == SerialReadMode.IntervalBased ?
+					$"\e[34m$(params.m_readInterval)\e[m ms" :
+					"\e[90mirrelevant";
 
 				optionString =
 					$"    \e[90mRead mode:     \e[34m$readModeString\n"
-					$"    \e[90mRead interval: \e[34m$(params.m_readInterval)\e[m ms\n";
+					$"    \e[90mRead interval: $readIntervalString\n";
 			}
 
 			string =
