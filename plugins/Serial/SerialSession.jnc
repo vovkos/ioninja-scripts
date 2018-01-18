@@ -517,7 +517,7 @@ bool errorcode SerialSession.open ()
 	close ();
 	startSession ();
 
-	char const* name = m_portCombo.m_currentText;
+	char const* portName = m_portCombo.m_currentText;
 
 	// configure and open
 
@@ -536,7 +536,12 @@ bool errorcode SerialSession.open ()
 	m_serial.m_dtr = m_actionTable [ActionId.Dtr].m_isChecked;
 	m_serial.m_rts = m_actionTable [ActionId.Rts].m_isChecked;
 
-	m_serial.open (name);
+	char const* driverName;
+	bool isBuggyDriver = io.adjustSerialSettingsForBuggyDrivers (m_serial, portName, &driverName);
+	if (isBuggyDriver)
+		writeLogString (SerialLogRecordCode.BuggyDriverDetected, driverName);
+
+	m_serial.open (portName);
 
 	SerialOpenParams params;
 	params.m_baudRate = m_serial.m_baudRate;
@@ -551,10 +556,10 @@ bool errorcode SerialSession.open ()
 	params.m_readMode = m_readModeProp.m_value;
 	params.m_osKind = sys.g_systemInfo.m_osKind;
 
-	char const* p = $"$(params; B)$name";
+	char const* p = $"$(params; B)$portName";
 	writeLog (SerialLogRecordCode.PortOpened, p, dynamic sizeof (p));
 
-	m_portName = name;
+	m_portName = portName;
 	m_serialDtr = m_serial.m_dtr;
 	m_serialRts = m_serial.m_rts;
 	m_serialStatusLines = m_serial.m_statusLines;
@@ -678,8 +683,7 @@ bool errorcode SerialSession.applyProperties ()
 	bool dtr = m_dtrProp.m_value;
 	bool rts = m_rtsProp.m_value;
 
-	if (m_serial.m_baudRate != baudRate)
-		writeLog (SerialLogRecordCode.BaudRateChanged, &baudRate, sizeof (baudRate));
+	// baud rate change will be handled inside onBaudRateChanged ()
 
 	if (m_serial.m_dataBits != dataBits)
 		writeLog (SerialLogRecordCode.DataBitsChanged, &dataBits, sizeof (dataBits));

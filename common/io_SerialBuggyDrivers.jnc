@@ -1,0 +1,61 @@
+//..............................................................................
+//
+// Socket & network adapter user interface
+//
+
+import "io_base.jncx"
+import "io_Serial.jnc"
+import "io_File.jnc"
+
+namespace io {
+
+//..............................................................................
+
+bool adjustSerialSettingsForBuggyDrivers (
+	io.Serial* serial,
+	char const* portName,
+	char const** resultDriverName = null
+	)
+{
+	// for now, we only have workarounds for windows drivers
+
+	if (sys.g_systemInfo.m_osKind != sys.OsKind.Windows)
+		return false;
+
+	char const* linkName =
+		portName [0] != '\\' ? (char const*) $"\\??\\$portName" :
+		strncmp (portName, "\\\\.\\", 4) == 0 ? (char const*) $"\\??\\$(portName + 4)" :
+		portName;
+
+	char const* deviceName = try io.getSymbolicLinkTarget (linkName);
+
+	printf ("link name: %s, device name: %s\n", linkName, deviceName);
+
+	char const* driverName;
+
+	if (!deviceName)
+		driverName = "<unknown-driver>"; // be conservative when we can't detect
+	else if (stristr (deviceName, "prolific"))
+		driverName = "Prolific"; // prolific drivers are... just... BAD
+	else
+		return false;
+
+	// fall back to conservative settings
+
+	io.SerialOptions options = serial.m_options;
+	options &= io.SerialOptions.WinReadWaitFirstChar;
+	options |= io.SerialOptions.WinReadCheckComstat;
+
+	serial.m_options = options;
+	serial.m_readInterval = 0;
+	serial.m_readParallelism = 1;
+
+	if (resultDriverName)
+		*resultDriverName = driverName;
+
+	return true;
+}
+
+//..............................................................................
+
+} // namespace io {

@@ -21,6 +21,7 @@ enum SerialLogRecordCode
 	StatusLineChanged,
 	ReadModeChanged,
 	ReadIntervalChanged,
+	BuggyDriverDetected,
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -327,6 +328,13 @@ bool representSerialLog (
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText ($"Set read interval: \e[34m$interval\e[m ms");
+		break;
+
+	case SerialLogRecordCode.BuggyDriverDetected:
+		char const* driver = (char const*) p;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Warning;
+		target.addHyperText ($"Buggy serial driver detected: \e[34m$driver\e[m; using conservative settings.");
 		break;
 
 	default:
