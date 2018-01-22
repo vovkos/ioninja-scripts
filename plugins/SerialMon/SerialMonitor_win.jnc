@@ -209,7 +209,7 @@ SerialMonitor.processIoctlNotification_win (
 			(p->ControlHandShake & wdk.SERIAL_CTS_HANDSHAKE) && (p->FlowReplace & wdk.SERIAL_RTS_HANDSHAKE) ?
 				io.SerialFlowControl.RtsCts :
 			(p->ControlHandShake & wdk.SERIAL_AUTO_RECEIVE) && (p->ControlHandShake & wdk.SERIAL_AUTO_TRANSMIT) ?
-				flowControl = io.SerialFlowControl.XOnXOff :
+				flowControl = io.SerialFlowControl.XonXoff :
 				flowControl = io.SerialFlowControl.None;
 
 		m_pluginHost.m_log.m_writer.write (

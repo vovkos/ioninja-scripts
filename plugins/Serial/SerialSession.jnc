@@ -221,7 +221,7 @@ SerialSession.createUi ()
 	{
 		{ "None",     io.SerialFlowControl.None },
 		{ "RTS/CTS",  io.SerialFlowControl.RtsCts },
-		{ "XON/XOFF", io.SerialFlowControl.XOnXOff },
+		{ "XON/XOFF", io.SerialFlowControl.XonXoff },
 	}
 
 	static gui.EnumPropertyOption dataBitsTable [] =
