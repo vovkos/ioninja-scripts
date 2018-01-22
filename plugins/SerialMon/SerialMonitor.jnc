@@ -55,7 +55,15 @@ SerialMonitor.construct (SerialMonSession* session)
 
 bool errorcode SerialMonitor.capture (char const* deviceName)
 {
-	basetype.capture (deviceName);
+	static io.psx.DeviceMonitorIoctlDesc ioctlDescTable [] =
+	{
+		{ psx.TCSETS, sizeof (psx.termios) },
+		{ psx.TIOCMGET, sizeof (uint_t) },
+		{ psx.TIOCMBIS, sizeof (uint_t) },
+		{ psx.TIOCMBIC, sizeof (uint_t) },
+	}
+
+	basetype.capture (deviceName, null, ioctlDescTable, sizeof (ioctlDescTable) / sizeof (ioctlDescTable [0]));
 	m_statusLines = (io.SerialStatusLines) -1; // special meaning: unintitalized
 	return true;
 }

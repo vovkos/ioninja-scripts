@@ -30,7 +30,9 @@ public:
 
 	bool errorcode capture (
 		char const* deviceName,
-		char const* fileNameFilter = null
+		char const* fileNameFilter = null,
+		psx.DeviceMonitorIoctlDesc const* ioctlDescTable = null,
+		size_t ioctlDescCount = 0
 		);
 
 	close ();
@@ -67,12 +69,18 @@ protected:
 
 bool errorcode Monitor.capture (
 	char const* deviceName,
-	char const* fileNameFilter
+	char const* fileNameFilter,
+	psx.DeviceMonitorIoctlDesc const* ioctlDescTable,
+	size_t ioctlDescCount
 	)
 {
 	m_monitor.open ();
 	m_monitor.connect (deviceName);
 	m_monitor.m_fileNameFilter = fileNameFilter;
+
+	if (sys.g_systemInfo.m_osFlags & sys.OsFlags.Posix)
+		m_monitor.setIoctlDescTable (ioctlDescTable, ioctlDescCount);
+
 	m_monitor.m_isEnabled = true;
 	m_notifyBuffer.clear ();
 	m_fileIdMgr.reset ();
