@@ -1,0 +1,56 @@
+//..............................................................................
+//
+// Serial Monitor log packet declarations and representer
+//
+
+import "log.jnc"
+
+//..............................................................................
+
+enum SerialTapCableLogRecordCode
+{
+	CaptureStarted = 0x100, // avoid conflicts with SerialLogRecordCode
+	CaptureStopped,
+	CaptureError,
+}
+
+//..............................................................................
+
+bool representSerialTapCableLog  (
+	log.RepresenterTarget* target,
+	uint_t recordCode,
+	void const* p,
+	size_t size,
+	uint_t foldFlags
+	)
+{
+	switch (recordCode)
+	{
+	case SerialTapCableLogRecordCode.CaptureStarted:
+		char const* name = (char const*) p;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Listen;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText ($"Capture started on port \e[34m$name");
+		break;
+
+	case SerialTapCableLogRecordCode.CaptureStopped:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.StopListen;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText ("Capture stopped");
+		break;
+
+	case SerialTapCableLogRecordCode.CaptureError:
+		std.Error const* error = (std.Error const*) p;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
+		target.addHyperText ($"Cannot start capture: $(error.m_description)");
+		break;
+
+	default:
+		return representSerialLog (target, recordCode, p, size, foldFlags);
+	}
+
+	return true;
+}
+
+//..............................................................................

@@ -1,0 +1,27 @@
+//..............................................................................
+//
+// Serial Tap-Cable session plugin
+//
+
+[plugin]
+
+name        = Serial Tap-Cable
+description = "Monitor serial communication through a tap-cable (such as EZTap)"
+id          = serialtap
+group       = monitors
+monitor     = true
+guid        = e50e0d23-9a75-4f4d-83f3-049e489f1479
+icon        = images/serialmon.png
+small-icon  = images/serialmon-16x16.png
+
+session-class        = SerialTapCableSession
+log-representer-func = representSerialTapCableLog
+
+[scripts]
+
+SerialTapCableSession.jnc
+SerialTapCableLog.jnc
+../Serial/SerialLog.jnc
+../../common/io_SerialBuggyDrivers.jnc
+../../common/io_SerialUi.jnc
+../../common/io_BufferUi.jnc
