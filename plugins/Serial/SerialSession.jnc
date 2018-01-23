@@ -281,7 +281,7 @@ SerialSession.createUi ()
 	m_iconTable [IconId.Open] = new gui.Icon ("images/connect.png");
 	m_iconTable [IconId.Close] = new gui.Icon ("images/pause.png");
 
-	m_actionTable [ActionId.Open]  = createAction ("Open", "images/connect.png");
+	m_actionTable [ActionId.Open]  = createAction ("Open", m_iconTable [IconId.Open]);
 	m_actionTable [ActionId.Open].m_onTriggered += onOpen;
 
 	m_pluginHost.m_menu.addSeparator ();
@@ -536,10 +536,12 @@ bool errorcode SerialSession.open ()
 	m_serial.m_dtr = m_actionTable [ActionId.Dtr].m_isChecked;
 	m_serial.m_rts = m_actionTable [ActionId.Rts].m_isChecked;
 
-	char const* driverName;
-	bool isBuggyDriver = io.adjustSerialSettingsForBuggyDrivers (m_serial, portName, &driverName);
-	if (isBuggyDriver)
+	char const* driverName = io.detectSerialBuggyDriver (portName);
+	if (driverName)
+	{
 		writeLogString (SerialLogRecordCode.BuggyDriverDetected, driverName);
+		io.setConservativeSerialSettings (m_serial);
+	}
 
 	m_serial.open (portName);
 
@@ -553,7 +555,7 @@ bool errorcode SerialSession.open ()
 	params.m_dtr = m_serial.m_dtr;
 	params.m_rts = m_serial.m_rts;
 	params.m_statusLines = m_serial.m_statusLines;
-	params.m_readMode = m_readModeProp.m_value;
+	params.m_options = m_serial.m_options;
 	params.m_osKind = sys.g_systemInfo.m_osKind;
 
 	char const* p = $"$(params; B)$portName";
@@ -569,7 +571,6 @@ bool errorcode SerialSession.open ()
 	return true;
 
 catch:
-	m_serial.close ();
 	std.Error const* error = std.getLastError ();
 
 	writeLog (
@@ -578,6 +579,7 @@ catch:
 		error.m_size
 		);
 
+	m_serial.close ();
 	return false;
 }
 
@@ -586,11 +588,7 @@ SerialSession.close ()
 	if (m_state != State.Opened)
 		return;
 
-	writeLog (
-		SerialLogRecordCode.PortClosed,
-		m_portName,
-		strlen (m_portName) + 1
-		);
+	writeLogString (SerialLogRecordCode.PortClosed, m_portName);
 
 	m_serial.close ();
 	m_delayedWriteTimer.stop ();

@@ -11,16 +11,10 @@ namespace io {
 
 //..............................................................................
 
-bool adjustSerialSettingsForBuggyDrivers (
-	io.Serial* serial,
-	char const* portName,
-	char const** resultDriverName = null
-	)
+char const* detectSerialBuggyDriver (char const* portName)
 {
-	// for now, we only have workarounds for windows drivers
-
 	if (sys.g_systemInfo.m_osKind != sys.OsKind.Windows)
-		return false;
+		return null;
 
 	char const* linkName =
 		portName [0] != '\\' ? (char const*) $"\\??\\$portName" :
@@ -33,13 +27,14 @@ bool adjustSerialSettingsForBuggyDrivers (
 
 	char const* driverName;
 
-	if (!deviceName)
-		driverName = "<unknown-driver>"; // be conservative when we can't detect
-	else if (stristr (deviceName, "prolific"))
-		driverName = "Prolific"; // prolific drivers are... just... BAD
-	else
-		return false;
+	return
+		!deviceName ? "<unknown-driver>" : // be conservative when we can't detect
+		stristr (deviceName, "prolific") ? "Prolific" : // prolific drivers are... just... BAD
+		null;
+}
 
+void setConservativeSerialSettings (io.Serial* serial)
+{
 	// fall back to conservative settings
 
 	io.SerialOptions options = serial.m_options;
@@ -49,11 +44,6 @@ bool adjustSerialSettingsForBuggyDrivers (
 	serial.m_options = options;
 	serial.m_readInterval = 0;
 	serial.m_readParallelism = 1;
-
-	if (resultDriverName)
-		*resultDriverName = driverName;
-
-	return true;
 }
 
 //..............................................................................

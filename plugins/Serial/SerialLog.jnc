@@ -44,7 +44,7 @@ struct SerialOpenParams
 	bool m_dtr;
 	bool m_rts;
 	uint_t m_statusLines;
-	uint_t m_readMode;
+	uint_t m_options;
 	uint_t m_osKind;
 
 	// followed by port name
@@ -161,8 +161,13 @@ bool representSerialLog (
 
 			if (params.m_osKind == sys.OsKind.Windows)
 			{
-				char const* readModeString = getTableString (params.m_readMode, readModeTable);
-				char const* readIntervalString = params.m_readMode == SerialReadMode.IntervalBased ?
+				uint_t readMode =
+					params.m_options & io.SerialOptions.WinReadCheckComstat ? SerialReadMode.CheckComstat :
+					params.m_options & io.SerialOptions.WinReadWaitFirstChar ? SerialReadMode.WaitFirstChar :
+					SerialReadMode.IntervalBased;
+
+				char const* readModeString = getTableString (readMode, readModeTable);
+				char const* readIntervalString = readMode == SerialReadMode.IntervalBased ?
 					$"\e[34m$(params.m_readInterval)\e[m ms" :
 					"\e[90mirrelevant";
 
