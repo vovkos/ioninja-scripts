@@ -17,16 +17,16 @@ class SerialSession: doc.Session
 protected:
 	enum Defaults
 	{
-		BaudRate          = 38400,
-		DataBits          = 8,
-		StopBits          = io.SerialStopBits._1,
-		Parity            = io.SerialParity.None,
-		FlowControl       = io.SerialFlowControl.None,
-		ReadMode          = SerialReadMode.WaitFirstChar,
-		ReadInterval      = 10,
-		Dtr               = true,
-		Rts               = true,
-		InterCharDelay    = 200,
+		BaudRate       = 38400,
+		DataBits       = 8,
+		StopBits       = io.SerialStopBits._1,
+		Parity         = io.SerialParity.None,
+		FlowControl    = io.SerialFlowControl.None,
+		ReadMode       = SerialReadMode.WaitFirstChar,
+		ReadInterval   = 10,
+		Dtr            = true,
+		Rts            = true,
+		InterCharDelay = 200,
 	}
 
 	enum State
@@ -856,10 +856,6 @@ SerialSession.waitSerialEvents ()
 	eventMask |= (m_serialStatusLines & io.SerialStatusLines.Dcd) ?
 		io.SerialEvents.DcdOff :
 		io.SerialEvents.DcdOn;
-
-	eventMask |= (m_serialStatusLines & io.SerialStatusLines.Ring) ?
-		io.SerialEvents.RingOff :
-		io.SerialEvents.RingOn;
 
 	m_serial.wait (eventMask, onSerialEvent ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
 }

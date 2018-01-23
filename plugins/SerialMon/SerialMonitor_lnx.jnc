@@ -331,9 +331,6 @@ SerialMonitor.processIoctlNotification_lnx (
 		if (posixLines & psx.TIOCM_DSR)
 			lines |= io.SerialStatusLines.Dsr;
 
-		if (posixLines & psx.TIOCM_RNG)
-			lines |= io.SerialStatusLines.Ring;
-
 		if (posixLines & psx.TIOCM_CAR)
 			lines |= io.SerialStatusLines.Dcd;
 
