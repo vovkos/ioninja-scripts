@@ -269,7 +269,7 @@ MailslotSession.onMailslotEvent (
 	io.MailslotEvents triggeredEvents
 	)
 {
-	if (syncId != m_mailslot.m_syncId)
+	if (syncId != m_syncId)
 		return;
 
 	if (triggeredEvents & io.MailslotEvents.IoError)
