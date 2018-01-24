@@ -1,6 +1,6 @@
 //..............................................................................
 //
-// Socket & network adapter user interface
+// Fall-back settings for buggy serial port drivers
 //
 
 import "io_base.jncx"
@@ -35,8 +35,6 @@ char const* detectSerialBuggyDriver (char const* portName)
 
 void setConservativeSerialSettings (io.Serial* serial)
 {
-	// fall back to conservative settings
-
 	io.SerialOptions options = serial.m_options;
 	options &= io.SerialOptions.WinReadWaitFirstChar;
 	options |= io.SerialOptions.WinReadCheckComstat;

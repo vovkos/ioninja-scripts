@@ -20,7 +20,6 @@ log-representer-func = representSerialTapCableLog
 [scripts]
 
 SerialTapCableSession.jnc
-SerialTapCableLog.jnc
 ../Serial/SerialLog.jnc
 ../../common/io_SerialBuggyDrivers.jnc
 ../../common/io_SerialUi.jnc

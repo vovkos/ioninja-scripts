@@ -5,12 +5,21 @@
 
 import "io_base.jncx"
 import "io_Serial.jnc"
-import "std_List.jnc"
 import "std_Buffer.jnc"
-import "sys_Timer.jnc"
 import "doc_Plugin.jnc"
 
 //..............................................................................
+
+class SerialPort
+{
+	char const* m_name;
+	io.Serial m_serial;
+	io.SerialStatusLines bindable m_serialStatusLines;
+	uint_t m_syncId;
+	uint_t m_dataLogRecordCode;
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 class SerialTapCableSession: doc.Session
 {
@@ -57,21 +66,12 @@ protected:
 		_Count,
 	}
 
-	class Port
-	{
-		char const* m_name;
-		io.Serial m_serial;
-		io.SerialStatusLines bindable m_serialStatusLines;
-		uint_t m_syncId;
-		uint_t m_dataLogRecordCode;
-	}
-
 protected:
 	// two serial ports (A & B)
 
 	State bindable m_state;
-	Port m_portA;
-	Port m_portB;
+	SerialPort m_portA;
+	SerialPort m_portB;
 	SerialLogFilter m_logFilter;
 	std.Buffer m_readBuffer;
 
@@ -119,7 +119,7 @@ protected:
 	onBaudRateChanged ();
 
 	onSerialEvent (
-		Port* port,
+		SerialPort* port,
 		uint_t syncId,
 		io.SerialEvents triggeredEvents
 		);
@@ -133,12 +133,8 @@ protected:
 		function* onChanged ()
 		);
 
-	configurePort (
-		Port* port,
-		bool isInitial
-		);
-
-	waitSerialEvents (Port* port);
+	configurePort (SerialPort* port);
+	waitSerialEvents (SerialPort* port);
 	io.SerialOptions getSerialOptions ();
 
 	uint_t getReadInterval ()
@@ -447,14 +443,8 @@ io.SerialOptions SerialTapCableSession.getSerialOptions ()
 	return options;
 }
 
-SerialTapCableSession.configurePort (
-	Port* port,
-	bool isInitial
-	)
+SerialTapCableSession.configurePort (SerialPort* port)
 {
-	if (isInitial)
-		port.m_name = m_portComboA.m_currentText;
-
 	port.m_serial.m_readInterval = getReadInterval ();
 	port.m_serial.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
 	port.m_serial.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
@@ -475,14 +465,17 @@ bool errorcode SerialTapCableSession.open ()
 
 	// configure and open
 
-	configurePort (&m_portA, true);
-	configurePort (&m_portB, true);
+	m_portA.m_name = m_portComboA.m_currentText;
+	m_portB.m_name = m_portComboB.m_currentText;
 
 	if (strcmp (m_portA.m_name, m_portB.m_name) == 0)
 	{
 		std.setError ("ports A and B cannot be the same");
 		throw;
 	}
+
+	configurePort (&m_portA);
+	configurePort (&m_portB);
 
 	char const* driverNameA = io.detectSerialBuggyDriver (m_portA.m_name);
 	char const* driverNameB = io.detectSerialBuggyDriver (m_portB.m_name);
@@ -495,6 +488,8 @@ bool errorcode SerialTapCableSession.open ()
 
 	m_portA.m_serial.open (m_portA.m_name);
 	m_portB.m_serial.open (m_portB.m_name);
+	m_portA.m_serialStatusLines = m_portA.m_serial.m_statusLines;
+	m_portB.m_serialStatusLines = m_portB.m_serial.m_statusLines;
 
 	SerialOpenParams params;
 	params.m_baudRate = m_portA.m_serial.m_baudRate;
@@ -503,17 +498,14 @@ bool errorcode SerialTapCableSession.open ()
 	params.m_stopBits = m_portA.m_serial.m_stopBits;
 	params.m_parity = m_portA.m_serial.m_parity;
 	params.m_readInterval = m_portA.m_serial.m_readInterval;
-	params.m_dtr = m_portB.m_serial.m_statusLines & io.SerialStatusLines.Dsr;
-	params.m_rts = m_portB.m_serial.m_statusLines & io.SerialStatusLines.Cts;
-	params.m_statusLines = m_portA.m_serial.m_statusLines;
+	params.m_dtr = m_portB.m_serialStatusLines & io.SerialStatusLines.Dsr;
+	params.m_rts = m_portB.m_serialStatusLines & io.SerialStatusLines.Cts;
+	params.m_statusLines = m_portA.m_serialStatusLines;
 	params.m_options = m_portA.m_serial.m_options;
 	params.m_osKind = sys.g_systemInfo.m_osKind;
 
 	char const* p = $"$(params; B)$(m_portA.m_name):$(m_portB.m_name)";
 	writeLog (SerialLogRecordCode.PortOpened, p, dynamic sizeof (p));
-
-	m_portA.m_serialStatusLines = m_portA.m_serial.m_statusLines;
-	m_portA.m_serialStatusLines = m_portB.m_serial.m_statusLines;
 
 	m_state = State.Opened;
 
@@ -633,8 +625,8 @@ bool errorcode SerialTapCableSession.applyProperties ()
 	if (m_portA.m_serial.m_readInterval != readInterval)
 		writeLog (SerialLogRecordCode.ReadIntervalChanged, &readInterval, sizeof (readInterval));
 
-	configurePort (&m_portA, false);
-	configurePort (&m_portB, false);
+	configurePort (&m_portA);
+	configurePort (&m_portB);
 	return true;
 }
 
@@ -656,7 +648,7 @@ void SerialTapCableSession.restoreDefaultProperties ()
 	m_bufferPropertySet.restoreDefaults ();
 }
 
-SerialTapCableSession.waitSerialEvents (Port* port)
+SerialTapCableSession.waitSerialEvents (SerialPort* port)
 {
 	io.SerialEvents eventMask =
 		io.SerialEvents.IoError |
@@ -682,7 +674,7 @@ SerialTapCableSession.waitSerialEvents (Port* port)
 }
 
 SerialTapCableSession.onSerialEvent (
-	Port* port,
+	SerialPort* port,
 	uint_t syncId,
 	io.SerialEvents triggeredEvents
 	)
@@ -722,13 +714,13 @@ SerialTapCableSession.onSerialEvent (
 			if (statusLineMask & io.SerialStatusLines.Dsr)
 			{
 				bool dtr = statusLines & io.SerialStatusLines.Dsr;
-				writeLog (SerialLogRecordCode.StatusLineChanged, &dtr, sizeof (dtr));
+				writeLog (SerialLogRecordCode.DtrChanged, &dtr, sizeof (dtr));
 			}
 
 			if (statusLineMask & io.SerialStatusLines.Cts)
 			{
-				bool cts = statusLines & io.SerialStatusLines.Cts;
-				writeLog (SerialLogRecordCode.StatusLineChanged, &cts, sizeof (cts));
+				bool rts = statusLines & io.SerialStatusLines.Cts;
+				writeLog (SerialLogRecordCode.RtsChanged, &rts, sizeof (rts));
 			}
 		}
 

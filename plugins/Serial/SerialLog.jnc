@@ -339,7 +339,7 @@ bool representSerialLog (
 		char const* driver = (char const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Warning;
-		target.addHyperText ($"Buggy serial driver detected: \e[34m$driver\e[m; using conservative settings.");
+		target.addHyperText ($"Using conservative serial settings due to an unsafe driver: \e[34m$driver");
 		break;
 
 	default:
