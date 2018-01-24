@@ -264,12 +264,12 @@ FileSession.waitFileStreamEvents ()
 {
 	io.FileStreamEvents eventMask =
 		io.FileStreamEvents.IoError |
-		io.FileStreamEvents.ReceiveBufferFull |
+		io.FileStreamEvents.ReadBufferFull |
 		io.FileStreamEvents.IncomingData |
 		io.FileStreamEvents.Eof;
 
 	if (!m_isTransmitEnabled)
-		eventMask |= io.FileStreamEvents.TransmitBufferReady;
+		eventMask |= io.FileStreamEvents.WriteBufferReady;
 
 	m_file.wait (eventMask, onFileStreamEvent ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
 }
@@ -350,7 +350,7 @@ FileSession.onFileStreamEvent (
 		return;
 	}
 
-	if (triggeredEvents & io.FileStreamEvents.ReceiveBufferFull)
+	if (triggeredEvents & io.FileStreamEvents.ReadBufferFull)
 		writeLog (log.StdRecordCode.RxBufferFull);
 
 	if (triggeredEvents & io.FileStreamEvents.IncomingData)
@@ -368,7 +368,7 @@ FileSession.onFileStreamEvent (
 			close ();
 	}
 
-	if (io.FileStreamEvents.TransmitBufferReady)
+	if (io.FileStreamEvents.WriteBufferReady)
 		m_isTransmitEnabled = true;
 
 	waitFileStreamEvents ();

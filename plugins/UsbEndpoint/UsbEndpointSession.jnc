@@ -464,7 +464,7 @@ UsbEndpointSession.waitOutEndpointEvents  ()
 	io.UsbEndpointEvents eventMask = io.UsbEndpointEvents.IoError;
 
 	if (!m_isTransmitEnabled)
-		eventMask |= io.UsbEndpointEvents.TransmitBufferReady;
+		eventMask |= io.UsbEndpointEvents.WriteBufferReady;
 
 	m_outEndpoint.wait (eventMask, onOutEndpointEvent ~(++m_outSyncId) @ m_pluginHost.m_mainThreadScheduler);
 }
@@ -473,7 +473,7 @@ UsbEndpointSession.waitInEndpointEvents  ()
 {
 	io.UsbEndpointEvents eventMask =
 		io.UsbEndpointEvents.IoError |
-		io.UsbEndpointEvents.ReceiveBufferFull |
+		io.UsbEndpointEvents.ReadBufferFull |
 		io.UsbEndpointEvents.IncomingData;
 
 	m_inEndpoint.wait (eventMask, onInEndpointEvent ~(++m_inSyncId) @ m_pluginHost.m_mainThreadScheduler);
@@ -566,7 +566,7 @@ UsbEndpointSession.onOutEndpointEvent (
 		return;
 	}
 
-	if (triggeredEvents & io.UsbEndpointEvents.TransmitBufferReady)
+	if (triggeredEvents & io.UsbEndpointEvents.WriteBufferReady)
 		m_isTransmitEnabled = true;
 
 	waitOutEndpointEvents ();
@@ -587,7 +587,7 @@ UsbEndpointSession.onInEndpointEvent (
 		return;
 	}
 
-	if (triggeredEvents & io.UsbEndpointEvents.ReceiveBufferFull)
+	if (triggeredEvents & io.UsbEndpointEvents.ReadBufferFull)
 		writeLog (log.StdRecordCode.RxBufferFull);
 
 	if (triggeredEvents & io.UsbEndpointEvents.IncomingData)

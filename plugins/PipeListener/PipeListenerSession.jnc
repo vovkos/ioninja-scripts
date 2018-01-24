@@ -307,12 +307,12 @@ PipeListenerSession.waitConnectionPipeEvents ()
 {
 	io.FileStreamEvents eventMask =
 		io.FileStreamEvents.IoError |
-		io.FileStreamEvents.ReceiveBufferFull |
+		io.FileStreamEvents.ReadBufferFull |
 		io.FileStreamEvents.IncomingData |
 		io.FileStreamEvents.Eof;
 
 	if (!m_isTransmitEnabled)
-		eventMask |= io.FileStreamEvents.TransmitBufferReady;
+		eventMask |= io.FileStreamEvents.WriteBufferReady;
 
 	m_connectionPipe.wait (eventMask, onConnectionPipeEvent ~(++m_connectionSyncId) @ m_pluginHost.m_mainThreadScheduler);
 }
@@ -449,7 +449,7 @@ PipeListenerSession.onConnectionPipeEvent (
 		return;
 	}
 
-	if (triggeredEvents & io.FileStreamEvents.ReceiveBufferFull)
+	if (triggeredEvents & io.FileStreamEvents.ReadBufferFull)
 		writeLog (log.StdRecordCode.RxBufferFull);
 
 	if (triggeredEvents & io.FileStreamEvents.IncomingData)
@@ -465,7 +465,7 @@ PipeListenerSession.onConnectionPipeEvent (
 		return;
 	}
 
-	if (io.FileStreamEvents.TransmitBufferReady)
+	if (io.FileStreamEvents.WriteBufferReady)
 		m_isTransmitEnabled = true;
 
 	waitConnectionPipeEvents ();

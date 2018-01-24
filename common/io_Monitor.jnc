@@ -111,7 +111,7 @@ Monitor.waitMonitorEvents ()
 {
 	DeviceMonitorEvents eventMask =
 		DeviceMonitorEvents.IoError |
-		DeviceMonitorEvents.ReceiveBufferFull |
+		DeviceMonitorEvents.ReadBufferFull |
 		DeviceMonitorEvents.IncomingData;
 
 	m_monitor.wait (eventMask, onMonitorEvent ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
@@ -131,7 +131,7 @@ Monitor.onMonitorEvent (
 		return;
 	}
 
-	if (triggeredEvents & DeviceMonitorEvents.ReceiveBufferFull)
+	if (triggeredEvents & DeviceMonitorEvents.ReadBufferFull)
 		m_pluginHost.m_log.m_writer.write (log.StdRecordCode.RxBufferFull);
 
 	if (triggeredEvents & DeviceMonitorEvents.IncomingData)

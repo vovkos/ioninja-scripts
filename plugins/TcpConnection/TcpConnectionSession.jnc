@@ -294,7 +294,7 @@ TcpConnectionSession.waitSocketEvents ()
 			io.SocketEvents.Reset;
 
 		if (!m_isTransmitEnabled)
-			eventMask |= io.SocketEvents.TransmitBufferReady;
+			eventMask |= io.SocketEvents.WriteBufferReady;
 
 		break;
 	}
@@ -466,7 +466,7 @@ TcpConnectionSession.onSocketEvent (
 		return;
 	}
 
-	if (triggeredEvents & io.SocketEvents.ReceiveBufferFull)
+	if (triggeredEvents & io.SocketEvents.ReadBufferFull)
 		writeLog (log.StdRecordCode.RxBufferFull);
 
 	if (triggeredEvents & io.SocketEvents.IncomingData)
@@ -476,7 +476,7 @@ TcpConnectionSession.onSocketEvent (
 			writeLog (log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 	}
 
-	if (io.SocketEvents.TransmitBufferReady)
+	if (io.SocketEvents.WriteBufferReady)
 		m_isTransmitEnabled = true;
 
 	waitSocketEvents ();

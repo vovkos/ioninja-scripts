@@ -476,7 +476,7 @@ UdpFlowMonSession.waitPcapEvents ()
 {
 	io.PcapEvents eventMask =
 		io.PcapEvents.IoError |
-		io.PcapEvents.ReceiveBufferFull |
+		io.PcapEvents.ReadBufferFull |
 		io.PcapEvents.IncomingData |
 		io.PcapEvents.Eof;
 
@@ -590,7 +590,7 @@ UdpFlowMonSession.onPcapEvent (
 		return;
 	}
 
-	if (triggeredEvents & io.PcapEvents.ReceiveBufferFull)
+	if (triggeredEvents & io.PcapEvents.ReadBufferFull)
 		writeLog (log.StdRecordCode.RxBufferFull);
 
 	if (triggeredEvents & io.PcapEvents.IncomingData)

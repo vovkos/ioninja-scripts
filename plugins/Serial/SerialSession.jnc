@@ -837,11 +837,11 @@ SerialSession.waitSerialEvents ()
 {
 	io.SerialEvents eventMask =
 		io.SerialEvents.IoError |
-		io.SerialEvents.ReceiveBufferFull |
+		io.SerialEvents.ReadBufferFull |
 		io.SerialEvents.IncomingData;
 
 	if (!m_isTransmitEnabled)
-		eventMask |= io.SerialEvents.TransmitBufferReady;
+		eventMask |= io.SerialEvents.WriteBufferReady;
 
 	eventMask |= (m_serialStatusLines & io.SerialStatusLines.Cts) ?
 		io.SerialEvents.CtsOff :
@@ -873,7 +873,7 @@ SerialSession.onSerialEvent (
 		return;
 	}
 
-	if (triggeredEvents & io.SerialEvents.ReceiveBufferFull)
+	if (triggeredEvents & io.SerialEvents.ReadBufferFull)
 		writeLog (log.StdRecordCode.RxBufferFullLossy);
 
 	if (triggeredEvents & io.SerialEvents.IncomingData)
@@ -884,7 +884,7 @@ SerialSession.onSerialEvent (
 	}
 
 	if (!m_isTransmitEnabled)
-		m_isTransmitEnabled = (triggeredEvents & io.SerialEvents.TransmitBufferReady);
+		m_isTransmitEnabled = (triggeredEvents & io.SerialEvents.WriteBufferReady);
 
 	io.SerialStatusLines statusLines = m_serial.m_statusLines;
 	io.SerialStatusLines statusLineMask = statusLines ^ m_serialStatusLines;

@@ -428,7 +428,7 @@ SshChannelSession.waitSshEvents ()
 			io.SshEvents.IncomingData;
 
 		if (!m_isTransmitEnabled)
-			eventMask |= io.SshEvents.TransmitBufferReady;
+			eventMask |= io.SshEvents.WriteBufferReady;
 
 		break;
 	}
@@ -733,7 +733,7 @@ SshChannelSession.onSshEvent (
 			writeLog (log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 	}
 
-	if (io.SshEvents.TransmitBufferReady)
+	if (io.SshEvents.WriteBufferReady)
 		m_isTransmitEnabled = true;
 
 	waitSshEvents ();

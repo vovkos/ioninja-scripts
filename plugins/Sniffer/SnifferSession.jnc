@@ -385,12 +385,12 @@ SnifferSession.waitPcapEvents ()
 {
 	io.PcapEvents eventMask =
 		io.PcapEvents.IoError |
-		io.PcapEvents.ReceiveBufferFull |
+		io.PcapEvents.ReadBufferFull |
 		io.PcapEvents.IncomingData |
 		io.PcapEvents.Eof;
 
 	if (!m_isTransmitEnabled)
-		eventMask |= io.PcapEvents.TransmitBufferReady;
+		eventMask |= io.PcapEvents.WriteBufferReady;
 
 	m_pcap.wait (eventMask, onPcapEvent ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
 }
@@ -485,7 +485,7 @@ SnifferSession.onPcapEvent (
 		return;
 	}
 
-	if (triggeredEvents & io.PcapEvents.ReceiveBufferFull)
+	if (triggeredEvents & io.PcapEvents.ReadBufferFull)
 		writeLog (log.StdRecordCode.RxBufferFull);
 
 	if (triggeredEvents & io.PcapEvents.IncomingData)

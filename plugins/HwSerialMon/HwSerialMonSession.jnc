@@ -453,7 +453,7 @@ HwSerialMonSession.waitEndpoint82Events  ()
 {
 	io.UsbEndpointEvents eventMask =
 		io.UsbEndpointEvents.IoError |
-		io.UsbEndpointEvents.ReceiveBufferFull |
+		io.UsbEndpointEvents.ReadBufferFull |
 		io.UsbEndpointEvents.IncomingData;
 
 	m_endpoint82.wait (eventMask, onEndpoint82Event ~(++m_endpoint82SyncId) @ m_pluginHost.m_mainThreadScheduler);

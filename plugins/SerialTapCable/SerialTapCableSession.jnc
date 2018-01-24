@@ -652,7 +652,7 @@ SerialTapCableSession.waitSerialEvents (SerialPort* port)
 {
 	io.SerialEvents eventMask =
 		io.SerialEvents.IoError |
-		io.SerialEvents.ReceiveBufferFull |
+		io.SerialEvents.ReadBufferFull |
 		io.SerialEvents.IncomingData;
 
 	eventMask |= (port.m_serialStatusLines & io.SerialStatusLines.Cts) ?
@@ -689,7 +689,7 @@ SerialTapCableSession.onSerialEvent (
 		return;
 	}
 
-	if (triggeredEvents & io.SerialEvents.ReceiveBufferFull)
+	if (triggeredEvents & io.SerialEvents.ReadBufferFull)
 		writeLog (log.StdRecordCode.RxBufferFullLossy);
 
 	if (triggeredEvents & io.SerialEvents.IncomingData)

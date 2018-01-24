@@ -479,7 +479,7 @@ TcpListenerSession.onConnectionSocketEvent (
 			writeLog (log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 	}
 
-	if (io.SocketEvents.TransmitBufferReady)
+	if (io.SocketEvents.WriteBufferReady)
 		m_isTransmitEnabled = true;
 
 	waitConnectionSocketEvents ();
