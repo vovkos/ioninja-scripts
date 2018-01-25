@@ -145,7 +145,7 @@ bool representSerialLog (
 		{
 			string =
 				$"[\e^+1\e[34m+\e[m] Opened port \e[34m$name\e[m "
-				$"baud: \e[34m$(params.m_baudRate)\e[m bps; lines: "
+				$"baud: \e[34m$(params.m_baudRate)\e[m bps "
 				$"DTR: $dtrString "
 				$"RTS: $rtsString "
 				$"DSR: $dsrString "
