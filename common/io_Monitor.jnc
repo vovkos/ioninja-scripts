@@ -20,6 +20,7 @@ protected:
 	std.Buffer m_notifyBuffer;
 	std.Buffer m_readBuffer;
 	FileIdMgr m_fileIdMgr;
+	bool m_notifyReadBufferFull;
 	uint_t m_syncId;
 
 public:
@@ -103,6 +104,7 @@ bool errorcode Monitor.applyProperties (
 	m_monitor.m_readBlockSize = bufferPropSet.m_readBlockSizeProp.m_value;
 	m_monitor.m_readBufferSize = bufferPropSet.m_readBufferSizeProp.m_value;
 	m_monitor.m_pendingNotifySizeLimit = pendingNotifySizeLimit;
+	m_notifyReadBufferFull = bufferPropSet.m_notifyReadBufferFullProp.m_value;
 
 	return m_readBuffer.setSize (bufferPropSet.m_readBufferSizeProp.m_value);
 }
@@ -131,7 +133,7 @@ Monitor.onMonitorEvent (
 		return;
 	}
 
-	if (triggeredEvents & DeviceMonitorEvents.ReadBufferFull)
+	if ((triggeredEvents & DeviceMonitorEvents.ReadBufferFull) && m_notifyReadBufferFull)
 		m_pluginHost.m_log.m_writer.write (log.StdRecordCode.RxBufferFull);
 
 	if (triggeredEvents & DeviceMonitorEvents.IncomingData)

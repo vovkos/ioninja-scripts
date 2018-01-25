@@ -350,7 +350,8 @@ FileSession.onFileStreamEvent (
 		return;
 	}
 
-	if (triggeredEvents & io.FileStreamEvents.ReadBufferFull)
+	if ((triggeredEvents & io.FileStreamEvents.ReadBufferFull) &&
+		m_bufferPropertySet.m_notifyReadBufferFullProp.m_value)
 		writeLog (log.StdRecordCode.RxBufferFull);
 
 	if (triggeredEvents & io.FileStreamEvents.IncomingData)

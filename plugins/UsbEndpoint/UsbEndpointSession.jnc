@@ -587,7 +587,8 @@ UsbEndpointSession.onInEndpointEvent (
 		return;
 	}
 
-	if (triggeredEvents & io.UsbEndpointEvents.ReadBufferFull)
+	if ((triggeredEvents & io.UsbEndpointEvents.ReadBufferFull) &&
+		m_bufferPropertySet.m_notifyReadBufferFullProp.m_value)
 		writeLog (log.StdRecordCode.RxBufferFull);
 
 	if (triggeredEvents & io.UsbEndpointEvents.IncomingData)

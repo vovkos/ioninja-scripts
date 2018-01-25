@@ -639,7 +639,8 @@ TcpFlowMonSession.onPcapEvent (
 		return;
 	}
 
-	if (triggeredEvents & io.PcapEvents.ReadBufferFull)
+	if ((triggeredEvents & io.PcapEvents.ReadBufferFull) &&
+		m_bufferPropertySet.m_notifyReadBufferFullProp.m_value)
 		writeLog (log.StdRecordCode.RxBufferFull);
 
 	if (triggeredEvents & io.PcapEvents.IncomingData)

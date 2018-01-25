@@ -13,12 +13,13 @@ class BufferPropertySet
 {
 	enum Defaults
 	{
-		ReadParallelism        = 4,
-		ReadBlockSize          = 4 * 1024,
-		ReadBufferSize         = 16 * 1024,
-		WriteBufferSize        = 16 * 1024,
-		KeepReadBlockSizeProp  = false,
-		KeepWriteBlockSizeProp = false,
+		ReadParallelism      = 4,
+		ReadBlockSize        = 4 * 1024,
+		ReadBufferSize       = 16 * 1024,
+		WriteBufferSize      = 16 * 1024,
+		KeepReadBlockSize    = false,
+		KeepWriteBlockSize   = false,
+		NotifyReadBufferFull = false,
 	}
 
 	bitflag enum PropertyId
@@ -29,6 +30,7 @@ class BufferPropertySet
 		WriteBufferSize,
 		KeepReadBlockSize,
 		KeepWriteBlockSize,
+		NotifyReadBufferFull,
 
 		All =
 			ReadParallelism |
@@ -36,7 +38,8 @@ class BufferPropertySet
 			ReadBufferSize |
 			WriteBufferSize |
 			KeepReadBlockSize |
-			KeepWriteBlockSize,
+			KeepWriteBlockSize |
+			NotifyReadBufferFull,
 	}
 
 	gui.IntProperty* m_readParallelismProp;
@@ -45,6 +48,7 @@ class BufferPropertySet
 	gui.IntProperty* m_writeBufferSizeProp;
 	gui.BoolProperty* m_keepReadBlockSizeProp;
 	gui.BoolProperty* m_keepWriteBlockSizeProp;
+	gui.BoolProperty* m_notifyReadBufferFullProp;
 
 	createProperties (
 		gui.PropertyGrid* propertyGrid,
@@ -141,6 +145,14 @@ BufferPropertySet.createProperties (
 			"Keep write block size",
 			"Don't merge write blocks in TX buffer (submit the original size to lower IO provider)"
 			);
+
+	if (propertySet & PropertyId.NotifyReadBufferFull)
+		m_notifyReadBufferFullProp = propertyGrid.createBoolProperty (
+			group,
+			insertBefore,
+			"RX buffer full notifications",
+			"Write warnings in log whenever RX buffer gets completely full"
+			);
 }
 
 BufferPropertySet.load (doc.Storage* storage)
@@ -158,10 +170,13 @@ BufferPropertySet.load (doc.Storage* storage)
 		m_writeBufferSizeProp.m_value = storage.readInt ("writeBufferSize", Defaults.WriteBufferSize);
 
 	if (m_keepReadBlockSizeProp)
-		m_keepReadBlockSizeProp.m_value = storage.readBool ("keepReadBlockSizeProp", Defaults.KeepReadBlockSizeProp);
+		m_keepReadBlockSizeProp.m_value = storage.readBool ("keepReadBlockSize", Defaults.KeepReadBlockSize);
 
 	if (m_keepWriteBlockSizeProp)
-		m_keepWriteBlockSizeProp.m_value = storage.readBool ("keepWriteBlockSizeProp", Defaults.KeepWriteBlockSizeProp);
+		m_keepWriteBlockSizeProp.m_value = storage.readBool ("keepWriteBlockSize", Defaults.KeepWriteBlockSize);
+
+	if (m_notifyReadBufferFullProp)
+		m_notifyReadBufferFullProp.m_value = storage.readBool ("notifyReadBufferFull", Defaults.NotifyReadBufferFull);
 }
 
 BufferPropertySet.save (doc.Storage* storage)
@@ -179,10 +194,13 @@ BufferPropertySet.save (doc.Storage* storage)
 		storage.writeInt ("writeBufferSize", m_writeBufferSizeProp.m_value);
 
 	if (m_keepReadBlockSizeProp)
-		storage.writeBool ("keepReadBlockSizeProp", m_keepReadBlockSizeProp.m_value);
+		storage.writeBool ("keepReadBlockSize", m_keepReadBlockSizeProp.m_value);
 
 	if (m_keepWriteBlockSizeProp)
-		storage.writeBool ("keepWriteBlockSizeProp", m_keepWriteBlockSizeProp.m_value);
+		storage.writeBool ("keepWriteBlockSize", m_keepWriteBlockSizeProp.m_value);
+
+	if (m_notifyReadBufferFullProp)
+		storage.writeBool ("notifyReadBufferFull", m_notifyReadBufferFullProp.m_value);
 }
 
 BufferPropertySet.restoreDefaults ()
@@ -200,10 +218,13 @@ BufferPropertySet.restoreDefaults ()
 		m_writeBufferSizeProp.m_value = Defaults.WriteBufferSize;
 
 	if (m_keepReadBlockSizeProp)
-		m_keepReadBlockSizeProp.m_value = Defaults.KeepReadBlockSizeProp;
+		m_keepReadBlockSizeProp.m_value = Defaults.KeepReadBlockSize;
 
 	if (m_keepWriteBlockSizeProp)
-		m_keepWriteBlockSizeProp.m_value = Defaults.KeepWriteBlockSizeProp;
+		m_keepWriteBlockSizeProp.m_value = Defaults.KeepWriteBlockSize;
+
+	if (m_notifyReadBufferFullProp)
+		m_notifyReadBufferFullProp.m_value = Defaults.NotifyReadBufferFull;
 }
 
 //..............................................................................

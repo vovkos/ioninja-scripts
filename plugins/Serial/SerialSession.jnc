@@ -873,7 +873,8 @@ SerialSession.onSerialEvent (
 		return;
 	}
 
-	if (triggeredEvents & io.SerialEvents.ReadBufferFull)
+	if ((triggeredEvents & io.SerialEvents.ReadBufferFull) &&
+		m_bufferPropertySet.m_notifyReadBufferFullProp.m_value)
 		writeLog (log.StdRecordCode.RxBufferFullLossy);
 
 	if (triggeredEvents & io.SerialEvents.IncomingData)
