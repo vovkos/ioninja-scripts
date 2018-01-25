@@ -85,7 +85,16 @@ public:
 
 protected:
 	onRefresh ();
-	onCapture ();
+
+	onCapture ()
+	{
+		m_state ? close () : try capture ();
+	}
+
+	onPortComboEnter ()
+	{
+		try capture ();
+	}
 
 	createUi ();
 	reactor m_uiReactor ();
@@ -113,7 +122,7 @@ SerialMonSession.createUi ()
 	m_pluginHost.m_toolBar.addLabel ("Port:");
 	m_portCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_portCombo.m_isEditable = true;
-	m_portCombo.m_onEnter += capture;
+	m_portCombo.m_onEnter += onPortComboEnter;
 
 	size_t portCount;
 	io.SerialPortDesc const* portList = io.createSerialPortDescList (&portCount);
@@ -217,14 +226,6 @@ SerialMonSession.onRefresh ()
 	m_portCombo.adjustSizeToContents ();
 
 	io.updateSerialPortProperty (m_portProp, portList, portCount);
-}
-
-SerialMonSession.onCapture ()
-{
-	if (m_state)
-		close ();
-	else
-		try capture ();
 }
 
 bool errorcode SerialMonSession.capture ()

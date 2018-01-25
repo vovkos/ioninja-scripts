@@ -124,9 +124,22 @@ public:
 	override void restoreDefaultProperties ();
 
 protected:
-	onCapture ();
+	onCapture ()
+	{
+		try (m_state ? stopCapture () : capture ());
+	}
+
+	onSetFilter ()
+	{
+		try (m_state ? applyFilter () : capture ());
+	}
+
+	onDeviceComboEnter ()
+	{
+		try capture ();
+	}
+
 	onFileDlgCompleted (gui.StdDlgButton button);
-	onSetFilter ();
 
 	onResolveCompleted (
 		uint_t syncId,
@@ -195,7 +208,7 @@ TcpFlowMonSession.createUi ()
 
 	m_pluginHost.m_toolBar.addLabel ("Device:");
 	m_deviceCombo = io.createPcapDeviceComboBox (m_pluginHost.m_toolBar);
-	m_deviceCombo.m_onEnter += onCapture;
+	m_deviceCombo.m_onEnter += onDeviceComboEnter;
 
 	m_pluginHost.m_toolBar.addLabel ("Filter:");
 	m_filterCombo = m_pluginHost.m_toolBar.addComboBox (-1);
@@ -283,14 +296,6 @@ TcpFlowMonSession.createUi ()
 	m_uiReactor.start ();
 }
 
-TcpFlowMonSession.onCapture ()
-{
-	if (m_state)
-		stopCapture ();
-	else
-		try capture ();
-}
-
 TcpFlowMonSession.onFileDlgCompleted (gui.StdDlgButton button)
 {
 	if (button != gui.StdDlgButton.Ok)
@@ -312,14 +317,6 @@ TcpFlowMonSession.onFileDlgCompleted (gui.StdDlgButton button)
 		m_pendingFileName = fileName;
 		try resolve (addressString);
 	}
-}
-
-TcpFlowMonSession.onSetFilter ()
-{
-	if (!m_state)
-		try capture ();
-	else
-		try applyFilter ();
 }
 
 bool errorcode TcpFlowMonSession.capture ()

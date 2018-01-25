@@ -90,7 +90,15 @@ public:
 		);
 
 protected:
-	onOpen ();
+	onOpen ()
+	{
+		m_state ? close () : try open ();
+	}
+
+	onFileNameComboEnter ()
+	{
+		try open ();
+	}
 
 	onFileStreamEvent (
 		uint_t syncId,
@@ -124,7 +132,7 @@ FileSession.createUi ()
 	m_pluginHost.m_toolBar.addLabel ("File:");
 	m_fileNameCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_fileNameCombo.m_isEditable = true;
-	m_fileNameCombo.m_onEnter += open;
+	m_fileNameCombo.m_onEnter += onFileNameComboEnter;
 
 	m_iconTable [IconId.Open] = new gui.Icon ("images/open.png");
 	m_iconTable [IconId.Close] = new gui.Icon ("images/close.png");
@@ -177,14 +185,6 @@ FileSession.createUi ()
 	m_bufferPropertySet.createProperties (m_pluginHost.m_propertyGrid, group);
 
 	m_uiReactor.start ();
-}
-
-FileSession.onOpen ()
-{
-	if (m_state)
-		close ();
-	else
-		try	open ();
 }
 
 bool errorcode FileSession.open ()

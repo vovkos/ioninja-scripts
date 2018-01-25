@@ -132,7 +132,17 @@ public:
 
 protected:
 	onRefresh ();
-	onOpen ();
+
+	onOpen ()
+	{
+		m_state ? close () : open ();
+	}
+
+	onPortComboEnter ()
+	{
+		try open ();
+	}
+
 	onDelayedWriteTimer ();
 	onBaudRateChanged ();
 	onDtrChanged ();
@@ -266,7 +276,7 @@ SerialSession.createUi ()
 		m_portCombo.addItem (port.m_deviceName, null);
 
 	m_portCombo.adjustSizeToContents ();
-	m_portCombo.m_onEnter += open;
+	m_portCombo.m_onEnter += onPortComboEnter;
 
 	m_actionTable [ActionId.Refresh]  = createAction ("Refresh port list", "images/refresh.png");
 	m_actionTable [ActionId.Refresh].m_onTriggered += onRefresh;
@@ -484,14 +494,6 @@ SerialSession.onRefresh ()
 
 	m_portCombo.m_editText = name; // preserve current text
 	m_portCombo.adjustSizeToContents ();
-}
-
-SerialSession.onOpen ()
-{
-	if (m_state)
-		close ();
-	else
-		try open ();
 }
 
 io.SerialOptions SerialSession.getSerialOptions ()

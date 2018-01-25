@@ -106,9 +106,22 @@ public:
 		);
 
 protected:
-	onCapture ();
+	onCapture ()
+	{
+		try (m_state ? stopCapture () : capture ());
+	}
+
+	onSetFilter ()
+	{
+		try (m_state ? applyFilter () : capture ());
+	}
+
+	onDeviceComboEnter ()
+	{
+		try capture ();
+	}
+
 	onFileDlgCompleted (gui.StdDlgButton button);
-	onSetFilter ();
 
 	onPcapEvent (
 		uint_t syncId,
@@ -147,7 +160,7 @@ SnifferSession.createUi ()
 
 	m_pluginHost.m_toolBar.addLabel ("Device:");
 	m_deviceCombo = io.createPcapDeviceComboBox (m_pluginHost.m_toolBar);
-	m_deviceCombo.m_onEnter += onCapture;
+	m_deviceCombo.m_onEnter += onDeviceComboEnter;
 
 	m_pluginHost.m_toolBar.addLabel ("Filter:");
 	m_filterCombo = m_pluginHost.m_toolBar.addComboBox (-1);
@@ -227,22 +240,6 @@ SnifferSession.createUi ()
 	m_bufferPropertySet.createProperties (m_pluginHost.m_propertyGrid, group,, ids);
 
 	m_uiReactor.start ();
-}
-
-SnifferSession.onCapture ()
-{
-	if (m_state)
-		stopCapture ();
-	else
-		try capture ();
-}
-
-SnifferSession.onSetFilter ()
-{
-	if (!m_state)
-		try capture ();
-	else
-		try applyFilter ();
 }
 
 SnifferSession.onFileDlgCompleted (gui.StdDlgButton button)

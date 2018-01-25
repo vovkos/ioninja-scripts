@@ -79,7 +79,15 @@ public:
 	override void restoreDefaultProperties ();
 
 protected:
-	onCapture ();
+	onCapture ()
+	{
+		m_state ? close () : try capture ();
+	}
+
+	onNameComboEnter ()
+	{
+		try capture ();
+	}
 
 	createUi ();
 	reactor m_uiReactor ();
@@ -107,7 +115,7 @@ MailslotMonSession.createUi ()
 	m_pluginHost.m_toolBar.addLabel ("Name filter:");
 	m_nameCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_nameCombo.m_isEditable = true;
-	m_nameCombo.m_onEnter += capture;
+	m_nameCombo.m_onEnter += onNameComboEnter;
 
 	m_iconTable [IconId.Capture] = new gui.Icon ("images/capture.png");
 	m_iconTable [IconId.StopCapture] = new gui.Icon ("images/pause.png");
@@ -163,14 +171,6 @@ MailslotMonSession.createUi ()
 	m_pendingNotifySizeLimitProp.m_spinBoxStep = 1024; // 1KB
 
 	m_uiReactor.start ();
-}
-
-MailslotMonSession.onCapture ()
-{
-	if (m_state)
-		close ();
-	else
-		try capture ();
 }
 
 bool errorcode MailslotMonSession.capture ()

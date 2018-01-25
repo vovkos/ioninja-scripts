@@ -77,7 +77,15 @@ public:
 protected:
 	createUi ();
 
-	onOpen ();
+	onOpen ()
+	{
+		m_state ? close () : try open ();
+	}
+
+	onNameComboEnter ()
+	{
+		try open ();
+	}
 
 	onMailslotEvent (
 		uint_t syncId,
@@ -110,7 +118,7 @@ MailslotSession.createUi ()
 	m_pluginHost.m_toolBar.addLabel ("Mailslot:");
 	m_nameCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_nameCombo.m_isEditable = true;
-	m_nameCombo.m_onEnter += open;
+	m_nameCombo.m_onEnter += onNameComboEnter;
 
 	m_iconTable [IconId.Open] = new gui.Icon ("images/open.png");
 	m_iconTable [IconId.Close] = new gui.Icon ("images/close.png");
@@ -149,14 +157,6 @@ MailslotSession.createUi ()
 	m_bufferPropertySet.createProperties (m_pluginHost.m_propertyGrid, group,, ids);
 
 	m_uiReactor.start ();
-}
-
-MailslotSession.onOpen ()
-{
-	if (m_state)
-		close ();
-	else
-		try	open ();
 }
 
 bool errorcode MailslotSession.open ()

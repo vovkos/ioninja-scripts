@@ -81,7 +81,15 @@ public:
 		);
 
 protected:
-	onConnect ();
+	onConnect ()
+	{
+		m_state ? disconnect () : try connect ();
+	}
+
+	onAddressComboEnter ()
+	{
+		try connect ();
+	}
 
 	createUi ();
 	reactor m_uiReactor ();
@@ -105,7 +113,7 @@ $(sessionClass).createUi ()
 	m_pluginHost.m_toolBar.addLabel ("Address:");
 	m_addressCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_addressCombo.m_isEditable = true;
-	m_addressCombo.m_onEnter += connect;
+	m_addressCombo.m_onEnter += onAddressComboEnter;
 
 	m_iconTable [IconId.Connect] = new gui.Icon ("images/connect.png");
 	m_iconTable [IconId.Disconnect] = new gui.Icon ("images/disconnect.png");
@@ -127,14 +135,6 @@ $(sessionClass).createUi ()
 		);
 
 	m_uiReactor.start ();
-}
-
-$(sessionClass).onConnect ()
-{
-	if (m_state)
-		disconnect ();
-	else
-		try	connect ();
 }
 
 bool errorcode $(sessionClass).connect ()

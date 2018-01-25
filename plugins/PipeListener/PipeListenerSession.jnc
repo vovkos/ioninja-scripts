@@ -101,7 +101,15 @@ public:
 		);
 
 protected:
-	onListen ();
+	onListen ()
+	{
+		m_listenerState ? stopListen () : try listen ();
+	}
+
+	onPipeNameComboEnter ()
+	{
+		try listen ();
+	}
 
 	onListenerPipeEvent (
 		uint_t syncId,
@@ -141,7 +149,7 @@ PipeListenerSession.createUi ()
 	m_pluginHost.m_toolBar.addLabel ("Name:");
 	m_pipeNameCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_pipeNameCombo.m_isEditable = true;
-	m_pipeNameCombo.m_onEnter += listen;
+	m_pipeNameCombo.m_onEnter += onPipeNameComboEnter;
 
 	m_iconTable [IconId.Listen] = new gui.Icon ("images/listen.png");
 	m_iconTable [IconId.StopListen] = new gui.Icon ("images/pause.png");
@@ -197,14 +205,6 @@ PipeListenerSession.createUi ()
 	m_bufferPropertySet.createProperties (m_pluginHost.m_propertyGrid, group);
 
 	m_uiReactor.start ();
-}
-
-PipeListenerSession.onListen ()
-{
-	if (m_listenerState)
-		stopListen ();
-	else
-		try listen ();
 }
 
 bool errorcode PipeListenerSession.listen ()

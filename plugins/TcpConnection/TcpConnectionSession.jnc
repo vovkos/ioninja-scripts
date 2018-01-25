@@ -97,7 +97,15 @@ public:
 protected:
 	handleSocketError (std.Error const* error);
 
-	onConnect ();
+	onConnect ()
+	{
+		m_state ? disconnect () : try connect ();
+	}
+
+	onAddressComboEnter ()
+	{
+		try connect ();
+	}
 
 	onResolveCompleted (
 		uint_t syncId,
@@ -136,7 +144,7 @@ TcpConnectionSession.createUi ()
 	m_pluginHost.m_toolBar.addLabel ("Address:");
 	m_addressCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_addressCombo.m_isEditable = true;
-	m_addressCombo.m_onEnter += connect;
+	m_addressCombo.m_onEnter += onAddressComboEnter;
 
 	m_iconTable [IconId.Connect] = new gui.Icon ("images/connect.png");
 	m_iconTable [IconId.Disconnect] = new gui.Icon ("images/disconnect.png");
@@ -167,14 +175,6 @@ TcpConnectionSession.createUi ()
 	m_bufferPropertySet.createProperties (m_pluginHost.m_propertyGrid, group);
 
 	m_uiReactor.start ();
-}
-
-TcpConnectionSession.onConnect ()
-{
-	if (m_state)
-		disconnect ();
-	else
-		try connect ();
 }
 
 bool errorcode TcpConnectionSession.connect ()

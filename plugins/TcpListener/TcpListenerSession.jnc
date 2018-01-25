@@ -104,7 +104,15 @@ public:
 		);
 
 protected:
-	onListen ();
+	onListen ()
+	{
+		m_listenerState ? stopListen () : try listen ();
+	}
+
+	onPortComboEnter ()
+	{
+		try listen ();
+	}
 
 	onListenerSocketEvent (
 		uint_t syncId,
@@ -147,7 +155,7 @@ TcpListenerSession.createUi ()
 	m_pluginHost.m_toolBar.addLabel ("Port:");
 	m_portCombo = m_pluginHost.m_toolBar.addComboBox ();
 	m_portCombo.m_isEditable = true;
-	m_portCombo.m_onEnter += listen;
+	m_portCombo.m_onEnter += onPortComboEnter;
 
 	// status bar
 
@@ -196,14 +204,6 @@ TcpListenerSession.createUi ()
 	m_bufferPropertySet.createProperties (m_pluginHost.m_propertyGrid, group);
 
 	m_uiReactor.start ();
-}
-
-TcpListenerSession.onListen ()
-{
-	if (m_listenerState)
-		stopListen ();
-	else
-		try listen ();
 }
 
 bool errorcode TcpListenerSession.listen ()

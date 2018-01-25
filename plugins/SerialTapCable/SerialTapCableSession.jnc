@@ -115,7 +115,17 @@ public:
 
 protected:
 	onRefresh ();
-	onOpen ();
+
+	onOpen ()
+	{
+		m_state ? close () : try open ();
+	}
+
+	onPortComboEnter ()
+	{
+		try open ();
+	}
+
 	onBaudRateChanged ();
 
 	onSerialEvent (
@@ -231,8 +241,8 @@ SerialTapCableSession.createUi ()
 
 	m_portComboA.adjustSizeToContents ();
 	m_portComboB.adjustSizeToContents ();
-	m_portComboA.m_onEnter += open;
-	m_portComboB.m_onEnter += open;
+	m_portComboA.m_onEnter += onPortComboEnter;
+	m_portComboB.m_onEnter += onPortComboEnter;
 
 	m_actionTable [ActionId.Refresh]  = createAction ("Refresh port list", "images/refresh.png");
 	m_actionTable [ActionId.Refresh].m_onTriggered += onRefresh;
@@ -418,14 +428,6 @@ SerialTapCableSession.onRefresh ()
 	m_portComboA.m_editText = nameA;
 	m_portComboB.m_editText = nameB; // preserve current text
 	m_portComboA.adjustSizeToContents ();
-}
-
-SerialTapCableSession.onOpen ()
-{
-	if (m_state)
-		close ();
-	else
-		try open ();
 }
 
 io.SerialOptions SerialTapCableSession.getSerialOptions ()
