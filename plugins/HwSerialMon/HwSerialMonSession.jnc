@@ -252,7 +252,8 @@ HwSerialMonSession.createUi ()
 	io.BufferPropertySet.PropertyId ids =
 		io.BufferPropertySet.PropertyId.ReadParallelism |
 		io.BufferPropertySet.PropertyId.ReadBlockSize |
-		io.BufferPropertySet.PropertyId.ReadBufferSize;
+		io.BufferPropertySet.PropertyId.ReadBufferSize |
+		io.BufferPropertySet.PropertyId.NotifyReadBufferFull;
 
 	m_bufferPropertySet.createProperties (m_pluginHost.m_propertyGrid, group,, ids);
 

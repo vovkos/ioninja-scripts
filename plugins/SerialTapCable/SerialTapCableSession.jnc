@@ -634,8 +634,6 @@ bool errorcode SerialTapCableSession.applyProperties ()
 
 void SerialTapCableSession.restoreDefaultProperties ()
 {
-	m_portPropA.m_value = m_portComboA.m_itemText [0];
-	m_portPropB.m_value = m_portComboB.m_itemText [0];
 	m_baudRateProp.m_value = Defaults.BaudRate;
 	m_dataBitsProp.m_value = Defaults.DataBits;
 	m_stopBitsProp.m_value = Defaults.StopBits;

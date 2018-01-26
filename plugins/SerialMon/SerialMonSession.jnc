@@ -169,7 +169,8 @@ SerialMonSession.createUi ()
 		group,,
 		io.BufferPropertySet.PropertyId.ReadParallelism |
 		io.BufferPropertySet.PropertyId.ReadBufferSize |
-		io.BufferPropertySet.PropertyId.ReadBlockSize
+		io.BufferPropertySet.PropertyId.ReadBlockSize |
+		io.BufferPropertySet.PropertyId.NotifyReadBufferFull
 		);
 
 	m_pendingNotifySizeLimitProp = m_pluginHost.m_propertyGrid.createIntProperty (
@@ -313,7 +314,6 @@ bool errorcode SerialMonSession.applyProperties ()
 
 void SerialMonSession.restoreDefaultProperties ()
 {
-	m_portProp.m_currentIndex = 0;
 	m_settingChangedVisibleProp.m_value = true;
 	m_controlLineChangedVisibleProp.m_value = true;
 	m_statusLineChangedVisibleProp.m_value = true;

@@ -740,7 +740,6 @@ bool errorcode SerialSession.applyProperties ()
 
 void SerialSession.restoreDefaultProperties ()
 {
-	m_portProp.m_value = m_portCombo.m_itemText [0];
 	m_baudRateProp.m_value = Defaults.BaudRate;
 	m_flowControlProp.m_value = Defaults.FlowControl;
 	m_dataBitsProp.m_value = Defaults.DataBits;

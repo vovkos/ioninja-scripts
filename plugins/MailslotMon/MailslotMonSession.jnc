@@ -156,7 +156,8 @@ MailslotMonSession.createUi ()
 		group,,
 		io.BufferPropertySet.PropertyId.ReadParallelism |
 		io.BufferPropertySet.PropertyId.ReadBufferSize |
-		io.BufferPropertySet.PropertyId.ReadBlockSize
+		io.BufferPropertySet.PropertyId.ReadBlockSize |
+		io.BufferPropertySet.PropertyId.NotifyReadBufferFull
 		);
 
 	m_pendingNotifySizeLimitProp = m_pluginHost.m_propertyGrid.createIntProperty (
