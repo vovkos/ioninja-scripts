@@ -79,7 +79,6 @@ protected:
 	gui.StringProperty* m_pipeNameProp;
 	gui.BoolProperty* m_messageModeProp;
 	gui.BoolProperty* m_overrideOldConnectionProp;
-	gui.IntProperty* m_connectParallelismProp;
 	io.BufferPropertySet m_bufferPropertySet;
 
 public:
@@ -196,12 +195,6 @@ PipeListenerSession.createUi ()
 		"Advanced buffering options affecting throughtput and compatibility"
 		);
 
-	m_connectParallelismProp = m_pluginHost.m_propertyGrid.createIntProperty (
-		group,,
-		"Connect parallelism",
-		"Number of simultaneous overlapped ConnectNamedPipe requests"
-		);
-
 	m_bufferPropertySet.createProperties (m_pluginHost.m_propertyGrid, group);
 
 	m_uiReactor.start ();
@@ -221,7 +214,6 @@ bool errorcode PipeListenerSession.listen ()
 	if (m_messageModeProp.m_value)
 		options |= io.FileStreamOptions.MessageNamedPipe;
 
-	m_listenerPipe.m_connectParallelism = m_connectParallelismProp.m_value;
 	m_listenerPipe.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
 	m_listenerPipe.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
 	m_listenerPipe.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
@@ -323,7 +315,6 @@ void PipeListenerSession.load (doc.Storage* storage)
 	m_pipeNameCombo.m_editText = storage.readString ("pipeName");
 	m_messageModeProp.m_value = storage.readBool ("messageMode", Defaults.MessageMode);
 	m_overrideOldConnectionProp.m_value = storage.readBool ("overrideOldConnection", Defaults.OverrideConnection);
-	m_connectParallelismProp.m_value = storage.readInt ("connectParallelism", Defaults.ConnectParallelism);
 
 	m_bufferPropertySet.load (storage);
 	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
@@ -337,7 +328,6 @@ void PipeListenerSession.save (doc.Storage* storage)
 	storage.writeString ("pipeName", m_pipeNameCombo.m_editText);
 	storage.writeBool ("messageMode", m_messageModeProp.m_value);
 	storage.writeBool ("overrideOldConnection", m_overrideOldConnectionProp.m_value);
-	storage.writeInt ("connectParallelism", m_connectParallelismProp.m_value);
 }
 
 void PipeListenerSession.updateProperties ()
@@ -354,7 +344,6 @@ bool errorcode PipeListenerSession.applyProperties ()
 
 	if (m_listenerPipe.m_isOpen)
 	{
-		m_listenerPipe.m_connectParallelism = m_connectParallelismProp.m_value;
 		m_listenerPipe.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
 		m_listenerPipe.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
 		m_listenerPipe.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
