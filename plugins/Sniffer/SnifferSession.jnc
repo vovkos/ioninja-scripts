@@ -294,7 +294,6 @@ bool errorcode SnifferSession.capture (
 
 	writeLogString (SnifferLogRecordCode.StartingCapture, filterString);
 
-	m_pcap.m_snapshotSize = m_snapshotSizeProp.m_value;
 	m_pcap.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 	m_pcap.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
 

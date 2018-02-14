@@ -322,12 +322,12 @@ bool errorcode UdpFlowMonSession.capture (
 	char const* filterString = createFilterString (filterAddress);
 	writeLogString (UdpFlowMonLogRecordCode.StartingCapture, filterString);
 
-	m_pcap.m_snapshotSize = m_snapshotSizeProp.m_value;
 	m_pcap.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 
 	bool result = try m_pcap.openDevice (
 		device.m_name,
 		filterString,
+		m_snapshotSizeProp.m_value,
 		m_promisciousProp.m_value
 		);
 
