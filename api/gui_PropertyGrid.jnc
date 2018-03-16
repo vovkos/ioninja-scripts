@@ -11,6 +11,7 @@ opaque class Property
 {
 	char const* autoget property m_name;
 	char const* autoget property m_toolTipText;
+	char const* autoget property m_valueToolTipText;
 	bool autoget property m_isEnabled;
 }
 

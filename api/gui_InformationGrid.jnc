@@ -1,0 +1,154 @@
+//..............................................................................
+//
+// Ninja information grid
+//
+
+namespace gui {
+
+//..............................................................................
+
+opaque class InformationItem
+{
+	char const* autoget property m_name;
+	char const* autoget property m_toolTipText;
+	bool autoget property m_isEnabled;
+}
+
+//..............................................................................
+
+opaque class InformationGroup: InformationItem
+{
+	construct (char const* name);
+
+	addItem (
+		InformationItem* item,
+		InformationItem* beforeItem = null
+		);
+
+	removeItem (InformationItem* item);
+}
+
+//..............................................................................
+
+enum InformationValueKind
+{
+	Default,
+	SelectionProcessor,
+	BinarySelectionProcessor,
+
+	// standard values
+
+	LineCount,
+	RecordCount,
+	RecordFileSize,
+	IndexLeafCount,
+	IndexFileSize,
+	SelectionStartTimestamp,
+	SelectionEndTimestamp,
+	SelectionTimeSpan,
+	BinaryStartOffset,
+	BinaryEndOffset,
+	BinaryLength,
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+opaque class InformationValue: InformationItem
+{
+	construct (char const* name);
+
+	InformationValueKind autoget property m_valueKind;
+
+	char const* autoget property m_value;
+	char const* autoget property m_disabledValue;
+	char const* autoget property m_valueToolTipText;
+}
+
+//..............................................................................
+
+opaque class InformationGrid
+{
+	addItem (
+		InformationItem* item,
+		InformationItem* beforeItem = null
+		);
+
+	removeProperty (Property* prop);
+
+	InformationGroup* createGroup (
+		InformationGroup* group = null,
+		InformationItem* beforeItem = null,
+		char const* name,
+		char const* toolTipText = null
+		);
+
+	InformationGroup* createGroup (
+		char const* name,
+		char const* toolTipText = null
+		)
+	{
+		return createGroup (,, name, toolTipText);
+	}
+
+	InformationValue* createValue (
+		InformationGroup* group = null,
+		InformationItem* beforeItem = null,
+		InformationValueKind valueKind = InformationValueKind.Default,
+		char const* name,
+		char const* toolTipText = null
+		);
+
+	 InformationValue* createValue (
+		char const* name,
+		char const* toolTipText = null
+		)
+	{
+		return createValue (,,, name, toolTipText);
+	}
+
+	resizeNameColumnToContents ();
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+InformationGroup* InformationGrid.createGroup (
+	InformationGroup* group,
+	InformationItem* beforeItem,
+	char const* name,
+	char const* toolTipText
+	)
+{
+	InformationGroup* item = new InformationGroup (name);
+	item.m_toolTipText = toolTipText;
+
+	if (group)
+		group.addItem (item, beforeItem);
+	else
+		addItem (item, beforeItem);
+
+	return item;
+}
+
+InformationValue* InformationGrid.createValue (
+	InformationGroup* group,
+	InformationItem* beforeItem,
+	InformationValueKind valueKind,
+	char const* name,
+	char const* toolTipText
+	)
+{
+	InformationValue* item = new InformationValue (name);
+	item.m_toolTipText = toolTipText;
+	item.m_valueKind = valueKind;
+
+	if (group)
+		group.addItem (item, beforeItem);
+	else
+		addItem (item, beforeItem);
+
+	return item;
+}
+
+//..............................................................................
+
+} // namespace gui {

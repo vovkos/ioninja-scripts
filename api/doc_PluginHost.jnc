@@ -5,6 +5,7 @@
 
 import "gui_Base.jnc"
 import "gui_PropertyGrid.jnc"
+import "gui_InformationGrid.jnc"
 import "log.jnc"
 
 namespace doc {
@@ -41,6 +42,7 @@ opaque class PluginHost
 	gui.ToolBar m_toolBar;
 	gui.StatusBar m_statusBar;
 	gui.PropertyGrid m_propertyGrid;
+	gui.InformationGrid m_informationGrid;
 	log.Log m_log;
 	doc.Terminal m_terminal;
 	MainThreadScheduler* m_mainThreadScheduler;

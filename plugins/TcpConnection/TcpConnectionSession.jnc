@@ -53,6 +53,16 @@ protected:
 		_Count,
 	}
 
+	enum InfoId
+	{
+		LocalAddress,
+		RemoteAddress,
+		ConnectionTime,
+		TxTotalSize,
+		RxTotalSize,
+		_Count,
+	}
+
 protected:
 
 	// socket
@@ -60,15 +70,23 @@ protected:
 	State bindable m_state;
 	io.Socket m_socket;
 	io.SocketAddressResolver m_resolver;
+	io.SocketAddress m_localAddress;
 	io.SocketAddress m_remoteAddress;
 	std.Buffer m_readBuffer;
 	uint_t m_syncId;
+
+	// stats
+
+	uint64_t m_connectionTimestamp;
+	size_t bindable m_txTotalSize;
+	size_t bindable m_rxTotalSize;
 
 	// toolbar, status bar & menu
 
 	gui.Action* m_actionTable [ActionId._Count];
 	gui.Icon* m_iconTable [IconId._Count];
 	gui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
+	gui.InformationValue* m_infoTable [InfoId._Count];
 	gui.ComboBox* m_addressCombo;
 
 	// property grid
@@ -174,6 +192,41 @@ TcpConnectionSession.createUi ()
 
 	m_bufferPropertySet.createProperties (m_pluginHost.m_propertyGrid, group);
 
+	gui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup ("TCP Connection");
+	m_infoTable [InfoId.LocalAddress] = m_pluginHost.m_informationGrid.createValue (infoGroup,,, "Local address");
+	m_infoTable [InfoId.RemoteAddress] = m_pluginHost.m_informationGrid.createValue (infoGroup,,, "Remote address");
+	m_infoTable [InfoId.ConnectionTime] = m_pluginHost.m_informationGrid.createValue (infoGroup,,, "Connection time");
+	m_infoTable [InfoId.TxTotalSize] = m_pluginHost.m_informationGrid.createValue (infoGroup,,, "TX total bytes");
+	m_infoTable [InfoId.RxTotalSize] = m_pluginHost.m_informationGrid.createValue (infoGroup,,, "RX total bytes");
+
+	infoGroup = m_pluginHost.m_informationGrid.createGroup ("Log statistics");
+	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.LineCount, "Line count");
+	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.RecordCount, "Record count");
+	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.RecordFileSize, "Record file size");
+	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.IndexFileSize, "Index file size");
+
+
+	infoGroup = m_pluginHost.m_informationGrid.createGroup ("Selection");
+	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.SelectionStartTime, "Start time");
+	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.SelectionEndTime, "End time");
+	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.SelectionTimeSpan, "Time span");
+	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.SelectionProcessor, "TX total bytes");
+	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.SelectionProcessor, "RX total bytes");
+	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.SelectionProcessor, "TX throughput");
+	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.SelectionProcessor, "RX throughput");
+
+	infoGroup = m_pluginHost.m_informationGrid.createGroup ("Binary block");
+	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.BinaryStartOffset, "Start offset");
+	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.BinaryEndOffset, "End offset");
+	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.BinaryLength, "Length");
+
+	infoGroup = m_pluginHost.m_informationGrid.createGroup (infoGroup,, "Checksums");
+	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.BinarySelectionProcessor, "MD5");
+	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.BinarySelectionProcessor, "SHA1");
+	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.BinarySelectionProcessor, "CRC16 ANSI");
+	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.BinarySelectionProcessor, "CRC16 CCIT");
+	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.BinarySelectionProcessor, "CRC32");
+
 	m_uiReactor.start ();
 }
 
@@ -224,9 +277,6 @@ bool errorcode TcpConnectionSession.connect (io.SocketAddress const* remoteAddre
 {
 	disconnect ();
 
-	io.SocketAddress localAddress;
-
-nestedscope:
 	m_socket.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
 	m_socket.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
 	m_socket.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
@@ -241,13 +291,13 @@ nestedscope:
 	{
 		io.SocketAddress const* adapterAddress = m_socketPropertySet.m_adapterProp.m_value;
 		if (adapterAddress)
-			localAddress = *adapterAddress;
+			m_localAddress = *adapterAddress;
 		else
-			localAddress.m_family = remoteAddress.m_family;
+			m_localAddress.m_family = remoteAddress.m_family;
 
-		localAddress.m_ip4.m_port = (uint16_t) m_socketPropertySet.m_localPortProp.m_value; // same for IPv4/IPv6
+		m_localAddress.m_ip4.m_port = (uint16_t) m_socketPropertySet.m_localPortProp.m_value; // same for IPv4/IPv6
 
-		m_socket.open (io.Protocol.Tcp, &localAddress);
+		m_socket.open (io.Protocol.Tcp, &m_localAddress);
 	}
 
 	m_state = State.Connecting;
@@ -255,8 +305,8 @@ nestedscope:
 
 	m_socket.connect (remoteAddress);
 
-	localAddress = m_socket.m_address;
-	char const* p = $"$(*remoteAddress; B)$(localAddress; B)";
+	m_localAddress = m_socket.m_address;
+	char const* p = $"$(*remoteAddress; B)$(m_localAddress; B)";
 	writeLog (TcpConnectionLogRecordCode.ConnectingFrom, p, dynamic sizeof (p));
 
 	waitSocketEvents ();
@@ -269,7 +319,7 @@ catch:
 	}
 	else
 	{
-		char const* p = $"$(*remoteAddress; B)$(localAddress; B)";
+		char const* p = $"$(*remoteAddress; B)$(m_localAddress; B)";
 		writeLog (TcpConnectionLogRecordCode.ConnectingFrom, p, dynamic sizeof (p));
 	}
 
@@ -404,7 +454,10 @@ size_t errorcode TcpConnectionSession.transmit (
 
 	size_t result = m_socket.write (p, size);
 	if (result)
+	{
 		writeLog (log.StdRecordCode.Tx, p, result);
+		m_txTotalSize += result;
+	}
 
 	if (result < size)
 	{
@@ -432,8 +485,12 @@ TcpConnectionSession.onSocketEvent (
 	if (triggeredEvents & io.SocketEvents.Connected)
 	{
 		writeLog (TcpConnectionLogRecordCode.ConnectCompleted);
+		m_infoTable [InfoId.LocalAddress].m_value = m_localAddress.getString ();
+		m_infoTable [InfoId.RemoteAddress].m_value = m_remoteAddress.getString ();
 		m_state = State.Connected;
 		m_isTransmitEnabled = true;
+		m_txTotalSize = 0;
+		m_rxTotalSize = 0;
 	}
 
 	if (triggeredEvents & io.SocketEvents.Disconnected)
@@ -445,6 +502,7 @@ TcpConnectionSession.onSocketEvent (
 				break;
 
 			writeLog (log.StdRecordCode.Rx, m_readBuffer.m_p, result);
+			m_rxTotalSize += result;
 		}
 
 		TcpDisconnectLogRecordParams recordParams;
@@ -474,7 +532,10 @@ TcpConnectionSession.onSocketEvent (
 	{
 		size_t result = m_socket.read (m_readBuffer.m_p, m_readBuffer.m_size);
 		if (result)
+		{
 			writeLog (log.StdRecordCode.Rx, m_readBuffer.m_p, result);
+			m_rxTotalSize += result;
+		}
 	}
 
 	if (io.SocketEvents.WriteBufferReady)
@@ -525,6 +586,16 @@ reactor TcpConnectionSession.m_uiReactor ()
 	m_statusPaneTable [StatusPaneId.State].m_text = m_stateStringTable [m_state];
 	m_statusPaneTable [StatusPaneId.RemoteAddress].m_text = m_state > State.Resolving ? m_remoteAddress.getString () : "<peer-address>";
 	m_statusPaneTable [StatusPaneId.RemoteAddress].m_isVisible = m_state > State.Resolving;
+
+	bool bindable isConnected = m_state == State.Connected;
+
+	m_infoTable [InfoId.LocalAddress].m_isEnabled = isConnected;
+	m_infoTable [InfoId.RemoteAddress].m_isEnabled = isConnected;
+	m_infoTable [InfoId.ConnectionTime].m_isEnabled = isConnected;
+	m_infoTable [InfoId.TxTotalSize].m_value = $"$m_txTotalSize bytes";
+	m_infoTable [InfoId.TxTotalSize].m_isEnabled = isConnected;
+	m_infoTable [InfoId.RxTotalSize].m_value = $"$m_rxTotalSize bytes";
+	m_infoTable [InfoId.RxTotalSize].m_isEnabled = isConnected;
 }
 
 //..............................................................................
