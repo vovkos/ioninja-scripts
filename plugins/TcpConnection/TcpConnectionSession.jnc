@@ -199,33 +199,23 @@ TcpConnectionSession.createUi ()
 	m_infoTable [InfoId.TxTotalSize] = m_pluginHost.m_informationGrid.createValue (infoGroup,,, "TX total bytes");
 	m_infoTable [InfoId.RxTotalSize] = m_pluginHost.m_informationGrid.createValue (infoGroup,,, "RX total bytes");
 
-	infoGroup = m_pluginHost.m_informationGrid.createGroup ("Log statistics");
-	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.LineCount, "Line count");
-	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.RecordCount, "Record count");
-	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.RecordFileSize, "Record file size");
-	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.IndexFileSize, "Index file size");
-
-
-	infoGroup = m_pluginHost.m_informationGrid.createGroup ("Selection");
-	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.SelectionStartTime, "Start time");
-	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.SelectionEndTime, "End time");
-	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.SelectionTimeSpan, "Time span");
-	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.SelectionProcessor, "TX total bytes");
-	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.SelectionProcessor, "RX total bytes");
-	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.SelectionProcessor, "TX throughput");
-	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.SelectionProcessor, "RX throughput");
-
-	infoGroup = m_pluginHost.m_informationGrid.createGroup ("Binary block");
-	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.BinaryStartOffset, "Start offset");
-	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.BinaryEndOffset, "End offset");
-	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.BinaryLength, "Length");
+	infoGroup = m_pluginHost.m_informationGrid.createGroup ("Log selection");
+	m_pluginHost.m_informationGrid.createValue (infoGroup,, true, "Start time");
+	m_pluginHost.m_informationGrid.createValue (infoGroup,, true, "End time");
+	m_pluginHost.m_informationGrid.createValue (infoGroup,, true, "Time span");
+	m_pluginHost.m_informationGrid.createValue (infoGroup,, true, "TX total bytes");
+	m_pluginHost.m_informationGrid.createValue (infoGroup,, true, "RX total bytes");
+	m_pluginHost.m_informationGrid.createValue (infoGroup,, true, "TX throughput");
+	m_pluginHost.m_informationGrid.createValue (infoGroup,, true, "RX throughput");
 
 	infoGroup = m_pluginHost.m_informationGrid.createGroup (infoGroup,, "Checksums");
-	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.BinarySelectionProcessor, "MD5");
-	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.BinarySelectionProcessor, "SHA1");
-	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.BinarySelectionProcessor, "CRC16 ANSI");
-	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.BinarySelectionProcessor, "CRC16 CCIT");
-	m_pluginHost.m_informationGrid.createValue (infoGroup,, gui.InformationValueKind.BinarySelectionProcessor, "CRC32");
+	m_pluginHost.m_informationGrid.createValue (infoGroup,, true, "MD5");
+	m_pluginHost.m_informationGrid.createValue (infoGroup,, true, "SHA1");
+	m_pluginHost.m_informationGrid.createValue (infoGroup,, true, "CRC16 ANSI");
+	m_pluginHost.m_informationGrid.createValue (infoGroup,, true, "CRC16 CCIT");
+	m_pluginHost.m_informationGrid.createValue (infoGroup,, true, "CRC32");
+
+	m_pluginHost.m_informationGrid.resizeNameColumnToContents ();
 
 	m_uiReactor.start ();
 }
