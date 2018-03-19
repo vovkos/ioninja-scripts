@@ -315,6 +315,54 @@ typedef ListenerFunc (
 
 //..............................................................................
 
+class RangeProcessor
+{
+	uint64_t m_timestamp;
+	uint_t m_recordCode;
+	LineAttr m_lineAttr;
+	gui.TextAttr m_auxTextAttr; // for dual bin
+
+	bool readonly m_isFinished;
+
+	virtual processNewZone ()
+	{
+	}
+
+	virtual processText (
+		uint_t partCode,
+		char const* text
+		)
+	{
+	}
+
+	virtual processBin (
+		uint_t partCode,
+		const void* p,
+		size_t size
+		)
+	{
+	}
+
+	virtual processDualBin (
+		uint_t partCode,
+		const void* p1,
+		const void* p2,
+		size_t size
+		)
+	{
+	}
+
+	virtual processEndOfRange ()
+	{
+	}
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+typedef RangeProcessor* RangeProcessorFactoryFunc ();
+
+//..............................................................................
+
 // log engine
 
 opaque class Log
@@ -346,6 +394,9 @@ opaque class Log
 		);
 
 	removeAllLayers ();
+
+	registerSelectionProcessor (RangeProcessorFactoryFunc* factoryFunc);
+	unregisterAllSelectionProcessors ();
 }
 
 //..............................................................................
