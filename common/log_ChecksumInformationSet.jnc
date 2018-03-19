@@ -19,24 +19,21 @@ class ChecksumInformationSet
 		Crc16_ansi_1,
 		Crc16_ccit_0,
 		Crc16_ccit_1,
-		Crc32_0,
-		Crc32_1,
+		Crc32,
 
 		All =
 			Crc16_ansi_0 |
 			Crc16_ansi_1 |
 			Crc16_ccit_0 |
 			Crc16_ccit_1 |
-			Crc32_0 |
-			Crc32_1,
+			Crc32,
 	}
 
 	gui.InformationValue* m_crc16Info_ansi_0;
 	gui.InformationValue* m_crc16Info_ansi_1;
 	gui.InformationValue* m_crc16Info_ccit_0;
 	gui.InformationValue* m_crc16Info_ccit_1;
-	gui.InformationValue* m_crc32Info_0;
-	gui.InformationValue* m_crc32Info_1;
+	gui.InformationValue* m_crc32Info;
 
 	createInformationValues (
 		gui.InformationGrid* informationGrid,
@@ -57,8 +54,7 @@ ChecksumInformationSet.createInformationValues (
 	m_crc16Info_ansi_1 = informationGrid.createValue (group, insertBefore, true, "CRC16 ANSI (-1)");
 	m_crc16Info_ccit_0 = informationGrid.createValue (group, insertBefore, true, "CRC16 CCIT");
 	m_crc16Info_ccit_1 = informationGrid.createValue (group, insertBefore, true, "CRC16 CCIT (-1)");
-	m_crc32Info_0 = informationGrid.createValue (group, insertBefore, true, "CRC32");
-	m_crc32Info_1 = informationGrid.createValue (group, insertBefore, true, "CRC32 (-1)");
+	m_crc32Info = informationGrid.createValue (group, insertBefore, true, "CRC32");
 }
 
 //..............................................................................
@@ -71,8 +67,7 @@ protected:
 	uint16_t m_crc16_ansi_1;
 	uint16_t m_crc16_ccit_0;
 	uint16_t m_crc16_ccit_1;
-	uint32_t m_crc32_0;
-	uint32_t m_crc32_1;
+	uint32_t m_crc32;
 
 public:
 	static ChecksumInformationRangeProcessor* factory (ChecksumInformationSet* infoSet)
@@ -86,7 +81,6 @@ protected:
 		m_infoSet = infoSet;
 		m_crc16_ansi_1 = -1;
 		m_crc16_ccit_1 = -1;
-		m_crc32_1 = -1;
 	}
 
 	override processBin (
@@ -110,8 +104,7 @@ ChecksumInformationRangeProcessor.processBin (
 	m_crc16_ansi_1 = crc16_ansi (p, size, m_crc16_ansi_1);
 	m_crc16_ccit_0 = crc16_ccit (p, size, m_crc16_ccit_0);
 	m_crc16_ccit_1 = crc16_ccit (p, size, m_crc16_ccit_1);
-	m_crc32_0 = crc32 (p, size, m_crc32_0);
-	m_crc32_1 = crc32 (p, size, m_crc32_1);
+	m_crc32 = crc32 (p, size, m_crc32);
 }
 
 ChecksumInformationRangeProcessor.processEndOfRange ()
@@ -128,11 +121,8 @@ ChecksumInformationRangeProcessor.processEndOfRange ()
 	if (m_infoSet.m_crc16Info_ccit_1)
 		m_infoSet.m_crc16Info_ccit_1.m_value = $"$(m_crc16_ccit_1; %04x)";
 
-	if (m_infoSet.m_crc32Info_0)
-		m_infoSet.m_crc32Info_0.m_value = $"$(m_crc32_0; %08x)";
-
-	if (m_infoSet.m_crc32Info_1)
-		m_infoSet.m_crc32Info_1.m_value = $"$(m_crc32_1; %08x)";
+	if (m_infoSet.m_crc32Info)
+		m_infoSet.m_crc32Info.m_value = $"$(m_crc32_0; %08x)";
 }
 
 //..............................................................................
