@@ -319,10 +319,8 @@ class RangeProcessor
 {
 	uint64_t m_timestamp;
 	uint_t m_recordCode;
-	LineAttr m_lineAttr;
-	gui.TextAttr m_auxTextAttr; // for dual bin
 
-	bool readonly m_isFinished;
+	bool readonly m_isFinished; // set to 'true' to indicate we are done
 
 	virtual processNewZone ()
 	{
@@ -337,7 +335,7 @@ class RangeProcessor
 
 	virtual processBin (
 		uint_t partCode,
-		const void* p,
+		void const* p,
 		size_t size
 		)
 	{
@@ -345,8 +343,8 @@ class RangeProcessor
 
 	virtual processDualBin (
 		uint_t partCode,
-		const void* p1,
-		const void* p2,
+		void const* p1,
+		void const* p2,
 		size_t size
 		)
 	{

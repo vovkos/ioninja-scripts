@@ -30,38 +30,14 @@ opaque class InformationGroup: InformationItem
 
 //..............................................................................
 
-enum InformationValueKind
-{
-	Default,
-	SelectionProcessor,
-	BinarySelectionProcessor,
-
-	// standard values
-
-	LineCount,
-	RecordCount,
-	RecordFileSize,
-	IndexLeafCount,
-	IndexFileSize,
-	SelectionStartTimestamp,
-	SelectionEndTimestamp,
-	SelectionTimeSpan,
-	BinaryStartOffset,
-	BinaryEndOffset,
-	BinaryLength,
-}
-
-// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
 opaque class InformationValue: InformationItem
 {
 	construct (char const* name);
 
-	InformationValueKind autoget property m_valueKind;
-
 	char const* autoget property m_value;
 	char const* autoget property m_disabledValue;
 	char const* autoget property m_valueToolTipText;
+	bool autoget property m_isSelectionDependent;
 }
 
 //..............................................................................
@@ -93,7 +69,7 @@ opaque class InformationGrid
 	InformationValue* createValue (
 		InformationGroup* group = null,
 		InformationItem* beforeItem = null,
-		InformationValueKind valueKind = InformationValueKind.Default,
+		bool isSelectionDependent = false,
 		char const* name,
 		char const* toolTipText = null
 		);
@@ -132,14 +108,14 @@ InformationGroup* InformationGrid.createGroup (
 InformationValue* InformationGrid.createValue (
 	InformationGroup* group,
 	InformationItem* beforeItem,
-	InformationValueKind valueKind,
+	bool isSelectionDependent,
 	char const* name,
 	char const* toolTipText
 	)
 {
 	InformationValue* item = new InformationValue (name);
 	item.m_toolTipText = toolTipText;
-	item.m_valueKind = valueKind;
+	item.m_isSelectionDependent = isSelectionDependent;
 
 	if (group)
 		group.addItem (item, beforeItem);

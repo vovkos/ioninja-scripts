@@ -1,0 +1,140 @@
+//..............................................................................
+//
+// Some standard checksums collected via selection processors
+//
+
+import "gui_InformationGrid.jnc"
+import "crc16.jnc"
+import "crc32.jnc"
+
+namespace log {
+
+//..............................................................................
+
+class ChecksumInformationSet
+{
+	bitflag enum InformationId
+	{
+		Crc16_ansi_0,
+		Crc16_ansi_1,
+		Crc16_ccit_0,
+		Crc16_ccit_1,
+		Crc32_0,
+		Crc32_1,
+
+		All =
+			Crc16_ansi_0 |
+			Crc16_ansi_1 |
+			Crc16_ccit_0 |
+			Crc16_ccit_1 |
+			Crc32_0 |
+			Crc32_1,
+	}
+
+	gui.InformationValue* m_crc16Info_ansi_0;
+	gui.InformationValue* m_crc16Info_ansi_1;
+	gui.InformationValue* m_crc16Info_ccit_0;
+	gui.InformationValue* m_crc16Info_ccit_1;
+	gui.InformationValue* m_crc32Info_0;
+	gui.InformationValue* m_crc32Info_1;
+
+	createInformationValues (
+		gui.InformationGrid* informationGrid,
+		gui.InformationGroup* group = null,
+		gui.InformationValue* insertBefore = null,
+		InformationId informationSet = InformationId.All
+		);
+}
+
+ChecksumInformationSet.createInformationValues (
+	gui.InformationGrid* informationGrid,
+	gui.InformationGroup* group,
+	gui.InformationValue* insertBefore,
+	InformationId informationSet
+	)
+{
+	m_crc16Info_ansi_0 = informationGrid.createValue (group, insertBefore, true, "CRC16 ANSI");
+	m_crc16Info_ansi_1 = informationGrid.createValue (group, insertBefore, true, "CRC16 ANSI (-1)");
+	m_crc16Info_ccit_0 = informationGrid.createValue (group, insertBefore, true, "CRC16 CCIT");
+	m_crc16Info_ccit_1 = informationGrid.createValue (group, insertBefore, true, "CRC16 CCIT (-1)");
+	m_crc32Info_0 = informationGrid.createValue (group, insertBefore, true, "CRC32");
+	m_crc32Info_1 = informationGrid.createValue (group, insertBefore, true, "CRC32 (-1)");
+}
+
+//..............................................................................
+
+class ChecksumInformationRangeProcessor: RangeProcessor
+{
+protected:
+	ChecksumInformationSet* m_infoSet;
+	uint16_t m_crc16_ansi_0;
+	uint16_t m_crc16_ansi_1;
+	uint16_t m_crc16_ccit_0;
+	uint16_t m_crc16_ccit_1;
+	uint32_t m_crc32_0;
+	uint32_t m_crc32_1;
+
+public:
+	static ChecksumInformationRangeProcessor* factory (ChecksumInformationSet* infoSet)
+	{
+		return new ChecksumInformationRangeProcessor (infoSet);
+	}
+
+protected:
+	construct (ChecksumInformationSet* infoSet)
+	{
+		m_infoSet = infoSet;
+		m_crc16_ansi_1 = -1;
+		m_crc16_ccit_1 = -1;
+		m_crc32_1 = -1;
+	}
+
+	override processBin (
+		uint_t partCode,
+		void const* p,
+		size_t size
+		);
+
+	override processEndOfRange ();
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+ChecksumInformationRangeProcessor.processBin (
+	uint_t partCode,
+	void const* p,
+	size_t size
+	)
+{
+	m_crc16_ansi_0 = crc16_ansi (p, size, m_crc16_ansi_0);
+	m_crc16_ansi_1 = crc16_ansi (p, size, m_crc16_ansi_1);
+	m_crc16_ccit_0 = crc16_ccit (p, size, m_crc16_ccit_0);
+	m_crc16_ccit_1 = crc16_ccit (p, size, m_crc16_ccit_1);
+	m_crc32_0 = crc32 (p, size, m_crc32_0);
+	m_crc32_1 = crc32 (p, size, m_crc32_1);
+}
+
+ChecksumInformationRangeProcessor.processEndOfRange ()
+{
+	if (m_infoSet.m_crc16Info_ansi_0)
+		m_infoSet.m_crc16Info_ansi_0.m_value = $"$(m_crc16_ansi_0; %04x)";
+
+	if (m_infoSet.m_crc16Info_ansi_1)
+		m_infoSet.m_crc16Info_ansi_1.m_value = $"$(m_crc16_ansi_1; %04x)";
+
+	if (m_infoSet.m_crc16Info_ccit_0)
+		m_infoSet.m_crc16Info_ccit_0.m_value = $"$(m_crc16_ccit_0; %04x)";
+
+	if (m_infoSet.m_crc16Info_ccit_1)
+		m_infoSet.m_crc16Info_ccit_1.m_value = $"$(m_crc16_ccit_1; %04x)";
+
+	if (m_infoSet.m_crc32Info_0)
+		m_infoSet.m_crc32Info_0.m_value = $"$(m_crc32_0; %08x)";
+
+	if (m_infoSet.m_crc32Info_1)
+		m_infoSet.m_crc32Info_1.m_value = $"$(m_crc32_1; %08x)";
+}
+
+//..............................................................................
+
+} // namespace log

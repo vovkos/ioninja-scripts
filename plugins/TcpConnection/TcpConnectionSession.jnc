@@ -86,13 +86,18 @@ protected:
 	gui.Action* m_actionTable [ActionId._Count];
 	gui.Icon* m_iconTable [IconId._Count];
 	gui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
-	gui.InformationValue* m_infoTable [InfoId._Count];
 	gui.ComboBox* m_addressCombo;
 
 	// property grid
 
 	io.SocketPropertySet m_socketPropertySet;
 	io.BufferPropertySet m_bufferPropertySet;
+
+	// information grid
+
+	gui.InformationValue* m_infoTable [InfoId._Count];
+	log.StdInformationSet m_stdInfoSet;
+	log.ChecksumInformationSet m_checksumInfoSet;
 
 public:
 	construct (doc.PluginHost* pluginHost);
@@ -149,10 +154,12 @@ TcpConnectionSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
 
-	pluginHost.m_log.attachRepresenter (representTcpConnectionLog);
-
 	m_state = State.Closed;
 	createUi ();
+
+	pluginHost.m_log.attachRepresenter (representTcpConnectionLog);
+	pluginHost.m_log.registerSelectionProcessor (log.StdInformationRangeProcessor.factory ~(m_stdInfoSet));
+	pluginHost.m_log.registerSelectionProcessor (log.ChecksumInformationRangeProcessor.factory ~(m_checksumInfoSet));
 }
 
 TcpConnectionSession.createUi ()
@@ -199,21 +206,13 @@ TcpConnectionSession.createUi ()
 	m_infoTable [InfoId.TxTotalSize] = m_pluginHost.m_informationGrid.createValue (infoGroup,,, "TX total bytes");
 	m_infoTable [InfoId.RxTotalSize] = m_pluginHost.m_informationGrid.createValue (infoGroup,,, "RX total bytes");
 
+	// information grid
+
 	infoGroup = m_pluginHost.m_informationGrid.createGroup ("Log selection");
-	m_pluginHost.m_informationGrid.createValue (infoGroup,, true, "Start time");
-	m_pluginHost.m_informationGrid.createValue (infoGroup,, true, "End time");
-	m_pluginHost.m_informationGrid.createValue (infoGroup,, true, "Time span");
-	m_pluginHost.m_informationGrid.createValue (infoGroup,, true, "TX total bytes");
-	m_pluginHost.m_informationGrid.createValue (infoGroup,, true, "RX total bytes");
-	m_pluginHost.m_informationGrid.createValue (infoGroup,, true, "TX throughput");
-	m_pluginHost.m_informationGrid.createValue (infoGroup,, true, "RX throughput");
+	m_stdInfoSet.createInformationValues (m_pluginHost.m_informationGrid, infoGroup);
 
 	infoGroup = m_pluginHost.m_informationGrid.createGroup (infoGroup,, "Checksums");
-	m_pluginHost.m_informationGrid.createValue (infoGroup,, true, "MD5");
-	m_pluginHost.m_informationGrid.createValue (infoGroup,, true, "SHA1");
-	m_pluginHost.m_informationGrid.createValue (infoGroup,, true, "CRC16 ANSI");
-	m_pluginHost.m_informationGrid.createValue (infoGroup,, true, "CRC16 CCIT");
-	m_pluginHost.m_informationGrid.createValue (infoGroup,, true, "CRC32");
+	m_checksumInfoSet.createInformationValues (m_pluginHost.m_informationGrid, infoGroup);
 
 	m_pluginHost.m_informationGrid.resizeNameColumnToContents ();
 
