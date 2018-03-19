@@ -316,14 +316,14 @@ representModBusPdu (
 	default:
 		if (hdr.m_func & io.ModBusFunc.ExceptionFlag)
 		{
-			io.ModBusExceptionCode exception = (io.ModBusExceptionCode) (hdr.m_func & ~io.ModBusFunc.ExceptionFlag);
+			io.ModBusExceptionPdu const* pdu = (io.ModBusExceptionPdu const*) hdr;
 
 			target.addHyperText (
 				$"Exception: \e^!-%1,%2\e[31m0x%(3; 02X)/%3\e[m - %4" (
-				baseOffset + offsetof (hdr.m_func),
-				sizeof (hdr.m_func),
-				exception,
-				io.getModBusFuncString (exception)
+				baseOffset + offsetof (pdu.m_exceptionCode),
+				sizeof (pdu.m_exceptionCode),
+				pdu.m_exceptionCode,
+				io.getModBusFuncString (pdu.m_exceptionCode)
 				));
 		}
 	}
