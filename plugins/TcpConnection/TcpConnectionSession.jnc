@@ -7,6 +7,7 @@ import "io_base.jncx"
 import "io_Socket.jnc"
 import "io_SocketAddressResolver.jnc"
 import "std_Buffer.jnc"
+import "sys_Timer.jnc"
 import "doc_Plugin.jnc"
 import "gui_History.jnc"
 
@@ -77,6 +78,7 @@ protected:
 
 	// stats
 
+	sys.Timer m_connectionTimer;
 	uint64_t m_connectionTimestamp;
 	size_t bindable m_txTotalSize;
 	size_t bindable m_rxTotalSize;
@@ -144,6 +146,7 @@ protected:
 
 	createUi ();
 	waitSocketEvents ();
+	updateConnectionTime ();
 
 	reactor m_uiReactor ();
 }
@@ -480,6 +483,9 @@ TcpConnectionSession.onSocketEvent (
 		m_isTransmitEnabled = true;
 		m_txTotalSize = 0;
 		m_rxTotalSize = 0;
+		m_connectionTimestamp = sys.getTimestamp ();
+		updateConnectionTime ();
+		m_connectionTimer.startPeriodicTimer (updateConnectionTime, 1000);
 	}
 
 	if (triggeredEvents & io.SocketEvents.Disconnected)
@@ -509,6 +515,7 @@ TcpConnectionSession.onSocketEvent (
 
 		m_socket.close ();
 		m_state = State.Closed;
+		m_connectionTimer.stop ();
 		m_isTransmitEnabled = false;
 		return;
 	}
@@ -562,6 +569,15 @@ TcpConnectionSession.onResolveCompleted (
 		address.m_ip4.m_port = m_socketPropertySet.m_remotePortProp.m_value;
 
 	connect (address);
+}
+
+TcpConnectionSession.updateConnectionTime ()
+{
+	if (m_state != State.Connected)
+		return;
+
+	uint64_t time = sys.getTimestamp () - m_connectionTimestamp;
+	m_infoTable [InfoId.ConnectionTime].m_value = sys.formatTimestamp (time, 0, "%m:%s");
 }
 
 reactor TcpConnectionSession.m_uiReactor ()
