@@ -396,7 +396,6 @@ bool errorcode TcpFlowMonSession.openCapFile (
 	char const* filterString = createFilterString (filterAddress);
 	writeLogString (TcpFlowMonLogRecordCode.StartingCapture, filterString);
 
-	m_pcap.m_snapshotSize = m_snapshotSizeProp.m_value;
 	m_pcap.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 
 	bool result = try m_pcap.openFile (fileName, filterString);
