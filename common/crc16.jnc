@@ -52,7 +52,7 @@ uint16_t crc16_ansi (
 	return crc;
 }
 
-uint16_t crc16_ccit (
+uint16_t crc16_ccitt (
 	void const* p,
 	size_t size,
 	uint16_t seed = 0
