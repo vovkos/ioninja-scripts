@@ -6,6 +6,7 @@
 import "gui_InformationGrid.jnc"
 import "crc16.jnc"
 import "crc32.jnc"
+import "ip4Checksum.jnc"
 
 namespace log {
 
@@ -15,25 +16,28 @@ class ChecksumInformationSet
 {
 	bitflag enum InformationId
 	{
-		Crc16_ansi_0,
-		Crc16_ansi_1,
-		Crc16_ccit_0,
-		Crc16_ccit_1,
+		Crc16_ansi,
+		Crc16_modbus,
+		Crc16_xmodem,
+		Crc16_usb,
 		Crc32,
+		Ip4Checksum,
 
 		All =
-			Crc16_ansi_0 |
-			Crc16_ansi_1 |
-			Crc16_ccit_0 |
-			Crc16_ccit_1 |
-			Crc32,
+			Crc16_ansi |
+			Crc16_modbus |
+			Crc16_xmodem |
+			Crc16_usb |
+			Crc32 |
+			Ip4Checksum,
 	}
 
-	gui.InformationValue* m_crc16Info_ansi_0;
-	gui.InformationValue* m_crc16Info_ansi_1;
-	gui.InformationValue* m_crc16Info_ccit_0;
-	gui.InformationValue* m_crc16Info_ccit_1;
+	gui.InformationValue* m_crc16Info_ansi;
+	gui.InformationValue* m_crc16Info_modbus;
+	gui.InformationValue* m_crc16Info_xmodem;
+	gui.InformationValue* m_crc16Info_usb;
 	gui.InformationValue* m_crc32Info;
+	gui.InformationValue* m_ip4ChecksumInfo;
 
 	createInformationValues (
 		gui.InformationGrid* informationGrid,
@@ -47,14 +51,62 @@ ChecksumInformationSet.createInformationValues (
 	gui.InformationGrid* informationGrid,
 	gui.InformationGroup* group,
 	gui.InformationValue* insertBefore,
-	InformationId informationSet
+	InformationId mask
 	)
 {
-	m_crc16Info_ansi_0 = informationGrid.createValue (group, insertBefore, true, "CRC16 ANSI");
-	m_crc16Info_ansi_1 = informationGrid.createValue (group, insertBefore, true, "CRC16 ANSI (-1)");
-	m_crc16Info_ccit_0 = informationGrid.createValue (group, insertBefore, true, "CRC16 CCIT");
-	m_crc16Info_ccit_1 = informationGrid.createValue (group, insertBefore, true, "CRC16 CCIT (-1)");
-	m_crc32Info = informationGrid.createValue (group, insertBefore, true, "CRC32");
+	if (mask & InformationId.Crc16_ansi)
+		m_crc16Info_ansi = informationGrid.createValue (
+			group,
+			insertBefore,
+			true,
+			"CRC-16",
+			"Also known as CRC16-ANSI and CRC16-IBM"
+			);
+
+	if (mask & InformationId.Crc16_modbus)
+		m_crc16Info_modbus = informationGrid.createValue (
+			group,
+			insertBefore,
+			true,
+			"CRC-16 (ModBus)",
+			"Modification of CRC-16 with the initial seed 0xffff"
+			);
+
+	if (mask & InformationId.Crc16_xmodem)
+		m_crc16Info_xmodem = informationGrid.createValue (
+			group,
+			insertBefore,
+			true,
+			"CRC-16 (XModem)",
+			"Also known as CRC16-CCITT"
+			);
+
+	if (mask & InformationId.Crc16_usb)
+		m_crc16Info_usb = informationGrid.createValue (
+			group,
+			insertBefore,
+			true,
+			"CRC-16 (USB)",
+			"Modification of CRC-16 with the initial seed 0xffff; final value is xored with 0xffff"
+			);
+
+	if (mask & InformationId.Crc32)
+		m_crc32Info = informationGrid.createValue (
+			group,
+			insertBefore,
+			true,
+			"CRC-32"
+			);
+
+	if (mask & InformationId.Ip4Checksum)
+		m_ip4ChecksumInfo = informationGrid.createValue (
+			group,
+			insertBefore,
+			true,
+			"IPv4",
+			"IPv4, TCP, UDP\n"
+			"Calculated as the 16-bit one's complement of the one's complement sum of all 16-bit words"
+			);
 }
 
 //..............................................................................
@@ -63,11 +115,12 @@ class ChecksumInformationRangeProcessor: RangeProcessor
 {
 protected:
 	ChecksumInformationSet* m_infoSet;
-	uint16_t m_crc16_ansi_0;
-	uint16_t m_crc16_ansi_1;
-	uint16_t m_crc16_ccit_0;
-	uint16_t m_crc16_ccit_1;
+	uint16_t m_crc16_ansi;
+	uint16_t m_crc16_modbus;
+	uint16_t m_crc16_xmodem;
 	uint32_t m_crc32;
+	uint16_t m_ip4Checksum;
+	size_t m_totalSize;
 
 public:
 	static ChecksumInformationRangeProcessor* factory (ChecksumInformationSet* infoSet)
@@ -79,8 +132,7 @@ protected:
 	construct (ChecksumInformationSet* infoSet)
 	{
 		m_infoSet = infoSet;
-		m_crc16_ansi_1 = -1;
-		m_crc16_ccit_1 = -1;
+		m_crc16_modbus = -1;
 	}
 
 	override processBin (
@@ -100,29 +152,33 @@ ChecksumInformationRangeProcessor.processBin (
 	size_t size
 	)
 {
-	m_crc16_ansi_0 = crc16_ansi (p, size, m_crc16_ansi_0);
-	m_crc16_ansi_1 = crc16_ansi (p, size, m_crc16_ansi_1);
-	m_crc16_ccit_0 = crc16_ccit (p, size, m_crc16_ccit_0);
-	m_crc16_ccit_1 = crc16_ccit (p, size, m_crc16_ccit_1);
+	m_crc16_ansi = crc16_ansi (p, size, m_crc16_ansi);
+	m_crc16_modbus = crc16_ansi (p, size, m_crc16_modbus);
+	m_crc16_xmodem = crc16_ccitt (p, size, m_crc16_xmodem);
 	m_crc32 = crc32 (p, size, m_crc32);
+	m_ip4Checksum = calcIp4Checksum (p, size, m_ip4Checksum, m_totalSize & 1);
+	m_totalSize += size;
 }
 
 ChecksumInformationRangeProcessor.processEndOfRange ()
 {
-	if (m_infoSet.m_crc16Info_ansi_0)
-		m_infoSet.m_crc16Info_ansi_0.m_value = $"$(m_crc16_ansi_0; %04x)";
+	if (m_infoSet.m_crc16Info_ansi)
+		m_infoSet.m_crc16Info_ansi.m_value = $"$(m_crc16_ansi; %04x)";
 
-	if (m_infoSet.m_crc16Info_ansi_1)
-		m_infoSet.m_crc16Info_ansi_1.m_value = $"$(m_crc16_ansi_1; %04x)";
+	if (m_infoSet.m_crc16Info_modbus)
+		m_infoSet.m_crc16Info_modbus.m_value = $"$(m_crc16_modbus; %04x)";
 
-	if (m_infoSet.m_crc16Info_ccit_0)
-		m_infoSet.m_crc16Info_ccit_0.m_value = $"$(m_crc16_ccit_0; %04x)";
+	if (m_infoSet.m_crc16Info_xmodem)
+		m_infoSet.m_crc16Info_xmodem.m_value = $"$(m_crc16_xmodem; %04x)";
 
-	if (m_infoSet.m_crc16Info_ccit_1)
-		m_infoSet.m_crc16Info_ccit_1.m_value = $"$(m_crc16_ccit_1; %04x)";
+	if (m_infoSet.m_crc16Info_usb)
+		m_infoSet.m_crc16Info_usb.m_value = $"$(~m_crc16_modbus & 0xffff; %04x)";
 
 	if (m_infoSet.m_crc32Info)
-		m_infoSet.m_crc32Info.m_value = $"$(m_crc32_0; %08x)";
+		m_infoSet.m_crc32Info.m_value = $"$(m_crc32; %08x)";
+
+	if (m_infoSet.m_ip4ChecksumInfo)
+		m_infoSet.m_ip4ChecksumInfo.m_value = $"$(finalizeIp4Checksum (m_ip4Checksum); %04x)";
 }
 
 //..............................................................................

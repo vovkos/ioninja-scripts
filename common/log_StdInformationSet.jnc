@@ -37,7 +37,7 @@ class StdInformationSet
 		gui.InformationGrid* informationGrid,
 		gui.InformationGroup* group = null,
 		gui.InformationValue* insertBefore = null,
-		InformationId informationSet = InformationId.All
+		InformationId mask = InformationId.All
 		);
 }
 
@@ -47,14 +47,23 @@ StdInformationSet.createInformationValues (
 	gui.InformationGrid* informationGrid,
 	gui.InformationGroup* group,
 	gui.InformationValue* insertBefore,
-	InformationId informationSet
+	InformationId mask
 	)
 {
-	m_timeSpanInfo = informationGrid.createValue (group, insertBefore, true, "Time span");
-	m_txTotalSizeInfo = informationGrid.createValue (group, insertBefore, true, "TX total bytes");
-	m_rxTotalSizeInfo = informationGrid.createValue (group, insertBefore, true, "RX total bytes");
-	m_txThroughputInfo = informationGrid.createValue (group, insertBefore, true, "TX throughput");
-	m_rxThroughputInfo = informationGrid.createValue (group, insertBefore, true, "RX throughput");
+	if (mask & InformationId.TimeSpan)
+		m_timeSpanInfo = informationGrid.createValue (group, insertBefore, true, "Time span");
+
+	if (mask & InformationId.TxTotalSize)
+		m_txTotalSizeInfo = informationGrid.createValue (group, insertBefore, true, "TX total bytes");
+
+	if (mask & InformationId.RxTotalSize)
+		m_rxTotalSizeInfo = informationGrid.createValue (group, insertBefore, true, "RX total bytes");
+
+	if (mask & InformationId.TxThroughput)
+		m_txThroughputInfo = informationGrid.createValue (group, insertBefore, true, "TX throughput");
+
+	if (mask & InformationId.RxThroughput)
+		m_rxThroughputInfo = informationGrid.createValue (group, insertBefore, true, "RX throughput");
 }
 
 //..............................................................................
@@ -130,7 +139,7 @@ StdInformationRangeProcessor.processEndOfRange ()
 	uint64_t timeSpan = m_timestamp - m_startTimestamp;
 
 	if (m_infoSet.m_timeSpanInfo)
-		m_infoSet.m_timeSpanInfo.m_value = $"$timeSpan";
+		m_infoSet.m_timeSpanInfo.m_value = $"$(sys.formatTimestamp (timeSpan, 0, "%m:%s.%l"))";
 
 	if (m_infoSet.m_txTotalSizeInfo)
 		m_infoSet.m_txTotalSizeInfo.m_value = $"$m_txTotalSize bytes";
@@ -144,7 +153,7 @@ StdInformationRangeProcessor.processEndOfRange ()
 			m_infoSet.m_txThroughputInfo.m_value = $"$(m_txTotalSize * 10000000 / timeSpan) Bps";
 
 		if (m_infoSet.m_rxThroughputInfo)
-			m_infoSet.m_rxThroughputInfo.m_value = $"$(m_rxTotalSize * 10000000 / timeSpan)  Bps";
+			m_infoSet.m_rxThroughputInfo.m_value = $"$(m_rxTotalSize * 10000000 / timeSpan) Bps";
 	}
 	else
 	{
