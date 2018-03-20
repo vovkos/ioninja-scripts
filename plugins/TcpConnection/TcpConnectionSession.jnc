@@ -214,7 +214,7 @@ TcpConnectionSession.createUi ()
 	infoGroup = m_pluginHost.m_informationGrid.createGroup ("Log selection");
 	m_stdInfoSet.createInformationValues (m_pluginHost.m_informationGrid, infoGroup);
 
-	infoGroup = m_pluginHost.m_informationGrid.createGroup (infoGroup,, "Checksums");
+	infoGroup = m_pluginHost.m_informationGrid.createGroup (infoGroup,, "Checksum calculator");
 	m_checksumInfoSet.createInformationValues (m_pluginHost.m_informationGrid, infoGroup);
 
 	m_pluginHost.m_informationGrid.resizeNameColumnToContents ();
