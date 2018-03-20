@@ -319,6 +319,7 @@ class RangeProcessor
 {
 	uint64_t m_timestamp;
 	uint_t m_recordCode;
+	uint64_t m_zoneOffset;
 
 	bool readonly m_isFinished; // set to 'true' to indicate we are done
 
