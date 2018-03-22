@@ -20,5 +20,3 @@ log-representer-func = representTcpListenerLog
 
 TcpListenerSession.jnc
 TcpListenerLog.jnc
-../../common/io_SocketUi.jnc
-../../common/io_BufferUi.jnc

@@ -20,7 +20,3 @@ log-representer-func = representTcpConnectionLog
 
 TcpConnectionSession.jnc
 TcpConnectionLog.jnc
-../../common/io_SocketUi.jnc
-../../common/io_BufferUi.jnc
-../../common/log_StdInformationSet.jnc
-../../common/log_ChecksumInformationSet.jnc

@@ -22,5 +22,3 @@ log-representer-func  = representPipeMonLog
 PipeMonLog.jnc
 PipeMonSession.jnc
 PipeMonitor.jnc
-../../common/io_Monitor.jnc
-../../common/io_BufferUi.jnc

@@ -22,5 +22,3 @@ log-representer-func = representUdpLog
 
 UdpSession.jnc
 UdpLog.jnc
-../../common/io_SocketUi.jnc
-../../common/io_BufferUi.jnc

@@ -21,4 +21,3 @@ log-representer-func = representTcpProxyLog
 
 TcpProxySession.jnc
 TcpProxyLog.jnc
-../../common/io_SocketUi.jnc

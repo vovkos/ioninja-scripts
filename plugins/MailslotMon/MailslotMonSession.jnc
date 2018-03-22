@@ -3,9 +3,12 @@
 // Mailslot Monitor session
 //
 
-import "io_base.jncx"
+import "io_BufferUi.jnc"
 import "doc_Plugin.jnc"
 import "gui_History.jnc"
+import "gui_StdSessionInfo.jnc"
+import "log_ThroughputCalc.jnc"
+import "log_ChecksumCalc.jnc"
 
 using extension gui.ComboBoxHistory;
 
@@ -66,6 +69,12 @@ protected:
 	io.BufferPropertySet m_bufferPropertySet;
 	gui.IntProperty* m_pendingNotifySizeLimitProp;
 
+	// information grid
+
+	gui.StdSessionInfoSet m_stdSessionInfoSet;
+	log.ThroughputInfoSet m_throughputInfoSet;
+	log.ChecksumInfoSet m_checksumInfoSet;
+
 public:
 	construct (doc.PluginHost* pluginHost);
 
@@ -101,11 +110,12 @@ MailslotMonSession.construct (doc.PluginHost* pluginHost)
 	m_msfsMonitor.construct (this);
 	m_lanmanMonitor.construct (this);
 
-	pluginHost.m_log.attachRepresenter (representMailslotMonLog);
-
-	m_state = State.Closed;
-
 	createUi ();
+
+	pluginHost.m_log.attachRepresenter (representMailslotMonLog);
+	pluginHost.m_log.registerSelectionProcessor (log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
+	pluginHost.m_log.registerSelectionProcessor (log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
+	m_stdSessionInfoSet.attachLogListener (pluginHost.m_log);
 }
 
 MailslotMonSession.createUi ()
@@ -162,7 +172,7 @@ MailslotMonSession.createUi ()
 
 	m_pendingNotifySizeLimitProp = m_pluginHost.m_propertyGrid.createIntProperty (
 		group,,
-		"Pending notifaction limit",
+		"Pending notification limit",
 		"Set the maximum size of kernel notification queue (exceeding notification will be dropped)"
 		);
 
@@ -170,6 +180,22 @@ MailslotMonSession.createUi ()
 	m_bufferPropertySet.m_readBufferSizeProp.m_minValue = 1024;
 	m_pendingNotifySizeLimitProp.m_minValue = 1024;
 	m_pendingNotifySizeLimitProp.m_spinBoxStep = 1024; // 1KB
+
+	// information grid
+
+	gui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup ("Mailslot monitor");
+
+	m_stdSessionInfoSet.createInformationValues (
+		m_pluginHost.m_informationGrid,
+		infoGroup,,
+		gui.StdSessionInfoSet.InfoId.SessionTime |
+		gui.StdSessionInfoSet.InfoId.RxTotalSize
+		);
+
+	m_throughputInfoSet.createInformationValuesGrouped (m_pluginHost.m_informationGrid);
+	m_checksumInfoSet.createInformationValuesGrouped (m_pluginHost.m_informationGrid);
+
+	m_pluginHost.m_informationGrid.resizeNameColumnToContents ();
 
 	m_uiReactor.start ();
 }
@@ -197,6 +223,7 @@ bool errorcode MailslotMonSession.capture ()
 	writeLogString (MailslotMonLogRecordCode.CaptureStarted, name);
 
 	m_state = State.Opened;
+	m_stdSessionInfoSet.startSession (m_pluginHost.m_mainThreadScheduler);
 	return true;
 
 catch:
@@ -222,6 +249,7 @@ MailslotMonSession.close ()
 	m_msfsMonitor.close ();
 	m_lanmanMonitor.close ();
 	m_state = State.Closed;
+	m_stdSessionInfoSet.endSession ();
 }
 
 void MailslotMonSession.load (doc.Storage* storage)

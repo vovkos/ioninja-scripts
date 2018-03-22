@@ -28,5 +28,4 @@ I2c.jnc
 ../../common/io_UartSignalDecoder.jnc
 ../../common/io_SpiSignalDecoder.jnc
 ../../common/io_I2cSignalDecoder.jnc
-../../common/io_BufferUi.jnc
 ../UsbEndpoint/UsbLog.jnc

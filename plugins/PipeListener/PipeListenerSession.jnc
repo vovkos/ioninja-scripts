@@ -6,9 +6,13 @@
 import "io_base.jncx"
 import "io_NamedPipe.jnc"
 import "io_FileStream.jnc"
+import "io_BufferUi.jnc"
 import "std_Buffer.jnc"
 import "doc_Plugin.jnc"
 import "gui_History.jnc"
+import "gui_StdSessionInfo.jnc"
+import "log_ThroughputCalc.jnc"
+import "log_ChecksumCalc.jnc"
 
 using extension gui.ComboBoxHistory;
 
@@ -81,6 +85,12 @@ protected:
 	gui.BoolProperty* m_overrideOldConnectionProp;
 	io.BufferPropertySet m_bufferPropertySet;
 
+	// information grid
+
+	gui.StdSessionInfoSet m_stdSessionInfoSet;
+	log.ThroughputInfoSet m_throughputInfoSet;
+	log.ChecksumInfoSet m_checksumInfoSet;
+
 public:
 	construct (doc.PluginHost* pluginHost);
 
@@ -133,12 +143,12 @@ PipeListenerSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
 
-	pluginHost.m_log.attachRepresenter (representPipeListenerLog);
-
-	m_connectionState = State.Closed;
-	m_listenerState = State.Closed;
-
 	createUi ();
+
+	pluginHost.m_log.attachRepresenter (representPipeListenerLog);
+	pluginHost.m_log.registerSelectionProcessor (log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
+	pluginHost.m_log.registerSelectionProcessor (log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
+	m_stdSessionInfoSet.attachLogListener (pluginHost.m_log);
 }
 
 PipeListenerSession.createUi ()
@@ -190,12 +200,17 @@ PipeListenerSession.createUi ()
 		"Accept incoming connection even if already connected"
 		);
 
-	group = m_pluginHost.m_propertyGrid.createGroupProperty (
-		"Buffering",
-		"Advanced buffering options affecting throughtput and compatibility"
-		);
+	m_bufferPropertySet.createPropertiesGrouped (m_pluginHost.m_propertyGrid);
 
-	m_bufferPropertySet.createProperties (m_pluginHost.m_propertyGrid, group);
+	// information grid
+
+	gui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup ("Pipe listener");
+
+	m_stdSessionInfoSet.createInformationValues (m_pluginHost.m_informationGrid, infoGroup);
+	m_throughputInfoSet.createInformationValuesGrouped (m_pluginHost.m_informationGrid);
+	m_checksumInfoSet.createInformationValuesGrouped (m_pluginHost.m_informationGrid);
+
+	m_pluginHost.m_informationGrid.resizeNameColumnToContents ();
 
 	m_uiReactor.start ();
 }
@@ -231,6 +246,7 @@ bool errorcode PipeListenerSession.listen ()
 	m_listenerState = State.Opened;
 
 	waitListenerPipeEvents ();
+	m_stdSessionInfoSet.startSession (m_pluginHost.m_mainThreadScheduler);
 	return true;
 
 catch:
@@ -259,6 +275,7 @@ PipeListenerSession.stopListen ()
 	m_listenerPipe.close ();
 	m_listenerState = State.Closed;
 	m_listenerSyncId++;
+	m_stdSessionInfoSet.endSession ();
 }
 
 PipeListenerSession.disconnect ()

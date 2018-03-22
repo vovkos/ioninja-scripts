@@ -20,7 +20,3 @@ log-representer-func  = representTcpFlowMonLog
 
 TcpFlowMonSession.jnc
 TcpFlowMonLog.jnc
-../../common/io_IpDefragmenter.jnc
-../../common/io_TcpSequencer.jnc
-../../common/io_PcapDeviceUi.jnc
-../../common/io_BufferUi.jnc
