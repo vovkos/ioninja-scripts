@@ -207,7 +207,7 @@ class SocketPropertySet
 		gui.PropertyGrid* propertyGrid,
 		gui.GroupProperty* group = null,
 		gui.Property* insertBefore = null,
-		PropertyId propertySet = PropertyId.AllTcpClient
+		PropertyId mask = PropertyId.AllTcpClient
 		);
 
 	load (doc.Storage* storage);
@@ -219,10 +219,10 @@ SocketPropertySet.createProperties (
 	gui.PropertyGrid* propertyGrid,
 	gui.GroupProperty* group,
 	gui.Property* insertBefore,
-	PropertyId propertySet
+	PropertyId mask
 	)
 {
-	if (propertySet & PropertyId.RemoteAddress)
+	if (mask & PropertyId.RemoteAddress)
 		m_remoteAddressProp = propertyGrid.createStringProperty (
 			group,
 			insertBefore,
@@ -230,7 +230,7 @@ SocketPropertySet.createProperties (
 			"Remote address to connect to (IP-address or host-name followed by ':' port)"
 			);
 
-	if (propertySet & PropertyId.RemotePort)
+	if (mask & PropertyId.RemotePort)
 		m_remotePortProp = propertyGrid.createIntProperty (
 			group,
 			insertBefore,
@@ -238,7 +238,7 @@ SocketPropertySet.createProperties (
 			"Remote TCP port to connect to (if not specified in remote address)"
 			);
 
-	if (propertySet & PropertyId.UseLocalAddress)
+	if (mask & PropertyId.UseLocalAddress)
 		m_useLocalAddressProp = propertyGrid.createBoolProperty (
 			group,
 			insertBefore,
@@ -246,26 +246,26 @@ SocketPropertySet.createProperties (
 			"Bind socket to the specified local address"
 			);
 
-	if (propertySet & (PropertyId.ClientAdapter | PropertyId.ServerAdapter))
+	if (mask & (PropertyId.ClientAdapter | PropertyId.ServerAdapter))
 		m_adapterProp = io.createNetworkAdapterProperty (
 			propertyGrid,
 			group,
 			insertBefore,
-			(propertySet & PropertyId.ClientAdapter) ?
+			(mask & PropertyId.ClientAdapter) ?
 				io.NetworkAdapterUsage.Connection :
 				io.NetworkAdapterUsage.Listener,
 			"Adapter",
 			"Network adapter to bind to"
 			);
 
-	if (propertySet & PropertyId.LocalPort)
+	if (mask & PropertyId.LocalPort)
 		m_localPortProp = propertyGrid.createIntProperty (
 			group,,
 			"Local TCP port",
 			"Local TCP port to bind to"
 			);
 
-	if (propertySet & PropertyId.ReuseLocalAddress)
+	if (mask & PropertyId.ReuseLocalAddress)
 		m_reuseLocalAddressProp = propertyGrid.createBoolProperty (
 			group,
 			insertBefore,
@@ -273,7 +273,7 @@ SocketPropertySet.createProperties (
 			"Allow multiple sockets to share the same local address"
 			);
 
-	if (propertySet & PropertyId.TcpKeepAlive)
+	if (mask & PropertyId.TcpKeepAlive)
 		m_tcpKeepAliveProp = propertyGrid.createBoolProperty (
 			group,
 			insertBefore,
@@ -281,7 +281,7 @@ SocketPropertySet.createProperties (
 			"Detect connection loss with TCP keep-alive probes"
 			);
 
-	if (propertySet & PropertyId.TcpNagle)
+	if (mask & PropertyId.TcpNagle)
 		m_tcpNagleProp = propertyGrid.createBoolProperty (
 			group,
 			insertBefore,
@@ -289,7 +289,7 @@ SocketPropertySet.createProperties (
 			"Reduce the number of small TCP packets being sent"
 			);
 
-	if (propertySet & PropertyId.TcpReset)
+	if (mask & PropertyId.TcpReset)
 		m_tcpResetProp = propertyGrid.createBoolProperty (
 			group,
 			insertBefore,

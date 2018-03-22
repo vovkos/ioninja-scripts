@@ -54,7 +54,14 @@ class BufferPropertySet
 		gui.PropertyGrid* propertyGrid,
 		gui.GroupProperty* group = null,
 		gui.Property* insertBefore = null,
-		PropertyId propertySet = PropertyId.All
+		PropertyId mask = PropertyId.All
+		);
+
+	createPropertiesGrouped (
+		gui.PropertyGrid* propertyGrid,
+		gui.GroupProperty* group = null,
+		gui.Property* insertBefore = null,
+		PropertyId mask = PropertyId.All
 		);
 
 	load (doc.Storage* storage);
@@ -68,13 +75,13 @@ BufferPropertySet.createProperties (
 	gui.PropertyGrid* propertyGrid,
 	gui.GroupProperty* group,
 	gui.Property* insertBefore,
-	PropertyId propertySet
+	PropertyId mask
 	)
 {
 	// read parallelism is only applicable on Windows (simultaneous OVERLAPPED read requests)
 	// still, we want a valid m_readParallelismProp pointer, so there's less checking in plugins
 
-	if (propertySet & PropertyId.ReadParallelism)
+	if (mask & PropertyId.ReadParallelism)
 		if (sys.g_systemInfo.m_osKind == sys.OsKind.Windows)
 		{
 			m_readParallelismProp  = propertyGrid.createIntProperty (
@@ -91,7 +98,7 @@ BufferPropertySet.createProperties (
 			m_readParallelismProp  = new gui.IntProperty (null);
 		}
 
-	if (propertySet & PropertyId.ReadBlockSize)
+	if (mask & PropertyId.ReadBlockSize)
 	{
 		m_readBlockSizeProp = propertyGrid.createIntProperty (
 			group,
@@ -104,7 +111,7 @@ BufferPropertySet.createProperties (
 		m_readBlockSizeProp.m_spinBoxStep = 1024; // 1K step
 	}
 
-	if (propertySet & PropertyId.ReadBufferSize)
+	if (mask & PropertyId.ReadBufferSize)
 	{
 		m_readBufferSizeProp = propertyGrid.createIntProperty (
 			group,
@@ -117,7 +124,7 @@ BufferPropertySet.createProperties (
 		m_readBufferSizeProp.m_spinBoxStep = 1024; // 1K step
 	}
 
-	if (propertySet & PropertyId.WriteBufferSize)
+	if (mask & PropertyId.WriteBufferSize)
 	{
 		m_writeBufferSizeProp = propertyGrid.createIntProperty (
 			group,
@@ -130,7 +137,7 @@ BufferPropertySet.createProperties (
 		m_writeBufferSizeProp.m_spinBoxStep = 1024; // 1K step
 	}
 
-	if (propertySet & PropertyId.KeepReadBlockSize)
+	if (mask & PropertyId.KeepReadBlockSize)
 		m_keepReadBlockSizeProp = propertyGrid.createBoolProperty (
 			group,
 			insertBefore,
@@ -138,7 +145,7 @@ BufferPropertySet.createProperties (
 			"Don't merge read blocks in RX buffer (keep the original size returned by lower IO provider)"
 			);
 
-	if (propertySet & PropertyId.KeepWriteBlockSize)
+	if (mask & PropertyId.KeepWriteBlockSize)
 		m_keepWriteBlockSizeProp = propertyGrid.createBoolProperty (
 			group,
 			insertBefore,
@@ -146,13 +153,30 @@ BufferPropertySet.createProperties (
 			"Don't merge write blocks in TX buffer (submit the original size to lower IO provider)"
 			);
 
-	if (propertySet & PropertyId.NotifyReadBufferFull)
+	if (mask & PropertyId.NotifyReadBufferFull)
 		m_notifyReadBufferFullProp = propertyGrid.createBoolProperty (
 			group,
 			insertBefore,
 			"RX buffer full notifications",
 			"Write warnings in log whenever RX buffer gets completely full"
 			);
+}
+
+BufferPropertySet.createPropertiesGrouped (
+	gui.PropertyGrid* propertyGrid,
+	gui.GroupProperty* group,
+	gui.Property* insertBefore,
+	PropertyId mask
+	)
+{
+	gui.GroupProperty* subGroup = propertyGrid.createGroupProperty (
+		group,
+		insertBefore,
+		"Buffering",
+		"Advanced buffering options affecting throughtput and compatibility"
+		);
+
+	createProperties (propertyGrid, subGroup,, mask);
 }
 
 BufferPropertySet.load (doc.Storage* storage)

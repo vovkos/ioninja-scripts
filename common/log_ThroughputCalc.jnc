@@ -9,81 +9,116 @@ namespace log {
 
 //..............................................................................
 
-class StdInformationSet
+class ThroughputInfoSet
 {
-	bitflag enum InformationId
+	bitflag enum InfoId
 	{
 		TimeSpan,
 		TxTotalSize,
-		RxTotalSize,
 		TxThroughput,
+		RxTotalSize,
 		RxThroughput,
+		TotalSize,
+		TotalThroughput,
 
-		All =
+		Default =
 			TimeSpan |
 			TxTotalSize |
-			RxTotalSize |
 			TxThroughput |
+			RxTotalSize |
 			RxThroughput,
 	}
 
 	gui.InformationValue* m_timeSpanInfo;
 	gui.InformationValue* m_txTotalSizeInfo;
-	gui.InformationValue* m_rxTotalSizeInfo;
 	gui.InformationValue* m_txThroughputInfo;
+	gui.InformationValue* m_rxTotalSizeInfo;
 	gui.InformationValue* m_rxThroughputInfo;
+	gui.InformationValue* m_totalSizeInfo;
+	gui.InformationValue* m_totalThroughputInfo;
 
 	createInformationValues (
 		gui.InformationGrid* informationGrid,
 		gui.InformationGroup* group = null,
 		gui.InformationValue* insertBefore = null,
-		InformationId mask = InformationId.All
+		InfoId mask = InfoId.Default
+		);
+
+	createInformationValuesGrouped (
+		gui.InformationGrid* informationGrid,
+		gui.InformationGroup* group = null,
+		gui.InformationValue* insertBefore = null,
+		InfoId mask = InfoId.Default
 		);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-StdInformationSet.createInformationValues (
+ThroughputInfoSet.createInformationValues (
 	gui.InformationGrid* informationGrid,
 	gui.InformationGroup* group,
 	gui.InformationValue* insertBefore,
-	InformationId mask
+	InfoId mask
 	)
 {
-	if (mask & InformationId.TimeSpan)
+	if (mask & InfoId.TimeSpan)
 		m_timeSpanInfo = informationGrid.createValue (group, insertBefore, true, "Time span");
 
-	if (mask & InformationId.TxTotalSize)
+	if (mask & InfoId.TxTotalSize)
 		m_txTotalSizeInfo = informationGrid.createValue (group, insertBefore, true, "TX total bytes");
 
-	if (mask & InformationId.RxTotalSize)
-		m_rxTotalSizeInfo = informationGrid.createValue (group, insertBefore, true, "RX total bytes");
-
-	if (mask & InformationId.TxThroughput)
+	if (mask & InfoId.TxThroughput)
 		m_txThroughputInfo = informationGrid.createValue (group, insertBefore, true, "TX throughput");
 
-	if (mask & InformationId.RxThroughput)
+	if (mask & InfoId.RxTotalSize)
+		m_rxTotalSizeInfo = informationGrid.createValue (group, insertBefore, true, "RX total bytes");
+
+	if (mask & InfoId.RxThroughput)
 		m_rxThroughputInfo = informationGrid.createValue (group, insertBefore, true, "RX throughput");
+
+	if (mask & InfoId.TotalSize)
+		m_totalSizeInfo = informationGrid.createValue (group, insertBefore, true, "Total bytes");
+
+	if (mask & InfoId.TotalThroughput)
+		m_totalThroughputInfo = informationGrid.createValue (group, insertBefore, true, "Total throughput");
+}
+
+ThroughputInfoSet.createInformationValuesGrouped (
+	gui.InformationGrid* informationGrid,
+	gui.InformationGroup* group,
+	gui.InformationValue* insertBefore,
+	InfoId mask
+	)
+{
+	gui.InformationGroup* subGroup = informationGrid.createGroup (
+		group,
+		insertBefore,
+		"Throughput calculator",
+		"Make a selection in the log to calculate throughput"
+		);
+
+	createInformationValues (informationGrid, subGroup,, mask);
 }
 
 //..............................................................................
 
-class StdInformationRangeProcessor: RangeProcessor
+class ThroughputCalcRangeProcessor: RangeProcessor
 {
 protected:
-	StdInformationSet* m_infoSet;
+	ThroughputInfoSet* m_infoSet;
 	uint64_t m_startTimestamp;
 	uint64_t m_txTotalSize;
 	uint64_t m_rxTotalSize;
+	uint64_t m_totalSize;
 
 public:
-	static StdInformationRangeProcessor* factory (StdInformationSet* infoSet)
+	static ThroughputCalcRangeProcessor* factory (ThroughputInfoSet* infoSet)
 	{
-		return new StdInformationRangeProcessor (infoSet);
+		return new ThroughputCalcRangeProcessor (infoSet);
 	}
 
 protected:
-	construct (StdInformationSet* infoSet)
+	construct (ThroughputInfoSet* infoSet)
 	{
 		m_infoSet = infoSet;
 	}
@@ -104,7 +139,7 @@ protected:
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-StdInformationRangeProcessor.processText (
+ThroughputCalcRangeProcessor.processText (
 	uint_t partCode,
 	char const* text
 	)
@@ -113,7 +148,7 @@ StdInformationRangeProcessor.processText (
 		m_startTimestamp = m_timestamp;
 }
 
-StdInformationRangeProcessor.processBin (
+ThroughputCalcRangeProcessor.processBin (
 	uint_t partCode,
 	void const* p,
 	size_t size
@@ -132,9 +167,11 @@ StdInformationRangeProcessor.processBin (
 		m_rxTotalSize += size;
 		break;
 	}
+
+	m_totalSize += size;
 }
 
-StdInformationRangeProcessor.processEndOfRange ()
+ThroughputCalcRangeProcessor.processEndOfRange ()
 {
 	uint64_t timeSpan = m_timestamp - m_startTimestamp;
 
@@ -147,6 +184,9 @@ StdInformationRangeProcessor.processEndOfRange ()
 	if (m_infoSet.m_rxTotalSizeInfo)
 		m_infoSet.m_rxTotalSizeInfo.m_value = $"$m_rxTotalSize bytes";
 
+	if (m_infoSet.m_totalSizeInfo)
+		m_infoSet.m_totalSizeInfo.m_value = $"$m_totalSize bytes";
+
 	if (timeSpan)
 	{
 		if (m_infoSet.m_txThroughputInfo)
@@ -154,14 +194,22 @@ StdInformationRangeProcessor.processEndOfRange ()
 
 		if (m_infoSet.m_rxThroughputInfo)
 			m_infoSet.m_rxThroughputInfo.m_value = $"$(m_rxTotalSize * 10000000 / timeSpan) Bps";
+
+		if (m_infoSet.m_totalThroughputInfo)
+			m_infoSet.m_totalThroughputInfo.m_value = $"$(m_totalSize * 10000000 / timeSpan) Bps";
 	}
 	else
 	{
+		char const* text = "insufficient time span";
+
 		if (m_infoSet.m_txThroughputInfo)
-			m_infoSet.m_txThroughputInfo.m_disabledValue = $"insufficient time span";
+			m_infoSet.m_txThroughputInfo.m_disabledValue = text;
 
 		if (m_infoSet.m_rxThroughputInfo)
-			m_infoSet.m_rxThroughputInfo.m_disabledValue = $"insufficient time span";
+			m_infoSet.m_rxThroughputInfo.m_disabledValue = text;
+
+		if (m_infoSet.m_totalThroughputInfo)
+			m_infoSet.m_totalThroughputInfo.m_disabledValue = text;
 	}
 }
 

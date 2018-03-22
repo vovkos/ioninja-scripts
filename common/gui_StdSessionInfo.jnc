@@ -1,0 +1,260 @@
+//..............................................................................
+//
+// Standard session information (session time and byte counters)
+//
+
+import "gui_InformationGrid.jnc"
+import "sys_Timer.jnc"
+import "sys_Lock.jnc"
+import "log.jnc"
+
+namespace gui {
+
+//..............................................................................
+
+class StdSessionInfoSet
+{
+public:
+	bitflag enum InfoId
+	{
+		SessionTime,
+		TxTotalSize,
+		RxTotalSize,
+		TotalSize,
+
+		Default =
+			SessionTime |
+			TxTotalSize |
+			RxTotalSize,
+	}
+
+public:
+	gui.InformationValue* readonly m_sessionTimeInfo;
+	gui.InformationValue* readonly m_txTotalSizeInfo;
+	gui.InformationValue* readonly m_rxTotalSizeInfo;
+	gui.InformationValue* readonly m_totalSizeInfo;
+
+protected:
+	uint64_t m_baseTimestamp;
+
+	sys.Lock m_lock; // accessed
+	uint64_t m_txTotalSize;
+	uint64_t m_rxTotalSize;
+
+	sys.Timer m_timer;
+	uint_t m_syncId;
+
+public:
+	createInformationValues (
+		gui.InformationGrid* informationGrid,
+		gui.InformationGroup* group = null,
+		gui.InformationValue* insertBefore = null,
+		InfoId mask = InfoId.Default
+		);
+
+	attachLogListener (log.Log* log)
+	{
+		log.attachListener (onLogRecord);
+	}
+
+	startSession (jnc.Scheduler* mainThreadScheduler);
+	endSession ();
+
+	addData (
+		size_t txSize,
+		size_t rxSize
+		);
+
+	addTxData (size_t size)
+	{
+		addData (size, 0);
+	}
+
+	addRxData (size_t size)
+	{
+		addData (0, size);
+	}
+
+protected:
+	update (uint64_t sessionTime);
+
+	update ()
+	{
+		update (sys.getTimestamp () - m_baseTimestamp);
+	}
+
+	onTimer (uint_t syncId);
+
+	onLogRecord (
+		uint64_t timestamp,
+		uint_t recordCode,
+		void const* p,
+		size_t size
+		);
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+StdSessionInfoSet.createInformationValues (
+	gui.InformationGrid* informationGrid,
+	gui.InformationGroup* group,
+	gui.InformationValue* insertBefore,
+	InfoId mask
+	)
+{
+	if (mask & InfoId.SessionTime)
+	{
+		m_sessionTimeInfo = informationGrid.createValue (
+			group,
+			insertBefore,,
+			"Session time"
+			);
+
+		m_sessionTimeInfo.m_isEnabled = false;
+	}
+
+	if (mask & InfoId.TxTotalSize)
+	{
+		m_txTotalSizeInfo = informationGrid.createValue (
+			group,
+			insertBefore,,
+			"TX total bytes"
+			);
+
+		m_txTotalSizeInfo.m_isEnabled = false;
+	}
+
+	if (mask & InfoId.RxTotalSize)
+	{
+		m_rxTotalSizeInfo = informationGrid.createValue (
+			group,
+			insertBefore,,
+			"RX total bytes"
+			);
+
+		m_rxTotalSizeInfo.m_isEnabled = false;
+	}
+
+	if (mask & InfoId.TotalSize)
+	{
+		m_totalSizeInfo = informationGrid.createValue (
+			group,
+			insertBefore,,
+			"Total bytes"
+			);
+
+		m_totalSizeInfo.m_isEnabled = false;
+	}
+
+	update (0);
+}
+
+StdSessionInfoSet.startSession (jnc.Scheduler* mainThreadScheduler)
+{
+	if (m_sessionTimeInfo)
+	{
+		m_sessionTimeInfo.m_isEnabled = true;
+		m_baseTimestamp = sys.getTimestamp ();
+	}
+
+	if (m_txTotalSizeInfo)
+		m_txTotalSizeInfo.m_isEnabled = true;
+
+	if (m_rxTotalSizeInfo)
+		m_rxTotalSizeInfo.m_isEnabled = true;
+
+	if (m_totalSizeInfo)
+		m_totalSizeInfo.m_isEnabled = true;
+
+	m_txTotalSize = 0;
+	m_rxTotalSize = 0;
+
+	m_syncId++;
+	m_timer.startPeriodicTimer (onTimer ~(m_syncId) @ mainThreadScheduler, 500);
+	update (0);
+}
+
+StdSessionInfoSet.endSession ()
+{
+	m_timer.stop ();
+
+	update (); // final update
+
+	if (m_sessionTimeInfo)
+		m_sessionTimeInfo.m_isEnabled = false;
+
+	if (m_txTotalSizeInfo)
+		m_txTotalSizeInfo.m_isEnabled = false;
+
+	if (m_rxTotalSizeInfo)
+		m_rxTotalSizeInfo.m_isEnabled = false;
+
+	if (m_totalSizeInfo)
+		m_totalSizeInfo.m_isEnabled = false;
+
+	m_syncId++;
+}
+
+StdSessionInfoSet.addData (
+	size_t txSize,
+	size_t rxSize
+	)
+{
+	m_lock.lock ();
+	m_txTotalSize += txSize;
+	m_rxTotalSize += rxSize;
+	m_lock.unlock ();
+}
+
+StdSessionInfoSet.onLogRecord (
+	uint64_t timestamp,
+	uint_t recordCode,
+	void const* p,
+	size_t size
+	)
+{
+	switch (recordCode)
+	{
+	case log.StdRecordCode.Tx:
+		addTxData (size);
+		break;
+
+	case log.StdRecordCode.Rx:
+		addRxData (size);
+		break;
+
+	case log.StdRecordCode.TxRx:
+		addData (size, size);
+		break;
+	}
+}
+
+StdSessionInfoSet.onTimer (uint_t syncId)
+{
+	if (syncId == m_syncId)
+		update ();
+}
+
+StdSessionInfoSet.update (uint64_t sessionTime)
+{
+	if (m_sessionTimeInfo)
+		m_sessionTimeInfo.m_value = sys.formatTimestamp (sessionTime, 0, "%m:%s");
+
+	m_lock.lock ();
+	uint64_t txTotalSize = m_txTotalSize;
+	uint64_t rxTotalSize = m_rxTotalSize;
+	m_lock.unlock ();
+
+	if (m_txTotalSizeInfo)
+		m_txTotalSizeInfo.m_value = $"$txTotalSize bytes";
+
+	if (m_rxTotalSizeInfo)
+		m_rxTotalSizeInfo.m_value = $"$rxTotalSize bytes";
+
+	if (m_totalSizeInfo)
+		m_totalSizeInfo.m_value = $"$(txTotalSize + rxTotalSize) bytes";
+}
+
+//..............................................................................
+
+} // namespace gui {
