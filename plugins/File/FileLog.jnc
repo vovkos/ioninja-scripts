@@ -13,6 +13,7 @@ enum FileLogRecordCode
 	OpenError,
 	Closed,
 	Eof,
+	Cleared,
 }
 
 //..............................................................................
@@ -51,7 +52,13 @@ bool representFileLog (
 	case FileLogRecordCode.Eof:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText ("EOF reached");
+		target.addHyperText ("End-of-file reached");
+		break;
+
+	case FileLogRecordCode.Cleared:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText ($"File cleared");
 		break;
 
 	default:

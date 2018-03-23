@@ -263,6 +263,7 @@ FileSession.clear ()
 		return;
 
 	try m_file.clear ();
+	writeLog (FileLogRecordCode.Cleared);
 }
 
 io.FileStreamOptions FileSession.getFileStreamOptions ()
@@ -381,10 +382,18 @@ FileSession.onFileStreamEvent (
 
 	if (triggeredEvents & io.FileStreamEvents.Eof)
 	{
-		writeLog (FileLogRecordCode.Eof);
+		for (;;) // read all the buffered data
+		{
+			size_t result = m_file.read (m_readBuffer.m_p, m_readBuffer.m_size);
+			if (!result)
+				break;
 
-		if (m_file.m_kind != io.FileStreamKind.Disk)
-			close ();
+			writeLog (log.StdRecordCode.Rx, m_readBuffer.m_p, result);
+		}
+
+		writeLog (FileLogRecordCode.Eof);
+		close ();
+		return;
 	}
 
 	if (io.FileStreamEvents.WriteBufferReady)
