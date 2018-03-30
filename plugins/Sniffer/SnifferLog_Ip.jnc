@@ -140,7 +140,7 @@ char const* formatIpLogText (io.IpHdr const* ipHdr)
 		);
 }
 
-representIp(
+representIp (
 	log.RepresenterTarget* target,
 	void const* p,
 	size_t size,

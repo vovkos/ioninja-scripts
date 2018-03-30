@@ -6,7 +6,7 @@
 [plugin]
 
 name        = "Network Sniffer"
-description = "pcap-based network traffic sniffer\nProvides basic tcpdump functionality for TCP/UDP/ICMP protocols"
+description = "pcap-based network traffic sniffer\nProvides basic tcpdump functionality for TCP/UDP/ICMP/ARP protocols"
 id          = sniffer
 group       = monitors
 guid        = b0a872b3-de4b-4f15-88bd-8de55eba7a78
@@ -28,3 +28,4 @@ SnifferLog_Ip.jnc
 SnifferLog_Icmp.jnc
 SnifferLog_Tcp.jnc
 SnifferLog_Udp.jnc
+SnifferLog_Arp.jnc

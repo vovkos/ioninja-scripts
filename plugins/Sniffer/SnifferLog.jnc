@@ -32,6 +32,7 @@ enum SnifferLogPartCode
 enum SnifferLogHdrColor
 {
 	Ethernet   = gui.StdColor.Green,
+	Arp        = gui.StdColor.Cyan,
 	Ip         = gui.StdColor.Cyan,
 	IpOptions  = gui.StdColor.Purple,
 	Ip6        = gui.StdColor.Cyan,
