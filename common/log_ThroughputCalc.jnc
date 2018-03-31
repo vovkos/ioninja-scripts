@@ -4,6 +4,7 @@
 //
 
 import "gui_InformationGrid.jnc"
+import "formatInteger.jnc"
 
 namespace log {
 
@@ -176,27 +177,27 @@ ThroughputCalcRangeProcessor.processEndOfRange ()
 	uint64_t timeSpan = m_timestamp - m_startTimestamp;
 
 	if (m_infoSet.m_timeSpanInfo)
-		m_infoSet.m_timeSpanInfo.m_value = $"$(sys.formatTimestamp (timeSpan, 0, "%m:%s.%l"))";
+		m_infoSet.m_timeSpanInfo.m_value = $"$(sys.formatTimestamp (timeSpan, 0, "%h:%m:%s.%l"))";
 
 	if (m_infoSet.m_txTotalSizeInfo)
-		m_infoSet.m_txTotalSizeInfo.m_value = $"$m_txTotalSize bytes";
+		m_infoSet.m_txTotalSizeInfo.m_value = formatIntegerWithThousandSep (m_txTotalSize);
 
 	if (m_infoSet.m_rxTotalSizeInfo)
-		m_infoSet.m_rxTotalSizeInfo.m_value = $"$m_rxTotalSize bytes";
+		m_infoSet.m_rxTotalSizeInfo.m_value = formatIntegerWithThousandSep (m_rxTotalSize);
 
 	if (m_infoSet.m_totalSizeInfo)
-		m_infoSet.m_totalSizeInfo.m_value = $"$m_totalSize bytes";
+		m_infoSet.m_totalSizeInfo.m_value = formatIntegerWithThousandSep (m_totalSize);
 
 	if (timeSpan)
 	{
 		if (m_infoSet.m_txThroughputInfo)
-			m_infoSet.m_txThroughputInfo.m_value = $"$(m_txTotalSize * 10000000 / timeSpan) Bps";
+			m_infoSet.m_txThroughputInfo.m_value = formatIntegerWithThousandSep (m_txTotalSize * 10000000 / timeSpan);
 
 		if (m_infoSet.m_rxThroughputInfo)
-			m_infoSet.m_rxThroughputInfo.m_value = $"$(m_rxTotalSize * 10000000 / timeSpan) Bps";
+			m_infoSet.m_rxThroughputInfo.m_value = formatIntegerWithThousandSep (m_rxTotalSize * 10000000 / timeSpan);
 
 		if (m_infoSet.m_totalThroughputInfo)
-			m_infoSet.m_totalThroughputInfo.m_value = $"$(m_totalSize * 10000000 / timeSpan) Bps";
+			m_infoSet.m_totalThroughputInfo.m_value = formatIntegerWithThousandSep (m_totalSize * 10000000 / timeSpan);
 	}
 	else
 	{
