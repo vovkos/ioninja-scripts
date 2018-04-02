@@ -451,7 +451,12 @@ bool UsbEndpointSession.startReading ()
 	stopReading ();
 
 	io.UsbEndpointDesc const* endpointDesc = m_inEndpointCombo.m_currentData;
+
 	m_inEndpoint = m_interface.openEndpoint (endpointDesc.m_endpointId);
+	m_inEndpoint.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
+	m_inEndpoint.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
+	m_inEndpoint.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
+
 	writeLog (UsbRecordCode.ReadingStarted, &endpointDesc.m_endpointId, sizeof (endpointDesc.m_endpointId));
 	m_state = State.Reading;
 	waitInEndpointEvents ();
@@ -534,7 +539,7 @@ bool errorcode UsbEndpointSession.applyProperties ()
 	}
 
 	if (m_outEndpoint)
-		m_inEndpoint.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
+		m_outEndpoint.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
 
 	return true;
 }
@@ -556,7 +561,10 @@ size_t errorcode UsbEndpointSession.transmit (
 
 	io.UsbEndpointDesc const* endpointDesc = m_outEndpointCombo.m_currentData;
 	if (!m_outEndpoint || m_outEndpoint.m_endpointDesc.m_endpointId != endpointDesc.m_endpointId)
+	{
 		m_outEndpoint = m_interface.openEndpoint (endpointDesc.m_endpointId);
+		m_outEndpoint.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
+	}
 
 	size = m_outEndpoint.write (p, size);
 	writeLog (log.StdRecordCode.Tx, p, size);
