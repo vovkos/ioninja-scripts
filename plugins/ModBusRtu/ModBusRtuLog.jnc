@@ -1,14 +1,14 @@
 //..............................................................................
 //
-// ModBus Protocol Analyzer log record declarations and representer
+// Modbus Protocol Analyzer log record declarations and representer
 //
 
 import "log.jnc"
-import "io_ModBus.jnc"
+import "io_Modbus.jnc"
 
 //..............................................................................
 
-enum ModBusRtuLogRecordCode
+enum ModbusRtuLogRecordCode
 {
 	// need to avoid conflicts with SerialLog and SerialMonLog
 	MasterPacket    = 0x200 | log.RecordCodeFlags.Foldable,
@@ -18,7 +18,7 @@ enum ModBusRtuLogRecordCode
 
 //..............................................................................
 
-bool representModBusRtuLog (
+bool representModbusRtuLog (
 	log.RepresenterTarget* target,
 	uint_t recordCode,
 	void const* p,
@@ -26,19 +26,19 @@ bool representModBusRtuLog (
 	uint_t foldFlags
 	)
 {
-	io.ModBusRole role;
+	io.ModbusRole role;
 
 	switch (recordCode)
 	{
-	case ModBusRtuLogRecordCode.MasterPacket:
-		role = io.ModBusRole.Master;
+	case ModbusRtuLogRecordCode.MasterPacket:
+		role = io.ModbusRole.Master;
 		break;
 
-	case ModBusRtuLogRecordCode.SlavePacket:
-		role = io.ModBusRole.Slave;
+	case ModbusRtuLogRecordCode.SlavePacket:
+		role = io.ModbusRole.Slave;
 		break;
 
-	case ModBusRtuLogRecordCode.InvalidFunction:
+	case ModbusRtuLogRecordCode.InvalidFunction:
 		uint8_t code = *(uint8_t const*) p;
 		target.m_lineAttr.m_backColor = gui.StdColor.PastelYellow;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
@@ -49,11 +49,11 @@ bool representModBusRtuLog (
 		return false;
 	}
 
-	io.ModBusRtuAduHdr const* aduHdr = (io.ModBusRtuAduHdr const*) p;
-	io.ModBusPduHdr const* pduHdr = (io.ModBusPduHdr const*) (aduHdr + 1);
+	io.ModbusRtuAduHdr const* aduHdr = (io.ModbusRtuAduHdr const*) p;
+	io.ModbusPduHdr const* pduHdr = (io.ModbusPduHdr const*) (aduHdr + 1);
 
 	target.m_lineAttr.m_backColor = gui.StdColor.PastelGray;
-	target.m_lineAttr.m_iconIdx = role == io.ModBusRole.Master ?
+	target.m_lineAttr.m_iconIdx = role == io.ModbusRole.Master ?
 		log.StdLogIcon.TxPacket :
 		log.StdLogIcon.RxPacket;
 
@@ -88,12 +88,12 @@ bool representModBusRtuLog (
 			));
 	}
 
-	representModBusPdu (
+	representModbusPdu (
 		target,
 		role,
 		pduHdr,
-		size - sizeof (io.ModBusRtuAduHdr),
-		sizeof (io.ModBusRtuAduHdr),
+		size - sizeof (io.ModbusRtuAduHdr),
+		sizeof (io.ModbusRtuAduHdr),
 		foldFlags
 		);
 

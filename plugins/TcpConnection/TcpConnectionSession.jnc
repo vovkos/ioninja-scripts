@@ -365,8 +365,8 @@ TcpConnectionSession.disconnect ()
 			sizeof (params)
 			);
 
-		m_stdSessionInfoSet.endSession ();
 		m_isTransmitEnabled = false;
+		m_stdSessionInfoSet.endSession ();
 		break;
 	}
 

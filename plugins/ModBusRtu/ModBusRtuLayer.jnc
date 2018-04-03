@@ -1,16 +1,16 @@
 //..............................................................................
 //
-// ModBus RTU Protocol Analyzer layer
+// Modbus RTU Protocol Analyzer layer
 //
 
-import "io_ModBus.jnc"
+import "io_Modbus.jnc"
 import "doc_Plugin.jnc"
 import "std_Buffer.jnc"
 import "crc16.jnc"
 
 //..............................................................................
 
-class ModBusRtuLayer:
+class ModbusRtuLayer:
 	doc.Layer,
 	log.Converter
 {
@@ -49,7 +49,7 @@ public:
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-ModBusRtuLayer.construct (doc.PluginHost* pluginHost)
+ModbusRtuLayer.construct (doc.PluginHost* pluginHost)
 {
 	basetype1.construct (pluginHost);
 
@@ -71,34 +71,34 @@ ModBusRtuLayer.construct (doc.PluginHost* pluginHost)
 	pluginHost.m_log.attachConverter (
 		this,
 		&pluginHost.m_pluginGuid,
-		representModBusRtuLog
+		representModbusRtuLog
 		);
 }
 
-void ModBusRtuLayer.load (doc.Storage* storage)
+void ModbusRtuLayer.load (doc.Storage* storage)
 {
 	m_streamRoleProp.m_value = storage.readBool ("streamRole");
 	m_isInvertedStreamRole = m_streamRoleProp.m_value;
 }
 
-void ModBusRtuLayer.save (doc.Storage* storage)
+void ModbusRtuLayer.save (doc.Storage* storage)
 {
 	storage.writeBool ("streamRole", m_streamRoleProp.m_value);
 }
 
-bool ModBusRtuLayer.applyProperties ()
+bool ModbusRtuLayer.applyProperties ()
 {
 	m_isInvertedStreamRole = m_streamRoleProp.m_value;
 	return true;
 }
 
-void ModBusRtuLayer.restoreDefaultProperties ()
+void ModbusRtuLayer.restoreDefaultProperties ()
 {
 	m_streamRoleProp.m_value = false;
 	m_isInvertedStreamRole = false;
 }
 
-bool ModBusRtuLayer.convert (
+bool ModbusRtuLayer.convert (
 	log.Writer* writer,
 	uint64_t timestamp,
 	uint_t recordCode,
@@ -107,25 +107,25 @@ bool ModBusRtuLayer.convert (
 	)
 {
 	bool result;
-	io.ModBusRole role;
+	io.ModbusRole role;
 
 	switch (recordCode)
 	{
 	case log.StdRecordCode.Tx:
-		role = m_isInvertedStreamRole ? io.ModBusRole.Slave : io.ModBusRole.Master;
+		role = m_isInvertedStreamRole ? io.ModbusRole.Slave : io.ModbusRole.Master;
 		break;
 
 	case log.StdRecordCode.Rx:
-		role = m_isInvertedStreamRole ? io.ModBusRole.Master : io.ModBusRole.Slave;
+		role = m_isInvertedStreamRole ? io.ModbusRole.Master : io.ModbusRole.Slave;
 		break;
 
 	default:
 		return false;
 	}
 
-	ModBusRtuLogRecordCode packetRecordCode = role == io.ModBusRole.Master ?
-		ModBusRtuLogRecordCode.MasterPacket :
-		ModBusRtuLogRecordCode.SlavePacket;
+	ModbusRtuLogRecordCode packetRecordCode = role == io.ModbusRole.Master ?
+		ModbusRtuLogRecordCode.MasterPacket :
+		ModbusRtuLogRecordCode.SlavePacket;
 
 	bool isNewFrame = false;
 
@@ -145,12 +145,12 @@ bool ModBusRtuLayer.convert (
 	m_lastRecordCode = 0;
 	m_dataBuffer.append (p, size);
 
-	io.ModBusRtuAduHdr const* aduHdr = (io.ModBusRtuAduHdr const*) m_dataBuffer.m_p;
-	size_t aduSize = io.getModBusRtuAduSize (role, aduHdr, m_dataBuffer.m_size);
+	io.ModbusRtuAduHdr const* aduHdr = (io.ModbusRtuAduHdr const*) m_dataBuffer.m_p;
+	size_t aduSize = io.getModbusRtuAduSize (role, aduHdr, m_dataBuffer.m_size);
 	if (aduSize == -1)
 	{
 		writer.write (timestamp, recordCode, p, size); // actual data first
-		writer.write (timestamp, ModBusRtuLogRecordCode.InvalidFunction, aduHdr + 1, sizeof (uint8_t));
+		writer.write (timestamp, ModbusRtuLogRecordCode.InvalidFunction, aduHdr + 1, sizeof (uint8_t));
 		m_dataBuffer.clear ();
 		return true;
 	}

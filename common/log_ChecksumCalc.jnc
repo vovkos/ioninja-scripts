@@ -83,7 +83,7 @@ ChecksumInfoSet.createInformationValues (
 			group,
 			insertBefore,
 			true,
-			"CRC-16 (ModBus)",
+			"CRC-16 (Modbus)",
 			"Modification of CRC-16 with the initial seed 0xffff"
 			);
 
