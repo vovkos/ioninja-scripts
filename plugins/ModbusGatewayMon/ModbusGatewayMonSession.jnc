@@ -181,7 +181,9 @@ ModbusGatewayMonSession.createUi ()
 		"TCP-specific connection settings"
 		);
 
-	m_socketPropertySet.createProperties (m_pluginHost.m_propertyGrid, group);
+    m_socketPropertySet.m_defaultRemotePort = 23;
+    //io.SocketPropertySet.PropertyId mask = io.SocketPropertySet.PropertyId.AllTcpClient & ~io.SocketPropertySet.PropertyId.RemotePort;
+	m_socketPropertySet.createProperties (m_pluginHost.m_propertyGrid, group); //,, mask);
 
 	group = m_pluginHost.m_propertyGrid.createGroupProperty (
 		"Buffering",
@@ -444,7 +446,6 @@ ModbusGatewayMonSession.onSocketEvent (
 		writeLog (ModbusGatewayMonLogRecordCode.ConnectCompleted);
 		m_state = State.Connected;
 		m_isTransmitEnabled = true;
-
 		m_stdSessionInfoSet.startSession (m_pluginHost.m_mainThreadScheduler);
 
 		size_t sz = m_socket.write (m_telnetCommand, 4);
