@@ -151,13 +151,15 @@ class SocketPropertySet
 		TcpKeepAlive,
 		TcpNagle,
 		TcpReset,
+		UdpBroadcast,
 
 		AllUdpClient =
 			RemoteAddress |
 			RemotePort |
 			ServerAdapter |
 			LocalPort |
-			ReuseLocalAddress,
+			ReuseLocalAddress |
+			UdpBroadcast,
 
 		AllTcpClient =
 			RemoteAddress |
@@ -186,6 +188,7 @@ class SocketPropertySet
 		TcpKeepAlive = false,
 		TcpNagle     = false,
 		TcpReset     = false,
+		UdpBroadcast = true,
 	}
 
 	static char DefaultRemoteAddress [] = "ioninja.com";
@@ -199,6 +202,7 @@ class SocketPropertySet
 	gui.BoolProperty* m_tcpKeepAliveProp;
 	gui.BoolProperty* m_tcpNagleProp;
 	gui.BoolProperty* m_tcpResetProp;
+	gui.BoolProperty* m_udpBroadcastProp;
 
 	uint16_t m_defaultRemotePort = Defaults.RemotePort;
 	uint16_t m_defaultLocalPort = Defaults.LocalPort;
@@ -234,8 +238,8 @@ SocketPropertySet.createProperties (
 		m_remotePortProp = propertyGrid.createIntProperty (
 			group,
 			insertBefore,
-			"Remote TCP port (default)",
-			"Remote TCP port to connect to (if not specified in remote address)"
+			"Remote port (default)",
+			"Remote port to connect to (if not specified in remote address)"
 			);
 
 	if (mask & PropertyId.UseLocalAddress)
@@ -261,8 +265,8 @@ SocketPropertySet.createProperties (
 	if (mask & PropertyId.LocalPort)
 		m_localPortProp = propertyGrid.createIntProperty (
 			group,,
-			"Local TCP port",
-			"Local TCP port to bind to"
+			"Local port",
+			"Local port to bind to"
 			);
 
 	if (mask & PropertyId.ReuseLocalAddress)
@@ -296,6 +300,14 @@ SocketPropertySet.createProperties (
 			"TCP reset",
 			"Drop TCP connections abruptly with a TCP RST packet"
 			);
+
+	if (mask & PropertyId.UdpBroadcast)
+		m_udpBroadcastProp = propertyGrid.createBoolProperty (
+			group,
+			insertBefore,
+			"UDP broadcast",
+			"Allow broadcast packets to be transmitted"
+			);
 }
 
 SocketPropertySet.load (doc.Storage* storage)
@@ -326,6 +338,9 @@ SocketPropertySet.load (doc.Storage* storage)
 
 	if (m_tcpResetProp)
 		m_tcpResetProp.m_value = storage.readBool ("closeKind", Defaults.TcpReset);
+
+	if (m_udpBroadcastProp)
+		m_udpBroadcastProp.m_value = storage.readBool ("udpBroadcast", Defaults.UdpBroadcast);
 }
 
 SocketPropertySet.save (doc.Storage* storage)
@@ -356,6 +371,9 @@ SocketPropertySet.save (doc.Storage* storage)
 
 	if (m_tcpResetProp)
 		storage.writeBool ("closeKind", m_tcpResetProp.m_value);
+
+	if (m_udpBroadcastProp)
+		storage.writeBool ("udpBroadcast", m_udpBroadcastProp.m_value);
 }
 
 SocketPropertySet.restoreDefaults ()
@@ -383,6 +401,9 @@ SocketPropertySet.restoreDefaults ()
 
 	if (m_tcpResetProp)
 		m_tcpResetProp.m_value = Defaults.TcpReset;
+
+	if (m_udpBroadcastProp)
+		m_udpBroadcastProp.m_value = Defaults.UdpBroadcast;
 }
 
 //..............................................................................
@@ -405,6 +426,9 @@ io.SocketOptions getSocketOptions (
 
 	if (socketPropSet.m_tcpResetProp && socketPropSet.m_tcpResetProp.m_value)
 		options |= io.SocketOptions.TcpReset;
+
+	if (socketPropSet.m_udpBroadcastProp && socketPropSet.m_udpBroadcastProp.m_value)
+		options |= io.SocketOptions.UdpBroadcast;
 
 	if (bufferPropSet.m_keepReadBlockSizeProp && bufferPropSet.m_keepReadBlockSizeProp.m_value)
 		options |= io.SocketOptions.KeepReadBlockSize;
