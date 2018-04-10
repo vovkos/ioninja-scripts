@@ -276,6 +276,12 @@ nestedscope:
 	address = *(io.SocketAddress const*) m_adapterCombo.m_currentData;
 	address.m_ip4.m_port = (uint16_t) atoi (portString); // same for IPv4/IPv6
 
+	m_socket.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
+	m_socket.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
+	m_socket.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
+	m_socket.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
+	m_socket.m_options = io.getSocketOptions (m_socketPropertySet, m_bufferPropertySet);
+
 	m_socket.open (io.Protocol.Udp, &address);
 	address = m_socket.m_address;
 	writeLog (UdpRecordCode.Open, &address, sizeof (address));
@@ -366,6 +372,15 @@ bool errorcode UdpSession.applyProperties ()
 	m_adapterCombo.m_currentIndex = m_socketPropertySet.m_adapterProp.m_currentIndex;
 	m_localPortCombo.m_editText = $"$(m_socketPropertySet.m_localPortProp.m_value)";
 	m_logFilter.m_isPacketHdrVisible = m_packetHdrVisibleProp.m_value;
+
+	if (!m_socket.m_isOpen)
+		return true;
+
+	m_socket.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
+	m_socket.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
+	m_socket.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
+	m_socket.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
+	m_socket.m_options = io.getSocketOptions (m_socketPropertySet, m_bufferPropertySet);
 	return true;
 }
 
