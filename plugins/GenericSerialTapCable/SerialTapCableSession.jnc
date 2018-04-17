@@ -32,13 +32,12 @@ class SerialTapCableSession: doc.Session
 protected:
 	enum Defaults
 	{
-		BaudRate       = 38400,
-		DataBits       = 8,
-		StopBits       = io.SerialStopBits._1,
-		Parity         = io.SerialParity.None,
-		FlowControl    = io.SerialFlowControl.None,
-		ReadMode       = SerialReadMode.WaitFirstChar,
-		ReadInterval   = 10,
+		BaudRate     = 38400,
+		DataBits     = 8,
+		StopBits     = io.SerialStopBits._1,
+		Parity       = io.SerialParity.None,
+		ReadMode     = SerialReadMode.WaitFirstChar,
+		ReadInterval = 10,
 	}
 
 	enum State
@@ -68,7 +67,6 @@ protected:
 		State,
 		Dsr,
 		Cts,
-		Dcd,
 		_Count,
 	}
 
@@ -97,6 +95,7 @@ protected:
 	gui.EnumProperty* m_baudRateProp;
 	gui.EnumProperty* m_dataBitsProp;
 	gui.EnumProperty* m_stopBitsProp;
+	gui.EnumProperty* m_parityProp;
 	gui.EnumProperty* m_readModeProp;
 	gui.IntProperty* m_readIntervalProp;
 	io.BufferPropertySet m_bufferPropertySet;
@@ -126,8 +125,6 @@ public:
 	override void restoreDefaultProperties ();
 
 protected:
-	onRefresh ();
-
 	onOpen ()
 	{
 		m_state ? close () : try open ();
@@ -147,6 +144,7 @@ protected:
 		);
 
 	createUi ();
+	enumeratePorts ();
 
 	gui.ComboBox* createSerialSettingComboBox (
 		char const* labelText,
@@ -227,6 +225,15 @@ SerialTapCableSession.createUi ()
 		{ "2 bits",   io.SerialStopBits._2 },
 	}
 
+	static gui.EnumPropertyOption parityTable [] =
+	{
+		{ "None",  io.SerialParity.None },
+		{ "Odd",   io.SerialParity.Odd },
+		{ "Even",  io.SerialParity.Even },
+		{ "Mark",  io.SerialParity.Mark },
+		{ "Space", io.SerialParity.Space },
+	}
+
 	static gui.EnumPropertyOption readModeTable [] =
 	{
 		{ "Check COMSTAT.cbInQue", SerialReadMode.CheckComstat },
@@ -237,12 +244,14 @@ SerialTapCableSession.createUi ()
 	// toolbar
 
 	m_pluginHost.m_toolBar.addLabel ("Port A:");
-	m_portComboA = m_pluginHost.m_toolBar.addComboBox ();
+	m_portComboA = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_portComboA.m_isEditable = true;
+	m_portComboA.m_isDualItemText = true;
 
 	m_pluginHost.m_toolBar.addLabel ("B:");
-	m_portComboB = m_pluginHost.m_toolBar.addComboBox ();
+	m_portComboB = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_portComboB.m_isEditable = true;
+	m_portComboB.m_isDualItemText = true;
 
 	size_t portCount;
 	io.SerialPortDesc const* portList = io.createSerialPortDescList (&portCount);
@@ -259,7 +268,7 @@ SerialTapCableSession.createUi ()
 	m_portComboB.m_onEnter += onPortComboEnter;
 
 	m_actionTable [ActionId.Refresh]  = createAction ("Refresh port list", "images/refresh.png");
-	m_actionTable [ActionId.Refresh].m_onTriggered += onRefresh;
+	m_actionTable [ActionId.Refresh].m_onTriggered += enumeratePorts;
 
 	m_baudRateCombo = createSerialSettingComboBox (
 		"Baud:",
@@ -288,8 +297,6 @@ SerialTapCableSession.createUi ()
 	m_statusPaneTable [StatusPaneId.Dsr].m_color = gui.StdColor.Red;
 	m_statusPaneTable [StatusPaneId.Cts] = m_pluginHost.m_statusBar.addPane ("CTS", 32);
 	m_statusPaneTable [StatusPaneId.Cts].m_color = gui.StdColor.Red;
-	m_statusPaneTable [StatusPaneId.Dcd] = m_pluginHost.m_statusBar.addPane ("DCD", 32);
-	m_statusPaneTable [StatusPaneId.Dcd].m_color = gui.StdColor.Red;
 
 	// property grid
 
@@ -332,6 +339,14 @@ SerialTapCableSession.createUi ()
 		"Serial stop bit count",
 		stopBitsTable,
 		countof (stopBitsTable)
+		);
+
+	m_parityProp = m_pluginHost.m_propertyGrid.createEnumProperty (
+		group,,
+		"Parity",
+		"Serial parity check",
+		parityTable,
+		countof (parityTable)
 		);
 
 	group = m_pluginHost.m_propertyGrid.createGroupProperty (
@@ -408,6 +423,7 @@ SerialTapCableSession.createUi ()
 
 	m_pluginHost.m_informationGrid.resizeNameColumnToContents ();
 
+	enumeratePorts ();
 	m_uiReactor.start ();
 }
 
@@ -430,7 +446,7 @@ gui.ComboBox* SerialTapCableSession.createSerialSettingComboBox (
 	return comboBox;
 }
 
-SerialTapCableSession.onRefresh ()
+SerialTapCableSession.enumeratePorts ()
 {
 	char const* nameA = m_portComboA.m_currentText;
 	char const* nameB = m_portComboB.m_currentText;
@@ -443,8 +459,10 @@ SerialTapCableSession.onRefresh ()
 	io.SerialPortDesc const* port = portList;
 	for (; port; port = port.m_next)
 	{
-		m_portComboA.addItem (port.m_deviceName, null);
-		m_portComboB.addItem (port.m_deviceName, null);
+		char const* description = $"$(port.m_deviceName) - $(port.m_description)";
+
+		m_portComboA.addItem (port.m_deviceName, description);
+		m_portComboB.addItem (port.m_deviceName, description);
 	}
 
 	// preserve current text
@@ -480,8 +498,8 @@ SerialTapCableSession.configurePort (SerialPort* port)
 	port.m_serial.m_baudRate = m_baudRateCombo.m_currentData;
 	port.m_serial.m_dataBits = m_dataBitsProp.m_value;
 	port.m_serial.m_stopBits = m_stopBitsProp.m_value;
+	port.m_serial.m_parity = m_parityProp.m_value;
 	port.m_serial.m_flowControl = io.SerialFlowControl.None;
-	port.m_serial.m_parity = io.SerialParity.None;
 }
 
 bool errorcode SerialTapCableSession.open ()
@@ -576,6 +594,7 @@ void SerialTapCableSession.load (doc.Storage* storage)
 	m_baudRateCombo.m_currentIndex = storage.readInt ("baudRate", 9); // 38400
 	m_dataBitsProp.m_currentIndex = storage.readInt ("dataBits", 1);  // 8-bits by default
 	m_stopBitsProp.m_currentIndex = storage.readInt ("stopBits");
+	m_parityProp.m_currentIndex = storage.readInt ("parity");
 
 	m_readModeProp.m_value = storage.readBool ("readMode", Defaults.ReadMode);
 	m_readIntervalProp.m_value = storage.readInt ("readInterval", Defaults.ReadInterval);
@@ -595,6 +614,7 @@ void SerialTapCableSession.save (doc.Storage* storage)
 	storage.writeInt ("baudRate", m_baudRateCombo.m_currentIndex);
 	storage.writeInt ("dataBits", m_dataBitsProp.m_currentIndex);
 	storage.writeInt ("stopBits", m_stopBitsProp.m_currentIndex);
+	storage.writeInt ("parity", m_parityProp.m_currentIndex);
 
 	storage.writeInt ("readMode", m_readModeProp.m_value);
 	storage.writeInt ("readInterval", m_readIntervalProp.m_value);
@@ -633,6 +653,7 @@ bool errorcode SerialTapCableSession.applyProperties ()
 	uint_t baudRate = m_baudRateProp.m_value;
 	uint_t dataBits = m_dataBitsProp.m_value;
 	io.SerialStopBits stopBits = (io.SerialStopBits) m_stopBitsProp.m_value;
+	io.SerialParity parity = (io.SerialParity) m_parityProp.m_value;
 	uint_t readInterval = getReadInterval ();
 
 	// baud rate change will be handled inside onBaudRateChanged ()
@@ -642,6 +663,9 @@ bool errorcode SerialTapCableSession.applyProperties ()
 
 	if (m_portA.m_serial.m_stopBits != stopBits)
 		writeLog (SerialLogRecordCode.StopBitsChanged, &stopBits, sizeof (stopBits));
+
+	if (m_portA.m_serial.m_parity != parity)
+		writeLog (SerialLogRecordCode.ParityChanged, &parity, sizeof (parity));
 
 	io.SerialOptions optionMask = m_portA.m_serial.m_options ^ options;
 	if (optionMask & (io.SerialOptions.WinReadCheckComstat | io.SerialOptions.WinReadWaitFirstChar))
@@ -663,6 +687,7 @@ void SerialTapCableSession.restoreDefaultProperties ()
 	m_baudRateProp.m_value = Defaults.BaudRate;
 	m_dataBitsProp.m_value = Defaults.DataBits;
 	m_stopBitsProp.m_value = Defaults.StopBits;
+	m_parityProp.m_value = Defaults.Parity;
 
 	m_readModeProp.m_value = Defaults.ReadMode;
 	m_readIntervalProp.m_value = Defaults.ReadInterval;
@@ -688,10 +713,6 @@ SerialTapCableSession.waitSerialEvents (SerialPort* port)
 	eventMask |= (port.m_serialStatusLines & io.SerialStatusLines.Dsr) ?
 		io.SerialEvents.DsrOff :
 		io.SerialEvents.DsrOn;
-
-	eventMask |= (port.m_serialStatusLines & io.SerialStatusLines.Dcd) ?
-		io.SerialEvents.DcdOff :
-		io.SerialEvents.DcdOn;
 
 	port.m_serial.wait (
 		eventMask,
@@ -774,7 +795,6 @@ reactor SerialTapCableSession.m_uiReactor ()
 	m_actionTable [ActionId.Capture].m_text = m_state ? "Stop capture" : "Capture";
 	m_actionTable [ActionId.Capture].m_icon = m_iconTable [m_state ? IconId.StopCapture : IconId.Capture];
 	m_title = $"$(m_portComboA.m_currentText):$(m_portComboB.m_currentText) $(m_baudRateCombo.m_currentText)";
-	m_isTransmitEnabled = m_state == State.Opened;
 	m_bufferPropertySet.m_readParallelismProp.m_isEnabled = m_readModeProp.m_value != SerialReadMode.CheckComstat;
 	m_readIntervalProp.m_isEnabled = m_readModeProp.m_value == SerialReadMode.IntervalBased;
 	m_statusPaneTable [StatusPaneId.PortNameA].m_text = m_portComboA.m_currentText;
@@ -783,7 +803,6 @@ reactor SerialTapCableSession.m_uiReactor ()
 	m_statusPaneTable [StatusPaneId.State].m_text = m_state ? "Capturing" : "Closed";
 	m_statusPaneTable [StatusPaneId.Dsr].m_isEnabled = m_state && (m_portA.m_serialStatusLines & io.SerialStatusLines.Dsr);
 	m_statusPaneTable [StatusPaneId.Cts].m_isEnabled = m_state && (m_portA.m_serialStatusLines & io.SerialStatusLines.Cts);
-	m_statusPaneTable [StatusPaneId.Dcd].m_isEnabled = m_state && (m_portA.m_serialStatusLines & io.SerialStatusLines.Dcd);
 }
 
 //..............................................................................
