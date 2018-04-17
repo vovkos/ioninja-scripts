@@ -63,7 +63,6 @@ protected:
 		Rts,
 		Dsr,
 		Cts,
-		Dcd,
 		_Count,
 	}
 
@@ -101,8 +100,8 @@ protected:
 	gui.EnumProperty* m_baudRateProp;
 	gui.EnumProperty* m_dataBitsProp;
 	gui.EnumProperty* m_stopBitsProp;
-	gui.EnumProperty* m_flowControlProp;
 	gui.EnumProperty* m_parityProp;
+	gui.EnumProperty* m_flowControlProp;
 	gui.BoolProperty* m_dtrProp;
 	gui.BoolProperty* m_rtsProp;
 	gui.BoolProperty* m_useInterCharDelayProp;
@@ -142,8 +141,6 @@ public:
 		);
 
 protected:
-	onRefresh ();
-
 	onOpen ()
 	{
 		m_state ? close () : try open ();
@@ -165,6 +162,7 @@ protected:
 		);
 
 	createUi ();
+	enumeratePorts ();
 
 	gui.ComboBox* createSerialSettingComboBox (
 		char const* labelText,
@@ -198,6 +196,10 @@ protected:
 	reactor m_uiReactor ();
 
 	updateTitle ();
+	updateLineInfoValue (
+		InfoId infoId,
+		bool line
+		);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -281,20 +283,13 @@ SerialSession.createUi ()
 	// toolbar
 
 	m_pluginHost.m_toolBar.addLabel ("Port:");
-	m_portCombo = m_pluginHost.m_toolBar.addComboBox ();
+	m_portCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_portCombo.m_isEditable = true;
-
-	size_t portCount;
-	io.SerialPortDesc const* portList = io.createSerialPortDescList (&portCount);
-	io.SerialPortDesc const* port = portList;
-	for (; port; port = port.m_next)
-		m_portCombo.addItem (port.m_deviceName, null);
-
-	m_portCombo.adjustSizeToContents ();
+	m_portCombo.m_isDualItemText = true;
 	m_portCombo.m_onEnter += onPortComboEnter;
 
 	m_actionTable [ActionId.Refresh]  = createAction ("Refresh port list", "images/refresh.png");
-	m_actionTable [ActionId.Refresh].m_onTriggered += onRefresh;
+	m_actionTable [ActionId.Refresh].m_onTriggered += enumeratePorts;
 
 	m_baudRateCombo = createSerialSettingComboBox (
 		"Baud:",
@@ -359,20 +354,20 @@ SerialSession.createUi ()
 		countof (stopBitsTable)
 		);
 
-	m_flowControlProp = m_pluginHost.m_propertyGrid.createEnumProperty (
-		group,,
-		"Flow control",
-		"Serial flow control",
-		flowControlTable,
-		countof (flowControlTable)
-		);
-
 	m_parityProp = m_pluginHost.m_propertyGrid.createEnumProperty (
 		group,,
 		"Parity",
 		"Serial parity check",
 		parityTable,
 		countof (parityTable)
+		);
+
+	m_flowControlProp = m_pluginHost.m_propertyGrid.createEnumProperty (
+		group,,
+		"Flow control",
+		"Serial flow control",
+		flowControlTable,
+		countof (flowControlTable)
 		);
 
 	m_dtrProp = m_pluginHost.m_propertyGrid.createBoolProperty (
@@ -474,13 +469,13 @@ SerialSession.createUi ()
 	m_infoTable [InfoId.Rts] = m_pluginHost.m_informationGrid.createValue (infoGroup,,, "RTS");
 	m_infoTable [InfoId.Dsr] = m_pluginHost.m_informationGrid.createValue (infoGroup,,, "DSR");
 	m_infoTable [InfoId.Cts] = m_pluginHost.m_informationGrid.createValue (infoGroup,,, "CTS");
-	m_infoTable [InfoId.Dcd] = m_pluginHost.m_informationGrid.createValue (infoGroup,,, "DCD");
 
 	m_throughputInfoSet.createInformationValuesGrouped (m_pluginHost.m_informationGrid);
 	m_checksumInfoSet.createInformationValuesGrouped (m_pluginHost.m_informationGrid);
 
 	m_pluginHost.m_informationGrid.resizeNameColumnToContents ();
 
+	enumeratePorts ();
 	m_uiReactor.start ();
 }
 
@@ -503,7 +498,7 @@ gui.ComboBox* SerialSession.createSerialSettingComboBox (
 	return comboBox;
 }
 
-SerialSession.onRefresh ()
+SerialSession.enumeratePorts ()
 {
 	char const* name = m_portCombo.m_currentText;
 	m_portCombo.clear ();
@@ -512,10 +507,12 @@ SerialSession.onRefresh ()
 	io.SerialPortDesc const* portList = io.createSerialPortDescList (&portCount);
 	io.SerialPortDesc const* port = portList;
 	for (; port; port = port.m_next)
-		m_portCombo.addItem (port.m_deviceName, null);
+	{
+		char const* description = $"$(port.m_deviceName) - $(port.m_description)";
+		m_portCombo.addItem (port.m_deviceName, description);
+	}
 
 	m_portCombo.m_editText = name; // preserve current text
-	m_portCombo.adjustSizeToContents ();
 }
 
 io.SerialOptions SerialSession.getSerialOptions ()
@@ -555,8 +552,8 @@ bool errorcode SerialSession.open ()
 	m_serial.m_baudRate = m_baudRateCombo.m_currentData;
 	m_serial.m_dataBits = m_dataBitsProp.m_value;
 	m_serial.m_stopBits = m_stopBitsProp.m_value;
-	m_serial.m_flowControl = m_flowControlProp.m_value;
 	m_serial.m_parity = m_parityProp.m_value;
+	m_serial.m_flowControl = m_flowControlProp.m_value;
 	m_serial.m_dtr = m_actionTable [ActionId.Dtr].m_isChecked;
 	m_serial.m_rts = m_actionTable [ActionId.Rts].m_isChecked;
 
@@ -629,8 +626,8 @@ void SerialSession.load (doc.Storage* storage)
 	m_baudRateCombo.m_currentIndex = storage.readInt ("baudRate", 9); // 38400
 	m_dataBitsProp.m_currentIndex = storage.readInt ("dataBits", 1);  // 8-bits by default
 	m_stopBitsProp.m_currentIndex = storage.readInt ("stopBits");
-	m_flowControlProp.m_currentIndex = storage.readInt ("flowControl");
 	m_parityProp.m_currentIndex = storage.readInt ("parity");
+	m_flowControlProp.m_currentIndex = storage.readInt ("flowControl");
 	m_actionTable [ActionId.Dtr].m_isChecked = storage.readBool ("dtr", Defaults.Dtr);
 	m_actionTable [ActionId.Rts].m_isChecked = storage.readBool ("rts", Defaults.Rts);
 
@@ -654,8 +651,8 @@ void SerialSession.save (doc.Storage* storage)
 	storage.writeInt ("baudRate", m_baudRateCombo.m_currentIndex);
 	storage.writeInt ("dataBits", m_dataBitsProp.m_currentIndex);
 	storage.writeInt ("stopBits", m_stopBitsProp.m_currentIndex);
-	storage.writeInt ("flowControl", m_flowControlProp.m_currentIndex);
 	storage.writeInt ("parity", m_parityProp.m_currentIndex);
+	storage.writeInt ("flowControl", m_flowControlProp.m_currentIndex);
 	storage.writeBool ("dtr", m_actionTable [ActionId.Dtr].m_isChecked);
 	storage.writeBool ("rts", m_actionTable [ActionId.Rts].m_isChecked);
 
@@ -704,8 +701,8 @@ bool errorcode SerialSession.applyProperties ()
 	uint_t baudRate = m_baudRateProp.m_value;
 	uint_t dataBits = m_dataBitsProp.m_value;
 	io.SerialStopBits stopBits = (io.SerialStopBits) m_stopBitsProp.m_value;
-	io.SerialFlowControl flowControl = m_flowControlProp.m_value;
 	io.SerialParity parity = (io.SerialParity) m_parityProp.m_value;
+	io.SerialFlowControl flowControl = m_flowControlProp.m_value;
 	uint_t readInterval = getReadInterval ();
 
 	// baud rate change will be handled inside onBaudRateChanged ()
@@ -716,11 +713,11 @@ bool errorcode SerialSession.applyProperties ()
 	if (m_serial.m_stopBits != stopBits)
 		writeLog (SerialLogRecordCode.StopBitsChanged, &stopBits, sizeof (stopBits));
 
-	if (m_serial.m_flowControl != flowControl)
-		writeLog (SerialLogRecordCode.FlowControlChanged, &flowControl, sizeof (flowControl));
-
 	if (m_serial.m_parity != parity)
 		writeLog (SerialLogRecordCode.ParityChanged, &parity, sizeof (parity));
+
+	if (m_serial.m_flowControl != flowControl)
+		writeLog (SerialLogRecordCode.FlowControlChanged, &flowControl, sizeof (flowControl));
 
 	if (m_serial.m_dtr != m_dtrProp.m_value)
 	{
@@ -772,10 +769,10 @@ bool errorcode SerialSession.applyProperties ()
 void SerialSession.restoreDefaultProperties ()
 {
 	m_baudRateProp.m_value = Defaults.BaudRate;
-	m_flowControlProp.m_value = Defaults.FlowControl;
 	m_dataBitsProp.m_value = Defaults.DataBits;
 	m_stopBitsProp.m_value = Defaults.StopBits;
 	m_parityProp.m_value = Defaults.Parity;
+	m_flowControlProp.m_value = Defaults.FlowControl;
 	m_dtrProp.m_value = Defaults.Dtr;
 	m_rtsProp.m_value = Defaults.Rts;
 
@@ -882,10 +879,6 @@ SerialSession.waitSerialEvents ()
 	eventMask |= (m_serialStatusLines & io.SerialStatusLines.Dsr) ?
 		io.SerialEvents.DsrOff :
 		io.SerialEvents.DsrOn;
-
-	eventMask |= (m_serialStatusLines & io.SerialStatusLines.Dcd) ?
-		io.SerialEvents.DcdOff :
-		io.SerialEvents.DcdOn;
 
 	m_serial.wait (eventMask, onSerialEvent ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
 }
@@ -996,6 +989,15 @@ SerialSession.updateTitle ()
 		$"$(m_portCombo.m_currentText) $(m_baudRateCombo.m_currentText)";
 }
 
+SerialSession.updateLineInfoValue (
+	InfoId infoId,
+	bool line
+	)
+{
+	m_infoTable [infoId].m_value = line ? "on" : "off";
+	m_infoTable [infoId].m_valueColor = line ? gui.StdColor.LightRed : gui.StdColor.Gray;
+}
+
 reactor SerialSession.m_uiReactor ()
 {
 	// currently, reactors don't handle conditional expressions with bindable
@@ -1023,15 +1025,13 @@ reactor SerialSession.m_uiReactor ()
 	m_statusPane.m_text = m_state ? m_portName : "Port closed";
 	m_statusPane.m_color = m_state ? gui.StdColor.Blue : gui.StdColor.Gray;
 	m_infoTable [InfoId.Dtr].m_isEnabled = m_state;
-	m_infoTable [InfoId.Dtr].m_value = m_serialDtr ? "on" : "off";
 	m_infoTable [InfoId.Rts].m_isEnabled = m_state;
-	m_infoTable [InfoId.Rts].m_value = m_serialRts ? "on" : "off";
 	m_infoTable [InfoId.Dsr].m_isEnabled = m_state;
-	m_infoTable [InfoId.Dsr].m_value = (m_serialStatusLines & io.SerialStatusLines.Dsr) ? "on" : "off";
 	m_infoTable [InfoId.Cts].m_isEnabled = m_state;
-	m_infoTable [InfoId.Cts].m_value = (m_serialStatusLines & io.SerialStatusLines.Cts) ? "on" : "off";
-	m_infoTable [InfoId.Dcd].m_isEnabled = m_state;
-	m_infoTable [InfoId.Dcd].m_value = (m_serialStatusLines & io.SerialStatusLines.Dcd) ? "on" : "off";
+	updateLineInfoValue (InfoId.Dtr, m_serialDtr);
+	updateLineInfoValue (InfoId.Rts, m_serialRts);
+	updateLineInfoValue (InfoId.Dsr, m_serialStatusLines & io.SerialStatusLines.Dsr);
+	updateLineInfoValue (InfoId.Cts, m_serialStatusLines & io.SerialStatusLines.Cts);
 }
 
 //..............................................................................

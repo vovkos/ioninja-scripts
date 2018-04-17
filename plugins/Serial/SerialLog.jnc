@@ -137,7 +137,6 @@ bool representSerialLog (
 		char const* rtsString = getOnOffString (params.m_rts);
 		char const* dsrString = getOnOffString (params.m_statusLines & io.SerialStatusLines.Dsr);
 		char const* ctsString = getOnOffString (params.m_statusLines & io.SerialStatusLines.Cts);
-		char const* dcdString = getOnOffString (params.m_statusLines & io.SerialStatusLines.Dcd);
 
 		char const* string;
 
@@ -149,8 +148,7 @@ bool representSerialLog (
 				$"DTR: $dtrString "
 				$"RTS: $rtsString "
 				$"DSR: $dsrString "
-				$"CTS: $ctsString "
-				$"DCD: $dcdString";
+				$"CTS: $ctsString ";
 		}
 		else
 		{
@@ -179,15 +177,14 @@ bool representSerialLog (
 			string =
 				$"[\e^-1\e[34m-\e[m] Opened port \e[34m$name\n"
 				$"    \e[90mBaud rate:     \e[34m$(params.m_baudRate)\e[m bps\n"
-				$"    \e[90mFlow control:  \e[34m$flowControlString\n"
 				$"    \e[90mData bits:     \e[34m$(params.m_dataBits)\e[m bits\n"
 				$"    \e[90mStop bits:     $stopBitsString\n"
 				$"    \e[90mParity:        \e[34m$parityString\n$optionString"
+				$"    \e[90mFlow control:  \e[34m$flowControlString\n"
 				$"    \e[90mDTR:           $dtrString\n"
 				$"    \e[90mRTS:           $rtsString\n"
 				$"    \e[90mDSR:           $dsrString\n"
-				$"    \e[90mCTS:           $ctsString\n"
-				$"    \e[90mDCD:           $dcdString";
+				$"    \e[90mCTS:           $ctsString\n";
 		}
 
 		target.addHyperText (string);
@@ -306,12 +303,6 @@ bool representSerialLog (
 		{
 			char const* valueString = getOnOffString (params.m_lines & io.SerialStatusLines.Cts);
 			string = $"$string CTS: $valueString";
-		}
-
-		if (params.m_mask & io.SerialStatusLines.Dcd)
-		{
-			char const* valueString = getOnOffString (params.m_lines & io.SerialStatusLines.Dcd);
-			string = $"$string DCD: $valueString";
 		}
 
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;

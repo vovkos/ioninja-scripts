@@ -63,7 +63,7 @@ protected:
 
 	// serial mon property grid
 
-	gui.EnumProperty* m_portProp;
+	gui.StringProperty* m_portProp;
 	io.BufferPropertySet m_bufferPropertySet;
 	gui.IntProperty* m_pendingNotifySizeLimitProp;
 
@@ -92,8 +92,6 @@ public:
 	override void restoreDefaultProperties ();
 
 protected:
-	onRefresh ();
-
 	onCapture ()
 	{
 		m_state ? close () : try capture ();
@@ -105,6 +103,8 @@ protected:
 	}
 
 	createUi ();
+	enumeratePorts ();
+
 	reactor m_uiReactor ();
 }
 
@@ -131,16 +131,11 @@ SerialMonSession.createUi ()
 	m_pluginHost.m_toolBar.addLabel ("Port:");
 	m_portCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_portCombo.m_isEditable = true;
+	m_portCombo.m_isDualItemText = true;
 	m_portCombo.m_onEnter += onPortComboEnter;
 
-	size_t portCount;
-	io.SerialPortDesc const* portList = io.createSerialPortDescList (&portCount);
-	io.SerialPortDesc const* port = portList;
-	for (; port; port = port.m_next)
-		m_portCombo.addItem (port.m_deviceName, null);
-
 	m_actionTable [ActionId.Refresh] = createAction ("Refresh port list", "images/refresh.png");
-	m_actionTable [ActionId.Refresh].m_onTriggered += onRefresh;
+	m_actionTable [ActionId.Refresh].m_onTriggered += enumeratePorts;
 
 	m_iconTable [IconId.Capture] = new gui.Icon ("images/capture.png");
 	m_iconTable [IconId.StopCapture] = new gui.Icon ("images/pause.png");
@@ -159,13 +154,10 @@ SerialMonSession.createUi ()
 		"Serial port monitor target device settings"
 		);
 
-	m_portProp = io.createSerialPortProperty (
-		m_pluginHost.m_propertyGrid,
+	m_portProp = m_pluginHost.m_propertyGrid.createStringProperty (
 		group,,
 		"Port",
-		"Specify serial port to monitor",
-		portList,
-		portCount
+		"Specify serial port to monitor"
 		);
 
 	group = m_pluginHost.m_propertyGrid.createGroupProperty (
@@ -228,10 +220,11 @@ SerialMonSession.createUi ()
 
 	m_pluginHost.m_informationGrid.resizeNameColumnToContents ();
 
+	enumeratePorts ();
 	m_uiReactor.start ();
 }
 
-SerialMonSession.onRefresh ()
+SerialMonSession.enumeratePorts ()
 {
 	char const* name = m_portCombo.m_currentText;
 	m_portCombo.clear ();
@@ -240,12 +233,12 @@ SerialMonSession.onRefresh ()
 	io.SerialPortDesc const* portList = io.createSerialPortDescList (&portCount);
 	io.SerialPortDesc const* port = portList;
 	for (; port; port = port.m_next)
-		m_portCombo.addItem (port.m_deviceName, null);
+	{
+		char const* description = $"$(port.m_deviceName) - $(port.m_description)";
+		m_portCombo.addItem (port.m_deviceName, description);
+	}
 
 	m_portCombo.m_editText = name; // preserve current text
-	m_portCombo.adjustSizeToContents ();
-
-	io.updateSerialPortProperty (m_portProp, portList, portCount);
 }
 
 bool errorcode SerialMonSession.capture ()
@@ -313,7 +306,7 @@ void SerialMonSession.save (doc.Storage* storage)
 
 void SerialMonSession.updateProperties ()
 {
-	m_portProp.m_currentIndex = m_portCombo.m_currentIndex;
+	m_portProp.m_value = m_portCombo.m_editText;
 	m_settingChangedVisibleProp.m_value = m_logFilter.m_isSettingChangedVisible;
 	m_controlLineChangedVisibleProp.m_value = m_logFilter.m_isControlLineChangedVisible;
 	m_statusLineChangedVisibleProp.m_value = m_logFilter.m_isStatusLineChangedVisible;
@@ -321,7 +314,7 @@ void SerialMonSession.updateProperties ()
 
 bool errorcode SerialMonSession.applyProperties ()
 {
-	m_portCombo.m_currentIndex = m_portProp.m_currentIndex;
+	m_portCombo.m_editText = m_portProp.m_value;
 	m_logFilter.m_isSettingChangedVisible = m_settingChangedVisibleProp.m_value;
 	m_logFilter.m_isControlLineChangedVisible = m_controlLineChangedVisibleProp.m_value;
 	m_logFilter.m_isStatusLineChangedVisible = m_statusLineChangedVisibleProp.m_value;
