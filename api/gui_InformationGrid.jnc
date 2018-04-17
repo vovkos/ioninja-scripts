@@ -37,6 +37,7 @@ opaque class InformationValue: InformationItem
 	char const* autoget property m_value;
 	char const* autoget property m_disabledValue;
 	char const* autoget property m_valueToolTipText;
+	uint_t autoget property m_valueColor;
 	bool autoget property m_isSelectionDependent;
 }
 

@@ -121,6 +121,7 @@ opaque class ComboBox
 	bool autoget property m_isVisible;
 	bool autoget property m_isEnabled;
 	bool autoget property m_isEditable;
+	bool autoget property m_isDualItemText; // itemText - edit text; itemData - description text
 
 	property m_editText
 	{
