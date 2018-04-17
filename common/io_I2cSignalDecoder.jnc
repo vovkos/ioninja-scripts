@@ -3,8 +3,6 @@
 // SPI clock-based signal-edge decoding
 //
 
-import "std_Buffer.jnc"
-
 namespace io {
 
 //..............................................................................

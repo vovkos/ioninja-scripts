@@ -20,5 +20,5 @@
 #	device  device_name				<-- single tab
 #		interface  interface_name		<-- two tabs
 
-0403  Future Technology Devices International Ltd.
-	601f FT601A USB3-to-FIFO Bridge
+04b4  Cypress Semiconductor Corp.
+	00f1 EZ-USB FX3 Peripheral Controller

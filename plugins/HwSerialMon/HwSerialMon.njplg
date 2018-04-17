@@ -6,7 +6,7 @@
 [plugin]
 
 name                  = Hardware Serial Monitor
-description           = "FTDI FT60x-powered Serial Monitor"
+description           = "Cypress EZ-USB FX3-powered Serial Monitor"
 id                    = hw-serialmon
 group                 = monitors
 monitor               = true

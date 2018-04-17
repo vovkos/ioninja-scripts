@@ -3,8 +3,6 @@
 // SPI clock-based signal-edge decoding
 //
 
-import "std_Buffer.jnc"
-
 namespace io {
 
 //..............................................................................
@@ -147,7 +145,10 @@ SpiDecodeResult SpiSignalDecoder.add (
 		if (miso)
 			m_misoChar |= m_bit;
 
-		m_isLittleEndian ? m_bit <<= 1 : m_bit >>= 1;
+		if (m_isLittleEndian)
+			m_bit <<= 1;
+		else
+			m_bit >>= 1;
 
 		if (!m_bit)
 			result = SpiDecodeResult.Char;

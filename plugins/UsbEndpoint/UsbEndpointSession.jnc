@@ -185,7 +185,7 @@ UsbEndpointSession.createUi ()
 
 	gui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty (
 		"Connection",
-		"File stream-specific connection settings"
+		"USB-specific connection settings"
 		);
 
 	m_deviceProp = m_pluginHost.m_propertyGrid.createEnumProperty (

@@ -6,6 +6,7 @@
 import "io_usb.jncx"
 import "io_UsbDb.jnc"
 import "io_BufferUi.jnc"
+import "std_Buffer.jnc"
 import "doc_Plugin.jnc"
 import "gui_StdSessionInfo.jnc"
 import "log_ThroughputCalc.jnc"
@@ -54,54 +55,18 @@ protected:
 		_Count,
 	}
 
-	enum
-	{
-		ReadBufferSize	= 8 * 1024,
-		WriteBufferSize = 8 * 1024,
-	}
-
-	// this packet has to be sent to IF00:EP01 to control endpoints
-
-	enum EpctlCode
-	{
-		SetReadBufferSize  = 1,
-		SetWriteBufferSize = 2,
-		Close              = 0,
-		Close2             = 3,
-	}
-
-	struct EpctlParams
-	{
-		uint32_t m_seqId;
-		uint8_t m_endpointId;
-		uint8_t m_command;
-		uint16_t m_padding;
-		uint32_t m_size;
-		uint32_t m_padding2;
-		uint32_t m_padding3;
-	}
-
-	struct SignalEdge
-	{
-		bigendian uint64_t m_timestamp : 48;
-		bigendian uint64_t m_lines     : 16;
-	}
-
 protected:
 	// usb
 
 	State bindable m_state;
 
 	io.UsbDevice* m_device;
-	io.UsbInterface* m_iface0;
-	io.UsbInterface* m_iface1;
-	io.UsbEndpoint* m_endpoint01;
-	io.UsbEndpoint* m_endpoint02;
-	io.UsbEndpoint* m_endpoint82;
+	io.UsbInterface* m_iface;
+	io.UsbEndpoint* m_outEndpoint; // until we figure out how to use control ep 0
+	io.UsbEndpoint* m_inEndpoint;
 	std.Buffer m_readBuffer;
 	uint64_t m_captureBaseTime;
-	uint_t m_epctlSeqId;
-	uint_t m_endpoint82SyncId;
+	uint_t m_inEndpointSyncId;
 
 	// current serial iface
 
@@ -130,6 +95,14 @@ protected:
 	gui.StdSessionInfoSet m_stdSessionInfoSet;
 	log.ThroughputInfoSet m_throughputInfoSet;
 	log.ChecksumInfoSet m_checksumInfoSet;
+	gui.InformationValue* m_usbTotalSizeInfo;
+	gui.InformationValue* m_usbThroughputInfo;
+
+	uint64_t m_usbTotalSize;
+	uint64_t m_usbPrevTotalSize;
+	uint64_t m_usbThroughputTimestamp;
+	sys.Timer m_usbThroughputTimer;
+	uint_t m_usbThroughputTimerSyncId;
 
 public:
 	construct (doc.PluginHost* pluginHost);
@@ -148,8 +121,9 @@ public:
 protected:
 	onOpenDevice ();
 	onCapture ();
+	onUsbThroughputTimer (uint_t syncId);
 
-	onEndpoint82Event (
+	onInEndpointEvent (
 		uint_t syncId,
 		io.UsbEndpointEvents triggeredEvents
 		);
@@ -157,18 +131,13 @@ protected:
 	createUi ();
 	enumerateDevices ();
 
-	size_t errorcode writeEndpoint02 (
+	size_t errorcode writeOutEndpoint (
 		void const* p,
 		size_t size
 		);
 
-	bool errorcode epctl (
-		uint8_t endpointId,
-		EpctlCode code,
-		size_t size
-		);
-
-	waitEndpoint82Events ();
+	waitInEndpointEvents ();
+	updateUsbThroughput (uint64_t timestamp = sys.getTimestamp ());
 
 	reactor m_uiReactor ();
 }
@@ -181,8 +150,6 @@ HwSerialMonSession.construct (doc.PluginHost* pluginHost)
 	m_uart.construct(pluginHost);
 	m_spi.construct(pluginHost);
 	m_i2c.construct(pluginHost);
-
-	m_epctlSeqId = sys.getTimestamp () & 0xff; // set somewhat random seq id
 
 	createUi ();
 
@@ -272,8 +239,16 @@ HwSerialMonSession.createUi ()
 
 	gui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup ("Serial monitor");
 
+	m_stdSessionInfoSet.createInformationValues (m_pluginHost.m_informationGrid, infoGroup);
 	m_throughputInfoSet.createInformationValuesGrouped (m_pluginHost.m_informationGrid);
 	m_checksumInfoSet.createInformationValuesGrouped (m_pluginHost.m_informationGrid);
+
+	m_usbTotalSizeInfo = m_pluginHost.m_informationGrid.createValue (infoGroup,,, "USB total bytes");
+	m_usbTotalSizeInfo.m_isEnabled = false;
+	m_usbThroughputInfo = m_pluginHost.m_informationGrid.createValue (infoGroup,,, "USB throughput");
+	m_usbThroughputInfo.m_isEnabled = false;
+	m_usbThroughputTimestamp = sys.getTimestamp ();
+	updateUsbThroughput (m_usbThroughputTimestamp);
 
 	m_pluginHost.m_informationGrid.resizeNameColumnToContents ();
 
@@ -287,7 +262,7 @@ HwSerialMonSession.onOpenDevice ()
 	if (m_state >= State.Opened)
 		closeDevice ();
 	else
-		openDevice ();
+		try openDevice ();
 }
 
 HwSerialMonSession.onCapture ()
@@ -295,7 +270,7 @@ HwSerialMonSession.onCapture ()
 	if (m_state >= State.Capturing)
 		stopCapture ();
 	else
-		capture ();
+		try capture ();
 }
 
 HwSerialMonSession.enumerateDevices ()
@@ -333,26 +308,6 @@ HwSerialMonSession.enumerateDevices ()
 	m_deviceProp.setOptions (optionTable, ftdiCount);
 }
 
-bool errorcode HwSerialMonSession.epctl (
-	uint8_t endpointId,
-	HwSerialMonSession.EpctlCode code,
-	size_t size
-	)
-{
-	EpctlParams params;
-	params.m_seqId = m_epctlSeqId++;
-	params.m_endpointId = endpointId;
-	params.m_command = code;
-	params.m_size = size;
-
-	m_endpoint01.write (&params, sizeof (params));
-	return true;
-
-catch:
-	writeLogLastError (log.StdRecordCode.Error);
-	return false;
-}
-
 bool errorcode HwSerialMonSession.openDevice ()
 {
 	if (m_deviceCombo.m_currentIndex == -1)
@@ -363,17 +318,15 @@ bool errorcode HwSerialMonSession.openDevice ()
 
 	m_device = m_deviceCombo.m_currentData;
 
-	io.UsbDeviceDesc const* deviceDesc = m_device.m_deviceDesc;
-
 	m_device.open ();
-	m_iface0 = m_device.claimInterface (0);
-	m_iface1 = m_device.claimInterface (1);
-	m_endpoint01 = m_iface0.openEndpoint (0x01);
-	m_endpoint02 = m_iface1.openEndpoint (0x02);
-	m_endpoint82 = m_iface1.openEndpoint (0x82);
+	m_iface = m_device.claimInterface (0);
+	m_outEndpoint = m_iface.openEndpoint (0x01);
+	m_inEndpoint = m_iface.openEndpoint (0x81);
+	m_inEndpoint.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
+	m_inEndpoint.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
+	m_inEndpoint.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 
-	epctl (0x02, EpctlCode.SetWriteBufferSize, WriteBufferSize);
-	epctl (0x82, EpctlCode.SetReadBufferSize, ReadBufferSize);
+	io.UsbDeviceDesc const* deviceDesc = m_device.m_deviceDesc;
 
 	DeviceParams params;
 	params.m_bus = m_device.m_bus;
@@ -393,34 +346,22 @@ catch:
 
 HwSerialMonSession.closeDevice ()
 {
-	if (m_endpoint82)
+	if (m_outEndpoint)
 	{
-		m_endpoint82.close ();
-		m_endpoint82 = null;
+		m_outEndpoint.close ();
+		m_outEndpoint = null;
 	}
 
-	if (m_endpoint02)
+	if (m_inEndpoint)
 	{
-		m_endpoint02.close ();
-		m_endpoint02 = null;
+		m_inEndpoint.close ();
+		m_inEndpoint = null;
 	}
 
-	if (m_endpoint01)
+	if (m_iface)
 	{
-		m_endpoint01.close ();
-		m_endpoint01 = null;
-	}
-
-	if (m_iface0)
-	{
-		m_iface0.release ();
-		m_iface0 = null;
-	}
-
-	if (m_iface1)
-	{
-		m_iface1.release ();
-		m_iface1 = null;
+		m_iface.release ();
+		m_iface = null;
 	}
 
 	if (m_device)
@@ -439,7 +380,7 @@ HwSerialMonSession.closeDevice ()
 bool errorcode HwSerialMonSession.capture ()
 {
 	static char packet [] = 0x"55 55 55 55";
-	writeEndpoint02 (packet, sizeof (packet));
+	writeOutEndpoint (packet, sizeof (packet));
 	m_captureBaseTime = sys.getTimestamp ();
 
 	m_capturingSerialIface = m_serialIfaceProp.m_value;
@@ -447,34 +388,46 @@ bool errorcode HwSerialMonSession.capture ()
 
 	writeLogString (HwSerialMonRecordCode.CaptureStarted, m_capturingSerialIface.m_name);
 	m_state = State.Capturing;
-	waitEndpoint82Events ();
+	waitInEndpointEvents ();
 	m_stdSessionInfoSet.startSession (m_pluginHost.m_mainThreadScheduler);
+
+	m_usbTotalSize = 0;
+	m_usbPrevTotalSize = 0;
+	m_usbTotalSizeInfo.m_isEnabled = true;
+	m_usbThroughputInfo.m_isEnabled = true;
+	m_usbThroughputTimer.startPeriodicTimer (onUsbThroughputTimer ~(++m_usbThroughputTimerSyncId) @ m_pluginHost.m_mainThreadScheduler, 1000);
+	m_usbThroughputTimestamp = sys.getTimestamp ();
+	updateUsbThroughput (m_usbThroughputTimestamp);
 	return true;
 }
 
 bool errorcode HwSerialMonSession.stopCapture ()
 {
 	static char packet [] = 0x"aa aa aa aa";
-	writeEndpoint02 (packet, sizeof (packet));
+	writeOutEndpoint (packet, sizeof (packet));
 
 	m_capturingSerialIface.stop ();
 	m_capturingSerialIface = null;
 
 	writeLog (HwSerialMonRecordCode.CaptureStopped);
-	m_state = State.Opened;
-	m_endpoint82SyncId++;
 	m_stdSessionInfoSet.endSession ();
+	m_usbThroughputTimer.stop ();
+	m_usbTotalSizeInfo.m_isEnabled = false;
+	m_usbThroughputInfo.m_isEnabled = false;
+	m_state = State.Opened;
+	m_inEndpointSyncId++;
+	m_usbThroughputTimerSyncId++;
 	return true;
 }
 
-HwSerialMonSession.waitEndpoint82Events  ()
+HwSerialMonSession.waitInEndpointEvents  ()
 {
 	io.UsbEndpointEvents eventMask =
 		io.UsbEndpointEvents.IoError |
 		io.UsbEndpointEvents.ReadBufferFull |
 		io.UsbEndpointEvents.IncomingData;
 
-	m_endpoint82.wait (eventMask, onEndpoint82Event ~(++m_endpoint82SyncId) @ m_pluginHost.m_mainThreadScheduler);
+	m_inEndpoint.wait (eventMask, onInEndpointEvent ~(++m_inEndpointSyncId) @ m_pluginHost.m_mainThreadScheduler);
 }
 
 HwSerialMonSession.load (doc.Storage* storage)
@@ -511,9 +464,9 @@ bool errorcode HwSerialMonSession.applyProperties ()
 	if (m_state != State.Capturing)
 		return true;
 
-	m_endpoint82.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
-	m_endpoint82.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
-	m_endpoint82.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
+	m_inEndpoint.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
+	m_inEndpoint.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
+	m_inEndpoint.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 
 	m_capturingSerialIface.start (); // restart capturing with the new parameters
 	return true;
@@ -528,58 +481,78 @@ HwSerialMonSession.restoreDefaultProperties ()
 	m_spi.restoreDefaultProperties ();
 }
 
-size_t errorcode HwSerialMonSession.writeEndpoint02 (
+size_t errorcode HwSerialMonSession.writeOutEndpoint (
 	void const* p,
 	size_t size
 	)
 {
-	// it seems like it's not necessary to set write buffer size before
-	// every write -- once after open is enough
-
-	// epctl (0x02, EpctlCode.SetWriteBufferSize, WriteBufferSize);
-
-	size_t result = try m_endpoint02.write (p, size);
+	size_t result = try m_outEndpoint.write (p, size);
 	if (result == -1)
 		writeLogLastError (log.StdRecordCode.Error);
 
 	return result;
 }
 
-HwSerialMonSession.onEndpoint82Event (
+HwSerialMonSession.onUsbThroughputTimer (uint_t syncId)
+{
+	if (syncId == m_usbThroughputTimerSyncId)
+		updateUsbThroughput ();
+}
+
+HwSerialMonSession.updateUsbThroughput (uint64_t timestamp)
+{
+	uint64_t throughput;
+
+	if (timestamp > m_usbThroughputTimestamp)
+	{
+		uint64_t timeSpan = timestamp - m_usbThroughputTimestamp;
+		throughput = (m_usbTotalSize - m_usbPrevTotalSize) * 10000000 / timeSpan;
+		m_usbPrevTotalSize = m_usbTotalSize;
+		m_usbThroughputTimestamp = timestamp;
+	}
+
+	m_usbTotalSizeInfo.m_value = $"$(formatIntegerWithThousandSep (m_usbTotalSize))";
+	m_usbThroughputInfo.m_value = $"$(formatIntegerWithThousandSep (throughput))";
+}
+
+HwSerialMonSession.onInEndpointEvent (
 	uint_t syncId,
 	io.UsbEndpointEvents triggeredEvents
 	)
 {
-	if (syncId != m_endpoint82SyncId)
+	if (syncId != m_inEndpointSyncId)
 		return;
 
 	if (triggeredEvents & io.UsbEndpointEvents.IoError)
 	{
-		writeLogError (log.StdRecordCode.Error, m_endpoint82.m_ioError);
+		writeLogError (log.StdRecordCode.Error, m_inEndpoint.m_ioError);
 		stopCapture ();
 		return;
 	}
 
 	if (triggeredEvents & io.UsbEndpointEvents.IncomingData)
 	{
-		size_t size = m_endpoint82.read (m_readBuffer.m_p, m_readBuffer.m_size);
+		size_t size = m_inEndpoint.read (m_readBuffer.m_p, m_readBuffer.m_size);
+		m_usbTotalSize += size;
 
-		SignalEdge const* p = (SignalEdge const*) m_readBuffer.m_p;
-		SignalEdge const* end = p + size / sizeof (SignalEdge);
+		uint64_t const* p = (uint64_t const*) m_readBuffer.m_p;
+		uint64_t const* end = p + size / sizeof (uint64_t);
 		for (; p < end; p++)
 		{
-			uint64_t timestamp = m_captureBaseTime + p.m_timestamp / 10;
+			uint64_t frame = *p;
+			if (!frame)
+				continue; // skip padding
+
+			uint64_t timestamp = m_captureBaseTime + frame / 655360;
 
 			if (m_showRawDataProp.m_value)
-				m_pluginHost.m_log.m_writer.write (timestamp, HwSerialMonRecordCode.RawPacket, p, sizeof (SignalEdge));
+				m_pluginHost.m_log.m_writer.write (timestamp, HwSerialMonRecordCode.RawPacket, p, sizeof (uint64_t));
 
-			m_capturingSerialIface.processSignal (timestamp, p.m_lines);
+			m_capturingSerialIface.processSignal (timestamp, frame);
 		}
-
-		epctl (0x82, EpctlCode.SetReadBufferSize, ReadBufferSize);
 	}
 
-	waitEndpoint82Events ();
+	waitInEndpointEvents ();
 }
 
 reactor HwSerialMonSession.m_uiReactor ()
@@ -605,7 +578,7 @@ io.UsbDb g_usbDb;
 
 construct ()
 {
-	try g_usbDb.load ("ftdi.ids");
+	try g_usbDb.load ("sniffers.ids");
 }
 
 //..............................................................................
