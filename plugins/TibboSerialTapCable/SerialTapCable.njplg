@@ -1,0 +1,23 @@
+//..............................................................................
+//
+// Tibbo Serial Tap-Cable session plugin
+//
+
+[plugin]
+
+name        = Tibbo Serial Tap-Cable
+description = "Monitor serial communication through a Tibbo serial tap-cable"
+id          = tibbo-serial-tap
+group       = monitors
+monitor     = true
+guid        = e1e5ddea-71e6-41f3-8428-a6d83a5a0746
+icon        = images/serialmon.png
+small-icon  = images/serialmon-16x16.png
+
+session-class        = SerialTapCableSession
+log-representer-func = representSerialTapCableLog
+
+[scripts]
+
+SerialTapCableSession.jnc
+../Serial/SerialLog.jnc

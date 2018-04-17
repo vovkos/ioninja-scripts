@@ -1,0 +1,883 @@
+//..............................................................................
+//
+// Serial tap cable session
+//
+
+import "io_usb.jncx"
+import "io_base.jncx"
+import "io_Serial.jnc"
+import "io_UsbDb.jnc"
+import "io_BufferUi.jnc"
+import "std_Buffer.jnc"
+import "doc_Plugin.jnc"
+import "gui_StdSessionInfo.jnc"
+import "log_ThroughputCalc.jnc"
+import "log_ChecksumCalc.jnc"
+
+namespace cy {
+
+// excerpts from Cypress USBS236 SDK
+
+//..............................................................................
+
+enum
+{
+	// request types
+
+	CY_VENDOR_REQUEST_DEVICE_TO_HOST = 0xC0,
+	CY_VENDOR_REQUEST_HOST_TO_DEVICE = 0x40,
+
+	// request ids
+
+	CY_UART_GET_CONFIG_CMD = 0xC0,
+	CY_UART_SET_CONFIG_CMD = 0xC1,
+	CY_GPIO_GET_VALUE_CMD  = 0xDA,
+	CY_GPIO_SET_VALUE_CMD  = 0xDB,
+
+	// misc constants
+
+	CY_SCB_INDEX_POS = 15,
+}
+
+struct CyUartConfig
+{
+	uint32_t baudRate;
+	uint8_t pinType;
+	uint8_t dataWidth;
+	uint8_t stopBits;
+	uint8_t mode;
+	uint8_t parity;
+	uint8_t isMsbFirst;
+	uint8_t txRetry;
+	uint8_t rxInvertPolarity;
+	uint8_t rxIgnoreError;
+	uint8_t isFlowControl;
+	uint8_t isLoopBack;
+	uint8_t flags;
+}
+
+//..............................................................................
+
+} // namespace cy
+
+class SerialIface
+{
+	uint_t m_id;
+	io.UsbInterface* m_interface;
+	io.UsbEndpoint* m_bulkEndpoint;
+	io.UsbEndpoint* m_interruptEndpoint;
+	uint_t m_bulkSyncId;
+	uint_t m_interruptSyncId;
+	io.SerialStatusLines bindable m_serialStatusLines;
+
+	bool errorcode claim (io.UsbDevice* device);
+	release ();
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+bool errorcode SerialIface.claim (io.UsbDevice* device)
+{
+	m_interface = device.claimInterface (m_id);
+	m_bulkEndpoint = m_interface.openEndpoint (m_id ? 0x85 : 0x82);
+	m_interruptEndpoint = m_interface.openEndpoint (m_id ? 0x86 : 0x83);
+	m_serialStatusLines = 0;
+	return true;
+}
+
+SerialIface.release ()
+{
+	if (m_bulkEndpoint)
+	{
+		m_bulkEndpoint.close ();
+		m_bulkEndpoint = null;
+		m_bulkSyncId++;
+	}
+
+	if (m_interruptEndpoint)
+	{
+		m_interruptEndpoint.close ();
+		m_interruptEndpoint = null;
+		m_interruptSyncId++;
+	}
+
+	if (m_interface)
+	{
+		m_interface.release ();
+		m_interface = null;
+	}
+}
+
+//..............................................................................
+
+class SerialTapCableSession: doc.Session
+{
+protected:
+	enum Defaults
+	{
+		BaudRate = 38400,
+		DataBits = 8,
+		StopBits = io.SerialStopBits._1,
+		Parity   = io.SerialParity.None,
+	}
+
+	enum State
+	{
+		Closed,
+		Opened,
+	}
+
+	enum ActionId
+	{
+		Refresh,
+		Capture,
+		_Count,
+	}
+
+	enum IconId
+	{
+		Capture,
+		StopCapture,
+		Refresh,
+		_Count,
+	}
+
+	enum InfoId
+	{
+		Dtr,
+		Rts,
+		Dsr,
+		Cts,
+		_Count,
+	}
+
+	enum SerialGpio
+	{
+		Dtr = 2,
+		Rts = 4,
+		Dsr = 14,
+		Cts = 13,
+	}
+
+protected:
+	// two USB interfaces for serial ports (A & B)
+
+	State bindable m_state;
+	io.UsbDevice* m_device;
+	SerialIface m_ifaceA;
+	SerialIface m_ifaceB;
+	uint_t m_dataBits;
+	io.SerialStopBits m_stopBits;
+	io.SerialParity m_parity;
+	std.Buffer m_readBuffer;
+	SerialLogFilter m_logFilter;
+
+	// toolbar, status bar & menu
+
+	gui.Action* m_actionTable [ActionId._Count];
+	gui.Icon* m_iconTable [IconId._Count];
+	gui.StatusPane* m_statusPane;
+	gui.ComboBox* m_deviceCombo;
+	gui.ComboBox* m_baudRateCombo;
+
+	// serial property grid
+
+	gui.EnumProperty* m_deviceProp;
+	gui.EnumProperty* m_baudRateProp;
+	gui.EnumProperty* m_dataBitsProp;
+	gui.EnumProperty* m_stopBitsProp;
+	gui.EnumProperty* m_parityProp;
+	io.BufferPropertySet m_bufferPropertySet;
+
+	// filter property grid
+
+	gui.BoolProperty* m_settingChangedVisibleProp;
+	gui.BoolProperty* m_controlLineChangedVisibleProp;
+	gui.BoolProperty* m_statusLineChangedVisibleProp;
+
+	// information grid
+
+	gui.StdSessionInfoSet m_stdSessionInfoSet;
+	log.ThroughputInfoSet m_throughputInfoSet;
+	log.ChecksumInfoSet m_checksumInfoSet;
+	gui.InformationValue* m_infoTable [InfoId._Count];
+
+public:
+	construct (doc.PluginHost* pluginHost);
+
+	bool errorcode capture ();
+	stopCapture ();
+
+	override void load (doc.Storage* storage);
+	override void save (doc.Storage* storage);
+	override void updateProperties ();
+	override bool errorcode applyProperties ();
+	override void restoreDefaultProperties ();
+
+protected:
+	onCapture ()
+	{
+		m_state ? stopCapture () : try capture ();
+	}
+
+	onPortComboEnter ()
+	{
+		try capture ();
+	}
+
+	onBaudRateChanged ();
+
+	onBulkEndpointEvent (
+		SerialIface* iface,
+		uint_t syncId,
+		io.UsbEndpointEvents triggeredEvents
+		);
+
+	onInterruptEndpointEvent (
+		SerialIface* iface,
+		uint_t syncId,
+		io.UsbEndpointEvents triggeredEvents
+		);
+
+	createUi ();
+	enumerateDevices ();
+	waitBulkEndpointEvents (SerialIface* iface);
+	waitInterruptEndpointEvents (SerialIface* iface);
+	bool errorcode configureSerialIface (SerialIface* iface);
+	bool getGpio (uint_t pin);
+
+	updateLineInfoValue (
+		InfoId infoId,
+		bool line
+		);
+
+	reactor m_uiReactor ();
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+SerialTapCableSession.construct (doc.PluginHost* pluginHost)
+{
+	basetype.construct (pluginHost);
+
+	m_readBuffer.setSize (io.BufferPropertySet.Defaults.ReadBufferSize);
+
+	m_ifaceA.m_id = 0;
+	m_ifaceB.m_id = 1;
+
+	createUi ();
+
+	pluginHost.m_log.attachRepresenter (representSerialLog);
+	pluginHost.m_log.attachFilter (m_logFilter);
+	pluginHost.m_log.registerSelectionProcessor (log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
+	pluginHost.m_log.registerSelectionProcessor (log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
+	m_stdSessionInfoSet.attachLogListener (pluginHost.m_log);
+}
+
+SerialTapCableSession.createUi ()
+{
+	static gui.EnumPropertyOption baudRateTable [] =
+	{
+		{ "110 bps",    110 },
+		{ "300 bps",    300 },
+		{ "600 bps",    600 },
+		{ "1200 bps",   1200 },
+		{ "2400 bps",   2400 },
+		{ "4800 bps",   4800 },
+		{ "9600 bps",   9600 },
+		{ "14400 bps",  14400 },
+		{ "19200 bps",  19200 },
+		{ "38400 bps",  38400 },
+		{ "56000 bps",  56000 },
+		{ "57600 bps",  57600 },
+		{ "115200 bps", 115200 },
+		{ "128000 bps", 128000 },
+		{ "153600 bps", 153600 },
+		{ "230400 bps", 230400 },
+		{ "256000 bps", 256000 },
+		{ "460800 bps", 460800 },
+		{ "921600 bps", 921600 },
+	}
+
+	static gui.EnumPropertyOption dataBitsTable [] =
+	{
+		{ "7 bits", 7 },
+		{ "8 bits", 8 },
+	}
+
+	static gui.EnumPropertyOption stopBitsTable [] =
+	{
+		{ "1 bit",    io.SerialStopBits._1 },
+		{ "1.5 bits", io.SerialStopBits._15 },
+		{ "2 bits",   io.SerialStopBits._2 },
+	}
+
+	static gui.EnumPropertyOption parityTable [] =
+	{
+		{ "None",  io.SerialParity.None },
+		{ "Odd",   io.SerialParity.Odd },
+		{ "Even",  io.SerialParity.Even },
+		{ "Mark",  io.SerialParity.Mark },
+		{ "Space", io.SerialParity.Space },
+	}
+
+	// toolbar
+
+	m_iconTable [IconId.Capture] = new gui.Icon ("images/capture.png");
+	m_iconTable [IconId.StopCapture] = new gui.Icon ("images/pause.png");
+	m_iconTable [IconId.Refresh] = new gui.Icon ("images/refresh.png");
+
+	m_pluginHost.m_toolBar.addLabel ("Device:");
+	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox (-1);
+
+	m_actionTable [ActionId.Refresh] = createAction ("Re-enumerate devices", m_iconTable [IconId.Refresh]);
+	m_actionTable [ActionId.Refresh].m_onTriggered += enumerateDevices;
+
+	m_pluginHost.m_toolBar.addLabel ("Baud:");
+	m_baudRateCombo = m_pluginHost.m_toolBar.addComboBox ();
+
+	for (size_t i = 0; i < countof (baudRateTable); i++)
+		m_baudRateCombo.addItem (baudRateTable [i].m_text, baudRateTable [i].m_value);
+
+	m_baudRateCombo.adjustSizeToContents ();
+	m_baudRateCombo.m_onChanged += onBaudRateChanged;
+
+	m_actionTable [ActionId.Capture] = createAction ("Capture", m_iconTable [IconId.Capture]);
+	m_actionTable [ActionId.Capture].m_onTriggered += onCapture;
+
+	m_pluginHost.m_menu.addSeparator ();
+	m_pluginHost.m_toolBar.addSeparator ();
+
+	// status bar (only one pane)
+
+	m_statusPane = m_pluginHost.m_statusBar.addPane (, 80);
+
+	// property grid
+
+	gui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty (
+		"Connection",
+		"USB-specific connection settings"
+		);
+
+	m_deviceProp = m_pluginHost.m_propertyGrid.createEnumProperty (
+		group,,
+		"Device",
+		"Target USB device",
+		null, 0
+		);
+
+	m_baudRateProp = m_pluginHost.m_propertyGrid.createEnumProperty (
+		group,,
+		"Baud rate",
+		"Serial baud rate",
+		baudRateTable,
+		countof (baudRateTable)
+		);
+
+	m_dataBitsProp = m_pluginHost.m_propertyGrid.createEnumProperty (
+		group,,
+		"Data bits",
+		"Serial data bit count (word size)",
+		dataBitsTable,
+		countof (dataBitsTable)
+		);
+
+	m_stopBitsProp = m_pluginHost.m_propertyGrid.createEnumProperty (
+		group,,
+		"Stop bits",
+		"Serial stop bit count",
+		stopBitsTable,
+		countof (stopBitsTable)
+		);
+
+	m_parityProp = m_pluginHost.m_propertyGrid.createEnumProperty (
+		group,,
+		"Parity",
+		"Serial parity check",
+		parityTable,
+		countof (parityTable)
+		);
+
+	group = m_pluginHost.m_propertyGrid.createGroupProperty (
+		"Buffering & compatibility",
+		"Advanced options controlling performance, throughtput and compatibility"
+		);
+
+	io.BufferPropertySet.PropertyId mask = io.BufferPropertySet.PropertyId.All;
+	mask &= ~(
+		io.BufferPropertySet.PropertyId.WriteBufferSize |
+		io.BufferPropertySet.PropertyId.KeepWriteBlockSize
+		);
+
+	m_bufferPropertySet.createProperties (m_pluginHost.m_propertyGrid, group,, mask);
+
+	group = m_pluginHost.m_propertyGrid.createGroupProperty (
+		"Log filter",
+		"Specify which unwanted log messages to filter out"
+		);
+
+	m_settingChangedVisibleProp = m_pluginHost.m_propertyGrid.createBoolProperty (
+		group,,
+		"Show setting changes",
+		"Display setting change log records (or filter them out)"
+		);
+
+	m_controlLineChangedVisibleProp = m_pluginHost.m_propertyGrid.createBoolProperty (
+		group,,
+		"Show control line changes",
+		"Display control line change log records (or filter them out)"
+		);
+
+	m_statusLineChangedVisibleProp = m_pluginHost.m_propertyGrid.createBoolProperty (
+		group,,
+		"Show status line changes",
+		"Display status line change log records (or filter them out)"
+		);
+
+	// information grid
+
+	gui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup ("Serial tap");
+
+	m_stdSessionInfoSet.createInformationValues (m_pluginHost.m_informationGrid, infoGroup);
+
+	m_infoTable [InfoId.Dtr] = m_pluginHost.m_informationGrid.createValue (infoGroup,,, "DTR");
+	m_infoTable [InfoId.Rts] = m_pluginHost.m_informationGrid.createValue (infoGroup,,, "RTS");
+	m_infoTable [InfoId.Dsr] = m_pluginHost.m_informationGrid.createValue (infoGroup,,, "DSR");
+	m_infoTable [InfoId.Cts] = m_pluginHost.m_informationGrid.createValue (infoGroup,,, "CTS");
+	m_throughputInfoSet.createInformationValuesGrouped (m_pluginHost.m_informationGrid);
+	m_checksumInfoSet.createInformationValuesGrouped (m_pluginHost.m_informationGrid);
+
+	m_pluginHost.m_informationGrid.resizeNameColumnToContents ();
+
+	enumerateDevices ();
+
+	m_uiReactor.start ();
+}
+
+SerialTapCableSession.enumerateDevices ()
+{
+	m_deviceCombo.clear ();
+
+	io.UsbDevice* const* deviceArray = io.createUsbDeviceArray ();
+	size_t count = dynamic countof (deviceArray);
+
+	gui.EnumPropertyOption* optionTable = new gui.EnumPropertyOption [count];
+
+	size_t ftdiCount = 0;
+	for (size_t i = 0; i < count; i++)
+	{
+		io.UsbDevice* device = deviceArray [i];
+		io.UsbDeviceDesc const* deviceDesc = device.m_deviceDesc;
+		io.UsbProduct const* product = g_usbDb.findProduct (deviceDesc.m_vendorId, deviceDesc.m_productId);
+		if (!product)
+			continue;
+
+		char const* text = $"@%(1;03d):%(2;03d) %3 %4" (
+			device.m_bus,
+			device.m_address,
+			product.m_vendor.m_name,
+			product.m_name
+			);
+
+		m_deviceCombo.addItem (text, device);
+
+		optionTable [ftdiCount].m_text = text;
+		optionTable [ftdiCount].m_value = device;
+		ftdiCount++;
+	}
+
+	m_deviceProp.setOptions (optionTable, ftdiCount);
+}
+
+bool errorcode SerialTapCableSession.configureSerialIface (SerialIface* iface)
+{
+	cy.CyUartConfig uartConfig;
+	uartConfig.baudRate = m_baudRateCombo.m_currentData;
+	uartConfig.dataWidth = m_dataBitsProp.m_value;
+	uartConfig.stopBits = m_stopBitsProp.m_value ? 2 : 1;
+	uartConfig.parity = m_parityProp.m_value;
+
+	m_device.controlTransfer (
+		cy.CY_VENDOR_REQUEST_HOST_TO_DEVICE,
+		cy.CY_UART_SET_CONFIG_CMD,
+		iface.m_id << cy.CY_SCB_INDEX_POS,
+		0,
+		&uartConfig,
+		sizeof (uartConfig)
+		);
+
+	return true;
+}
+
+bool SerialTapCableSession.getGpio (uint_t pin)
+{
+	uint16_t value = -1;
+
+	try m_device.controlTransfer (
+		cy.CY_VENDOR_REQUEST_DEVICE_TO_HOST,
+		cy.CY_GPIO_GET_VALUE_CMD,
+		pin,
+		0,
+		&value,
+		sizeof (uint16_t)
+		);
+
+	return !value;
+}
+
+bool errorcode SerialTapCableSession.capture ()
+{
+	if (m_deviceCombo.m_currentIndex == -1)
+		return false;
+
+	stopCapture ();
+	startSession ();
+
+	m_device = m_deviceCombo.m_currentData;
+	io.UsbDeviceDesc const* deviceDesc = m_device.m_deviceDesc;
+
+	m_device.open ();
+
+	configureSerialIface (&m_ifaceA);
+	configureSerialIface (&m_ifaceB);
+
+	m_ifaceA.claim (m_device);
+	m_ifaceB.claim (m_device);
+
+	bool dtr = getGpio (SerialGpio.Dtr);
+	bool rts = getGpio (SerialGpio.Rts);
+	bool dsr = getGpio (SerialGpio.Dsr);
+	bool cts = getGpio (SerialGpio.Cts);
+
+	if (dtr)
+		m_ifaceA.m_serialStatusLines |= io.SerialStatusLines.Dsr;
+
+	if (rts)
+		m_ifaceA.m_serialStatusLines |= io.SerialStatusLines.Cts;
+
+	if (dsr)
+		m_ifaceB.m_serialStatusLines |= io.SerialStatusLines.Dsr;
+
+	if (cts)
+		m_ifaceB.m_serialStatusLines |= io.SerialStatusLines.Cts;
+
+	SerialOpenParams params;
+	params.m_baudRate = m_baudRateCombo.m_currentData;
+	params.m_flowControl = io.SerialFlowControl.None;
+	params.m_dataBits = m_dataBitsProp.m_value;
+	params.m_stopBits = m_stopBitsProp.m_value;
+	params.m_parity = io.SerialParity.None;
+	params.m_readInterval = 0;
+	params.m_dtr = dtr;
+	params.m_rts = rts;
+	params.m_statusLines = m_ifaceB.m_serialStatusLines;
+	params.m_options = 0;
+	params.m_osKind = sys.g_systemInfo.m_osKind;
+
+	char const* p = $"$(params; B)$(m_deviceCombo.m_currentText)";
+	writeLog (SerialLogRecordCode.PortOpened, p, dynamic sizeof (p));
+
+	m_state = State.Opened;
+
+	waitBulkEndpointEvents (m_ifaceA);
+	waitBulkEndpointEvents (m_ifaceB);
+	waitInterruptEndpointEvents (m_ifaceA);
+	waitInterruptEndpointEvents (m_ifaceB);
+
+	m_stdSessionInfoSet.startSession (m_pluginHost.m_mainThreadScheduler);
+	return true;
+
+catch:
+	std.Error const* error = std.getLastError ();
+
+	writeLog (
+		SerialLogRecordCode.PortOpenError,
+		error,
+		error.m_size
+		);
+
+	m_ifaceA.release ();
+	m_ifaceB.release ();
+
+	if (m_device)
+	{
+		m_device.close ();
+		m_device = null;
+	}
+
+	return false;
+}
+
+SerialTapCableSession.stopCapture ()
+{
+	if (m_state != State.Opened)
+		return;
+
+	writeLog (SerialLogRecordCode.PortClosed);
+	m_stdSessionInfoSet.endSession ();
+	m_ifaceA.release ();
+	m_ifaceB.release ();
+	m_device.close ();
+	m_device = null;
+	m_state = State.Closed;
+}
+
+SerialTapCableSession.waitBulkEndpointEvents (SerialIface* iface)
+{
+	iface.m_bulkEndpoint.wait (
+		io.UsbEndpointEvents.IoError |
+		io.UsbEndpointEvents.ReadBufferFull |
+		io.UsbEndpointEvents.IncomingData,
+		onBulkEndpointEvent ~(
+			iface,
+			++iface.m_bulkSyncId
+			) @ m_pluginHost.m_mainThreadScheduler
+		);
+}
+
+SerialTapCableSession.waitInterruptEndpointEvents (SerialIface* iface)
+{
+	iface.m_interruptEndpoint.wait (
+		io.UsbEndpointEvents.IoError |
+		io.UsbEndpointEvents.IncomingData,
+		onInterruptEndpointEvent ~(
+			iface,
+			++iface.m_interruptSyncId
+			) @ m_pluginHost.m_mainThreadScheduler
+		);
+}
+
+SerialTapCableSession.onBulkEndpointEvent (
+	SerialIface* iface,
+	uint_t syncId,
+	io.UsbEndpointEvents triggeredEvents
+	)
+{
+	if (syncId != iface.m_bulkSyncId)
+		return;
+
+	if (triggeredEvents & io.UsbEndpointEvents.IoError)
+	{
+		writeLog (log.StdRecordCode.Error, iface.m_bulkEndpoint.m_ioError, iface.m_bulkEndpoint.m_ioError.m_size);
+		stopCapture ();
+		return;
+	}
+
+	if ((triggeredEvents & io.UsbEndpointEvents.ReadBufferFull) &&
+		m_bufferPropertySet.m_notifyReadBufferFullProp.m_value)
+		writeLog (log.StdRecordCode.RxBufferFull);
+
+	if (triggeredEvents & io.UsbEndpointEvents.IncomingData)
+	{
+		size_t result = iface.m_bulkEndpoint.read (m_readBuffer.m_p, m_readBuffer.m_size);
+		if (result)
+		{
+			uint_t recordCode = iface.m_id ? log.StdRecordCode.Rx : log.StdRecordCode.Tx;
+			writeLog (recordCode, m_readBuffer.m_p, result);
+		}
+	}
+
+	waitBulkEndpointEvents (iface);
+}
+
+SerialTapCableSession.onInterruptEndpointEvent (
+	SerialIface* iface,
+	uint_t syncId,
+	io.UsbEndpointEvents triggeredEvents
+	)
+{
+	if (syncId != iface.m_interruptSyncId)
+		return;
+
+	if (triggeredEvents & io.UsbEndpointEvents.IoError)
+	{
+		writeLog (log.StdRecordCode.Error, iface.m_interruptEndpoint.m_ioError, iface.m_interruptEndpoint.m_ioError.m_size);
+		stopCapture ();
+		return;
+	}
+
+	if (triggeredEvents & io.UsbEndpointEvents.IncomingData)
+	{
+		size_t result = iface.m_interruptEndpoint.read (m_readBuffer.m_p, m_readBuffer.m_size);
+		if (result >= 10 && (m_readBuffer [6] & 0x02))
+		{
+			io.SerialStatusLines statusLines;
+			if (m_readBuffer [8] & 0x02)
+				statusLines |= io.SerialStatusLines.Dsr;
+
+			if (m_readBuffer [8] & 0x01)
+				statusLines |= io.SerialStatusLines.Cts;
+
+			io.SerialStatusLines statusLineMask = statusLines ^ iface.m_serialStatusLines;
+			if (iface.m_id)
+			{
+				SerialStatusLineChangedParams params = { statusLines, statusLineMask }
+				writeLog (SerialLogRecordCode.StatusLineChanged, params, sizeof (params));
+			}
+			else
+			{
+				if (statusLineMask & io.SerialStatusLines.Dsr)
+				{
+					bool dtr = statusLines & io.SerialStatusLines.Dsr;
+					writeLog (SerialLogRecordCode.DtrChanged, &dtr, sizeof (dtr));
+				}
+
+				if (statusLineMask & io.SerialStatusLines.Cts)
+				{
+					bool rts = statusLines & io.SerialStatusLines.Cts;
+					writeLog (SerialLogRecordCode.RtsChanged, &rts, sizeof (rts));
+				}
+			}
+
+			iface.m_serialStatusLines = statusLines;
+		}
+	}
+
+	waitInterruptEndpointEvents (iface);
+}
+
+void SerialTapCableSession.load (doc.Storage* storage)
+{
+	m_deviceCombo.m_currentIndex  = storage.readInt ("deviceIdx");
+	m_baudRateCombo.m_currentIndex = storage.readInt ("baudRate", 9); // 38400
+	m_dataBitsProp.m_currentIndex = storage.readInt ("dataBits", 1);  // 8-bits by default
+	m_stopBitsProp.m_currentIndex = storage.readInt ("stopBits");
+	m_parityProp.m_currentIndex = storage.readInt ("parity");
+
+	m_logFilter.m_isSettingChangedVisible = storage.readBool ("isSettingChangedVisible", true);
+	m_logFilter.m_isControlLineChangedVisible = storage.readBool ("isControlLineChangedVisible", true);
+	m_logFilter.m_isStatusLineChangedVisible = storage.readBool ("isStatusLineChangedVisible", true);
+
+	m_bufferPropertySet.load (storage);
+	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
+}
+
+void SerialTapCableSession.save (doc.Storage* storage)
+{
+	storage.writeInt ("deviceIdx", (int) m_deviceCombo.m_currentIndex);
+	storage.writeInt ("baudRate", m_baudRateCombo.m_currentIndex);
+	storage.writeInt ("dataBits", m_dataBitsProp.m_currentIndex);
+	storage.writeInt ("stopBits", m_stopBitsProp.m_currentIndex);
+	storage.writeInt ("parity", m_parityProp.m_currentIndex);
+
+	storage.writeBool ("isSettingChangedVisible", m_logFilter.m_isSettingChangedVisible);
+	storage.writeBool ("isControlLineChangedVisible", m_logFilter.m_isControlLineChangedVisible);
+	storage.writeBool ("isStatusLineChangedVisible", m_logFilter.m_isStatusLineChangedVisible);
+
+	m_bufferPropertySet.save (storage);
+}
+
+void SerialTapCableSession.updateProperties ()
+{
+	m_deviceProp.m_currentIndex = m_deviceCombo.m_currentIndex;
+	m_baudRateProp.m_currentIndex = m_baudRateCombo.m_currentIndex;
+	m_settingChangedVisibleProp.m_value = m_logFilter.m_isSettingChangedVisible;
+	m_controlLineChangedVisibleProp.m_value = m_logFilter.m_isControlLineChangedVisible;
+	m_statusLineChangedVisibleProp.m_value = m_logFilter.m_isStatusLineChangedVisible;
+}
+
+bool errorcode SerialTapCableSession.applyProperties ()
+{
+	m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
+	m_baudRateCombo.m_currentIndex = m_baudRateProp.m_currentIndex;
+	m_logFilter.m_isSettingChangedVisible = m_settingChangedVisibleProp.m_value;
+	m_logFilter.m_isControlLineChangedVisible = m_controlLineChangedVisibleProp.m_value;
+	m_logFilter.m_isStatusLineChangedVisible = m_statusLineChangedVisibleProp.m_value;
+	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
+
+	if (m_state != State.Opened)
+		return true;
+
+	uint_t baudRate = m_baudRateProp.m_value;
+	uint_t dataBits = m_dataBitsProp.m_value;
+	io.SerialStopBits stopBits = (io.SerialStopBits) m_stopBitsProp.m_value;
+	io.SerialParity parity = (io.SerialParity) m_parityProp.m_value;
+
+	// baud rate change will be handled inside onBaudRateChanged ()
+
+	if (m_dataBits != dataBits)
+	{
+		writeLog (SerialLogRecordCode.DataBitsChanged, &dataBits, sizeof (dataBits));
+		m_dataBits = dataBits;
+	}
+
+	if (m_stopBits != stopBits)
+	{
+		writeLog (SerialLogRecordCode.StopBitsChanged, &stopBits, sizeof (stopBits));
+		m_stopBits = stopBits;
+	}
+
+	if (m_parity != parity)
+	{
+		writeLog (SerialLogRecordCode.ParityChanged, &parity, sizeof (parity));
+		m_parity = parity;
+	}
+
+	configureSerialIface (&m_ifaceA);
+	configureSerialIface (&m_ifaceB);
+	return true;
+}
+
+void SerialTapCableSession.restoreDefaultProperties ()
+{
+	m_baudRateProp.m_value = Defaults.BaudRate;
+	m_dataBitsProp.m_value = Defaults.DataBits;
+	m_stopBitsProp.m_value = Defaults.StopBits;
+
+	m_settingChangedVisibleProp.m_value = true;
+	m_controlLineChangedVisibleProp.m_value = true;
+	m_statusLineChangedVisibleProp.m_value = true;
+
+	m_bufferPropertySet.restoreDefaults ();
+}
+
+SerialTapCableSession.onBaudRateChanged ()
+{
+	if (m_state != State.Opened)
+		return;
+
+	configureSerialIface (&m_ifaceA);
+	configureSerialIface (&m_ifaceB);
+
+	uint_t value = m_baudRateCombo.m_currentData;
+	writeLog (SerialLogRecordCode.BaudRateChanged, &value, sizeof (value));
+
+catch:
+	writeLogLastError (log.StdRecordCode.Error);
+}
+
+SerialTapCableSession.updateLineInfoValue (
+	InfoId infoId,
+	bool line
+	)
+{
+	m_infoTable [infoId].m_value = line ? "on" : "off";
+	m_infoTable [infoId].m_valueColor = line ? gui.StdColor.LightRed : gui.StdColor.Gray;
+}
+
+reactor SerialTapCableSession.m_uiReactor ()
+{
+	m_title = $"SerialTap $(m_deviceCombo.m_currentText)";
+	m_actionTable [ActionId.Capture].m_text = m_state ? "Stop capture" : "Capture";
+	m_actionTable [ActionId.Capture].m_icon = m_iconTable [m_state ? IconId.StopCapture : IconId.Capture];
+	m_statusPane.m_text = m_state ? "Capturing" : "Closed";
+	m_infoTable [InfoId.Dtr].m_isEnabled = m_state;
+	m_infoTable [InfoId.Rts].m_isEnabled = m_state;
+	m_infoTable [InfoId.Dsr].m_isEnabled = m_state;
+	m_infoTable [InfoId.Cts].m_isEnabled = m_state;
+	updateLineInfoValue (InfoId.Dtr, m_ifaceA.m_serialStatusLines & io.SerialStatusLines.Dsr);
+	updateLineInfoValue (InfoId.Rts, m_ifaceA.m_serialStatusLines & io.SerialStatusLines.Cts);
+	updateLineInfoValue (InfoId.Dsr, m_ifaceB.m_serialStatusLines & io.SerialStatusLines.Dsr);
+	updateLineInfoValue (InfoId.Cts, m_ifaceB.m_serialStatusLines & io.SerialStatusLines.Cts);
+}
+
+//..............................................................................
+
+io.UsbDb g_usbDb;
+
+construct ()
+{
+	try g_usbDb.load ("taps.ids");
+}
+
+//..............................................................................
