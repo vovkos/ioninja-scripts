@@ -15,7 +15,7 @@ icon        = images/serialmon.png
 small-icon  = images/serialmon-16x16.png
 
 session-class        = SerialTapCableSession
-log-representer-func = representSerialTapCableLog
+log-representer-func = representSerialLog
 
 [scripts]
 

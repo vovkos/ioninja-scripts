@@ -60,9 +60,38 @@ struct CyUartConfig
 
 } // namespace cy
 
+enum UartGpioPin
+{
+	Dtr = 2,
+	Rts = 4,
+	Dsr = 14,
+	Cts = 13,
+}
+
+
+bool getGpioPin (
+	io.UsbDevice* device,
+	uint_t pin
+	)
+{
+	uint16_t value = -1;
+
+	try device.controlTransfer (
+		cy.CY_VENDOR_REQUEST_DEVICE_TO_HOST,
+		cy.CY_GPIO_GET_VALUE_CMD,
+		pin,
+		0,
+		&value,
+		sizeof (uint16_t)
+		);
+
+	return !value;
+}
+
+//..............................................................................
+
 class SerialIface
 {
-	uint_t m_id;
 	io.UsbInterface* m_interface;
 	io.UsbEndpoint* m_bulkEndpoint;
 	io.UsbEndpoint* m_interruptEndpoint;
@@ -70,18 +99,36 @@ class SerialIface
 	uint_t m_interruptSyncId;
 	io.SerialStatusLines bindable m_serialStatusLines;
 
-	bool errorcode claim (io.UsbDevice* device);
+	bool errorcode claim (
+		io.UsbDevice* device,
+		uint_t ifaceId
+		);
+
 	release ();
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-bool errorcode SerialIface.claim (io.UsbDevice* device)
+bool errorcode SerialIface.claim (
+	io.UsbDevice* device,
+	uint_t ifaceId
+	)
 {
-	m_interface = device.claimInterface (m_id);
-	m_bulkEndpoint = m_interface.openEndpoint (m_id ? 0x85 : 0x82);
-	m_interruptEndpoint = m_interface.openEndpoint (m_id ? 0x86 : 0x83);
+	m_interface = device.claimInterface (ifaceId);
+	m_bulkEndpoint = m_interface.openEndpoint (ifaceId ? 0x85 : 0x82);
+	m_interruptEndpoint = m_interface.openEndpoint (ifaceId ? 0x86 : 0x83);
+
+	bool dsr = getGpioPin (device, ifaceId ? UartGpioPin.Dsr : UartGpioPin.Dtr);
+	bool cts = getGpioPin (device, ifaceId ? UartGpioPin.Cts : UartGpioPin.Rts);
+
 	m_serialStatusLines = 0;
+
+	if (dsr)
+		m_serialStatusLines = io.SerialStatusLines.Dsr;
+
+	if (cts)
+		m_serialStatusLines = io.SerialStatusLines.Cts;
+
 	return true;
 }
 
@@ -131,6 +178,7 @@ protected:
 	{
 		Refresh,
 		Capture,
+		Flip,
 		_Count,
 	}
 
@@ -138,7 +186,6 @@ protected:
 	{
 		Capture,
 		StopCapture,
-		Refresh,
 		_Count,
 	}
 
@@ -151,21 +198,13 @@ protected:
 		_Count,
 	}
 
-	enum SerialGpio
-	{
-		Dtr = 2,
-		Rts = 4,
-		Dsr = 14,
-		Cts = 13,
-	}
-
 protected:
 	// two USB interfaces for serial ports (A & B)
 
 	State bindable m_state;
 	io.UsbDevice* m_device;
-	SerialIface m_ifaceA;
-	SerialIface m_ifaceB;
+	SerialIface* m_dteIface; // pointers are easier to flip
+	SerialIface* m_dceIface;
 	uint_t m_dataBits;
 	io.SerialStopBits m_stopBits;
 	io.SerialParity m_parity;
@@ -187,6 +226,7 @@ protected:
 	gui.EnumProperty* m_dataBitsProp;
 	gui.EnumProperty* m_stopBitsProp;
 	gui.EnumProperty* m_parityProp;
+	gui.BoolProperty* m_flipProp;
 	io.BufferPropertySet m_bufferPropertySet;
 
 	// filter property grid
@@ -241,15 +281,18 @@ protected:
 
 	createUi ();
 	enumerateDevices ();
+	flipDteDce ();
 	waitBulkEndpointEvents (SerialIface* iface);
 	waitInterruptEndpointEvents (SerialIface* iface);
-	bool errorcode configureSerialIface (SerialIface* iface);
+	bool errorcode configureSerialIface (uint_t ifaceId);
 	bool getGpio (uint_t pin);
 
 	updateLineInfoValue (
 		InfoId infoId,
 		bool line
 		);
+
+	updateLineInfoValues ();
 
 	reactor m_uiReactor ();
 }
@@ -262,8 +305,8 @@ SerialTapCableSession.construct (doc.PluginHost* pluginHost)
 
 	m_readBuffer.setSize (io.BufferPropertySet.Defaults.ReadBufferSize);
 
-	m_ifaceA.m_id = 0;
-	m_ifaceB.m_id = 1;
+	m_dteIface = new SerialIface;
+	m_dceIface = new SerialIface;
 
 	createUi ();
 
@@ -325,13 +368,16 @@ SerialTapCableSession.createUi ()
 
 	m_iconTable [IconId.Capture] = new gui.Icon ("images/capture.png");
 	m_iconTable [IconId.StopCapture] = new gui.Icon ("images/pause.png");
-	m_iconTable [IconId.Refresh] = new gui.Icon ("images/refresh.png");
 
-	m_pluginHost.m_toolBar.addLabel ("Device:");
+	m_pluginHost.m_toolBar.addLabel ("Tap:");
 	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 
-	m_actionTable [ActionId.Refresh] = createAction ("Re-enumerate devices", m_iconTable [IconId.Refresh]);
+	m_actionTable [ActionId.Refresh] = createAction ("Re-enumerate devices", "images/refresh.png");
 	m_actionTable [ActionId.Refresh].m_onTriggered += enumerateDevices;
+
+	m_actionTable [ActionId.Flip] = createAction ("Flip DTE/DCE", "images/flip.png");
+	m_actionTable [ActionId.Flip].m_isCheckable = true;
+	m_actionTable [ActionId.Flip].m_onTriggered = flipDteDce;
 
 	m_pluginHost.m_toolBar.addLabel ("Baud:");
 	m_baudRateCombo = m_pluginHost.m_toolBar.addComboBox ();
@@ -361,8 +407,8 @@ SerialTapCableSession.createUi ()
 
 	m_deviceProp = m_pluginHost.m_propertyGrid.createEnumProperty (
 		group,,
-		"Device",
-		"Target USB device",
+		"Tap",
+		"Target USB-connected tap device",
 		null, 0
 		);
 
@@ -396,6 +442,12 @@ SerialTapCableSession.createUi ()
 		"Serial parity check",
 		parityTable,
 		countof (parityTable)
+		);
+
+	m_flipProp = m_pluginHost.m_propertyGrid.createBoolProperty (
+		group,,
+		"Flip DTE/DCE",
+		"Flip logical sides of the tap cable"
 		);
 
 	group = m_pluginHost.m_propertyGrid.createGroupProperty (
@@ -489,7 +541,19 @@ SerialTapCableSession.enumerateDevices ()
 	m_deviceProp.setOptions (optionTable, ftdiCount);
 }
 
-bool errorcode SerialTapCableSession.configureSerialIface (SerialIface* iface)
+SerialTapCableSession.flipDteDce ()
+{
+	if (!m_state)
+		return;
+
+	SerialIface* tmp = m_dteIface;
+	m_dteIface = m_dceIface;
+	m_dceIface = tmp;
+
+	updateLineInfoValues ();
+}
+
+bool errorcode SerialTapCableSession.configureSerialIface (uint_t ifaceId)
 {
 	cy.CyUartConfig uartConfig;
 	uartConfig.baudRate = m_baudRateCombo.m_currentData;
@@ -500,29 +564,13 @@ bool errorcode SerialTapCableSession.configureSerialIface (SerialIface* iface)
 	m_device.controlTransfer (
 		cy.CY_VENDOR_REQUEST_HOST_TO_DEVICE,
 		cy.CY_UART_SET_CONFIG_CMD,
-		iface.m_id << cy.CY_SCB_INDEX_POS,
+		ifaceId << cy.CY_SCB_INDEX_POS,
 		0,
 		&uartConfig,
 		sizeof (uartConfig)
 		);
 
 	return true;
-}
-
-bool SerialTapCableSession.getGpio (uint_t pin)
-{
-	uint16_t value = -1;
-
-	try m_device.controlTransfer (
-		cy.CY_VENDOR_REQUEST_DEVICE_TO_HOST,
-		cy.CY_GPIO_GET_VALUE_CMD,
-		pin,
-		0,
-		&value,
-		sizeof (uint16_t)
-		);
-
-	return !value;
 }
 
 bool errorcode SerialTapCableSession.capture ()
@@ -538,28 +586,21 @@ bool errorcode SerialTapCableSession.capture ()
 
 	m_device.open ();
 
-	configureSerialIface (&m_ifaceA);
-	configureSerialIface (&m_ifaceB);
+	configureSerialIface (0);
+	configureSerialIface (1);
 
-	m_ifaceA.claim (m_device);
-	m_ifaceB.claim (m_device);
+	// have to claim iface #0 before iface #1 (LIBUSB_ERROR_ACCESS otherwise)
 
-	bool dtr = getGpio (SerialGpio.Dtr);
-	bool rts = getGpio (SerialGpio.Rts);
-	bool dsr = getGpio (SerialGpio.Dsr);
-	bool cts = getGpio (SerialGpio.Cts);
-
-	if (dtr)
-		m_ifaceA.m_serialStatusLines |= io.SerialStatusLines.Dsr;
-
-	if (rts)
-		m_ifaceA.m_serialStatusLines |= io.SerialStatusLines.Cts;
-
-	if (dsr)
-		m_ifaceB.m_serialStatusLines |= io.SerialStatusLines.Dsr;
-
-	if (cts)
-		m_ifaceB.m_serialStatusLines |= io.SerialStatusLines.Cts;
+	if (m_actionTable [ActionId.Flip].m_isChecked)
+	{
+		m_dceIface.claim (m_device, 0);
+		m_dteIface.claim (m_device, 1);
+	}
+	else
+	{
+		m_dteIface.claim (m_device, 0);
+		m_dceIface.claim (m_device, 1);
+	}
 
 	SerialOpenParams params;
 	params.m_baudRate = m_baudRateCombo.m_currentData;
@@ -568,9 +609,9 @@ bool errorcode SerialTapCableSession.capture ()
 	params.m_stopBits = m_stopBitsProp.m_value;
 	params.m_parity = io.SerialParity.None;
 	params.m_readInterval = 0;
-	params.m_dtr = dtr;
-	params.m_rts = rts;
-	params.m_statusLines = m_ifaceB.m_serialStatusLines;
+	params.m_dtr = m_dceIface.m_serialStatusLines & io.SerialStatusLines.Dsr;
+	params.m_rts = m_dceIface.m_serialStatusLines & io.SerialStatusLines.Cts;
+	params.m_statusLines = m_dceIface.m_serialStatusLines;
 	params.m_options = 0;
 	params.m_osKind = sys.g_systemInfo.m_osKind;
 
@@ -579,10 +620,10 @@ bool errorcode SerialTapCableSession.capture ()
 
 	m_state = State.Opened;
 
-	waitBulkEndpointEvents (m_ifaceA);
-	waitBulkEndpointEvents (m_ifaceB);
-	waitInterruptEndpointEvents (m_ifaceA);
-	waitInterruptEndpointEvents (m_ifaceB);
+	waitBulkEndpointEvents (m_dteIface);
+	waitBulkEndpointEvents (m_dceIface);
+	waitInterruptEndpointEvents (m_dteIface);
+	waitInterruptEndpointEvents (m_dceIface);
 
 	m_stdSessionInfoSet.startSession (m_pluginHost.m_mainThreadScheduler);
 	return true;
@@ -596,8 +637,8 @@ catch:
 		error.m_size
 		);
 
-	m_ifaceA.release ();
-	m_ifaceB.release ();
+	m_dteIface.release ();
+	m_dceIface.release ();
 
 	if (m_device)
 	{
@@ -615,8 +656,8 @@ SerialTapCableSession.stopCapture ()
 
 	writeLog (SerialLogRecordCode.PortClosed);
 	m_stdSessionInfoSet.endSession ();
-	m_ifaceA.release ();
-	m_ifaceB.release ();
+	m_dteIface.release ();
+	m_dceIface.release ();
 	m_device.close ();
 	m_device = null;
 	m_state = State.Closed;
@@ -672,7 +713,7 @@ SerialTapCableSession.onBulkEndpointEvent (
 		size_t result = iface.m_bulkEndpoint.read (m_readBuffer.m_p, m_readBuffer.m_size);
 		if (result)
 		{
-			uint_t recordCode = iface.m_id ? log.StdRecordCode.Rx : log.StdRecordCode.Tx;
+			uint_t recordCode = iface == m_dteIface ? log.StdRecordCode.Rx : log.StdRecordCode.Tx;
 			writeLog (recordCode, m_readBuffer.m_p, result);
 		}
 	}
@@ -709,7 +750,7 @@ SerialTapCableSession.onInterruptEndpointEvent (
 				statusLines |= io.SerialStatusLines.Cts;
 
 			io.SerialStatusLines statusLineMask = statusLines ^ iface.m_serialStatusLines;
-			if (iface.m_id)
+			if (iface == m_dteIface)
 			{
 				SerialStatusLineChangedParams params = { statusLines, statusLineMask }
 				writeLog (SerialLogRecordCode.StatusLineChanged, params, sizeof (params));
@@ -743,6 +784,7 @@ void SerialTapCableSession.load (doc.Storage* storage)
 	m_dataBitsProp.m_currentIndex = storage.readInt ("dataBits", 1);  // 8-bits by default
 	m_stopBitsProp.m_currentIndex = storage.readInt ("stopBits");
 	m_parityProp.m_currentIndex = storage.readInt ("parity");
+	m_actionTable [ActionId.Flip].m_isChecked = storage.readBool ("flipDteDce");
 
 	m_logFilter.m_isSettingChangedVisible = storage.readBool ("isSettingChangedVisible", true);
 	m_logFilter.m_isControlLineChangedVisible = storage.readBool ("isControlLineChangedVisible", true);
@@ -759,6 +801,7 @@ void SerialTapCableSession.save (doc.Storage* storage)
 	storage.writeInt ("dataBits", m_dataBitsProp.m_currentIndex);
 	storage.writeInt ("stopBits", m_stopBitsProp.m_currentIndex);
 	storage.writeInt ("parity", m_parityProp.m_currentIndex);
+	storage.writeBool ("flipDteDce", m_actionTable [ActionId.Flip].m_isChecked);
 
 	storage.writeBool ("isSettingChangedVisible", m_logFilter.m_isSettingChangedVisible);
 	storage.writeBool ("isControlLineChangedVisible", m_logFilter.m_isControlLineChangedVisible);
@@ -771,6 +814,7 @@ void SerialTapCableSession.updateProperties ()
 {
 	m_deviceProp.m_currentIndex = m_deviceCombo.m_currentIndex;
 	m_baudRateProp.m_currentIndex = m_baudRateCombo.m_currentIndex;
+	m_flipProp.m_value = m_actionTable [ActionId.Flip].m_isChecked;
 	m_settingChangedVisibleProp.m_value = m_logFilter.m_isSettingChangedVisible;
 	m_controlLineChangedVisibleProp.m_value = m_logFilter.m_isControlLineChangedVisible;
 	m_statusLineChangedVisibleProp.m_value = m_logFilter.m_isStatusLineChangedVisible;
@@ -780,6 +824,7 @@ bool errorcode SerialTapCableSession.applyProperties ()
 {
 	m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
 	m_baudRateCombo.m_currentIndex = m_baudRateProp.m_currentIndex;
+	m_actionTable [ActionId.Flip].m_isChecked = m_flipProp.m_value;
 	m_logFilter.m_isSettingChangedVisible = m_settingChangedVisibleProp.m_value;
 	m_logFilter.m_isControlLineChangedVisible = m_controlLineChangedVisibleProp.m_value;
 	m_logFilter.m_isStatusLineChangedVisible = m_statusLineChangedVisibleProp.m_value;
@@ -813,8 +858,8 @@ bool errorcode SerialTapCableSession.applyProperties ()
 		m_parity = parity;
 	}
 
-	configureSerialIface (&m_ifaceA);
-	configureSerialIface (&m_ifaceB);
+	configureSerialIface (0);
+	configureSerialIface (1);
 	return true;
 }
 
@@ -823,6 +868,7 @@ void SerialTapCableSession.restoreDefaultProperties ()
 	m_baudRateProp.m_value = Defaults.BaudRate;
 	m_dataBitsProp.m_value = Defaults.DataBits;
 	m_stopBitsProp.m_value = Defaults.StopBits;
+	m_flipProp.m_value = false;
 
 	m_settingChangedVisibleProp.m_value = true;
 	m_controlLineChangedVisibleProp.m_value = true;
@@ -836,8 +882,8 @@ SerialTapCableSession.onBaudRateChanged ()
 	if (m_state != State.Opened)
 		return;
 
-	configureSerialIface (&m_ifaceA);
-	configureSerialIface (&m_ifaceB);
+	configureSerialIface (0);
+	configureSerialIface (1);
 
 	uint_t value = m_baudRateCombo.m_currentData;
 	writeLog (SerialLogRecordCode.BaudRateChanged, &value, sizeof (value));
@@ -855,6 +901,14 @@ SerialTapCableSession.updateLineInfoValue (
 	m_infoTable [infoId].m_valueColor = line ? gui.StdColor.LightRed : gui.StdColor.Gray;
 }
 
+SerialTapCableSession.updateLineInfoValues ()
+{
+	updateLineInfoValue (InfoId.Dtr, m_dceIface.m_serialStatusLines & io.SerialStatusLines.Dsr);
+	updateLineInfoValue (InfoId.Rts, m_dceIface.m_serialStatusLines & io.SerialStatusLines.Cts);
+	updateLineInfoValue (InfoId.Dsr, m_dteIface.m_serialStatusLines & io.SerialStatusLines.Dsr);
+	updateLineInfoValue (InfoId.Cts, m_dteIface.m_serialStatusLines & io.SerialStatusLines.Cts);
+}
+
 reactor SerialTapCableSession.m_uiReactor ()
 {
 	m_title = $"SerialTap $(m_deviceCombo.m_currentText)";
@@ -865,10 +919,14 @@ reactor SerialTapCableSession.m_uiReactor ()
 	m_infoTable [InfoId.Rts].m_isEnabled = m_state;
 	m_infoTable [InfoId.Dsr].m_isEnabled = m_state;
 	m_infoTable [InfoId.Cts].m_isEnabled = m_state;
-	updateLineInfoValue (InfoId.Dtr, m_ifaceA.m_serialStatusLines & io.SerialStatusLines.Dsr);
-	updateLineInfoValue (InfoId.Rts, m_ifaceA.m_serialStatusLines & io.SerialStatusLines.Cts);
-	updateLineInfoValue (InfoId.Dsr, m_ifaceB.m_serialStatusLines & io.SerialStatusLines.Dsr);
-	updateLineInfoValue (InfoId.Cts, m_ifaceB.m_serialStatusLines & io.SerialStatusLines.Cts);
+
+	onevent (
+		bindingof (m_dteIface.m_serialStatusLines),
+		bindingof (m_dceIface.m_serialStatusLines)
+		) ()
+	{
+		updateLineInfoValues ();
+	}
 }
 
 //..............................................................................
