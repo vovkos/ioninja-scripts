@@ -476,6 +476,7 @@ SerialSession.createUi ()
 	m_pluginHost.m_informationGrid.resizeNameColumnToContents ();
 
 	enumeratePorts ();
+	updateTitle ();
 	m_uiReactor.start ();
 }
 
@@ -1005,12 +1006,11 @@ reactor SerialSession.m_uiReactor ()
 	// reactors detect and bind to properties during the startup of a reactor.
 	// until it's fixed, we'll use a temporary workaround via onevent
 
-	onevent bindingof (m_state) ()
-	{
-		updateTitle ();
-	}
-
-	onevent m_baudRateCombo.m_onChanged ()
+	onevent (
+		bindingof (m_state),
+		m_baudRateCombo.m_onChanged,
+		m_portCombo.m_onChanged
+		) ()
 	{
 		updateTitle ();
 	}
