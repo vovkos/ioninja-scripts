@@ -179,12 +179,12 @@ bool representSerialLog (
 				$"    \e[90mBaud rate:     \e[34m$(params.m_baudRate)\e[m bps\n"
 				$"    \e[90mData bits:     \e[34m$(params.m_dataBits)\e[m bits\n"
 				$"    \e[90mStop bits:     $stopBitsString\n"
-				$"    \e[90mParity:        \e[34m$parityString\n$optionString"
-				$"    \e[90mFlow control:  \e[34m$flowControlString\n"
+				$"    \e[90mParity:        \e[34m$parityString\n"
+				$"    \e[90mFlow control:  \e[34m$flowControlString\n$optionString"
 				$"    \e[90mDTR:           $dtrString\n"
 				$"    \e[90mRTS:           $rtsString\n"
 				$"    \e[90mDSR:           $dsrString\n"
-				$"    \e[90mCTS:           $ctsString\n";
+				$"    \e[90mCTS:           $ctsString";
 		}
 
 		target.addHyperText (string);
