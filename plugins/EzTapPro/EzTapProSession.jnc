@@ -659,7 +659,17 @@ bool errorcode EzTapProSession.configureSerial ()
 	params.m_dataBits = dataBits - 5; // EzTapDataBits start with 5 bits
 	params.m_stopBits = stopBits;
 	params.m_parity = parity;
-	params.m_baudRateDivisor = 44000000 / 16 / baudRate - 1;
+
+	if (baudRate <= 115200)
+	{
+		params.m_baudRateDivisor = 44000000 / 16 / baudRate - 1;
+	}
+	else
+	{
+		params.m_highSpeed = true;
+		params.m_baudRateDivisor = 44000000 / baudRate - 1;
+	}
+
 	m_serial.write (&params, sizeof (params));
 
 	params.m_code = EzTapCommandCode.SetDceUartParams;
