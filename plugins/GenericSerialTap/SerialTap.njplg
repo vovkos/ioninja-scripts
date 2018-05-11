@@ -1,0 +1,23 @@
+//..............................................................................
+//
+// Generic Serial Tap session plugin
+//
+
+[plugin]
+
+name        = Generic Serial Tap
+description = "Monitor serial communication through a generic dual COM tap-cable (such as EZ-Tap)"
+id          = gen-serial-tap
+group       = monitors
+monitor     = true
+guid        = e50e0d23-9a75-4f4d-83f3-049e489f1479
+icon        = images/serialmon.png
+small-icon  = images/serialmon-16x16.png
+
+session-class        = SerialTapSession
+log-representer-func = representSerialLog
+
+[scripts]
+
+SerialTapSession.jnc
+../Serial/SerialLog.jnc

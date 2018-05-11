@@ -26,7 +26,7 @@ class SerialPort
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-class SerialTapCableSession: doc.Session
+class SerialTapSession: doc.Session
 {
 protected:
 	enum Defaults
@@ -177,7 +177,7 @@ protected:
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-SerialTapCableSession.construct (doc.PluginHost* pluginHost)
+SerialTapSession.construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
 
@@ -195,7 +195,7 @@ SerialTapCableSession.construct (doc.PluginHost* pluginHost)
 	m_stdSessionInfoSet.attachLogListener (pluginHost.m_log);
 }
 
-SerialTapCableSession.createUi ()
+SerialTapSession.createUi ()
 {
 	static gui.EnumPropertyOption baudRateTable [] =
 	{
@@ -436,7 +436,7 @@ SerialTapCableSession.createUi ()
 	m_uiReactor.start ();
 }
 
-gui.ComboBox* SerialTapCableSession.createSerialSettingComboBox (
+gui.ComboBox* SerialTapSession.createSerialSettingComboBox (
 	char const* labelText,
 	gui.EnumPropertyOption const* optionTable,
 	size_t optionCount,
@@ -455,7 +455,7 @@ gui.ComboBox* SerialTapCableSession.createSerialSettingComboBox (
 	return comboBox;
 }
 
-SerialTapCableSession.enumeratePorts ()
+SerialTapSession.enumeratePorts ()
 {
 	char const* nameA = m_dtePortCombo.m_currentText;
 	char const* nameB = m_dcePortCombo.m_currentText;
@@ -481,7 +481,7 @@ SerialTapCableSession.enumeratePorts ()
 	m_dtePortCombo.adjustSizeToContents ();
 }
 
-SerialTapCableSession.flipDteDce ()
+SerialTapSession.flipDteDce ()
 {
 	char const* tmpName = m_dtePortCombo.m_editText;
 	m_dtePortCombo.m_editText = m_dcePortCombo.m_editText;
@@ -497,7 +497,7 @@ SerialTapCableSession.flipDteDce ()
 	updateLineInfoValues ();
 }
 
-io.SerialOptions SerialTapCableSession.getSerialOptions ()
+io.SerialOptions SerialTapSession.getSerialOptions ()
 {
 	io.SerialOptions options;
 
@@ -512,7 +512,7 @@ io.SerialOptions SerialTapCableSession.getSerialOptions ()
 	return options;
 }
 
-SerialTapCableSession.configurePort (SerialPort* port)
+SerialTapSession.configurePort (SerialPort* port)
 {
 	port.m_serial.m_readInterval = getReadInterval ();
 	port.m_serial.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
@@ -527,7 +527,7 @@ SerialTapCableSession.configurePort (SerialPort* port)
 	port.m_serial.m_flowControl = io.SerialFlowControl.None;
 }
 
-bool errorcode SerialTapCableSession.open ()
+bool errorcode SerialTapSession.open ()
 {
 	close ();
 	startSession ();
@@ -597,7 +597,7 @@ catch:
 	return false;
 }
 
-SerialTapCableSession.close ()
+SerialTapSession.close ()
 {
 	if (m_state != State.Opened)
 		return;
@@ -612,7 +612,7 @@ SerialTapCableSession.close ()
 	m_stdSessionInfoSet.endSession ();
 }
 
-void SerialTapCableSession.load (doc.Storage* storage)
+void SerialTapSession.load (doc.Storage* storage)
 {
 	m_dtePortCombo.m_editText = storage.readString ("portNameA");
 	m_dcePortCombo.m_editText = storage.readString ("portNameB");
@@ -632,7 +632,7 @@ void SerialTapCableSession.load (doc.Storage* storage)
 	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
 }
 
-void SerialTapCableSession.save (doc.Storage* storage)
+void SerialTapSession.save (doc.Storage* storage)
 {
 	storage.writeString ("portNameA", m_dtePortCombo.m_editText);
 	storage.writeString ("portNameB", m_dcePortCombo.m_editText);
@@ -651,7 +651,7 @@ void SerialTapCableSession.save (doc.Storage* storage)
 	m_bufferPropertySet.save (storage);
 }
 
-void SerialTapCableSession.updateProperties ()
+void SerialTapSession.updateProperties ()
 {
 	m_dtePortProp.m_value = m_dtePortCombo.m_editText;
 	m_dcePortProp.m_value = m_dcePortCombo.m_editText;
@@ -661,7 +661,7 @@ void SerialTapCableSession.updateProperties ()
 	m_statusLineChangedVisibleProp.m_value = m_logFilter.m_isStatusLineChangedVisible;
 }
 
-bool errorcode SerialTapCableSession.applyProperties ()
+bool errorcode SerialTapSession.applyProperties ()
 {
 	m_dtePortCombo.m_editText = m_dtePortProp.m_value;
 	m_dcePortCombo.m_editText = m_dcePortProp.m_value;
@@ -707,7 +707,7 @@ bool errorcode SerialTapCableSession.applyProperties ()
 	return true;
 }
 
-void SerialTapCableSession.restoreDefaultProperties ()
+void SerialTapSession.restoreDefaultProperties ()
 {
 	m_baudRateProp.m_value = Defaults.BaudRate;
 	m_dataBitsProp.m_value = Defaults.DataBits;
@@ -724,7 +724,7 @@ void SerialTapCableSession.restoreDefaultProperties ()
 	m_bufferPropertySet.restoreDefaults ();
 }
 
-SerialTapCableSession.waitSerialEvents (SerialPort* port)
+SerialTapSession.waitSerialEvents (SerialPort* port)
 {
 	io.SerialEvents eventMask =
 		io.SerialEvents.IoError |
@@ -745,7 +745,7 @@ SerialTapCableSession.waitSerialEvents (SerialPort* port)
 		);
 }
 
-SerialTapCableSession.onSerialEvent (
+SerialTapSession.onSerialEvent (
 	SerialPort* port,
 	uint_t syncId,
 	io.SerialEvents triggeredEvents
@@ -806,7 +806,7 @@ SerialTapCableSession.onSerialEvent (
 	waitSerialEvents (port);
 }
 
-SerialTapCableSession.onBaudRateChanged ()
+SerialTapSession.onBaudRateChanged ()
 {
 	if (m_state != State.Opened)
 		return;
@@ -818,7 +818,7 @@ SerialTapCableSession.onBaudRateChanged ()
 	m_dcePort.m_serial.m_baudRate = value;
 }
 
-SerialTapCableSession.updateLineInfoValue (
+SerialTapSession.updateLineInfoValue (
 	InfoId infoId,
 	bool line
 	)
@@ -827,7 +827,7 @@ SerialTapCableSession.updateLineInfoValue (
 	m_infoTable [infoId].m_valueColor = line ? gui.StdColor.LightRed : gui.StdColor.Gray;
 }
 
-SerialTapCableSession.updateLineInfoValues ()
+SerialTapSession.updateLineInfoValues ()
 {
 	updateLineInfoValue (InfoId.Dtr, m_dcePort.m_serialStatusLines & io.SerialStatusLines.Dsr);
 	updateLineInfoValue (InfoId.Rts, m_dcePort.m_serialStatusLines & io.SerialStatusLines.Cts);
@@ -835,7 +835,7 @@ SerialTapCableSession.updateLineInfoValues ()
 	updateLineInfoValue (InfoId.Cts, m_dtePort.m_serialStatusLines & io.SerialStatusLines.Cts);
 }
 
-reactor SerialTapCableSession.m_uiReactor ()
+reactor SerialTapSession.m_uiReactor ()
 {
 	m_actionTable [ActionId.Capture].m_text = m_state ? "Stop capture" : "Capture";
 	m_actionTable [ActionId.Capture].m_icon = m_iconTable [m_state ? IconId.StopCapture : IconId.Capture];
