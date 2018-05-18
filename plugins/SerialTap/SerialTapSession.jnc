@@ -198,6 +198,12 @@ protected:
 		_Count,
 	}
 
+	enum UsbId
+	{
+		VendorId  = 0x16D0,
+		ProductId = 0x0E26,
+	}
+
 protected:
 	// two USB interfaces for serial ports (DTE & DCE)
 
@@ -521,15 +527,14 @@ SerialTapSession.enumerateDevices ()
 	{
 		io.UsbDevice* device = deviceArray [i];
 		io.UsbDeviceDesc const* deviceDesc = device.m_deviceDesc;
-		io.UsbProduct const* product = g_usbDb.findProduct (deviceDesc.m_vendorId, deviceDesc.m_productId);
-		if (!product)
+
+		if (deviceDesc.m_vendorId != UsbId.VendorId ||
+			deviceDesc.m_productId != UsbId.ProductId)
 			continue;
 
-		char const* text = $"@%(1;03d):%(2;03d) %3 %4" (
+		char const* text = $"@%(1;03d):%(2;03d) IO Ninja Serial Tap" (
 			device.m_bus,
-			device.m_address,
-			product.m_vendor.m_name,
-			product.m_name
+			device.m_address
 			);
 
 		m_deviceCombo.addItem (text, device);
@@ -931,15 +936,6 @@ reactor SerialTapSession.m_uiReactor ()
 	{
 		updateLineInfoValues ();
 	}
-}
-
-//..............................................................................
-
-io.UsbDb g_usbDb;
-
-construct ()
-{
-	try g_usbDb.load ("taps.ids");
 }
 
 //..............................................................................
