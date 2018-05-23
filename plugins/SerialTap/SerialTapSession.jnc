@@ -759,27 +759,31 @@ SerialTapSession.onInterruptEndpointEvent (
 				statusLines |= io.SerialStatusLines.Cts;
 
 			io.SerialStatusLines statusLineMask = statusLines ^ iface.m_serialStatusLines;
-			if (iface == m_dteIface)
+
+			if (statusLineMask)
 			{
-				SerialStatusLineChangedParams params = { statusLines, statusLineMask }
-				writeLog (SerialLogRecordCode.StatusLineChanged, params, sizeof (params));
-			}
-			else
-			{
-				if (statusLineMask & io.SerialStatusLines.Dsr)
+				if (iface == m_dteIface)
 				{
-					bool dtr = statusLines & io.SerialStatusLines.Dsr;
-					writeLog (SerialLogRecordCode.DtrChanged, &dtr, sizeof (dtr));
+					SerialStatusLineChangedParams params = { statusLines, statusLineMask }
+					writeLog (SerialLogRecordCode.StatusLineChanged, params, sizeof (params));
+				}
+				else
+				{
+					if (statusLineMask & io.SerialStatusLines.Dsr)
+					{
+						bool dtr = statusLines & io.SerialStatusLines.Dsr;
+						writeLog (SerialLogRecordCode.DtrChanged, &dtr, sizeof (dtr));
+					}
+
+					if (statusLineMask & io.SerialStatusLines.Cts)
+					{
+						bool rts = statusLines & io.SerialStatusLines.Cts;
+						writeLog (SerialLogRecordCode.RtsChanged, &rts, sizeof (rts));
+					}
 				}
 
-				if (statusLineMask & io.SerialStatusLines.Cts)
-				{
-					bool rts = statusLines & io.SerialStatusLines.Cts;
-					writeLog (SerialLogRecordCode.RtsChanged, &rts, sizeof (rts));
-				}
+				iface.m_serialStatusLines = statusLines;
 			}
-
-			iface.m_serialStatusLines = statusLines;
 		}
 	}
 
