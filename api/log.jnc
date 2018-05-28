@@ -54,11 +54,17 @@ enum StdRecordCode
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
+bitflag enum RetroColorizeFlags
+{
+	Aux
+}
+
 struct RetroColorizeParams
 {
 	int m_retroOffset;
 	uint_t m_length;
 	gui.TextAttr m_attr;
+	RetroColorizeFlags m_flags;
 }
 
 //..............................................................................
@@ -139,7 +145,8 @@ opaque class RepresenterTarget
 	void retroColorize (
 		intptr_t retroOffset,
 		size_t length,
-		gui.TextAttr attr
+		gui.TextAttr attr,
+		RetroColorizeFlags flags = 0
 		);
 
 	void addPlainText (
@@ -239,13 +246,15 @@ opaque class Writer
 	retroColorize (
 		intptr_t retroOffset,
 		size_t length,
-		gui.TextAttr attr
+		gui.TextAttr attr,
+		RetroColorizeFlags flags = 0
 		)
 	{
 		RetroColorizeParams params;
 		params.m_retroOffset = retroOffset;
 		params.m_length = length;
 		params.m_attr = attr;
+		params.m_flags = flags;
 
 		write (StdRecordCode.RetroColorize, &params, sizeof (params));
 	}
