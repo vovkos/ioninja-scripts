@@ -135,6 +135,13 @@ protected:
 		size_t size
 		);
 
+	override processDualBin (
+		uint_t partCode,
+		void const* p1,
+		void const* p2,
+		size_t size
+		);
+
 	override processEndOfRange ();
 }
 
@@ -170,6 +177,27 @@ ThroughputCalcRangeProcessor.processBin (
 	}
 
 	m_totalSize += size;
+}
+
+ThroughputCalcRangeProcessor.processDualBin (
+	uint_t partCode,
+	void const* p1,
+	void const* p2,
+	size_t size
+	)
+{
+	if (!m_startTimestamp)
+		m_startTimestamp = m_timestamp;
+
+	switch (partCode)
+	{
+	case StdRecordCode.TxRx:
+		m_txTotalSize += size;
+		m_rxTotalSize += size;
+		break;
+	}
+
+	m_totalSize += size * 2;
 }
 
 ThroughputCalcRangeProcessor.processEndOfRange ()
