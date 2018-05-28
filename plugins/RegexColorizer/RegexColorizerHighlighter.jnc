@@ -25,8 +25,10 @@ protected:
 	jnc.RegexDfa* m_regexDfa_lt;
 	std.Array* m_attrArray_mt;
 	std.Array* m_attrArray_lt;
-
 	jnc.RegexState m_regexState;
+
+public:
+	log.RetroColorizeFlags m_retroColorizerFlags;
 
 public:
 	construct ()
@@ -46,7 +48,7 @@ public:
 	write_lt (
 		log.Writer* writer,
 		void const* p,
-		size_t sizev
+		size_t size
 		);
 
 	finalizeWrite_lt (log.Writer* writer)
@@ -123,11 +125,14 @@ RegexColorizerHighlighter.write_lt (
 
 		result = try m_regexDfa_lt.match (m_regexState, p, length);
 		if (result < m_attrArray_lt.m_count)
+		{
 			writer.retroColorize (
 				m_regexState.m_match.m_offset,
 				m_regexState.m_match.m_length,
-				(gui.TextAttr) m_attrArray_lt [result]
+				(gui.TextAttr) m_attrArray_lt [result],
+				m_retroColorizerFlags
 				);
+		}
 
 		p += m_regexState.m_consumedLength;
 	} while (result != -1);

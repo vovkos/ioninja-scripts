@@ -208,7 +208,17 @@ bool RegexColorizerLayer.convert (
 	case log.StdRecordCode.Rx:
 		m_txHighlighter.finalizeWrite_lt (writer);
 		writer.write (timestamp, recordCode, p, size);
+		m_rxHighlighter.m_retroColorizerFlags = 0;
 		m_rxHighlighter.write_lt (writer, p, size);
+		break;
+
+	case log.StdRecordCode.TxRx:
+		size_t halfSize = size / 2;
+
+		writer.write (timestamp, recordCode, p, size);
+		m_txHighlighter.write_lt (writer, p, halfSize);
+		m_rxHighlighter.m_retroColorizerFlags = log.RetroColorizeFlags.Aux;
+		m_rxHighlighter.write_lt (writer, p + halfSize, halfSize);
 		break;
 
 	default:
