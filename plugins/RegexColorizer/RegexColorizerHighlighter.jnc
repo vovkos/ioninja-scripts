@@ -59,6 +59,7 @@ public:
 
 protected:
 	finalizeRegex_lt (
+		doc.PluginHost* pluginHost,
 		jnc.RegexDfa* regexDfa,
 		std.Array* attrArray
 		);
@@ -90,11 +91,15 @@ bool errorcode RegexColorizerHighlighter.finalizeRegex_mt (doc.PluginHost* plugi
 		m_regexDfa_mt.finalize ();
 	}
 
-	(finalizeRegex_lt @ pluginHost.m_logThreadScheduler) (m_regexDfa_mt, m_attrArray_mt);
+	pluginHost.m_log.suspend (); // don't resume until our callback has run in log thread
+	(finalizeRegex_lt @ pluginHost.m_logThreadScheduler) (pluginHost, m_regexDfa_mt, m_attrArray_mt);
+	m_regexDfa_mt = null;
+	m_attrArray_mt = null;
 	return true;
 }
 
 RegexColorizerHighlighter.finalizeRegex_lt (
+	doc.PluginHost* pluginHost,
 	jnc.RegexDfa* regexDfa,
 	std.Array* attrArray
 	)
@@ -102,6 +107,7 @@ RegexColorizerHighlighter.finalizeRegex_lt (
 	m_regexState.reset ();
 	m_regexDfa_lt = regexDfa;
 	m_attrArray_lt = attrArray;
+	pluginHost.m_log.resume (); // ok to continue converting now
 }
 
 RegexColorizerHighlighter.write_lt (
