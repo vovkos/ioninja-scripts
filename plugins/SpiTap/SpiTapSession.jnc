@@ -184,6 +184,7 @@ protected:
 	gui.IntProperty* m_dataBitsProp;
 	gui.BoolProperty* m_flipProp;
 	gui.BoolProperty* m_useDualHexViewProp;
+	gui.BoolProperty* m_useTextFilter;
 	gui.IntProperty* m_flushTimeoutProp;
 	io.BufferPropertySet m_bufferPropertySet;
 
@@ -192,6 +193,10 @@ protected:
 	gui.StdSessionInfoSet m_stdSessionInfoSet;
 	log.ThroughputInfoSet m_throughputInfoSet;
 	log.ChecksumInfoSet m_checksumInfoSet;
+
+	// ASCII printables filtering (demo mode)
+
+	jnc.RegexDfa m_textDfa;
 
 public:
 	construct (doc.PluginHost* pluginHost);
@@ -227,6 +232,18 @@ protected:
 	onFlushTimer (uint_t syncId);
 	bool flush (bool isForced);
 
+	void writeLogTextOnly (
+		uint_t recordCode,
+		void const* p,
+		size_t size
+		);
+
+	void writeLogTextOnly (
+		void const* tx,
+		void const* rx,
+		size_t size
+		);
+
 	createUi ();
 	enumerateDevices ();
 	flipAB ();
@@ -246,6 +263,8 @@ SpiTapSession.construct (doc.PluginHost* pluginHost)
 
 	m_ifaceA = new SpiIface;
 	m_ifaceB = new SpiIface;
+
+	m_textDfa.compile (r"[^\r\n\t -~]*([\r\n\t -~]+)"); // extract ASCII printables
 
 	createUi ();
 
@@ -361,6 +380,12 @@ SpiTapSession.createUi ()
 		group,,
 		"Use dual hex-view",
 		"Display MOSI and MISO next to each other in dual hex-view"
+		);
+
+	m_useTextFilter = m_pluginHost.m_propertyGrid.createBoolProperty (
+		group,,
+		"Text-only filter",
+		"Only display text data (demo mode)"
 		);
 
 	m_flushTimeoutProp = m_pluginHost.m_propertyGrid.createIntProperty (
@@ -590,8 +615,15 @@ bool SpiTapSession.flush (bool isForced)
 
 	if (commonSize)
 	{
-		char const* p = memcat (m_ifaceA.m_buffer.m_p, commonSize, m_ifaceB.m_buffer.m_p, commonSize);
-		writeLog (log.StdRecordCode.TxRx, p, commonSize * 2);
+		if (m_useTextFilter.m_value)
+		{
+			writeLogTextOnly (m_ifaceA.m_buffer.m_p, m_ifaceB.m_buffer.m_p, commonSize);
+		}
+		else
+		{
+			char const* p = memcat (m_ifaceA.m_buffer.m_p, commonSize, m_ifaceB.m_buffer.m_p, commonSize);
+			writeLog (log.StdRecordCode.TxRx, p, commonSize * 2);
+		}
 	}
 
 	if (!isForced)
@@ -673,12 +705,73 @@ SpiTapSession.onEndpointEvent (
 			else
 			{
 				uint_t code = iface == m_ifaceA ? log.StdRecordCode.Tx : log.StdRecordCode.Rx;
-				writeLog (code, m_readBuffer.m_p, result);
+
+				if (m_useTextFilter.m_value)
+					writeLogTextOnly (code, m_readBuffer.m_p, result);
+				else
+					writeLog (code, m_readBuffer.m_p, result);
 			}
 		}
 	}
 
 	waitEndpointEvents (iface);
+}
+
+void SpiTapSession.writeLogTextOnly (
+	uint_t recordCode,
+	void const* p,
+	size_t size
+	)
+{
+	jnc.RegexState state;
+
+	void const* end = p + size;
+	while (p < end)
+	{
+		size_t result = try m_textDfa.match (state, p, end - p);
+		if (result == -1)
+			break;
+
+		writeLog (
+			recordCode,
+			state.m_subMatchArray [0].m_text,
+			state.m_subMatchArray [0].m_length
+			);
+
+		p += state.m_consumedLength;
+	}
+}
+
+void SpiTapSession.writeLogTextOnly (
+	void const* tx,
+	void const* rx,
+	size_t size
+	)
+{
+	jnc.RegexState state;
+
+	void const* end = rx + size;
+	while (rx < end)
+	{
+		size_t result = try m_textDfa.match (state, rx, end - rx);
+		if (result == -1)
+			break;
+
+		char const* cut = memcat (
+			tx + state.m_subMatchArray [0].m_offset,
+			state.m_subMatchArray [0].m_length,
+			state.m_subMatchArray [0].m_text,
+			state.m_subMatchArray [0].m_length
+			);
+
+		writeLog (
+			log.StdRecordCode.TxRx,
+			cut,
+			state.m_subMatchArray [0].m_length * 2
+			);
+
+		rx += state.m_consumedLength;
+	}
 }
 
 void SpiTapSession.load (doc.Storage* storage)
