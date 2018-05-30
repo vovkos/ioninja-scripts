@@ -1,0 +1,52 @@
+//..............................................................................
+//
+//  IO Ninja IDE Wizard -- Filtering layer
+//
+
+[wizard]
+name        = "Filter"
+description = "Generates a plugin which filters the log records"
+icon        = images/plugin-16x16.png
+
+[variable]
+id          = pluginName
+name        = "Layer Name"
+value       = "My Filter"
+
+[variable]
+id          = pluginDescription
+name        = "Layer Description"
+value       = "Wizard-generated layer (listens for commands and sends replies back)"
+
+[variable]
+id          = pluginId
+name        = "Layer ID"
+value       = my-filter
+
+[variable]
+id          = layerClass
+name        = "Layer Class"
+value       = MyFilterLayer
+
+[variable]
+id          = layerFile
+name        = "Layer File"
+readOnly    = true
+value       = $(layerClass).jnc
+rebuildOn   = layerClass
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+[file]
+source = Layer.njplg.in
+target = $(projectName).njplg
+interpolate = true
+
+[file]
+source = Layer.jnc.in
+target = $(layerFile)
+interpolate = true
+
+[file]
+source = images
+target = images
