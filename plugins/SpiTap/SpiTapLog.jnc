@@ -134,7 +134,7 @@ bool representSpiTapLog (
 	case SpiTapLogRecordCode.TxRxOutOfSync:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText ($"TX and RX run out-of-sync (target frequency too high?)");
+		target.addHyperText ($"SPI MOSI and MISO out-of-sync");
 		break;
 
 	default:

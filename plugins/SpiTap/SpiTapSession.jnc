@@ -27,6 +27,7 @@ enum
 
 	// request ids
 
+	CY_SPI_RESET_CMD      = 0xCB,
 	CY_SPI_GET_CONFIG_CMD = 0xC2,
 	CY_SPI_SET_CONFIG_CMD = 0xC3,
 
@@ -68,6 +69,8 @@ class SpiIface
 		);
 
 	release ();
+
+	bool errorcode setBufferProperties (io.BufferPropertySet* bufferPropertySet);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -98,6 +101,14 @@ SpiIface.release ()
 	}
 }
 
+bool errorcode SpiIface.setBufferProperties (io.BufferPropertySet* bufferPropertySet)
+{
+	m_endpoint.m_readParallelism = bufferPropertySet.m_readParallelismProp.m_value;
+	m_endpoint.m_readBlockSize = bufferPropertySet.m_readBlockSizeProp.m_value;
+	m_endpoint.m_readBufferSize = bufferPropertySet.m_readBufferSizeProp.m_value;
+	return true;
+}
+
 //..............................................................................
 
 class SpiTapSession: doc.Session
@@ -105,11 +116,12 @@ class SpiTapSession: doc.Session
 protected:
 	enum Defaults
 	{
-		Frequency    = 3000000,
-		Mode         = 0,
-		DataBits     = 8,
-		Enidanness   = true,
-		FlushTimeout = 500,
+		Frequency      = 3000000,
+		Mode           = 0,
+		DataBits       = 8,
+		Enidanness     = true,
+		UseDualHexView = true,
+		FlushTimeout   = 5000,
 	}
 
 	enum State
@@ -169,9 +181,10 @@ protected:
 	gui.IntProperty* m_frequencyProp;
 	gui.EnumProperty* m_modeProp;
 	gui.EnumProperty* m_endiannessProp;
-	gui.EnumProperty* m_dataBitsProp;
-	gui.IntProperty* m_flushTimeoutProp;
+	gui.IntProperty* m_dataBitsProp;
 	gui.BoolProperty* m_flipProp;
+	gui.BoolProperty* m_useDualHexViewProp;
+	gui.IntProperty* m_flushTimeoutProp;
 	io.BufferPropertySet m_bufferPropertySet;
 
 	// information grid
@@ -258,15 +271,6 @@ SpiTapSession.createUi ()
 		{ "Little-endian (LSBit first)", false },
 	}
 
-	static gui.EnumPropertyOption dataBitsTable [] =
-	{
-		{ "4 bits", 4 },
-		{ "5 bits", 5 },
-		{ "6 bits", 6 },
-		{ "7 bits", 7 },
-		{ "8 bits", 8 },
-	}
-
 	// toolbar
 
 	m_iconTable [IconId.Capture] = new gui.Icon ("images/capture.png");
@@ -279,7 +283,7 @@ SpiTapSession.createUi ()
 	m_actionTable [ActionId.Refresh] = createAction ("Re-enumerate devices", "images/refresh.png");
 	m_actionTable [ActionId.Refresh].m_onTriggered += enumerateDevices;
 
-	m_actionTable [ActionId.Flip] = createAction ("Flip A/B roles", "images/flip.png");
+	m_actionTable [ActionId.Flip] = createAction ("Flip Master/Slave roles", "images/flip.png");
 	m_actionTable [ActionId.Flip].m_isCheckable = true;
 	m_actionTable [ActionId.Flip].m_onTriggered = flipAB;
 
@@ -338,24 +342,31 @@ SpiTapSession.createUi ()
 		countof (endiannessTable)
 		);
 
-	m_dataBitsProp = m_pluginHost.m_propertyGrid.createEnumProperty (
+	m_dataBitsProp = m_pluginHost.m_propertyGrid.createIntProperty (
 		group,,
 		"Data bits",
-		"Serial data bit count (word size)",
-		dataBitsTable,
-		countof (dataBitsTable)
+		"Serial data bit count (word size)"
+		);
+
+	m_dataBitsProp.m_minValue = 4;
+	m_dataBitsProp.m_maxValue = 16;
+
+	m_flipProp = m_pluginHost.m_propertyGrid.createBoolProperty (
+		group,,
+		"Flip Master/Slave roles",
+		"Flip logical sides of the tap cable"
+		);
+
+	m_useDualHexViewProp = m_pluginHost.m_propertyGrid.createBoolProperty (
+		group,,
+		"Use dual hex-view",
+		"Display MOSI and MISO next to each other in dual hex-view"
 		);
 
 	m_flushTimeoutProp = m_pluginHost.m_propertyGrid.createIntProperty (
 		group,,
 		"TX/RX sync delay (ms)",
 		"TX/RX stream synchronization timeout"
-		);
-
-	m_flipProp = m_pluginHost.m_propertyGrid.createBoolProperty (
-		group,,
-		"Flip A/B roles",
-		"Flip logical sides of the tap cable"
 		);
 
 	group = m_pluginHost.m_propertyGrid.createGroupProperty (
@@ -447,6 +458,15 @@ bool errorcode SpiTapSession.configureSpiIface (uint_t ifaceId)
 		sizeof (spiConfig)
 		);
 
+	m_device.controlTransfer (
+		cy.CY_VENDOR_REQUEST_HOST_TO_DEVICE,
+		cy.CY_SPI_RESET_CMD,
+		ifaceId << cy.CY_SCB_INDEX_POS,
+		0,
+		null,
+		0
+		);
+
 	return true;
 }
 
@@ -478,6 +498,9 @@ bool errorcode SpiTapSession.capture ()
 		m_ifaceA.claim (m_device, 0);
 		m_ifaceB.claim (m_device, 1);
 	}
+
+	m_ifaceA.setBufferProperties (m_bufferPropertySet);
+	m_ifaceB.setBufferProperties (m_bufferPropertySet);
 
 	SpiTapOpenParams params;
 	params.m_frequency = m_frequencyProp.m_value;
@@ -594,11 +617,12 @@ bool SpiTapSession.flush (bool isForced)
 		writeLog (SpiTapLogRecordCode.TxRxOutOfSync);
 
 		char* p = new char [deltaSize * 2];
+		memset (p, 0xcc, deltaSize * 2);
 
 		if (m_ifaceA.m_buffer.m_size > commonSize)
 			memcpy (p, m_ifaceA.m_buffer.m_p + commonSize, deltaSize);
 		else
-			memcpy (p + commonSize, m_ifaceB.m_buffer.m_p, deltaSize);
+			memcpy (p + deltaSize, m_ifaceB.m_buffer.m_p + commonSize, deltaSize);
 
 		writeLog (log.StdRecordCode.TxRx, p, deltaSize * 2);
 	}
@@ -641,8 +665,16 @@ SpiTapSession.onEndpointEvent (
 		size_t result = iface.m_endpoint.read (m_readBuffer.m_p, m_readBuffer.m_size);
 		if (result)
 		{
-			iface.m_buffer.append (m_readBuffer.m_p, result);
-			flush (false);
+			if (m_useDualHexViewProp.m_value)
+			{
+				iface.m_buffer.append (m_readBuffer.m_p, result);
+				flush (false);
+			}
+			else
+			{
+				uint_t code = iface == m_ifaceA ? log.StdRecordCode.Tx : log.StdRecordCode.Rx;
+				writeLog (code, m_readBuffer.m_p, result);
+			}
 		}
 	}
 
@@ -656,6 +688,7 @@ void SpiTapSession.load (doc.Storage* storage)
 	m_modeCombo.m_currentIndex = storage.readInt ("mode", Defaults.Mode);
 	m_dataBitsProp.m_value = storage.readInt ("dataBits", Defaults.DataBits);  // 8-bits by default
 	m_endiannessProp.m_value = storage.readInt ("endianness", Defaults.Enidanness);
+	m_useDualHexViewProp.m_value = storage.readInt ("useDualHexView", Defaults.UseDualHexView);
 	m_flushTimeoutProp.m_value = storage.readInt ("flushTimeout", Defaults.FlushTimeout);
 	m_actionTable [ActionId.Flip].m_isChecked = storage.readBool ("flipAB", false);
 
@@ -670,6 +703,7 @@ void SpiTapSession.save (doc.Storage* storage)
 	storage.writeInt ("mode", m_modeCombo.m_currentIndex);
 	storage.writeInt ("dataBits", m_dataBitsProp.m_value);
 	storage.writeInt ("endianness", m_endiannessProp.m_value);
+	storage.writeBool ("useDualHexView", m_useDualHexViewProp.m_value);
 	storage.writeInt ("flushTimeout", m_flushTimeoutProp.m_value);
 	storage.writeBool ("flipAB", m_actionTable [ActionId.Flip].m_isChecked);
 
@@ -717,8 +751,19 @@ bool errorcode SpiTapSession.applyProperties ()
 		m_endianness = endianness;
 	}
 
+	m_ifaceA.setBufferProperties (m_bufferPropertySet);
+	m_ifaceB.setBufferProperties (m_bufferPropertySet);
+
 	configureSpiIface (0);
 	configureSpiIface (1);
+
+	if (!m_useDualHexViewProp.m_value)
+	{
+		flush (true);
+		m_flushTimer.stop ();
+		m_flushTimerSyncId++;
+	}
+
 	return true;
 }
 
@@ -729,6 +774,7 @@ void SpiTapSession.restoreDefaultProperties ()
 	m_dataBitsProp.m_value = Defaults.DataBits;
 	m_endiannessProp.m_value = Defaults.Enidanness;
 	m_flipProp.m_value = false;
+	m_useDualHexViewProp.m_value = Defaults.UseDualHexView;
 	m_flushTimeoutProp.m_value = Defaults.FlushTimeout;
 
 	m_bufferPropertySet.restoreDefaults ();
@@ -754,6 +800,7 @@ reactor SpiTapSession.m_uiReactor ()
 	m_title = $"SPI tap $(m_deviceCombo.m_currentText)";
 	m_actionTable [ActionId.Capture].m_text = m_state ? "Stop capture" : "Capture";
 	m_actionTable [ActionId.Capture].m_icon = m_iconTable [m_state ? IconId.StopCapture : IconId.Capture];
+	m_flushTimeoutProp.m_isEnabled = m_useDualHexViewProp.m_value;
 	m_statusPane.m_text = m_state ? "Capturing" : "Closed";
 }
 
