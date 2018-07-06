@@ -63,9 +63,9 @@ public:
 		InfoId mask = InfoId.Default
 		);
 
-	attachLogListener (log.Log* log)
+	addLogListener (log.Log* log)
 	{
-		log.attachListener (onLogRecord);
+		log.addListener (onLogRecord);
 	}
 
 	startSession (jnc.Scheduler* mainThreadScheduler);

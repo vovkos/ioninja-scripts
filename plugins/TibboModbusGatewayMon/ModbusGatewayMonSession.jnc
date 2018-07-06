@@ -146,10 +146,10 @@ ModbusGatewayMonSession.construct (doc.PluginHost* pluginHost)
 
 	createUi ();
 
-	pluginHost.m_log.attachRepresenter (representModbusGatewayMonLog);
-	pluginHost.m_log.registerSelectionProcessor (log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
-	pluginHost.m_log.registerSelectionProcessor (log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
-	m_stdSessionInfoSet.attachLogListener (pluginHost.m_log);
+	pluginHost.m_log.addRepresenter (representModbusGatewayMonLog);
+	pluginHost.m_log.addSelectionProcessor (log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
+	pluginHost.m_log.addSelectionProcessor (log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
+	m_stdSessionInfoSet.addLogListener (pluginHost.m_log);
 }
 
 ModbusGatewayMonSession.createUi ()

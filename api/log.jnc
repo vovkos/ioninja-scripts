@@ -278,6 +278,7 @@ opaque class Writer
 class Filter
 {
 	abstract bool filter (
+		uint64_t timestamp,
 		uint_t recordCode,
 		void const* p,
 		size_t size
@@ -306,14 +307,6 @@ class Converter
 }
 
 //..............................................................................
-
-enum ListenerSensitivity
-{
-	AllRecords,
-	LiveRecordsOnly,
-}
-
-// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 typedef ListenerFunc (
 	uint64_t timestamp,
@@ -385,26 +378,25 @@ opaque class Log
 	suspend ();
 	resume ();
 
-	attachRepresenter (RepresenterFunc thin* representerFunc);
-	removeAllRepresenters ();
-
-	attachFilter (Filter* filter);
-
-	attachConverter (
+	addConverter (
 		Converter* converter,
 		std.Guid const* classGuid = null,
 		RepresenterFunc thin* representerFunc = null
 		);
 
-	attachListener (
-		ListenerFunc* listenerFunc,
-		ListenerSensitivity sensitivity = ListenerSensitivity.LiveRecordsOnly
-		);
+	removeAllConverters ();
 
-	removeAllLayers ();
+	addFilter (Filter* filter);
+	removeAllFilters ();
 
-	registerSelectionProcessor (RangeProcessorFactoryFunc* factoryFunc);
-	unregisterAllSelectionProcessors ();
+	addListener (ListenerFunc* listenerFunc);
+	removeAllListeners ();
+
+	addRepresenter (RepresenterFunc thin* representerFunc);
+	removeAllRepresenters ();
+
+	addSelectionProcessor (RangeProcessorFactoryFunc* factoryFunc);
+	removeAllSelectionProcessors ();
 }
 
 //..............................................................................

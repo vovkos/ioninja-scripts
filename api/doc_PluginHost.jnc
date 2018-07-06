@@ -27,13 +27,6 @@ opaque class MainThreadScheduler: jnc.Scheduler
 	override schedule (function* f ());
 }
 
-// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-opaque class LogThreadScheduler: jnc.Scheduler
-{
-	override schedule (function* f ());
-}
-
 //..............................................................................
 
 opaque class PluginHost
@@ -46,7 +39,6 @@ opaque class PluginHost
 	log.Log m_log;
 	doc.Terminal m_terminal;
 	MainThreadScheduler* m_mainThreadScheduler;
-	LogThreadScheduler* m_logThreadScheduler;
 	std.Guid m_pluginGuid;
 
 	destruct ();

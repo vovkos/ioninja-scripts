@@ -57,7 +57,7 @@ protected:
 RegexColorizerLayer.construct (doc.PluginHost* pluginHost)
 {
 	basetype1.construct (pluginHost);
-	pluginHost.m_log.attachConverter (this);
+	pluginHost.m_log.addConverter (this);
 
 	createUi ();
 	onAddPattern (); // add pattern #1

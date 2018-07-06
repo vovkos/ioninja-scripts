@@ -6,7 +6,6 @@
 import "io_base.jncx"
 import "io_ssh.jncx"
 import "io_Socket.jnc"
-import "io_MappedFile.jnc"
 import "io_SocketAddressResolver.jnc"
 import "io_SocketUi.jnc"
 import "io_BufferUi.jnc"
@@ -183,10 +182,10 @@ SshChannelSession.construct (doc.PluginHost* pluginHost)
 
 	createUi ();
 
-	pluginHost.m_log.attachRepresenter (representSshChannelLog);
-	pluginHost.m_log.registerSelectionProcessor (log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
-	pluginHost.m_log.registerSelectionProcessor (log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
-	m_stdSessionInfoSet.attachLogListener (pluginHost.m_log);
+	pluginHost.m_log.addRepresenter (representSshChannelLog);
+	pluginHost.m_log.addSelectionProcessor (log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
+	pluginHost.m_log.addSelectionProcessor (log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
+	m_stdSessionInfoSet.addLogListener (pluginHost.m_log);
 }
 
 SshChannelSession.createUi ()

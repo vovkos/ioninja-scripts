@@ -47,7 +47,7 @@ protected:
 $(layerClass).construct (doc.PluginHost* pluginHost)
 {
 	basetype1.construct (pluginHost);
-	pluginHost.m_log.attachConverter (
+	pluginHost.m_log.addConverter (
 		this,
 		&pluginHost.m_pluginGuid,
 		$(logRepresenterFunc)

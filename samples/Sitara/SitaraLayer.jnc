@@ -62,7 +62,7 @@ SitaraLayer.construct (doc.PluginHost* pluginHost)
 
 	pluginHost.m_fileDlg.m_onCompleted += onFileDlgCompleted;
 	pluginHost.m_progressDlg.m_onButtonClicked += onProgressDlgButtonClicked;
-	pluginHost.m_log.attachListener (onLogRecord @ pluginHost.m_mainThreadScheduler);
+	pluginHost.m_log.addListener (onLogRecord @ pluginHost.m_mainThreadScheduler);
 
 	m_state = State.Idle;
 	m_file1 = new io.MappedFile ();

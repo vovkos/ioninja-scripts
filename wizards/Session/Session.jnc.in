@@ -101,7 +101,7 @@ $(sessionClass).construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
 
-	pluginHost.m_log.attachRepresenter ($(logRepresenterFunc));
+	pluginHost.m_log.addRepresenter ($(logRepresenterFunc));
 	m_state = State.Closed;
 	createUi ();
 }

@@ -212,11 +212,11 @@ SerialSession.construct (doc.PluginHost* pluginHost)
 
 	createUi ();
 
-	pluginHost.m_log.attachRepresenter (representSerialLog);
-	pluginHost.m_log.attachFilter (m_logFilter);
-	pluginHost.m_log.registerSelectionProcessor (log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
-	pluginHost.m_log.registerSelectionProcessor (log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
-	m_stdSessionInfoSet.attachLogListener (pluginHost.m_log);
+	pluginHost.m_log.addRepresenter (representSerialLog);
+	pluginHost.m_log.addFilter (m_logFilter);
+	pluginHost.m_log.addSelectionProcessor (log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
+	pluginHost.m_log.addSelectionProcessor (log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
+	m_stdSessionInfoSet.addLogListener (pluginHost.m_log);
 }
 
 SerialSession.createUi ()

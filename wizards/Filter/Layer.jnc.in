@@ -29,7 +29,7 @@ $(layerClass).construct (doc.PluginHost* pluginHost)
 	m_txProp.m_value = true;
 	m_rxProp.m_value = true;
 
-	pluginHost.m_log.attachFilter (this);
+	pluginHost.m_log.addFilter (this);
 }
 
 bool $(layerClass).filter (
