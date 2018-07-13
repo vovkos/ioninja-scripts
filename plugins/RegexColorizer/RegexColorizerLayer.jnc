@@ -164,8 +164,10 @@ void RegexColorizerLayer.save (doc.Storage* storage)
 
 bool errorcode RegexColorizerLayer.applyProperties ()
 {
-	m_txHighlighter.prepareRegex_mt ();
-	m_rxHighlighter.prepareRegex_mt ();
+	m_pluginHost.m_log.suspend ();
+	
+	m_txHighlighter.clearRegex_s ();
+	m_rxHighlighter.clearRegex_s ();
 
 	for (size_t i = 0; i < m_patternArray.m_count; i++)
 	{
@@ -178,15 +180,18 @@ bool errorcode RegexColorizerLayer.applyProperties ()
 		gui.TextAttr attr = pattern.buildTextAttr ();
 
 		if (pattern.m_isTxEnabledProp.m_value)
-			m_txHighlighter.addRegexPattern_mt (regexString, attr);
+			m_txHighlighter.addRegexPattern_s (regexString, attr);
 
 		if (pattern.m_isRxEnabledProp.m_value)
-			m_rxHighlighter.addRegexPattern_mt (regexString, attr);
+			m_rxHighlighter.addRegexPattern_s (regexString, attr);
 	}
 
-	m_txHighlighter.finalizeRegex_mt (m_pluginHost);
-	m_rxHighlighter.finalizeRegex_mt (m_pluginHost);
+	m_txHighlighter.finalizeRegex_s ();
+	m_rxHighlighter.finalizeRegex_s ();
 	return true;
+	
+finally:
+	m_pluginHost.m_log.resume ();
 }
 
 bool RegexColorizerLayer.convert (
@@ -200,30 +205,30 @@ bool RegexColorizerLayer.convert (
 	switch (recordCode)
 	{
 	case log.StdRecordCode.Tx:
-		m_rxHighlighter.finalizeWrite_lt (writer);
+		m_rxHighlighter.finalizeWrite_l (writer);
 		writer.write (timestamp, recordCode, p, size);
-		m_txHighlighter.write_lt (writer, p, size);
+		m_txHighlighter.write_l (writer, p, size);
 		break;
 
 	case log.StdRecordCode.Rx:
-		m_txHighlighter.finalizeWrite_lt (writer);
+		m_txHighlighter.finalizeWrite_l (writer);
 		writer.write (timestamp, recordCode, p, size);
 		m_rxHighlighter.m_retroColorizerFlags = 0;
-		m_rxHighlighter.write_lt (writer, p, size);
+		m_rxHighlighter.write_l (writer, p, size);
 		break;
 
 	case log.StdRecordCode.TxRx:
 		size_t halfSize = size / 2;
 
 		writer.write (timestamp, recordCode, p, size);
-		m_txHighlighter.write_lt (writer, p, halfSize);
+		m_txHighlighter.write_l (writer, p, halfSize);
 		m_rxHighlighter.m_retroColorizerFlags = log.RetroColorizeFlags.Aux;
-		m_rxHighlighter.write_lt (writer, p + halfSize, halfSize);
+		m_rxHighlighter.write_l (writer, p + halfSize, halfSize);
 		break;
 
 	default:
-		m_txHighlighter.finalizeWrite_lt (writer);
-		m_rxHighlighter.finalizeWrite_lt (writer);
+		m_txHighlighter.finalizeWrite_l (writer);
+		m_rxHighlighter.finalizeWrite_l (writer);
 		writer.write (timestamp, recordCode, p, size);
 	}
 
