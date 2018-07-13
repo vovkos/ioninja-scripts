@@ -351,6 +351,7 @@ class SerialLogFilter: log.Filter
 	construct ();
 
 	override bool filter (
+		uint64_t timestamp,
 		uint_t recordCode,
 		void const* p,
 		size_t size
@@ -367,6 +368,7 @@ SerialLogFilter.construct ()
 }
 
 bool SerialLogFilter.filter (
+	uint64_t timestamp,
 	uint_t recordCode,
 	void const* p,
 	size_t size
