@@ -112,6 +112,7 @@ class UdpLogFilter: log.Filter
 	construct ();
 
 	override bool filter (
+		uint64_t timestamp,
 		uint_t recordCode,
 		void const* p,
 		size_t size
@@ -126,6 +127,7 @@ UdpLogFilter.construct ()
 }
 
 bool UdpLogFilter.filter (
+	uint64_t timestamp,
 	uint_t recordCode,
 	void const* p,
 	size_t size
