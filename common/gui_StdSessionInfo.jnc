@@ -43,11 +43,14 @@ public:
 	gui.InformationValue* readonly m_totalSizeInfo;
 	gui.InformationValue* readonly m_totalThroughputInfo;
 
-protected:
-	sys.Lock m_lock; // accessed
+protected:	
+	// m_txTotalSize and m_rxTotalSize are modified in the log index thread
+	
+	sys.Lock m_lock; 
 	uint64_t m_txTotalSize;
-	uint64_t m_txPrevTotalSize;
 	uint64_t m_rxTotalSize;
+
+	uint64_t m_txPrevTotalSize;
 	uint64_t m_rxPrevTotalSize;
 
 	sys.Timer m_timer;
@@ -212,9 +215,12 @@ StdSessionInfoSet.startSession (jnc.Scheduler* mainThreadScheduler)
 	if (m_totalThroughputInfo)
 		m_totalThroughputInfo.m_isEnabled = true;
 
+	m_lock.lock ();
 	m_txTotalSize = 0;
-	m_txPrevTotalSize = 0;
 	m_rxTotalSize = 0;
+	m_lock.unlock ();
+
+	m_txPrevTotalSize = 0;
 	m_rxPrevTotalSize = 0;
 
 	m_syncId++;
