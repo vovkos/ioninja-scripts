@@ -5,6 +5,7 @@
 
 import "io_base.jncx"
 import "io_ssh.jncx"
+import "io_File.jnc"
 import "io_Socket.jnc"
 import "io_SocketAddressResolver.jnc"
 import "io_SocketUi.jnc"
