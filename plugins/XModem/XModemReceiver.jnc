@@ -51,7 +51,7 @@ XModemReceiver.start ()
 	m_parent.m_progressDlg.m_status = "Receiving XModem data blocks...";
 	m_state = State.Data;
 	m_offset = 0;
-	m_parent.m_file.m_size = 0;
+	m_parent.m_file.setSize (0);
 }
 
 XModemReceiver.cancel ()
