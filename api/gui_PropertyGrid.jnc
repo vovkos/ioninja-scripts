@@ -91,7 +91,7 @@ opaque class EnumProperty: Property
 		char const* get ();
 		bindable alias m_onPropChanged = m_onChanged;
 	}
-	
+
 	construct (char const* name);
 	destruct ();
 
@@ -101,6 +101,21 @@ opaque class EnumProperty: Property
 		);
 
 	event m_onChanged ();
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+opaque class ComboProperty: Property
+{
+	char const* autoget bindable property m_value;
+
+	construct (char const* name);
+	destruct ();
+
+	setOptions (
+		EnumPropertyOption const* optionArray, // option.value should be 'null' or convertible to string
+		size_t count
+		);
 }
 
 //..............................................................................
@@ -246,6 +261,25 @@ opaque class PropertyGrid
 		return createEnumProperty (,, name, toolTipText, optionArray, count);
 	}
 
+	ComboProperty* createComboProperty (
+		GroupProperty* group = null,
+		Property* beforeProp = null,
+		char const* name,
+		char const* toolTipText,
+		EnumPropertyOption const* optionArray = null,
+		size_t count = 0
+		);
+
+	ComboProperty* createComboProperty (
+		char const* name,
+		char const* toolTipText,
+		EnumPropertyOption const* optionArray = null,
+		size_t count = 0
+		)
+	{
+		return createComboProperty (,, name, toolTipText, optionArray, count);
+	}
+
 	FlagProperty* createFlagProperty (
 		GroupProperty* group = null,
 		Property* beforeProp = null,
@@ -322,10 +356,12 @@ GroupProperty* PropertyGrid.createGroupProperty (
 {
 	GroupProperty* prop = new GroupProperty (name);
 	prop.m_toolTipText = toolTipText;
+
 	if (group)
 		group.addProperty (prop, beforeProp);
 	else
 		addProperty (prop, beforeProp);
+
 	return prop;
 }
 
@@ -338,10 +374,12 @@ BoolProperty* PropertyGrid.createBoolProperty (
 {
 	BoolProperty* prop = new BoolProperty (name);
 	prop.m_toolTipText = toolTipText;
+
 	if (group)
 		group.addProperty (prop, beforeProp);
 	else
 		addProperty (prop, beforeProp);
+
 	return prop;
 }
 
@@ -354,10 +392,12 @@ IntProperty* PropertyGrid.createIntProperty (
 {
 	IntProperty* prop = new IntProperty (name);
 	prop.m_toolTipText = toolTipText;
+
 	if (group)
 		group.addProperty (prop, beforeProp);
 	else
 		addProperty (prop, beforeProp);
+
 	return prop;
 }
 
@@ -370,10 +410,12 @@ StringProperty* PropertyGrid.createStringProperty (
 {
 	StringProperty* prop = new StringProperty (name);
 	prop.m_toolTipText = toolTipText;
+
 	if (group)
 		group.addProperty (prop, beforeProp);
 	else
 		addProperty (prop, beforeProp);
+
 	return prop;
 }
 
@@ -389,10 +431,35 @@ EnumProperty* PropertyGrid.createEnumProperty (
 	EnumProperty* prop = new EnumProperty (name);
 	prop.m_toolTipText = toolTipText;
 	prop.setOptions (optionArray, count);
+
 	if (group)
 		group.addProperty (prop, beforeProp);
 	else
 		addProperty (prop, beforeProp);
+
+	return prop;
+}
+
+ComboProperty* PropertyGrid.createComboProperty (
+	GroupProperty* group,
+	Property* beforeProp,
+	char const* name,
+	char const* toolTipText,
+	EnumPropertyOption const* optionArray,
+	size_t count
+	)
+{
+	ComboProperty* prop = new ComboProperty (name);
+	prop.m_toolTipText = toolTipText;
+
+	if (count)
+		prop.setOptions (optionArray, count);
+
+	if (group)
+		group.addProperty (prop, beforeProp);
+	else
+		addProperty (prop, beforeProp);
+
 	return prop;
 }
 
@@ -408,10 +475,12 @@ FlagProperty* PropertyGrid.createFlagProperty (
 	FlagProperty* prop = new FlagProperty (name);
 	prop.m_toolTipText = toolTipText;
 	prop.setOptions (optionArray, count);
+
 	if (group)
 		group.addProperty (prop, beforeProp);
 	else
 		addProperty (prop, beforeProp);
+
 	return prop;
 }
 
@@ -424,10 +493,12 @@ ColorProperty* PropertyGrid.createColorProperty (
 {
 	ColorProperty* prop = new ColorProperty (name);
 	prop.m_toolTipText = toolTipText;
+
 	if (group)
 		group.addProperty (prop, beforeProp);
 	else
 		addProperty (prop, beforeProp);
+
 	return prop;
 }
 
@@ -440,10 +511,12 @@ ActionProperty* PropertyGrid.createActionProperty (
 {
 	ActionProperty* prop = new ActionProperty (name);
 	prop.m_toolTipText = toolTipText;
+
 	if (group)
 		group.addProperty (prop, beforeProp);
 	else
 		addProperty (prop, beforeProp);
+
 	return prop;
 }
 
@@ -456,10 +529,12 @@ FileProperty* PropertyGrid.createFileProperty (
 {
 	FileProperty* prop = new FileProperty (name);
 	prop.m_toolTipText = toolTipText;
+
 	if (group)
 		group.addProperty (prop, beforeProp);
 	else
 		addProperty (prop, beforeProp);
+
 	return prop;
 }
 
