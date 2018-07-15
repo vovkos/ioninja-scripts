@@ -96,8 +96,8 @@ protected:
 
 	// serial property grid
 
-	gui.StringProperty* m_portProp;
-	gui.EnumProperty* m_baudRateProp;
+	gui.ComboProperty* m_portProp;
+	gui.ComboProperty* m_baudRateProp;
 	gui.EnumProperty* m_dataBitsProp;
 	gui.EnumProperty* m_stopBitsProp;
 	gui.EnumProperty* m_parityProp;
@@ -223,25 +223,25 @@ SerialSession.createUi ()
 {
 	static gui.EnumPropertyOption baudRateTable [] =
 	{
-		{ "110 bps",    110 },
-		{ "300 bps",    300 },
-		{ "600 bps",    600 },
-		{ "1200 bps",   1200 },
-		{ "2400 bps",   2400 },
-		{ "4800 bps",   4800 },
-		{ "9600 bps",   9600 },
-		{ "14400 bps",  14400 },
-		{ "19200 bps",  19200 },
-		{ "38400 bps",  38400 },
-		{ "56000 bps",  56000 },
-		{ "57600 bps",  57600 },
-		{ "115200 bps", 115200 },
-		{ "128000 bps", 128000 },
-		{ "153600 bps", 153600 },
-		{ "230400 bps", 230400 },
-		{ "256000 bps", 256000 },
-		{ "460800 bps", 460800 },
-		{ "921600 bps", 921600 },
+		{ "110 bps" },
+		{ "300 bps" },
+		{ "600 bps" },
+		{ "1200 bps" },
+		{ "2400 bps" },
+		{ "4800 bps" },
+		{ "9600 bps" },
+		{ "14400 bps" },
+		{ "19200 bps" },
+		{ "38400 bps" },
+		{ "56000 bps" },
+		{ "57600 bps" },
+		{ "115200 bps" },
+		{ "128000 bps" },
+		{ "153600 bps" },
+		{ "230400 bps" },
+		{ "256000 bps" },
+		{ "460800 bps" },
+		{ "921600 bps" },
 	}
 
 	static gui.EnumPropertyOption flowControlTable [] =
@@ -298,6 +298,8 @@ SerialSession.createUi ()
 		onBaudRateChanged
 		);
 
+	m_baudRateCombo.m_isEditable = true;
+
 	m_iconTable [IconId.Open] = new gui.Icon ("images/connect.png");
 	m_iconTable [IconId.Close] = new gui.Icon ("images/pause.png");
 
@@ -324,13 +326,13 @@ SerialSession.createUi ()
 		"Serial port-specific connection settings"
 		);
 
-	m_portProp = m_pluginHost.m_propertyGrid.createStringProperty (
+	m_portProp = m_pluginHost.m_propertyGrid.createComboProperty (
 		group,,
 		"Port",
 		"Specify serial port to use"
 		);
 
-	m_baudRateProp = m_pluginHost.m_propertyGrid.createEnumProperty (
+	m_baudRateProp = m_pluginHost.m_propertyGrid.createComboProperty (
 		group,,
 		"Baud rate",
 		"Serial baud rate",
@@ -673,7 +675,7 @@ void SerialSession.save (doc.Storage* storage)
 void SerialSession.updateProperties ()
 {
 	m_portProp.m_value = m_portCombo.m_editText;
-	m_baudRateProp.m_currentIndex = m_baudRateCombo.m_currentIndex;
+	m_baudRateProp.m_value = m_baudRateCombo.m_editText;
 	m_dtrProp.m_value = m_actionTable [ActionId.Dtr].m_isChecked;
 	m_rtsProp.m_value = m_actionTable [ActionId.Rts].m_isChecked;
 	m_settingChangedVisibleProp.m_value = m_logFilter.m_isSettingChangedVisible;
@@ -684,7 +686,7 @@ void SerialSession.updateProperties ()
 bool errorcode SerialSession.applyProperties ()
 {
 	m_portCombo.m_editText = m_portProp.m_value;
-	m_baudRateCombo.m_currentIndex = m_baudRateProp.m_currentIndex;
+	m_baudRateCombo.m_editText = m_baudRateProp.m_value;
 	m_actionTable [ActionId.Dtr].m_isChecked = m_dtrProp.m_value;
 	m_actionTable [ActionId.Rts].m_isChecked = m_rtsProp.m_value;
 	m_logFilter.m_isSettingChangedVisible = m_settingChangedVisibleProp.m_value;
@@ -699,7 +701,7 @@ bool errorcode SerialSession.applyProperties ()
 		return true;
 
 	io.SerialOptions options = getSerialOptions ();
-	uint_t baudRate = m_baudRateProp.m_value;
+	uint_t baudRate = atoi (m_baudRateProp.m_value);
 	uint_t dataBits = m_dataBitsProp.m_value;
 	io.SerialStopBits stopBits = (io.SerialStopBits) m_stopBitsProp.m_value;
 	io.SerialParity parity = (io.SerialParity) m_parityProp.m_value;
@@ -769,7 +771,7 @@ bool errorcode SerialSession.applyProperties ()
 
 void SerialSession.restoreDefaultProperties ()
 {
-	m_baudRateProp.m_value = Defaults.BaudRate;
+	m_baudRateProp.m_value = $"$(Defaults.BaudRate) bps";
 	m_dataBitsProp.m_value = Defaults.DataBits;
 	m_stopBitsProp.m_value = Defaults.StopBits;
 	m_parityProp.m_value = Defaults.Parity;
@@ -956,7 +958,7 @@ SerialSession.onBaudRateChanged ()
 	if (m_state != State.Opened)
 		return;
 
-	uint_t value = m_baudRateCombo.m_currentData;
+	uint_t value = atoi (m_baudRateCombo.m_editText);
 	m_serial.m_baudRate = value;
 	writeLog (SerialLogRecordCode.BaudRateChanged, &value, sizeof (value));
 }
