@@ -113,7 +113,7 @@ opaque class ComboProperty: Property
 	destruct ();
 
 	setOptions (
-		EnumPropertyOption const* optionArray, // option.value should be 'null' or convertible to string
+		EnumPropertyOption const* optionArray, // option.value should be 'null' or string value
 		size_t count
 		);
 }

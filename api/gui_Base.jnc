@@ -120,8 +120,7 @@ opaque class ComboBox
 {
 	bool autoget property m_isVisible;
 	bool autoget property m_isEnabled;
-	bool autoget property m_isEditable;
-	bool autoget property m_isDualItemText; // itemText - edit text; itemData - description text
+	bool autoget property m_isEditable; // for editable combo boxes: if itemData is non-null, it's used as the actual value
 
 	property m_editText
 	{
@@ -152,6 +151,7 @@ opaque class ComboBox
 		);
 
 	bool removeItem (size_t index);
+
 	void clear ();
 
 	char const* property m_itemText (size_t index);
