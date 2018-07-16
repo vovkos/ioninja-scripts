@@ -11,54 +11,37 @@ namespace io {
 
 //..............................................................................
 
-gui.EnumPropertyOption* createSerialPortPropertyOptionArray (
-	SerialPortDesc const* portList,
-	size_t portCount
+class SerialUi
+{
+}
+
+//..............................................................................
+
+refreshSerialPortUi (
+	gui.ComboBox* portCombo,
+	gui.ComboProperty* portProp
 	)
 {
-	gui.EnumPropertyOption* portOptionArray = new gui.EnumPropertyOption [portCount];
-	gui.EnumPropertyOption* portOption = portOptionArray;
+	char const* editText = portCombo.m_editText; // save edit text
+	portCombo.clear ();
 
-	SerialPortDesc const* port = portList;
-	for (; port; port = port.m_next, portOption++)
+	size_t count;
+	io.SerialPortDesc const* portList = io.createSerialPortDescList (&count);
+
+	gui.EnumPropertyOption* optionArray = new gui.EnumPropertyOption [count];
+	gui.EnumPropertyOption* option = optionArray;
+
+	io.SerialPortDesc const* port = portList;
+	for (; port; port = port.m_next, option++)
 	{
-		portOption.m_text = port.m_deviceName;
-		portOption.m_value = 0;
+		char const* description = $"$(port.m_deviceName) - $(port.m_description)";
+		portCombo.addItem (description, port.m_deviceName);
+		option.m_text = description;
+		option.m_value = port.m_deviceName;
 	}
 
-	return portOptionArray;
-}
-
-gui.EnumProperty* createSerialPortProperty (
-	gui.PropertyGrid* propertyGrid,
-	gui.GroupProperty* group = null,
-	gui.Property* beforeProp = null,
-	char const* name,
-	char const* toolTipText,
-	SerialPortDesc const* portList,
-	size_t portCount
-	)
-{
-	gui.EnumPropertyOption* portOptionArray = createSerialPortPropertyOptionArray (portList, portCount);
-
-	return propertyGrid.createEnumProperty (
-		group,
-		beforeProp,
-		name,
-		toolTipText,
-		portOptionArray,
-		portCount
-		);
-}
-
-void updateSerialPortProperty (
-	gui.EnumProperty* prop,
-	SerialPortDesc const* portList,
-	size_t portCount
-	)
-{
-	gui.EnumPropertyOption* portOptionArray = createSerialPortPropertyOptionArray (portList, portCount);
-	prop.setOptions (portOptionArray, portCount);
+	portCombo.m_editText = editText; // restore edit text
+	portProp.setOptions (optionArray, count);
 }
 
 //..............................................................................

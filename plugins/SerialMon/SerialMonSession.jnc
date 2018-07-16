@@ -131,7 +131,6 @@ SerialMonSession.createUi ()
 	m_pluginHost.m_toolBar.addLabel ("Port:");
 	m_portCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_portCombo.m_isEditable = true;
-	m_portCombo.m_isDualItemText = true;
 	m_portCombo.m_onEnter += onPortComboEnter;
 
 	m_actionTable [ActionId.Refresh] = createAction ("Refresh port list", "images/refresh.png");
@@ -228,6 +227,7 @@ SerialMonSession.enumeratePorts ()
 {
 	char const* name = m_portCombo.m_currentText;
 	m_portCombo.clear ();
+	m_portProp.removeAllOptions ();
 
 	size_t portCount;
 	io.SerialPortDesc const* portList = io.createSerialPortDescList (&portCount);
@@ -235,7 +235,8 @@ SerialMonSession.enumeratePorts ()
 	for (; port; port = port.m_next)
 	{
 		char const* description = $"$(port.m_deviceName) - $(port.m_description)";
-		m_portCombo.addItem (port.m_deviceName, description);
+		m_portCombo.addItem (description, port.m_deviceName);
+		m_portProp.addOption (description, port.m_deviceName);
 	}
 
 	m_portCombo.m_editText = name; // preserve current text

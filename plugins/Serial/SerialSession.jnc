@@ -93,6 +93,10 @@ protected:
 	gui.StatusPane* m_statusPane;
 	gui.ComboBox* m_portCombo;
 	gui.ComboBox* m_baudRateCombo;
+	gui.ComboBox* m_dataBitsCombo;
+	gui.ComboBox* m_stopBitsCombo;
+	gui.ComboBox* m_parityCombo;
+	gui.ComboBox* m_flowControlCombo;
 
 	// serial property grid
 
@@ -151,8 +155,9 @@ protected:
 		try open ();
 	}
 
+	onBaudRateEnter ();
+
 	onDelayedWriteTimer ();
-	onBaudRateChanged ();
 	onDtrChanged ();
 	onRtsChanged ();
 
@@ -162,13 +167,12 @@ protected:
 		);
 
 	createUi ();
-	enumeratePorts ();
 
 	gui.ComboBox* createSerialSettingComboBox (
 		char const* labelText,
 		gui.EnumPropertyOption const* optionTable,
 		size_t optionCount,
-		function* onChanged ()
+		function* onChanged () = null
 		);
 
 	size_t write (
@@ -285,21 +289,10 @@ SerialSession.createUi ()
 	m_pluginHost.m_toolBar.addLabel ("Port:");
 	m_portCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_portCombo.m_isEditable = true;
-	m_portCombo.m_isDualItemText = true;
 	m_portCombo.m_onEnter += onPortComboEnter;
 
 	m_actionTable [ActionId.Refresh]  = createAction ("Refresh port list", "images/refresh.png");
-	m_actionTable [ActionId.Refresh].m_onTriggered += enumeratePorts;
-
-	m_baudRateCombo = createSerialSettingComboBox (
-		"Baud:",
-		baudRateTable,
-		countof (baudRateTable),
-		onBaudRateChanged
-		);
-
-	m_baudRateCombo.m_isEditable = true;
-
+	
 	m_iconTable [IconId.Open] = new gui.Icon ("images/connect.png");
 	m_iconTable [IconId.Close] = new gui.Icon ("images/pause.png");
 
@@ -307,6 +300,41 @@ SerialSession.createUi ()
 	m_actionTable [ActionId.Open].m_onTriggered += onOpen;
 
 	m_pluginHost.m_menu.addSeparator ();
+	m_pluginHost.m_toolBar.addSeparator ();
+
+	m_baudRateCombo = createSerialSettingComboBox (
+		"Baud:",
+		baudRateTable,
+		countof (baudRateTable)
+		);
+
+	m_baudRateCombo.m_isEditable = true;
+	m_baudRateCombo.m_onEnter += onBaudRateEnter;
+
+	m_dataBitsCombo = createSerialSettingComboBox (
+		"Data:",
+		dataBitsTable,
+		countof (dataBitsTable)
+		);
+
+	m_stopBitsCombo = createSerialSettingComboBox (
+		"Stop:",
+		stopBitsTable,
+		countof (stopBitsTable)
+		);
+
+	m_parityCombo = createSerialSettingComboBox (
+		"Parity:",
+		parityTable,
+		countof (parityTable)
+		);
+
+	m_flowControlCombo = createSerialSettingComboBox (
+		"Flow:",
+		flowControlTable,
+		countof (flowControlTable)
+		);
+
 	m_pluginHost.m_toolBar.addSeparator ();
 
 	m_actionTable [ActionId.Dtr] = createAction ("DTR", "images/dtr.png", true, true);
@@ -477,7 +505,9 @@ SerialSession.createUi ()
 
 	m_pluginHost.m_informationGrid.resizeNameColumnToContents ();
 
-	enumeratePorts ();
+	m_actionTable [ActionId.Refresh].m_onTriggered += io.refreshSerialPortUi ~(m_portCombo, m_portProp);
+	io.refreshSerialPortUi (m_portCombo, m_portProp);
+
 	updateTitle ();
 	m_uiReactor.start ();
 }
@@ -496,26 +526,11 @@ gui.ComboBox* SerialSession.createSerialSettingComboBox (
 		comboBox.addItem (optionTable [i].m_text, optionTable [i].m_value);
 
 	comboBox.adjustSizeToContents ();
-	comboBox.m_onChanged += onChanged;
+	
+	if (onChanged)
+		comboBox.m_onChanged += onChanged;
 
 	return comboBox;
-}
-
-SerialSession.enumeratePorts ()
-{
-	char const* name = m_portCombo.m_currentText;
-	m_portCombo.clear ();
-
-	size_t portCount;
-	io.SerialPortDesc const* portList = io.createSerialPortDescList (&portCount);
-	io.SerialPortDesc const* port = portList;
-	for (; port; port = port.m_next)
-	{
-		char const* description = $"$(port.m_deviceName) - $(port.m_description)";
-		m_portCombo.addItem (port.m_deviceName, description);
-	}
-
-	m_portCombo.m_editText = name; // preserve current text
 }
 
 io.SerialOptions SerialSession.getSerialOptions ()
@@ -552,7 +567,7 @@ bool errorcode SerialSession.open ()
 	m_serial.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
 	m_serial.m_options = getSerialOptions ();
 
-	m_serial.m_baudRate = m_baudRateCombo.m_currentData;
+	m_serial.m_baudRate = atoi (m_baudRateCombo.m_editText);
 	m_serial.m_dataBits = m_dataBitsProp.m_value;
 	m_serial.m_stopBits = m_stopBitsProp.m_value;
 	m_serial.m_parity = m_parityProp.m_value;
@@ -953,7 +968,7 @@ SerialSession.onDelayedWriteTimer ()
 		m_delayedWriteTimer.stop ();
 }
 
-SerialSession.onBaudRateChanged ()
+SerialSession.onBaudRateEnter ()
 {
 	if (m_state != State.Opened)
 		return;

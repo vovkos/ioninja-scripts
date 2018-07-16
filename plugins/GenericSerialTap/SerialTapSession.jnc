@@ -257,12 +257,10 @@ SerialTapSession.createUi ()
 	m_pluginHost.m_toolBar.addLabel ("DTE:");
 	m_dtePortCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_dtePortCombo.m_isEditable = true;
-	m_dtePortCombo.m_isDualItemText = true;
 
 	m_pluginHost.m_toolBar.addLabel ("DCE:");
 	m_dcePortCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_dcePortCombo.m_isEditable = true;
-	m_dcePortCombo.m_isDualItemText = true;
 
 	size_t portCount;
 	io.SerialPortDesc const* portList = io.createSerialPortDescList (&portCount);
@@ -470,8 +468,8 @@ SerialTapSession.enumeratePorts ()
 	{
 		char const* description = $"$(port.m_deviceName) - $(port.m_description)";
 
-		m_dtePortCombo.addItem (port.m_deviceName, description);
-		m_dcePortCombo.addItem (port.m_deviceName, description);
+		m_dtePortCombo.addItem (description, port.m_deviceName);
+		m_dcePortCombo.addItem (description, port.m_deviceName);
 	}
 
 	// preserve current text
