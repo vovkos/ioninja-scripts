@@ -35,7 +35,7 @@ opaque class BoolProperty: Property
 {
 	construct (char const* name);
 
-	bool autoget bindable property m_value;
+	bool bindable autoget property m_value;
 }
 
 //..............................................................................
@@ -44,7 +44,7 @@ opaque class IntProperty: Property
 {
 	construct (char const* name);
 
-	int autoget bindable property m_value;
+	int bindable autoget property m_value;
 	int autoget property m_minValue;
 	int autoget property m_maxValue;
 	int autoget property m_spinBoxStep;
@@ -56,7 +56,7 @@ opaque class StringProperty: Property
 {
 	construct (char const* name);
 
-	char const* autoget bindable property m_value;
+	char const* bindable autoget property m_value;
 	bool autoget property m_isPassword;
 }
 
@@ -107,7 +107,7 @@ opaque class EnumProperty: Property
 
 opaque class ComboProperty: Property
 {
-	char const* autoget bindable property m_value;
+	char const* bindable autoget property m_value;
 
 	construct (char const* name);
 	destruct ();
@@ -116,6 +116,8 @@ opaque class ComboProperty: Property
 		EnumPropertyOption const* optionArray, // option.value should be 'null' or string value
 		size_t count
 		);
+
+	selectOption (size_t index);
 }
 
 //..............................................................................
@@ -130,7 +132,7 @@ struct FlagPropertyOption
 
 opaque class FlagProperty: Property
 {
-	uint_t autoget bindable property m_value;
+	uint_t bindable autoget property m_value;
 
 	construct (char const* name);
 	destruct ();
@@ -147,7 +149,7 @@ opaque class ColorProperty: Property
 {
 	construct (char const* name);
 
-	uint_t autoget bindable property m_value;
+	uint_t bindable autoget property m_value;
 }
 
 //..............................................................................
@@ -165,7 +167,7 @@ opaque class FileProperty: Property
 {
 	construct (char const* name);
 
-	char const* autoget bindable property m_value;
+	char const* bindable autoget property m_value;
 	char const* autoget property m_fileDialogCaption;
 	char const* autoget property m_initialDirectory;
 	char const* autoget property m_filter;
