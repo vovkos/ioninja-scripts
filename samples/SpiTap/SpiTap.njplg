@@ -8,7 +8,7 @@
 name        = SPI Tap
 description = "Monitor SPI communication through an SPI tap device from Tibbo"
 id          = spi-tap
-group       = monitors
+group       = serial
 monitor     = true
 guid        = 73714778-bed7-4a4f-ad6a-6c5128f5bb4d
 icon        = images/serialmon.png
