@@ -344,9 +344,9 @@ bool representSerialLog (
 
 class SerialLogFilter: log.Filter
 {
-	bool m_isSettingChangedVisible;
-	bool m_isControlLineChangedVisible;
-	bool m_isStatusLineChangedVisible;
+	volatile bool m_isSettingChangedVisible;
+	volatile bool m_isControlLineChangedVisible;
+	volatile bool m_isStatusLineChangedVisible;
 
 	construct ();
 

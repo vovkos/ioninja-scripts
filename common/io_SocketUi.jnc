@@ -219,6 +219,8 @@ class SocketPropertySet
 	restoreDefaults ();
 }
 
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
 SocketPropertySet.createProperties (
 	gui.PropertyGrid* propertyGrid,
 	gui.GroupProperty* group,

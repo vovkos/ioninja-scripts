@@ -70,13 +70,18 @@ protected:
 	}
 
 protected:
-	// two serial ports (A & B)
+	// two serial ports (DTE & DCE)
 
 	State bindable m_state;
 	SerialPort* m_dtePort; // pointers are easier to flip
 	SerialPort* m_dcePort;
 	SerialLogFilter m_logFilter;
 	std.Buffer m_readBuffer;
+
+	// common serial ui
+
+	io.SerialSettingUi m_serialSettingUi;
+	io.SerialFilterUi m_serialFilterUi;
 
 	// toolbar, status bar & menu
 
@@ -85,25 +90,14 @@ protected:
 	gui.StatusPane* m_statusPane;
 	gui.ComboBox* m_dtePortCombo;
 	gui.ComboBox* m_dcePortCombo;
-	gui.ComboBox* m_baudRateCombo;
 
 	// serial property grid
 
 	gui.StringProperty* m_dtePortProp;
 	gui.StringProperty* m_dcePortProp;
-	gui.EnumProperty* m_baudRateProp;
-	gui.EnumProperty* m_dataBitsProp;
-	gui.EnumProperty* m_stopBitsProp;
-	gui.EnumProperty* m_parityProp;
 	gui.EnumProperty* m_readModeProp;
 	gui.IntProperty* m_readIntervalProp;
 	io.BufferPropertySet m_bufferPropertySet;
-
-	// filter property grid
-
-	gui.BoolProperty* m_settingChangedVisibleProp;
-	gui.BoolProperty* m_controlLineChangedVisibleProp;
-	gui.BoolProperty* m_statusLineChangedVisibleProp;
 
 	// information grid
 
@@ -279,27 +273,8 @@ SerialTapSession.createUi ()
 	m_actionTable [ActionId.Refresh]  = createAction ("Refresh port list", "images/refresh.png");
 	m_actionTable [ActionId.Refresh].m_onTriggered += enumeratePorts;
 
-	m_actionTable [ActionId.Flip] = createAction ("Flip DTE/DCE", "images/flip.png");
-	m_actionTable [ActionId.Flip].m_onTriggered += flipDteDce;
-
-	m_baudRateCombo = createSerialSettingComboBox (
-		"Baud:",
-		baudRateTable,
-		countof (baudRateTable),
-		onBaudRateChanged
-		);
-
 	m_actionTable [ActionId.Capture] = createAction ("Capture", m_iconTable [IconId.Capture]);
 	m_actionTable [ActionId.Capture].m_onTriggered += onOpen;
-
-	m_pluginHost.m_menu.addSeparator ();
-	m_pluginHost.m_toolBar.addSeparator ();
-
-	// status bar (only one pane)
-
-	m_statusPane = m_pluginHost.m_statusBar.addPane (, 80);
-
-	// property grid
 
 	gui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty (
 		"Connection",
@@ -318,37 +293,30 @@ SerialTapSession.createUi ()
 		"Specify DCE serial port"
 		);
 
-	m_baudRateProp = m_pluginHost.m_propertyGrid.createEnumProperty (
-		group,,
-		"Baud rate",
-		"Serial baud rate",
-		baudRateTable,
-		countof (baudRateTable)
+	m_serialSettingUi.create (
+		m_pluginHost.m_toolBar,
+		m_pluginHost.m_propertyGrid,
+		group,
+		io.SerialSettingUi.SettingId.BaudRate,
+		io.SerialSettingUi.SettingId.BaudRate |
+		io.SerialSettingUi.SettingId.DataBits |
+		io.SerialSettingUi.SettingId.StopBits |
+		io.SerialSettingUi.SettingId.Parity
 		);
 
-	m_dataBitsProp = m_pluginHost.m_propertyGrid.createEnumProperty (
-		group,,
-		"Data bits",
-		"Serial data bit count (word size)",
-		dataBitsTable,
-		countof (dataBitsTable)
-		);
+	m_serialSettingUi.m_baudRateCombo.m_onEnter += onBaudRateChanged;
+	bindingof (m_serialSettingUi.m_baudRateCombo.m_currentIndex) += onBaudRateChanged;
 
-	m_stopBitsProp = m_pluginHost.m_propertyGrid.createEnumProperty (
-		group,,
-		"Stop bits",
-		"Serial stop bit count",
-		stopBitsTable,
-		countof (stopBitsTable)
-		);
+	m_pluginHost.m_menu.addSeparator ();
 
-	m_parityProp = m_pluginHost.m_propertyGrid.createEnumProperty (
-		group,,
-		"Parity",
-		"Serial parity check",
-		parityTable,
-		countof (parityTable)
-		);
+	m_actionTable [ActionId.Flip] = createAction ("Flip DTE/DCE", "images/flip.png");
+	m_actionTable [ActionId.Flip].m_onTriggered += flipDteDce;
+
+	// status bar (only one pane)
+
+	m_statusPane = m_pluginHost.m_statusBar.addPane (, 80);
+
+	// property grid
 
 	group = m_pluginHost.m_propertyGrid.createGroupProperty (
 		"Buffering & compatibility",
@@ -396,23 +364,7 @@ SerialTapSession.createUi ()
 		"Specify which unwanted log messages to filter out"
 		);
 
-	m_settingChangedVisibleProp = m_pluginHost.m_propertyGrid.createBoolProperty (
-		group,,
-		"Show setting changes",
-		"Display setting change log records (or filter them out)"
-		);
-
-	m_controlLineChangedVisibleProp = m_pluginHost.m_propertyGrid.createBoolProperty (
-		group,,
-		"Show control line changes",
-		"Display control line change log records (or filter them out)"
-		);
-
-	m_statusLineChangedVisibleProp = m_pluginHost.m_propertyGrid.createBoolProperty (
-		group,,
-		"Show status line changes",
-		"Display status line change log records (or filter them out)"
-		);
+	m_serialFilterUi.create (m_pluginHost.m_propertyGrid, group);
 
 	// information grid
 
@@ -455,8 +407,8 @@ gui.ComboBox* SerialTapSession.createSerialSettingComboBox (
 
 SerialTapSession.enumeratePorts ()
 {
-	char const* nameA = m_dtePortCombo.m_currentText;
-	char const* nameB = m_dcePortCombo.m_currentText;
+	char const* dteName = m_dtePortCombo.m_currentText;
+	char const* dceName = m_dcePortCombo.m_currentText;
 
 	m_dtePortCombo.clear ();
 	m_dcePortCombo.clear ();
@@ -474,8 +426,8 @@ SerialTapSession.enumeratePorts ()
 
 	// preserve current text
 
-	m_dtePortCombo.m_editText = nameA;
-	m_dcePortCombo.m_editText = nameB; // preserve current text
+	m_dtePortCombo.m_editText = dteName;
+	m_dcePortCombo.m_editText = dceName; // preserve current text
 	m_dtePortCombo.adjustSizeToContents ();
 }
 
@@ -518,10 +470,10 @@ SerialTapSession.configurePort (SerialPort* port)
 	port.m_serial.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 
 	port.m_serial.m_options = getSerialOptions ();
-	port.m_serial.m_baudRate = m_baudRateCombo.m_currentData;
-	port.m_serial.m_dataBits = m_dataBitsProp.m_value;
-	port.m_serial.m_stopBits = m_stopBitsProp.m_value;
-	port.m_serial.m_parity = m_parityProp.m_value;
+	port.m_serial.m_baudRate = m_serialSettingUi.m_baudRate;
+	port.m_serial.m_dataBits = m_serialSettingUi.m_dataBits;
+	port.m_serial.m_stopBits = m_serialSettingUi.m_stopBits;
+	port.m_serial.m_parity = m_serialSettingUi.m_parity;
 	port.m_serial.m_flowControl = io.SerialFlowControl.None;
 }
 
@@ -612,19 +564,18 @@ SerialTapSession.close ()
 
 void SerialTapSession.load (doc.Storage* storage)
 {
-	m_dtePortCombo.m_editText = storage.readString ("portNameA");
-	m_dcePortCombo.m_editText = storage.readString ("portNameB");
-	m_baudRateCombo.m_currentIndex = storage.readInt ("baudRate", 9); // 38400
-	m_dataBitsProp.m_currentIndex = storage.readInt ("dataBits", 1);  // 8-bits by default
-	m_stopBitsProp.m_currentIndex = storage.readInt ("stopBits");
-	m_parityProp.m_currentIndex = storage.readInt ("parity");
+	m_serialSettingUi.load (storage);
+	m_serialFilterUi.load (storage);
+
+	m_logFilter.m_isSettingChangedVisible = m_serialFilterUi.m_settingChangedVisibleProp.m_value;
+	m_logFilter.m_isControlLineChangedVisible = m_serialFilterUi.m_controlLineChangedVisibleProp.m_value;
+	m_logFilter.m_isStatusLineChangedVisible = m_serialFilterUi.m_statusLineChangedVisibleProp.m_value;
+
+	m_dtePortCombo.m_editText = storage.readString ("dtePortName");
+	m_dcePortCombo.m_editText = storage.readString ("dcePortName");
 
 	m_readModeProp.m_value = storage.readBool ("readMode", Defaults.ReadMode);
 	m_readIntervalProp.m_value = storage.readInt ("readInterval", Defaults.ReadInterval);
-
-	m_logFilter.m_isSettingChangedVisible = storage.readBool ("isSettingChangedVisible", true);
-	m_logFilter.m_isControlLineChangedVisible = storage.readBool ("isControlLineChangedVisible", true);
-	m_logFilter.m_isStatusLineChangedVisible = storage.readBool ("isStatusLineChangedVisible", true);
 
 	m_bufferPropertySet.load (storage);
 	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
@@ -632,54 +583,54 @@ void SerialTapSession.load (doc.Storage* storage)
 
 void SerialTapSession.save (doc.Storage* storage)
 {
-	storage.writeString ("portNameA", m_dtePortCombo.m_editText);
-	storage.writeString ("portNameB", m_dcePortCombo.m_editText);
-	storage.writeInt ("baudRate", m_baudRateCombo.m_currentIndex);
-	storage.writeInt ("dataBits", m_dataBitsProp.m_currentIndex);
-	storage.writeInt ("stopBits", m_stopBitsProp.m_currentIndex);
-	storage.writeInt ("parity", m_parityProp.m_currentIndex);
+	m_serialSettingUi.save (storage);
+	m_serialFilterUi.save (storage);
+
+	storage.writeString ("dtePortName", m_dtePortCombo.m_editText);
+	storage.writeString ("dcePortName", m_dcePortCombo.m_editText);
 
 	storage.writeInt ("readMode", m_readModeProp.m_value);
 	storage.writeInt ("readInterval", m_readIntervalProp.m_value);
-
-	storage.writeBool ("isSettingChangedVisible", m_logFilter.m_isSettingChangedVisible);
-	storage.writeBool ("isControlLineChangedVisible", m_logFilter.m_isControlLineChangedVisible);
-	storage.writeBool ("isStatusLineChangedVisible", m_logFilter.m_isStatusLineChangedVisible);
 
 	m_bufferPropertySet.save (storage);
 }
 
 void SerialTapSession.updateProperties ()
 {
+	m_serialSettingUi.updateProperties ();
+
 	m_dtePortProp.m_value = m_dtePortCombo.m_editText;
 	m_dcePortProp.m_value = m_dcePortCombo.m_editText;
-	m_baudRateProp.m_currentIndex = m_baudRateCombo.m_currentIndex;
-	m_settingChangedVisibleProp.m_value = m_logFilter.m_isSettingChangedVisible;
-	m_controlLineChangedVisibleProp.m_value = m_logFilter.m_isControlLineChangedVisible;
-	m_statusLineChangedVisibleProp.m_value = m_logFilter.m_isStatusLineChangedVisible;
+
+	m_serialFilterUi.m_settingChangedVisibleProp.m_value = m_logFilter.m_isSettingChangedVisible;
+	m_serialFilterUi.m_controlLineChangedVisibleProp.m_value = m_logFilter.m_isControlLineChangedVisible;
+	m_serialFilterUi.m_statusLineChangedVisibleProp.m_value = m_logFilter.m_isStatusLineChangedVisible;
 }
 
 bool errorcode SerialTapSession.applyProperties ()
 {
+	m_serialSettingUi.applyProperties ();
+
 	m_dtePortCombo.m_editText = m_dtePortProp.m_value;
 	m_dcePortCombo.m_editText = m_dcePortProp.m_value;
-	m_baudRateCombo.m_currentIndex = m_baudRateProp.m_currentIndex;
-	m_logFilter.m_isSettingChangedVisible = m_settingChangedVisibleProp.m_value;
-	m_logFilter.m_isControlLineChangedVisible = m_controlLineChangedVisibleProp.m_value;
-	m_logFilter.m_isStatusLineChangedVisible = m_statusLineChangedVisibleProp.m_value;
+	m_logFilter.m_isSettingChangedVisible = m_serialFilterUi.m_settingChangedVisibleProp.m_value;
+	m_logFilter.m_isControlLineChangedVisible = m_serialFilterUi.m_controlLineChangedVisibleProp.m_value;
+	m_logFilter.m_isStatusLineChangedVisible = m_serialFilterUi.m_statusLineChangedVisibleProp.m_value;
 	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
 
 	if (m_state != State.Opened)
 		return true;
 
+	uint_t baudRate = m_serialSettingUi.m_baudRate;
+	uint_t dataBits = m_serialSettingUi.m_dataBits;
+	io.SerialStopBits stopBits = m_serialSettingUi.m_stopBits;
+	io.SerialParity parity = m_serialSettingUi.m_parity;
+
 	io.SerialOptions options = getSerialOptions ();
-	uint_t baudRate = m_baudRateProp.m_value;
-	uint_t dataBits = m_dataBitsProp.m_value;
-	io.SerialStopBits stopBits = (io.SerialStopBits) m_stopBitsProp.m_value;
-	io.SerialParity parity = (io.SerialParity) m_parityProp.m_value;
 	uint_t readInterval = getReadInterval ();
 
-	// baud rate change will be handled inside onBaudRateChanged ()
+	if (m_dtePort.m_serial.m_baudRate != baudRate)
+		writeLog (SerialLogRecordCode.BaudRateChanged, &baudRate, sizeof (baudRate));
 
 	if (m_dtePort.m_serial.m_dataBits != dataBits)
 		writeLog (SerialLogRecordCode.DataBitsChanged, &dataBits, sizeof (dataBits));
@@ -707,18 +658,10 @@ bool errorcode SerialTapSession.applyProperties ()
 
 void SerialTapSession.restoreDefaultProperties ()
 {
-	m_baudRateProp.m_value = Defaults.BaudRate;
-	m_dataBitsProp.m_value = Defaults.DataBits;
-	m_stopBitsProp.m_value = Defaults.StopBits;
-	m_parityProp.m_value = Defaults.Parity;
-
+	m_serialSettingUi.restoreDefaultProperties ();
+	m_serialFilterUi.restoreDefaultProperties ();
 	m_readModeProp.m_value = Defaults.ReadMode;
 	m_readIntervalProp.m_value = Defaults.ReadInterval;
-
-	m_settingChangedVisibleProp.m_value = true;
-	m_controlLineChangedVisibleProp.m_value = true;
-	m_statusLineChangedVisibleProp.m_value = true;
-
 	m_bufferPropertySet.restoreDefaults ();
 }
 
@@ -809,7 +752,7 @@ SerialTapSession.onBaudRateChanged ()
 	if (m_state != State.Opened)
 		return;
 
-	uint_t value = m_baudRateCombo.m_currentData;
+	uint_t value = m_serialSettingUi.m_baudRate;
 	writeLog (SerialLogRecordCode.BaudRateChanged, &value, sizeof (value));
 
 	m_dtePort.m_serial.m_baudRate = value;
@@ -837,7 +780,7 @@ reactor SerialTapSession.m_uiReactor ()
 {
 	m_actionTable [ActionId.Capture].m_text = m_state ? "Stop capture" : "Capture";
 	m_actionTable [ActionId.Capture].m_icon = m_iconTable [m_state ? IconId.StopCapture : IconId.Capture];
-	m_title = $"$(m_dtePortCombo.m_currentText):$(m_dcePortCombo.m_currentText) $(m_baudRateCombo.m_currentText)";
+	m_title = $"$(m_dtePortCombo.m_currentText):$(m_dcePortCombo.m_currentText) $(m_serialSettingUi.m_baudRateCombo.m_currentText)";
 	m_bufferPropertySet.m_readParallelismProp.m_isEnabled = m_readModeProp.m_value != SerialReadMode.CheckComstat;
 	m_readIntervalProp.m_isEnabled = m_readModeProp.m_value == SerialReadMode.IntervalBased;
 	m_statusPane.m_text = m_state ? $"$(m_dtePort.m_name):$(m_dcePort.m_name)" : "Ports closed";
