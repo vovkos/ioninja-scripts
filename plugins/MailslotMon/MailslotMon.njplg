@@ -5,14 +5,14 @@
 
 [plugin]
 
-name                  = Mailslot Monitor
-description           = "Monitor mailslot communications"
-id                    = mailslotmon
-group                 = monitors
-monitor               = true
-guid                  = 8B4D1156-4C00-40FF-8B24-015C7DF2FD80
-icon                  = images/mailslotmon.png
-small-icon            = images/mailslotmon-16x16.png
+name        = Mailslot Monitor
+description = "Monitor mailslot communications"
+id          = mailslotmon
+group       = fs
+monitor     = true
+guid        = 8B4D1156-4C00-40FF-8B24-015C7DF2FD80
+icon        = images/mailslotmon.png
+small-icon  = images/mailslotmon-16x16.png
 
 session-class         = MailslotMonSession
 log-representer-func  = representMailslotMonLog

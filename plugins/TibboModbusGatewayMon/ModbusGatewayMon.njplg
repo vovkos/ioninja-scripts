@@ -5,17 +5,17 @@
 
 [plugin]
 
-name                  = Tibbo Modbus Gateway Monitor
-description           = "Tibbo Modbus Gateway Monitor plugin"
-id                    = modbus-gateway-mon
-group                 = monitors
-monitor               = true
-guid                  = 075eb3ef-43e2-460c-9301-a72810de9689
-icon                  = images/modbus.png
-small-icon            = images/modbus-16x16.png
+name        = Tibbo Modbus Gateway Monitor
+description = "Tibbo Modbus Gateway Monitor plugin"
+id          = modbus-gateway-mon
+# group       = net
+monitor     = true
+guid        = 075eb3ef-43e2-460c-9301-a72810de9689
+icon        = images/modbus.png
+small-icon  = images/modbus-16x16.png
 
-session-class         = ModbusGatewayMonSession
-log-representer-func  = representModbusGatewayMonLog
+session-class        = ModbusGatewayMonSession
+log-representer-func = representModbusGatewayMonLog
 
 [scripts]
 

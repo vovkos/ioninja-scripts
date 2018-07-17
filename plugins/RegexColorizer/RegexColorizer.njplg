@@ -8,7 +8,6 @@
 name        = Regex Colorizer
 description = "Colorizes RX/TX according to preset regex patterns"
 id          = regex-colorizer
-group       =
 monitor     = false
 guid        = c8e98303-15cf-4cbf-9553-39cd24715046
 icon        = images/plugin.png

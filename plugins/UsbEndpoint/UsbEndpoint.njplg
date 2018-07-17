@@ -8,7 +8,7 @@
 name        = USB Endpoint
 description = "Low-level direct USB communications with USB endpoints on a device"
 id          = usb-endpoint
-group       = clients
+group       = usb
 guid        = 3b5bd445-951e-4f76-9d8d-fe97aecbdd73
 icon        = images/usb.png
 small-icon  = images/usb-16x16.png

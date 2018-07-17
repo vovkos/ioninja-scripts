@@ -8,7 +8,7 @@
 name        = SSH Channel
 description = "Establishes SSH channel over TCP socket"
 id          = ssh
-group       = clients
+group       = net
 guid        = 8ec96e77-89df-4dd8-bc14-b995b85de45d
 icon        = images/ssh.png
 small-icon  = images/ssh-16x16.png

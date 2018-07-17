@@ -8,7 +8,7 @@
 name        = EZ-Tap Pro
 description = "Monitor serial communication using EZ-Tap Pro"
 id          = ez-tap-pro
-group       = monitors
+group       = serial
 monitor     = true
 guid        = c5104fa2-1307-4617-93e8-37355e9d6ae2
 icon        = images/serialmon.png
