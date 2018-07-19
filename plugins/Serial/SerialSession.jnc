@@ -840,6 +840,8 @@ SerialSession.onBaudRateChanged ()
 		return;
 
 	uint_t baudRate = m_serialSettingUi.m_baudRate;
+	if (baudRate == m_serial.m_baudRate)
+		return;
 
 	m_serial.setupDevice (
 		baudRate,
