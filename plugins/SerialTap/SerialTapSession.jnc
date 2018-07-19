@@ -463,12 +463,12 @@ SerialTapSession.flipDteDce ()
 bool errorcode SerialTapSession.configureSerialIface (uint_t ifaceId)
 {
 	cy.CyUartConfig uartConfig;
-	uartConfig.baudRate = m_serialSettingUi.m_baudRateCombo.m_currentData;
-	uartConfig.dataWidth = m_serialSettingUi.m_dataBitsProp.m_value;
-	uartConfig.stopBits = m_serialSettingUi.m_stopBitsProp.m_value ? 2 : 1;
-	uartConfig.parity = m_serialSettingUi.m_parityProp.m_value;
+	uartConfig.baudRate = m_serialSettingUi.m_baudRate;
+	uartConfig.dataWidth = m_serialSettingUi.m_dataBits;
+	uartConfig.stopBits = m_serialSettingUi.m_stopBits ? 2 : 1;
+	uartConfig.parity = m_serialSettingUi.m_parity;
 
-	m_device.controlTransfer (
+	size_t result = m_device.controlTransfer (
 		cy.CY_VENDOR_REQUEST_HOST_TO_DEVICE,
 		cy.CY_UART_SET_CONFIG_CMD,
 		ifaceId << cy.CY_SCB_INDEX_POS,
@@ -797,11 +797,15 @@ SerialTapSession.onBaudRateChanged ()
 	if (m_state != State.Opened)
 		return;
 
+	uint_t baudRate = m_serialSettingUi.m_baudRate;
+	if (baudRate == m_baudRate)
+		return;
+
 	configureSerialIface (0);
 	configureSerialIface (1);
 
-	uint_t value = m_serialSettingUi.m_baudRate;
-	writeLog (SerialLogRecordCode.BaudRateChanged, &value, sizeof (value));
+	writeLog (SerialLogRecordCode.BaudRateChanged, &baudRate, sizeof (baudRate));
+	m_baudRate = baudRate;
 
 catch:
 	writeLogLastError (log.StdRecordCode.Error);
