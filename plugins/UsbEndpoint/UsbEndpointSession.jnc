@@ -455,11 +455,15 @@ bool UsbEndpointSession.startReading ()
 	m_inEndpoint = m_interface.openEndpoint (endpointDesc.m_endpointId);
 	m_inEndpoint.m_readTimeout = -1;
 	m_inEndpoint.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
-	m_inEndpoint.m_readBlockSize = m_inEndpoint.m_endpointDesc.m_maxPacketSize;
+	m_inEndpoint.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
 	m_inEndpoint.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
+
+	m_inEndpoint.m_readParallelism = 8;
+	m_inEndpoint.m_readBufferSize = 8 * 1024 * 1024;
 
 	writeLog (UsbRecordCode.ReadingStarted, &endpointDesc.m_endpointId, sizeof (endpointDesc.m_endpointId));
 	m_state = State.Reading;
+
 	waitInEndpointEvents ();
 	return true;
 

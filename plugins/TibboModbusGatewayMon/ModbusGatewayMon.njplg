@@ -8,7 +8,7 @@
 name        = Tibbo Modbus Gateway Monitor
 description = "Tibbo Modbus Gateway Monitor plugin"
 id          = modbus-gateway-mon
-# group       = net
+group       = net
 monitor     = true
 guid        = 075eb3ef-43e2-460c-9301-a72810de9689
 icon        = images/modbus.png

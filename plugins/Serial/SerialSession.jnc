@@ -544,12 +544,11 @@ bool errorcode SerialSession.applyProperties ()
 	io.SerialStopBits prevStopBits = m_serial.m_stopBits;
 	io.SerialParity prevParity = m_serial.m_parity;
 	io.SerialFlowControl prevFlowControl = m_serial.m_flowControl;
+	io.SerialOptions prevOptions = m_serial.m_options;
+	uint_t prevReadInterval = m_serial.m_readInterval;
 
 	bool prevDtr = m_serial.m_dtr;
 	bool prevRts = m_serial.m_rts;
-
-	io.SerialOptions prevOptions = m_serial.m_options;
-	uint_t prevReadInterval = m_serial.m_readInterval;
 
 	// collect new values from ui
 
@@ -575,10 +574,10 @@ bool errorcode SerialSession.applyProperties ()
 
 	m_serial.setupDevice (
 		baudRate,
-		flowControl,
 		dataBits,
 		stopBits,
 		parity,
+		flowControl,
 		readInterval,
 		m_dtrProp.m_value,
 		m_rtsProp.m_value
@@ -729,11 +728,11 @@ SerialSession.enumeratePorts ()
 
 	size_t count;
 	io.SerialPortDesc const* portList = io.createSerialPortDescList (&count);
+	io.SerialPortDesc const* port = portList;
 
 	gui.EnumPropertyOption* optionArray = new gui.EnumPropertyOption [count];
 	gui.EnumPropertyOption* option = optionArray;
 
-	io.SerialPortDesc const* port = portList;
 	for (; port; port = port.m_next, option++)
 	{
 		char const* description = $"$(port.m_deviceName) - $(port.m_description)";
@@ -845,10 +844,10 @@ SerialSession.onBaudRateChanged ()
 
 	m_serial.setupDevice (
 		baudRate,
-		m_serial.m_flowControl,
 		m_serial.m_dataBits,
 		m_serial.m_stopBits,
 		m_serial.m_parity,
+		m_serial.m_flowControl,
 		m_serial.m_readInterval,
 		m_serial.m_dtr,
 		m_serial.m_rts
@@ -886,8 +885,8 @@ SerialSession.onRtsChanged ()
 SerialSession.updateTitle ()
 {
 	m_title = m_state ?
-		$"$m_portName $m_serialBaudRate bps" :
-		$"$(m_portCombo.m_currentText) $(m_serialSettingUi.m_baudRateCombo.m_editText)";
+		$"Serial $m_portName $m_serialBaudRate bps" :
+		$"Serial $(m_portCombo.m_currentText) $(m_serialSettingUi.m_baudRateCombo.m_editText)";
 }
 
 SerialSession.updateLineInfoValue (
@@ -908,6 +907,7 @@ reactor SerialSession.m_uiReactor ()
 
 	onevent (
 		bindingof (m_state),
+		bindingof (m_serialBaudRate),
 		m_portCombo.m_onChanged,
 		m_serialSettingUi.m_baudRateCombo.m_onChanged
 		) ()
