@@ -364,11 +364,20 @@ SerialSettingUi.applyProperties ()
 
 SerialSettingUi.restoreDefaultProperties ()
 {
-	m_baudRateProp.m_value = $"$(Defaults.BaudRate) bps";
-	m_dataBitsProp.m_value = Defaults.DataBits;
-	m_stopBitsProp.m_value = Defaults.StopBits;
-	m_parityProp.m_value = Defaults.Parity;
-	m_flowControlProp.m_value = Defaults.FlowControl;
+	if (m_baudRateProp)
+		m_baudRateProp.m_value = $"$(Defaults.BaudRate) bps";
+
+	if (m_dataBitsProp)
+		m_dataBitsProp.m_value = Defaults.DataBits;
+
+	if (m_stopBitsProp)
+		m_stopBitsProp.m_value = Defaults.StopBits;
+
+	if (m_parityProp)
+		m_parityProp.m_value = Defaults.Parity;
+
+	if (m_flowControlProp)
+		m_flowControlProp.m_value = Defaults.FlowControl;
 }
 
 //..............................................................................
