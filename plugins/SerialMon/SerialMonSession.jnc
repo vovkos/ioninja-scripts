@@ -53,6 +53,11 @@ protected:
 	State bindable m_state;
 	SerialMonitor m_monitor;
 	SerialLogFilter m_logFilter;
+	char const* m_portName;
+
+	// common serial ui
+
+	io.SerialFilterUi m_serialFilterUi;
 
 	// toolbar, status bar & menu
 
@@ -63,15 +68,9 @@ protected:
 
 	// serial mon property grid
 
-	gui.StringProperty* m_portProp;
+	gui.ComboProperty* m_portProp;
 	io.BufferPropertySet m_bufferPropertySet;
 	gui.IntProperty* m_pendingNotifySizeLimitProp;
-
-	// filter property grid
-
-	gui.BoolProperty* m_settingChangedVisibleProp;
-	gui.BoolProperty* m_controlLineChangedVisibleProp;
-	gui.BoolProperty* m_statusLineChangedVisibleProp;
 
 	// information grid
 
@@ -106,6 +105,7 @@ protected:
 	enumeratePorts ();
 
 	reactor m_uiReactor ();
+	updateTitle ();
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -153,7 +153,7 @@ SerialMonSession.createUi ()
 		"Serial port monitor target device settings"
 		);
 
-	m_portProp = m_pluginHost.m_propertyGrid.createStringProperty (
+	m_portProp = m_pluginHost.m_propertyGrid.createComboProperty (
 		group,,
 		"Port",
 		"Specify serial port to monitor"
@@ -191,23 +191,7 @@ SerialMonSession.createUi ()
 		"Specify which unwanted log messages to filter out"
 		);
 
-	m_settingChangedVisibleProp = m_pluginHost.m_propertyGrid.createBoolProperty (
-		group,,
-		"Show setting changes",
-		"Display setting change log records (or filter them out)"
-		);
-
-	m_controlLineChangedVisibleProp = m_pluginHost.m_propertyGrid.createBoolProperty (
-		group,,
-		"Show control line changes",
-		"Display control line change log records (or filter them out)"
-		);
-
-	m_statusLineChangedVisibleProp = m_pluginHost.m_propertyGrid.createBoolProperty (
-		group,,
-		"Show status line changes",
-		"Display status line change log records (or filter them out)"
-		);
+	m_serialFilterUi.create (m_pluginHost.m_propertyGrid, group);
 
 	// information grid
 
@@ -220,6 +204,7 @@ SerialMonSession.createUi ()
 	m_pluginHost.m_informationGrid.resizeNameColumnToContents ();
 
 	enumeratePorts ();
+	updateTitle ();
 	m_uiReactor.start ();
 }
 
@@ -227,19 +212,24 @@ SerialMonSession.enumeratePorts ()
 {
 	char const* name = m_portCombo.m_currentText;
 	m_portCombo.clear ();
-	m_portProp.removeAllOptions ();
 
-	size_t portCount;
-	io.SerialPortDesc const* portList = io.createSerialPortDescList (&portCount);
+	size_t count;
+	io.SerialPortDesc const* portList = io.createSerialPortDescList (&count);
 	io.SerialPortDesc const* port = portList;
-	for (; port; port = port.m_next)
+
+	gui.EnumPropertyOption* optionArray = new gui.EnumPropertyOption [count];
+	gui.EnumPropertyOption* option = optionArray;
+
+	for (; port; port = port.m_next, option++)
 	{
 		char const* description = $"$(port.m_deviceName) - $(port.m_description)";
 		m_portCombo.addItem (description, port.m_deviceName);
-		m_portProp.addOption (description, port.m_deviceName);
+		option.m_text = description;
+		option.m_value = port.m_deviceName;
 	}
 
 	m_portCombo.m_editText = name; // preserve current text
+	m_portProp.setOptions (optionArray, count);
 }
 
 bool errorcode SerialMonSession.capture ()
@@ -254,6 +244,7 @@ bool errorcode SerialMonSession.capture ()
 
 	writeLog (SerialMonLogRecordCode.CaptureStarted, name, strlen (name));
 
+	m_portName = name;
 	m_state = State.Opened;
 	m_stdSessionInfoSet.startSession (m_pluginHost.m_mainThreadScheduler);
 	return true;
@@ -284,10 +275,13 @@ SerialMonSession.close ()
 
 void SerialMonSession.load (doc.Storage* storage)
 {
+	m_serialFilterUi.load (storage);
+
+	m_logFilter.m_isSettingChangedVisible = m_serialFilterUi.m_settingChangedVisibleProp.m_value;
+	m_logFilter.m_isControlLineChangedVisible = m_serialFilterUi.m_controlLineChangedVisibleProp.m_value;
+	m_logFilter.m_isStatusLineChangedVisible = m_serialFilterUi.m_statusLineChangedVisibleProp.m_value;
+
 	m_portCombo.m_editText = storage.readString ("portName");
-	m_logFilter.m_isSettingChangedVisible = storage.readBool ("isSettingChangedVisible", true);
-	m_logFilter.m_isControlLineChangedVisible = storage.readBool ("isControlLineChangedVisible", true);
-	m_logFilter.m_isStatusLineChangedVisible = storage.readBool ("isStatusLineChangedVisible", true);
 	m_pendingNotifySizeLimitProp.m_value = storage.readInt ("pendingNotifySizeLimit", Defaults.PendingNotifySizeLimit);
 
 	m_bufferPropertySet.load (storage);
@@ -296,10 +290,9 @@ void SerialMonSession.load (doc.Storage* storage)
 
 void SerialMonSession.save (doc.Storage* storage)
 {
+	m_serialFilterUi.save (storage);
+
 	storage.writeString ("portName", m_portCombo.m_editText);
-	storage.writeBool ("isSettingChangedVisible", m_logFilter.m_isSettingChangedVisible);
-	storage.writeBool ("isControlLineChangedVisible", m_logFilter.m_isControlLineChangedVisible);
-	storage.writeBool ("isStatusLineChangedVisible", m_logFilter.m_isStatusLineChangedVisible);
 	storage.writeInt ("pendingNotifySizeLimit", m_pendingNotifySizeLimitProp.m_value);
 
 	m_bufferPropertySet.save (storage);
@@ -308,17 +301,18 @@ void SerialMonSession.save (doc.Storage* storage)
 void SerialMonSession.updateProperties ()
 {
 	m_portProp.m_value = m_portCombo.m_editText;
-	m_settingChangedVisibleProp.m_value = m_logFilter.m_isSettingChangedVisible;
-	m_controlLineChangedVisibleProp.m_value = m_logFilter.m_isControlLineChangedVisible;
-	m_statusLineChangedVisibleProp.m_value = m_logFilter.m_isStatusLineChangedVisible;
+
+	m_serialFilterUi.m_settingChangedVisibleProp.m_value = m_logFilter.m_isSettingChangedVisible;
+	m_serialFilterUi.m_controlLineChangedVisibleProp.m_value = m_logFilter.m_isControlLineChangedVisible;
+	m_serialFilterUi.m_statusLineChangedVisibleProp.m_value = m_logFilter.m_isStatusLineChangedVisible;
 }
 
 bool errorcode SerialMonSession.applyProperties ()
 {
 	m_portCombo.m_editText = m_portProp.m_value;
-	m_logFilter.m_isSettingChangedVisible = m_settingChangedVisibleProp.m_value;
-	m_logFilter.m_isControlLineChangedVisible = m_controlLineChangedVisibleProp.m_value;
-	m_logFilter.m_isStatusLineChangedVisible = m_statusLineChangedVisibleProp.m_value;
+	m_logFilter.m_isSettingChangedVisible = m_serialFilterUi.m_settingChangedVisibleProp.m_value;
+	m_logFilter.m_isControlLineChangedVisible = m_serialFilterUi.m_controlLineChangedVisibleProp.m_value;
+	m_logFilter.m_isStatusLineChangedVisible = m_serialFilterUi.m_statusLineChangedVisibleProp.m_value;
 
 	if (m_state != State.Opened)
 		return true;
@@ -329,17 +323,29 @@ bool errorcode SerialMonSession.applyProperties ()
 
 void SerialMonSession.restoreDefaultProperties ()
 {
-	m_settingChangedVisibleProp.m_value = true;
-	m_controlLineChangedVisibleProp.m_value = true;
-	m_statusLineChangedVisibleProp.m_value = true;
+	m_serialFilterUi.restoreDefaultProperties ();
 	m_pendingNotifySizeLimitProp.m_value = Defaults.PendingNotifySizeLimit;
 
 	m_bufferPropertySet.restoreDefaults ();
 }
 
+SerialMonSession.updateTitle ()
+{
+	m_title = m_state ?
+		$"Monitor $m_portName" :
+		$"Monitor $(m_portCombo.m_currentText)";
+}
+
 reactor SerialMonSession.m_uiReactor ()
 {
-	m_title = $"Mon $(m_portCombo.m_currentText)";
+	onevent (
+		bindingof (m_state),
+		m_portCombo.m_onChanged
+		) ()
+	{
+		updateTitle ();
+	}
+
 	m_actionTable [ActionId.Capture].m_text = m_state ? "Stop capture" : "Capture";
 	m_actionTable [ActionId.Capture].m_icon = m_iconTable [m_state ? IconId.StopCapture : IconId.Capture];
 	m_statusPaneTable [StatusPaneId.State].m_text = m_state ? "Capturing" : "Closed";
