@@ -10,7 +10,6 @@ import "io_SerialUi.jnc"
 import "io_BufferUi.jnc"
 import "std_List.jnc"
 import "std_Buffer.jnc"
-import "sys_Timer.jnc"
 import "doc_Plugin.jnc"
 import "gui_StdSessionInfo.jnc"
 import "log_ThroughputCalc.jnc"
@@ -27,7 +26,6 @@ protected:
 		ReadInterval   = 10,
 		Dtr            = true,
 		Rts            = true,
-		InterCharDelay = 200,
 	}
 
 	enum State
@@ -76,13 +74,6 @@ protected:
 	std.Buffer m_readBuffer;
 	uint_t m_syncId;
 
-	// inter-char delay
-
-	sys.Timer m_delayedWriteTimer;
-	std.List m_delayedWriteList;
-	size_t m_totalDelayedWriteSize;
-	uint64_t m_lastWriteTime;
-
 	// common serial ui
 
 	io.SerialSettingUi m_serialSettingUi;
@@ -100,8 +91,6 @@ protected:
 	gui.ComboProperty* m_portProp;
 	gui.BoolProperty* m_dtrProp;
 	gui.BoolProperty* m_rtsProp;
-	gui.BoolProperty* m_useInterCharDelayProp;
-	gui.IntProperty* m_interCharDelayProp;
 	gui.EnumProperty* m_readModeProp;
 	gui.IntProperty* m_readIntervalProp;
 	io.BufferPropertySet m_bufferPropertySet;
@@ -142,7 +131,6 @@ protected:
 	}
 
 	onBaudRateChanged ();
-	onDelayedWriteTimer ();
 	onDtrChanged ();
 	onRtsChanged ();
 
@@ -153,20 +141,8 @@ protected:
 
 	createUi ();
 
-	size_t write (
-		void const* p,
-		size_t size
-		);
-
-	size_t addDelayedWrite (
-		void const* p,
-		size_t size
-		);
-
 	enumeratePorts ();
 	waitSerialEvents ();
-	setDelayedWriteTimer ();
-	flushDelayedWrite ();
 	io.SerialOptions getSerialOptions ();
 
 	uint_t getReadInterval ()
@@ -184,6 +160,7 @@ protected:
 		bool line
 		);
 }
+
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
@@ -275,23 +252,6 @@ SerialSession.createUi ()
 		group,,
 		"RTS",
 		"RTS (Request-To-Send) modem control line"
-		);
-
-	group = m_pluginHost.m_propertyGrid.createGroupProperty (
-		"Transmission inter-char delay",
-		"Insert delay between transmitted characters"
-		);
-
-	m_useInterCharDelayProp = m_pluginHost.m_propertyGrid.createBoolProperty (
-		group,,
-		"Use TX inter-char delay",
-		"Insert inter-character delays during transmission"
-		);
-
-	m_interCharDelayProp = m_pluginHost.m_propertyGrid.createIntProperty (
-		group,,
-		"TX inter-char delay (ms)",
-		"Transmission inter-character delay (in millisceonds)"
 		);
 
 	group = m_pluginHost.m_propertyGrid.createGroupProperty (
@@ -459,8 +419,7 @@ SerialSession.close ()
 	writeLogString (SerialLogRecordCode.PortClosed, m_portName);
 	m_stdSessionInfoSet.endSession ();
 	m_serial.close ();
-	m_delayedWriteTimer.stop ();
-	m_delayedWriteList.clear ();
+	m_isTransmitEnabled = false;
 	m_state = State.Closed;
 	m_syncId++;
 }
@@ -477,10 +436,6 @@ void SerialSession.load (doc.Storage* storage)
 	m_portCombo.m_editText = storage.readString ("portName");
 	m_actionTable [ActionId.Dtr].m_isChecked = storage.readBool ("dtr", Defaults.Dtr);
 	m_actionTable [ActionId.Rts].m_isChecked = storage.readBool ("rts", Defaults.Rts);
-
-	m_useInterCharDelayProp.m_value = storage.readBool ("useInterCharDelay", false);
-	m_interCharDelayProp.m_value = storage.readInt ("interCharDelay", Defaults.InterCharDelay);
-
 	m_readModeProp.m_value = storage.readBool ("readMode", Defaults.ReadMode);
 	m_readIntervalProp.m_value = storage.readInt ("readInterval", Defaults.ReadInterval);
 
@@ -496,10 +451,6 @@ void SerialSession.save (doc.Storage* storage)
 	storage.writeString ("portName", m_portCombo.m_editText);
 	storage.writeBool ("dtr", m_actionTable [ActionId.Dtr].m_isChecked);
 	storage.writeBool ("rts", m_actionTable [ActionId.Rts].m_isChecked);
-
-	storage.writeBool ("useInterCharDelay", m_useInterCharDelayProp.m_value);
-	storage.writeInt ("interCharDelay", m_interCharDelayProp.m_value);
-
 	storage.writeInt ("readMode", m_readModeProp.m_value);
 	storage.writeInt ("readInterval", m_readIntervalProp.m_value);
 
@@ -583,11 +534,6 @@ bool errorcode SerialSession.applyProperties ()
 		m_rtsProp.m_value
 		);
 
-	if (!m_useInterCharDelayProp.m_value || !m_interCharDelayProp.m_value)
-		flushDelayedWrite ();
-	else if (m_delayedWriteList.m_count)
-		setDelayedWriteTimer ();
-
 	// write changes to the log
 
 	if (baudRate != prevBaudRate)
@@ -639,9 +585,6 @@ void SerialSession.restoreDefaultProperties ()
 	m_dtrProp.m_value = Defaults.Dtr;
 	m_rtsProp.m_value = Defaults.Rts;
 
-	m_useInterCharDelayProp.m_value = false;
-	m_interCharDelayProp.m_value = Defaults.InterCharDelay;
-
 	m_readModeProp.m_value = Defaults.ReadMode;
 	m_readIntervalProp.m_value = Defaults.ReadInterval;
 
@@ -653,12 +596,10 @@ size_t errorcode SerialSession.transmit (
 	size_t size
 	)
 {
-	if (m_state != State.Opened)
-		return -1;
+	size_t result = m_serial.write (p, size);
 
-	size_t result = m_useInterCharDelayProp.m_value && m_interCharDelayProp.m_value ?
-		addDelayedWrite (p, size) :
-		write (p, size);
+	if (result)
+		writeLog (log.StdRecordCode.Tx, p, result);
 
 	if (result < size)
 	{
@@ -667,58 +608,6 @@ size_t errorcode SerialSession.transmit (
 	}
 
 	return result;
-}
-
-size_t SerialSession.write (
-	void const* p,
-	size_t size
-	)
-{
-	size_t result = m_serial.write (p, size);
-	writeLog (log.StdRecordCode.Tx, p, result);
-	m_lastWriteTime = sys.getTimestamp ();
-
-	return result;
-}
-
-size_t SerialSession.addDelayedWrite (
-	void const* p,
-	size_t size
-	)
-{
-	void const* data = memdup (p, size);
-	m_delayedWriteList.add (data);
-	m_totalDelayedWriteSize	+= size;
-
-	if (m_delayedWriteList.m_count == 1)
-		setDelayedWriteTimer ();
-
-	return size;
-}
-
-SerialSession.flushDelayedWrite ()
-{
-	while (m_delayedWriteList.m_count)
-	{
-		void const* p = m_delayedWriteList.removeHead ();
-		size_t size = dynamic sizeof (p);
-		assert (size);
-
-		write (p, size);
-	}
-
-	m_totalDelayedWriteSize = 0;
-}
-
-SerialSession.setDelayedWriteTimer ()
-{
-	uint64_t dueTime = m_lastWriteTime + m_interCharDelayProp.m_value * 10000;
-
-	m_delayedWriteTimer.start (
-		onDelayedWriteTimer @ m_pluginHost.m_mainThreadScheduler,
-		dueTime,
-		m_interCharDelayProp.m_value
-		);
 }
 
 SerialSession.enumeratePorts ()
@@ -807,32 +696,6 @@ SerialSession.onSerialEvent (
 	waitSerialEvents ();
 }
 
-SerialSession.onDelayedWriteTimer ()
-{
-	if (!m_delayedWriteList.m_head)
-	{
-		m_delayedWriteTimer.stop ();
-		return;
-	}
-
-	void const* p = m_delayedWriteList.m_head.m_data;
-	size_t size = dynamic sizeof (p);
-	assert (size);
-
-	write (p, 1);
-
-	// advance one char forward
-
-	m_delayedWriteList.m_head.m_data = ++p;
-	m_totalDelayedWriteSize--;
-
-	if (size <= 1)
-		m_delayedWriteList.removeHead ();
-
-	if (!m_delayedWriteList.m_head)
-		m_delayedWriteTimer.stop ();
-}
-
 SerialSession.onBaudRateChanged ()
 {
 	if (m_state != State.Opened)
@@ -919,7 +782,6 @@ reactor SerialSession.m_uiReactor ()
 	m_actionTable [ActionId.Open].m_icon = m_iconTable [m_state ? IconId.Close : IconId.Open];
 	m_actionTable [ActionId.Rts].m_isEnabled = m_serialSettingUi.m_flowControlProp.m_value != io.SerialFlowControl.RtsCts;
 	m_rtsProp.m_isEnabled = m_serialSettingUi.m_flowControlProp.m_value != io.SerialFlowControl.RtsCts;
-	m_interCharDelayProp.m_isEnabled = m_useInterCharDelayProp.m_value;
 	m_bufferPropertySet.m_readParallelismProp.m_isEnabled = m_readModeProp.m_value != SerialReadMode.CheckComstat;
 	m_readIntervalProp.m_isEnabled = m_readModeProp.m_value == SerialReadMode.IntervalBased;
 	m_statusPane.m_text = m_state ? m_portName : "Port closed";
