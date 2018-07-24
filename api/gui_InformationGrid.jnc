@@ -12,6 +12,13 @@ opaque class InformationItem
 	char const* autoget property m_name;
 	char const* autoget property m_toolTipText;
 	bool autoget property m_isEnabled;
+
+	addChildItem (
+		InformationItem* item,
+		InformationItem* beforeItem = null
+		);
+
+	removeChildItem (InformationItem* item);
 }
 
 //..............................................................................
@@ -19,13 +26,6 @@ opaque class InformationItem
 opaque class InformationGroup: InformationItem
 {
 	construct (char const* name);
-
-	addItem (
-		InformationItem* item,
-		InformationItem* beforeItem = null
-		);
-
-	removeItem (InformationItem* item);
 }
 
 //..............................................................................
@@ -50,10 +50,10 @@ opaque class InformationGrid
 		InformationItem* beforeItem = null
 		);
 
-	removeProperty (Property* prop);
+	removeItem (InformationItem* item);
 
 	InformationGroup* createGroup (
-		InformationGroup* group = null,
+		InformationItem* parentItem = null,
 		InformationItem* beforeItem = null,
 		char const* name,
 		char const* toolTipText = null
@@ -68,7 +68,7 @@ opaque class InformationGrid
 	}
 
 	InformationValue* createValue (
-		InformationGroup* group = null,
+		InformationItem* parentItem = null,
 		InformationItem* beforeItem = null,
 		bool isSelectionDependent = false,
 		char const* name,
@@ -89,7 +89,7 @@ opaque class InformationGrid
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 InformationGroup* InformationGrid.createGroup (
-	InformationGroup* group,
+	InformationItem* parentItem,
 	InformationItem* beforeItem,
 	char const* name,
 	char const* toolTipText
@@ -98,16 +98,15 @@ InformationGroup* InformationGrid.createGroup (
 	InformationGroup* item = new InformationGroup (name);
 	item.m_toolTipText = toolTipText;
 
-	if (group)
-		group.addItem (item, beforeItem);
-	else
+	parentItem ?
+		parentItem.addChildItem (item, beforeItem) :
 		addItem (item, beforeItem);
 
 	return item;
 }
 
 InformationValue* InformationGrid.createValue (
-	InformationGroup* group,
+	InformationItem* parentItem,
 	InformationItem* beforeItem,
 	bool isSelectionDependent,
 	char const* name,
@@ -118,9 +117,8 @@ InformationValue* InformationGrid.createValue (
 	item.m_toolTipText = toolTipText;
 	item.m_isSelectionDependent = isSelectionDependent;
 
-	if (group)
-		group.addItem (item, beforeItem);
-	else
+	parentItem ?
+		parentItem.addChildItem (item, beforeItem) :
 		addItem (item, beforeItem);
 
 	return item;
