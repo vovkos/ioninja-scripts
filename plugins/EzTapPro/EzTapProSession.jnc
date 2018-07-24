@@ -628,14 +628,12 @@ void EzTapProSession.updateDteControlLines (
 		lines |= io.SerialStatusLines.Cts;
 
 	io.SerialStatusLines mask = lines ^ m_dteControlLines;
-
-	if (mask & io.SerialStatusLines.Dsr)
-		writeLog (SerialLogRecordCode.DtrChanged, &dtr, sizeof (dtr));
-
-	if (mask & io.SerialStatusLines.Cts)
-		writeLog (SerialLogRecordCode.RtsChanged, &rts, sizeof (rts));
-
-	m_dteControlLines = lines;
+	if (mask)
+	{
+		SerialStatusLineChangedParams params = { lines, mask }
+		writeLog (SerialLogRecordCode.ControlLineChanged, params, sizeof (params));
+		m_dteControlLines = lines;
+	}
 }
 
 void EzTapProSession.updateDceControlLines (

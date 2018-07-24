@@ -665,25 +665,12 @@ SerialTapSession.onInterruptEndpointEvent (
 
 			if (statusLineMask)
 			{
-				if (iface == m_dteIface)
-				{
-					SerialStatusLineChangedParams params = { statusLines, statusLineMask }
-					writeLog (SerialLogRecordCode.StatusLineChanged, params, sizeof (params));
-				}
-				else
-				{
-					if (statusLineMask & io.SerialStatusLines.Dsr)
-					{
-						bool dtr = statusLines & io.SerialStatusLines.Dsr;
-						writeLog (SerialLogRecordCode.DtrChanged, &dtr, sizeof (dtr));
-					}
+				uint_t recordCode = iface == m_dteIface ?
+					SerialLogRecordCode.StatusLineChanged :
+					SerialLogRecordCode.ControlLineChanged;
 
-					if (statusLineMask & io.SerialStatusLines.Cts)
-					{
-						bool rts = statusLines & io.SerialStatusLines.Cts;
-						writeLog (SerialLogRecordCode.RtsChanged, &rts, sizeof (rts));
-					}
-				}
+				SerialStatusLineChangedParams params = { statusLines, statusLineMask }
+				writeLog (recordCode, params, sizeof (params));
 
 				iface.m_serialStatusLines = statusLines;
 			}

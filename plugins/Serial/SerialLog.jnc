@@ -22,6 +22,7 @@ enum SerialLogRecordCode
 	ReadModeChanged,
 	ReadIntervalChanged,
 	BuggyDriverDetected,
+	ControlLineChanged,
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -82,6 +83,30 @@ char const* getTableString (
 char const* getOnOffString (uint_t line)
 {
 	return line ? "\e[31mon\e[m" : "\e[90moff\e[m";
+}
+
+char const* getStatusLineChangeString (
+	io.SerialStatusLines lines,
+	io.SerialStatusLines mask,
+	char const* lineKindString,
+	char const* dsrString,
+	char const* ctsString
+	)
+{
+	char const* string = $"$lineKindString line(s) changed:";
+	if (mask & io.SerialStatusLines.Dsr)
+	{
+		char const* valueString = getOnOffString (lines & io.SerialStatusLines.Dsr);
+		string = $"$string $dsrString: $valueString";
+	}
+
+	if (mask & io.SerialStatusLines.Cts)
+	{
+		char const* valueString = getOnOffString (lines & io.SerialStatusLines.Cts);
+		string = $"$string $ctsString: $valueString";
+	}
+
+	return string;
 }
 
 //..............................................................................
@@ -292,18 +317,29 @@ bool representSerialLog (
 	case SerialLogRecordCode.StatusLineChanged:
 		SerialStatusLineChangedParams const* params = (SerialStatusLineChangedParams const*) p;
 
-		char const* string = "Status line(s) changed:";
-		if (params.m_mask & io.SerialStatusLines.Dsr)
-		{
-			char const* valueString = getOnOffString (params.m_lines & io.SerialStatusLines.Dsr);
-			string = $"$string DSR: $valueString";
-		}
+		char const* string = getStatusLineChangeString (
+			params.m_lines,
+			params.m_mask,
+			"Status",
+			"DSR",
+			"CTS"
+			);
 
-		if (params.m_mask & io.SerialStatusLines.Cts)
-		{
-			char const* valueString = getOnOffString (params.m_lines & io.SerialStatusLines.Cts);
-			string = $"$string CTS: $valueString";
-		}
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText (string);
+		break;
+
+	case SerialLogRecordCode.ControlLineChanged:
+		SerialStatusLineChangedParams const* params = (SerialStatusLineChangedParams const*) p;
+
+		char const* string = getStatusLineChangeString (
+			params.m_lines,
+			params.m_mask,
+			"Control",
+			"DTR",
+			"RTS"
+			);
 
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
