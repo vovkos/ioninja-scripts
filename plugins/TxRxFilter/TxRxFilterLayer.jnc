@@ -1,0 +1,56 @@
+import "doc_Plugin.jnc"
+
+//..............................................................................
+
+class TxRxFilterLayer:
+	doc.Layer,
+	log.Filter
+{
+	gui.BoolProperty* m_txProp;
+	gui.BoolProperty* m_rxProp;
+
+	construct (doc.PluginHost* pluginHost);
+
+	override bool filter (
+		uint64_t timestamp,
+		uint_t recordCode,
+		void const* p,
+		size_t size
+		);
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+TxRxFilterLayer.construct (doc.PluginHost* pluginHost)
+{
+	basetype.construct (pluginHost);
+
+	m_txProp = m_pluginHost.m_propertyGrid.createBoolProperty ("TX", "Show TX records in the log");
+	m_rxProp = m_pluginHost.m_propertyGrid.createBoolProperty ("RX", "Show RX records in the log");
+	m_txProp.m_value = true;
+	m_rxProp.m_value = true;
+
+	pluginHost.m_log.addFilter (this);
+}
+
+bool TxRxFilterLayer.filter (
+	uint64_t timestamp,
+	uint_t recordCode,
+	void const* p,
+	size_t size
+	)
+{
+	switch (recordCode)
+	{
+	case log.StdRecordCode.Tx:
+		return m_txProp.m_value;
+
+	case log.StdRecordCode.Rx:
+		return m_rxProp.m_value;
+
+	default:
+		return true; // everything else is visible
+	}
+}
+
+//..............................................................................
