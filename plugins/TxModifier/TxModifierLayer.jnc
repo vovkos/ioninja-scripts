@@ -108,76 +108,52 @@ TxModifierLayer.construct (doc.PluginHost* pluginHost)
 
 TxModifierLayer.createUi ()
 {
-	gui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty (
-		"Prefix",
-		"Packet prefix properties"
-		);
-
 	m_isPrefixEnabledProp = m_pluginHost.m_propertyGrid.createBoolProperty (
-		group,,
-		"Enable prefix",
+		"Append prefix",
 		"Prefix each TX packet with the specified char sequence"
 		);
 
 	m_prefixProp = m_pluginHost.m_propertyGrid.createStringProperty (
-		group,,
-		"Prefix",
-		"Specify the prefix char sequence"
-		);
-
-	group = m_pluginHost.m_propertyGrid.createGroupProperty (
-		"Suffix",
-		"Packet suffix properties"
+		m_isPrefixEnabledProp,,
+		"Prefix data",
+		"Specify the prefix char sequence (C-escapes are supported)"
 		);
 
 	m_isSuffixEnabledProp = m_pluginHost.m_propertyGrid.createBoolProperty (
-		group,,
-		"Enable suffix",
+		"Append suffix",
 		"Suffix each TX packet with the specified char sequence"
 		);
 
 	m_suffixProp = m_pluginHost.m_propertyGrid.createStringProperty (
-		group,,
-		"Suffix",
-		"Specify the suffix char sequence"
-		);
-
-	group = m_pluginHost.m_propertyGrid.createGroupProperty (
-		"Inter-char delay",
-		"Insert delay between transmitted characters"
+		m_isSuffixEnabledProp,,
+		"Suffix data",
+		"Specify the suffix char sequence (C-escapes are supported)"
 		);
 
 	m_isInterCharDelayEnabledProp = m_pluginHost.m_propertyGrid.createBoolProperty (
-		group,,
-		"Enable inter-char delay",
+		"Insert inter-char delays",
 		"Insert inter-character delays during transmission"
 		);
 
 	m_interCharDelayProp = m_pluginHost.m_propertyGrid.createIntProperty (
-		group,,
+		m_isInterCharDelayEnabledProp,,
 		"Inter-char delay (ms)",
 		"Transmission inter-character delay (in millisceonds)"
 		);
 
-	group = m_pluginHost.m_propertyGrid.createGroupProperty (
-		"Re-transmission",
-		"Packet re-transmission properties"
-		);
-
 	m_isRetransmitEnabledProp = m_pluginHost.m_propertyGrid.createBoolProperty (
-		group,,
-		"Enable re-transmission",
+		"Re-transmission",
 		"Re-transmit TX packet N times with the specified delay"
 		);
 
 	m_retransmitCountProp = m_pluginHost.m_propertyGrid.createIntProperty (
-		group,,
+		m_isRetransmitEnabledProp,,
 		"Re-transmit count",
 		"How many extra times to re-send the packet"
 		);
 
 	m_retransmitDelayProp = m_pluginHost.m_propertyGrid.createIntProperty (
-		group,,
+		m_isRetransmitEnabledProp,,
 		"Re-transmit delay (ms)",
 		"Specify the delay between re-transmissions (in milliseconds)"
 		);
