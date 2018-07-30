@@ -401,12 +401,12 @@ UsbControlEndpointSession.save (doc.Storage* storage)
 {
 	storage.writeInt ("deviceIdx", (int) m_deviceCombo.m_currentIndex);
 	storage.writeBool ("autoDetachKernelDriver", m_autoDetachKernelDriverProp.m_value);
-	storage.readInt ("reqDirection", m_reqDirectionCombo.m_currentIndex);
-	storage.readInt ("reqRecipient", m_reqRecipientCombo.m_currentIndex);
-	storage.readInt ("reqType", m_reqTypeCombo.m_currentIndex);
-	storage.readString ("reqCode", m_reqCodeCombo.m_editText);
-	storage.readString ("reqValue", m_reqValueCombo.m_editText);
-	storage.readString ("reqIndex", m_reqIndexCombo.m_editText);
+	storage.writeInt ("reqDirection", m_reqDirectionCombo.m_currentIndex);
+	storage.writeInt ("reqRecipient", m_reqRecipientCombo.m_currentIndex);
+	storage.writeInt ("reqType", m_reqTypeCombo.m_currentIndex);
+	storage.writeString ("reqCode", m_reqCodeCombo.m_editText);
+	storage.writeString ("reqValue", m_reqValueCombo.m_editText);
+	storage.writeString ("reqIndex", m_reqIndexCombo.m_editText);
 }
 
 UsbControlEndpointSession.updateProperties ()
@@ -456,8 +456,7 @@ size_t errorcode UsbControlEndpointSession.transmit (
 	uint_t direction = m_reqDirectionCombo.m_currentData;
 	uint_t recipient = m_reqRecipientCombo.m_currentData;
 	uint_t type = m_reqTypeCombo.m_currentData | direction | recipient;
-	uint_t code = m_reqCodeCombo.m_currentData;
-
+	uint_t code = parseInteger (m_reqCodeCombo.m_editText);;
 	uint_t value = parseInteger (m_reqValueCombo.m_editText);
 	uint_t index = parseInteger (m_reqIndexCombo.m_editText);
 
