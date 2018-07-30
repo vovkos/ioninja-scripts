@@ -28,7 +28,6 @@ protected:
 	enum ActionId
 	{
 		Refresh,
-		Info,
 		Open,
 		Claim,
 		Read,

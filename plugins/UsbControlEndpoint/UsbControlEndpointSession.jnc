@@ -27,7 +27,6 @@ protected:
 	enum ActionId
 	{
 		Refresh,
-		Info,
 		Open,
 		_Count,
 	}
@@ -70,13 +69,13 @@ protected:
 	// property grid
 
 	gui.EnumProperty* m_deviceProp;
+	gui.BoolProperty* m_autoDetachKernelDriverProp;
 	gui.EnumProperty* m_reqDirectionProp;
 	gui.EnumProperty* m_reqRecipientProp;
 	gui.EnumProperty* m_reqTypeProp;
 	gui.ComboProperty* m_reqCodeProp;
 	gui.StringProperty* m_reqValueProp;
 	gui.StringProperty* m_reqIndexProp;
-	gui.BoolProperty* m_autoDetachKernelDriverProp;
 
 	// information grid
 
@@ -479,7 +478,7 @@ size_t errorcode UsbControlEndpointSession.transmit (
 			value,
 			index,
 			buffer
-			)
+			) @ m_pluginHost.m_mainThreadScheduler
 		);
 
 	return size;

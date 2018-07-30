@@ -121,7 +121,7 @@ XModemLayer.cancelFileTranfer ()
 		break;
 
 	case State.Receiving:
-		m_transmitter.cancel ();
+		m_receiver.cancel ();
 		break;
 	}
 
