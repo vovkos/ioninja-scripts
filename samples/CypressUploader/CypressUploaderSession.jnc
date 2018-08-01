@@ -42,6 +42,7 @@ protected:
 		BlockSize           = 64,
 		MaxDownloadSize     = 64 * 1024,
 		EraseBeforUpload    = true,
+		ExtraStatusChecks   = true,
 	}
 
 	enum State
@@ -50,7 +51,7 @@ protected:
 		Opened,
 		Downloading,
 		UploadFileDlg,
-		Erasing,
+		WaitingReady,
 		Uploading,
 	}
 
@@ -60,7 +61,7 @@ protected:
 		"Opened",
 		"Downloading file...",
 		"Selecting file...",
-		"Erasing...",
+		"Waiting for device...",
 		"Uploading file...",
 	}
 
@@ -120,6 +121,7 @@ protected:
 	gui.IntProperty* m_blockSizeProp;
 	gui.IntProperty* m_maxDownloadSizeProp;
 	gui.BoolProperty* m_eraseBeforeUploadProp;
+	gui.BoolProperty* m_extraStatusCheckProp;
 
 	// information grid
 
@@ -145,12 +147,14 @@ protected:
 	onUploadFile ();
 	onFileDlgCompleted (gui.StdDlgButton button);
 	onProgressDlgButtonClicked (gui.StdDlgButton button);
-	onTimer ();
+	onStatusCheckTimer ();
 
 	createUi ();
 	enumerateDevices ();
 	cancelFileTransfer ();
+	setStatusCheckTimer ();
 
+	bool checkStatus ();
 	bool errorcode nextBlock ();
 
 	bool errorcode syncControlTransfer (
@@ -271,7 +275,13 @@ CypressUploaderSession.createUi ()
 	m_eraseBeforeUploadProp = m_pluginHost.m_propertyGrid.createBoolProperty (
 		group,,
 		"Erase before upload",
-		"Erase before upload"
+		"Erase all memory before upload"
+		);
+
+	m_extraStatusCheckProp = m_pluginHost.m_propertyGrid.createBoolProperty (
+		group,,
+		"Extra status checks",
+		"Check status before each and every block"
 		);
 
 	// information grid
@@ -376,7 +386,8 @@ CypressUploaderSession.load (doc.Storage* storage)
 	m_statusCheckIntervalProp.m_value = storage.readInt ("statusCheckInterval", Defaults.StatusCheckInterval);
 	m_blockSizeProp.m_value = storage.readInt ("blockSize", Defaults.BlockSize);
 	m_maxDownloadSizeProp.m_value = storage.readInt ("maxDownloadSize", Defaults.MaxDownloadSize);
-	m_eraseBeforeUploadProp.m_value = storage.readBool ("eraseBeforeUpload");
+	m_eraseBeforeUploadProp.m_value = storage.readBool ("eraseBeforeUpload", Defaults.EraseBeforUpload);
+	m_extraStatusCheckProp.m_value = storage.readBool ("extraStatusChecks", Defaults.ExtraStatusChecks);
 }
 
 CypressUploaderSession.save (doc.Storage* storage)
@@ -387,6 +398,7 @@ CypressUploaderSession.save (doc.Storage* storage)
 	storage.writeInt ("blockSize", m_blockSizeProp.m_value);
 	storage.writeInt ("maxDownloadSize", m_maxDownloadSizeProp.m_value);
 	storage.writeBool ("eraseBeforeUpload", m_eraseBeforeUploadProp.m_value);
+	storage.writeBool ("extraStatusChecks", m_extraStatusCheckProp.m_value);
 }
 
 CypressUploaderSession.updateProperties ()
@@ -408,6 +420,7 @@ CypressUploaderSession.restoreDefaultProperties ()
 	m_blockSizeProp.m_value = Defaults.BlockSize;
 	m_maxDownloadSizeProp.m_value = Defaults.MaxDownloadSize;
 	m_eraseBeforeUploadProp.m_value = Defaults.EraseBeforUpload;
+	m_extraStatusCheckProp.m_value = Defaults.ExtraStatusChecks;
 }
 
 CypressUploaderSession.cancelFileTransfer ()
@@ -417,6 +430,23 @@ CypressUploaderSession.cancelFileTransfer ()
 	m_file.close ();
 	m_progressDlg.hide ();
 	m_syncId++;
+}
+
+CypressUploaderSession.setStatusCheckTimer ()
+{
+	m_state = State.WaitingReady;
+
+	m_timer.startPeriodicTimer (
+		onStatusCheckTimer @ m_pluginHost.m_mainThreadScheduler,
+		m_statusCheckIntervalProp.m_value
+		);
+}
+
+bool CypressUploaderSession.checkStatus ()
+{
+	char status;
+	syncControlTransfer (ReqType.VendorIn, ReqCode.GetStatus,,, &status, sizeof (status));
+	return status == 0;
 }
 
 CypressUploaderSession.onDownloadFile ()
@@ -465,10 +495,8 @@ CypressUploaderSession.onFileDlgCompleted (gui.StdDlgButton button)
 	if (m_eraseBeforeUploadProp.m_value)
 	{
 		writeLogString (log.StdRecordCode.PlainText, "Erasing memory...");
-
-		m_state = State.Erasing;
 		syncControlTransfer (ReqType.VendorOut, ReqCode.Erase);
-		m_timer.startPeriodicTimer (onTimer @ m_pluginHost.m_mainThreadScheduler, m_statusCheckIntervalProp.m_value);
+		setStatusCheckTimer ();
 	}
 	else
 	{
@@ -476,7 +504,12 @@ CypressUploaderSession.onFileDlgCompleted (gui.StdDlgButton button)
 
 		m_state = State.Uploading;
 		m_offset = 0;
-		nextBlock ();
+
+		bool canSendNextBlock = !m_extraStatusCheckProp.m_value || checkStatus ();
+		if (canSendNextBlock)
+			nextBlock ();
+		else
+			setStatusCheckTimer ();
 	}
 
 catch:
@@ -484,17 +517,15 @@ catch:
 	m_progressDlg.m_buttons = gui.StdDlgButtons.Close;
 }
 
-CypressUploaderSession.onTimer ()
+CypressUploaderSession.onStatusCheckTimer ()
 {
-	char status;
-	syncControlTransfer (ReqType.VendorIn, ReqCode.GetStatus,,, &status, sizeof (status));
-
-	if (status) // not done yet
+	bool isReady = checkStatus ();
+	if (!isReady) // not yet
 		return;
 
 	m_timer.stop ();
 
-	writeLogString (log.StdRecordCode.PlainText, $"Memory erased, uploading file ($(m_file.m_size) bytes)...");
+	writeLogString (log.StdRecordCode.PlainText, $"Device ready, resuming upload...");
 
 	m_state = State.Uploading;
 	m_offset = 0;
@@ -513,13 +544,16 @@ bool errorcode CypressUploaderSession.nextBlock ()
 	uint_t value = m_offset;
 	uint_t index = m_offset >> 16;
 
+	uint64_t fileSize;
+
 	switch (m_state)
 	{
 	case State.Downloading:
 		type = ReqType.VendorIn;
 		code = ReqCode.Read;
+		fileSize = m_maxDownloadSizeProp.m_value;
 
-		uint64_t leftover = m_offset >= m_maxDownloadSizeProp.m_value ? 0 : m_file.m_size - m_offset;
+		uint64_t leftover = m_offset >= fileSize ? 0 : m_file.m_size - m_offset;
 		if (size > leftover)
 			size = leftover;
 
@@ -529,8 +563,9 @@ bool errorcode CypressUploaderSession.nextBlock ()
 	case State.Uploading:
 		type = ReqType.VendorOut;
 		code = ReqCode.Write;
+		fileSize = m_file.m_size;
 
-		uint64_t leftover = m_offset >= m_file.m_size ? 0 : m_file.m_size - m_offset;
+		uint64_t leftover = m_offset >= fileSize ? 0 : m_file.m_size - m_offset;
 		if (size > leftover)
 			size = leftover;
 
@@ -568,6 +603,7 @@ bool errorcode CypressUploaderSession.nextBlock ()
 			) @ m_pluginHost.m_mainThreadScheduler
 		);
 
+	m_progressDlg.m_progress = fileSize ? m_offset * 100 / fileSize : 0;
 	return true;
 
 catch:
@@ -642,9 +678,24 @@ CypressUploaderSession.onTransferCompleted (
 		return;
 	}
 
-	uint_t logRecordCode = (type & 0x80) ? log.StdRecordCode.Rx : log.StdRecordCode.Tx;
+	bool isUpload = !(type & 0x80);
+	uint_t logRecordCode = isUpload ? log.StdRecordCode.Tx : log.StdRecordCode.Rx;
 	writeLog (logRecordCode, p, size);
-	nextBlock ();
+
+	m_offset += size;
+
+	if (!isUpload)
+	{
+		nextBlock ();
+	}
+	else
+	{
+		bool canSendNextBlock = !m_extraStatusCheckProp.m_value || checkStatus ();
+		if (canSendNextBlock)
+			nextBlock ();
+		else
+			setStatusCheckTimer ();
+	}
 }
 
 CypressUploaderSession.onProgressDlgButtonClicked (gui.StdDlgButton button)
