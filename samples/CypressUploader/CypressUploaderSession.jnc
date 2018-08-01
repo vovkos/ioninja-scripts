@@ -17,6 +17,8 @@ import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
 import "parseInteger.jnc"
 
+//..............................................................................
+
 enum ReqType
 {
 	VendorIn  = 0x80,
@@ -492,6 +494,10 @@ CypressUploaderSession.onFileDlgCompleted (gui.StdDlgButton button)
 		io.FileOpenFlags.OpenExisting | io.FileOpenFlags.ReadOnly
 		);
 
+	writeLogString (log.StdRecordCode.PlainText, $"Uploading file: $(m_fileDlg.m_filePath) ($(m_file.m_size) bytes)...");
+	m_state = State.Uploading;
+	m_offset = 0;
+
 	if (m_eraseBeforeUploadProp.m_value)
 	{
 		writeLogString (log.StdRecordCode.PlainText, "Erasing memory...");
@@ -500,11 +506,6 @@ CypressUploaderSession.onFileDlgCompleted (gui.StdDlgButton button)
 	}
 	else
 	{
-		writeLogString (log.StdRecordCode.PlainText, $"Uploading file ($(m_file.m_size) bytes)...");
-
-		m_state = State.Uploading;
-		m_offset = 0;
-
 		bool canSendNextBlock = !m_extraStatusCheckProp.m_value || checkStatus ();
 		if (canSendNextBlock)
 			nextBlock ();
@@ -528,7 +529,6 @@ CypressUploaderSession.onStatusCheckTimer ()
 	writeLogString (log.StdRecordCode.PlainText, $"Device ready, resuming upload...");
 
 	m_state = State.Uploading;
-	m_offset = 0;
 	nextBlock ();
 
 catch:
@@ -553,7 +553,7 @@ bool errorcode CypressUploaderSession.nextBlock ()
 		code = ReqCode.Read;
 		fileSize = m_maxDownloadSizeProp.m_value;
 
-		uint64_t leftover = m_offset >= fileSize ? 0 : m_file.m_size - m_offset;
+		uint64_t leftover = m_offset >= fileSize ? 0 : fileSize - m_offset;
 		if (size > leftover)
 			size = leftover;
 
@@ -565,7 +565,7 @@ bool errorcode CypressUploaderSession.nextBlock ()
 		code = ReqCode.Write;
 		fileSize = m_file.m_size;
 
-		uint64_t leftover = m_offset >= fileSize ? 0 : m_file.m_size - m_offset;
+		uint64_t leftover = m_offset >= fileSize ? 0 : fileSize - m_offset;
 		if (size > leftover)
 			size = leftover;
 
@@ -581,7 +581,7 @@ bool errorcode CypressUploaderSession.nextBlock ()
 
 	if (!size)
 	{
-		writeLogString (log.StdRecordCode.PlainText, $"File upload completed ($m_offset bytes)...");
+		writeLogString (log.StdRecordCode.PlainText, $"File transfer completed ($m_offset bytes)...");
 		cancelFileTransfer ();
 		return true;
 	}
