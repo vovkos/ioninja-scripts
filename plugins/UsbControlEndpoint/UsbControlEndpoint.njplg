@@ -6,7 +6,7 @@
 [plugin]
 
 name        = USB Control Endpoint
-description = "Low-level direct USB communications with USB control endpoint 0 on a device"
+description = "Low-level direct USB communications with USB control endpoint #0 on a device"
 id          = usb-control-endpoint
 group       = usb
 guid        = 4bdf0b61-1407-4608-abdd-6a8bc756275d
