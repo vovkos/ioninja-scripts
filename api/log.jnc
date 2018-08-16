@@ -243,6 +243,53 @@ opaque class Writer
 		write (sys.getPreciseTimestamp (), recordCode, p, size);
 	}
 
+	writeString (
+		uint64_t timestamp,
+		uint_t recordCode,
+		char const* p
+		)
+	{
+		write (timestamp, recordCode, p, strlen (p));
+	}
+
+	writeString (
+		uint_t recordCode,
+		char const* p
+		)
+	{
+		writeString (sys.getPreciseTimestamp (), p);
+	}
+
+	writeError (
+		uint64_t timestamp,
+		uint_t recordCode,
+		std.Error const* error
+		)
+	{
+		write (timestamp, recordCode, error, error.m_size);
+	}
+
+	writeError (
+		uint_t recordCode,
+		std.Error const* error
+		)
+	{
+		writeError (sys.getPreciseTimestamp (), recordCode, error);
+	}
+
+	writeLastError (
+		uint64_t timestamp,
+		uint_t recordCode
+		)
+	{
+		writeError (timestamp, recordCode, std.getLastError ());
+	}
+
+	writeLastError (uint_t recordCode)
+	{
+		writeLastError (sys.getPreciseTimestamp (), recordCode);
+	}
+
 	retroColorize (
 		intptr_t retroOffset,
 		size_t length,
