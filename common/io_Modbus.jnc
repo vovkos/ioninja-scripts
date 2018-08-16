@@ -105,7 +105,7 @@ char const* getModbusFuncString (ModbusFunc func)
 
 // exception codes
 
-enum ModbusExceptionCode: uint8_t
+enum ModbusException: uint8_t
 {
 	IllegalFunction         = 1,
 	IllegalDataAddress      = 2,
@@ -120,7 +120,7 @@ enum ModbusExceptionCode: uint8_t
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-char const* getModbusFuncString (ModbusExceptionCode code)
+char const* getModbusExceptionString (ModbusException exception)
 {
 	static char const* stringTable [] =
 	{
@@ -138,7 +138,7 @@ char const* getModbusFuncString (ModbusExceptionCode code)
 		"Gateway Device No Response", // GatewayTargetDeviceNoResponse = 11,
 	}
 
-	return code < countof (stringTable) ? stringTable [code] : "Unknown";
+	return exception < countof (stringTable) ? stringTable [exception] : "Unknown";
 }
 
 //..............................................................................
@@ -154,7 +154,7 @@ struct ModbusPduHdr
 
 struct ModbusExceptionPdu: ModbusPduHdr
 {
-	ModbusExceptionCode m_exceptionCode;
+	ModbusException m_exception;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -210,11 +210,18 @@ struct ModbusMaskWritePdu: ModbusPduHdr
 	bigendian uint16_t m_orMask;
 }
 
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+enum
+{
+	ModbusMaxPduSize = sizeof (ModbusWriteMultiplePdu) + 255,
+}
+
 //..............................................................................
 
 // calculates the actual size of PDU (-1 on error)
 
-size_t getModbusPduSize (
+size_t errorcode getModbusPduSize (
 	ModbusRole role,
 	ModbusPduHdr const* pduHdr,
 	size_t size
@@ -258,18 +265,23 @@ size_t getModbusPduSize (
 	case io.ModbusFunc.ReadWriteMultipleRegisters:
 	case io.ModbusFunc.ReadFifoQueue:
 	case io.ModbusFunc.EncapsulatedInterface:
-		return -1; // not yet supported
+		// TODO: process these function codes
+
+		std.setError ("Unsupported Modbus function");
+		return -1;
 
 	default:
-		return (pduHdr.m_func & ModbusFunc.ExceptionFlag) ?
-			sizeof (ModbusExceptionPdu) :
-			-1; // unknown function code
+		if (pduHdr.m_func & ModbusFunc.ExceptionFlag)
+			return sizeof (ModbusExceptionPdu);
+
+		std.setError ("Unknown Modbus function");
+		return -1;
 	}
 }
 
 //..............................................................................
 
-// Modbus RTU
+// Modbus ADUs
 
 struct ModbusRtuAduHdr
 {
@@ -278,11 +290,37 @@ struct ModbusRtuAduHdr
 	// followed by PDU and CRC16 checksum
 }
 
+struct ModbusAsciiAduHdr
+{
+	char m_deviceAddress [2];
+
+	// followed by hex-encoded PDU, LRC8 checksum, and then \r\n
+}
+
+struct ModbusTcpAduHdr
+{
+	bigendian uint16_t m_transactionId;
+	bigendian uint16_t m_protocol;
+	bigendian uint16_t m_length; // length of data following this field
+	uint8_t m_deviceAddress;
+
+	// followed by PDU
+}
+
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-// calculates the actual size of Modbus RTU ADU (-1 on error)
+enum
+{
+	ModbusMaxRtuAduSize   = sizeof (ModbusRtuAduHdr) + ModbusMaxPduSize + 2,
+	ModbusMaxAsciiAduSize = 1 + sizeof (ModbusAsciiAduHdr) + ModbusMaxPduSize * 2 + 4,
+	ModbusMaxTcpAduSize = sizeof (ModbusTcpAduHdr) + ModbusMaxPduSize,
+}
 
-size_t getModbusRtuAduSize (
+//..............................................................................
+
+// calculates the actual size of Modbus RTU ADU
+
+size_t errorcode getModbusRtuAduSize (
 	ModbusRole role,
 	ModbusRtuAduHdr const* aduHdr,
 	size_t size
@@ -293,7 +331,7 @@ size_t getModbusRtuAduSize (
 
 	ModbusPduHdr const* pduHdr = (ModbusPduHdr const*) (aduHdr + 1);
 	size_t pduSize = getModbusPduSize (role, pduHdr, size - sizeof (ModbusRtuAduHdr));
-	return pduSize != -1 ? pduSize + sizeof (uint8_t) + sizeof (uint16_t) : -1;
+	return pduSize + sizeof (uint8_t) + sizeof (uint16_t);
 }
 
 //..............................................................................

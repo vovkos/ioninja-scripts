@@ -1,0 +1,121 @@
+//..............................................................................
+//
+// Modbus ASCII stream parser
+//
+
+class ModbusAsciiParser: ModbusParserBase
+{
+protected:
+	enum State
+	{
+		Idle,
+		Adu,
+		Cr,
+	}
+
+protected:
+	State m_state;
+
+public:
+	construct ()
+	{
+		m_protocol = io.ModbusProtocol.Ascii;
+	}
+
+	override parse (
+		log.Writer* writer,
+		uint64_t timestamp,
+		uint_t originalRecordCode,
+		void const* p,
+		size_t size
+		);
+
+	override reset ();
+
+protected:
+	bool errorcode append (
+		void const* p,
+		size_t size
+		);
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+ModbusAsciiParser.parse (
+	log.Writer* writer,
+	uint64_t timestamp,
+	uint_t originalRecordCode,
+	void const* p,
+	size_t size
+	)
+{
+	// write the original data first
+
+	writer.write (timestamp, originalRecordCode, p, size);
+
+	ModbusLogRecordCode recordCode = m_modbusRole == io.ModbusRole.Master ?
+		ModbusLogRecordCode.MasterPacket_Ascii :
+		ModbusLogRecordCode.SlavePacket_Ascii;
+
+	void const* adu = p;
+	void const* end = p + size;
+	while (p < end)
+	{
+		switch (m_state)
+		{
+		case State.Idle:
+			p = memchr (p, ':', end - p);
+			if (!p)
+				break2;
+
+			m_state = State.Adu;
+			m_dataBuffer.clear ();
+			adu = p;
+			p++;
+			break;
+
+		case State.Adu:
+			p = memchr (p, '\r', end - p);
+			if (!p)
+				break2;
+
+			m_state = State.Cr;
+			p++;
+			break;
+
+		case State.Cr:
+			if (*(char const*) p != '\n')
+			{
+				std.setError ("Missing '\\n' in Modbus ASCII frame");
+				writer.writeLastError (timestamp, ModbusLogRecordCode.ParseError);
+			}
+			else
+			{
+				m_dataBuffer.append (adu, p - adu + 1);
+				writer.write (timestamp, recordCode, m_dataBuffer.m_p, m_dataBuffer.m_size);
+				p++;
+			}
+
+			m_state = State.Idle;
+			break;
+		}
+	}
+
+	if (m_state && adu < end)
+	{
+		m_dataBuffer.append (adu, end - adu);
+		if (m_dataBuffer.m_size > io.ModbusMaxAsciiAduSize)
+		{
+			std.setError ("Modbus ASCII frame is too big and still incomplete");
+			m_state = State.Idle;
+		}
+	}
+}
+
+ModbusAsciiParser.reset ()
+{
+	m_dataBuffer.clear ();
+	m_state = State.Idle;
+}
+
+//..............................................................................

@@ -1,0 +1,179 @@
+//..............................................................................
+//
+// Modbus RTU Protocol Analyzer layer
+//
+
+import "io_Modbus.jnc"
+import "doc_Plugin.jnc"
+import "std_Buffer.jnc"
+import "crc16.jnc"
+
+//..............................................................................
+
+class ModbusLayer:
+	doc.Layer,
+	log.Converter
+{
+protected:
+	ModbusParserBase* m_txParser;
+	ModbusParserBase* m_rxParser;
+
+	gui.EnumProperty* m_protocolProp;
+	gui.EnumProperty* m_streamRoleProp;
+
+public:
+	construct (doc.PluginHost* pluginHost);
+
+	override void load (doc.Storage* storage);
+	override void save (doc.Storage* storage);
+	override bool errorcode applyProperties ();
+	override void restoreDefaultProperties ();
+
+	override bool convert (
+		log.Writer* writer,
+		uint64_t timestamp,
+		uint_t recordCode,
+		void const* p,
+		size_t size
+		);
+
+protected:
+	createUi ();
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+ModbusLayer.construct (doc.PluginHost* pluginHost)
+{
+	basetype1.construct (pluginHost);
+
+	m_txParser = new ModbusRtuParser;
+	m_rxParser = new ModbusRtuParser;
+
+	pluginHost.m_log.addConverter (
+		this,
+		&pluginHost.m_pluginGuid,
+		representModbusSerialLog
+		);
+
+	createUi ();
+}
+
+ModbusLayer.createUi ()
+{
+	static gui.EnumPropertyOption protocolTable [] =
+	{
+		{ "Modbus RTU",   io.ModbusProtocol.Rtu },
+		{ "Modbus ASCII", io.ModbusProtocol.Ascii },
+		{ "Modbus TCP",   io.ModbusProtocol.Tcp },
+	}
+
+	static gui.EnumPropertyOption streamRoleTable [] =
+	{
+		{ "TX - Master; RX - Slave", false },
+		{ "TX - Slave; RX - Master", true },
+	}
+
+	m_protocolProp = m_pluginHost.m_propertyGrid.createEnumProperty (
+		"Protocol",
+		"Specify the flavor of Modbus protocol",
+		protocolTable,
+		countof (protocolTable)
+		);
+
+	m_streamRoleProp = m_pluginHost.m_propertyGrid.createEnumProperty (
+		"Stream roles",
+		"Specify the roles of IO streams",
+		streamRoleTable,
+		countof (streamRoleTable)
+		);
+}
+
+void ModbusLayer.load (doc.Storage* storage)
+{
+	m_protocolProp.m_value = storage.readInt ("protocol", io.ModbusProtocol.Rtu);
+	m_streamRoleProp.m_value = storage.readBool ("streamRole", false);
+	applyProperties ();
+}
+
+void ModbusLayer.save (doc.Storage* storage)
+{
+	storage.writeInt ("protocol", m_protocolProp.m_value);
+	storage.writeBool ("streamRole", m_streamRoleProp.m_value);
+}
+
+bool errorcode ModbusLayer.applyProperties ()
+{
+	m_pluginHost.m_log.suspend ();
+
+	if (m_protocolProp.m_value != m_txParser.m_protocol)
+	{
+		switch (m_protocolProp.m_value)
+		{
+		case io.ModbusProtocol.Rtu:
+			m_txParser = new ModbusRtuParser;
+			m_rxParser = new ModbusRtuParser;
+			break;
+
+		case io.ModbusProtocol.Ascii:
+			m_txParser = new ModbusAsciiParser;
+			m_rxParser = new ModbusAsciiParser;
+			break;
+
+		case io.ModbusProtocol.Tcp:
+			m_txParser = new ModbusTcpParser;
+			m_rxParser = new ModbusTcpParser;
+			break;
+		}
+	}
+
+	if (m_streamRoleProp.m_value)
+	{
+		m_txParser.m_modbusRole = io.ModbusRole.Slave;
+		m_rxParser.m_modbusRole = io.ModbusRole.Master;
+	}
+	else
+	{
+		m_txParser.m_modbusRole = io.ModbusRole.Master;
+		m_rxParser.m_modbusRole = io.ModbusRole.Slave;
+	}
+
+	m_pluginHost.m_log.resume ();
+	return true;
+}
+
+void ModbusLayer.restoreDefaultProperties ()
+{
+	m_streamRoleProp.m_value = false;
+}
+
+bool ModbusLayer.convert (
+	log.Writer* writer,
+	uint64_t timestamp,
+	uint_t recordCode,
+	void const* p,
+	size_t size
+	)
+{
+	ModbusParserBase* parser;
+
+nestedscope:
+	switch (recordCode)
+	{
+	case log.StdRecordCode.Tx:
+		parser = m_txParser;
+		break;
+
+	case log.StdRecordCode.Rx:
+		parser = m_rxParser;
+		break;
+
+	default:
+		return false;
+	}
+
+	parser.parse (writer, timestamp, recordCode, p, size);
+	return true;
+}
+
+//..............................................................................

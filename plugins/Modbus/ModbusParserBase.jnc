@@ -1,0 +1,38 @@
+//..............................................................................
+//
+// Modbus stream parser base class
+//
+
+class ModbusParserBase
+{
+protected:
+	std.Buffer m_dataBuffer;
+
+public:
+	io.ModbusProtocol readonly m_protocol;
+	io.ModbusRole autoget property m_modbusRole;
+
+public:
+	abstract parse (
+		log.Writer* writer,
+		uint64_t timestamp,
+		uint_t originalRecordCode,
+		void const* p,
+		size_t size
+		);
+
+	abstract reset ();
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+ModbusParserBase.m_modbusRole.set (io.ModbusRole role)
+{
+	if (role == m_value)
+		return;
+
+	m_value = role;
+	reset ();
+}
+
+//..............................................................................

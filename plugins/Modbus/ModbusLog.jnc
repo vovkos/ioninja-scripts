@@ -1,0 +1,92 @@
+//..............................................................................
+//
+// Modbus RTU log record declarations and representer
+//
+
+import "log.jnc"
+import "io_Modbus.jnc"
+
+//..............................................................................
+
+enum ModbusLogRecordCode
+{
+	// avoid conflicts with std sessions (SerialLog/SerialMonLog/...)
+
+	MasterPacket_Rtu   = 0x200 | log.RecordCodeFlags.Foldable,
+	SlavePacket_Rtu    = 0x201 | log.RecordCodeFlags.Foldable,
+	MasterPacket_Ascii = 0x202 | log.RecordCodeFlags.Foldable,
+	SlavePacket_Ascii  = 0x203 | log.RecordCodeFlags.Foldable,
+	InvalidFunction    = 0x204,
+	ParseError         = 0x205,
+	MasterPacket_Tcp   = 0x206 | log.RecordCodeFlags.Foldable,
+	SlavePacket_Tcp    = 0x207 | log.RecordCodeFlags.Foldable,
+}
+
+//..............................................................................
+
+bool representModbusSerialLog (
+	log.RepresenterTarget* target,
+	uint_t recordCode,
+	void const* p,
+	size_t size,
+	uint_t foldFlags
+	)
+{
+	io.ModbusRole role;
+
+	function* representAdu (
+		log.RepresenterTarget* target,
+		io.ModbusRole role,
+		void const* p,
+		size_t size,
+		uint_t foldFlags
+		);
+
+	switch (recordCode)
+	{
+	case ModbusLogRecordCode.MasterPacket_Rtu:
+		representModbusRtuAdu (target, io.ModbusRole.Master, p, size, foldFlags);
+		break;
+
+	case ModbusLogRecordCode.SlavePacket_Rtu:
+		representModbusRtuAdu (target, io.ModbusRole.Slave, p, size, foldFlags);
+		break;
+
+	case ModbusLogRecordCode.MasterPacket_Ascii:
+		representModbusAsciiAdu (target, io.ModbusRole.Master, p, size, foldFlags);
+		break;
+
+	case ModbusLogRecordCode.SlavePacket_Ascii:
+		representModbusAsciiAdu (target, io.ModbusRole.Slave, p, size, foldFlags);
+		break;
+
+	case ModbusLogRecordCode.MasterPacket_Tcp:
+		representModbusTcpAdu (target, io.ModbusRole.Master, p, size, foldFlags);
+		break;
+
+	case ModbusLogRecordCode.SlavePacket_Tcp:
+		representModbusTcpAdu (target, io.ModbusRole.Slave, p, size, foldFlags);
+		break;
+
+	case ModbusLogRecordCode.InvalidFunction: // legacy
+		uint8_t code = *(uint8_t const*) p;
+		target.m_lineAttr.m_backColor = gui.StdColor.PastelYellow;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
+		target.addHyperText ($"Invalid or unsupported Modbus function: \e[31m0x%(1; 02x)/%1\e[m" (code));
+		return true;
+
+	case ModbusLogRecordCode.ParseError:
+		std.Error const* error = (std.Error const*) p;
+		target.m_lineAttr.m_backColor = gui.StdColor.PastelYellow;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
+		target.addHyperText ($"Modbus parse error: $(error.m_description)");
+		return true;
+
+	default:
+		return false;
+	}
+
+	return true;
+}
+
+//..............................................................................
