@@ -160,7 +160,7 @@ size_t decodeEscapeString (
 		}
 	}
 
-	string->append (base, p - base);
+	string.append (base, p - base);
 	return string.m_length;
 }
 
