@@ -799,10 +799,10 @@ representModbusPdu (
 
             target.addHyperText (
                 $"Exception: \e^!-%1,%2\e[31m0x%(3; 02X)/%3\e[m - %4" (
-                baseOffset + offsetof (pdu.m_exceptionCode) * mult,
-                sizeof (pdu.m_exceptionCode) * mult,
-                pdu.m_exceptionCode,
-                io.getModbusFuncString (pdu.m_exceptionCode)
+                baseOffset + offsetof (pdu.m_exception) * mult,
+                sizeof (pdu.m_exception) * mult,
+                pdu.m_exception,
+                io.getModbusExceptionString (pdu.m_exception)
                 ));
 		}
 	}
