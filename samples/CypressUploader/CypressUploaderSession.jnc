@@ -57,10 +57,10 @@ protected:
 		Closed,
 		Opened,
 		Downloading,
-		UploadFileDlg,
+		FileDlg,
 		WaitingReady,
 		Uploading,
-		FpgaCheck,
+		EnablingFpga,
 	}
 
 	char const* m_statusText [] =
@@ -71,6 +71,7 @@ protected:
 		"Selecting file...",
 		"Waiting for device...",
 		"Uploading file...",
+		"Enabling FPGA...",
 	}
 
 	enum ActionId
@@ -492,7 +493,7 @@ CypressUploaderSession.onUploadFile ()
 	m_fileDlg.m_filter = "All files (*.*)";
 	m_fileDlg.show ();
 
-	m_state = State.UploadFileDlg;
+	m_state = State.FileDlg;
 }
 
 CypressUploaderSession.onFileDlgCompleted (gui.StdDlgButton button)
@@ -553,7 +554,6 @@ CypressUploaderSession.onStatusCheckTimer ()
 	m_timer.stop ();
 
 	writeLogString (log.StdRecordCode.PlainText, $"Device ready, resuming upload...");
-
 	m_state = State.Uploading;
 	nextBlock ();
 
@@ -585,9 +585,9 @@ catch:
 CypressUploaderSession.enableFpga ()
 {
 	writeLogString (log.StdRecordCode.PlainText, $"Enabling FPGA...");
+	m_state = State.EnablingFpga;
 	syncControlTransfer (ReqType.VendorOut, ReqCode.EnableFpga);
 
-	m_state = State.FpgaCheck;
 	m_fpgaCheckRetryNum = 0;
 
 	m_timer.startPeriodicTimer (
@@ -642,13 +642,10 @@ bool errorcode CypressUploaderSession.nextBlock ()
 
 	if (!size)
 	{
-		writeLogString (log.StdRecordCode.PlainText, $"File transfer completed ($m_offset bytes)...");
+		writeLogString (log.StdRecordCode.PlainText, $"File transfer completed ($m_offset bytes).");
+		writeLog (log.StdRecordCode.Break); // separate from the next message
 
-		if (m_state == State.Uploading)
-			enableFpga ();
-		else
-			cancelFileTransfer ();
-
+		enableFpga ();
 		return true;
 	}
 
