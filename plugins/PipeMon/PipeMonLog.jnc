@@ -3,7 +3,7 @@
 // Pipe Monitor log packet declarations and representer
 //
 
-import "log.jnc"
+import "log_DeviceMon.jnc"
 
 //..............................................................................
 
@@ -72,6 +72,7 @@ bool representPipeMonLog  (
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
 		target.addHyperText ($"Cannot start capture: $(error.m_description)");
+		log.addDeviceMonCaptureErrorDetails (target, error);
 		break;
 
 	case PipeMonLogRecordCode.ServerFileOpened_old:
