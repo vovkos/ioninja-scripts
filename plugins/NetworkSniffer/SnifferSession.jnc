@@ -249,7 +249,6 @@ SnifferSession.createUi ()
 		m_pluginHost.m_propertyGrid,
 		group,,
 		io.BufferPropertySet.PropertyId.ReadBufferSize |
-		io.BufferPropertySet.PropertyId.WriteBufferSize |
 		io.BufferPropertySet.PropertyId.NotifyReadBufferFull
 		);
 
@@ -330,7 +329,6 @@ bool errorcode SnifferSession.capture (
 	writeLogString (SnifferLogRecordCode.StartingCapture, filterString);
 
 	m_pcap.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
-	m_pcap.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
 
 	bool result = try m_pcap.openDevice (
 		device.m_name,
@@ -420,9 +418,6 @@ SnifferSession.waitPcapEvents ()
 		io.PcapEvents.IncomingData |
 		io.PcapEvents.Eof;
 
-	if (!m_isTransmitEnabled)
-		eventMask |= io.PcapEvents.WriteBufferReady;
-
 	m_pcap.wait (eventMask, onPcapEvent ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
 }
 
@@ -470,7 +465,6 @@ bool errorcode SnifferSession.applyProperties ()
 		return true;
 
 	m_pcap.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
-	m_pcap.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
 	applyFilter ();
 	return true;
 }
