@@ -110,6 +110,7 @@ protected:
 	gui.BoolProperty* m_rememberLastPasswordProp;
 	gui.StringProperty* m_channelTypeProp;
 	gui.StringProperty* m_processTypeProp;
+	gui.StringProperty* m_execProp;
 	gui.StringProperty* m_ptyTypeProp;
 	io.SocketPropertySet m_socketPropertySet;
 	io.BufferPropertySet m_bufferPropertySet;
@@ -272,6 +273,12 @@ SshChannelSession.createUi ()
 		"Type of requested SSH process"
 		);
 
+	m_execProp = m_pluginHost.m_propertyGrid.createStringProperty (
+		group,,
+		"SSH exec",
+		"Process to exec on remote server"
+		);
+
 	m_ptyTypeProp = m_pluginHost.m_propertyGrid.createStringProperty (
 		group,,
 		"Pseudoterminal",
@@ -388,19 +395,21 @@ bool errorcode SshChannelSession.connect (io.SocketAddress const* remoteAddress)
 		password = m_loginDlg && m_rememberLastPasswordProp.m_value ? m_loginDlg.m_password : null;
 	}
 
-	m_ssh.connect (
-		remoteAddress,
-		m_userNameProp.m_value,
-		privateKey,
-		dynamic sizeof (privateKey),
-		password,
-		m_channelTypeProp.m_value,
-		m_processTypeProp.m_value,
-		m_ptyTypeProp.m_value,
-		m_pluginHost.m_terminal.m_consoleWidth,
-		m_pluginHost.m_terminal.m_consoleHeight
-		);
+	io.SshConnectParams params;
+	params.m_address = *remoteAddress;
+	params.m_userName = m_userNameProp.m_value;
+	params.m_privateKey = privateKey;
+	params.m_privateKeySize = dynamic sizeof (privateKey);
+	params.m_password = password;
+	params.m_channelType = m_channelTypeProp.m_value;
+	params.m_processType = m_processTypeProp.m_value;
+	params.m_processExtra = m_execProp.m_value;
+	params.m_processExtraSize = strlen (params.m_processExtra);
+	params.m_ptyType = m_ptyTypeProp.m_value;
+	params.m_ptyWidth = m_pluginHost.m_terminal.m_consoleWidth;
+	params.m_ptyHeight = m_pluginHost.m_terminal.m_consoleHeight;
 
+	m_ssh.connect (&params);
 	waitSshEvents ();
 	return true;
 
@@ -482,6 +491,13 @@ SshChannelSession.handleSshAuthenticateError (std.Error const* error)
 	m_loginDlg.m_userName = m_userNameProp.m_value;
 	m_loginDlg.m_authenticationMethod = m_authenticationMethodProp.m_value;
 	m_loginDlg.m_privateKeyFileName = m_privateKeyFileProp.m_value;
+
+	if (!m_rememberLastPasswordProp.m_value)
+	{
+		m_loginDlg.m_password = null;
+		m_loginDlg.m_privateKeyPassphrase = null;
+	}
+
 	m_loginDlg.show ();
 
 	m_state = State.WaitingLoginDlg;
@@ -592,6 +608,7 @@ void SshChannelSession.load (doc.Storage* storage)
 	m_rememberLastPasswordProp.m_value = storage.readBool ("rememberLastPassword", Defaults.RememberLastPassword);
 	m_channelTypeProp.m_value = storage.readString ("channelType", DefaultChannelType);
 	m_processTypeProp.m_value = storage.readString ("processType", DefaultProcessType);
+	m_execProp.m_value = storage.readString ("exec");
 	m_ptyTypeProp.m_value = storage.readString ("ptyType", DefaultPtyType);
 
 	m_socketPropertySet.load (storage);
@@ -612,6 +629,7 @@ void SshChannelSession.save (doc.Storage* storage)
 	storage.writeBool ("rememberLastPassword", m_rememberLastPasswordProp.m_value);
 	storage.writeString ("channelType", m_channelTypeProp.m_value);
 	storage.writeString ("processType", m_processTypeProp.m_value);
+	storage.writeString ("exec", m_execProp.m_value);
 	storage.writeString ("ptyType", m_ptyTypeProp.m_value);
 }
 
