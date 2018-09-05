@@ -594,6 +594,7 @@ SshChannelSession.disconnect ()
 
 	m_ssh.close ();
 	m_state = State.Closed;
+	m_isTransmitEnabled = false;
 	m_syncId++;
 	m_stdSessionInfoSet.endSession ();
 }
@@ -760,6 +761,7 @@ SshChannelSession.onSshEvent (
 
 		m_ssh.close ();
 		m_state = State.Closed;
+		m_isTransmitEnabled = false;
 		m_stdSessionInfoSet.endSession ();
 		return;
 	}
@@ -771,7 +773,7 @@ SshChannelSession.onSshEvent (
 			writeLog (log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 	}
 
-	if (io.SshEvents.WriteBufferReady)
+	if (triggeredEvents & io.SshEvents.WriteBufferReady)
 		m_isTransmitEnabled = true;
 
 	waitSshEvents ();
