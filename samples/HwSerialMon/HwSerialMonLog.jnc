@@ -26,6 +26,11 @@ enum HwSerialMonRecordCode
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
+char const* getLineString (uint_t line)
+{
+	return line ? "\e[31mon\e[m" : "\e[90moff\e[m";
+}
+
 bool representHwSerialMonLog (
 	log.RepresenterTarget* target,
 	uint_t recordCode,
