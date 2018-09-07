@@ -1,0 +1,454 @@
+//..............................................................................
+//
+// I2C Sniffer session
+//
+
+import "io_base.jncx"
+import "io_usb.jncx"
+import "io_UsbDb.jnc"
+import "io_MappedFile.jnc"
+import "io_BufferUi.jnc"
+import "sys_Timer.jnc"
+import "std_Buffer.jnc"
+import "doc_Plugin.jnc"
+import "gui_StdSessionInfo.jnc"
+import "gui_Dialog.jnc"
+import "log_ThroughputCalc.jnc"
+import "log_ChecksumCalc.jnc"
+import "parseInteger.jnc"
+
+//..............................................................................
+
+class I2cSnifferSession: doc.Session
+{
+protected:
+	enum State
+	{
+		Closed,
+		Capturing,
+	}
+
+	char const* m_statusText [] =
+	{
+		"Closed",
+		"Capturing",
+	}
+
+	enum ActionId
+	{
+		Refresh,
+		Capture,
+		Test,
+		_Count,
+	}
+
+	enum IconId
+	{
+		Capture,
+		Stop,
+		Refresh,
+		_Count,
+	}
+
+	enum StatusPaneId
+	{
+		State,
+		_Count,
+	}
+
+protected:
+	// usb
+
+	State bindable m_state;
+	io.UsbDevice* m_device;
+	io.UsbInterface* m_iface;
+	io.UsbEndpoint* m_outEndpoint; // until we figure out how to use control ep 0
+	io.UsbEndpoint* m_inEndpoint;
+	std.Buffer m_readBuffer;
+	I2cDecoder m_decoder;
+	uint_t m_syncId;
+
+	// toolbar, status bar & menu
+
+	gui.Action* m_actionTable [ActionId._Count];
+	gui.Icon* m_iconTable [IconId._Count];
+	gui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
+	gui.ComboBox* m_deviceCombo;
+
+	// property grid
+
+	gui.EnumProperty* m_deviceProp;
+	gui.BoolProperty* m_showRawDataProp;
+	io.BufferPropertySet m_bufferPropertySet;
+
+	// information grid
+
+	gui.StdSessionInfoSet m_stdSessionInfoSet;
+	log.ThroughputInfoSet m_throughputInfoSet;
+	log.ChecksumInfoSet m_checksumInfoSet;
+
+public:
+	construct (doc.PluginHost* pluginHost);
+
+	bool errorcode capture ();
+	void stopCapture ();
+
+	override size_t transmit (
+		void const* p,
+		size_t size
+		);
+
+	override void load (doc.Storage* storage);
+	override void save (doc.Storage* storage);
+	override void updateProperties ();
+	override errorcode bool applyProperties ();
+	override void restoreDefaultProperties ();
+
+protected:
+	onCapture ();
+	onTest ();
+
+	onInEndpointEvent (
+		uint_t syncId,
+		io.UsbEndpointEvents triggeredEvents
+		);
+
+	createUi ();
+	enumerateDevices ();
+	waitInEndpointEvents ();
+
+	reactor m_uiReactor ();
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+I2cSnifferSession.construct (doc.PluginHost* pluginHost)
+{
+	basetype.construct (pluginHost);
+	m_decoder.construct (pluginHost.m_log.m_writer);
+
+	createUi ();
+
+	pluginHost.m_log.addRepresenter (representI2cSnifferLog);
+	pluginHost.m_log.addSelectionProcessor (log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
+	pluginHost.m_log.addSelectionProcessor (log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
+}
+
+I2cSnifferSession.createUi ()
+{
+	// toolbar
+
+	m_iconTable [IconId.Capture] = new gui.Icon ("images/capture.png");
+	m_iconTable [IconId.Stop] = new gui.Icon ("images/stop.png");
+	m_iconTable [IconId.Refresh] = new gui.Icon ("images/refresh.png");
+
+	m_pluginHost.m_toolBar.addLabel ("Sniffer:");
+	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox (-1);
+
+	m_actionTable [ActionId.Refresh]  = createAction ("Re-enumerate sniffers", m_iconTable [IconId.Refresh]);
+	m_actionTable [ActionId.Refresh].m_onTriggered += enumerateDevices;
+
+	m_actionTable [ActionId.Capture] = createAction("Capture", m_iconTable [IconId.Capture]);
+	m_actionTable [ActionId.Capture].m_onTriggered += onCapture;
+
+	m_actionTable [ActionId.Test] = createAction("Test");
+	m_actionTable [ActionId.Test].m_onTriggered += onTest;
+
+	// status bar
+
+	m_statusPaneTable [StatusPaneId.State] = m_pluginHost.m_statusBar.addPane (, 80);
+
+	// property grid
+
+	gui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty (
+		"Connection",
+		"USB-specific connection settings"
+		);
+
+	m_deviceProp = m_pluginHost.m_propertyGrid.createEnumProperty (
+		group,,
+		"Device",
+		"Target USB device",
+		null, 0
+		);
+
+	m_showRawDataProp = m_pluginHost.m_propertyGrid.createBoolProperty (
+		group,,
+		"Show Raw Data",
+		"Show raw data packets from HW sniffer"
+		);
+
+	io.BufferPropertySet.PropertyId ids =
+		io.BufferPropertySet.PropertyId.ReadParallelism |
+		io.BufferPropertySet.PropertyId.ReadBlockSize |
+		io.BufferPropertySet.PropertyId.ReadBufferSize |
+		io.BufferPropertySet.PropertyId.NotifyReadBufferFull;
+
+	m_bufferPropertySet.createPropertiesGrouped (m_pluginHost.m_propertyGrid,,, ids);
+
+	// information grid
+
+	gui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup ("USB connection");
+
+	m_stdSessionInfoSet.createInformationValues (m_pluginHost.m_informationGrid, infoGroup);
+	m_throughputInfoSet.createInformationValuesGrouped (m_pluginHost.m_informationGrid);
+	m_checksumInfoSet.createInformationValuesGrouped (m_pluginHost.m_informationGrid);
+
+	m_uiReactor.start ();
+
+	enumerateDevices ();
+}
+
+I2cSnifferSession.onCapture ()
+{
+	if (m_state >= State.Capturing)
+		stopCapture ();
+	else
+		try capture ();
+}
+
+size_t I2cSnifferSession.transmit (
+	void const* p,
+	size_t size
+	)
+{
+	m_decoder.reset ();
+	m_decoder.decode (p, size);
+	return size;
+}
+
+I2cSnifferSession.onTest ()
+{
+	static char const data1 [] =
+		0x"""
+		11 32 23 32 21 32 2c 47 21 70 11 32 23 34 25 36
+		27 68 11 32 23 34 25 36 27 68 11 32 23 34 25 36
+		27 68 11 32 23 34 25 36 27 68 11 32 23 34 25 36
+		27 68 11 32 23 34 25 36 27 68 11 32 23 34 25 36
+		27 68
+		""";
+
+	m_decoder.decode (data1, sizeof (data1));
+}
+
+I2cSnifferSession.enumerateDevices ()
+{
+	m_deviceCombo.clear ();
+
+	io.UsbDevice* const* deviceArray = io.createUsbDeviceArray ();
+	size_t count = dynamic countof (deviceArray);
+
+	gui.EnumPropertyOption* optionTable = new gui.EnumPropertyOption [count];
+
+	for (size_t i = 0; i < count; i++)
+	{
+		io.UsbDevice* device = deviceArray [i];
+		io.UsbDeviceDesc const* deviceDesc = device.m_deviceDesc;
+		io.UsbVendor const* vendor = g_usbDb.findVendor (deviceDesc.m_vendorId);
+		io.UsbProduct const* product = vendor ? vendor.findProduct (deviceDesc.m_productId) : null;
+
+		char const* text = $"@%(1;03d):%(2;03d) %3 %4" (
+			device.m_bus,
+			device.m_address,
+			vendor ? vendor.m_name : $"VID_$(deviceDesc.m_vendorId; 04x)",
+			product ? product.m_name : $"PID_$(deviceDesc.m_productId; 04x)"
+			);
+
+		m_deviceCombo.addItem (text, device);
+
+		optionTable [i].m_text = text;
+		optionTable [i].m_value = device;
+	}
+
+	m_deviceProp.setOptions (optionTable, count);
+}
+
+bool errorcode I2cSnifferSession.capture ()
+{
+	if (m_deviceCombo.m_currentIndex == -1)
+		return false;
+
+	stopCapture ();
+	startSession ();
+
+	m_device = m_deviceCombo.m_currentData;
+	m_device.open ();
+	writeLogString (I2cSnifferLogRecordCode.DeviceOpened, m_deviceCombo.m_currentText);
+
+	m_iface = m_device.claimInterface (0);
+	writeLog (I2cSnifferLogRecordCode.InterfaceClaimed);
+
+	m_outEndpoint = m_iface.openEndpoint (0x02);
+	writeLog (I2cSnifferLogRecordCode.OutEndpointOpened);
+
+	m_inEndpoint = m_iface.openEndpoint (0x86);
+	writeLog (I2cSnifferLogRecordCode.InEndpointOpened);
+
+	m_inEndpoint.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
+	m_inEndpoint.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
+	m_inEndpoint.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
+
+	m_decoder.reset ();
+
+	static char packet [] = 0x"55";
+	m_outEndpoint.write (packet, sizeof (packet));
+	writeLog (I2cSnifferLogRecordCode.CaptureStarted);
+
+	waitInEndpointEvents ();
+	m_stdSessionInfoSet.startSession (m_pluginHost.m_mainThreadScheduler);
+	m_state = State.Capturing;
+	return true;
+
+catch:
+	writeLogLastError (I2cSnifferLogRecordCode.CaptureError);
+	return false;
+}
+
+I2cSnifferSession.stopCapture ()
+{
+	if (m_outEndpoint)
+	{
+		static char packet [] = 0x"aa";
+		try m_outEndpoint.write (packet, sizeof (packet));
+		m_outEndpoint.close ();
+		m_outEndpoint = null;
+	}
+
+	if (m_inEndpoint)
+	{
+		m_inEndpoint.close ();
+		m_inEndpoint = null;
+	}
+
+	if (m_iface)
+	{
+		m_iface.release ();
+		m_iface = null;
+	}
+
+	if (m_device)
+	{
+		m_device.close ();
+		m_device = null;
+	}
+
+	if (m_state)
+	{
+		m_stdSessionInfoSet.endSession ();
+		writeLog (I2cSnifferLogRecordCode.CaptureStopped);
+		m_state = State.Closed;
+	}
+
+	m_syncId++;
+}
+
+I2cSnifferSession.waitInEndpointEvents ()
+{
+	io.UsbEndpointEvents eventMask =
+		io.UsbEndpointEvents.IoError |
+		io.UsbEndpointEvents.ReadBufferFull |
+		io.UsbEndpointEvents.IncomingData;
+
+	m_inEndpoint.wait (eventMask, onInEndpointEvent ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
+}
+
+I2cSnifferSession.onInEndpointEvent (
+	uint_t syncId,
+	io.UsbEndpointEvents triggeredEvents
+	)
+{
+	if (syncId != m_syncId)
+		return;
+
+	if (triggeredEvents & io.UsbEndpointEvents.IoError)
+	{
+		writeLogError (log.StdRecordCode.Error, m_inEndpoint.m_ioError);
+		stopCapture ();
+		return;
+	}
+
+	if (triggeredEvents & io.UsbEndpointEvents.IncomingData)
+	{
+		size_t size = m_inEndpoint.read (m_readBuffer.m_p, m_readBuffer.m_size);
+		m_stdSessionInfoSet.addRxData (size);
+
+		if (m_showRawDataProp.m_value)
+			writeLog (log.StdRecordCode.Bin, m_readBuffer.m_p, size);
+
+		m_decoder.decode (m_readBuffer.m_p, size);
+	}
+
+	waitInEndpointEvents ();
+}
+
+I2cSnifferSession.load (doc.Storage* storage)
+{
+	m_deviceCombo.m_currentIndex  = storage.readInt ("deviceIdx");
+	m_showRawDataProp.m_value = storage.readBool ("showRawData");
+	m_bufferPropertySet.load (storage);
+	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
+}
+
+I2cSnifferSession.save (doc.Storage* storage)
+{
+	storage.writeInt ("deviceIdx", (int) m_deviceCombo.m_currentIndex);
+	storage.writeBool ("showRawData", m_showRawDataProp.m_value);
+	m_bufferPropertySet.save (storage);
+}
+
+I2cSnifferSession.updateProperties ()
+{
+	m_deviceProp.m_currentIndex = m_deviceCombo.m_currentIndex;
+}
+
+bool errorcode I2cSnifferSession.applyProperties ()
+{
+	m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
+	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
+
+	if (m_state != State.Capturing)
+		return true;
+
+	m_inEndpoint.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
+	m_inEndpoint.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
+	m_inEndpoint.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
+	return true;
+}
+
+I2cSnifferSession.restoreDefaultProperties ()
+{
+	m_showRawDataProp.m_value = false;
+	m_bufferPropertySet.restoreDefaults ();
+}
+
+reactor I2cSnifferSession.m_uiReactor ()
+{
+	m_title = $"USB $(m_deviceCombo.m_currentText)";
+	m_actionTable [ActionId.Capture].m_text = m_state ? "Close Device" : "Open Device";
+	m_actionTable [ActionId.Capture].m_icon = m_iconTable [m_state ? IconId.Stop : IconId.Capture];
+	m_actionTable [ActionId.Test].m_isEnabled = m_state;
+	m_statusPaneTable [StatusPaneId.State].m_text = m_statusText [m_state];
+	m_isTransmitEnabled = m_state;
+}
+
+//..............................................................................
+
+io.UsbDb g_usbDb;
+
+construct ()
+{
+	// on debug builds, we use 0 period size trigger (to stress-test gc by forcing it
+	// to collect on each allocation). however, on allocation-heavy apps (usb.ids has 20,000+ lines)
+	// this makes everything too slow, so we better patch 0 period size trigger
+
+	sys.GcTriggers triggers = sys.g_gcTriggers;
+	if (!triggers.m_periodSizeTrigger)
+	{
+		triggers.m_periodSizeTrigger = 2 * 1024 * 1024; // 2 MB is a reasonable period
+		sys.g_gcTriggers = triggers;
+	}
+
+	try g_usbDb.load ("../../common/usb.ids"); // ignore if failed
+}
+
+//..............................................................................

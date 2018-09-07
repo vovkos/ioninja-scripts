@@ -1,0 +1,127 @@
+//..............................................................................
+//
+// I2C sniffer log packet declarations and representer
+//
+
+//..............................................................................
+
+enum I2cSnifferLogRecordCode
+{
+	DeviceOpened = 0,
+	InterfaceClaimed,
+	InEndpointOpened,
+	OutEndpointOpened,
+	CaptureStarted,
+	CaptureStopped,
+	CaptureError,
+	UnexpectedCode,
+	I2cStart,
+	I2cStop,
+	I2cIncompleteTransaction,
+	I2cIncompleteByte,
+	I2cStopOutOfTransaction,
+}
+
+//..............................................................................
+
+bool representI2cSnifferLog (
+	log.RepresenterTarget* target,
+	uint_t recordCode,
+	void const* p,
+	size_t size,
+	uint_t foldFlags
+	)
+{
+	switch (recordCode)
+	{
+	case I2cSnifferLogRecordCode.DeviceOpened:
+		char const* name = (char const*) p;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText ($"Sniffer device \e[34m$name\e[m opened");
+		break;
+
+	case I2cSnifferLogRecordCode.InterfaceClaimed:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText ($"Interface \e[34m#0\e[m claimed");
+		break;
+
+	case I2cSnifferLogRecordCode.InEndpointOpened:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText ($"In endpoint \e[34m#86\e[m opened");
+		break;
+
+	case I2cSnifferLogRecordCode.OutEndpointOpened:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText ($"Out endpoint \e[34m#2\e[m opened");
+		break;
+
+	case I2cSnifferLogRecordCode.CaptureStarted:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Connect;
+		target.addHyperText ($"Capture started");
+		break;
+
+	case I2cSnifferLogRecordCode.CaptureStopped:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
+		target.addHyperText ("Capture stopped");
+		break;
+
+	case I2cSnifferLogRecordCode.CaptureError:
+		std.Error const* error = (std.Error const*) p;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
+		target.addHyperText ($"Cannot open sniffer: $(error.m_description)");
+		break;
+
+	case I2cSnifferLogRecordCode.UnexpectedCode:
+		uint_t code = ((uint_t const*) p) [0];
+		uint_t state = ((uint_t const*) p) [1];
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
+		target.addHyperText ($"Unexpected code from sniffer (code: $code, decoder state: $state)");
+		break;
+
+	case I2cSnifferLogRecordCode.I2cStart:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText ("I2C transaction started");
+		break;
+
+	case I2cSnifferLogRecordCode.I2cStop:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText ("I2C transaction stopped");
+		break;
+
+	case I2cSnifferLogRecordCode.I2cIncompleteTransaction:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Warning;
+		target.addHyperText ("Incomplete transaction");
+		break;
+
+	case I2cSnifferLogRecordCode.I2cIncompleteByte:
+		uint_t bitCount = *(uint_t const*) p;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Warning;
+		target.addHyperText ($"Incomplete byte received ($(bitCount) bits)");
+		break;
+
+	case I2cSnifferLogRecordCode.I2cStopOutOfTransaction:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Warning;
+		target.addHyperText ("I2C STOP received out-of-transaction");
+		break;
+
+	default:
+		return false;
+	}
+
+	return true;
+}
+
+//..............................................................................

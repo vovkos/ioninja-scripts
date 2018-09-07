@@ -1,0 +1,201 @@
+//..............................................................................
+//
+// I2C sniffer log packet declarations and representer
+//
+
+//..............................................................................
+
+class I2cDecoder
+{
+protected:
+	enum Code
+	{
+		Padding         = 0xff,
+		Start           = 0,
+		StartDataHi,    // 1
+		DataHi,         // 2
+		DataLoAck,      // 3
+		DataLoNack,     // 4
+		DataLoAckStop,  // 5
+		DataLoNackStop, // 6
+		Stop,           // 7
+	}
+
+	enum State
+	{
+		Idle,
+		Transaction,
+		DataHi,
+	}
+
+protected:
+	log.Writer* m_logWriter;
+	State m_state;
+	uchar_t m_data;
+
+public:
+	construct (log.Writer* logWriter)
+	{
+		m_logWriter = logWriter;
+	}
+
+	reset ()
+	{
+		m_state = State.Idle;
+	}
+
+	decode (
+		void const* p,
+		size_t size
+		);
+
+protected:
+	writeLogUnexpectedCode (uint_t code);
+	writeLogNack ();
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+I2cDecoder.decode (
+	void const* p0,
+	size_t size
+	)
+{
+	uint64_t timestamp = sys.getTimestamp ();
+	uchar_t const* p = p0;
+
+	for (size_t i = 0; i < size; i++)
+	{
+		uchar_t c = p [i];
+
+		if (c == Code.Padding)
+			continue;
+
+		uchar_t code = (c & 0xf0) >> 4;
+		switch (code)
+		{
+		case Code.Start:
+			if (m_state)
+			{
+				uint_t bitCount = c & 0x0f;
+
+				if (bitCount)
+					m_logWriter.write (timestamp, I2cSnifferLogRecordCode.I2cIncompleteByte, &bitCount, sizeof (bitCount));
+				else
+					m_logWriter.write (timestamp, I2cSnifferLogRecordCode.I2cIncompleteTransaction);
+			}
+
+			m_logWriter.write (timestamp, I2cSnifferLogRecordCode.I2cStart);
+			m_state = State.Transaction;
+			break;
+
+		case Code.StartDataHi:
+			if (m_state)
+				m_logWriter.write (timestamp, I2cSnifferLogRecordCode.I2cIncompleteTransaction);
+
+			m_logWriter.write (timestamp, I2cSnifferLogRecordCode.I2cStart);
+			m_data = c << 4;
+			m_state = State.DataHi;
+			break;
+
+		case Code.DataHi:
+			if (m_state != State.Transaction)
+				writeLogUnexpectedCode (code);
+
+			m_data = c << 4;
+			m_state = State.DataHi;
+			break;
+
+		case Code.DataLoAck:
+			if (m_state != State.DataHi)
+				writeLogUnexpectedCode (code);
+
+			m_data |= c & 0x0f;
+			m_logWriter.write (timestamp, log.StdRecordCode.Rx, &m_data, sizeof (m_data));
+			m_state = State.Transaction;
+			break;
+
+		case Code.DataLoNack:
+			if (m_state != State.DataHi)
+				writeLogUnexpectedCode (code);
+
+			m_data |= c & 0x0f;
+			m_logWriter.write (timestamp, log.StdRecordCode.Rx, &m_data, sizeof (m_data));
+			writeLogNack ();
+			m_state = State.Transaction;
+			break;
+
+		case Code.DataLoAckStop:
+			if (m_state != State.DataHi)
+				writeLogUnexpectedCode (code);
+
+			m_data |= c & 0x0f;
+			m_logWriter.write (timestamp, log.StdRecordCode.Rx, &m_data, sizeof (m_data));
+			m_logWriter.write (timestamp, I2cSnifferLogRecordCode.I2cStop);
+			m_state = State.Idle;
+			break;
+
+		case Code.DataLoNackStop:
+			if (m_state != State.DataHi)
+				writeLogUnexpectedCode (code);
+
+			m_data |= c & 0x0f;
+			m_logWriter.write (timestamp, log.StdRecordCode.Rx, &m_data, sizeof (m_data));
+			writeLogNack ();
+			m_logWriter.write (timestamp, I2cSnifferLogRecordCode.I2cStop);
+			m_state = State.Idle;
+			break;
+
+		case Code.Stop:
+			uint_t bitCount = c & 0x0f;
+			if (m_state == Code.DataHi)
+				bitCount += 4;
+
+			if (bitCount)
+			{
+				m_logWriter.write (timestamp, I2cSnifferLogRecordCode.I2cIncompleteByte, &bitCount, sizeof (bitCount));
+				m_logWriter.write (timestamp, I2cSnifferLogRecordCode.I2cStop);
+			}
+			else
+			{
+				m_logWriter.write (
+					timestamp,
+					m_state == State.Transaction ?
+						I2cSnifferLogRecordCode.I2cStop :
+						I2cSnifferLogRecordCode.I2cStopOutOfTransaction
+					);
+			}
+
+			m_state = State.Idle;
+			break;
+		}
+	}
+}
+
+I2cDecoder.writeLogUnexpectedCode (uint_t code)
+{
+	struct Params
+	{
+		uint_t m_code;
+		uint_t m_state;
+	}
+
+	Params params;
+	params.m_code = code;
+	params.m_state = m_state;
+
+	m_logWriter.write (I2cSnifferLogRecordCode.UnexpectedCode, &params, sizeof (params));
+}
+
+I2cDecoder.writeLogNack ()
+{
+	gui.TextAttr attr;
+	attr.m_textColor = gui.ColorFlags.Transparent;
+	attr.m_backColor = gui.ColorFlags.Transparent;
+	attr.m_fontFlags = gui.FontFlags.Strikeout;
+
+	m_logWriter.retroColorize (-1, 1, attr);
+}
+
+//..............................................................................
+
