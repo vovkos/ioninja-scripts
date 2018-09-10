@@ -16,10 +16,18 @@ enum I2cSnifferLogRecordCode
 	CaptureError,
 	UnexpectedCode,
 	I2cStart,
+	I2cFinalizeStart7Bit,
+	I2cFinalizeStart10Bit,
 	I2cStop,
 	I2cIncompleteTransaction,
 	I2cIncompleteByte,
 	I2cStopOutOfTransaction,
+}
+
+enum I2cSnifferLogPartCode
+{
+	I2cStartBegin = I2cSnifferLogRecordCode.I2cStart | log.PartCodeFlags.MergeableForward,
+	I2cStartEnd = I2cSnifferLogRecordCode.I2cStart | log.PartCodeFlags.MergeableBackward,
 }
 
 //..............................................................................
@@ -89,7 +97,39 @@ bool representI2cSnifferLog (
 	case I2cSnifferLogRecordCode.I2cStart:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText ("I2C transaction started");
+		target.addHyperText (I2cSnifferLogPartCode.I2cStartBegin, "I2C transaction started");
+		break;
+
+	case I2cSnifferLogRecordCode.I2cFinalizeStart7Bit:
+		uchar_t hdr = *(const uchar_t*) p;
+
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+
+		target.addHyperText (
+			I2cSnifferLogPartCode.I2cStartEnd,
+			$", %1 \e[34m@%(2; 02x)\e[m" (
+				(hdr & 0x01) ? "read" : "write",
+				hdr >> 1
+				)
+			);
+
+		break;
+
+	case I2cSnifferLogRecordCode.I2cFinalizeStart10Bit:
+		uint16_t hdr = *(const uint16_t*) p;
+
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+
+		target.addHyperText (
+			I2cSnifferLogPartCode.I2cStartEnd,
+			$", %1 \e[34m@%(2; 03x)\e[m" (
+				(hdr & 0x100) ? "read" : "write",
+				(hdr & 0xff) | ((hdr & 0x60) >> 1)
+				)
+			);
+
 		break;
 
 	case I2cSnifferLogRecordCode.I2cStop:
