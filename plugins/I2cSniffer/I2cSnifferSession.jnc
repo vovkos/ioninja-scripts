@@ -55,6 +55,16 @@ protected:
 	{
 		VendorId  = 0x04B4,
 		ProductId = 0x00F1,
+//		VendorId  = 0x16d0,
+//		ProductId = 0x0e26,
+	}
+
+	enum UsbEndpoint
+	{
+		Out = 0x02,
+		In  = 0x86,
+//		Out = 0x01,
+//		In  = 0x82,
 	}
 
 protected:
@@ -68,6 +78,7 @@ protected:
 	std.Buffer m_readBuffer;
 	I2cDecoder m_decoder;
 	uint_t m_syncId;
+	I2cSnifferLogFilter m_logFilter;
 
 	// toolbar, status bar & menu
 
@@ -79,6 +90,7 @@ protected:
 	// property grid
 
 	gui.EnumProperty* m_deviceProp;
+	gui.BoolProperty* m_showStopProp;
 	gui.BoolProperty* m_showRawDataProp;
 	io.BufferPropertySet m_bufferPropertySet;
 
@@ -130,6 +142,7 @@ I2cSnifferSession.construct (doc.PluginHost* pluginHost)
 
 	createUi ();
 
+	pluginHost.m_log.addFilter (m_logFilter);
 	pluginHost.m_log.addRepresenter (representI2cSnifferLog);
 	pluginHost.m_log.addSelectionProcessor (log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor (log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
@@ -171,6 +184,12 @@ I2cSnifferSession.createUi ()
 		"Device",
 		"Target USB device",
 		null, 0
+		);
+
+	m_showStopProp = m_pluginHost.m_propertyGrid.createBoolProperty (
+		group,,
+		"Show I2C STOP",
+		"Show the I2C STOP transaction condition"
 		);
 
 	m_showRawDataProp = m_pluginHost.m_propertyGrid.createBoolProperty (
@@ -283,10 +302,10 @@ bool errorcode I2cSnifferSession.capture ()
 	m_iface = m_device.claimInterface (0);
 	writeLog (I2cSnifferLogRecordCode.InterfaceClaimed);
 
-	m_outEndpoint = m_iface.openEndpoint (0x02);
+	m_outEndpoint = m_iface.openEndpoint (UsbEndpoint.Out);
 	writeLog (I2cSnifferLogRecordCode.OutEndpointOpened);
 
-	m_inEndpoint = m_iface.openEndpoint (0x86);
+	m_inEndpoint = m_iface.openEndpoint (UsbEndpoint.In);
 	writeLog (I2cSnifferLogRecordCode.InEndpointOpened);
 
 	m_inEndpoint.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
@@ -315,6 +334,7 @@ I2cSnifferSession.stopCapture ()
 	{
 		static char packet [] = 0x"aa";
 		try m_outEndpoint.write (packet, sizeof (packet));
+		m_outEndpoint.blockingWait (io.UsbEndpointEvents.WriteCompleted);
 		m_outEndpoint.close ();
 		m_outEndpoint = null;
 	}
@@ -389,14 +409,18 @@ I2cSnifferSession.onInEndpointEvent (
 I2cSnifferSession.load (doc.Storage* storage)
 {
 	m_deviceCombo.m_currentIndex  = storage.readInt ("deviceIdx");
+	m_showStopProp.m_value = storage.readBool ("showStop");
 	m_showRawDataProp.m_value = storage.readBool ("showRawData");
 	m_bufferPropertySet.load (storage);
 	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
+
+	m_logFilter.m_isStopVisible = m_showStopProp.m_value;
 }
 
 I2cSnifferSession.save (doc.Storage* storage)
 {
 	storage.writeInt ("deviceIdx", (int) m_deviceCombo.m_currentIndex);
+	storage.writeBool ("showStop", m_showStopProp.m_value);
 	storage.writeBool ("showRawData", m_showRawDataProp.m_value);
 	m_bufferPropertySet.save (storage);
 }
@@ -410,6 +434,7 @@ bool errorcode I2cSnifferSession.applyProperties ()
 {
 	m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
 	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
+	m_logFilter.m_isStopVisible = m_showStopProp.m_value;
 
 	if (m_state != State.Capturing)
 		return true;
@@ -422,6 +447,7 @@ bool errorcode I2cSnifferSession.applyProperties ()
 
 I2cSnifferSession.restoreDefaultProperties ()
 {
+	m_showStopProp.m_value = false;
 	m_showRawDataProp.m_value = false;
 	m_bufferPropertySet.restoreDefaults ();
 }

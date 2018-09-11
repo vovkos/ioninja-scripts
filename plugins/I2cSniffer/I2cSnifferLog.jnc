@@ -95,16 +95,13 @@ bool representI2cSnifferLog (
 		break;
 
 	case I2cSnifferLogRecordCode.I2cStart:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Packet;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText (I2cSnifferLogPartCode.I2cStartBegin, "I2C transaction started");
+		target.addHyperText (I2cSnifferLogPartCode.I2cStartBegin, "I2C start");
 		break;
 
 	case I2cSnifferLogRecordCode.I2cFinalizeStart7Bit:
 		uchar_t hdr = *(const uchar_t*) p;
-
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 
 		target.addHyperText (
 			I2cSnifferLogPartCode.I2cStartEnd,
@@ -119,9 +116,6 @@ bool representI2cSnifferLog (
 	case I2cSnifferLogRecordCode.I2cFinalizeStart10Bit:
 		uint16_t hdr = *(const uint16_t*) p;
 
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-
 		target.addHyperText (
 			I2cSnifferLogPartCode.I2cStartEnd,
 			$", %1 \e[34m@%(2; 03x)\e[m" (
@@ -135,7 +129,7 @@ bool representI2cSnifferLog (
 	case I2cSnifferLogRecordCode.I2cStop:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText ("I2C transaction stopped");
+		target.addHyperText ("I2C stop");
 		break;
 
 	case I2cSnifferLogRecordCode.I2cIncompleteTransaction:
@@ -154,7 +148,7 @@ bool representI2cSnifferLog (
 	case I2cSnifferLogRecordCode.I2cStopOutOfTransaction:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Warning;
-		target.addHyperText ("I2C STOP received out-of-transaction");
+		target.addHyperText ("I2C stop out-of-transaction");
 		break;
 
 	default:
@@ -162,6 +156,46 @@ bool representI2cSnifferLog (
 	}
 
 	return true;
+}
+
+//..............................................................................
+
+class I2cSnifferLogFilter: log.Filter
+{
+	volatile bool m_isStopVisible;
+
+	construct ();
+
+	override bool filter (
+		uint64_t timestamp,
+		uint_t recordCode,
+		void const* p,
+		size_t size
+		);
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+I2cSnifferLogFilter.construct ()
+{
+	m_isStopVisible = true;
+}
+
+bool I2cSnifferLogFilter.filter (
+	uint64_t timestamp,
+	uint_t recordCode,
+	void const* p,
+	size_t size
+	)
+{
+	switch (recordCode)
+	{
+	case I2cSnifferLogRecordCode.I2cStop:
+		return m_isStopVisible;
+
+	default:
+		return true; // everything else is visible
+	}
 }
 
 //..............................................................................
