@@ -82,7 +82,7 @@ SpiDecoder.decode (
 			break;
 
 		case Code.MosiDataHi:
-			if (m_state != State.Transaction)
+			if (m_state >= State.MosiDataHi)
 				writeLogUnexpectedCode (timestamp, code, m_state);
 
 			m_data = c << 4;
@@ -90,7 +90,7 @@ SpiDecoder.decode (
 			break;
 
 		case Code.MosiDataLo:
-			if (m_state != State.MosiDataHi)
+			if (m_state != State.MisoDataHi)
 				writeLogUnexpectedCode (timestamp, code, m_state);
 
 			m_data |= c & 0x0f;
@@ -98,7 +98,7 @@ SpiDecoder.decode (
 			break;
 
 		case Code.MisoDataHi:
-			if (m_state != State.MosiDataLo)
+			if (m_state != State.MosiDataHi)
 				writeLogUnexpectedCode (timestamp, code, m_state);
 
 			m_data |= c << 12;
@@ -106,7 +106,7 @@ SpiDecoder.decode (
 			break;
 
 		case Code.MisoDataLo:
-			if (m_state != State.MisoDataHi)
+			if (m_state != State.MosiDataLo)
 				writeLogUnexpectedCode (timestamp, code, m_state);
 
 			m_data |= c << 8;
@@ -116,7 +116,7 @@ SpiDecoder.decode (
 
 		case Code.Stop:
 			uint_t bitCount = c & 0x0f;
-			if (m_state == Code.MosiDataHi || m_state == Code.MisoDataHi)
+			if (m_state == State.MosiDataHi || m_state == State.MisoDataHi)
 				bitCount += 4;
 
 			if (bitCount)

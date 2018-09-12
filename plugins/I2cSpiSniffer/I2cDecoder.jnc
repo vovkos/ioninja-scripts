@@ -134,7 +134,7 @@ I2cDecoder.decode (
 
 		case Code.Stop:
 			uint_t bitCount = c & 0x0f;
-			if (m_state == Code.DataHi)
+			if (m_state == State.DataHi)
 				bitCount += 4;
 
 			if (bitCount)

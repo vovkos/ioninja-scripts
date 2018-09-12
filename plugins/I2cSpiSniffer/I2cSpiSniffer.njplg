@@ -1,13 +1,13 @@
 //..............................................................................
 //
-// SPI/I2C Sniffer session plugin
+// I2C/SPI Sniffer session plugin
 //
 
 [plugin]
 
-name        = SPI/I2C Sniffer
-description = "Monitor SPI/I2C communication through a SPI/I2C Sniffer device from Tibbo"
-id          = i2c-sniffer
+name        = I2C/SPI Sniffer
+description = "Monitor I2C/SPI communication through a SPI/I2C Sniffer device from Tibbo"
+id          = i2c-spi-sniffer
 group       = serial
 monitor     = false
 guid        = 39ee6b0f-a65e-4e8a-b252-6fa28d8e3327

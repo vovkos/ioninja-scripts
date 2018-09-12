@@ -83,6 +83,13 @@ protected:
 		I2c,
 	}
 
+public:
+	static char const* m_protocolNameTable [] =
+	{
+		"SPI",
+		"I2C"
+	}
+
 protected:
 	// usb
 
@@ -558,7 +565,7 @@ I2cSpiSnifferSession.restoreDefaultProperties ()
 
 reactor I2cSpiSnifferSession.m_uiReactor ()
 {
-	m_title = $"USB $(m_deviceCombo.m_currentText)";
+	m_title = $"$(m_protocolNameTable [m_protocolProp.m_value]) $(m_deviceCombo.m_currentText)";
 	m_actionTable [ActionId.Capture].m_text = m_state ? "Close Device" : "Open Device";
 	m_actionTable [ActionId.Capture].m_icon = m_iconTable [m_state ? IconId.Stop : IconId.Capture];
 	m_statusPaneTable [StatusPaneId.State].m_text = m_statusText [m_state];

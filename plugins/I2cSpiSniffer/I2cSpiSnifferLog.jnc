@@ -105,9 +105,9 @@ bool representI2cSpiSnifferLog (
 		break;
 
 	case I2cSpiSnifferLogRecordCode.I2cStart:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Packet;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText (I2cSpiSnifferLogPartCode.I2cStartBegin, "I2C start");
+		target.addHyperText (I2cSpiSnifferLogPartCode.I2cStartBegin, "I2C \e[32mstart\e[m");
 		break;
 
 	case I2cSpiSnifferLogRecordCode.I2cFinalizeStart7Bit:
@@ -139,25 +139,25 @@ bool representI2cSpiSnifferLog (
 	case I2cSpiSnifferLogRecordCode.I2cStop:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText ("I2C stop");
+		target.addHyperText ("I2C \e[31mstop\e[m");
 		break;
 
 	case I2cSpiSnifferLogRecordCode.I2cStopOutOfTransaction:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Warning;
-		target.addHyperText ("I2C stop out-of-transaction");
+		target.addHyperText ("I2C \e[31mstop\e[m out-of-transaction");
 		break;
 
 	case I2cSpiSnifferLogRecordCode.SpiStart:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Packet;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText (I2cSpiSnifferLogPartCode.I2cStartBegin, "SPI SS \e[34mlow\e[m");
+		target.addHyperText ("SPI SS \e[32mlow\e[m");
 		break;
 
 	case I2cSpiSnifferLogRecordCode.SpiStop:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Packet;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText (I2cSpiSnifferLogPartCode.I2cStartBegin, "SPI SS \e[34mhigh\e[m");
+		target.addHyperText ("SPI SS \e[31mhigh\e[m");
 		break;
 
 	default:
