@@ -1,11 +1,13 @@
 //..............................................................................
 //
-// I2C sniffer log packet declarations and representer
+// I2C protocol decoder
 //
+
+import "Decoder.jnc"
 
 //..............................................................................
 
-class I2cDecoder
+class I2cDecoder: Decoder
 {
 protected:
 	enum Code
@@ -29,7 +31,6 @@ protected:
 	}
 
 protected:
-	log.Writer* m_logWriter;
 	State m_state;
 	uint_t m_transactionDataRecordCode;
 	size_t m_transactionSize;
@@ -39,25 +40,20 @@ protected:
 public:
 	construct (log.Writer* logWriter)
 	{
-		m_logWriter = logWriter;
+		basetype.construct (logWriter);
 	}
 
-	reset ()
+	override reset ()
 	{
 		m_state = State.Idle;
 	}
 
-	decode (
+	override decode (
 		void const* p,
 		size_t size
 		);
 
 protected:
-	writeLogUnexpectedCode (
-		uint64_t timestamp,
-		uint_t code
-		);
-
 	retroColorizeNack ();
 
 	processDataLo (
@@ -96,20 +92,15 @@ I2cDecoder.decode (
 			uint_t bitCount = c & 0x0f;
 
 			if (bitCount)
-				m_logWriter.write (timestamp, I2cSnifferLogRecordCode.I2cIncompleteByte, &bitCount, sizeof (bitCount));
-			else if (m_state)
-				m_logWriter.write (timestamp, I2cSnifferLogRecordCode.I2cIncompleteTransaction);
+				m_logWriter.write (timestamp, I2cSpiSnifferLogRecordCode.IncompleteByte, &bitCount, sizeof (bitCount));
 
-			m_logWriter.write (timestamp, I2cSnifferLogRecordCode.I2cStart);
+			m_logWriter.write (timestamp, I2cSpiSnifferLogRecordCode.I2cStart);
 			m_transactionSize = 0;
 			m_state = State.Transaction;
 			break;
 
 		case Code.StartDataHi:
-			if (m_state)
-				m_logWriter.write (timestamp, I2cSnifferLogRecordCode.I2cIncompleteTransaction);
-
-			m_logWriter.write (timestamp, I2cSnifferLogRecordCode.I2cStart);
+			m_logWriter.write (timestamp, I2cSpiSnifferLogRecordCode.I2cStart);
 			m_dataHi = c << 4;
 			m_state = State.DataHi;
 			m_transactionSize = 0;
@@ -117,7 +108,7 @@ I2cDecoder.decode (
 
 		case Code.DataHi:
 			if (m_state != State.Transaction)
-				writeLogUnexpectedCode (timestamp, code);
+				writeLogUnexpectedCode (timestamp, code, m_state);
 
 			m_dataHi = c << 4;
 			m_state = State.DataHi;
@@ -126,7 +117,7 @@ I2cDecoder.decode (
 		case Code.DataLoAck:
 		case Code.DataLoNack:
 			if (m_state != State.DataHi)
-				writeLogUnexpectedCode (timestamp, code);
+				writeLogUnexpectedCode (timestamp, code, m_state);
 
 			processDataLo (timestamp, c & 0x0f, code == Code.DataLoAck);
 			break;
@@ -134,10 +125,10 @@ I2cDecoder.decode (
 		case Code.DataLoAckStop:
 		case Code.DataLoNackStop:
 			if (m_state != State.DataHi)
-				writeLogUnexpectedCode (timestamp, code);
+				writeLogUnexpectedCode (timestamp, code, m_state);
 
 			processDataLo (timestamp, c & 0x0f, code == Code.DataLoAckStop);
-			m_logWriter.write (timestamp, I2cSnifferLogRecordCode.I2cStop);
+			m_logWriter.write (timestamp, I2cSpiSnifferLogRecordCode.I2cStop);
 			m_state = State.Idle;
 			break;
 
@@ -148,16 +139,16 @@ I2cDecoder.decode (
 
 			if (bitCount)
 			{
-				m_logWriter.write (timestamp, I2cSnifferLogRecordCode.I2cIncompleteByte, &bitCount, sizeof (bitCount));
-				m_logWriter.write (timestamp, I2cSnifferLogRecordCode.I2cStop);
+				m_logWriter.write (timestamp, I2cSpiSnifferLogRecordCode.IncompleteByte, &bitCount, sizeof (bitCount));
+				m_logWriter.write (timestamp, I2cSpiSnifferLogRecordCode.I2cStop);
 			}
 			else
 			{
 				m_logWriter.write (
 					timestamp,
 					m_state == State.Transaction ?
-						I2cSnifferLogRecordCode.I2cStop :
-						I2cSnifferLogRecordCode.I2cStopOutOfTransaction
+						I2cSpiSnifferLogRecordCode.I2cStop :
+						I2cSpiSnifferLogRecordCode.I2cStopOutOfTransaction
 					);
 			}
 
@@ -165,24 +156,6 @@ I2cDecoder.decode (
 			break;
 		}
 	}
-}
-
-I2cDecoder.writeLogUnexpectedCode (
-	uint64_t timestamp,
-	uint_t code
-	)
-{
-	struct Params
-	{
-		uint_t m_code;
-		uint_t m_state;
-	}
-
-	Params params;
-	params.m_code = code;
-	params.m_state = m_state;
-
-	m_logWriter.write (timestamp, I2cSnifferLogRecordCode.UnexpectedCode, &params, sizeof (params));
 }
 
 I2cDecoder.retroColorizeNack ()
@@ -209,12 +182,12 @@ I2cDecoder.processDataLo (
 		m_transactionDataRecordCode = (data & 1) ? log.StdRecordCode.Rx : log.StdRecordCode.Tx;
 
 		if (!isAddress10Bit (data))
-			m_logWriter.write (timestamp, I2cSnifferLogRecordCode.I2cFinalizeStart7Bit, &data, sizeof (data));
+			m_logWriter.write (timestamp, I2cSpiSnifferLogRecordCode.I2cFinalizeStart7Bit, &data, sizeof (data));
 	}
 	else if (m_transactionSize == 1 && isAddress10Bit (m_firstTransactionByte)) // 10-bit addressing
 	{
 		uint16_t hdr = data | (m_firstTransactionByte << 8);
-		m_logWriter.write (timestamp, I2cSnifferLogRecordCode.I2cFinalizeStart10Bit, &hdr, sizeof (hdr));
+		m_logWriter.write (timestamp, I2cSpiSnifferLogRecordCode.I2cFinalizeStart10Bit, &hdr, sizeof (hdr));
 	}
 	else
 	{

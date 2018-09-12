@@ -1,0 +1,133 @@
+//..............................................................................
+//
+// SPI protocol decoder
+//
+
+import "Decoder.jnc"
+
+//..............................................................................
+
+class SpiDecoder: Decoder
+{
+protected:
+	enum Code
+	{
+		Padding         = 0xff,
+		Start           = 0,
+		MosiDataHi,     // 1
+		MosiDataLo,     // 2
+		MisoDataHi,     // 3
+		MisoDataLo,     // 4
+		Stop,           // 5
+	}
+
+	enum State
+	{
+		Idle,
+		Transaction,
+		MosiDataHi,
+		MosiDataLo,
+		MisoDataHi,
+	}
+
+protected:
+	State m_state;
+	uint16_t m_data;
+
+public:
+	construct (log.Writer* logWriter)
+	{
+		basetype.construct (logWriter);
+	}
+
+	override reset ()
+	{
+		m_state = State.Idle;
+	}
+
+	override decode (
+		void const* p,
+		size_t size
+		);
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+SpiDecoder.decode (
+	void const* p0,
+	size_t size
+	)
+{
+	uint64_t timestamp = sys.getTimestamp ();
+	uchar_t const* p = p0;
+
+	for (size_t i = 0; i < size; i++)
+	{
+		uchar_t c = p [i];
+
+		if (c == Code.Padding)
+			continue;
+
+		uchar_t code = (c & 0xf0) >> 4;
+		switch (code)
+		{
+		case Code.Start:
+			uint_t bitCount = c & 0x0f;
+
+			if (bitCount)
+				m_logWriter.write (timestamp, I2cSpiSnifferLogRecordCode.IncompleteByte, &bitCount, sizeof (bitCount));
+
+			m_logWriter.write (timestamp, I2cSpiSnifferLogRecordCode.SpiStart);
+			m_state = State.Transaction;
+			break;
+
+		case Code.MosiDataHi:
+			if (m_state != State.Transaction)
+				writeLogUnexpectedCode (timestamp, code, m_state);
+
+			m_data = c << 4;
+			m_state = State.MosiDataHi;
+			break;
+
+		case Code.MosiDataLo:
+			if (m_state != State.MosiDataHi)
+				writeLogUnexpectedCode (timestamp, code, m_state);
+
+			m_data |= c & 0x0f;
+			m_state = State.MosiDataLo;
+			break;
+
+		case Code.MisoDataHi:
+			if (m_state != State.MosiDataLo)
+				writeLogUnexpectedCode (timestamp, code, m_state);
+
+			m_data |= c << 12;
+			m_state = State.MisoDataHi;
+			break;
+
+		case Code.MisoDataLo:
+			if (m_state != State.MisoDataHi)
+				writeLogUnexpectedCode (timestamp, code, m_state);
+
+			m_data |= c << 8;
+			m_logWriter.write (timestamp, log.StdRecordCode.TxRx, &m_data, sizeof (m_data));
+			m_state = State.Transaction;
+			break;
+
+		case Code.Stop:
+			uint_t bitCount = c & 0x0f;
+			if (m_state == Code.MosiDataHi || m_state == Code.MisoDataHi)
+				bitCount += 4;
+
+			if (bitCount)
+				m_logWriter.write (timestamp, I2cSpiSnifferLogRecordCode.IncompleteByte, &bitCount, sizeof (bitCount));
+
+			m_logWriter.write (timestamp, I2cSpiSnifferLogRecordCode.SpiStop);
+			m_state = State.Idle;
+			break;
+		}
+	}
+}
+
+//..............................................................................
+

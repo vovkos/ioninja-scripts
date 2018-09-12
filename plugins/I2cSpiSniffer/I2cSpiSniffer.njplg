@@ -1,0 +1,26 @@
+//..............................................................................
+//
+// SPI/I2C Sniffer session plugin
+//
+
+[plugin]
+
+name        = SPI/I2C Sniffer
+description = "Monitor SPI/I2C communication through a SPI/I2C Sniffer device from Tibbo"
+id          = i2c-sniffer
+group       = serial
+monitor     = false
+guid        = 39ee6b0f-a65e-4e8a-b252-6fa28d8e3327
+icon        = images/serialmon.png
+small-icon  = images/serialmon-16x16.png
+
+session-class        = I2cSpiSnifferSession
+log-representer-func = representI2cSpiSnifferLog
+
+[scripts]
+
+Decoder.jnc
+I2cDecoder.jnc
+SpiDecoder.jnc
+I2cSpiSnifferSession.jnc
+I2cSpiSnifferLog.jnc

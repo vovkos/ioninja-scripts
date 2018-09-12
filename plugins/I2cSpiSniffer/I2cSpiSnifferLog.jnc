@@ -5,7 +5,7 @@
 
 //..............................................................................
 
-enum I2cSnifferLogRecordCode
+enum I2cSpiSnifferLogRecordCode
 {
 	DeviceOpened = 0,
 	InterfaceClaimed,
@@ -15,24 +15,27 @@ enum I2cSnifferLogRecordCode
 	CaptureStopped,
 	CaptureError,
 	UnexpectedCode,
+	IncompleteByte,
+
 	I2cStart,
 	I2cFinalizeStart7Bit,
 	I2cFinalizeStart10Bit,
 	I2cStop,
-	I2cIncompleteTransaction,
-	I2cIncompleteByte,
 	I2cStopOutOfTransaction,
+
+	SpiStart,
+	SpiStop,
 }
 
-enum I2cSnifferLogPartCode
+enum I2cSpiSnifferLogPartCode
 {
-	I2cStartBegin = I2cSnifferLogRecordCode.I2cStart | log.PartCodeFlags.MergeableForward,
-	I2cStartEnd = I2cSnifferLogRecordCode.I2cStart | log.PartCodeFlags.MergeableBackward,
+	I2cStartBegin = I2cSpiSnifferLogRecordCode.I2cStart | log.PartCodeFlags.MergeableForward,
+	I2cStartEnd = I2cSpiSnifferLogRecordCode.I2cStart | log.PartCodeFlags.MergeableBackward,
 }
 
 //..............................................................................
 
-bool representI2cSnifferLog (
+bool representI2cSpiSnifferLog (
 	log.RepresenterTarget* target,
 	uint_t recordCode,
 	void const* p,
@@ -42,51 +45,51 @@ bool representI2cSnifferLog (
 {
 	switch (recordCode)
 	{
-	case I2cSnifferLogRecordCode.DeviceOpened:
+	case I2cSpiSnifferLogRecordCode.DeviceOpened:
 		char const* name = (char const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText ($"Sniffer device \e[34m$name\e[m opened");
 		break;
 
-	case I2cSnifferLogRecordCode.InterfaceClaimed:
+	case I2cSpiSnifferLogRecordCode.InterfaceClaimed:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText ($"Interface \e[34m#0\e[m claimed");
 		break;
 
-	case I2cSnifferLogRecordCode.InEndpointOpened:
+	case I2cSpiSnifferLogRecordCode.InEndpointOpened:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText ($"In endpoint \e[34m#86\e[m opened");
 		break;
 
-	case I2cSnifferLogRecordCode.OutEndpointOpened:
+	case I2cSpiSnifferLogRecordCode.OutEndpointOpened:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText ($"Out endpoint \e[34m#2\e[m opened");
 		break;
 
-	case I2cSnifferLogRecordCode.CaptureStarted:
+	case I2cSpiSnifferLogRecordCode.CaptureStarted:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Connect;
 		target.addHyperText ($"Capture started");
 		break;
 
-	case I2cSnifferLogRecordCode.CaptureStopped:
+	case I2cSpiSnifferLogRecordCode.CaptureStopped:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
 		target.addHyperText ("Capture stopped");
 		break;
 
-	case I2cSnifferLogRecordCode.CaptureError:
+	case I2cSpiSnifferLogRecordCode.CaptureError:
 		std.Error const* error = (std.Error const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
 		target.addHyperText ($"Cannot open sniffer: $(error.m_description)");
 		break;
 
-	case I2cSnifferLogRecordCode.UnexpectedCode:
+	case I2cSpiSnifferLogRecordCode.UnexpectedCode:
 		uint_t code = ((uint_t const*) p) [0];
 		uint_t state = ((uint_t const*) p) [1];
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
@@ -94,17 +97,24 @@ bool representI2cSnifferLog (
 		target.addHyperText ($"Unexpected code from sniffer (code: $code, decoder state: $state)");
 		break;
 
-	case I2cSnifferLogRecordCode.I2cStart:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Packet;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText (I2cSnifferLogPartCode.I2cStartBegin, "I2C start");
+	case I2cSpiSnifferLogRecordCode.IncompleteByte:
+		uint_t bitCount = *(uint_t const*) p;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Warning;
+		target.addHyperText ($"Incomplete byte received ($(bitCount) bits)");
 		break;
 
-	case I2cSnifferLogRecordCode.I2cFinalizeStart7Bit:
+	case I2cSpiSnifferLogRecordCode.I2cStart:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Packet;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText (I2cSpiSnifferLogPartCode.I2cStartBegin, "I2C start");
+		break;
+
+	case I2cSpiSnifferLogRecordCode.I2cFinalizeStart7Bit:
 		uchar_t hdr = *(const uchar_t*) p;
 
 		target.addHyperText (
-			I2cSnifferLogPartCode.I2cStartEnd,
+			I2cSpiSnifferLogPartCode.I2cStartEnd,
 			$", %1 \e[34m@%(2; 02x)\e[m" (
 				(hdr & 0x01) ? "read" : "write",
 				hdr >> 1
@@ -113,11 +123,11 @@ bool representI2cSnifferLog (
 
 		break;
 
-	case I2cSnifferLogRecordCode.I2cFinalizeStart10Bit:
+	case I2cSpiSnifferLogRecordCode.I2cFinalizeStart10Bit:
 		uint16_t hdr = *(const uint16_t*) p;
 
 		target.addHyperText (
-			I2cSnifferLogPartCode.I2cStartEnd,
+			I2cSpiSnifferLogPartCode.I2cStartEnd,
 			$", %1 \e[34m@%(2; 03x)\e[m" (
 				(hdr & 0x100) ? "read" : "write",
 				(hdr & 0xff) | ((hdr & 0x60) >> 1)
@@ -126,29 +136,28 @@ bool representI2cSnifferLog (
 
 		break;
 
-	case I2cSnifferLogRecordCode.I2cStop:
+	case I2cSpiSnifferLogRecordCode.I2cStop:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText ("I2C stop");
 		break;
 
-	case I2cSnifferLogRecordCode.I2cIncompleteTransaction:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Warning;
-		target.addHyperText ("Incomplete transaction");
-		break;
-
-	case I2cSnifferLogRecordCode.I2cIncompleteByte:
-		uint_t bitCount = *(uint_t const*) p;
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Warning;
-		target.addHyperText ($"Incomplete byte received ($(bitCount) bits)");
-		break;
-
-	case I2cSnifferLogRecordCode.I2cStopOutOfTransaction:
+	case I2cSpiSnifferLogRecordCode.I2cStopOutOfTransaction:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Warning;
 		target.addHyperText ("I2C stop out-of-transaction");
+		break;
+
+	case I2cSpiSnifferLogRecordCode.SpiStart:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Packet;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText (I2cSpiSnifferLogPartCode.I2cStartBegin, "SPI SS \e[34mlow\e[m");
+		break;
+
+	case I2cSpiSnifferLogRecordCode.SpiStop:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Packet;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText (I2cSpiSnifferLogPartCode.I2cStartBegin, "SPI SS \e[34mhigh\e[m");
 		break;
 
 	default:
@@ -160,9 +169,9 @@ bool representI2cSnifferLog (
 
 //..............................................................................
 
-class I2cSnifferLogFilter: log.Filter
+class I2cSpiSnifferLogFilter: log.Filter
 {
-	volatile bool m_isStopVisible;
+	volatile bool m_isI2cStopVisible;
 
 	construct ();
 
@@ -176,12 +185,12 @@ class I2cSnifferLogFilter: log.Filter
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-I2cSnifferLogFilter.construct ()
+I2cSpiSnifferLogFilter.construct ()
 {
-	m_isStopVisible = true;
+	m_isI2cStopVisible = true;
 }
 
-bool I2cSnifferLogFilter.filter (
+bool I2cSpiSnifferLogFilter.filter (
 	uint64_t timestamp,
 	uint_t recordCode,
 	void const* p,
@@ -190,8 +199,8 @@ bool I2cSnifferLogFilter.filter (
 {
 	switch (recordCode)
 	{
-	case I2cSnifferLogRecordCode.I2cStop:
-		return m_isStopVisible;
+	case I2cSpiSnifferLogRecordCode.I2cStop:
+		return m_isI2cStopVisible;
 
 	default:
 		return true; // everything else is visible
