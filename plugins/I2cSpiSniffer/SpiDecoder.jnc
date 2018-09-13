@@ -85,7 +85,7 @@ SpiDecoder.decode (
 			if (m_state >= State.MosiDataHi)
 				writeLogUnexpectedCode (timestamp, code, m_state);
 
-			m_data = c << 4;
+			m_data = (uchar_t) (c << 4);
 			m_state = State.MosiDataHi;
 			break;
 
@@ -109,7 +109,7 @@ SpiDecoder.decode (
 			if (m_state != State.MosiDataLo)
 				writeLogUnexpectedCode (timestamp, code, m_state);
 
-			m_data |= c << 8;
+			m_data |= (c & 0x0f) << 8;
 			m_logWriter.write (timestamp, log.StdRecordCode.TxRx, &m_data, sizeof (m_data));
 			m_state = State.Transaction;
 			break;
