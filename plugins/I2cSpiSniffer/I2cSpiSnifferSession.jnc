@@ -198,8 +198,8 @@ I2cSpiSnifferSession.createUi ()
 
 	static gui.EnumPropertyOption endiannessTable [] =
 	{
-		{ "Big-endian (MSBit first)",    true },
 		{ "Little-endian (LSBit first)", false },
+		{ "Big-endian (MSBit first)",    true },
 	}
 
 	// toolbar
@@ -402,8 +402,11 @@ bool errorcode I2cSpiSnifferSession.capture ()
 	switch (m_protocolProp.m_value)
 	{
 	case Protocol.Spi:
+		m_spiDecoder.m_isBigEndian = m_endiannessProp.m_value;
+		m_spiDecoder.m_dataBits = 8;
 		m_decoder = m_spiDecoder;
-		startCode = 0x70 + m_spiModeProp.m_value;
+		startCode = m_spiModeProp.m_value;
+		startCode += m_endiannessProp.m_value ? 0x70 : 0x80;
 		break;
 
 	case Protocol.I2c:
@@ -509,9 +512,9 @@ I2cSpiSnifferSession.load (doc.Storage* storage)
 {
 	m_deviceCombo.m_currentIndex  = storage.readInt ("deviceIdx");
 	m_protocolProp.m_value = storage.readInt ("protocol", Defaults.Protocol);
-	m_spiModeProp.m_value = storage.readInt("spiMode", Defaults.SpiMode);
-	m_endiannessProp.m_value = storage.readInt("endianness", Defaults.Endianness);
-	m_dataBitsProp.m_value = storage.readInt("dataBits", Defaults.DataBits);
+	m_spiModeProp.m_value = storage.readInt ("spiMode", Defaults.SpiMode);
+	m_endiannessProp.m_value = storage.readInt ("endianness", Defaults.Endianness);
+	m_dataBitsProp.m_value = storage.readInt ("dataBits", Defaults.DataBits);
 	m_showI2cStopProp.m_value = storage.readBool ("showI2cStop", Defaults.ShowI2cStop);
 	m_showRawDataProp.m_value = storage.readBool ("showRawData", Defaults.ShowRawData);
 	m_bufferPropertySet.load (storage);

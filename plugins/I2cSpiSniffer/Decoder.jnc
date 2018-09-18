@@ -3,23 +3,33 @@
 // I2C protocol decoder
 //
 
+import "std_Buffer.jnc"
+
 //..............................................................................
 
 class Decoder
 {
+	enum Defaults
+	{
+		BufferSize = 1024,
+	}
+
 protected:
 	log.Writer* m_logWriter;
+	std.Buffer m_buffer;
+	size_t m_size;
 
 public:
 	construct (log.Writer* logWriter)
 	{
 		m_logWriter = logWriter;
+		m_buffer.setSize (Defaults.BufferSize);
 	}
 
 	abstract reset ();
 
 	abstract decode (
-		void const* p,
+		void const thin* p,
 		size_t size
 		);
 

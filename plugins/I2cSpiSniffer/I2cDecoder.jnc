@@ -13,6 +13,7 @@ protected:
 	enum Code
 	{
 		Padding         = 0xff,
+		BufferOverflow  = 0xaa,
 		Start           = 0,
 		StartDataHi,    // 1
 		DataHi,         // 2
@@ -49,7 +50,7 @@ public:
 	}
 
 	override decode (
-		void const* p,
+		void const thin* p,
 		size_t size
 		);
 
@@ -71,19 +72,27 @@ protected:
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 I2cDecoder.decode (
-	void const* p0,
+	void const thin* p0,
 	size_t size
 	)
 {
 	uint64_t timestamp = sys.getTimestamp ();
-	uchar_t const* p = p0;
+	uchar_t const thin* p = p0;
+	uchar_t const thin* end = p + size;
 
-	for (size_t i = 0; i < size; i++)
+	for (; p < end; p++)
 	{
-		uchar_t c = p [i];
+		uchar_t c = *p;
 
-		if (c == Code.Padding)
+		switch (c)
+		{
+		case Code.Padding:
 			continue;
+
+		case Code.BufferOverflow:
+			m_logWriter.write (timestamp, I2cSpiSnifferLogRecordCode.BufferOverflow);
+			continue;
+		}
 
 		uchar_t code = (c & 0xf0) >> 4;
 		switch (code)

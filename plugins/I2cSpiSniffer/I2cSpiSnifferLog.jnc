@@ -16,6 +16,7 @@ enum I2cSpiSnifferLogRecordCode
 	CaptureError,
 	UnexpectedCode,
 	IncompleteByte,
+	BufferOverflow,
 
 	I2cStart,
 	I2cFinalizeStart7Bit,
@@ -102,6 +103,12 @@ bool representI2cSpiSnifferLog (
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Warning;
 		target.addHyperText ($"Incomplete byte received ($(bitCount) bits)");
+		break;
+
+	case I2cSpiSnifferLogRecordCode.BufferOverflow:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Warning;
+		target.addHyperText ("FPGA buffer overflow");
 		break;
 
 	case I2cSpiSnifferLogRecordCode.I2cStart:

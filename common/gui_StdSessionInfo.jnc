@@ -43,10 +43,10 @@ public:
 	gui.InformationValue* readonly m_totalSizeInfo;
 	gui.InformationValue* readonly m_totalThroughputInfo;
 
-protected:	
+protected:
 	// m_txTotalSize and m_rxTotalSize are modified in the log index thread
-	
-	sys.Lock m_lock; 
+
+	sys.Lock m_lock;
 	uint64_t m_txTotalSize;
 	uint64_t m_rxTotalSize;
 
