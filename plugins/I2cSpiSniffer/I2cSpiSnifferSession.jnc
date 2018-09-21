@@ -543,6 +543,7 @@ I2cSpiSnifferSession.updateProperties ()
 bool errorcode I2cSpiSnifferSession.applyProperties ()
 {
 	m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
+	m_readBuffer.detach (); // drop buffer, so we re-allocate each time
 	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
 	m_logFilter.m_isI2cStopVisible = m_showI2cStopProp.m_value;
 
