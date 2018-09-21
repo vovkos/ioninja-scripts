@@ -72,7 +72,7 @@ SpiDecoder.decode (
 
 	uchar_t thin* mosi = m_buffer.m_p + m_size;
 	uchar_t thin* miso = m_misoBuffer.m_p + m_size;
-	uchar_t thin* lastMiso = miso + m_misoBuffer.m_maxSize - 1;
+	uchar_t thin* lastMiso = m_misoBuffer.m_p + m_misoBuffer.m_size - 1;
 
 	for (; p < end; p++)
 	{
