@@ -396,6 +396,7 @@ bool errorcode I2cSpiSnifferSession.capture ()
 	m_inEndpoint.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
 	m_inEndpoint.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
 	m_inEndpoint.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
+	m_inEndpoint.m_options &= ~io.UsbEndpointOptions.KeepReadBlockSize;
 
 	char startCode;
 
