@@ -41,6 +41,8 @@ opaque class PluginHost
 	MainThreadScheduler* m_mainThreadScheduler;
 	std.Guid m_pluginGuid;
 
+	char const* const property m_pluginDir;
+
 	destruct ();
 }
 
