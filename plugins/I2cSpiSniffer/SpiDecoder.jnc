@@ -36,17 +36,14 @@ protected:
 	uint8_t m_mosi;
 	uint8_t m_miso;
 	std.Buffer m_misoBuffer;
+	uint_t* m_bitCount; // as to avoid "lifting" allocations
 
 public:
 	bool m_isBigEndian;
 	uint_t m_dataBits;
 
 public:
-	construct (log.Writer* logWriter)
-	{
-		basetype.construct (logWriter);
-		m_misoBuffer.setSize (m_buffer.m_size / 2);
-	}
+	construct (log.Writer* logWriter);
 
 	override reset ()
 	{
@@ -60,6 +57,13 @@ public:
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+SpiDecoder.construct (log.Writer* logWriter)
+{
+	basetype.construct (logWriter);
+	m_misoBuffer.setSize (m_buffer.m_size / 2);
+	m_bitCount = new uint_t;
+}
 
 SpiDecoder.decode (
 	void const thin* p0,
@@ -103,9 +107,12 @@ SpiDecoder.decode (
 
 			uint_t bitCount = c & 0x0f;
 			if (bitCount)
-				m_logWriter.write (timestamp, I2cSpiSnifferLogRecordCode.IncompleteByte, &bitCount, sizeof (bitCount));
+			{
+				*m_bitCount = bitCount;
+				m_logWriter.write (timestamp, I2cSpiSnifferLogRecordCode.IncompleteByte, m_bitCount, sizeof (uint_t));
+			}
 
-			m_logWriter.write (timestamp, I2cSpiSnifferLogRecordCode.SpiStart);
+			m_logWriter.write (timestamp, I2cSpiSnifferLogRecordCode.SpiStart, null, 0);
 			m_state = State.Transaction;
 			break;
 
@@ -167,6 +174,8 @@ SpiDecoder.decode (
 				size_t size = mosi - (uchar_t*) m_buffer.m_p;
 				memcpy (m_buffer.m_p + size, m_misoBuffer.m_p, size);
 				m_logWriter.write (timestamp, log.StdRecordCode.TxRx, m_buffer.m_p, 2 * size);
+				mosi = m_buffer.m_p;
+				miso = m_misoBuffer.m_p;
 			}
 
 			m_state = State.Transaction;
@@ -187,9 +196,12 @@ SpiDecoder.decode (
 				bitCount += 4;
 
 			if (bitCount)
-				m_logWriter.write (timestamp, I2cSpiSnifferLogRecordCode.IncompleteByte, &bitCount, sizeof (bitCount));
+			{
+				*m_bitCount = bitCount;
+				m_logWriter.write (timestamp, I2cSpiSnifferLogRecordCode.IncompleteByte, m_bitCount, sizeof (uint_t));
+			}
 
-			m_logWriter.write (timestamp, I2cSpiSnifferLogRecordCode.SpiStop);
+			m_logWriter.write (timestamp, I2cSpiSnifferLogRecordCode.SpiStop, null, 0);
 			m_state = State.Idle;
 			break;
 		}

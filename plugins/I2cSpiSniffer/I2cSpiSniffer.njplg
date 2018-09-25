@@ -19,6 +19,8 @@ log-representer-func = representI2cSpiSnifferLog
 
 [scripts]
 
+Protocol.jnc
+Uploader.jnc
 Decoder.jnc
 I2cDecoder.jnc
 SpiDecoder.jnc
