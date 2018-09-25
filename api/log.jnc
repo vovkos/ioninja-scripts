@@ -257,7 +257,7 @@ opaque class Writer
 		char const* p
 		)
 	{
-		writeString (sys.getPreciseTimestamp (), p);
+		writeString (sys.getPreciseTimestamp (), recordCode, p);
 	}
 
 	writeError (
