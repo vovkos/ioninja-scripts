@@ -415,6 +415,9 @@ typedef RangeProcessor* RangeProcessorFactoryFunc ();
 
 opaque class Log
 {
+	size_t property m_leafLineCountLimit;
+	size_t property m_cacheUpdateScrollRateLimit;
+
 	gui.Icon* property m_iconTable (size_t i);
 
 	Writer* readonly m_writer;
