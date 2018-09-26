@@ -86,7 +86,8 @@ protected:
 
 	enum
 	{
-		UsbPacketSize = 512
+		UsbPacketSize                 = 512,
+		LogCacheUpdateScrollRateLimit = 16,
 	}
 
 protected:
@@ -179,6 +180,7 @@ I2cSpiSnifferSession.construct (doc.PluginHost* pluginHost)
 
 	createUi ();
 
+	pluginHost.m_log.m_cacheUpdateScrollRateLimit = LogCacheUpdateScrollRateLimit;
 	pluginHost.m_log.addFilter (m_logFilter);
 	pluginHost.m_log.addRepresenter (representI2cSpiSnifferLog);
 	pluginHost.m_log.addSelectionProcessor (log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
