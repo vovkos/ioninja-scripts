@@ -80,7 +80,7 @@ protected:
 
 	enum UsbEndpointTimeout
 	{
-		In  = 200,
+		In  = 1000,
 		Out = 1500,
 	}
 
