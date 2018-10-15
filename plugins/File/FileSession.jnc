@@ -119,7 +119,7 @@ protected:
 	waitFileStreamEvents ();
 	createUi ();
 
-	reactor m_uiReactor ();
+	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -402,7 +402,7 @@ FileSession.onFileStreamEvent (
 	waitFileStreamEvents ();
 }
 
-reactor FileSession.m_uiReactor ()
+reactor FileSession.m_uiReactor
 {
 	m_title = $"File $(m_fileNameCombo.m_editText)";
 	m_isTransmitEnabled = m_state == State.Opened;

@@ -161,16 +161,12 @@ protected:
 			m_readModeProp.m_value != SerialReadMode.IntervalBased ? 0 : m_readIntervalProp.m_value;
 	}
 
-	updateTitle ();
-
 	updateLineInfoValue (
 		InfoId infoId,
 		bool line
 		);
 
-	updateLineInfoValues ();
-
-	reactor m_uiReactor ();
+	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -415,7 +411,7 @@ SerialTapSession.flipDteDce ()
 	m_dtePort = m_dcePort;
 	m_dcePort = tmpPort;
 
-	updateLineInfoValues ();
+	m_uiReactor.restart (); // need to re-bind DTE/DCE
 }
 
 io.SerialOptions SerialTapSession.getSerialOptions ()
@@ -745,13 +741,6 @@ catch:
 	writeLogLastError (log.StdRecordCode.Error);
 }
 
-SerialTapSession.updateTitle ()
-{
-	m_title = m_state ?
-		$"Tap $(m_dtePort.m_name):$(m_dcePort.m_name) $m_serialBaudRate bps" :
-		$"Tap $(m_dtePortCombo.m_currentText):$(m_dcePortCombo.m_currentText) $(m_serialSettingUi.m_baudRateCombo.m_currentText)";
-}
-
 SerialTapSession.updateLineInfoValue (
 	InfoId infoId,
 	bool line
@@ -761,31 +750,12 @@ SerialTapSession.updateLineInfoValue (
 	m_infoTable [infoId].m_valueColor = line ? gui.StdColor.LightRed : gui.StdColor.Gray;
 }
 
-SerialTapSession.updateLineInfoValues ()
+reactor SerialTapSession.m_uiReactor
 {
-	updateLineInfoValue (InfoId.Dtr, m_dcePort.m_serialStatusLines & io.SerialStatusLines.Dsr);
-	updateLineInfoValue (InfoId.Rts, m_dcePort.m_serialStatusLines & io.SerialStatusLines.Cts);
-	updateLineInfoValue (InfoId.Dsr, m_dtePort.m_serialStatusLines & io.SerialStatusLines.Dsr);
-	updateLineInfoValue (InfoId.Cts, m_dtePort.m_serialStatusLines & io.SerialStatusLines.Cts);
-}
+	m_title = m_state ?
+		$"Tap $(m_dtePort.m_name):$(m_dcePort.m_name) $m_serialBaudRate bps" :
+		$"Tap $(m_dtePortCombo.m_currentText):$(m_dcePortCombo.m_currentText) $(m_serialSettingUi.m_baudRateCombo.m_currentText)";
 
-reactor SerialTapSession.m_uiReactor ()
-{
-	// currently, reactors don't handle conditional expressions with bindable
-	// sites too well; fixing that requires non-trivial redesign of the way
-	// reactors detect and bind to properties during the startup of a reactor.
-	// until it's fixed, we'll use a temporary workaround via onevent
-
-	onevent (
-		bindingof (m_state),
-		bindingof (m_serialBaudRate),
-		m_dtePortCombo.m_onChanged,
-		m_dcePortCombo.m_onChanged,
-		m_serialSettingUi.m_baudRateCombo.m_onChanged
-		) ()
-	{
-		updateTitle ();
-	}
 	m_actionTable [ActionId.Capture].m_text = m_state ? "Stop capture" : "Capture";
 	m_actionTable [ActionId.Capture].m_icon = m_iconTable [m_state ? IconId.StopCapture : IconId.Capture];
 	m_bufferPropertySet.m_readParallelismProp.m_isEnabled = m_readModeProp.m_value != SerialReadMode.CheckComstat;
@@ -797,13 +767,10 @@ reactor SerialTapSession.m_uiReactor ()
 	m_infoTable [InfoId.Dsr].m_isEnabled = m_state;
 	m_infoTable [InfoId.Cts].m_isEnabled = m_state;
 
-	onevent (
-		bindingof (m_dtePort.m_serialStatusLines),
-		bindingof (m_dcePort.m_serialStatusLines)
-		) ()
-	{
-		updateLineInfoValues ();
-	}
+	updateLineInfoValue (InfoId.Dtr, m_dcePort.m_serialStatusLines & io.SerialStatusLines.Dsr);
+	updateLineInfoValue (InfoId.Rts, m_dcePort.m_serialStatusLines & io.SerialStatusLines.Cts);
+	updateLineInfoValue (InfoId.Dsr, m_dtePort.m_serialStatusLines & io.SerialStatusLines.Dsr);
+	updateLineInfoValue (InfoId.Cts, m_dtePort.m_serialStatusLines & io.SerialStatusLines.Cts);
 }
 
 //..............................................................................

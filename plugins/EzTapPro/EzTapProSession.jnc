@@ -184,14 +184,12 @@ protected:
 		bool cts
 		);
 
-	reactor m_uiReactor ();
-
-	updateTitle ();
-
 	updateLineInfoValue (
 		InfoId infoId,
 		bool line
 		);
+
+	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -929,13 +927,6 @@ EzTapProSession.onBaudRateChanged ()
 	configureSerial ();
 }
 
-EzTapProSession.updateTitle ()
-{
-	m_title = m_state ?
-		$"EZ-Tap $m_portName $(m_baudRate)" :
-		$"EZ-Tap $(m_portCombo.m_currentText) $(m_serialSettingUi.m_baudRateCombo.m_currentText)";
-}
-
 EzTapProSession.updateLineInfoValue (
 	InfoId infoId,
 	bool line
@@ -945,22 +936,11 @@ EzTapProSession.updateLineInfoValue (
 	m_infoTable [infoId].m_valueColor = line ? gui.StdColor.LightRed : gui.StdColor.Gray;
 }
 
-reactor EzTapProSession.m_uiReactor ()
+reactor EzTapProSession.m_uiReactor
 {
-	// currently, reactors don't handle conditional expressions with bindable
-	// sites too well; fixing that requires non-trivial redesign of the way
-	// reactors detect and bind to properties during the startup of a reactor.
-	// until it's fixed, we'll use a temporary workaround via onevent
-
-	onevent (
-		bindingof (m_state),
-		bindingof (m_baudRate),
-		m_portCombo.m_onChanged,
-		m_serialSettingUi.m_baudRateCombo.m_onChanged
-		) ()
-	{
-		updateTitle ();
-	}
+	m_title = m_state ?
+		$"EZ-Tap $m_portName $(m_baudRate)" :
+		$"EZ-Tap $(m_portCombo.m_currentText) $(m_serialSettingUi.m_baudRateCombo.m_currentText)";
 
 	m_actionTable [ActionId.Capture].m_text = m_state ? "Stop capture" : "Capture";
 	m_actionTable [ActionId.Capture].m_icon = m_iconTable [m_state ? IconId.StopCapture : IconId.Capture];
@@ -973,6 +953,7 @@ reactor EzTapProSession.m_uiReactor ()
 	m_infoTable [InfoId.Rts].m_isEnabled = m_state;
 	m_infoTable [InfoId.Dsr].m_isEnabled = m_state;
 	m_infoTable [InfoId.Cts].m_isEnabled = m_state;
+
 	updateLineInfoValue (InfoId.Dtr, m_dteControlLines & io.SerialStatusLines.Dsr);
 	updateLineInfoValue (InfoId.Rts, m_dteControlLines & io.SerialStatusLines.Cts);
 	updateLineInfoValue (InfoId.Dsr, m_dceControlLines & io.SerialStatusLines.Dsr);

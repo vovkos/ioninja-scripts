@@ -99,7 +99,7 @@ protected:
 	}
 
 	createUi ();
-	reactor m_uiReactor ();
+	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -298,7 +298,7 @@ void MailslotMonSession.restoreDefaultProperties ()
 	m_bufferPropertySet.restoreDefaults ();
 }
 
-reactor MailslotMonSession.m_uiReactor ()
+reactor MailslotMonSession.m_uiReactor
 {
 	m_title = $"MSFS mon $(m_nameCombo.m_currentText)";
 	m_actionTable [ActionId.Capture].m_text = m_state ? "Stop Capture" : "Capture";

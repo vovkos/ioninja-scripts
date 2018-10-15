@@ -190,7 +190,7 @@ protected:
 		std.Error const* error
 		);
 
-	reactor m_uiReactor ();
+	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -777,7 +777,7 @@ CypressUploaderSession.onProgressDlgButtonClicked (gui.StdDlgButton button)
 	}
 }
 
-reactor CypressUploaderSession.m_uiReactor ()
+reactor CypressUploaderSession.m_uiReactor
 {
 	m_title = $"USB $(m_deviceCombo.m_currentText)";
 	m_actionTable [ActionId.Open].m_text = m_state ? "Close Device" : "Open Device";

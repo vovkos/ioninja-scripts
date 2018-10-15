@@ -23,7 +23,7 @@ class RegexPattern
 	void save (doc.Storage* storage);
 
 protected:
-	reactor m_uiReactor ();
+	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -134,7 +134,7 @@ void RegexPattern.save (doc.Storage* storage)
 	storage.writeInt ("fontFlags", m_fontFlagProp.m_value);
 }
 
-reactor RegexPattern.m_uiReactor ()
+reactor RegexPattern.m_uiReactor
 {
 	bindable bool isEnabled = m_isTxEnabledProp.m_value || m_isRxEnabledProp.m_value;
 

@@ -139,7 +139,7 @@ protected:
 	waitInEndpointEvents ();
 	updateUsbThroughput (uint64_t timestamp = sys.getTimestamp ());
 
-	reactor m_uiReactor ();
+	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -555,7 +555,7 @@ HwSerialMonSession.onInEndpointEvent (
 	waitInEndpointEvents ();
 }
 
-reactor HwSerialMonSession.m_uiReactor ()
+reactor HwSerialMonSession.m_uiReactor
 {
 	m_title = $"HW Serial Mon $(m_deviceCombo.m_currentText)";
 	m_actionTable [ActionId.Open].m_text = m_state ? "Close Sniffer Device" : "Open Sniffer Device";

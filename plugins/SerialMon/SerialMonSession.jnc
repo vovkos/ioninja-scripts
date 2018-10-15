@@ -104,8 +104,7 @@ protected:
 	createUi ();
 	enumeratePorts ();
 
-	reactor m_uiReactor ();
-	updateTitle ();
+	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -204,7 +203,6 @@ SerialMonSession.createUi ()
 	m_pluginHost.m_informationGrid.resizeNameColumnToContents ();
 
 	enumeratePorts ();
-	updateTitle ();
 	m_uiReactor.start ();
 }
 
@@ -329,22 +327,11 @@ void SerialMonSession.restoreDefaultProperties ()
 	m_bufferPropertySet.restoreDefaults ();
 }
 
-SerialMonSession.updateTitle ()
+reactor SerialMonSession.m_uiReactor
 {
 	m_title = m_state ?
 		$"Monitor $m_portName" :
 		$"Monitor $(m_portCombo.m_currentText)";
-}
-
-reactor SerialMonSession.m_uiReactor ()
-{
-	onevent (
-		bindingof (m_state),
-		m_portCombo.m_onChanged
-		) ()
-	{
-		updateTitle ();
-	}
 
 	m_actionTable [ActionId.Capture].m_text = m_state ? "Stop capture" : "Capture";
 	m_actionTable [ActionId.Capture].m_icon = m_iconTable [m_state ? IconId.StopCapture : IconId.Capture];

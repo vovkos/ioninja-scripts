@@ -56,7 +56,7 @@ protected:
 		);
 
 	createUi ();
-	reactor m_uiReactor ();
+	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -183,7 +183,7 @@ $(layerClass).scanRx (
 	}
 }
 
-reactor $(layerClass).m_uiReactor ()
+reactor $(layerClass).m_uiReactor
 {
 	m_retransmitCountProp.m_isEnabled = m_enableRetransmitProp.m_value;
 	m_retransmitDelayProp.m_isEnabled = m_enableRetransmitProp.m_value;

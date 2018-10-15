@@ -170,7 +170,7 @@ protected:
 	handleConnectError (std.Error const* error);
 	handleSshAuthenticateError (std.Error const* error);
 
-	reactor m_uiReactor ();
+	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -810,7 +810,7 @@ SshChannelSession.onResolveCompleted (
 	connect (&address);
 }
 
-reactor SshChannelSession.m_uiReactor ()
+reactor SshChannelSession.m_uiReactor
 {
 	m_title = $"SSH $(m_addressCombo.m_currentText)";
 	m_privateKeyFileProp.m_isEnabled = m_authenticationMethodProp.m_value == gui.AuthenticationMethod.PrivateKey;

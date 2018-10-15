@@ -163,7 +163,7 @@ protected:
 	waitInEndpointEvents ();
 	bool errorcode startCapture ();
 
-	reactor m_uiReactor ();
+	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -601,7 +601,7 @@ I2cSpiSnifferSession.restoreDefaultProperties ()
 	m_bufferPropertySet.restoreDefaults ();
 }
 
-reactor I2cSpiSnifferSession.m_uiReactor ()
+reactor I2cSpiSnifferSession.m_uiReactor
 {
 	m_title = $"$(g_protocolNameTable [m_protocolProp.m_value]) $(m_deviceCombo.m_currentText)";
 	m_actionTable [ActionId.Capture].m_text = m_state ? "Close Device" : "Open Device";

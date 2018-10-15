@@ -101,7 +101,7 @@ protected:
 	onMonitorError ();
 
 	createUi ();
-	reactor m_uiReactor ();
+	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -293,7 +293,7 @@ void PipeMonSession.restoreDefaultProperties ()
 	m_bufferPropertySet.restoreDefaults ();
 }
 
-reactor PipeMonSession.m_uiReactor ()
+reactor PipeMonSession.m_uiReactor
 {
 	m_title = $"NPFS mon $(m_nameCombo.m_currentText)";
 	m_actionTable [ActionId.Capture].m_text = m_state ? "Stop Capture" : "Capture";

@@ -151,7 +151,7 @@ protected:
 		io.SocketAddress const* address
 		);
 
-	reactor m_uiReactor ();
+	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -556,7 +556,7 @@ catch:
 	writeLog (log.StdRecordCode.Error, error, error.m_size);
 }
 
-reactor UdpSession.m_uiReactor ()
+reactor UdpSession.m_uiReactor
 {
 	m_title = $"UDP @ $(m_localPortCombo.m_editText) -> $(m_remoteAddressCombo.m_editText)";
 	m_isTransmitEnabled = m_state == State.Opened;

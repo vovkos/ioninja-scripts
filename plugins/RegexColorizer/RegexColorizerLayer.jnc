@@ -49,7 +49,7 @@ protected:
 	onRemoveLastPattern ();
 	onRemoveAllExtraPatterns ();
 
-	reactor m_uiReactor ();
+	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -165,7 +165,7 @@ void RegexColorizerLayer.save (doc.Storage* storage)
 bool errorcode RegexColorizerLayer.applyProperties ()
 {
 	m_pluginHost.m_log.suspend ();
-	
+
 	m_txHighlighter.clearRegex_s ();
 	m_rxHighlighter.clearRegex_s ();
 
@@ -189,7 +189,7 @@ bool errorcode RegexColorizerLayer.applyProperties ()
 	m_txHighlighter.finalizeRegex_s ();
 	m_rxHighlighter.finalizeRegex_s ();
 	return true;
-	
+
 finally:
 	m_pluginHost.m_log.resume ();
 }
@@ -235,7 +235,7 @@ bool RegexColorizerLayer.convert (
 	return true;
 }
 
-reactor RegexColorizerLayer.m_uiReactor ()
+reactor RegexColorizerLayer.m_uiReactor
 {
 	m_removeLastPatternProp.m_isEnabled =
 	m_removeAllExtraPatternsProp.m_isEnabled = m_hasExtraPatterns;

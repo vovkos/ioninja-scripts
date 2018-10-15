@@ -95,7 +95,7 @@ protected:
 	onTransmitEnabledChanged ();
 
 	createUi ();
-	reactor m_uiReactor ();
+	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -376,7 +376,7 @@ TxModifierLayer.onTransmitEnabledChanged ()
 	m_retransmitTimer.stop ();
 }
 
-reactor TxModifierLayer.m_uiReactor ()
+reactor TxModifierLayer.m_uiReactor
 {
 	m_prefixProp.m_isEnabled = m_isPrefixEnabledProp.m_value;
 	m_suffixProp.m_isEnabled = m_isSuffixEnabledProp.m_value;

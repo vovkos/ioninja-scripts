@@ -187,7 +187,7 @@ protected:
 	waitServerConnectionSocketEvents ();
 	waitClientConnectionSocketEvents ();
 
-	reactor m_uiReactor ();
+	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -782,7 +782,7 @@ TcpProxySession.waitClientConnectionSocketEvents ()
 		);
 }
 
-reactor TcpProxySession.m_uiReactor ()
+reactor TcpProxySession.m_uiReactor
 {
 	m_title = $"TCP @ $(m_serverPortCombo.m_editText) -> $(m_clientAddressCombo.m_editText)";
 	m_actionTable [ActionId.Listen].m_text = m_listenerState ? "Stop Listening" : "Listen";

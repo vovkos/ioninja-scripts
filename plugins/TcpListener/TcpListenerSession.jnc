@@ -139,7 +139,7 @@ protected:
 	waitListenerSocketEvents ();
 	waitConnectionSocketEvents ();
 
-	reactor m_uiReactor ();
+	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -503,7 +503,7 @@ TcpListenerSession.onConnectionSocketEvent (
 	waitConnectionSocketEvents ();
 }
 
-reactor TcpListenerSession.m_uiReactor ()
+reactor TcpListenerSession.m_uiReactor
 {
 	m_title = $"TCP @ $(m_portCombo.m_editText)";
 	m_actionTable [ActionId.Listen].m_text = m_listenerState ? "Stop Listening" : "Listen";

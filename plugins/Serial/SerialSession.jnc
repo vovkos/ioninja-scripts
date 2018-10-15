@@ -152,9 +152,8 @@ protected:
 			m_readModeProp.m_value != SerialReadMode.IntervalBased ? 0 : m_readIntervalProp.m_value;
 	}
 
-	reactor m_uiReactor ();
+	reactor m_uiReactor;
 
-	updateTitle ();
 	updateLineInfoValue (
 		InfoId infoId,
 		bool line
@@ -315,7 +314,7 @@ SerialSession.createUi ()
 	m_pluginHost.m_informationGrid.resizeNameColumnToContents ();
 
 	enumeratePorts ();
-	updateTitle ();
+
 	m_uiReactor.start ();
 }
 
@@ -745,13 +744,6 @@ SerialSession.onRtsChanged ()
 	writeLog (SerialLogRecordCode.RtsChanged, &value, sizeof (value));
 }
 
-SerialSession.updateTitle ()
-{
-	m_title = m_state ?
-		$"Serial $m_portName $m_serialBaudRate bps" :
-		$"Serial $(m_portCombo.m_currentText) $(m_serialSettingUi.m_baudRateCombo.m_editText)";
-}
-
 SerialSession.updateLineInfoValue (
 	InfoId infoId,
 	bool line
@@ -761,22 +753,11 @@ SerialSession.updateLineInfoValue (
 	m_infoTable [infoId].m_valueColor = line ? gui.StdColor.LightRed : gui.StdColor.Gray;
 }
 
-reactor SerialSession.m_uiReactor ()
+reactor SerialSession.m_uiReactor
 {
-	// currently, reactors don't handle conditional expressions with bindable
-	// sites too well; fixing that requires non-trivial redesign of the way
-	// reactors detect and bind to properties during the startup of a reactor.
-	// until it's fixed, we'll use a temporary workaround via onevent
-
-	onevent (
-		bindingof (m_state),
-		bindingof (m_serialBaudRate),
-		m_portCombo.m_onChanged,
-		m_serialSettingUi.m_baudRateCombo.m_onChanged
-		) ()
-	{
-		updateTitle ();
-	}
+	m_title = m_state ?
+		$"Serial $m_portName $m_serialBaudRate bps" :
+		$"Serial $(m_portCombo.m_currentText) $(m_serialSettingUi.m_baudRateCombo.m_editText)";
 
 	m_actionTable [ActionId.Open].m_text = m_state ? "Close" : "Open";
 	m_actionTable [ActionId.Open].m_icon = m_iconTable [m_state ? IconId.Close : IconId.Open];
@@ -790,6 +771,7 @@ reactor SerialSession.m_uiReactor ()
 	m_infoTable [InfoId.Rts].m_isEnabled = m_state;
 	m_infoTable [InfoId.Dsr].m_isEnabled = m_state;
 	m_infoTable [InfoId.Cts].m_isEnabled = m_state;
+
 	updateLineInfoValue (InfoId.Dtr, m_serialDtr);
 	updateLineInfoValue (InfoId.Rts, m_serialRts);
 	updateLineInfoValue (InfoId.Dsr, m_serialStatusLines & io.SerialStatusLines.Dsr);

@@ -117,7 +117,7 @@ protected:
 	createUi ();
 	enumerateDevices ();
 
-	reactor m_uiReactor ();
+	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -516,7 +516,7 @@ UsbControlEndpointSession.onTransferCompleted (
 		writeLog ((type & 0x80) ? log.StdRecordCode.Rx : log.StdRecordCode.Tx, p, size);
 }
 
-reactor UsbControlEndpointSession.m_uiReactor ()
+reactor UsbControlEndpointSession.m_uiReactor
 {
 	m_title = $"USB $(m_deviceCombo.m_currentText)";
 	m_actionTable [ActionId.Open].m_text = m_state ? "Close Device" : "Open Device";

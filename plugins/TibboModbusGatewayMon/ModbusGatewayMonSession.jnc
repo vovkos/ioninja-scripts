@@ -131,7 +131,7 @@ protected:
 	waitSocketEvents ();
 
 	createUi ();
-	reactor m_uiReactor ();
+	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -581,7 +581,7 @@ ModbusGatewayMonSession.onResolveCompleted (
 	connect (address);
 }
 
-reactor ModbusGatewayMonSession.m_uiReactor ()
+reactor ModbusGatewayMonSession.m_uiReactor
 {
 	m_title = $"Modbus $(m_addressCombo.m_editText)";
 	m_socketPropertySet.m_adapterProp.m_isEnabled = m_socketPropertySet.m_useLocalAddressProp.m_value;

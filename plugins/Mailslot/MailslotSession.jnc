@@ -105,7 +105,7 @@ protected:
 	io.MailslotOptions getMailslotOptions ();
 	waitMailslotEvents ();
 
-	reactor m_uiReactor ();
+	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -313,7 +313,7 @@ MailslotSession.onMailslotEvent (
 	waitMailslotEvents ();
 }
 
-reactor MailslotSession.m_uiReactor ()
+reactor MailslotSession.m_uiReactor
 {
 	m_title = $"Mailslot $(m_nameCombo.m_editText)";
 	m_isTransmitEnabled = m_state == State.Opened;

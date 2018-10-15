@@ -141,7 +141,7 @@ protected:
 	createUi ();
 	waitSocketEvents ();
 
-	reactor m_uiReactor ();
+	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -545,7 +545,7 @@ TcpConnectionSession.onResolveCompleted (
 	connect (address);
 }
 
-reactor TcpConnectionSession.m_uiReactor ()
+reactor TcpConnectionSession.m_uiReactor
 {
 	m_title = $"TCP $(m_addressCombo.m_editText)";
 	m_socketPropertySet.m_adapterProp.m_isEnabled = m_socketPropertySet.m_useLocalAddressProp.m_value;

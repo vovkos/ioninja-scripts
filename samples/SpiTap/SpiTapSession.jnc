@@ -250,7 +250,7 @@ protected:
 	waitEndpointEvents (SpiIface* iface);
 	bool errorcode configureSpiIface (uint_t ifaceId);
 
-	reactor m_uiReactor ();
+	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -888,7 +888,7 @@ catch:
 	writeLogLastError (log.StdRecordCode.Error);
 }
 
-reactor SpiTapSession.m_uiReactor ()
+reactor SpiTapSession.m_uiReactor
 {
 	m_title = $"SPI tap $(m_deviceCombo.m_currentText)";
 	m_actionTable [ActionId.Capture].m_text = m_state ? "Stop capture" : "Capture";

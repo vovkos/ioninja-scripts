@@ -167,7 +167,7 @@ protected:
 	waitPcapEvents ();
 	createUi ();
 
-	reactor m_uiReactor ();
+	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -735,7 +735,7 @@ bool UdpFlowMonSession.decodePacket (
 	return true;
 }
 
-reactor UdpFlowMonSession.m_uiReactor ()
+reactor UdpFlowMonSession.m_uiReactor
 {
 	m_title = $"UDP Mon $(m_filterCombo.m_currentText)";
 	m_actionTable [ActionId.Capture].m_text = m_state ? "Stop Capture" : "Capture";

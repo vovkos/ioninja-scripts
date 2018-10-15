@@ -127,7 +127,7 @@ protected:
 	waitOutEndpointEvents ();
 	waitInEndpointEvents ();
 
-	reactor m_uiReactor ();
+	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -628,7 +628,7 @@ UsbDataEndpointSession.onInEndpointEvent (
 	waitInEndpointEvents ();
 }
 
-reactor UsbDataEndpointSession.m_uiReactor ()
+reactor UsbDataEndpointSession.m_uiReactor
 {
 	m_title = $"USB $(m_deviceCombo.m_currentText)";
 

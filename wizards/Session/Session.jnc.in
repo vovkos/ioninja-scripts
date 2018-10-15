@@ -92,7 +92,7 @@ protected:
 	}
 
 	createUi ();
-	reactor m_uiReactor ();
+	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -207,7 +207,7 @@ size_t errorcode $(sessionClass).transmit (
 	return size;
 }
 
-reactor $(sessionClass).m_uiReactor ()
+reactor $(sessionClass).m_uiReactor
 {
 	m_title = $"$(pluginName) $(m_addressCombo.m_editText)";
 	m_isTransmitEnabled = m_state == State.Connected;

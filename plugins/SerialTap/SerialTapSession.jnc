@@ -286,9 +286,7 @@ protected:
 		bool line
 		);
 
-	updateLineInfoValues ();
-
-	reactor m_uiReactor ();
+	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -457,7 +455,7 @@ SerialTapSession.flipDteDce ()
 	m_dteIface = m_dceIface;
 	m_dceIface = tmp;
 
-	updateLineInfoValues ();
+	m_uiReactor.restart (); // need to re-bind DTE/DCE
 }
 
 bool errorcode SerialTapSession.configureSerialIface (uint_t ifaceId)
@@ -807,15 +805,7 @@ SerialTapSession.updateLineInfoValue (
 	m_infoTable [infoId].m_valueColor = line ? gui.StdColor.LightRed : gui.StdColor.Gray;
 }
 
-SerialTapSession.updateLineInfoValues ()
-{
-	updateLineInfoValue (InfoId.Dtr, m_dceIface.m_serialStatusLines & io.SerialStatusLines.Dsr);
-	updateLineInfoValue (InfoId.Rts, m_dceIface.m_serialStatusLines & io.SerialStatusLines.Cts);
-	updateLineInfoValue (InfoId.Dsr, m_dteIface.m_serialStatusLines & io.SerialStatusLines.Dsr);
-	updateLineInfoValue (InfoId.Cts, m_dteIface.m_serialStatusLines & io.SerialStatusLines.Cts);
-}
-
-reactor SerialTapSession.m_uiReactor ()
+reactor SerialTapSession.m_uiReactor
 {
 	m_title = $"Tap $(m_deviceCombo.m_currentText)";
 	m_actionTable [ActionId.Capture].m_text = m_state ? "Stop capture" : "Capture";
@@ -826,13 +816,10 @@ reactor SerialTapSession.m_uiReactor ()
 	m_infoTable [InfoId.Dsr].m_isEnabled = m_state;
 	m_infoTable [InfoId.Cts].m_isEnabled = m_state;
 
-	onevent (
-		bindingof (m_dteIface.m_serialStatusLines),
-		bindingof (m_dceIface.m_serialStatusLines)
-		) ()
-	{
-		updateLineInfoValues ();
-	}
+	updateLineInfoValue (InfoId.Dtr, m_dceIface.m_serialStatusLines & io.SerialStatusLines.Dsr);
+	updateLineInfoValue (InfoId.Rts, m_dceIface.m_serialStatusLines & io.SerialStatusLines.Cts);
+	updateLineInfoValue (InfoId.Dsr, m_dteIface.m_serialStatusLines & io.SerialStatusLines.Dsr);
+	updateLineInfoValue (InfoId.Cts, m_dteIface.m_serialStatusLines & io.SerialStatusLines.Cts);
 }
 
 //..............................................................................
