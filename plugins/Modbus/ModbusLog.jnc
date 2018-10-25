@@ -24,7 +24,7 @@ enum ModbusLogRecordCode
 
 //..............................................................................
 
-bool representModbusSerialLog (
+bool representModbusLog (
 	log.RepresenterTarget* target,
 	uint_t recordCode,
 	void const* p,
@@ -32,16 +32,6 @@ bool representModbusSerialLog (
 	uint_t foldFlags
 	)
 {
-	io.ModbusRole role;
-
-	function* representAdu (
-		log.RepresenterTarget* target,
-		io.ModbusRole role,
-		void const* p,
-		size_t size,
-		uint_t foldFlags
-		);
-
 	switch (recordCode)
 	{
 	case ModbusLogRecordCode.MasterPacket_Rtu:

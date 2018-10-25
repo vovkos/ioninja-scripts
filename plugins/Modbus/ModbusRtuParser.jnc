@@ -33,6 +33,14 @@ public:
 		);
 
 	override reset ();
+
+protected:
+	ModbusLogRecordCode getPacketRecordCode ()
+	{
+		return m_modbusRole == io.ModbusRole.Master ?
+			ModbusLogRecordCode.MasterPacket_Rtu :
+			ModbusLogRecordCode.SlavePacket_Rtu;
+	}	
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -57,16 +65,14 @@ ModbusRtuParser.parse (
 		reset ();
 	}
 
-	m_lastTimestamp = timestamp;
+	updateLastTimestamp (timestamp);
 
 	// write the original data first
 
 	writer.write (timestamp, originalRecordCode, p, size);
-
-	ModbusLogRecordCode recordCode = m_modbusRole == io.ModbusRole.Master ?
-		ModbusLogRecordCode.MasterPacket_Rtu :
-		ModbusLogRecordCode.SlavePacket_Rtu;
-
+	
+	ModbusLogRecordCode recordCode = getPacketRecordCode ();
+	
 	while (size)
 	{
 		if (!m_expectedSize)
@@ -97,8 +103,18 @@ ModbusRtuParser.parse (
 			continue; // ADU has grown, try again
 		}
 
+		// ADU completed
+
 		writer.write (timestamp, recordCode, m_dataBuffer.m_p, m_dataBuffer.m_size);
-		reset ();
+	
+		m_dataBuffer.clear ();
+		m_expectedSize = 0;
+
+		if (m_mode == ModbusParserMode.HalfDuplex)
+		{
+			m_modbusRole = (io.ModbusRole) !m_modbusRole;
+			recordCode = getPacketRecordCode ();
+		}
 	}
 
 catch:
@@ -110,6 +126,9 @@ ModbusRtuParser.reset ()
 {
 	m_dataBuffer.clear ();
 	m_expectedSize = 0;
+
+	if (m_mode == ModbusParserMode.HalfDuplex)
+		m_modbusRole = io.ModbusRole.Master;
 }
 
 //..............................................................................

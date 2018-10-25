@@ -1,6 +1,6 @@
 //..............................................................................
 //
-// Modbus RTU stream parser
+// Modbus TCP stream parser
 //
 
 class ModbusTcpParser: ModbusParserBase

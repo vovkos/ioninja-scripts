@@ -15,6 +15,7 @@ protected:
 
 protected:
 	State m_state;
+	uint64_t m_lastTimestamp;
 
 public:
 	construct ()
@@ -33,10 +34,12 @@ public:
 	override reset ();
 
 protected:
-	bool errorcode append (
-		void const* p,
-		size_t size
-		);
+	ModbusLogRecordCode getPacketRecordCode ()
+	{
+		return m_modbusRole == io.ModbusRole.Master ?
+			ModbusLogRecordCode.MasterPacket_Ascii :
+			ModbusLogRecordCode.SlavePacket_Ascii;
+	}	
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -49,13 +52,13 @@ ModbusAsciiParser.parse (
 	size_t size
 	)
 {
+	updateLastTimestamp (timestamp);
+
 	// write the original data first
 
 	writer.write (timestamp, originalRecordCode, p, size);
 
-	ModbusLogRecordCode recordCode = m_modbusRole == io.ModbusRole.Master ?
-		ModbusLogRecordCode.MasterPacket_Ascii :
-		ModbusLogRecordCode.SlavePacket_Ascii;
+	ModbusLogRecordCode recordCode = getPacketRecordCode ();
 
 	void const* adu = p;
 	void const* end = p + size;
@@ -88,15 +91,24 @@ ModbusAsciiParser.parse (
 			{
 				std.setError ("Missing '\\n' in Modbus ASCII frame");
 				writer.writeLastError (timestamp, ModbusLogRecordCode.ParseError);
-			}
-			else
-			{
-				m_dataBuffer.append (adu, p - adu + 1);
-				writer.write (timestamp, recordCode, m_dataBuffer.m_p, m_dataBuffer.m_size);
-				p++;
+				reset ();
+				break;
 			}
 
+			// frame completed
+			
+			m_dataBuffer.append (adu, p - adu + 1);
+			writer.write (timestamp, recordCode, m_dataBuffer.m_p, m_dataBuffer.m_size);
+			p++;
+
 			m_state = State.Idle;
+
+			if (m_mode == ModbusParserMode.HalfDuplex)
+			{
+				m_modbusRole = (io.ModbusRole) !m_modbusRole;
+				recordCode = getPacketRecordCode ();
+			}
+
 			break;
 		}
 	}
@@ -107,7 +119,8 @@ ModbusAsciiParser.parse (
 		if (m_dataBuffer.m_size > io.ModbusMaxAsciiAduSize)
 		{
 			std.setError ("Modbus ASCII frame is too big and still incomplete");
-			m_state = State.Idle;
+			writer.writeLastError (timestamp, ModbusLogRecordCode.ParseError);
+			reset ();
 		}
 	}
 }
@@ -116,6 +129,9 @@ ModbusAsciiParser.reset ()
 {
 	m_dataBuffer.clear ();
 	m_state = State.Idle;
+
+	if (m_mode == ModbusParserMode.HalfDuplex)
+		m_modbusRole = io.ModbusRole.Master;
 }
 
 //..............................................................................
