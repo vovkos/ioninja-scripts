@@ -1,7 +1,7 @@
-//..............................................................................
-//
-// Sitara uploader layer plugin
-//
+#...............................................................................
+#
+#  Sitara uploader layer plugin
+#
 
 [plugin]
 
@@ -15,8 +15,8 @@ small-icon  = images/sitara-16x16.png
 
 layer-class = SitaraLayer
 
-// session-class         = FileSession
-// log-representer-class = FileLogRepresenter
+#  session-class         = FileSession
+#  log-representer-class = FileLogRepresenter
 
 [scripts]
 

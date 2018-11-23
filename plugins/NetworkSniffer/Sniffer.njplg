@@ -1,7 +1,7 @@
-//..............................................................................
-//
-// Network Sniffer session plugin
-//
+#...............................................................................
+#
+#  Network Sniffer session plugin
+#
 
 [plugin]
 
@@ -17,7 +17,7 @@ terminal    = false
 session-class        = SnifferSession
 log-representer-func = representSnifferLog
 
-// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+#. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 [scripts]
 

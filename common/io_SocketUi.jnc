@@ -3,7 +3,7 @@
 // Socket & network adapter user interface
 //
 
-import "gui_Base.jnc"
+import "gui_ToolBar.jnc"
 import "gui_PropertyGrid.jnc"
 import "io_base.jncx"
 import "io_Socket.jnc"

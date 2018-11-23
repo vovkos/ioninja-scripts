@@ -3,7 +3,7 @@
 // Hardware Serial Monitor session
 //
 
-import "doc_Plugin.jnc"
+import "doc_PluginHost.jnc"
 
 //..............................................................................
 

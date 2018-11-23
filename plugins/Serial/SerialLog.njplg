@@ -1,0 +1,60 @@
+#...............................................................................
+#
+#  Serial log (records, representer, filter) plugin
+#
+
+[plugin]
+
+name        = "Serial Log"
+description = "Serial log representer"
+group       = serial
+guid        = 29725452-e64f-4c0e-a871-776277b68572
+icon        = images/serial.png
+small-icon  = images/serial-16x16.png
+
+log-representer-func = representSerialLog
+
+[scripts]
+
+SerialLogRecordCode.jnc
+SerialLogRepresenter.jnc
+
+[record-codes]
+
+81d47c8fc7b0f700  # PortOpened
+81d47c8fc7b0f701  # PortOpened_old
+01d47c8fc7b0f702  # PortOpenError
+01d47c8fc7b0f703  # PortClosed
+01d47c8fc7b0f704  # BaudRateChanged
+01d47c8fc7b0f705  # DataBitsChanged
+01d47c8fc7b0f706  # StopBitsChanged
+01d47c8fc7b0f707  # ParityChanged
+01d47c8fc7b0f708  # FlowControlChanged
+01d47c8fc7b0f709  # RtsChanged
+01d47c8fc7b0f70a  # DtrChanged
+01d47c8fc7b0f70b  # StatusLineChanged
+01d47c8fc7b0f70c  # ReadModeChanged
+01d47c8fc7b0f70d  # ReadIntervalChanged
+01d47c8fc7b0f70e  # BuggyDriverDetected
+01d47c8fc7b0f70f  # ControlLineChanged
+
+[record-code-group]
+
+description = "Serial setting changed"
+
+01d47c8fc7b0f704
+01d47c8fc7b0f705
+01d47c8fc7b0f706
+01d47c8fc7b0f707
+01d47c8fc7b0f708
+01d47c8fc7b0f70c
+01d47c8fc7b0f70d
+
+[record-code-group]
+
+description = "Serial control line changed"
+
+01d47c8fc7b0f70f
+01d47c8fc7b0f709
+01d47c8fc7b0f70a
+01d47c8fc7b0f70b

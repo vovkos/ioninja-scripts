@@ -7,14 +7,14 @@ import "log_DeviceMon.jnc"
 
 //..............................................................................
 
-enum SerialMonLogRecordCode
+enum SerialMonLogRecordCode: uint64_t
 {
-	CaptureStarted = 0x100, // avoid conflicts with SerialLogRecordCode
-	CaptureStopped,
-	CaptureError,
-	DeviceOpened_old,
-	DeviceClosed,
-	DeviceOpened,
+	CaptureStarted   = 0x01d47d759805bae8,
+	CaptureStopped   = 0x01d47d759805bae9,
+	CaptureError     = 0x01d47d759805baea,
+	DeviceOpened     = 0x01d47d759805baed,
+	DeviceOpened_old = 0x01d47d759805baeb,
+	DeviceClosed     = 0x01d47d759805baec,
 }
 
 //..............................................................................

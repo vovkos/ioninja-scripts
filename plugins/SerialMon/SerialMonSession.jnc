@@ -6,7 +6,7 @@
 import "io_SerialUi.jnc"
 import "io_BufferUi.jnc"
 import "std_Buffer.jnc"
-import "doc_Plugin.jnc"
+import "doc_Session.jnc"
 import "gui_StdSessionInfo.jnc"
 import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"

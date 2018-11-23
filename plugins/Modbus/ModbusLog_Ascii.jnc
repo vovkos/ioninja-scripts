@@ -3,7 +3,7 @@
 // Modbus RTU log record declarations and representer
 //
 
-import "log.jnc"
+import "log_Representer.jnc"
 import "io_Modbus.jnc"
 import "hexEncoding.jnc"
 

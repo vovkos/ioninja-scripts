@@ -1,7 +1,7 @@
-//..............................................................................
-//
-// Generic Serial Tap session plugin
-//
+#...............................................................................
+#
+#  Generic Serial Tap session plugin
+#
 
 [plugin]
 
@@ -10,14 +10,12 @@ description = "Monitor serial communication through a generic dual COM tap-cable
 id          = gen-serial-tap
 group       = serial
 monitor     = true
-guid        = e50e0d23-9a75-4f4d-83f3-049e489f1479
+log-guid    = 29725452-e64f-4c0e-a871-776277b68572  # serial log
 icon        = images/serialmon.png
 small-icon  = images/serialmon-16x16.png
 
-session-class        = SerialTapSession
-log-representer-func = representSerialLog
+session-class = SerialTapSession
 
 [scripts]
 
 SerialTapSession.jnc
-../Serial/SerialLog.jnc

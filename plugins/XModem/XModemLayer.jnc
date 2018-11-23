@@ -1,6 +1,6 @@
 import "io_base.jncx"
 import "io_MappedFile.jnc"
-import "doc_Plugin.jnc"
+import "doc_Layer.jnc"
 import "gui_Dialog.jnc"
 
 //..............................................................................

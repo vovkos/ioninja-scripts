@@ -198,7 +198,7 @@ protected:
 	}
 
 	override processBin (
-		uint_t partCode,
+		uint64_t partCode,
 		void const* p,
 		size_t size
 		);
@@ -209,7 +209,7 @@ protected:
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 ChecksumCalcRangeProcessor.processBin (
-	uint_t partCode,
+	uint64_t partCode,
 	void const* p,
 	size_t size
 	)

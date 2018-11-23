@@ -125,18 +125,18 @@ protected:
 	}
 
 	override processText (
-		uint_t partCode,
+		uint64_t partCode,
 		char const* text
 		);
 
 	override processBin (
-		uint_t partCode,
+		uint64_t partCode,
 		void const* p,
 		size_t size
 		);
 
 	override processDualBin (
-		uint_t partCode,
+		uint64_t partCode,
 		void const* p1,
 		void const* p2,
 		size_t size
@@ -148,7 +148,7 @@ protected:
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 ThroughputCalcRangeProcessor.processText (
-	uint_t partCode,
+	uint64_t partCode,
 	char const* text
 	)
 {
@@ -157,7 +157,7 @@ ThroughputCalcRangeProcessor.processText (
 }
 
 ThroughputCalcRangeProcessor.processBin (
-	uint_t partCode,
+	uint64_t partCode,
 	void const* p,
 	size_t size
 	)
@@ -180,7 +180,7 @@ ThroughputCalcRangeProcessor.processBin (
 }
 
 ThroughputCalcRangeProcessor.processDualBin (
-	uint_t partCode,
+	uint64_t partCode,
 	void const* p1,
 	void const* p2,
 	size_t size

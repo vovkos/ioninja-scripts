@@ -3,7 +3,7 @@
 // Some standard checksums collected via selection processors
 //
 
-import "log.jnc"
+import "log_Representer.jnc"
 
 namespace log {
 

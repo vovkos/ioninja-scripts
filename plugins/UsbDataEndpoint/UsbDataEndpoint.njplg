@@ -1,7 +1,7 @@
-//..............................................................................
-//
-//  USB Data Endpoint session plugin
-//
+#...............................................................................
+#
+#   USB Data Endpoint session plugin
+#
 
 [plugin]
 
@@ -16,7 +16,7 @@ small-icon  = images/usb-16x16.png
 session-class        = UsbDataEndpointSession
 log-representer-func = representUsbLog
 
-// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+#. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 [scripts]
 

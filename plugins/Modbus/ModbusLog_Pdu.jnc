@@ -3,7 +3,7 @@
 // Modbus PDU log record representation
 //
 
-import "log.jnc"
+import "log_Representer.jnc"
 import "io_Modbus.jnc"
 import "std_String.jnc"
 

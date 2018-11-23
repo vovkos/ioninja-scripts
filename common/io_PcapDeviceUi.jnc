@@ -3,7 +3,7 @@
 // Pcap device user interface
 //
 
-import "gui_Base.jnc"
+import "gui_ComboBox.jnc"
 import "gui_PropertyGrid.jnc"
 import "io_pcap.jncx"
 

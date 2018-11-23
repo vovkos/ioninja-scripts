@@ -3,7 +3,7 @@
 // TX Modifier plugin for performing transmit-receive tests
 //
 
-import "doc_Plugin.jnc"
+import "doc_Layer.jnc"
 import "sys_Timer.jnc"
 import "std_Buffer.jnc"
 import "std_String.jnc"

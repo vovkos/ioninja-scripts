@@ -1,7 +1,7 @@
-//..............................................................................
-//
-//  UDP Socket session plugin
-//
+#...............................................................................
+#
+#   UDP Socket session plugin
+#
 
 [plugin]
 
@@ -16,7 +16,7 @@ small-icon  = images/udp-16x16.png
 session-class        = UdpSession
 log-representer-func = representUdpLog
 
-// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+#. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 [scripts]
 

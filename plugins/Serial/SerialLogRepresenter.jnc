@@ -1,76 +1,12 @@
 //..............................................................................
 //
-// Serial log packet declarations and representer
+// Serial log representer
 //
 
+import "log_Representer.jnc"
+import "SerialLogRecordCode.jnc"
+
 //..............................................................................
-
-enum SerialLogRecordCode
-{
-	PortOpened     = 0 | log.RecordCodeFlags.Foldable,
-	PortOpened_old = 1 | log.RecordCodeFlags.Foldable,
-	PortOpenError  = 2,
-	PortClosed,
-	BaudRateChanged,
-	DataBitsChanged,
-	StopBitsChanged,
-	ParityChanged,
-	FlowControlChanged,
-	RtsChanged,
-	DtrChanged,
-	StatusLineChanged,
-	ReadModeChanged,
-	ReadIntervalChanged,
-	BuggyDriverDetected,
-	ControlLineChanged,
-}
-
-// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-enum SerialReadMode
-{
-	CheckComstat,
-	WaitFirstChar,
-	IntervalBased
-}
-
-struct SerialOpenParams
-{
-	uint_t m_baudRate;
-	uint_t m_flowControl;
-	uint_t m_dataBits;
-	uint_t m_stopBits;
-	uint_t m_parity;
-	uint_t m_readInterval;
-	bool m_dtr;
-	bool m_rts;
-	uint_t m_statusLines;
-	uint_t m_options;
-	uint_t m_osKind;
-
-	// followed by port name
-}
-
-struct SerialOpenParams_old
-{
-	uint_t m_baudRate;
-	uint_t m_flowControl;
-	uint_t m_dataBits;
-	uint_t m_stopBits;
-	uint_t m_parity;
-
-	// followed by port name
-}
-
-// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-struct SerialStatusLineChangedParams
-{
-	io.SerialStatusLines m_lines;
-	io.SerialStatusLines m_mask;
-}
-
-// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 char const* getTableString (
 	uint_t value,
@@ -109,7 +45,7 @@ char const* getStatusLineChangeString (
 	return string;
 }
 
-//..............................................................................
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 bool representSerialLog (
 	log.RepresenterTarget* target,
@@ -374,63 +310,6 @@ bool representSerialLog (
 	}
 
 	return true;
-}
-
-//..............................................................................
-
-class SerialLogFilter: log.Filter
-{
-	volatile bool m_isSettingChangedVisible;
-	volatile bool m_isControlLineChangedVisible;
-	volatile bool m_isStatusLineChangedVisible;
-
-	construct ();
-
-	override bool filter (
-		uint64_t timestamp,
-		uint_t recordCode,
-		void const* p,
-		size_t size
-		);
-}
-
-// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-SerialLogFilter.construct ()
-{
-	m_isSettingChangedVisible = true;
-	m_isControlLineChangedVisible = true;
-	m_isStatusLineChangedVisible = true;
-}
-
-bool SerialLogFilter.filter (
-	uint64_t timestamp,
-	uint_t recordCode,
-	void const* p,
-	size_t size
-	)
-{
-	switch (recordCode)
-	{
-	case SerialLogRecordCode.BaudRateChanged:
-	case SerialLogRecordCode.DataBitsChanged:
-	case SerialLogRecordCode.StopBitsChanged:
-	case SerialLogRecordCode.ParityChanged:
-	case SerialLogRecordCode.FlowControlChanged:
-	case SerialLogRecordCode.ReadModeChanged:
-	case SerialLogRecordCode.ReadIntervalChanged:
-		return m_isSettingChangedVisible;
-
-	case SerialLogRecordCode.RtsChanged:
-	case SerialLogRecordCode.DtrChanged:
-		return m_isControlLineChangedVisible;
-
-	case SerialLogRecordCode.StatusLineChanged:
-		return m_isStatusLineChangedVisible;
-
-	default:
-		return true; // everything else is visible
-	}
 }
 
 //..............................................................................

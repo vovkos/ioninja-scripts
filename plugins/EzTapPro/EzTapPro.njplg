@@ -1,7 +1,7 @@
-//..............................................................................
-//
-// EZ-Tap Pro plugin
-//
+#...............................................................................
+#
+#  EZ-Tap Pro plugin
+#
 
 [plugin]
 
@@ -10,15 +10,13 @@ description = "Monitor serial communication using EZ-Tap Pro"
 id          = ez-tap-pro
 group       = serial
 monitor     = true
-guid        = c5104fa2-1307-4617-93e8-37355e9d6ae2
+log-guid    = 29725452-e64f-4c0e-a871-776277b68572  # serial log
 icon        = images/serialmon.png
 small-icon  = images/serialmon-16x16.png
 
-session-class        = EzTapProSession
-log-representer-func = representSerialLog
+session-class = EzTapProSession
 
 [scripts]
 
 EzTapProSession.jnc
 EzTapPro.jnc
-../Serial/SerialLog.jnc

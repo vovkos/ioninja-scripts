@@ -10,10 +10,11 @@ import "io_SerialUi.jnc"
 import "io_BufferUi.jnc"
 import "std_List.jnc"
 import "std_Buffer.jnc"
-import "doc_Plugin.jnc"
+import "doc_Session.jnc"
 import "gui_StdSessionInfo.jnc"
 import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
+import "SerialLogRecordCode.jnc"
 
 //..............................................................................
 
@@ -65,7 +66,6 @@ protected:
 
 	State bindable m_state;
 	io.Serial m_serial;
-	SerialLogFilter m_logFilter;
 	char const* m_portName;
 	uint_t bindable m_serialBaudRate;
 	io.SerialStatusLines bindable m_serialStatusLines;
@@ -77,7 +77,6 @@ protected:
 	// common serial ui
 
 	io.SerialSettingUi m_serialSettingUi;
-	io.SerialFilterUi m_serialFilterUi;
 
 	// toolbar, status bar & menu
 
@@ -171,8 +170,6 @@ SerialSession.construct (doc.PluginHost* pluginHost)
 
 	createUi ();
 
-	pluginHost.m_log.addRepresenter (representSerialLog);
-	pluginHost.m_log.addFilter (m_logFilter);
 	pluginHost.m_log.addSelectionProcessor (log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor (log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
 	m_stdSessionInfoSet.addLogListener (pluginHost.m_log);
@@ -287,15 +284,6 @@ SerialSession.createUi ()
 	}
 
 	m_bufferPropertySet.createProperties (m_pluginHost.m_propertyGrid, group);
-
-	// filter property grid
-
-	group = m_pluginHost.m_propertyGrid.createGroupProperty (
-		"Log filter",
-		"Specify which unwanted log messages to filter out"
-		);
-
-	m_serialFilterUi.create (m_pluginHost.m_propertyGrid, group);
 
 	// information grid
 
@@ -426,11 +414,6 @@ SerialSession.close ()
 void SerialSession.load (doc.Storage* storage)
 {
 	m_serialSettingUi.load (storage);
-	m_serialFilterUi.load (storage);
-
-	m_logFilter.m_isSettingChangedVisible = m_serialFilterUi.m_settingChangedVisibleProp.m_value;
-	m_logFilter.m_isControlLineChangedVisible = m_serialFilterUi.m_controlLineChangedVisibleProp.m_value;
-	m_logFilter.m_isStatusLineChangedVisible = m_serialFilterUi.m_statusLineChangedVisibleProp.m_value;
 
 	m_portCombo.m_editText = storage.readString ("portName");
 	m_actionTable [ActionId.Dtr].m_isChecked = storage.readBool ("dtr", Defaults.Dtr);
@@ -445,7 +428,6 @@ void SerialSession.load (doc.Storage* storage)
 void SerialSession.save (doc.Storage* storage)
 {
 	m_serialSettingUi.save (storage);
-	m_serialFilterUi.save (storage);
 
 	storage.writeString ("portName", m_portCombo.m_editText);
 	storage.writeBool ("dtr", m_actionTable [ActionId.Dtr].m_isChecked);
@@ -463,10 +445,6 @@ void SerialSession.updateProperties ()
 	m_portProp.m_value = m_portCombo.m_editText;
 	m_dtrProp.m_value = m_actionTable [ActionId.Dtr].m_isChecked;
 	m_rtsProp.m_value = m_actionTable [ActionId.Rts].m_isChecked;
-
-	m_serialFilterUi.m_settingChangedVisibleProp.m_value = m_logFilter.m_isSettingChangedVisible;
-	m_serialFilterUi.m_controlLineChangedVisibleProp.m_value = m_logFilter.m_isControlLineChangedVisible;
-	m_serialFilterUi.m_statusLineChangedVisibleProp.m_value = m_logFilter.m_isStatusLineChangedVisible;
 }
 
 bool errorcode SerialSession.applyProperties ()
@@ -476,9 +454,6 @@ bool errorcode SerialSession.applyProperties ()
 	m_portCombo.m_editText = m_portProp.m_value;
 	m_actionTable [ActionId.Dtr].m_isChecked = m_dtrProp.m_value;
 	m_actionTable [ActionId.Rts].m_isChecked = m_rtsProp.m_value;
-	m_logFilter.m_isSettingChangedVisible = m_serialFilterUi.m_settingChangedVisibleProp.m_value;
-	m_logFilter.m_isControlLineChangedVisible = m_serialFilterUi.m_controlLineChangedVisibleProp.m_value;
-	m_logFilter.m_isStatusLineChangedVisible = m_serialFilterUi.m_statusLineChangedVisibleProp.m_value;
 	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
 
 	m_serialDtr = m_dtrProp.m_value;
@@ -579,7 +554,6 @@ catch:
 void SerialSession.restoreDefaultProperties ()
 {
 	m_serialSettingUi.restoreDefaultProperties ();
-	m_serialFilterUi.restoreDefaultProperties ();
 
 	m_dtrProp.m_value = Defaults.Dtr;
 	m_rtsProp.m_value = Defaults.Rts;

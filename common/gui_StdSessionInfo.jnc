@@ -6,7 +6,7 @@
 import "gui_InformationGrid.jnc"
 import "sys_Timer.jnc"
 import "sys_Lock.jnc"
-import "log.jnc"
+import "log_Log.jnc"
 import "formatInteger.jnc"
 
 namespace gui {

@@ -4,7 +4,7 @@
 //
 
 import "io_Modbus.jnc"
-import "doc_Plugin.jnc"
+import "doc_Layer.jnc"
 import "std_Buffer.jnc"
 import "crc16.jnc"
 
@@ -20,7 +20,7 @@ class ModbusLayer:
 		StreamRole        = ModbusParserMode.Master,
 		HalfDuplexTimeout = 2000, // reset to master after 2 seconds
 	}
-	
+
 protected:
 	ModbusParserBase* m_txParser;
 	ModbusParserBase* m_rxParser;
@@ -59,10 +59,10 @@ ModbusLayer.construct (doc.PluginHost* pluginHost)
 
 	m_txParser = new ModbusRtuParser;
 	m_rxParser = new ModbusRtuParser;
-	
+
 	m_txParser.m_mode = ModbusParserMode.Master;
 	m_rxParser.m_mode = ModbusParserMode.Slave;
-	
+
 	pluginHost.m_log.addConverter (
 		this,
 		&pluginHost.m_pluginGuid,
@@ -76,7 +76,7 @@ ModbusLayer.createUi ()
 {
 	static gui.EnumPropertyOption protocolTable [] =
 	{
-		{ "Modbus RTU!!!",   io.ModbusProtocol.Rtu },
+		{ "Modbus RTU",   io.ModbusProtocol.Rtu },
 		{ "Modbus ASCII", io.ModbusProtocol.Ascii },
 		{ "Modbus TCP",   io.ModbusProtocol.Tcp },
 	}
@@ -106,7 +106,7 @@ ModbusLayer.createUi ()
 		"Half-duplex timeout (ms)",
 		"Reset the current Modbus role to 'master' after this delay"
 		);
-		
+
 	m_uiReactor.start ();
 }
 
@@ -159,14 +159,14 @@ bool errorcode ModbusLayer.applyProperties ()
 	}
 
 	ModbusParserMode mode = m_streamRoleProp.m_value;
-	
+
 	switch (mode)
 	{
 	case ModbusParserMode.Master:
 		m_txParser.m_mode = ModbusParserMode.Master;
 		m_rxParser.m_mode = ModbusParserMode.Slave;
 		break;
-		
+
 	case ModbusParserMode.Slave:
 		m_txParser.m_mode = ModbusParserMode.Slave;
 		m_rxParser.m_mode = ModbusParserMode.Master;
@@ -175,14 +175,14 @@ bool errorcode ModbusLayer.applyProperties ()
 	case ModbusParserMode.HalfDuplex:
 		m_txParser.m_mode = ModbusParserMode.HalfDuplex;
 		m_rxParser.m_mode = ModbusParserMode.HalfDuplex;
-		
+
 		uint64_t timeout = (uint64_t) m_halfDuplexTimeoutProp.m_value * 10000;
-		
+
 		m_txParser.m_halfDuplexTimeout = timeout;
 		m_rxParser.m_halfDuplexTimeout = timeout;
 		break;
 	}
-	
+
 	m_pluginHost.m_log.resume ();
 	return true;
 }

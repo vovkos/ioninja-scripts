@@ -3,7 +3,7 @@
 // Hardware Serial Monitor log representer
 //
 
-import "log.jnc"
+import "log_Representer.jnc"
 
 //..............................................................................
 

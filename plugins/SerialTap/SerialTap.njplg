@@ -1,7 +1,7 @@
-//..............................................................................
-//
-// Serial Tap session plugin
-//
+#...............................................................................
+#
+#  Serial Tap session plugin
+#
 
 [plugin]
 
@@ -10,14 +10,12 @@ description = "Monitor serial communication through a Serial Tap device from Tib
 id          = serial-tap
 group       = serial
 monitor     = true
-guid        = e1e5ddea-71e6-41f3-8428-a6d83a5a0746
+log-guid    = 29725452-e64f-4c0e-a871-776277b68572  # serial log
 icon        = images/serialmon.png
 small-icon  = images/serialmon-16x16.png
 
-session-class        = SerialTapSession
-log-representer-func = representSerialLog
+session-class = SerialTapSession
 
 [scripts]
 
 SerialTapSession.jnc
-../Serial/SerialLog.jnc

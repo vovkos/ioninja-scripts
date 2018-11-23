@@ -4,7 +4,7 @@
 //
 
 import "doc_Storage.jnc"
-import "gui_Base.jnc"
+import "gui_ComboBox.jnc"
 
 namespace gui {
 
