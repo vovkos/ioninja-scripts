@@ -1,0 +1,36 @@
+#...............................................................................
+#
+#  SSH log (records, representer, filter) plugin
+#
+
+[plugin]
+
+name        = SSH Log
+description = "SSH log representer"
+group       = net
+guid        = 8ec96e77-89df-4dd8-bc14-b995b85de45d
+
+log-representer-func = representSshLog
+
+[scripts]
+
+SshLogRecordCode.jnc
+SshLogRepresenter.jnc
+
+[record-codes]
+
+01d4840c424a4d0a  # Resolving
+01d4840c424a4d0b  # ResolveCompleted
+01d4840c424a4d0c  # TcpConnecting
+01d4840c424a4d0d  # TcpConnectCompleted
+01d4840c424a4d0e  # SshHandshakeCompleted
+01d4840c424a4d0f  # SshAuthenticating
+01d4840c424a4d10  # SshAuthCompleted
+01d4840c424a4d11  # SshChannelOpened
+01d4840c424a4d12  # SshPtyRequested
+01d4840c424a4d13  # SshProcessStarted
+01d4840c424a4d14  # ConnectCancelled
+01d4840c424a4d15  # ConnectCompleted
+01d4840c424a4d16  # ConnectError
+01d4840c424a4d17  # Disconnected
+01d4840c424a4d18  # Reconnecting

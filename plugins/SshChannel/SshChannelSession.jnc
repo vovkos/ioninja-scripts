@@ -184,7 +184,6 @@ SshChannelSession.construct (doc.PluginHost* pluginHost)
 
 	createUi ();
 
-	pluginHost.m_log.addRepresenter (representSshChannelLog);
 	pluginHost.m_log.addSelectionProcessor (log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor (log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
 	m_stdSessionInfoSet.addLogListener (pluginHost.m_log);
@@ -324,7 +323,7 @@ bool errorcode SshChannelSession.connect ()
 	m_state = State.Resolving;
 
 	writeLog (
-		SshChannelLogRecordCode.Resolving,
+		SshLogRecordCode.Resolving,
 		addressString,
 		strlen (addressString)
 		);
@@ -376,7 +375,7 @@ bool errorcode SshChannelSession.connect (io.SocketAddress const* remoteAddress)
 	m_remoteAddress = *remoteAddress;
 
 	writeLog (
-		SshChannelLogRecordCode.TcpConnecting,
+		SshLogRecordCode.TcpConnecting,
 		remoteAddress,
 		sizeof (io.SocketAddress)
 		);
@@ -465,7 +464,7 @@ SshChannelSession.waitSshEvents ()
 SshChannelSession.handleConnectError (std.Error const* error)
 {
 	writeLog (
-		SshChannelLogRecordCode.ConnectError,
+		SshLogRecordCode.ConnectError,
 		error,
 		error.m_size
 		);
@@ -477,7 +476,7 @@ SshChannelSession.handleConnectError (std.Error const* error)
 SshChannelSession.handleSshAuthenticateError (std.Error const* error)
 {
 	writeLog (
-		SshChannelLogRecordCode.ConnectError,
+		SshLogRecordCode.ConnectError,
 		error,
 		error.m_size
 		);
@@ -520,12 +519,12 @@ SshChannelSession.onLoginDlgCompleted (gui.StdDlgButton button)
 	if (strcmp (m_loginDlg.m_userName, m_userNameProp.m_value) == 0)
 	{
 		nextState = State.SshAuthenticating;
-		writeLog (SshChannelLogRecordCode.SshAuthenticating);
+		writeLog (SshLogRecordCode.SshAuthenticating);
 	}
 	else
 	{
 		nextState = State.TcpConnecting;
-		writeLog (SshChannelLogRecordCode.Reconnecting);
+		writeLog (SshLogRecordCode.Reconnecting);
 	}
 
 	switch (m_loginDlg.m_authenticationMethod)
@@ -580,12 +579,12 @@ SshChannelSession.disconnect ()
 	case State.SshOpeningChannel:
 	case State.SshRequestingPty:
 	case State.SshStartingProcess:
-		writeLog (SshChannelLogRecordCode.ConnectCancelled);
+		writeLog (SshLogRecordCode.ConnectCancelled);
 		break;
 
 	case State.Connected:
 		writeLog (
-			SshChannelLogRecordCode.Disconnected,
+			SshLogRecordCode.Disconnected,
 			&m_remoteAddress,
 			sizeof (m_remoteAddress)
 			);
@@ -705,38 +704,38 @@ SshChannelSession.onSshEvent (
 
 	if (triggeredEvents & io.SshEvents.TcpConnectCompleted)
 	{
-		writeLog (SshChannelLogRecordCode.TcpConnectCompleted);
+		writeLog (SshLogRecordCode.TcpConnectCompleted);
 		m_state = State.SshHandshaking;
 	}
 
 	if (triggeredEvents & io.SshEvents.SshHandshakeCompleted)
 	{
-		writeLog (SshChannelLogRecordCode.SshHandshakeCompleted);
+		writeLog (SshLogRecordCode.SshHandshakeCompleted);
 		m_state = State.SshAuthenticating;
 	}
 
 	if (triggeredEvents & io.SshEvents.SshAuthenticateCompleted)
 	{
-		writeLog (SshChannelLogRecordCode.SshAuthCompleted);
+		writeLog (SshLogRecordCode.SshAuthCompleted);
 		m_state = State.SshOpeningChannel;
 	}
 
 	if (triggeredEvents & io.SshEvents.SshChannelOpened)
 	{
-		writeLog (SshChannelLogRecordCode.SshChannelOpened);
+		writeLog (SshLogRecordCode.SshChannelOpened);
 		m_state = State.SshRequestingPty;
 	}
 
 	if (triggeredEvents & io.SshEvents.SshPtyRequestCompleted)
 	{
-		writeLog (SshChannelLogRecordCode.SshPtyRequested);
+		writeLog (SshLogRecordCode.SshPtyRequested);
 		m_state = State.SshStartingProcess;
 	}
 
 	if (triggeredEvents & io.SshEvents.SshConnectCompleted)
 	{
-		writeLog (SshChannelLogRecordCode.SshProcessStarted);
-		writeLog (SshChannelLogRecordCode.ConnectCompleted);
+		writeLog (SshLogRecordCode.SshProcessStarted);
+		writeLog (SshLogRecordCode.ConnectCompleted);
 		m_state = State.Connected;
 		m_isTransmitEnabled = true;
 		m_stdSessionInfoSet.startSession (m_pluginHost.m_mainThreadScheduler);
@@ -754,7 +753,7 @@ SshChannelSession.onSshEvent (
 		}
 
 		writeLog (
-			SshChannelLogRecordCode.Disconnected,
+			SshLogRecordCode.Disconnected,
 			&m_remoteAddress,
 			sizeof (m_remoteAddress)
 			);
@@ -796,7 +795,7 @@ SshChannelSession.onResolveCompleted (
 	}
 
 	writeLog (
-		SshChannelLogRecordCode.ResolveCompleted,
+		SshLogRecordCode.ResolveCompleted,
 		addressTable,
 		sizeof (io.SocketAddress)
 		);

@@ -1,0 +1,37 @@
+//..............................................................................
+//
+// SSH log record codes
+//
+
+import "log_RecordCode.jnc"
+
+//..............................................................................
+
+enum SshLogRecordCode: uint64_t
+{
+	Resolving             = 0x01d4840c424a4d0a,
+	ResolveCompleted      = 0x01d4840c424a4d0b,
+	TcpConnecting         = 0x01d4840c424a4d0c,
+	TcpConnectCompleted   = 0x01d4840c424a4d0d,
+	SshHandshakeCompleted = 0x01d4840c424a4d0e,
+	SshAuthenticating     = 0x01d4840c424a4d0f,
+	SshAuthCompleted      = 0x01d4840c424a4d10,
+	SshChannelOpened      = 0x01d4840c424a4d11,
+	SshPtyRequested       = 0x01d4840c424a4d12,
+	SshProcessStarted     = 0x01d4840c424a4d13,
+	ConnectCancelled      = 0x01d4840c424a4d14,
+	ConnectCompleted      = 0x01d4840c424a4d15,
+	ConnectError          = 0x01d4840c424a4d16,
+	Disconnected          = 0x01d4840c424a4d17,
+	Reconnecting          = 0x01d4840c424a4d18,
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+enum SshLogPartCode
+{
+	Connecting       = 1 | log.PartCodeFlags.MergeableForward,
+	ConnectCompleted = 1 | log.PartCodeFlags.MergeableBackward,
+}
+
+//..............................................................................

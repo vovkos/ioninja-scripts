@@ -152,7 +152,6 @@ TcpConnectionSession.construct (doc.PluginHost* pluginHost)
 
 	createUi ();
 
-	pluginHost.m_log.addRepresenter (representTcpConnectionLog);
 	pluginHost.m_log.addSelectionProcessor (log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor (log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
 	m_stdSessionInfoSet.addLogListener (pluginHost.m_log);
@@ -228,7 +227,7 @@ bool errorcode TcpConnectionSession.connect ()
 	m_state = State.Resolving;
 
 	writeLog (
-		TcpConnectionLogRecordCode.Resolving,
+		SocketLogRecordCode.Resolving,
 		addressString,
 		strlen (addressString)
 		);
@@ -283,7 +282,7 @@ bool errorcode TcpConnectionSession.connect (io.SocketAddress const* remoteAddre
 
 	m_localAddress = m_socket.m_address;
 	char const* p = $"$(*remoteAddress; B)$(m_localAddress; B)";
-	writeLog (TcpConnectionLogRecordCode.ConnectingFrom, p, dynamic sizeof (p));
+	writeLog (SocketLogRecordCode.ConnectingFrom, p, dynamic sizeof (p));
 
 	waitSocketEvents ();
 	return true;
@@ -291,12 +290,12 @@ bool errorcode TcpConnectionSession.connect (io.SocketAddress const* remoteAddre
 catch:
 	if (!m_socketPropertySet.m_useLocalAddressProp.m_value)
 	{
-		writeLog (TcpConnectionLogRecordCode.Connecting, remoteAddress, sizeof (io.SocketAddress));
+		writeLog (SocketLogRecordCode.Connecting, remoteAddress, sizeof (io.SocketAddress));
 	}
 	else
 	{
 		char const* p = $"$(*remoteAddress; B)$(m_localAddress; B)";
-		writeLog (TcpConnectionLogRecordCode.ConnectingFrom, p, dynamic sizeof (p));
+		writeLog (SocketLogRecordCode.ConnectingFrom, p, dynamic sizeof (p));
 	}
 
 	handleSocketError (std.getLastError ());
@@ -331,7 +330,7 @@ TcpConnectionSession.waitSocketEvents ()
 TcpConnectionSession.handleSocketError (std.Error const* error)
 {
 	uint_t recordCode = m_state < State.Connected ?
-		TcpConnectionLogRecordCode.ConnectError :
+		SocketLogRecordCode.ConnectError :
 		log.StdRecordCode.Error;
 
 	writeLog (recordCode, error, error.m_size);
@@ -348,7 +347,7 @@ TcpConnectionSession.disconnect ()
 
 	case State.Resolving:
 	case State.Connecting:
-		writeLog (TcpConnectionLogRecordCode.ConnectCancelled);
+		writeLog (SocketLogRecordCode.ConnectCancelled);
 		break;
 
 	case State.Connected:
@@ -360,7 +359,7 @@ TcpConnectionSession.disconnect ()
 			params.m_flags |= TcpDisconnectLogRecordFlags.Reset;
 
 		writeLog (
-			TcpConnectionLogRecordCode.Disconnected,
+			SocketLogRecordCode.Disconnected,
 			&params,
 			sizeof (params)
 			);
@@ -458,7 +457,7 @@ TcpConnectionSession.onSocketEvent (
 
 	if (triggeredEvents & io.SocketEvents.Connected)
 	{
-		writeLog (TcpConnectionLogRecordCode.ConnectCompleted);
+		writeLog (SocketLogRecordCode.ConnectCompleted);
 		m_infoTable [InfoId.LocalAddress].m_value = m_localAddress.getString ();
 		m_infoTable [InfoId.RemoteAddress].m_value = m_remoteAddress.getString ();
 		m_state = State.Connected;
@@ -485,7 +484,7 @@ TcpConnectionSession.onSocketEvent (
 			recordParams.m_flags |= TcpDisconnectLogRecordFlags.Reset;
 
 		writeLog (
-			TcpConnectionLogRecordCode.Disconnected,
+			SocketLogRecordCode.Disconnected,
 			&recordParams,
 			sizeof (recordParams)
 			);
@@ -531,7 +530,7 @@ TcpConnectionSession.onResolveCompleted (
 	}
 
 	writeLog (
-		TcpConnectionLogRecordCode.ResolveCompleted,
+		SocketLogRecordCode.ResolveCompleted,
 		addressTable,
 		sizeof (io.SocketAddress)
 		);

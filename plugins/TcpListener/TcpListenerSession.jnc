@@ -150,7 +150,6 @@ TcpListenerSession.construct (doc.PluginHost* pluginHost)
 
 	createUi ();
 
-	pluginHost.m_log.addRepresenter (representTcpListenerLog);
 	pluginHost.m_log.addSelectionProcessor (log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor (log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
 	m_stdSessionInfoSet.addLogListener (pluginHost.m_log);
@@ -237,7 +236,7 @@ bool errorcode TcpListenerSession.listen ()
 	address = m_listenerSocket.m_address;
 
 	writeLog (
-		TcpListenerLogRecordCode.Listening,
+		SocketLogRecordCode.Listening,
 		&address,
 		sizeof (address)
 		);
@@ -251,7 +250,7 @@ bool errorcode TcpListenerSession.listen ()
 catch:
 	std.Error const* error = std.getLastError ();
 	writeLog (
-		TcpListenerLogRecordCode.ListenError,
+		SocketLogRecordCode.ListenError,
 		error,
 		error.m_size
 		);
@@ -266,7 +265,7 @@ TcpListenerSession.stopListen ()
 		return;
 
 	writeLog (
-		TcpListenerLogRecordCode.ListenStopped,
+		SocketLogRecordCode.ListenStopped,
 		&m_localAddress,
 		sizeof (m_localAddress)
 		);
@@ -289,7 +288,7 @@ TcpListenerSession.disconnect ()
 		params.m_flags |= TcpDisconnectLogRecordFlags.Reset;
 
 	writeLog (
-		TcpListenerLogRecordCode.ClientDisconnected,
+		SocketLogRecordCode.ClientDisconnected,
 		&params,
 		sizeof (params)
 		);
@@ -416,7 +415,7 @@ TcpListenerSession.onListenerSocketEvent (
 		if (m_connectionState == ConnectionState.Connected && !m_overrideOldConnectionProp.m_value)
 		{
 			socket.close ();
-			writeLog (TcpListenerLogRecordCode.ClientRejected, &address, sizeof (address));
+			writeLog (SocketLogRecordCode.ClientRejected, &address, sizeof (address));
 			return;
 		}
 
@@ -428,7 +427,7 @@ TcpListenerSession.onListenerSocketEvent (
 
 		disconnect ();
 
-		writeLog (TcpListenerLogRecordCode.ClientConnected, &address, sizeof (address));
+		writeLog (SocketLogRecordCode.ClientConnected, &address, sizeof (address));
 
 		m_remoteAddress = address;
 		m_connectionSocket = socket;
@@ -478,7 +477,7 @@ TcpListenerSession.onConnectionSocketEvent (
 			recordParams.m_flags |= TcpDisconnectLogRecordFlags.Reset;
 
 		writeLog (
-			TcpListenerLogRecordCode.ClientDisconnected,
+			SocketLogRecordCode.ClientDisconnected,
 			&recordParams,
 			sizeof (recordParams)
 			);

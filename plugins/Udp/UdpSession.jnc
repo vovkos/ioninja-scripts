@@ -68,7 +68,6 @@ protected:
 	// socket
 
 	State bindable m_state;
-	UdpLogFilter m_logFilter;
 	io.Socket m_socket;
 	io.SocketAddressResolver m_resolver;
 	ResolveState m_resolveState;
@@ -162,8 +161,6 @@ UdpSession.construct (doc.PluginHost* pluginHost)
 
 	createUi ();
 
-	pluginHost.m_log.addRepresenter (representUdpLog);
-	pluginHost.m_log.addFilter (m_logFilter);
 	pluginHost.m_log.addSelectionProcessor (log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor (log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
 	m_stdSessionInfoSet.addLogListener (pluginHost.m_log);
@@ -228,17 +225,6 @@ UdpSession.createUi()
 			io.BufferPropertySet.PropertyId.KeepReadBlockSize |
 			io.BufferPropertySet.PropertyId.KeepWriteBlockSize
 			)
-		);
-
-	group = m_pluginHost.m_propertyGrid.createGroupProperty (
-		"Log filter",
-		"Specify which unwanted log messages to filter out"
-		);
-
-	m_packetHdrVisibleProp = m_pluginHost.m_propertyGrid.createBoolProperty (
-		group,,
-		"Show packet headers",
-		"Display packet header info records (or filter them out)"
 		);
 
 	// information grid
@@ -334,8 +320,6 @@ UdpSession.load (doc.Storage* storage)
 	m_adapterCombo.m_currentIndex = storage.readInt ("adapterIdx");
 	m_localPortCombo.m_editText = storage.readString ("localPort");
 
-	m_logFilter.m_isPacketHdrVisible = storage.readBool ("isPacketHdrVisible", true);
-
 	m_socketPropertySet.load (storage);
 	m_bufferPropertySet.load (storage);
 	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
@@ -353,7 +337,6 @@ UdpSession.save (doc.Storage* storage)
 	storage.writeInt ("autoRemoteAddress", m_actionTable [ActionId.AutoRemoteAddress].m_isChecked);
 	storage.writeInt ("adapterIdx", (int) m_adapterCombo.m_currentIndex);
 	storage.writeString ("localPort", m_localPortCombo.m_editText);
-	storage.writeBool ("isPacketHdrVisible", m_logFilter.m_isPacketHdrVisible);
 }
 
 UdpSession.updateProperties ()
@@ -362,7 +345,6 @@ UdpSession.updateProperties ()
 	m_socketPropertySet.m_remoteAddressProp.m_value = m_remoteAddressCombo.m_editText;
 	m_socketPropertySet.m_adapterProp.m_currentIndex = m_adapterCombo.m_currentIndex;
 	m_socketPropertySet.m_localPortProp.m_value = atoi (m_localPortCombo.m_editText);
-	m_packetHdrVisibleProp.m_value = m_logFilter.m_isPacketHdrVisible;
 }
 
 bool errorcode UdpSession.applyProperties ()
@@ -371,7 +353,6 @@ bool errorcode UdpSession.applyProperties ()
 	m_remoteAddressCombo.m_editText = m_socketPropertySet.m_remoteAddressProp.m_value;
 	m_adapterCombo.m_currentIndex = m_socketPropertySet.m_adapterProp.m_currentIndex;
 	m_localPortCombo.m_editText = $"$(m_socketPropertySet.m_localPortProp.m_value)";
-	m_logFilter.m_isPacketHdrVisible = m_packetHdrVisibleProp.m_value;
 
 	if (!m_socket.m_isOpen)
 		return true;
