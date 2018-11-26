@@ -1,20 +1,10 @@
 //..............................................................................
 //
-// Generic file log packet declarations and representer
+// Generic file log representer
 //
 
 import "log_Representer.jnc"
-
-//..............................................................................
-
-enum FileLogRecordCode
-{
-	Opened,
-	OpenError,
-	Closed,
-	Eof,
-	Cleared,
-}
+import "FileLogRecordCode.jnc"
 
 //..............................................................................
 

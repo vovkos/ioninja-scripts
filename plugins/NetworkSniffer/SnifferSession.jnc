@@ -161,7 +161,6 @@ SnifferSession.construct (doc.PluginHost* pluginHost)
 
 	createUi ();
 
-	pluginHost.m_log.addRepresenter (representSnifferLog);
 	pluginHost.m_log.addSelectionProcessor (log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor (log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
 }
@@ -326,7 +325,7 @@ bool errorcode SnifferSession.capture (
 	stopCapture ();
 	startSession ();
 
-	writeLogString (SnifferLogRecordCode.StartingCapture, filterString);
+	writeLogString (PcapLogRecordCode.StartingCapture, filterString);
 
 	m_pcap.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 
@@ -340,12 +339,12 @@ bool errorcode SnifferSession.capture (
 
 	if (!result)
 	{
-		writeLogLastError (SnifferLogRecordCode.CaptureError);
+		writeLogLastError (PcapLogRecordCode.CaptureError);
 		return false;
 	}
 
 	m_state = State.Capturing;
-	writeLog (SnifferLogRecordCode.CaptureStarted);
+	writeLog (PcapLogRecordCode.CaptureStarted);
 	waitPcapEvents ();
 	m_stdSessionInfoSet.startSession (m_pluginHost.m_mainThreadScheduler);
 	return true;
@@ -356,7 +355,7 @@ bool errorcode SnifferSession.openCapFile (
 	char const* filterString
 	)
 {
-	writeLogString (SnifferLogRecordCode.StartingCapture, filterString);
+	writeLogString (PcapLogRecordCode.StartingCapture, filterString);
 
 	m_pcap.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 
@@ -367,12 +366,12 @@ bool errorcode SnifferSession.openCapFile (
 
 	if (!result)
 	{
-		writeLogLastError (SnifferLogRecordCode.CaptureError);
+		writeLogLastError (PcapLogRecordCode.CaptureError);
 		return false;
 	}
 
 	m_state = State.Capturing;
-	writeLog (SnifferLogRecordCode.CaptureStarted);
+	writeLog (PcapLogRecordCode.CaptureStarted);
 	waitPcapEvents ();
 	m_stdSessionInfoSet.startSession (m_pluginHost.m_mainThreadScheduler);
 	return true;
@@ -383,7 +382,7 @@ SnifferSession.stopCapture ()
 	if (!m_state)
 		return;
 
-	writeLog (SnifferLogRecordCode.CaptureStopped);
+	writeLog (PcapLogRecordCode.CaptureStopped);
 	m_pcap.close ();
 	m_state = State.Closed;
 	m_syncId++;
@@ -398,15 +397,15 @@ bool errorcode SnifferSession.applyFilter ()
 	if (!m_state.Capturing)
 		return true;
 
-	writeLogString (SnifferLogRecordCode.ChangingFilter, filter);
+	writeLogString (PcapLogRecordCode.ChangingFilter, filter);
 	bool result = try m_pcap.setFilter (filter);
 	if (!result)
 	{
-		writeLogLastError (SnifferLogRecordCode.FilterError);
+		writeLogLastError (PcapLogRecordCode.FilterError);
 		return false;
 	}
 
-	writeLog (SnifferLogRecordCode.FilterChanged);
+	writeLog (PcapLogRecordCode.FilterChanged);
 	return true;
 }
 

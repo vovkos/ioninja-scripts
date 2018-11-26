@@ -1,21 +1,10 @@
 //..............................................................................
 //
-// Pipe Listener log packet declarations and representer
+// Pipe listener log representer
 //
 
 import "log_Representer.jnc"
-
-//..............................................................................
-
-enum PipeListenerLogRecordCode
-{
-	Listening,
-	ListenError,
-	ListenStopped,
-	ClientConnected,
-	ClientDisconnected,
-	ClientRejected,
-}
+import "PipeListenerLogRecordCode.jnc"
 
 //..............................................................................
 

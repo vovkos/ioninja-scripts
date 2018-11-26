@@ -82,11 +82,10 @@ bool representSocketLog (
 		break;
 
 	case SocketLogRecordCode.ConnectError:
+		std.Error const* error = (std.Error const*) p;
 		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-
-		std.Error const* error = (std.Error const*) p;
 		target.addHyperText (SocketLogPartCode.ConnectCompleted, $"error: $(error.m_description)");
 		break;
 
@@ -99,6 +98,14 @@ bool representSocketLog (
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
 		target.addHyperText ($"Disconnected from \e[34m$addressString\e[m ($closeKind by $initiator node)");
+		break;
+
+	case SocketLogRecordCode.Disconnected_old:
+		char const* addressString = ((io.SocketAddress const*) p).getString ();
+
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
+		target.addHyperText ($"Disconnected from \e[34m$addressString\e[m");
 		break;
 
 	case SocketLogRecordCode.Listening:

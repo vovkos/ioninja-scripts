@@ -1,33 +1,13 @@
 //..............................................................................
 //
-// Sniffer log packet declarations and representer
+// Sniffer log representer
 //
 
+import "log_Representer.jnc"
 import "io_TcpIp.jnc"
+import "SnifferLogRecordCode.jnc"
 
 //..............................................................................
-
-enum SnifferLogRecordCode
-{
-	Packet          = 1 | log.RecordCodeFlags.Foldable,
-	InjectedPacket  = 2 | log.RecordCodeFlags.Foldable,
-	DefragmentedIp  = 3 | log.RecordCodeFlags.Foldable,
-	StartingCapture = 4, // non foldable
-	CaptureStarted,
-	CaptureError,
-	CaptureStopped,
-	ChangingFilter,
-	FilterChanged,
-	FilterError,
-}
-
-enum SnifferLogPartCode
-{
-	StartingCapture  = 1 | log.PartCodeFlags.MergeableForward,
-	CaptureCompleted = 1 | log.PartCodeFlags.MergeableBackward,
-	ChangingFilter   = 2 | log.PartCodeFlags.MergeableForward,
-	FilterCompleted  = 2 | log.PartCodeFlags.MergeableBackward,
-}
 
 enum SnifferLogHdrColor
 {
@@ -67,53 +47,6 @@ bool representSnifferLog (
 	case SnifferLogRecordCode.DefragmentedIp:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Packet;
 		representDefragmentedIp (target, p, size, foldFlags);
-		break;
-
-	case SnifferLogRecordCode.StartingCapture:
-		char const* filter = (char const*) p;
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText (SnifferLogPartCode.StartingCapture, $"Starting capture with filter \e[34m$filter\e[m...");
-		break;
-
-	case SnifferLogRecordCode.CaptureStarted:
-		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Listen;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Connect;
-		target.addPlainText (SnifferLogPartCode.CaptureCompleted, "ok");
-		break;
-
-	case SnifferLogRecordCode.CaptureError:
-		std.Error const* error = (std.Error const*) p;
-		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		target.addPlainText (SnifferLogPartCode.CaptureCompleted, $"error: $(error.m_description)");
-		break;
-
-	case SnifferLogRecordCode.CaptureStopped:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.StopListen;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
-		target.addPlainText ("Capture stopped");
-		break;
-
-	case SnifferLogRecordCode.ChangingFilter:
-		char const* filter = (char const*) p;
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText (SnifferLogPartCode.ChangingFilter, $"Changing capture filter to \e[34m$filter\e[m...");
-		break;
-
-	case SnifferLogRecordCode.FilterChanged:
-		target.addPlainText (SnifferLogPartCode.FilterCompleted, "ok");
-		break;
-
-	case SnifferLogRecordCode.FilterError:
-		std.Error const* error = (std.Error const*) p;
-		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		target.addPlainText (SnifferLogPartCode.FilterCompleted, $"error: $(error.m_description)");
 		break;
 
 	default:

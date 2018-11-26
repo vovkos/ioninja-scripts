@@ -3,7 +3,6 @@
 // Ninja log - representer
 //
 
-import "gui_Color.jnc"
 import "log_RecordCode.jnc"
 
 namespace log {
@@ -11,15 +10,6 @@ namespace log {
 //..............................................................................
 
 // each record is represented as a sequence of 'parts'
-
-bitflag enum PartCodeFlags: uint64_t
-{
-	MergeableBackward = 0x2000000000000000, // don't interfere with RecordCodeFlags
-	MergeableForward  = 0x4000000000000000,
-	Mergeable         = 0x6000000000000000,
-}
-
-//..............................................................................
 
 enum PartKind
 {

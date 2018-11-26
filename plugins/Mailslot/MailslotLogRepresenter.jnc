@@ -1,22 +1,14 @@
 //..............................................................................
 //
-// Generic file log packet declarations and representer
+// Mailslot log representer
 //
 
 import "log_Representer.jnc"
+import "MailslotLogRecordCode.jnc"
 
 //..............................................................................
 
-enum MailslotLogRecordCode
-{
-	Opened,
-	OpenError,
-	Closed,
-}
-
-//..............................................................................
-
-bool representFileLog (
+bool representMailslotLog (
 	log.RepresenterTarget* target,
 	uint_t recordCode,
 	void const* p,

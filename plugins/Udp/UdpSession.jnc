@@ -90,7 +90,6 @@ protected:
 	// property grid
 
 	gui.BoolProperty* m_autoRemoteAddressProp;
-	gui.BoolProperty* m_packetHdrVisibleProp;
 	io.SocketPropertySet m_socketPropertySet;
 	io.BufferPropertySet m_bufferPropertySet;
 
@@ -270,7 +269,7 @@ nestedscope:
 
 	m_socket.open (io.Protocol.Udp, &address);
 	address = m_socket.m_address;
-	writeLog (UdpRecordCode.Open, &address, sizeof (address));
+	writeLog (SocketLogRecordCode.Open, &address, sizeof (address));
 	m_state = State.Opened;
 	waitSocketEvents ();
 	m_stdSessionInfoSet.startSession (m_pluginHost.m_mainThreadScheduler);
@@ -278,7 +277,7 @@ nestedscope:
 catch:
 	std.Error const* error = std.getLastError ();
 	void const* p = memcat (&address, sizeof (address), error, error.m_size);
-	writeLog (UdpRecordCode.OpenError, p, dynamic sizeof (p));
+	writeLog (SocketLogRecordCode.OpenError, p, dynamic sizeof (p));
 }
 
 UdpSession.closeSocket ()
@@ -289,7 +288,7 @@ UdpSession.closeSocket ()
 	io.SocketAddress address = m_socket.m_address;
 	m_socket.close ();
 
-	writeLog (UdpRecordCode.Close, &address, sizeof (address));
+	writeLog (SocketLogRecordCode.Close, &address, sizeof (address));
 
 	m_state = State.Closed;
 	m_socketSyncId++;
@@ -370,7 +369,6 @@ UdpSession.restoreDefaultProperties ()
 	m_socketPropertySet.restoreDefaults ();
 	m_bufferPropertySet.restoreDefaults ();
 	m_autoRemoteAddressProp.m_value = false;
-	m_packetHdrVisibleProp.m_value = true;
 }
 
 size_t errorcode UdpSession.transmit (
@@ -405,7 +403,7 @@ size_t errorcode UdpSession.transmit (
 		if (m_resolveState == ResolveState.Unresolved)
 		{
 			writeLog (
-				UdpRecordCode.Resolving,
+				SocketLogRecordCode.Resolving,
 				addressString,
 				strlen (addressString)
 				);
@@ -444,7 +442,7 @@ size_t UdpSession.writeDatagram (
 {
 	size_t result = m_socket.writeDatagram (p, size, address);
 
-	m_pluginHost.m_log.m_writer.write (UdpRecordCode.TxPacket, address, sizeof (io.SocketAddress));
+	m_pluginHost.m_log.m_writer.write (UdpLogRecordCode.TxPacket, address, sizeof (io.SocketAddress));
 
 	if (result)
 		m_pluginHost.m_log.m_writer.write (log.StdRecordCode.Tx, p, result);
@@ -489,7 +487,7 @@ UdpSession.onSocketEvent (
 		if (m_actionTable [ActionId.AutoRemoteAddress].m_isChecked)
 			m_remoteAddressCombo.m_editText = remoteAddress.getString ();
 
-		writeLog (UdpRecordCode.RxPacket, &remoteAddress, sizeof (io.SocketAddress));
+		writeLog (UdpLogRecordCode.RxPacket, &remoteAddress, sizeof (io.SocketAddress));
 
 		if (result)
 			writeLog (log.StdRecordCode.Rx, m_readBuffer.m_p, result);
@@ -513,13 +511,13 @@ UdpSession.onResolveCompleted (
 
 	if (error)
 	{
-		writeLog (UdpRecordCode.ResolveError, error, error.m_size);
+		writeLog (SocketLogRecordCode.ResolveError, error, error.m_size);
 		m_resolveState = ResolveState.Unresolved;
 		return;
 	}
 
 	writeLog (
-		UdpRecordCode.ResolveCompleted,
+		SocketLogRecordCode.ResolveCompleted,
 		addressTable,
 		sizeof (io.SocketAddress)
 		);

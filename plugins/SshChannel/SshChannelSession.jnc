@@ -323,7 +323,7 @@ bool errorcode SshChannelSession.connect ()
 	m_state = State.Resolving;
 
 	writeLog (
-		SshLogRecordCode.Resolving,
+		SocketLogRecordCode.Resolving,
 		addressString,
 		strlen (addressString)
 		);
@@ -375,7 +375,7 @@ bool errorcode SshChannelSession.connect (io.SocketAddress const* remoteAddress)
 	m_remoteAddress = *remoteAddress;
 
 	writeLog (
-		SshLogRecordCode.TcpConnecting,
+		SocketLogRecordCode.Connecting,
 		remoteAddress,
 		sizeof (io.SocketAddress)
 		);
@@ -464,7 +464,7 @@ SshChannelSession.waitSshEvents ()
 SshChannelSession.handleConnectError (std.Error const* error)
 {
 	writeLog (
-		SshLogRecordCode.ConnectError,
+		SocketLogRecordCode.ConnectError,
 		error,
 		error.m_size
 		);
@@ -476,7 +476,7 @@ SshChannelSession.handleConnectError (std.Error const* error)
 SshChannelSession.handleSshAuthenticateError (std.Error const* error)
 {
 	writeLog (
-		SshLogRecordCode.ConnectError,
+		SocketLogRecordCode.ConnectError,
 		error,
 		error.m_size
 		);
@@ -579,14 +579,17 @@ SshChannelSession.disconnect ()
 	case State.SshOpeningChannel:
 	case State.SshRequestingPty:
 	case State.SshStartingProcess:
-		writeLog (SshLogRecordCode.ConnectCancelled);
+		writeLog (SocketLogRecordCode.ConnectCancelled);
 		break;
 
 	case State.Connected:
+		TcpDisconnectLogRecordParams params;
+		params.m_address = m_remoteAddress;
+
 		writeLog (
-			SshLogRecordCode.Disconnected,
-			&m_remoteAddress,
-			sizeof (m_remoteAddress)
+			SocketLogRecordCode.Disconnected,
+			&params,
+			sizeof (params)
 			);
 		break;
 	}
@@ -752,10 +755,17 @@ SshChannelSession.onSshEvent (
 			writeLog (log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 		}
 
+		TcpDisconnectLogRecordParams params;
+		params.m_address = m_remoteAddress;
+		params.m_flags = TcpDisconnectLogRecordFlags.Remote;
+
+		if (triggeredEvents & io.SocketEvents.Reset)
+			params.m_flags |= TcpDisconnectLogRecordFlags.Reset;
+
 		writeLog (
-			SshLogRecordCode.Disconnected,
-			&m_remoteAddress,
-			sizeof (m_remoteAddress)
+			SocketLogRecordCode.Disconnected,
+			&params,
+			sizeof (params)
 			);
 
 		m_ssh.close ();
@@ -795,7 +805,7 @@ SshChannelSession.onResolveCompleted (
 	}
 
 	writeLog (
-		SshLogRecordCode.ResolveCompleted,
+		SocketLogRecordCode.ResolveCompleted,
 		addressTable,
 		sizeof (io.SocketAddress)
 		);

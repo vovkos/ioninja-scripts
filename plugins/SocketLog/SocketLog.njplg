@@ -28,13 +28,14 @@ SocketLogRepresenter.jnc
 01d483f3e69da205  # ConnectingFrom
 01d483f3e69da206  # ResolveCompleted
 01d483f3e69da207  # ConnectCompleted
-01d483f3e69da208  # ConnectCancelled
-01d483f3e69da209  # ConnectError
+01d483f3e69da208  # ConnectCancelled/ResolveCancelled
+01d483f3e69da209  # ConnectError/ResolveCancelled
 01d483f3e69da20a  # Disconnected
+01d483f3e69da20b  # Disconnected_old
 
-01d483f3e69da20b  # Listening
-01d483f3e69da20c  # ListenError
-01d483f3e69da20d  # ListenStopped
-01d483f3e69da20e  # ClientConnected
-01d483f3e69da20f  # ClientDisconnected
-01d483f3e69da210  # ClientRejected
+01d483f3e69da20c  # Listening
+01d483f3e69da20d  # ListenError
+01d483f3e69da20e  # ListenStopped
+01d483f3e69da20f  # ClientConnected
+01d483f3e69da210  # ClientDisconnected
+01d483f3e69da211  # ClientRejected

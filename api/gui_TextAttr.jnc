@@ -3,6 +3,8 @@
 // Ninja GUI - text attributes
 //
 
+import "gui_Color.jnc"
+
 namespace gui {
 
 //..............................................................................

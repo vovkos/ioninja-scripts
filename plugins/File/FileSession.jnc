@@ -68,6 +68,7 @@ protected:
 	gui.Icon* m_iconTable [IconId._Count];
 	gui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
 	gui.ComboBox* m_fileNameCombo;
+	gui.ComboBox* m_accessCombo;
 
 	// property grid
 
@@ -130,7 +131,6 @@ FileSession.construct (doc.PluginHost* pluginHost)
 
 	createUi ();
 
-	pluginHost.m_log.addRepresenter (representFileLog);
 	pluginHost.m_log.addSelectionProcessor (log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor (log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
 	m_stdSessionInfoSet.addLogListener (pluginHost.m_log);
@@ -138,12 +138,21 @@ FileSession.construct (doc.PluginHost* pluginHost)
 
 FileSession.createUi ()
 {
+	static gui.EnumPropertyOption accessModeTable [] =
+	{
+		{ "Read/Write",  Access.ReadWrite },
+		{ "Read-only",   Access.ReadOnly  },
+		{ "Write-only",  Access.WriteOnly },
+	}
+
 	// toolbar
 
 	m_pluginHost.m_toolBar.addLabel ("File:");
 	m_fileNameCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_fileNameCombo.m_isEditable = true;
 	m_fileNameCombo.m_onEnter += onFileNameComboEnter;
+
+	m_accessCombo = m_pluginHost.m_toolBar.addComboBox ("Access:", accessModeTable, countof (accessModeTable));
 
 	m_iconTable [IconId.Open] = new gui.Icon ("images/open.png");
 	m_iconTable [IconId.Close] = new gui.Icon ("images/close.png");
@@ -172,13 +181,6 @@ FileSession.createUi ()
 		"File name",
 		"Specify the file name to open"
 		);
-
-	static gui.EnumPropertyOption accessModeTable [] =
-	{
-		{ "Read/Write",  Access.ReadWrite },
-		{ "Read-only",   Access.ReadOnly  },
-		{ "Write-only",  Access.WriteOnly },
-	}
 
 	m_accessProp = m_pluginHost.m_propertyGrid.createEnumProperty (
 		group,,
@@ -212,7 +214,7 @@ bool errorcode FileSession.open ()
 
 	char const* fileName = m_fileNameCombo.m_editText;
 
-	Access access = (Access) m_accessProp.m_value;
+	Access access = m_accessCombo.m_currentData;
 
 	io.FileOpenFlags openFlags =
 		access == Access.ReadOnly ? io.FileOpenFlags.ReadOnly :
@@ -297,7 +299,7 @@ void FileSession.load (doc.Storage* storage)
 {
 	m_fileNameCombo.loadHistory (storage, "fileNameHistory");
 	m_fileNameCombo.m_editText = storage.readString ("fileName");
-	m_accessProp.m_value = storage.readInt ("access");
+	m_accessCombo.m_currentData = storage.readInt ("access");
 
 	m_bufferPropertySet.load (storage);
 	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
@@ -309,17 +311,19 @@ void FileSession.save (doc.Storage* storage)
 
 	m_fileNameCombo.saveHistory (storage, "fileNameHistory");
 	storage.writeString ("fileName", m_fileNameCombo.m_editText);
-	storage.writeInt ("access", m_accessProp.m_value);
+	storage.writeInt ("access", m_accessCombo.m_currentData);
 }
 
 void FileSession.updateProperties ()
 {
 	m_fileNameProp.m_value = m_fileNameCombo.m_editText;
+	m_accessProp.m_value = m_accessCombo.m_currentData;
 }
 
 bool errorcode FileSession.applyProperties ()
 {
 	m_fileNameCombo.m_editText = m_fileNameProp.m_value;
+	m_accessCombo.m_currentData = m_accessProp.m_value;
 	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
 
 	if (!m_file.m_isOpen)
@@ -406,6 +410,8 @@ reactor FileSession.m_uiReactor
 {
 	m_title = $"File $(m_fileNameCombo.m_editText)";
 	m_isTransmitEnabled = m_state == State.Opened;
+	m_accessCombo.m_isEnabled = !m_state;
+	m_accessProp.m_isEnabled = !m_state;
 	m_actionTable [ActionId.Open].m_text = m_state ? "Close" : "Open";
 	m_actionTable [ActionId.Open].m_icon = m_iconTable [m_state ? IconId.Close : IconId.Open];
 	m_actionTable [ActionId.Clear].m_isEnabled = m_state && m_file.m_kind == io.FileStreamKind.Disk;

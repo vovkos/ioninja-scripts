@@ -1,16 +1,17 @@
 //..............................................................................
 //
-// UDP log packet declarations and representer
+// Mailslot log record codes
 //
 
-import "log_Representer.jnc"
+import "log_RecordCode.jnc"
 
 //..............................................................................
 
-enum UdpLogRecordCode: uint64_t
+enum MailslotLogRecordCode: uint64_t
 {
-	TxPacket = 0x01d48410b3c4e600,
-	RxPacket = 0x01d48410b3c4e601,
+	Opened    = 0x01d48562dc4294c7,
+	OpenError = 0x01d48562dc4294c8,
+	Closed    = 0x01d48562dc4294c9,
 }
 
 //..............................................................................
