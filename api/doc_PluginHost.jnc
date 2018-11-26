@@ -33,6 +33,8 @@ opaque class PluginHost
 	log.Log m_log;
 	MainThreadScheduler* m_mainThreadScheduler;
 
+	char const* const property m_pluginDir;
+
 	destruct ();
 }
 
