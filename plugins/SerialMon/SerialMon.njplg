@@ -15,8 +15,7 @@ log-guid    = 27dcecb3-47dc-4f1d-b0f8-227b627b90ae  # serial monitor log
 icon        = images/serialmon.png
 small-icon  = images/serialmon-16x16.png
 
-session-class        = SerialMonSession
-log-representer-func = representSerialMonLog
+session-class = SerialMonSession
 
 [scripts]
 

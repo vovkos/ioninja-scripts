@@ -9,8 +9,6 @@ name        = "Serial Log"
 description = "Serial log representer"
 group       = serial
 guid        = 29725452-e64f-4c0e-a871-776277b68572
-icon        = images/serial.png
-small-icon  = images/serial-16x16.png
 
 log-representer-func = representSerialLog
 

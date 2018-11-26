@@ -75,14 +75,12 @@ protected:
 	State bindable m_state;
 	SerialPort* m_dtePort; // pointers are easier to flip
 	SerialPort* m_dcePort;
-	SerialLogFilter m_logFilter;
 	uint_t bindable m_serialBaudRate;
 	std.Buffer m_readBuffer;
 
 	// common serial ui
 
 	io.SerialSettingUi m_serialSettingUi;
-	io.SerialFilterUi m_serialFilterUi;
 
 	// toolbar, status bar & menu
 
@@ -182,8 +180,6 @@ SerialTapSession.construct (doc.PluginHost* pluginHost)
 
 	createUi ();
 
-	pluginHost.m_log.addRepresenter (representSerialLog);
-	pluginHost.m_log.addFilter (m_logFilter);
 	pluginHost.m_log.addSelectionProcessor (log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor (log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
 	m_stdSessionInfoSet.addLogListener (pluginHost.m_log);
@@ -319,13 +315,6 @@ SerialTapSession.createUi ()
 		~io.BufferPropertySet.PropertyId.WriteBufferSize &
 		~io.BufferPropertySet.PropertyId.KeepWriteBlockSize
 		);
-
-	group = m_pluginHost.m_propertyGrid.createGroupProperty (
-		"Log filter",
-		"Specify which unwanted log messages to filter out"
-		);
-
-	m_serialFilterUi.create (m_pluginHost.m_propertyGrid, group);
 
 	// information grid
 
@@ -537,11 +526,6 @@ SerialTapSession.close ()
 void SerialTapSession.load (doc.Storage* storage)
 {
 	m_serialSettingUi.load (storage);
-	m_serialFilterUi.load (storage);
-
-	m_logFilter.m_isSettingChangedVisible = m_serialFilterUi.m_settingChangedVisibleProp.m_value;
-	m_logFilter.m_isControlLineChangedVisible = m_serialFilterUi.m_controlLineChangedVisibleProp.m_value;
-	m_logFilter.m_isStatusLineChangedVisible = m_serialFilterUi.m_statusLineChangedVisibleProp.m_value;
 
 	m_dtePortCombo.m_editText = storage.readString ("dtePortName");
 	m_dcePortCombo.m_editText = storage.readString ("dcePortName");
@@ -557,7 +541,6 @@ void SerialTapSession.load (doc.Storage* storage)
 void SerialTapSession.save (doc.Storage* storage)
 {
 	m_serialSettingUi.save (storage);
-	m_serialFilterUi.save (storage);
 
 	storage.writeString ("dtePortName", m_dtePortCombo.m_editText);
 	storage.writeString ("dcePortName", m_dcePortCombo.m_editText);
@@ -576,10 +559,6 @@ void SerialTapSession.updateProperties ()
 	m_dtePortProp.m_value = m_dtePortCombo.m_editText;
 	m_dcePortProp.m_value = m_dcePortCombo.m_editText;
 	m_flipProp.m_value = m_actionTable [ActionId.Flip].m_isChecked;
-
-	m_serialFilterUi.m_settingChangedVisibleProp.m_value = m_logFilter.m_isSettingChangedVisible;
-	m_serialFilterUi.m_controlLineChangedVisibleProp.m_value = m_logFilter.m_isControlLineChangedVisible;
-	m_serialFilterUi.m_statusLineChangedVisibleProp.m_value = m_logFilter.m_isStatusLineChangedVisible;
 }
 
 bool errorcode SerialTapSession.applyProperties ()
@@ -589,9 +568,6 @@ bool errorcode SerialTapSession.applyProperties ()
 	m_dtePortCombo.m_editText = m_dtePortProp.m_value;
 	m_dcePortCombo.m_editText = m_dcePortProp.m_value;
 	m_actionTable [ActionId.Flip].m_isChecked = m_flipProp.m_value;
-	m_logFilter.m_isSettingChangedVisible = m_serialFilterUi.m_settingChangedVisibleProp.m_value;
-	m_logFilter.m_isControlLineChangedVisible = m_serialFilterUi.m_controlLineChangedVisibleProp.m_value;
-	m_logFilter.m_isStatusLineChangedVisible = m_serialFilterUi.m_statusLineChangedVisibleProp.m_value;
 	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
 
 	if (m_state != State.Opened)
@@ -646,7 +622,6 @@ catch:
 void SerialTapSession.restoreDefaultProperties ()
 {
 	m_serialSettingUi.restoreDefaultProperties ();
-	m_serialFilterUi.restoreDefaultProperties ();
 	m_readModeProp.m_value = Defaults.ReadMode;
 	m_readIntervalProp.m_value = Defaults.ReadInterval;
 	m_bufferPropertySet.restoreDefaults ();

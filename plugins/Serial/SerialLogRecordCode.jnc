@@ -3,7 +3,7 @@
 // Serial log record codes & params
 //
 
-import "log_Representer.jnc"
+import "log_RecordCode.jnc"
 
 //..............................................................................
 

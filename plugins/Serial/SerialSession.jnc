@@ -14,7 +14,6 @@ import "doc_Session.jnc"
 import "gui_StdSessionInfo.jnc"
 import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
-import "SerialLogRecordCode.jnc"
 
 //..............................................................................
 

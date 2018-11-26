@@ -1,0 +1,20 @@
+//..............................................................................
+//
+// Serial Monitor log record codes
+//
+
+import "log_RecordCode.jnc"
+
+//..............................................................................
+
+enum SerialMonLogRecordCode: uint64_t
+{
+	CaptureStarted   = 0x01d47d759805bae8,
+	CaptureStopped   = 0x01d47d759805bae9,
+	CaptureError     = 0x01d47d759805baea,
+	DeviceOpened     = 0x01d47d759805baed,
+	DeviceOpened_old = 0x01d47d759805baeb,
+	DeviceClosed     = 0x01d47d759805baec,
+}
+
+//..............................................................................

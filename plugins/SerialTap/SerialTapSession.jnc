@@ -209,12 +209,10 @@ protected:
 	io.SerialStopBits m_stopBits;
 	io.SerialParity m_parity;
 	std.Buffer m_readBuffer;
-	SerialLogFilter m_logFilter;
 
 	// common serial ui
 
 	io.SerialSettingUi m_serialSettingUi;
-	io.SerialFilterUi m_serialFilterUi;
 
 	// toolbar, status bar & menu
 
@@ -302,8 +300,6 @@ SerialTapSession.construct (doc.PluginHost* pluginHost)
 
 	createUi ();
 
-	pluginHost.m_log.addRepresenter (representSerialLog);
-	pluginHost.m_log.addFilter (m_logFilter);
 	pluginHost.m_log.addSelectionProcessor (log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor (log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
 	m_stdSessionInfoSet.addLogListener (pluginHost.m_log);
@@ -384,13 +380,6 @@ SerialTapSession.createUi ()
 		);
 
 	m_bufferPropertySet.createProperties (m_pluginHost.m_propertyGrid, group,, mask);
-
-	group = m_pluginHost.m_propertyGrid.createGroupProperty (
-		"Log filter",
-		"Specify which unwanted log messages to filter out"
-		);
-
-	m_serialFilterUi.create (m_pluginHost.m_propertyGrid, group);
 
 	// information grid
 
@@ -681,11 +670,6 @@ SerialTapSession.onInterruptEndpointEvent (
 void SerialTapSession.load (doc.Storage* storage)
 {
 	m_serialSettingUi.load (storage);
-	m_serialFilterUi.load (storage);
-
-	m_logFilter.m_isSettingChangedVisible = m_serialFilterUi.m_settingChangedVisibleProp.m_value;
-	m_logFilter.m_isControlLineChangedVisible = m_serialFilterUi.m_controlLineChangedVisibleProp.m_value;
-	m_logFilter.m_isStatusLineChangedVisible = m_serialFilterUi.m_statusLineChangedVisibleProp.m_value;
 
 	m_deviceCombo.m_currentIndex  = storage.readInt ("deviceIdx");
 	m_actionTable [ActionId.Flip].m_isChecked = storage.readBool ("flipDteDce");
@@ -697,7 +681,6 @@ void SerialTapSession.load (doc.Storage* storage)
 void SerialTapSession.save (doc.Storage* storage)
 {
 	m_serialSettingUi.save (storage);
-	m_serialFilterUi.save (storage);
 
 	storage.writeInt ("deviceIdx", (int) m_deviceCombo.m_currentIndex);
 	storage.writeBool ("flipDteDce", m_actionTable [ActionId.Flip].m_isChecked);
@@ -711,10 +694,6 @@ void SerialTapSession.updateProperties ()
 
 	m_deviceProp.m_currentIndex = m_deviceCombo.m_currentIndex;
 	m_flipProp.m_value = m_actionTable [ActionId.Flip].m_isChecked;
-
-	m_serialFilterUi.m_settingChangedVisibleProp.m_value = m_logFilter.m_isSettingChangedVisible;
-	m_serialFilterUi.m_controlLineChangedVisibleProp.m_value = m_logFilter.m_isControlLineChangedVisible;
-	m_serialFilterUi.m_statusLineChangedVisibleProp.m_value = m_logFilter.m_isStatusLineChangedVisible;
 }
 
 bool errorcode SerialTapSession.applyProperties ()
@@ -723,9 +702,6 @@ bool errorcode SerialTapSession.applyProperties ()
 
 	m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
 	m_actionTable [ActionId.Flip].m_isChecked = m_flipProp.m_value;
-	m_logFilter.m_isSettingChangedVisible = m_serialFilterUi.m_settingChangedVisibleProp.m_value;
-	m_logFilter.m_isControlLineChangedVisible = m_serialFilterUi.m_controlLineChangedVisibleProp.m_value;
-	m_logFilter.m_isStatusLineChangedVisible = m_serialFilterUi.m_statusLineChangedVisibleProp.m_value;
 	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
 
 	if (m_state != State.Opened)
@@ -772,7 +748,6 @@ catch:
 void SerialTapSession.restoreDefaultProperties ()
 {
 	m_serialSettingUi.restoreDefaultProperties ();
-	m_serialFilterUi.restoreDefaultProperties ();
 	m_flipProp.m_value = false;
 	m_bufferPropertySet.restoreDefaults ();
 }

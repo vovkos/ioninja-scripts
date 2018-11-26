@@ -52,12 +52,7 @@ protected:
 
 	State bindable m_state;
 	SerialMonitor m_monitor;
-	SerialLogFilter m_logFilter;
 	char const* m_portName;
-
-	// common serial ui
-
-	io.SerialFilterUi m_serialFilterUi;
 
 	// toolbar, status bar & menu
 
@@ -116,8 +111,6 @@ SerialMonSession.construct (doc.PluginHost* pluginHost)
 
 	createUi ();
 
-	pluginHost.m_log.addRepresenter (representSerialMonLog);
-	pluginHost.m_log.addFilter (m_logFilter);
 	pluginHost.m_log.addSelectionProcessor (log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor (log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
 	m_stdSessionInfoSet.addLogListener (pluginHost.m_log);
@@ -182,15 +175,6 @@ SerialMonSession.createUi ()
 	m_bufferPropertySet.m_readBufferSizeProp.m_minValue = 1024;
 	m_pendingNotifySizeLimitProp.m_minValue = 1024;
 	m_pendingNotifySizeLimitProp.m_spinBoxStep = 1024; // 1KB
-
-	// filter
-
-	group = m_pluginHost.m_propertyGrid.createGroupProperty (
-		"Log filter",
-		"Specify which unwanted log messages to filter out"
-		);
-
-	m_serialFilterUi.create (m_pluginHost.m_propertyGrid, group);
 
 	// information grid
 
@@ -273,12 +257,6 @@ SerialMonSession.close ()
 
 void SerialMonSession.load (doc.Storage* storage)
 {
-	m_serialFilterUi.load (storage);
-
-	m_logFilter.m_isSettingChangedVisible = m_serialFilterUi.m_settingChangedVisibleProp.m_value;
-	m_logFilter.m_isControlLineChangedVisible = m_serialFilterUi.m_controlLineChangedVisibleProp.m_value;
-	m_logFilter.m_isStatusLineChangedVisible = m_serialFilterUi.m_statusLineChangedVisibleProp.m_value;
-
 	m_portCombo.m_editText = storage.readString ("portName");
 	m_pendingNotifySizeLimitProp.m_value = storage.readInt ("pendingNotifySizeLimit", Defaults.PendingNotifySizeLimit);
 
@@ -288,8 +266,6 @@ void SerialMonSession.load (doc.Storage* storage)
 
 void SerialMonSession.save (doc.Storage* storage)
 {
-	m_serialFilterUi.save (storage);
-
 	storage.writeString ("portName", m_portCombo.m_editText);
 	storage.writeInt ("pendingNotifySizeLimit", m_pendingNotifySizeLimitProp.m_value);
 
@@ -299,18 +275,11 @@ void SerialMonSession.save (doc.Storage* storage)
 void SerialMonSession.updateProperties ()
 {
 	m_portProp.m_value = m_portCombo.m_editText;
-
-	m_serialFilterUi.m_settingChangedVisibleProp.m_value = m_logFilter.m_isSettingChangedVisible;
-	m_serialFilterUi.m_controlLineChangedVisibleProp.m_value = m_logFilter.m_isControlLineChangedVisible;
-	m_serialFilterUi.m_statusLineChangedVisibleProp.m_value = m_logFilter.m_isStatusLineChangedVisible;
 }
 
 bool errorcode SerialMonSession.applyProperties ()
 {
 	m_portCombo.m_editText = m_portProp.m_value;
-	m_logFilter.m_isSettingChangedVisible = m_serialFilterUi.m_settingChangedVisibleProp.m_value;
-	m_logFilter.m_isControlLineChangedVisible = m_serialFilterUi.m_controlLineChangedVisibleProp.m_value;
-	m_logFilter.m_isStatusLineChangedVisible = m_serialFilterUi.m_statusLineChangedVisibleProp.m_value;
 
 	if (m_state != State.Opened)
 		return true;
@@ -321,9 +290,7 @@ bool errorcode SerialMonSession.applyProperties ()
 
 void SerialMonSession.restoreDefaultProperties ()
 {
-	m_serialFilterUi.restoreDefaultProperties ();
 	m_pendingNotifySizeLimitProp.m_value = Defaults.PendingNotifySizeLimit;
-
 	m_bufferPropertySet.restoreDefaults ();
 }
 

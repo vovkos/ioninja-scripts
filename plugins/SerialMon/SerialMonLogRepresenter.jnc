@@ -1,21 +1,10 @@
 //..............................................................................
 //
-// Serial Monitor log packet declarations and representer
+// Serial Monitor log representer
 //
 
+import "SerialMonLogRecordCode.jnc"
 import "log_DeviceMon.jnc"
-
-//..............................................................................
-
-enum SerialMonLogRecordCode: uint64_t
-{
-	CaptureStarted   = 0x01d47d759805bae8,
-	CaptureStopped   = 0x01d47d759805bae9,
-	CaptureError     = 0x01d47d759805baea,
-	DeviceOpened     = 0x01d47d759805baed,
-	DeviceOpened_old = 0x01d47d759805baeb,
-	DeviceClosed     = 0x01d47d759805baec,
-}
 
 //..............................................................................
 

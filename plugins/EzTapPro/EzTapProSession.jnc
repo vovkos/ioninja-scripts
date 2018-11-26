@@ -63,7 +63,6 @@ protected:
 
 	State bindable m_state;
 	io.Serial m_serial;
-	SerialLogFilter m_logFilter;
 	char const* m_portName;
 	uint_t bindable m_baudRate;
 	uint_t m_dataBits;
@@ -82,7 +81,6 @@ protected:
 	// common serial ui
 
 	io.SerialSettingUi m_serialSettingUi;
-	io.SerialFilterUi m_serialFilterUi;
 
 	// toolbar, status bar & menu
 
@@ -202,8 +200,6 @@ EzTapProSession.construct (doc.PluginHost* pluginHost)
 
 	createUi ();
 
-	pluginHost.m_log.addRepresenter (representSerialLog);
-	pluginHost.m_log.addFilter (m_logFilter);
 	pluginHost.m_log.addSelectionProcessor (log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor (log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
 	m_stdSessionInfoSet.addLogListener (pluginHost.m_log);
@@ -350,15 +346,6 @@ EzTapProSession.createUi ()
 		~io.BufferPropertySet.PropertyId.KeepWriteBlockSize &
 		~io.BufferPropertySet.PropertyId.KeepReadBlockSize
 		);
-
-	// filter property grid
-
-	group = m_pluginHost.m_propertyGrid.createGroupProperty (
-		"Log filter",
-		"Specify which unwanted log messages to filter out"
-		);
-
-	m_serialFilterUi.create (m_pluginHost.m_propertyGrid, group);
 
 	// information grid
 
@@ -777,11 +764,6 @@ size_t errorcode EzTapProSession.transmit (
 void EzTapProSession.load (doc.Storage* storage)
 {
 	m_serialSettingUi.load (storage);
-	m_serialFilterUi.load (storage);
-
-	m_logFilter.m_isSettingChangedVisible = m_serialFilterUi.m_settingChangedVisibleProp.m_value;
-	m_logFilter.m_isControlLineChangedVisible = m_serialFilterUi.m_controlLineChangedVisibleProp.m_value;
-	m_logFilter.m_isStatusLineChangedVisible = m_serialFilterUi.m_statusLineChangedVisibleProp.m_value;
 
 	m_portCombo.m_editText = storage.readString ("portName");
 	m_parityProp.m_currentIndex = storage.readInt ("parity");
@@ -798,7 +780,6 @@ void EzTapProSession.load (doc.Storage* storage)
 void EzTapProSession.save (doc.Storage* storage)
 {
 	m_serialSettingUi.save (storage);
-	m_serialFilterUi.save (storage);
 
 	storage.writeString ("portName", m_portCombo.m_editText);
 	storage.writeInt ("parity", m_parityProp.m_currentIndex);
@@ -817,10 +798,6 @@ void EzTapProSession.updateProperties ()
 
 	m_portProp.m_value = m_portCombo.m_editText;
 	m_flipProp.m_value = m_actionTable [ActionId.Flip].m_isChecked;
-
-	m_serialFilterUi.m_settingChangedVisibleProp.m_value = m_logFilter.m_isSettingChangedVisible;
-	m_serialFilterUi.m_controlLineChangedVisibleProp.m_value = m_logFilter.m_isControlLineChangedVisible;
-	m_serialFilterUi.m_statusLineChangedVisibleProp.m_value = m_logFilter.m_isStatusLineChangedVisible;
 }
 
 bool errorcode EzTapProSession.applyProperties ()
@@ -829,9 +806,6 @@ bool errorcode EzTapProSession.applyProperties ()
 
 	m_portCombo.m_editText = m_portProp.m_value;
 	m_actionTable [ActionId.Flip].m_isChecked = m_flipProp.m_value;
-	m_logFilter.m_isSettingChangedVisible = m_serialFilterUi.m_settingChangedVisibleProp.m_value;
-	m_logFilter.m_isControlLineChangedVisible = m_serialFilterUi.m_controlLineChangedVisibleProp.m_value;
-	m_logFilter.m_isStatusLineChangedVisible = m_serialFilterUi.m_statusLineChangedVisibleProp.m_value;
 	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
 
 	if (m_state != State.Opened)
@@ -864,7 +838,6 @@ bool errorcode EzTapProSession.applyProperties ()
 void EzTapProSession.restoreDefaultProperties ()
 {
 	m_serialSettingUi.restoreDefaultProperties ();
-	m_serialFilterUi.restoreDefaultProperties ();
 
 	m_parityProp.m_value = Defaults.Parity;
 	m_signalLevelProp.m_value = Defaults.SignalLevel;

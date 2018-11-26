@@ -9,14 +9,13 @@ name        = "Serial Monitor Log"
 description = "Serial log representer"
 group       = serial
 guid        = 27dcecb3-47dc-4f1d-b0f8-227b627b90ae
-icon        = images/serialmon.png
-small-icon  = images/serialmon-16x16.png
 
 log-representer-func = representSerialMonLog
 
 [scripts]
 
-SerialMonLog.jnc
+SerialMonLogRecordCode.jnc
+SerialMonLogRepresenter.jnc
 
 [record-codes]
 
