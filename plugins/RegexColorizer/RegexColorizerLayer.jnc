@@ -27,6 +27,8 @@ protected:
 	gui.ActionProperty* m_removeLastPatternProp;
 	gui.ActionProperty* m_removeAllExtraPatternsProp;
 
+	reactor m_uiReactor;
+
 public:
 	construct (doc.PluginHost* pluginHost);
 
@@ -48,8 +50,6 @@ protected:
 	onAddPattern ();
 	onRemoveLastPattern ();
 	onRemoveAllExtraPatterns ();
-
-	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .

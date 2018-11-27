@@ -11,6 +11,8 @@ class RegexPattern
 	gui.ColorProperty* m_colorProp;
 	gui.FlagProperty* m_fontFlagProp;
 
+	reactor m_uiReactor;
+
 	construct (
 		gui.PropertyGrid* propertyGrid,
 		gui.Property* beforeProp,
@@ -21,9 +23,6 @@ class RegexPattern
 
 	void load (doc.Storage* storage);
 	void save (doc.Storage* storage);
-
-protected:
-	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .

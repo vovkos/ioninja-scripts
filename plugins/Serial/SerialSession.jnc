@@ -100,6 +100,10 @@ protected:
 	log.ThroughputInfoSet m_throughputInfoSet;
 	log.ChecksumInfoSet m_checksumInfoSet;
 
+	// ui reactor
+
+	reactor m_uiReactor;
+
 public:
 	construct (doc.PluginHost* pluginHost);
 
@@ -149,8 +153,6 @@ protected:
 			sys.g_systemInfo.m_osKind != sys.OsKind.Windows ||
 			m_readModeProp.m_value != SerialReadMode.IntervalBased ? 0 : m_readIntervalProp.m_value;
 	}
-
-	reactor m_uiReactor;
 
 	updateLineInfoValue (
 		InfoId infoId,

@@ -98,6 +98,10 @@ protected:
 	gui.InformationValue* m_usbTotalSizeInfo;
 	gui.InformationValue* m_usbThroughputInfo;
 
+	// ui reactor
+
+	reactor m_uiReactor;
+
 	uint64_t m_usbTotalSize;
 	uint64_t m_usbPrevTotalSize;
 	uint64_t m_usbThroughputTimestamp;
@@ -138,8 +142,6 @@ protected:
 
 	waitInEndpointEvents ();
 	updateUsbThroughput (uint64_t timestamp = sys.getTimestamp ());
-
-	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .

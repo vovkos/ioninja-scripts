@@ -1,6 +1,6 @@
 #...............................................................................
 #
-#  Pipe listener log (records, representer, filter) plugin
+#  Pipe listener log representer plugin
 #
 
 [plugin]

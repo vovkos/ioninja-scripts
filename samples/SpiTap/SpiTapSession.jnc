@@ -194,6 +194,10 @@ protected:
 	log.ThroughputInfoSet m_throughputInfoSet;
 	log.ChecksumInfoSet m_checksumInfoSet;
 
+	// ui reactor
+
+	reactor m_uiReactor;
+
 	// ASCII printables filtering (demo mode)
 
 	jnc.RegexDfa m_textDfa;
@@ -249,8 +253,6 @@ protected:
 	flipAB ();
 	waitEndpointEvents (SpiIface* iface);
 	bool errorcode configureSpiIface (uint_t ifaceId);
-
-	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .

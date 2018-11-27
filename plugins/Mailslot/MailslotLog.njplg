@@ -1,6 +1,6 @@
 #...............................................................................
 #
-#  Mailslot log (records, representer, filter) plugin
+#  Mailslot log representer plugin
 #
 
 [plugin]

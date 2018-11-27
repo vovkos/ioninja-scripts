@@ -62,6 +62,10 @@ protected:
 	gui.BoolProperty* m_isInterCharDelayEnabledProp;
 	gui.IntProperty* m_interCharDelayProp;
 
+	// ui reactor
+
+	reactor m_uiReactor;
+
 public:
 	construct (doc.PluginHost* pluginHost);
 
@@ -95,7 +99,6 @@ protected:
 	onTransmitEnabledChanged ();
 
 	createUi ();
-	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .

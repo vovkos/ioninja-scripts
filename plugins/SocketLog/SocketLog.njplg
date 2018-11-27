@@ -1,6 +1,6 @@
 #...............................................................................
 #
-#  Socket log (records, representer, filter) plugin
+#  Socket log representer plugin
 #
 
 [plugin]

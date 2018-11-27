@@ -1,6 +1,6 @@
 #...............................................................................
 #
-#  UDP log (records, representer, filter) plugin
+#  UDP log representer plugin
 #
 
 [plugin]

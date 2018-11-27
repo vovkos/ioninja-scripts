@@ -18,6 +18,8 @@ protected:
 	gui.IntProperty* m_retransmitDelayProp;
 	gui.BoolProperty* m_analyzeRxProp;
 
+	reactor m_uiReactor;
+
 	sys.Timer m_retransmitTimer;
 
 	void const* m_packet;
@@ -56,7 +58,6 @@ protected:
 		);
 
 	createUi ();
-	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -95,6 +96,12 @@ $(layerClass).createUi ()
 		);
 
 	m_uiReactor.start ();
+}
+
+reactor $(layerClass).m_uiReactor
+{
+	m_retransmitCountProp.m_isEnabled = m_enableRetransmitProp.m_value;
+	m_retransmitDelayProp.m_isEnabled = m_enableRetransmitProp.m_value;
 }
 
 void $(layerClass).load (doc.Storage* storage)
@@ -181,12 +188,6 @@ $(layerClass).scanRx (
 
 		p += m_rxScannerState.m_consumedLength;
 	}
-}
-
-reactor $(layerClass).m_uiReactor
-{
-	m_retransmitCountProp.m_isEnabled = m_enableRetransmitProp.m_value;
-	m_retransmitDelayProp.m_isEnabled = m_enableRetransmitProp.m_value;
 }
 
 //..............................................................................

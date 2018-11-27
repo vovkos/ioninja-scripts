@@ -89,6 +89,10 @@ protected:
 	log.ThroughputInfoSet m_throughputInfoSet;
 	log.ChecksumInfoSet m_checksumInfoSet;
 
+	// ui reactor
+
+	reactor m_uiReactor;
+
 public:
 	construct (doc.PluginHost* pluginHost);
 
@@ -149,8 +153,6 @@ protected:
 
 	waitPcapEvents ();
 	createUi ();
-
-	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .

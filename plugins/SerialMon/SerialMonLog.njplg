@@ -1,6 +1,6 @@
 #...............................................................................
 #
-#  Serial monitor log (records, representer, filter) plugin
+#  Serial monitor log representer plugin
 #
 
 [plugin]

@@ -63,6 +63,10 @@ protected:
 
 	gui.StringProperty* m_addressProp;
 
+	// ui reactor
+
+	reactor m_uiReactor;
+
 public:
 	construct (doc.PluginHost* pluginHost);
 
@@ -92,7 +96,6 @@ protected:
 	}
 
 	createUi ();
-	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .

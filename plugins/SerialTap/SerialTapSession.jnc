@@ -234,6 +234,10 @@ protected:
 	log.ChecksumInfoSet m_checksumInfoSet;
 	gui.InformationValue* m_infoTable [InfoId._Count];
 
+	// ui reactor
+
+	reactor m_uiReactor;
+
 public:
 	construct (doc.PluginHost* pluginHost);
 
@@ -283,8 +287,6 @@ protected:
 		InfoId infoId,
 		bool line
 		);
-
-	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .

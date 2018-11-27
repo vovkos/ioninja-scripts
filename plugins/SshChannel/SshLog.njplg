@@ -1,6 +1,6 @@
 #...............................................................................
 #
-#  SSH log (records, representer, filter) plugin
+#  SSH log representer plugin
 #
 
 [plugin]
