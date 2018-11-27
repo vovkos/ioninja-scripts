@@ -21,18 +21,18 @@ public:
 	io.ModbusProtocol readonly m_protocol;
 	ModbusParserMode autoget property m_mode;
 	uint64_t m_halfDuplexTimeout; // in 100-nsec intervals
-	
-public:	
+
+public:
 	abstract parse (
 		log.Writer* writer,
 		uint64_t timestamp,
-		uint_t originalRecordCode,
+		uint64_t originalRecordCode,
 		void const* p,
 		size_t size
 		);
 
 	abstract reset ();
-	
+
 protected:
 	updateLastTimestamp (uint64_t timestamp);
 }
@@ -45,20 +45,20 @@ ModbusParserBase.m_mode.set (ModbusParserMode mode)
 		return;
 
 	m_value = mode;
-	
+
 	m_modbusRole = mode == ModbusParserMode.Slave ?
 		io.ModbusRole.Slave :
 		io.ModbusRole.Master;
-	
+
 	reset ();
 }
 
 ModbusParserBase.updateLastTimestamp (uint64_t timestamp)
 {
-	if (m_mode == ModbusParserMode.HalfDuplex && 
+	if (m_mode == ModbusParserMode.HalfDuplex &&
 		timestamp - m_lastTimestamp > m_halfDuplexTimeout)
 		reset ();
-	
+
 	m_lastTimestamp = timestamp;
 }
 

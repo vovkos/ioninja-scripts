@@ -8,21 +8,15 @@
 name        = Modbus Analyzer
 description = "Analyzes a Serial/TCP monitor log and generates a secondary log with decoded Modbus messages"
 id          = modbus
-guid        = 53603C98-34BC-46EF-BA08-D3274F1057B4
+log-guid    = 53603C98-34BC-46EF-BA08-D3274F1057B4  # modbus
 icon        = images/modbus.png
 small-icon  = images/modbus-16x16.png
 
 layer-class = ModbusLayer
-log-representer-func = representModbusLog
 
 [scripts]
 
 ModbusLayer.jnc
-ModbusLog.jnc
-ModbusLog_Pdu.jnc
-ModbusLog_Rtu.jnc
-ModbusLog_Ascii.jnc
-ModbusLog_Tcp.jnc
 ModbusParserBase.jnc
 ModbusRtuParser.jnc
 ModbusAsciiParser.jnc

@@ -27,7 +27,7 @@ public:
 	override parse (
 		log.Writer* writer,
 		uint64_t timestamp,
-		uint_t originalRecordCode,
+		uint64_t originalRecordCode,
 		void const* p,
 		size_t size
 		);
@@ -40,7 +40,7 @@ protected:
 		return m_modbusRole == io.ModbusRole.Master ?
 			ModbusLogRecordCode.MasterPacket_Rtu :
 			ModbusLogRecordCode.SlavePacket_Rtu;
-	}	
+	}
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -48,7 +48,7 @@ protected:
 ModbusRtuParser.parse (
 	log.Writer* writer,
 	uint64_t timestamp,
-	uint_t originalRecordCode,
+	uint64_t originalRecordCode,
 	void const* p,
 	size_t size
 	)
@@ -70,9 +70,9 @@ ModbusRtuParser.parse (
 	// write the original data first
 
 	writer.write (timestamp, originalRecordCode, p, size);
-	
+
 	ModbusLogRecordCode recordCode = getPacketRecordCode ();
-	
+
 	while (size)
 	{
 		if (!m_expectedSize)
@@ -106,7 +106,7 @@ ModbusRtuParser.parse (
 		// ADU completed
 
 		writer.write (timestamp, recordCode, m_dataBuffer.m_p, m_dataBuffer.m_size);
-	
+
 		m_dataBuffer.clear ();
 		m_expectedSize = 0;
 

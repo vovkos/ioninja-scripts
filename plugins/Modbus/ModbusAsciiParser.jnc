@@ -26,7 +26,7 @@ public:
 	override parse (
 		log.Writer* writer,
 		uint64_t timestamp,
-		uint_t originalRecordCode,
+		uint64_t originalRecordCode,
 		void const* p,
 		size_t size
 		);
@@ -39,7 +39,7 @@ protected:
 		return m_modbusRole == io.ModbusRole.Master ?
 			ModbusLogRecordCode.MasterPacket_Ascii :
 			ModbusLogRecordCode.SlavePacket_Ascii;
-	}	
+	}
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -47,7 +47,7 @@ protected:
 ModbusAsciiParser.parse (
 	log.Writer* writer,
 	uint64_t timestamp,
-	uint_t originalRecordCode,
+	uint64_t originalRecordCode,
 	void const* p,
 	size_t size
 	)
@@ -96,7 +96,7 @@ ModbusAsciiParser.parse (
 			}
 
 			// frame completed
-			
+
 			m_dataBuffer.append (adu, p - adu + 1);
 			writer.write (timestamp, recordCode, m_dataBuffer.m_p, m_dataBuffer.m_size);
 			p++;

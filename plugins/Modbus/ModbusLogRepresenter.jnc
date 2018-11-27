@@ -5,22 +5,7 @@
 
 import "log_Representer.jnc"
 import "io_Modbus.jnc"
-
-//..............................................................................
-
-enum ModbusLogRecordCode
-{
-	// avoid conflicts with std sessions (SerialLog/SerialMonLog/...)
-
-	MasterPacket_Rtu   = 0x200 | log.RecordCodeFlags.Foldable,
-	SlavePacket_Rtu    = 0x201 | log.RecordCodeFlags.Foldable,
-	MasterPacket_Ascii = 0x202 | log.RecordCodeFlags.Foldable,
-	SlavePacket_Ascii  = 0x203 | log.RecordCodeFlags.Foldable,
-	InvalidFunction    = 0x204,
-	ParseError         = 0x205,
-	MasterPacket_Tcp   = 0x206 | log.RecordCodeFlags.Foldable,
-	SlavePacket_Tcp    = 0x207 | log.RecordCodeFlags.Foldable,
-}
+import "ModbusLogRecordCode.jnc"
 
 //..............................................................................
 
