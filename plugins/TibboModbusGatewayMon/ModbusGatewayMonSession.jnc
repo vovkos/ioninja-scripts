@@ -91,6 +91,10 @@ protected:
 	log.ThroughputInfoSet m_throughputInfoSet;
 	log.ChecksumInfoSet m_checksumInfoSet;
 
+	// ui reactor
+
+	reactor m_uiReactor;
+
 	// values for start monitor session
 	static char const* m_telnetCommand = "\x2Y\n\r";
 
@@ -131,7 +135,6 @@ protected:
 	waitSocketEvents ();
 
 	createUi ();
-	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -146,7 +149,6 @@ ModbusGatewayMonSession.construct (doc.PluginHost* pluginHost)
 
 	createUi ();
 
-	pluginHost.m_log.addRepresenter (representModbusGatewayMonLog);
 	pluginHost.m_log.addSelectionProcessor (log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor (log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
 	m_stdSessionInfoSet.addLogListener (pluginHost.m_log);
@@ -233,7 +235,7 @@ bool errorcode ModbusGatewayMonSession.connect ()
 	m_state = State.Resolving;
 
 	writeLog (
-		ModbusGatewayMonLogRecordCode.Resolving,
+		SocketLogRecordCode.Resolving,
 		addressString,
 		strlen (addressString)
 		);
@@ -292,7 +294,7 @@ nestedscope:
 	localAddress = m_socket.m_address;
 
 	char const* p = $"$(*remoteAddress; B)$(localAddress; B)";
-	writeLog (ModbusGatewayMonLogRecordCode.ConnectingFrom, p, dynamic sizeof (p));
+	writeLog (SocketLogRecordCode.ConnectingFrom, p, dynamic sizeof (p));
 
 	waitSocketEvents ();
 	return true;
@@ -300,12 +302,12 @@ nestedscope:
 catch:
 	if (!m_socketPropertySet.m_useLocalAddressProp.m_value)
 	{
-		writeLog (ModbusGatewayMonLogRecordCode.Connecting, remoteAddress, sizeof (io.SocketAddress));
+		writeLog (SocketLogRecordCode.Connecting, remoteAddress, sizeof (io.SocketAddress));
 	}
 	else
 	{
 		char const* p = $"$(*remoteAddress; B)$(localAddress; B)";
-		writeLog (ModbusGatewayMonLogRecordCode.ConnectingFrom, p, dynamic sizeof (p));
+		writeLog (SocketLogRecordCode.ConnectingFrom, p, dynamic sizeof (p));
 	}
 
 	handleConnectError (std.getLastError ());
@@ -315,7 +317,7 @@ catch:
 ModbusGatewayMonSession.handleConnectError (std.Error const* error)
 {
 	writeLog (
-		ModbusGatewayMonLogRecordCode.ConnectError,
+		SocketLogRecordCode.ConnectError,
 		error,
 		error.m_size
 		);
@@ -333,7 +335,7 @@ ModbusGatewayMonSession.disconnect ()
 
 	case State.Resolving:
 	case State.Connecting:
-		writeLog (ModbusGatewayMonLogRecordCode.ConnectCancelled);
+		writeLog (SocketLogRecordCode.ConnectCancelled);
 		break;
 
 	case State.Connected:
@@ -345,7 +347,7 @@ ModbusGatewayMonSession.disconnect ()
 			params.m_flags |= TcpDisconnectLogRecordFlags.Reset;
 
 		writeLog (
-			ModbusGatewayMonLogRecordCode.Disconnected,
+			SocketLogRecordCode.Disconnected,
 			&params,
 			sizeof (params)
 			);
@@ -443,7 +445,7 @@ ModbusGatewayMonSession.onSocketEvent (
 
 	if (triggeredEvents & io.SocketEvents.Connected)
 	{
-		writeLog (ModbusGatewayMonLogRecordCode.ConnectCompleted);
+		writeLog (SocketLogRecordCode.ConnectCompleted);
 		m_state = State.Connected;
 		m_isTransmitEnabled = true;
 		m_stdSessionInfoSet.startSession (m_pluginHost.m_mainThreadScheduler);
@@ -473,7 +475,7 @@ ModbusGatewayMonSession.onSocketEvent (
 			recordParams.m_flags |= TcpDisconnectLogRecordFlags.Reset;
 
 		writeLog (
-			ModbusGatewayMonLogRecordCode.Disconnected,
+			SocketLogRecordCode.Disconnected,
 			&recordParams,
 			sizeof (recordParams)
 			);
@@ -567,7 +569,7 @@ ModbusGatewayMonSession.onResolveCompleted (
 	}
 
 	writeLog (
-		ModbusGatewayMonLogRecordCode.ResolveCompleted,
+		SocketLogRecordCode.ResolveCompleted,
 		addressTable,
 		sizeof (io.SocketAddress)
 		);

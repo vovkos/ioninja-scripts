@@ -1,46 +1,12 @@
 //..............................................................................
 //
-// TCP Connection log packet declarations and representer
+// Tibbo Modbus gateay monitor log representer
 //
 
 import "log_Representer.jnc"
 import "io_Modbus.jnc"
 import "crc16.jnc"
-
-//..............................................................................
-
-enum ModbusGatewayMonLogRecordCode
-{
-	Resolving,
-	Connecting,
-	ConnectingFrom,
-	ResolveCompleted,
-	ConnectCompleted,
-	ConnectCancelled,
-	ConnectError,
-	CommandError,
-	Disconnected,
-	DumpPacket    = 0x210 | log.RecordCodeFlags.Foldable,
-	Log,
-}
-
-enum ModbusGatewayMonPartCode
-{
-	Connecting       = 1 | log.PartCodeFlags.MergeableForward,
-	ConnectCompleted = 1 | log.PartCodeFlags.MergeableBackward,
-}
-
-bitflag enum TcpDisconnectLogRecordFlags
-{
-	Remote,
-	Reset,
-}
-
-struct TcpDisconnectLogRecordParams
-{
-	io.SocketAddress m_address;
-	uint_t m_flags;
-}
+import "ModbusGatewayMonLogRecordCode.jnc"
 
 //..............................................................................
 
@@ -54,69 +20,11 @@ bool representModbusGatewayMonLog (
 {
 	switch (recordCode)
 	{
-	case ModbusGatewayMonLogRecordCode.Resolving:
-		char const* addressString = (char const*) p;
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText (ModbusGatewayMonPartCode.Connecting, $"Resolving \e[34m$addressString\e[m...");
-		break;
-
-	case ModbusGatewayMonLogRecordCode.Connecting:
-		char const* addressString = ((io.SocketAddress const*) p).getString ();
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText (ModbusGatewayMonPartCode.Connecting, $"Connecting to \e[34m$addressString\e[m...");
-		break;
-
-	case ModbusGatewayMonLogRecordCode.ConnectingFrom:
-		char const* remoteAddressString = ((io.SocketAddress const*) p).getString ();
-		char const* localAddressString = ((io.SocketAddress const*) p + 1).getString ();
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText (ModbusGatewayMonPartCode.Connecting, $"Connecting to \e[34m$remoteAddressString\e[m from \e[34m$localAddressString\e[m...");
-		break;
-
-	case ModbusGatewayMonLogRecordCode.ResolveCompleted:
-		char const* addressString = ((io.SocketAddress const*) p).getString ();
-		target.addHyperText (ModbusGatewayMonPartCode.ConnectCompleted, $"ok (\e[34m$addressString\e[m)");
-		break;
-
-	case ModbusGatewayMonLogRecordCode.ConnectCompleted:
-		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Connect;
-		target.addHyperText (ModbusGatewayMonPartCode.ConnectCompleted, "ok");
-		break;
-
-	case ModbusGatewayMonLogRecordCode.ConnectCancelled:
-		target.addHyperText (ModbusGatewayMonPartCode.ConnectCompleted, "cancelled");
-		break;
-
-	case ModbusGatewayMonLogRecordCode.ConnectError:
-		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-
-		std.Error const* error = (std.Error const*) p;
-		target.addHyperText (ModbusGatewayMonPartCode.ConnectCompleted, $"error: $(error.m_description)");
-		break;
-
 	case ModbusGatewayMonLogRecordCode.CommandError:
 		target.m_lineAttr.m_flags = log.LineAttrFlags.Override;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		target.addHyperText (ModbusGatewayMonPartCode.ConnectCompleted, $"error: Unable send command to device");
-		break;
-
-	case ModbusGatewayMonLogRecordCode.Disconnected:
-		TcpDisconnectLogRecordParams const* params = (TcpDisconnectLogRecordParams const*) p;
-		char const* addressString = params.m_address.getString ();
-		char const* closeKind = (params.m_flags & TcpDisconnectLogRecordFlags.Reset) ? "reset" : "closed";
-		char const* initiator = (params.m_flags & TcpDisconnectLogRecordFlags.Remote) ? "remote" : "local";
-
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
-		target.addHyperText ($"Disconnected from \e[34m$addressString\e[m ($closeKind by $initiator node)");
+		target.addHyperText (SocketLogPartCode.ConnectCompleted, $"error: Unable send command to device");
 		break;
 
 	case ModbusGatewayMonLogRecordCode.DumpPacket:
