@@ -83,6 +83,10 @@ protected:
 	log.ThroughputInfoSet m_throughputInfoSet;
 	log.ChecksumInfoSet m_checksumInfoSet;
 
+	// ui reactor
+
+	reactor m_uiReactor;
+
 public:
 	construct (doc.PluginHost* pluginHost);
 
@@ -116,8 +120,6 @@ protected:
 
 	createUi ();
 	enumerateDevices ();
-
-	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -128,7 +130,6 @@ UsbControlEndpointSession.construct (doc.PluginHost* pluginHost)
 
 	createUi ();
 
-	pluginHost.m_log.addRepresenter (representUsbLog);
 	pluginHost.m_log.addSelectionProcessor (log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor (log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
 	m_stdSessionInfoSet.addLogListener (pluginHost.m_log);
@@ -362,12 +363,12 @@ bool UsbControlEndpointSession.openDevice ()
 	params.m_productId = deviceDesc.m_productId;
 	params.m_vendorId = deviceDesc.m_vendorId;
 
-	writeLog (UsbRecordCode.DeviceOpened, &params, sizeof (params));
+	writeLog (UsbLogRecordCode.DeviceOpened, &params, sizeof (params));
 	m_state = State.Opened;
 	return true;
 
 catch:
-	writeLogLastError (UsbRecordCode.DeviceOpenError);
+	writeLogLastError (UsbLogRecordCode.DeviceOpenError);
 	return false;
 }
 
@@ -379,7 +380,7 @@ UsbControlEndpointSession.closeDevice ()
 	m_device.close ();
 	m_device = null;
 
-	writeLog (UsbRecordCode.DeviceClosed);
+	writeLog (UsbLogRecordCode.DeviceClosed);
 	m_state = State.Closed;
 	m_syncId++;
 }
@@ -508,7 +509,7 @@ UsbControlEndpointSession.onTransferCompleted (
 	params.m_value = value;
 	params.m_index = index;
 
-	writeLog (UsbRecordCode.ControlTransfer, &params, sizeof (params));
+	writeLog (UsbLogRecordCode.ControlTransfer, &params, sizeof (params));
 
 	if (error)
 		writeLogError (log.StdRecordCode.Error, error);

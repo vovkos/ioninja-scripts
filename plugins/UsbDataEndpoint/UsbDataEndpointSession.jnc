@@ -86,6 +86,10 @@ protected:
 	log.ThroughputInfoSet m_throughputInfoSet;
 	log.ChecksumInfoSet m_checksumInfoSet;
 
+	// ui reactor
+
+	reactor m_uiReactor;
+
 public:
 	construct (doc.PluginHost* pluginHost);
 
@@ -126,8 +130,6 @@ protected:
 	enumerateDevices ();
 	waitOutEndpointEvents ();
 	waitInEndpointEvents ();
-
-	reactor m_uiReactor;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -138,7 +140,6 @@ UsbDataEndpointSession.construct (doc.PluginHost* pluginHost)
 
 	createUi ();
 
-	pluginHost.m_log.addRepresenter (representUsbLog);
 	pluginHost.m_log.addSelectionProcessor (log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor (log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
 	m_stdSessionInfoSet.addLogListener (pluginHost.m_log);
@@ -338,12 +339,12 @@ bool UsbDataEndpointSession.openDevice ()
 	params.m_productId = deviceDesc.m_productId;
 	params.m_vendorId = deviceDesc.m_vendorId;
 
-	writeLog (UsbRecordCode.DeviceOpened, &params, sizeof (params));
+	writeLog (UsbLogRecordCode.DeviceOpened, &params, sizeof (params));
 	m_state = State.Opened;
 	return true;
 
 catch:
-	writeLogLastError (UsbRecordCode.DeviceOpenError);
+	writeLogLastError (UsbLogRecordCode.DeviceOpenError);
 	return false;
 }
 
@@ -356,7 +357,7 @@ UsbDataEndpointSession.closeDevice ()
 	m_device.close ();
 	m_device = null;
 
-	writeLog (UsbRecordCode.DeviceClosed);
+	writeLog (UsbLogRecordCode.DeviceClosed);
 	m_state = State.Closed;
 }
 
@@ -373,7 +374,7 @@ bool UsbDataEndpointSession.claimInterface ()
 		m_autoDetachKernelDriverProp.m_value)
 	{
 		m_device.detachKernelDriver (ifaceDesc.m_interfaceId);
-		writeLog (UsbRecordCode.KernelDriverDetached, &ifaceDesc.m_interfaceId, sizeof (ifaceDesc.m_interfaceId));
+		writeLog (UsbLogRecordCode.KernelDriverDetached, &ifaceDesc.m_interfaceId, sizeof (ifaceDesc.m_interfaceId));
 	}
 
 	m_interface = m_device.claimInterface (ifaceDesc.m_interfaceId, ifaceDesc.m_altSettingId);
@@ -416,13 +417,13 @@ bool UsbDataEndpointSession.claimInterface ()
 	params.m_interfaceId = ifaceDesc.m_interfaceId;
 	params.m_altSettingId = ifaceDesc.m_altSettingId;
 
-	writeLog (UsbRecordCode.InterfaceClaimed, &params, sizeof (params));
+	writeLog (UsbLogRecordCode.InterfaceClaimed, &params, sizeof (params));
 	m_state = State.Claimed;
 	m_stdSessionInfoSet.startSession (m_pluginHost.m_mainThreadScheduler);
 	return true;
 
 catch:
-	writeLogLastError (UsbRecordCode.InterfaceClaimError);
+	writeLogLastError (UsbLogRecordCode.InterfaceClaimError);
 	return false;
 }
 
@@ -435,7 +436,7 @@ UsbDataEndpointSession.releaseInterface ()
 	m_interface.release ();
 	m_interface = null;
 
-	writeLogLastError (UsbRecordCode.InterfaceReleased);
+	writeLogLastError (UsbLogRecordCode.InterfaceReleased);
 	m_state = State.Opened;
 	m_inSyncId++;
 	m_outSyncId++;
@@ -459,14 +460,14 @@ bool UsbDataEndpointSession.startReading ()
 	m_inEndpoint.m_readParallelism = 8;
 	m_inEndpoint.m_readBufferSize = 8 * 1024 * 1024;
 
-	writeLog (UsbRecordCode.ReadingStarted, &endpointDesc.m_endpointId, sizeof (endpointDesc.m_endpointId));
+	writeLog (UsbLogRecordCode.ReadingStarted, &endpointDesc.m_endpointId, sizeof (endpointDesc.m_endpointId));
 	m_state = State.Reading;
 
 	waitInEndpointEvents ();
 	return true;
 
 catch:
-	writeLogLastError (UsbRecordCode.EndpointOpenError);
+	writeLogLastError (UsbLogRecordCode.EndpointOpenError);
 	return false;
 }
 
@@ -478,7 +479,7 @@ UsbDataEndpointSession.stopReading ()
 	m_inEndpoint.close ();
 	m_inEndpoint = null;
 
-	writeLogLastError (UsbRecordCode.ReadingStopped);
+	writeLogLastError (UsbLogRecordCode.ReadingStopped);
 	m_state = State.Claimed;
 	m_inSyncId++;
 }

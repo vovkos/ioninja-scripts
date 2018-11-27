@@ -1,6 +1,6 @@
 #...............................................................................
 #
-#   USB Data Endpoint session plugin
+#  USB Data Endpoint session plugin
 #
 
 [plugin]
@@ -9,16 +9,14 @@ name        = USB Data Endpoint
 description = "Low-level direct USB communications with USB data endpoints on a device"
 id          = usb-data-endpoint
 group       = usb
-guid        = 3b5bd445-951e-4f76-9d8d-fe97aecbdd73
+log-guid    = 3b5bd445-951e-4f76-9d8d-fe97aecbdd73  # usb
 icon        = images/usb.png
 small-icon  = images/usb-16x16.png
 
-session-class        = UsbDataEndpointSession
-log-representer-func = representUsbLog
+session-class = UsbDataEndpointSession
 
 #. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 [scripts]
 
 UsbDataEndpointSession.jnc
-UsbLog.jnc

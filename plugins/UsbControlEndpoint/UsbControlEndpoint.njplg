@@ -1,6 +1,6 @@
 #...............................................................................
 #
-#   USB Control Endpoint session plugin
+#  USB Control Endpoint session plugin
 #
 
 [plugin]
@@ -9,16 +9,14 @@ name        = USB Control Endpoint
 description = "Low-level direct USB communications with USB control endpoint #0 on a device"
 id          = usb-control-endpoint
 group       = usb
-guid        = 4bdf0b61-1407-4608-abdd-6a8bc756275d
+log-guid    = 3b5bd445-951e-4f76-9d8d-fe97aecbdd73  # usb
 icon        = images/usb.png
 small-icon  = images/usb-16x16.png
 
-session-class        = UsbControlEndpointSession
-log-representer-func = representUsbLog
+session-class = UsbControlEndpointSession
 
 #. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 [scripts]
 
 UsbControlEndpointSession.jnc
-../UsbDataEndpoint/UsbLog.jnc
