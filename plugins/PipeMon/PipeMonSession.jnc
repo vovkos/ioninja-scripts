@@ -117,7 +117,6 @@ PipeMonSession.construct (doc.PluginHost* pluginHost)
 
 	createUi ();
 
-	pluginHost.m_log.addRepresenter (representPipeMonLog);
 	pluginHost.m_log.addSelectionProcessor (log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor (log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
 	m_stdSessionInfoSet.addLogListener (pluginHost.m_log);
@@ -219,7 +218,7 @@ bool errorcode PipeMonSession.capture ()
 		m_lanmanMonitor.capture (r"\device\lanmanredirector", name);
 	}
 
-	writeLogString (PipeMonLogRecordCode.CaptureStarted, name);
+	writeLogString (DeviceMonLogRecordCode.CaptureStarted_filter, name);
 	m_state = State.Opened;
 	m_stdSessionInfoSet.startSession (m_pluginHost.m_mainThreadScheduler);
 	return true;
@@ -230,7 +229,7 @@ catch:
 
 	std.Error const* error = std.getLastError ();
 	writeLog (
-		PipeMonLogRecordCode.CaptureError,
+		DeviceMonLogRecordCode.CaptureError,
 		error,
 		error.m_size
 		);
@@ -242,7 +241,7 @@ PipeMonSession.close ()
 	if (m_state != State.Opened)
 		return;
 
-	writeLog (PipeMonLogRecordCode.CaptureStopped);
+	writeLog (DeviceMonLogRecordCode.CaptureStopped);
 
 	m_npfsMonitor.close ();
 	m_lanmanMonitor.close ();

@@ -1,46 +1,10 @@
 //..............................................................................
 //
-// Pipe Monitor log packet declarations and representer
+// Pipe Monitor log representer
 //
 
-import "log_DeviceMon.jnc"
-
-//..............................................................................
-
-enum PipeMonLogRecordCode
-{
-	CaptureStarted, // don't mix with PipeLogRecordCode
-	CaptureStopped,
-	CaptureError,
-	ServerFileOpened_old,
-	ServerFileOpenError_old,
-	ClientFileOpened_old,
-	ClientFileOpenError_old,
-	FileClosed,
-	ConnectionAccepted,
-	ConnectionClosed,
-	Transaction,
-	FileIdChanged_old,
-
-	ServerFileOpened,
-	ServerFileOpenError,
-	ClientFileOpened,
-	ClientFileOpenError,
-	FileIdChanged,
-}
-
-enum PipeMonLogPartCode
-{
-	Prefix = log.PartCodeFlags.MergeableForward | 1,
-	Suffix = log.PartCodeFlags.MergeableBackward | 1,
-}
-
-struct PipeMonLogTransactionParams
-{
-	uint32_t m_fileId;
-	uint32_t m_txDataSize;
-	uint32_t m_rxDataSize;
-}
+import "log_Representer.jnc"
+import "PipeMonLogRecordCode.jnc"
 
 //..............................................................................
 
@@ -54,27 +18,6 @@ bool representPipeMonLog  (
 {
 	switch (recordCode)
 	{
-	case PipeMonLogRecordCode.CaptureStarted:
-		char const* nameFilter = (char const*) p;
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Listen;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText ($"Capture started with filter \e[34m$nameFilter");
-		break;
-
-	case PipeMonLogRecordCode.CaptureStopped:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.StopListen;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText ("Capture stopped");
-		break;
-
-	case PipeMonLogRecordCode.CaptureError:
-		std.Error const* error = (std.Error const*) p;
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		target.addHyperText ($"Cannot start capture: $(error.m_description)");
-		log.addDeviceMonCaptureErrorDetails (target, error);
-		break;
-
 	case PipeMonLogRecordCode.ServerFileOpened_old:
 		uint32_t fileId = *(uint32_t const*) p;
 		char const* name = (char const*) (p + sizeof (fileId));
