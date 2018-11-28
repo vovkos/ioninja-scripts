@@ -17,7 +17,7 @@ log-representer-func = representFileLog
 FileLogRecordCode.jnc
 FileLogRepresenter.jnc
 
-[record-codes]
+[records]
 
 01d485548790df29  # Opened
 01d485548790df2a  # OpenError

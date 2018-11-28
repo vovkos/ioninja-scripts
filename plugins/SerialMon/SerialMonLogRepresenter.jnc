@@ -3,8 +3,8 @@
 // Serial Monitor log representer
 //
 
+import "log_Representer.jnc"
 import "SerialMonLogRecordCode.jnc"
-import "log_DeviceMon.jnc"
 
 //..............................................................................
 
@@ -18,27 +18,6 @@ bool representSerialMonLog  (
 {
 	switch (recordCode)
 	{
-	case SerialMonLogRecordCode.CaptureStarted:
-		char const* name = (char const*) p;
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Listen;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText ($"Capture started on port \e[34m$name");
-		break;
-
-	case SerialMonLogRecordCode.CaptureStopped:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.StopListen;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText ("Capture stopped");
-		break;
-
-	case SerialMonLogRecordCode.CaptureError:
-		std.Error const* error = (std.Error const*) p;
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		target.addHyperText ($"Cannot start capture: $(error.m_description)");
-		log.addDeviceMonCaptureErrorDetails (target, error);
-		break;
-
 	case SerialMonLogRecordCode.DeviceOpened_old:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Connect;

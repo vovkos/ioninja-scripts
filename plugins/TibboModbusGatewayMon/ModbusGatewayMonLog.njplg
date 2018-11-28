@@ -17,7 +17,7 @@ log-representer-func = representModbusGatewayMonLog
 ModbusGatewayMonLogRecordCode.jnc
 ModbusGatewayMonLogRepresenter.jnc
 
-[record-codes]
+[records]
 
 01d486364a3fbd00  # CommandError
 81d486364a3fbd01  # DumpPacket

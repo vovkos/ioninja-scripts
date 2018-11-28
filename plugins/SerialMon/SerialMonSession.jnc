@@ -226,7 +226,7 @@ bool errorcode SerialMonSession.capture ()
 	m_monitor.applyProperties (m_bufferPropertySet, m_pendingNotifySizeLimitProp.m_value);
 	m_monitor.capture (name);
 
-	writeLog (SerialMonLogRecordCode.CaptureStarted, name, strlen (name));
+	writeLogString (DeviceMonLogRecordCode.CaptureStarted_name, name);
 
 	m_portName = name;
 	m_state = State.Opened;
@@ -238,7 +238,7 @@ catch:
 
 	std.Error const* error = std.getLastError ();
 	writeLog (
-		SerialMonLogRecordCode.CaptureError,
+		DeviceMonLogRecordCode.CaptureError,
 		error,
 		error.m_size
 		);
@@ -250,7 +250,7 @@ SerialMonSession.close ()
 	if (m_state != State.Opened)
 		return;
 
-	writeLog (SerialMonLogRecordCode.CaptureStopped);
+	writeLog (DeviceMonLogRecordCode.CaptureStopped);
 
 	m_monitor.close ();
 	m_state = State.Closed;

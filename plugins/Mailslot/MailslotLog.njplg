@@ -17,7 +17,7 @@ log-representer-func = representMailslotLog
 MailslotLogRecordCode.jnc
 MailslotLogRepresenter.jnc
 
-[record-codes]
+[records]
 
 01d48562dc4294c7  # Opened
 01d48562dc4294c8  # OpenError

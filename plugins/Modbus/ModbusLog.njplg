@@ -20,7 +20,7 @@ ModbusLog_Rtu.jnc
 ModbusLog_Ascii.jnc
 ModbusLog_Tcp.jnc
 
-[record-codes]
+[records]
 
 81d485febc418db8  # MasterPacket_Rtu
 81d485febc418db9  # SlavePacket_Rtu

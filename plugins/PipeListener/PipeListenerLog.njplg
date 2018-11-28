@@ -17,7 +17,7 @@ log-representer-func = representPipeListenerLog
 PipeListenerLogRecordCode.jnc
 PipeListenerLogRepresenter.jnc
 
-[record-codes]
+[records]
 
 01d48560deefaf00  # Listening
 01d48560deefaf01  # ListenError

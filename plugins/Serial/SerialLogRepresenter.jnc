@@ -4,6 +4,8 @@
 //
 
 import "log_Representer.jnc"
+import "io_base.jncx"
+import "io_Serial.jnc"
 import "SerialLogRecordCode.jnc"
 
 //..............................................................................

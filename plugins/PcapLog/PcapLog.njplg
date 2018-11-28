@@ -17,7 +17,7 @@ log-representer-func = representPcapLog
 PcapLogRecordCode.jnc
 PcapLogRepresenter.jnc
 
-[record-codes]
+[records]
 
 01d485681832d000  # StartingCapture
 01d485681832d001  # CaptureStarted

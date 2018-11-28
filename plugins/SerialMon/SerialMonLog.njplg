@@ -17,7 +17,7 @@ log-representer-func = representSerialMonLog
 SerialMonLogRecordCode.jnc
 SerialMonLogRepresenter.jnc
 
-[record-codes]
+[records]
 
 01d47d759805bae8  # CaptureStarted
 01d47d759805bae9  # CaptureStopped

@@ -17,7 +17,7 @@ log-representer-func = representSshLog
 SshLogRecordCode.jnc
 SshLogRepresenter.jnc
 
-[record-codes]
+[records]
 
 01d4840c424a4d00  # TcpConnectCompleted
 01d4840c424a4d01  # SshHandshakeCompleted

@@ -17,7 +17,7 @@ log-representer-func = representUsbLog
 UsbLogRecordCode.jnc
 UsbLogRepresenter.jnc
 
-[record-codes]
+[records]
 
 01d485f4acbf80b7  # DeviceOpened
 01d485f4acbf80b8  # DeviceOpenError

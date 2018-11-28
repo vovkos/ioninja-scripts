@@ -5,8 +5,8 @@
 
 [plugin]
 
-name        = TX/RX Filter
-description = A simple filter allowing you to exclude TX or/and RX bytes from the log
+name        = "TX/RX Filter"
+description = "A simple filter allowing you to exclude TX or/and RX bytes from the log"
 id          = tx-rx-filter
 guid        = c511e88c-1e67-4de3-9924-78e5efb9bd4f
 icon        = images/filter.png

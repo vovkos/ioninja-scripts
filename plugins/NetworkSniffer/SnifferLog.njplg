@@ -23,7 +23,7 @@ SnifferLog_Icmp.jnc
 SnifferLog_Tcp.jnc
 SnifferLog_Udp.jnc
 
-[record-codes]
+[records]
 
 81d4856b81a408c7  # Packet
 81d4856b81a408c8  # InjectedPacket

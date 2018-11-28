@@ -17,7 +17,7 @@ log-representer-func = representSocketLog
 SocketLogRecordCode.jnc
 SocketLogRepresenter.jnc
 
-[record-codes]
+[records]
 
 01d483f3e69da200  # Open
 01d483f3e69da201  # OpenError

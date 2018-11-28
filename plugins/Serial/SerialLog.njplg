@@ -17,7 +17,7 @@ log-representer-func = representSerialLog
 SerialLogRecordCode.jnc
 SerialLogRepresenter.jnc
 
-[record-codes]
+[records]
 
 81d47c8fc7b0f700  # PortOpened
 81d47c8fc7b0f701  # PortOpened_old
@@ -36,23 +36,34 @@ SerialLogRepresenter.jnc
 01d47c8fc7b0f70e  # BuggyDriverDetected
 01d47c8fc7b0f70f  # ControlLineChanged
 
-[record-code-group]
+[filter]
 
-description = "Serial setting changed"
+id          = serial-setting
+name        = "Serial setting changes"
+description = "Show/hide serial setting changes (baud rate, data bits, etc)"
 
-01d47c8fc7b0f704
-01d47c8fc7b0f705
-01d47c8fc7b0f706
-01d47c8fc7b0f707
-01d47c8fc7b0f708
-01d47c8fc7b0f70c
-01d47c8fc7b0f70d
+01d47c8fc7b0f704  # BaudRateChanged
+01d47c8fc7b0f705  # DataBitsChanged
+01d47c8fc7b0f706  # StopBitsChanged
+01d47c8fc7b0f707  # ParityChanged
+01d47c8fc7b0f708  # FlowControlChanged
+01d47c8fc7b0f70c  # ReadModeChanged
+01d47c8fc7b0f70d  # ReadIntervalChanged
 
-[record-code-group]
+[filter]
 
-description = "Serial control line changed"
+id          = serial-control
+name        = "Serial control line changes"
+description = "Show/hide serial control lines changes (DTR/DSR)"
 
-01d47c8fc7b0f70f
-01d47c8fc7b0f709
-01d47c8fc7b0f70a
-01d47c8fc7b0f70b
+01d47c8fc7b0f70f  # ControlLineChanged
+01d47c8fc7b0f709  # RtsChanged
+01d47c8fc7b0f70a  # DtrChanged
+
+[filter]
+
+id          = serial-status
+name        = "Serial status line changes"
+description = "Show/hide serial control lines changes (RTS/CTS)"
+
+01d47c8fc7b0f70b  # StatusLineChanged
