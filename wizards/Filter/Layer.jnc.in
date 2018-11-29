@@ -13,7 +13,7 @@ class $(layerClass):
 
 	override bool filter (
 		uint64_t timestamp,
-		uint_t recordCode,
+		uint64_t recordCode,
 		void const* p,
 		size_t size
 		);
@@ -35,7 +35,7 @@ $(layerClass).construct (doc.PluginHost* pluginHost)
 
 bool $(layerClass).filter (
 	uint64_t timestamp,
-	uint_t recordCode,
+	uint64_t recordCode,
 	void const* p,
 	size_t size
 	)

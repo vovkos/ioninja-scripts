@@ -94,7 +94,7 @@ PipeMonitor.processNotification (io.DeviceMonitorNotifyHdr const* notifyHdr)
 	case io.win.DeviceMonitorNotifyCode.Create:
 		io.win.DeviceMonitorCreateNotifyParams const* params = (io.win.DeviceMonitorCreateNotifyParams const*) (notifyHdr + 1);
 
-		uint_t recordCode;
+		uint64_t recordCode;
 		std.Buffer logParams;
 
 		if (notifyHdr.m_ntStatus == 0)
@@ -133,7 +133,7 @@ PipeMonitor.processNotification (io.DeviceMonitorNotifyHdr const* notifyHdr)
 	case io.win.DeviceMonitorNotifyCode.CreateNamedPipe:
 		io.win.DeviceMonitorCreateNamedPipeNotifyParams const* params = (io.win.DeviceMonitorCreateNamedPipeNotifyParams const*) (notifyHdr + 1);
 
-		uint_t recordCode;
+		uint64_t recordCode;
 		std.Buffer logParams;
 
 		if (notifyHdr.m_ntStatus == 0)

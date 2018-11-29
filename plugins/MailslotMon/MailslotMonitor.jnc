@@ -26,18 +26,6 @@ protected:
 		uint64_t loFileId,
 		uint32_t processId
 		);
-
-	processFsctlNotification (
-		int ntStatus,
-		uint64_t timestamp,
-		uint64_t loFileId,
-		uint32_t processId,
-		uint_t code,
-		const void* inData,
-		size_t inDataSize,
-		const void* outData,
-		size_t outDataSize
-		);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -71,7 +59,7 @@ MailslotMonitor.processNotification (io.DeviceMonitorNotifyHdr const* notifyHdr)
 	case io.win.DeviceMonitorNotifyCode.Create:
 		io.win.DeviceMonitorCreateNotifyParams const* params = (io.win.DeviceMonitorCreateNotifyParams const*) (notifyHdr + 1);
 
-		uint_t recordCode;
+		uint64_t recordCode;
 		std.Buffer logParams;
 
 		if (notifyHdr.m_ntStatus == 0)
@@ -110,7 +98,7 @@ MailslotMonitor.processNotification (io.DeviceMonitorNotifyHdr const* notifyHdr)
 	case io.win.DeviceMonitorNotifyCode.CreateMailslot:
 		io.win.DeviceMonitorCreateNamedPipeNotifyParams const* params = (io.win.DeviceMonitorCreateNamedPipeNotifyParams const*) (notifyHdr + 1);
 
-		uint_t recordCode;
+		uint64_t recordCode;
 		std.Buffer logParams;
 
 		if (notifyHdr.m_ntStatus == 0)

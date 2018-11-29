@@ -3,6 +3,8 @@
 // I2C monitor
 //
 
+import "io_I2cSignalDecoder.jnc"
+
 //..............................................................................
 
 class I2c: SerialIface

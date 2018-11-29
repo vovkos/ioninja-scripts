@@ -675,7 +675,7 @@ SerialTapSession.onSerialEvent (
 		size_t result = port.m_serial.read (m_readBuffer.m_p, m_readBuffer.m_size);
 		if (result)
 		{
-			uint_t code = port == m_dtePort ? log.StdRecordCode.Rx : log.StdRecordCode.Tx;
+			uint64_t code = port == m_dtePort ? log.StdRecordCode.Rx : log.StdRecordCode.Tx;
 			writeLog (code, m_readBuffer.m_p, result);
 		}
 	}
@@ -685,7 +685,7 @@ SerialTapSession.onSerialEvent (
 
 	if (statusLineMask)
 	{
-		uint_t recordCode = port == m_dtePort ?
+		uint64_t recordCode = port == m_dtePort ?
 			SerialLogRecordCode.StatusLineChanged :
 			SerialLogRecordCode.ControlLineChanged;
 

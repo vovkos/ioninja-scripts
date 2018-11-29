@@ -104,7 +104,6 @@ protected:
 	I2cDecoder m_i2cDecoder;
 	Decoder* m_decoder;
 	uint_t m_syncId;
-	I2cSpiSnifferLogFilter m_logFilter;
 
 	// toolbar, status bar & menu
 
@@ -183,8 +182,6 @@ I2cSpiSnifferSession.construct (doc.PluginHost* pluginHost)
 	createUi ();
 
 	pluginHost.m_log.m_cacheUpdateScrollRateLimit = LogCacheUpdateScrollRateLimit;
-	pluginHost.m_log.addFilter (m_logFilter);
-	pluginHost.m_log.addRepresenter (representI2cSpiSnifferLog);
 	pluginHost.m_log.addSelectionProcessor (log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor (log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
 }
@@ -555,8 +552,6 @@ I2cSpiSnifferSession.load (doc.Storage* storage)
 	m_showRawDataProp.m_value = storage.readBool ("showRawData", Defaults.ShowRawData);
 	m_bufferPropertySet.load (storage);
 	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
-
-	m_logFilter.m_isI2cStopVisible = m_showI2cStopProp.m_value;
 }
 
 I2cSpiSnifferSession.save (doc.Storage* storage)
@@ -581,7 +576,6 @@ bool errorcode I2cSpiSnifferSession.applyProperties ()
 	m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
 	m_readBuffer.detach (); // drop buffer, so we re-allocate each time
 	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
-	m_logFilter.m_isI2cStopVisible = m_showI2cStopProp.m_value;
 
 	if (m_state != State.Capturing)
 		return true;

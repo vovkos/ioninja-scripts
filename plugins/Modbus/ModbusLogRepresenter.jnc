@@ -11,7 +11,7 @@ import "ModbusLogRecordCode.jnc"
 
 bool representModbusLog (
 	log.RepresenterTarget* target,
-	uint_t recordCode,
+	uint64_t recordCode,
 	void const* p,
 	size_t size,
 	uint_t foldFlags

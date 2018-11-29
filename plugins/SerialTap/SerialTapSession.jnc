@@ -614,7 +614,7 @@ SerialTapSession.onBulkEndpointEvent (
 		size_t result = iface.m_bulkEndpoint.read (m_readBuffer.m_p, m_readBuffer.m_size);
 		if (result)
 		{
-			uint_t recordCode = iface == m_dteIface ? log.StdRecordCode.Rx : log.StdRecordCode.Tx;
+			uint64_t recordCode = iface == m_dteIface ? log.StdRecordCode.Rx : log.StdRecordCode.Tx;
 			writeLog (recordCode, m_readBuffer.m_p, result);
 		}
 	}
@@ -654,7 +654,7 @@ SerialTapSession.onInterruptEndpointEvent (
 
 			if (statusLineMask)
 			{
-				uint_t recordCode = iface == m_dteIface ?
+				uint64_t recordCode = iface == m_dteIface ?
 					SerialLogRecordCode.StatusLineChanged :
 					SerialLogRecordCode.ControlLineChanged;
 

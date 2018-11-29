@@ -7,7 +7,7 @@ import "io_usb.jncx"
 import "io_UsbDb.jnc"
 import "io_BufferUi.jnc"
 import "std_Buffer.jnc"
-import "doc_Plugin.jnc"
+import "doc_Session.jnc"
 import "gui_StdSessionInfo.jnc"
 import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
@@ -237,7 +237,7 @@ protected:
 	bool flush (bool isForced);
 
 	void writeLogTextOnly (
-		uint_t recordCode,
+		uint64_t recordCode,
 		void const* p,
 		size_t size
 		);
@@ -270,7 +270,6 @@ SpiTapSession.construct (doc.PluginHost* pluginHost)
 
 	createUi ();
 
-	pluginHost.m_log.addRepresenter (representSpiTapLog);
 	pluginHost.m_log.addSelectionProcessor (log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor (log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
 	m_stdSessionInfoSet.addLogListener (pluginHost.m_log);
@@ -706,7 +705,7 @@ SpiTapSession.onEndpointEvent (
 			}
 			else
 			{
-				uint_t code = iface == m_ifaceA ? log.StdRecordCode.Tx : log.StdRecordCode.Rx;
+				uint64_t code = iface == m_ifaceA ? log.StdRecordCode.Tx : log.StdRecordCode.Rx;
 
 				if (m_useTextFilter.m_value)
 					writeLogTextOnly (code, m_readBuffer.m_p, result);
@@ -720,7 +719,7 @@ SpiTapSession.onEndpointEvent (
 }
 
 void SpiTapSession.writeLogTextOnly (
-	uint_t recordCode,
+	uint64_t recordCode,
 	void const* p,
 	size_t size
 	)

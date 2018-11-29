@@ -1,55 +1,16 @@
 //..............................................................................
 //
-// I2C sniffer log packet declarations and representer
+// I2C sniffer log representer
 //
 
-//..............................................................................
-
-enum I2cSpiSnifferLogRecordCode
-{
-	DeviceOpened = 0,
-	InterfaceClaimed,
-	InEndpointOpened,
-	OutEndpointOpened,
-	CaptureStarted,
-	CaptureStopped,
-	CaptureError,
-	UnexpectedCode,
-	IncompleteByte,
-	BufferOverflow,
-
-	StillWaiting,
-	FpgaDisabled,
-	FirmwareUpToDate,
-	FirmwareUpdateRequired,
-	ErasingFlash,
-	UploadingFirmware,
-	EnablingFpga,
-	FpgaReady,
-
-	I2cStart,
-	I2cFinalizeStart7Bit,
-	I2cFinalizeStart10Bit,
-	I2cStop,
-	I2cStopOutOfTransaction,
-	I2cTxNack,
-	I2cRxNack,
-
-	SpiStart,
-	SpiStop,
-}
-
-enum I2cSpiSnifferLogPartCode
-{
-	I2cStartBegin = I2cSpiSnifferLogRecordCode.I2cStart | log.PartCodeFlags.MergeableForward,
-	I2cStartEnd = I2cSpiSnifferLogRecordCode.I2cStart | log.PartCodeFlags.MergeableBackward,
-}
+import "log_Representer.jnc"
+import "I2cSpiSnifferLogRecordCode.jnc"
 
 //..............................................................................
 
 bool representI2cSpiSnifferLog (
 	log.RepresenterTarget* target,
-	uint_t recordCode,
+	uint64_t recordCode,
 	void const* p,
 	size_t size,
 	uint_t foldFlags
@@ -259,42 +220,3 @@ bool representI2cSpiSnifferLog (
 
 //..............................................................................
 
-class I2cSpiSnifferLogFilter: log.Filter
-{
-	volatile bool m_isI2cStopVisible;
-
-	construct ();
-
-	override bool filter (
-		uint64_t timestamp,
-		uint_t recordCode,
-		void const* p,
-		size_t size
-		);
-}
-
-// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-I2cSpiSnifferLogFilter.construct ()
-{
-	m_isI2cStopVisible = true;
-}
-
-bool I2cSpiSnifferLogFilter.filter (
-	uint64_t timestamp,
-	uint_t recordCode,
-	void const* p,
-	size_t size
-	)
-{
-	switch (recordCode)
-	{
-	case I2cSpiSnifferLogRecordCode.I2cStop:
-		return m_isI2cStopVisible;
-
-	default:
-		return true; // everything else is visible
-	}
-}
-
-//..............................................................................

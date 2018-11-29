@@ -155,7 +155,6 @@ HwSerialMonSession.construct (doc.PluginHost* pluginHost)
 
 	createUi ();
 
-	pluginHost.m_log.addRepresenter (representHwSerialMonLog);
 	pluginHost.m_log.addSelectionProcessor (log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor (log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
 	m_stdSessionInfoSet.addLogListener (pluginHost.m_log);
@@ -336,12 +335,12 @@ bool errorcode HwSerialMonSession.openDevice ()
 	params.m_productId = deviceDesc.m_productId;
 	params.m_vendorId = deviceDesc.m_vendorId;
 
-	writeLog (UsbRecordCode.DeviceOpened, &params, sizeof (params));
+	writeLog (UsbLogRecordCode.DeviceOpened, &params, sizeof (params));
 	m_state = State.Opened;
 	return capture ();
 
 catch:
-	writeLogLastError (UsbRecordCode.DeviceOpenError);
+	writeLogLastError (UsbLogRecordCode.DeviceOpenError);
 	closeDevice ();
 	return false;
 }
@@ -374,7 +373,7 @@ HwSerialMonSession.closeDevice ()
 
 	if (m_state)
 	{
-		writeLog (UsbRecordCode.DeviceClosed);
+		writeLog (UsbLogRecordCode.DeviceClosed);
 		m_state = State.Closed;
 	}
 }

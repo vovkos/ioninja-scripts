@@ -43,7 +43,7 @@ protected:
 
 	onLogRecord (
 		uint64_t timestamp,
-		uint_t recordCode,
+		uint64_t recordCode,
 		void const* p,
 		size_t size
 		);
@@ -194,7 +194,7 @@ SitaraLayer.onProgressDlgButtonClicked (gui.StdDlgButton button)
 
 SitaraLayer.onLogRecord (
 	uint64_t timestamp,
-	uint_t recordCode,
+	uint64_t recordCode,
 	void const* p,
 	size_t size
 	)

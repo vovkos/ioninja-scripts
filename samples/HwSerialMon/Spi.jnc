@@ -3,6 +3,8 @@
 // SPI monitor
 //
 
+import "io_SpiSignalDecoder.jnc"
+
 //..............................................................................
 
 class Spi: SerialIface

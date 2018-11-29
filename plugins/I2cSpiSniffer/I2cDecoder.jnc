@@ -82,7 +82,7 @@ I2cDecoder.decode (
 	size_t size
 	)
 {
-	static uint_t recordCodeTable [2] [2] =
+	static uint64_t recordCodeTable [2] [2] =
 	{
 		{ I2cSpiSnifferLogRecordCode.I2cTxNack, log.StdRecordCode.Tx, },
 		{ I2cSpiSnifferLogRecordCode.I2cRxNack, log.StdRecordCode.Rx, },

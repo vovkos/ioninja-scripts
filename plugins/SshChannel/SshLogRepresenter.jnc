@@ -3,15 +3,15 @@
 // SSH log representer
 //
 
-import "SshLogRecordCode.jnc"
-import "SocketLogRecordCode.jnc"
 import "log_Representer.jnc"
+import "SshLogRecordCode.jnc"
+import "../SocketLog/SocketLogRecordCode.jnc"
 
 //..............................................................................
 
 bool representSshLog (
 	log.RepresenterTarget* target,
-	uint_t recordCode,
+	uint64_t recordCode,
 	void const* p,
 	size_t size,
 	uint_t foldFlags

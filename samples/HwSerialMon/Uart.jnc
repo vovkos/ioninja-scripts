@@ -3,6 +3,7 @@
 // UART monitor
 //
 
+import "io_UartSignalDecoder.jnc"
 import "sys_Timer.jnc"
 
 //..............................................................................
@@ -62,7 +63,7 @@ protected:
 	finalizeFrame (
 		io.UartDecodeResult result,
 		uint64_t timestamp,
-		uint_t recordCode,
+		uint64_t recordCode,
 		uchar_t data
 		);
 
@@ -258,7 +259,7 @@ Uart.processSignal (
 Uart.finalizeFrame (
 	io.UartDecodeResult result,
 	uint64_t timestamp,
-	uint_t recordCode,
+	uint64_t recordCode,
 	uchar_t data
 	)
 {

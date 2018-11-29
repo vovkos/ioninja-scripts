@@ -690,7 +690,7 @@ bool errorcode EzTapProSession.decodeResponse (
 		case EzTapResponseCode.DceData:
 			EzTapDataParams const* params = (EzTapDataParams const*) m_responseBuffer.m_p;
 
-			uint_t recordCode = code == EzTapResponseCode.DteData != m_actionTable [ActionId.Flip].m_isChecked ?
+			uint64_t recordCode = code == EzTapResponseCode.DteData != m_actionTable [ActionId.Flip].m_isChecked ?
 				log.StdRecordCode.Tx :
 				log.StdRecordCode.Rx;
 

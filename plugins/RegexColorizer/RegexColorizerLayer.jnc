@@ -39,7 +39,7 @@ public:
 	override bool convert (
 		log.Writer* writer,
 		uint64_t timestamp,
-		uint_t recordCode,
+		uint64_t recordCode,
 		void const* p,
 		size_t size
 		);
@@ -197,7 +197,7 @@ finally:
 bool RegexColorizerLayer.convert (
 	log.Writer* writer,
 	uint64_t timestamp,
-	uint_t recordCode,
+	uint64_t recordCode,
 	void const* p,
 	size_t size
 	)

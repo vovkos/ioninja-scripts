@@ -5,7 +5,7 @@
 
 //..............................................................................
 
-enum UdpFlowMonLogRecordCode
+enum UdpFlowMonLogRecordCode: uint64_t
 {
 	Resolving,
 	ResolveCompleted,
@@ -22,7 +22,7 @@ enum UdpFlowMonLogRecordCode
 	RxPacket,
 }
 
-enum UdpFlowMonLogPartCode
+enum UdpFlowMonLogPartCode: uint64_t
 {
 	Resolving        = 1 | log.PartCodeFlags.MergeableForward,
 	ResolveCompleted = 1 | log.PartCodeFlags.MergeableBackward,
@@ -46,7 +46,7 @@ struct UdpFlowMonPacketParams
 
 bool representUdpFlowMonLog (
 	log.RepresenterTarget* target,
-	uint_t recordCode,
+	uint64_t recordCode,
 	void const* p,
 	size_t size,
 	uint_t foldFlags

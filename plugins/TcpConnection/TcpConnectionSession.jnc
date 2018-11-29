@@ -331,7 +331,7 @@ TcpConnectionSession.waitSocketEvents ()
 
 TcpConnectionSession.handleSocketError (std.Error const* error)
 {
-	uint_t recordCode = m_state < State.Connected ?
+	uint64_t recordCode = m_state < State.Connected ?
 		SocketLogRecordCode.ConnectError :
 		log.StdRecordCode.Error;
 

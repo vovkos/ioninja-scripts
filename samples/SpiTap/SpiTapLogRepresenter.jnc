@@ -1,33 +1,10 @@
 //..............................................................................
 //
-// SPI tap log packet declarations and representer
+// SPI tap log representer
 //
 
-//..............................................................................
-
-enum SpiTapLogRecordCode
-{
-	TapOpened     = 0 | log.RecordCodeFlags.Foldable,
-	TapOpenError  = 2,
-	TapClosed,
-	FrequencyChanged,
-	ModeChanged,
-	DataBitsChanged,
-	EndiannessChanged,
-	TxRxOutOfSync,
-}
-
-// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-struct SpiTapOpenParams
-{
-	uint_t m_frequency;
-	uint_t m_mode;
-	uint_t m_dataBits;
-	uint_t m_endianness;
-
-	// followed by device name
-}
+import "log_Representer.jnc"
+import "SpiTapLogRecordCode.jnc"
 
 //..............................................................................
 
@@ -41,7 +18,7 @@ char const* getTableString (
 
 bool representSpiTapLog (
 	log.RepresenterTarget* target,
-	uint_t recordCode,
+	uint64_t recordCode,
 	void const* p,
 	size_t size,
 	uint_t foldFlags

@@ -4,6 +4,7 @@
 //
 
 import "log_Representer.jnc"
+import "io_UsbDb.jnc"
 import "UsbLogRecordCode.jnc"
 
 //..............................................................................
@@ -17,7 +18,8 @@ char const* formatDeviceString (DeviceParams const* params)
 		params.m_productId
 		);
 
-	io.UsbVendor const* vendor = g_usbDb.findVendor (params.m_vendorId);
+	io.UsbDb* db = io.getStdUsbDb ();
+	io.UsbVendor const* vendor = db.findVendor (params.m_vendorId);
 	io.UsbProduct const* product = vendor ? vendor.findProduct (params.m_productId) : null;
 
 	if (vendor)
@@ -37,7 +39,7 @@ char const* formatDeviceString (DeviceParams const* params)
 
 bool representUsbLog (
 	log.RepresenterTarget* target,
-	uint_t recordCode,
+	uint64_t recordCode,
 	void const* p,
 	size_t size,
 	uint_t foldFlags

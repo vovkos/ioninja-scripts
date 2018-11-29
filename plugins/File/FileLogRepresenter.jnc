@@ -4,13 +4,15 @@
 //
 
 import "log_Representer.jnc"
+import "io_base.jncx"
+import "io_FileStream.jnc"
 import "FileLogRecordCode.jnc"
 
 //..............................................................................
 
 bool representFileLog (
 	log.RepresenterTarget* target,
-	uint_t recordCode,
+	uint64_t recordCode,
 	void const* p,
 	size_t size,
 	uint_t foldFlags
