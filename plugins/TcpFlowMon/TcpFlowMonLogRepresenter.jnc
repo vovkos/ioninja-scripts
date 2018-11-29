@@ -1,41 +1,12 @@
 //..............................................................................
 //
-// TCP Monitor log record declarations and representer
+// TCP Monitor log representer
 //
 
-//..............................................................................
-
-enum TcpFlowMonLogRecordCode: uint64_t
-{
-	Resolving,
-	ResolveCompleted,
-	ResolveCancelled,
-	ResolveError,
-	StartingCapture,
-	CaptureStarted,
-	CaptureError,
-	CaptureStopped,
-	ChangingFilter,
-	FilterChanged,
-	FilterError,
-	Connecting,
-	ConnectCompleted,
-	ConnectionPickedUp,
-	Disconnected,
-	OutOfOrderDataDropped,
-}
-
-enum TcpFlowMonLogPartCode: uint64_t
-{
-	Resolving        = 1 | log.PartCodeFlags.MergeableForward,
-	ResolveCompleted = 1 | log.PartCodeFlags.MergeableBackward,
-	StartingCapture  = 2 | log.PartCodeFlags.MergeableForward,
-	CaptureCompleted = 2 | log.PartCodeFlags.MergeableBackward,
-	ChangingFilter   = 3 | log.PartCodeFlags.MergeableForward,
-	FilterCompleted  = 3 | log.PartCodeFlags.MergeableBackward,
-	Connecting       = 4 | log.PartCodeFlags.MergeableForward,
-	ConnectCompleted = 4 | log.PartCodeFlags.MergeableBackward,
-}
+import "log_Representer.jnc"
+import "io_base.jncx"
+import "io_SocketAddress.jnc"
+import "TcpFlowMonLogRecordCode.jnc"
 
 //..............................................................................
 

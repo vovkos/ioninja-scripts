@@ -5,7 +5,7 @@
 
 [plugin]
 
-name        = SSH Log
+name        = "SSH Log"
 description = "SSH log representer"
 group       = fs
 guid        = 8383248D-607F-431A-9414-178C23FD9603

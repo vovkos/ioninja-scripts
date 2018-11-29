@@ -1,46 +1,12 @@
 //..............................................................................
 //
-// UDP Flow Monitor log record declarations and representer
+// UDP Flow Monitor log representer
 //
 
-//..............................................................................
-
-enum UdpFlowMonLogRecordCode: uint64_t
-{
-	Resolving,
-	ResolveCompleted,
-	ResolveCancelled,
-	ResolveError,
-	StartingCapture,
-	CaptureStarted,
-	CaptureError,
-	CaptureStopped,
-	ChangingFilter,
-	FilterChanged,
-	FilterError,
-	TxPacket,
-	RxPacket,
-}
-
-enum UdpFlowMonLogPartCode: uint64_t
-{
-	Resolving        = 1 | log.PartCodeFlags.MergeableForward,
-	ResolveCompleted = 1 | log.PartCodeFlags.MergeableBackward,
-	StartingCapture  = 2 | log.PartCodeFlags.MergeableForward,
-	CaptureCompleted = 2 | log.PartCodeFlags.MergeableBackward,
-	ChangingFilter   = 3 | log.PartCodeFlags.MergeableForward,
-	FilterCompleted  = 3 | log.PartCodeFlags.MergeableBackward,
-}
-
-// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-struct UdpFlowMonPacketParams
-{
-	io.SocketAddress m_srcAddress;
-	io.SocketAddress m_dstAddress;
-	uint32_t m_size;
-	bool m_isFragmented;
-}
+import "log_Representer.jnc"
+import "io_base.jncx"
+import "io_SocketAddress.jnc"
+import "UdpFlowMonLogRecordCode.jnc"
 
 //..............................................................................
 

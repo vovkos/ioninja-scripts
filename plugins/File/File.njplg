@@ -5,7 +5,7 @@
 
 [plugin]
 
-name        = File Stream
+name        = "File Stream"
 description = "Perform reads or/and writes to a generic file stream"
 id          = file
 group       = fs

@@ -5,7 +5,7 @@
 
 [plugin]
 
-name        = Generic Serial Tap
+name        = "Generic Serial Tap"
 description = "Monitor serial communication through a generic dual COM tap-cable"
 id          = gen-serial-tap
 group       = serial

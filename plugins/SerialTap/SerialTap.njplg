@@ -5,7 +5,7 @@
 
 [plugin]
 
-name        = Serial Tap
+name        = "Serial Tap"
 description = "Monitor serial communication through a Serial Tap device from Tibbo"
 id          = serial-tap
 group       = serial
