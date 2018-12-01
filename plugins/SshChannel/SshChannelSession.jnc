@@ -8,6 +8,7 @@ import "io_ssh.jncx"
 import "io_File.jnc"
 import "io_Socket.jnc"
 import "io_SocketAddressResolver.jnc"
+import "io_SshUi.jnc"
 import "io_SocketUi.jnc"
 import "io_BufferUi.jnc"
 import "std_Buffer.jnc"
@@ -27,9 +28,7 @@ class SshChannelSession: doc.Session
 protected:
 	enum Defaults
 	{
-		ServerPort           = 22,
-		AuthenticationMethod = gui.AuthenticationMethod.Password,
-		RememberLastPassword = false,
+		ServerPort = 22,
 	}
 
 	enum State
@@ -45,10 +44,6 @@ protected:
 		SshStartingProcess,
 		Connected,
 	}
-
-	static char DefaultChannelType [] = "session";
-	static char DefaultProcessType [] = "shell";
-	static char DefaultPtyType [] = "xterm";
 
 	static char const* m_stateStringTable [] =
 	{
@@ -104,15 +99,8 @@ protected:
 
 	// property grid
 
-	gui.StringProperty* m_userNameProp;
-	gui.EnumProperty* m_authenticationMethodProp;
-	gui.FileProperty* m_privateKeyFileProp;
-	gui.BoolProperty* m_rememberLastPasswordProp;
-	gui.StringProperty* m_channelTypeProp;
-	gui.StringProperty* m_processTypeProp;
-	gui.StringProperty* m_execProp;
-	gui.StringProperty* m_ptyTypeProp;
 	io.SocketPropertySet m_socketPropertySet;
+	io.SshPropertySet m_sshPropertySet;
 	io.BufferPropertySet m_bufferPropertySet;
 
 	// information grid
@@ -227,64 +215,7 @@ SshChannelSession.createUi ()
 		"SSH-specific connection settings"
 		);
 
-	m_userNameProp = m_pluginHost.m_propertyGrid.createStringProperty (
-		group,,
-		"User name",
-		"User name for SSH authentification"
-		);
-
-	static gui.EnumPropertyOption authenticationMethodTable [] =
-	{
-		{ "Password",    gui.AuthenticationMethod.Password },
-		{ "Private key", gui.AuthenticationMethod.PrivateKey },
-	}
-
-	m_authenticationMethodProp = m_pluginHost.m_propertyGrid.createEnumProperty (
-		group,,
-		"User authentication",
-		"How to authentify a user (password / private key)",
-		authenticationMethodTable,
-		countof (authenticationMethodTable)
-		);
-
-	m_privateKeyFileProp = m_pluginHost.m_propertyGrid.createFileProperty (
-		group,,
-		"Private key file",
-		"Private key file (PEM) for SSH authentification"
-		);
-
-	m_privateKeyFileProp.m_fileDialogCaption = "Select Private Key File";
-	m_privateKeyFileProp.m_filter = "SSH identity files (id_dsa id_rsa);;PEM files (*.pem);;All files (*.*)";
-
-	m_rememberLastPasswordProp = m_pluginHost.m_propertyGrid.createBoolProperty (
-		group,,
-		"Remember last password",
-		"Re-use the last entered password during subsequent connect attempts"
-		);
-
-	m_channelTypeProp = m_pluginHost.m_propertyGrid.createStringProperty (
-		group,,
-		"SSH channel",
-		"Type of requested SSH channel"
-		);
-
-	m_processTypeProp = m_pluginHost.m_propertyGrid.createStringProperty (
-		group,,
-		"SSH process",
-		"Type of requested SSH process"
-		);
-
-	m_execProp = m_pluginHost.m_propertyGrid.createStringProperty (
-		group,,
-		"SSH exec",
-		"Process to exec on remote server"
-		);
-
-	m_ptyTypeProp = m_pluginHost.m_propertyGrid.createStringProperty (
-		group,,
-		"Pseudoterminal",
-		"Type of requested pseudoterminal (PTY)"
-		);
+	m_sshPropertySet.createProperties (m_pluginHost.m_propertyGrid, group);
 
 	m_bufferPropertySet.createPropertiesGrouped (
 		m_pluginHost.m_propertyGrid,,,
@@ -385,28 +316,28 @@ bool errorcode SshChannelSession.connect (io.SocketAddress const* remoteAddress)
 	void const* privateKey;
 	char const* password;
 
-	if (m_authenticationMethodProp.m_value == gui.AuthenticationMethod.PrivateKey)
+	if (m_sshPropertySet.m_authenticationMethodProp.m_value == gui.AuthenticationMethod.PrivateKey)
 	{
-		privateKey = loadFile (m_privateKeyFileProp.m_value);
-		password = m_loginDlg && m_rememberLastPasswordProp.m_value ? m_loginDlg.m_privateKeyPassphrase : null;
+		privateKey = loadFile (m_sshPropertySet.m_privateKeyFileProp.m_value);
+		password = m_loginDlg && m_sshPropertySet.m_rememberLastPasswordProp.m_value ? m_loginDlg.m_privateKeyPassphrase : null;
 	}
 	else
 	{
 		privateKey = null;
-		password = m_loginDlg && m_rememberLastPasswordProp.m_value ? m_loginDlg.m_password : null;
+		password = m_loginDlg && m_sshPropertySet.m_rememberLastPasswordProp.m_value ? m_loginDlg.m_password : null;
 	}
 
 	io.SshConnectParams params;
 	params.m_address = *remoteAddress;
-	params.m_userName = m_userNameProp.m_value;
+	params.m_userName = m_sshPropertySet.m_userNameProp.m_value;
 	params.m_privateKey = privateKey;
 	params.m_privateKeySize = dynamic sizeof (privateKey);
 	params.m_password = password;
-	params.m_channelType = m_channelTypeProp.m_value;
-	params.m_processType = m_processTypeProp.m_value;
-	params.m_processExtra = m_execProp.m_value;
+	params.m_channelType = m_sshPropertySet.m_channelTypeProp.m_value;
+	params.m_processType = m_sshPropertySet.m_processTypeProp.m_value;
+	params.m_processExtra = m_sshPropertySet.m_execProp.m_value;
 	params.m_processExtraSize = strlen (params.m_processExtra);
-	params.m_ptyType = m_ptyTypeProp.m_value;
+	params.m_ptyType = m_sshPropertySet.m_ptyTypeProp.m_value;
 	params.m_ptyWidth = m_pluginHost.m_terminal.m_consoleWidth;
 	params.m_ptyHeight = m_pluginHost.m_terminal.m_consoleHeight;
 
@@ -489,11 +420,11 @@ SshChannelSession.handleSshAuthenticateError (std.Error const* error)
 		m_loginDlg.m_onCompleted += onLoginDlgCompleted;
 	}
 
-	m_loginDlg.m_userName = m_userNameProp.m_value;
-	m_loginDlg.m_authenticationMethod = m_authenticationMethodProp.m_value;
-	m_loginDlg.m_privateKeyFileName = m_privateKeyFileProp.m_value;
+	m_loginDlg.m_userName = m_sshPropertySet.m_userNameProp.m_value;
+	m_loginDlg.m_authenticationMethod = m_sshPropertySet.m_authenticationMethodProp.m_value;
+	m_loginDlg.m_privateKeyFileName = m_sshPropertySet.m_privateKeyFileProp.m_value;
 
-	if (!m_rememberLastPasswordProp.m_value)
+	if (!m_sshPropertySet.m_rememberLastPasswordProp.m_value)
 	{
 		m_loginDlg.m_password = null;
 		m_loginDlg.m_privateKeyPassphrase = null;
@@ -518,7 +449,7 @@ SshChannelSession.onLoginDlgCompleted (gui.StdDlgButton button)
 
 	State nextState;
 
-	if (strcmp (m_loginDlg.m_userName, m_userNameProp.m_value) == 0)
+	if (strcmp (m_loginDlg.m_userName, m_sshPropertySet.m_userNameProp.m_value) == 0)
 	{
 		nextState = State.SshAuthenticating;
 		writeLog (SshLogRecordCode.SshAuthenticating);
@@ -547,9 +478,9 @@ SshChannelSession.onLoginDlgCompleted (gui.StdDlgButton button)
 		break;
 	}
 
-	m_userNameProp.m_value = m_loginDlg.m_userName;
-	m_authenticationMethodProp.m_value = m_loginDlg.m_authenticationMethod;
-	m_privateKeyFileProp.m_value = m_loginDlg.m_privateKeyFileName;
+	m_sshPropertySet.m_userNameProp.m_value = m_loginDlg.m_userName;
+	m_sshPropertySet.m_authenticationMethodProp.m_value = m_loginDlg.m_authenticationMethod;
+	m_sshPropertySet.m_privateKeyFileProp.m_value = m_loginDlg.m_privateKeyFileName;
 	m_state = nextState;
 	waitSshEvents ();
 
@@ -607,16 +538,9 @@ void SshChannelSession.load (doc.Storage* storage)
 {
 	m_addressCombo.loadHistory (storage, "addressHistory");
 	m_addressCombo.m_editText = storage.readString ("address");
-	m_userNameProp.m_value = storage.readString ("userName");
-	m_authenticationMethodProp.m_value = storage.readInt ("authenticationMethod", Defaults.AuthenticationMethod);
-	m_privateKeyFileProp.m_value = storage.readString ("privateKeyFile");
-	m_rememberLastPasswordProp.m_value = storage.readBool ("rememberLastPassword", Defaults.RememberLastPassword);
-	m_channelTypeProp.m_value = storage.readString ("channelType", DefaultChannelType);
-	m_processTypeProp.m_value = storage.readString ("processType", DefaultProcessType);
-	m_execProp.m_value = storage.readString ("exec");
-	m_ptyTypeProp.m_value = storage.readString ("ptyType", DefaultPtyType);
 
 	m_socketPropertySet.load (storage);
+	m_sshPropertySet.load (storage);
 	m_bufferPropertySet.load (storage);
 	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
 }
@@ -624,18 +548,11 @@ void SshChannelSession.load (doc.Storage* storage)
 void SshChannelSession.save (doc.Storage* storage)
 {
 	m_socketPropertySet.save (storage);
+	m_sshPropertySet.save (storage);
 	m_bufferPropertySet.save (storage);
 
 	m_addressCombo.saveHistory (storage, "addressHistory");
 	storage.writeString ("address", m_addressCombo.m_editText);
-	storage.writeString ("userName", m_userNameProp.m_value);
-	storage.writeInt ("authenticationMethod", m_authenticationMethodProp.m_value);
-	storage.writeString ("privateKeyFile", m_privateKeyFileProp.m_value);
-	storage.writeBool ("rememberLastPassword", m_rememberLastPasswordProp.m_value);
-	storage.writeString ("channelType", m_channelTypeProp.m_value);
-	storage.writeString ("processType", m_processTypeProp.m_value);
-	storage.writeString ("exec", m_execProp.m_value);
-	storage.writeString ("ptyType", m_ptyTypeProp.m_value);
 }
 
 void SshChannelSession.updateProperties ()
@@ -657,12 +574,8 @@ bool errorcode SshChannelSession.applyProperties ()
 
 void SshChannelSession.restoreDefaultProperties ()
 {
-	m_rememberLastPasswordProp.m_value = Defaults.RememberLastPassword;
-	m_channelTypeProp.m_value = DefaultChannelType;
-	m_processTypeProp.m_value = DefaultProcessType;
-	m_ptyTypeProp.m_value = DefaultPtyType;
-
 	m_socketPropertySet.restoreDefaults ();
+	m_sshPropertySet.restoreDefaults ();
 	m_bufferPropertySet.restoreDefaults ();
 }
 
@@ -824,7 +737,7 @@ SshChannelSession.onResolveCompleted (
 reactor SshChannelSession.m_uiReactor
 {
 	m_title = $"SSH $(m_addressCombo.m_currentText)";
-	m_privateKeyFileProp.m_isEnabled = m_authenticationMethodProp.m_value == gui.AuthenticationMethod.PrivateKey;
+	m_sshPropertySet.m_privateKeyFileProp.m_isEnabled = m_sshPropertySet.m_authenticationMethodProp.m_value == gui.AuthenticationMethod.PrivateKey;
 	m_socketPropertySet.m_adapterProp.m_isEnabled = m_socketPropertySet.m_useLocalAddressProp.m_value;
 	m_socketPropertySet.m_localPortProp.m_isEnabled = m_socketPropertySet.m_useLocalAddressProp.m_value;
 	m_socketPropertySet.m_reuseLocalAddressProp.m_isEnabled = m_socketPropertySet.m_useLocalAddressProp.m_value;
