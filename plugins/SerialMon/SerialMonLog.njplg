@@ -19,9 +19,6 @@ SerialMonLogRepresenter.jnc
 
 [records]
 
-01d47d759805bae8  # CaptureStarted
-01d47d759805bae9  # CaptureStopped
-01d47d759805baea  # CaptureError
 01d47d759805baed  # DeviceOpened
 01d47d759805baeb  # DeviceOpened_old
 01d47d759805baec  # DeviceClosed

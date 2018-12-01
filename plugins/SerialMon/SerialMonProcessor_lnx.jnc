@@ -1,7 +1,9 @@
 //..............................................................................
 //
-// Serial Monitor notify processing for Linux
+// Serial Monitor notification processing for Linux
 //
+
+import "SerialMonProcessor.jnc"
 
 // excerpt from termios.h
 
@@ -111,12 +113,34 @@ struct termios
 
 //..............................................................................
 
-SerialMonitor.processNotification_lnx (io.DeviceMonitorNotifyHdr const* notifyHdr)
+class SerialMonProcessor_lnx: SerialMonProcessor
+{
+	construct (log.Writer* logWriter)
+	{
+		basetype.construct (logWriter);
+	}
+
+	override processNotification (io.DeviceMonitorNotifyHdr const* notifyHdr);
+
+protected:
+	processIoctlNotification (
+		int result,
+		uint64_t timestamp,
+		uint_t code,
+		long arg,
+		const void* argData,
+		size_t argDataSize
+		);
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+SerialMonProcessor_lnx.processNotification (io.DeviceMonitorNotifyHdr const* notifyHdr)
 {
 	switch (notifyHdr.m_code)
 	{
 	case io.lnx.DeviceMonitorNotifyCode.Open:
-		m_pluginHost.m_log.m_writer.write (
+		m_logWriter.write (
 			notifyHdr.m_timestamp,
 			SerialMonLogRecordCode.DeviceOpened,
 			&notifyHdr.m_processId,
@@ -125,14 +149,14 @@ SerialMonitor.processNotification_lnx (io.DeviceMonitorNotifyHdr const* notifyHd
 		break;
 
 	case io.lnx.DeviceMonitorNotifyCode.Close:
-		m_pluginHost.m_log.m_writer.write (notifyHdr.m_timestamp, SerialMonLogRecordCode.DeviceClosed);
+		m_logWriter.write (notifyHdr.m_timestamp, SerialMonLogRecordCode.DeviceClosed);
 		break;
 
 	case io.lnx.DeviceMonitorNotifyCode.Read:
 		io.lnx.DeviceMonitorReadWriteNotifyParams const* params = (io.lnx.DeviceMonitorReadWriteNotifyParams const*) (notifyHdr + 1);
 
 		if (params.m_dataSize)
-			m_pluginHost.m_log.m_writer.write (
+			m_logWriter.write (
 				notifyHdr.m_timestamp,
 				log.StdRecordCode.Rx,
 				params + 1,
@@ -144,7 +168,7 @@ SerialMonitor.processNotification_lnx (io.DeviceMonitorNotifyHdr const* notifyHd
 		io.lnx.DeviceMonitorReadWriteNotifyParams const* params = (io.lnx.DeviceMonitorReadWriteNotifyParams const*) (notifyHdr + 1);
 
 		if (params.m_dataSize)
-			m_pluginHost.m_log.m_writer.write (
+			m_logWriter.write (
 				notifyHdr.m_timestamp,
 				log.StdRecordCode.Tx,
 				params + 1,
@@ -157,7 +181,7 @@ SerialMonitor.processNotification_lnx (io.DeviceMonitorNotifyHdr const* notifyHd
 	case io.lnx.DeviceMonitorNotifyCode.CompatIoctl:
 		io.lnx.DeviceMonitorIoctlNotifyParams const* params = (io.lnx.DeviceMonitorIoctlNotifyParams const*) (notifyHdr + 1);
 
-		processIoctlNotification_lnx (
+		processIoctlNotification (
 			notifyHdr.m_ntStatus,
 			notifyHdr.m_timestamp,
 			params.m_code,
@@ -170,7 +194,7 @@ SerialMonitor.processNotification_lnx (io.DeviceMonitorNotifyHdr const* notifyHd
 	}
 }
 
-SerialMonitor.processIoctlNotification_lnx (
+SerialMonProcessor_lnx.processIoctlNotification (
 	int result,
 	uint64_t timestamp,
 	uint_t code,
@@ -281,35 +305,35 @@ SerialMonitor.processIoctlNotification_lnx (
 			(attr.c_iflag & (psx.IXON | psx.IXOFF)) ? io.SerialFlowControl.XonXoff : io.SerialFlowControl.None;
 
 
-		m_pluginHost.m_log.m_writer.write (
+		m_logWriter.write (
 			timestamp,
 			SerialLogRecordCode.BaudRateChanged,
 			&baudRate,
 			sizeof (baudRate)
 			);
 
-		m_pluginHost.m_log.m_writer.write (
+		m_logWriter.write (
 			timestamp,
 			SerialLogRecordCode.DataBitsChanged,
 			&dataBits,
 			sizeof (dataBits)
 			);
 
-		m_pluginHost.m_log.m_writer.write (
+		m_logWriter.write (
 			timestamp,
 			SerialLogRecordCode.StopBitsChanged,
 			&stopBits,
 			sizeof (stopBits)
 			);
 
-		m_pluginHost.m_log.m_writer.write (
+		m_logWriter.write (
 			timestamp,
 			SerialLogRecordCode.ParityChanged,
 			&parity,
 			sizeof (parity)
 			);
 
-		m_pluginHost.m_log.m_writer.write (
+		m_logWriter.write (
 			timestamp,
 			SerialLogRecordCode.FlowControlChanged,
 			&flowControl,
@@ -344,7 +368,7 @@ SerialMonitor.processIoctlNotification_lnx (
 		{
 			SerialStatusLineChangedParams params = { lines, mask };
 
-			m_pluginHost.m_log.m_writer.write (
+			m_logWriter.write (
 				timestamp,
 				SerialLogRecordCode.StatusLineChanged,
 				&params,
@@ -363,7 +387,7 @@ SerialMonitor.processIoctlNotification_lnx (
 		bool value = code == psx.TIOCMBIS;
 
 		if (lines & psx.TIOCM_DTR)
-			m_pluginHost.m_log.m_writer.write (
+			m_logWriter.write (
 				timestamp,
 				SerialLogRecordCode.DtrChanged,
 				&value,
@@ -371,7 +395,7 @@ SerialMonitor.processIoctlNotification_lnx (
 				);
 
 		if (lines & psx.TIOCM_RTS)
-			m_pluginHost.m_log.m_writer.write (
+			m_logWriter.write (
 				timestamp,
 				SerialLogRecordCode.RtsChanged,
 				&value,

@@ -1,7 +1,9 @@
 //..............................................................................
 //
-// Serial Monitor notify processing for Windows
+// Serial Monitor notification processing for Windows
 //
+
+import "SerialMonProcessor.jnc"
 
 // excerpt from ntddser.h
 
@@ -82,12 +84,35 @@ struct SERIAL_HANDFLOW
 
 //..............................................................................
 
-SerialMonitor.processNotification_win (io.DeviceMonitorNotifyHdr const* notifyHdr)
+class SerialMonProcessor_win: SerialMonProcessor
+{
+	construct (log.Writer* logWriter)
+	{
+		basetype.construct (logWriter);
+	}
+
+	override processNotification (io.DeviceMonitorNotifyHdr const* notifyHdr);
+
+protected:
+	processIoctlNotification (
+		int ntStatus,
+		uint64_t timestamp,
+		uint_t code,
+		const void* inData,
+		size_t inDataSize,
+		const void* outData,
+		size_t outDataSize
+		);
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+SerialMonProcessor_win.processNotification (io.DeviceMonitorNotifyHdr const* notifyHdr)
 {
 	switch (notifyHdr.m_code)
 	{
 	case io.win.DeviceMonitorNotifyCode.Create:
-		m_pluginHost.m_log.m_writer.write (
+		m_logWriter.write (
 			notifyHdr.m_timestamp,
 			SerialMonLogRecordCode.DeviceOpened,
 			&notifyHdr.m_processId,
@@ -96,14 +121,14 @@ SerialMonitor.processNotification_win (io.DeviceMonitorNotifyHdr const* notifyHd
 		break;
 
 	case io.win.DeviceMonitorNotifyCode.Close:
-		m_pluginHost.m_log.m_writer.write (notifyHdr.m_timestamp, SerialMonLogRecordCode.DeviceClosed);
+		m_logWriter.write (notifyHdr.m_timestamp, SerialMonLogRecordCode.DeviceClosed);
 		break;
 
 	case io.win.DeviceMonitorNotifyCode.Read:
 		io.win.DeviceMonitorReadWriteNotifyParams const* params = (io.win.DeviceMonitorReadWriteNotifyParams const*) (notifyHdr + 1);
 
 		if (params.m_dataSize)
-			m_pluginHost.m_log.m_writer.write (
+			m_logWriter.write (
 				notifyHdr.m_timestamp,
 				log.StdRecordCode.Rx,
 				params + 1,
@@ -115,7 +140,7 @@ SerialMonitor.processNotification_win (io.DeviceMonitorNotifyHdr const* notifyHd
 		io.win.DeviceMonitorReadWriteNotifyParams const* params = (io.win.DeviceMonitorReadWriteNotifyParams const*) (notifyHdr + 1);
 
 		if (params.m_dataSize)
-			m_pluginHost.m_log.m_writer.write (
+			m_logWriter.write (
 				notifyHdr.m_timestamp,
 				log.StdRecordCode.Tx,
 				params + 1,
@@ -128,7 +153,7 @@ SerialMonitor.processNotification_win (io.DeviceMonitorNotifyHdr const* notifyHd
 
 		void const* p = params + 1;
 
-		processIoctlNotification_win (
+		processIoctlNotification (
 			notifyHdr.m_ntStatus,
 			notifyHdr.m_timestamp,
 			params.m_code,
@@ -142,7 +167,7 @@ SerialMonitor.processNotification_win (io.DeviceMonitorNotifyHdr const* notifyHd
 	}
 }
 
-SerialMonitor.processIoctlNotification_win (
+SerialMonProcessor_win.processIoctlNotification (
 	int ntStatus,
 	uint64_t timestamp,
 	uint_t code,
@@ -158,7 +183,7 @@ SerialMonitor.processIoctlNotification_win (
 		if (inDataSize < sizeof (uint32_t))
 			break;
 
-		m_pluginHost.m_log.m_writer.write (
+		m_logWriter.write (
 			timestamp,
 			SerialLogRecordCode.BaudRateChanged,
 			inData,
@@ -176,21 +201,21 @@ SerialMonitor.processIoctlNotification_win (
 		uint_t stopBits = p->StopBits;
 		uint_t parity = p->Parity;
 
-		m_pluginHost.m_log.m_writer.write (
+		m_logWriter.write (
 			timestamp,
 			SerialLogRecordCode.DataBitsChanged,
 			&dataBits,
 			sizeof (dataBits)
 			);
 
-		m_pluginHost.m_log.m_writer.write (
+		m_logWriter.write (
 			timestamp,
 			SerialLogRecordCode.StopBitsChanged,
 			&stopBits,
 			sizeof (stopBits)
 			);
 
-		m_pluginHost.m_log.m_writer.write (
+		m_logWriter.write (
 			timestamp,
 			SerialLogRecordCode.ParityChanged,
 			&parity,
@@ -212,7 +237,7 @@ SerialMonitor.processIoctlNotification_win (
 				flowControl = io.SerialFlowControl.XonXoff :
 				flowControl = io.SerialFlowControl.None;
 
-		m_pluginHost.m_log.m_writer.write (
+		m_logWriter.write (
 			timestamp,
 			SerialLogRecordCode.FlowControlChanged,
 			&flowControl,
@@ -250,7 +275,7 @@ SerialMonitor.processIoctlNotification_win (
 		{
 			SerialStatusLineChangedParams params = { lines, mask };
 
-			m_pluginHost.m_log.m_writer.write (
+			m_logWriter.write (
 				timestamp,
 				SerialLogRecordCode.StatusLineChanged,
 				&params,
@@ -264,7 +289,7 @@ SerialMonitor.processIoctlNotification_win (
 		if (inDataSize < sizeof (char))
 			break;
 
-		m_pluginHost.m_log.m_writer.write (
+		m_logWriter.write (
 			timestamp,
 			log.StdRecordCode.Tx,
 			inData,
@@ -277,7 +302,7 @@ SerialMonitor.processIoctlNotification_win (
 	case wdk.IOCTL_SERIAL_CLR_DTR:
 		bool dtr = code == wdk.IOCTL_SERIAL_SET_DTR;
 
-		m_pluginHost.m_log.m_writer.write (
+		m_logWriter.write (
 			timestamp,
 			SerialLogRecordCode.DtrChanged,
 			&dtr,
@@ -289,7 +314,7 @@ SerialMonitor.processIoctlNotification_win (
 	case wdk.IOCTL_SERIAL_CLR_RTS:
 		bool rts = code == wdk.IOCTL_SERIAL_SET_RTS;
 
-		m_pluginHost.m_log.m_writer.write (
+		m_logWriter.write (
 			timestamp,
 			SerialLogRecordCode.RtsChanged,
 			&rts,

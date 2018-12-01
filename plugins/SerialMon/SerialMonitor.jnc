@@ -1,9 +1,11 @@
 //..............................................................................
 //
-// Serial Monitor session
+//  Device Monitor transport for SerialMonProcessor
 //
 
 import "io_Monitor.jnc"
+import "SerialMonProcessor_win.jnc"
+import "SerialMonProcessor_lnx.jnc"
 
 //..............................................................................
 
@@ -11,7 +13,7 @@ class SerialMonitor: io.Monitor
 {
 protected:
 	SerialMonSession* m_session;
-	io.SerialStatusLines m_statusLines;
+	SerialMonProcessor* m_processor;
 
 public:
 	construct (SerialMonSession* session);
@@ -19,30 +21,12 @@ public:
 	bool errorcode capture (char const* deviceName);
 
 protected:
-	override processNotification (io.DeviceMonitorNotifyHdr const* notifyHdr);
+	override processNotification (io.DeviceMonitorNotifyHdr const* notifyHdr)
+	{
+		m_processor->processNotification (notifyHdr);
+	}
+
 	override processError (std.Error const* error);
-
-	processNotification_win (io.DeviceMonitorNotifyHdr const* notifyHdr);
-	processNotification_lnx (io.DeviceMonitorNotifyHdr const* notifyHdr);
-
-	processIoctlNotification_win (
-		int ntStatus,
-		uint64_t timestamp,
-		uint_t code,
-		const void* inData,
-		size_t inDataSize,
-		const void* outData,
-		size_t outDataSize
-		);
-
-	processIoctlNotification_lnx (
-		int result,
-		uint64_t timestamp,
-		uint_t code,
-		long arg,
-		const void* argData,
-		size_t argDataSize
-		);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -51,35 +35,44 @@ SerialMonitor.construct (SerialMonSession* session)
 {
 	basetype.construct (session.m_pluginHost);
 	m_session = session;
+
+	switch (sys.g_systemInfo.m_osKind)
+	{
+	case sys.OsKind.Windows:
+		m_processor = new SerialMonProcessor_win (m_session.m_pluginHost.m_log.m_writer);
+		break;
+
+	case sys.OsKind.Linux:
+		m_processor = new SerialMonProcessor_lnx (m_session.m_pluginHost.m_log.m_writer);
+		break;
+
+	default:
+		std.setError ("Unsupported OS");
+		throw;
+	}
 }
 
 bool errorcode SerialMonitor.capture (char const* deviceName)
 {
-	static io.psx.DeviceMonitorIoctlDesc ioctlDescTable [] =
+	if (!(sys.g_systemInfo.m_osFlags & sys.OsFlags.Posix))
 	{
-		{ psx.TCSETS, sizeof (psx.termios) },
-		{ psx.TIOCMGET, sizeof (uint_t) },
-		{ psx.TIOCMBIS, sizeof (uint_t) },
-		{ psx.TIOCMBIC, sizeof (uint_t) },
+		basetype.capture (deviceName);
+	}
+	else
+	{
+		static io.psx.DeviceMonitorIoctlDesc ioctlDescTable [] =
+		{
+			{ psx.TCSETS, sizeof (psx.termios) },
+			{ psx.TIOCMGET, sizeof (uint_t) },
+			{ psx.TIOCMBIS, sizeof (uint_t) },
+			{ psx.TIOCMBIC, sizeof (uint_t) },
+		}
+
+		basetype.capture (deviceName, null, ioctlDescTable, sizeof (ioctlDescTable) / sizeof (ioctlDescTable [0]));
 	}
 
-	basetype.capture (deviceName, null, ioctlDescTable, sizeof (ioctlDescTable) / sizeof (ioctlDescTable [0]));
-	m_statusLines = (io.SerialStatusLines) -1; // special meaning: unintitalized
+	m_processor.reset ();
 	return true;
-}
-
-SerialMonitor.processNotification (io.DeviceMonitorNotifyHdr const* notifyHdr)
-{
-	switch (sys.g_systemInfo.m_osKind)
-	{
-	case sys.OsKind.Windows:
-		processNotification_win (notifyHdr);
-		break;
-
-	case sys.OsKind.Linux:
-		processNotification_lnx (notifyHdr);
-		break;
-	}
 }
 
 SerialMonitor.processError (std.Error const* error)
