@@ -9,6 +9,8 @@ namespace log {
 
 //..............................................................................
 
+// foldable records must be marked to avoid unintentional merging with neighbors
+
 bitflag enum RecordCodeFlags: uint64_t
 {
 	Foldable = 0x8000000000000000,

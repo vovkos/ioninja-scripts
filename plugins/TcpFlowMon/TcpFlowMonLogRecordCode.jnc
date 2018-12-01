@@ -9,17 +9,6 @@ import "log_RecordCode.jnc"
 
 enum TcpFlowMonLogRecordCode: uint64_t
 {
-	Resolving             = 0x01d487c96e3d524e,
-	ResolveCompleted      = 0x01d487c96e3d524f,
-	ResolveCancelled      = 0x01d487c96e3d5250,
-	ResolveError          = 0x01d487c96e3d5251,
-	StartingCapture       = 0x01d487c96e3d5252,
-	CaptureStarted        = 0x01d487c96e3d5253,
-	CaptureError          = 0x01d487c96e3d5254,
-	CaptureStopped        = 0x01d487c96e3d5255,
-	ChangingFilter        = 0x01d487c96e3d5256,
-	FilterChanged         = 0x01d487c96e3d5257,
-	FilterError           = 0x01d487c96e3d5258,
 	Connecting            = 0x01d487c96e3d5259,
 	ConnectCompleted      = 0x01d487c96e3d525a,
 	ConnectionPickedUp    = 0x01d487c96e3d525b,
@@ -31,12 +20,6 @@ enum TcpFlowMonLogRecordCode: uint64_t
 
 enum TcpFlowMonLogPartCode: uint64_t
 {
-	Resolving        = 0x01d487c96e3d524e | log.PartCodeFlags.MergeableForward,
-	ResolveCompleted = 0x01d487c96e3d524e | log.PartCodeFlags.MergeableBackward,
-	StartingCapture  = 0x01d487c96e3d5252 | log.PartCodeFlags.MergeableForward,
-	CaptureCompleted = 0x01d487c96e3d5252 | log.PartCodeFlags.MergeableBackward,
-	ChangingFilter   = 0x01d487c96e3d5256 | log.PartCodeFlags.MergeableForward,
-	FilterCompleted  = 0x01d487c96e3d5256 | log.PartCodeFlags.MergeableBackward,
 	Connecting       = 0x01d487c96e3d5259 | log.PartCodeFlags.MergeableForward,
 	ConnectCompleted = 0x01d487c96e3d5259 | log.PartCodeFlags.MergeableBackward,
 }

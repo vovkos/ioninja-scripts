@@ -390,7 +390,7 @@ bool errorcode TcpFlowMonSession.capture (
 	startSession ();
 
 	char const* filterString = createFilterString (filterAddress);
-	writeLogString (TcpFlowMonLogRecordCode.StartingCapture, filterString);
+	writeLogString (PcapLogRecordCode.StartingCapture, filterString);
 
 	m_pcap.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 
@@ -403,13 +403,13 @@ bool errorcode TcpFlowMonSession.capture (
 
 	if (!result)
 	{
-		writeLogLastError (TcpFlowMonLogRecordCode.CaptureError);
+		writeLogLastError (PcapLogRecordCode.CaptureError);
 		return false;
 	}
 
 	m_state = State.Capturing;
 	m_filterAddress = *filterAddress;
-	writeLog (TcpFlowMonLogRecordCode.CaptureStarted);
+	writeLog (PcapLogRecordCode.CaptureStarted);
 	waitPcapEvents ();
 	m_stdSessionInfoSet.startSession (m_pluginHost.m_mainThreadScheduler);
 	return true;
@@ -421,20 +421,20 @@ bool errorcode TcpFlowMonSession.openCapFile (
 	)
 {
 	char const* filterString = createFilterString (filterAddress);
-	writeLogString (TcpFlowMonLogRecordCode.StartingCapture, filterString);
+	writeLogString (PcapLogRecordCode.StartingCapture, filterString);
 
 	m_pcap.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 
 	bool result = try m_pcap.openFile (fileName, filterString);
 	if (!result)
 	{
-		writeLogLastError (TcpFlowMonLogRecordCode.CaptureError);
+		writeLogLastError (PcapLogRecordCode.CaptureError);
 		return false;
 	}
 
 	m_state = State.Capturing;
 	m_filterAddress = *filterAddress;
-	writeLog (TcpFlowMonLogRecordCode.CaptureStarted);
+	writeLog (PcapLogRecordCode.CaptureStarted);
 	waitPcapEvents ();
 	m_stdSessionInfoSet.startSession (m_pluginHost.m_mainThreadScheduler);
 	return true;
@@ -446,10 +446,10 @@ TcpFlowMonSession.stopCapture ()
 		return;
 
 	if (m_state & State.Resolving)
-		writeLog (TcpFlowMonLogRecordCode.ResolveCancelled);
+		writeLog (SocketLogRecordCode.ResolveCancelled);
 
 	if (m_state & State.Capturing)
-		writeLog (TcpFlowMonLogRecordCode.CaptureStopped);
+		writeLog (PcapLogRecordCode.CaptureStopped);
 
 	m_pcap.close ();
 	m_ipDefragmenter.reset ();
@@ -461,7 +461,7 @@ TcpFlowMonSession.stopCapture ()
 
 bool errorcode TcpFlowMonSession.resolve (char const* addressString)
 {
-	writeLogString (TcpFlowMonLogRecordCode.Resolving, addressString);
+	writeLogString (SocketLogRecordCode.Resolving, addressString);
 
 	bool result = try m_resolver.resolve (
 		addressString,
@@ -470,7 +470,7 @@ bool errorcode TcpFlowMonSession.resolve (char const* addressString)
 
 	if (!result)
 	{
-		writeLogLastError (TcpFlowMonLogRecordCode.ResolveError);
+		writeLogLastError (SocketLogRecordCode.ResolveError);
 		return false;
 	}
 
@@ -491,7 +491,7 @@ bool errorcode TcpFlowMonSession.applyFilter ()
 		return try setFilter (&filterAddress);
 	}
 
-	writeLogString (TcpFlowMonLogRecordCode.Resolving, filterString);
+	writeLogString (SocketLogRecordCode.Resolving, filterString);
 
 	bool result = try m_resolver.resolve (
 		filterString,
@@ -500,7 +500,7 @@ bool errorcode TcpFlowMonSession.applyFilter ()
 
 	if (!result)
 	{
-		writeLogLastError (TcpFlowMonLogRecordCode.ResolveError);
+		writeLogLastError (SocketLogRecordCode.ResolveError);
 		return false;
 	}
 
@@ -514,15 +514,15 @@ bool errorcode TcpFlowMonSession.setFilter (io.SocketAddress const* filterAddres
 		return true;
 
 	char const* filterString = createFilterString (filterAddress);
-	writeLogString (TcpFlowMonLogRecordCode.ChangingFilter, filterString);
+	writeLogString (PcapLogRecordCode.ChangingFilter, filterString);
 	bool result = try m_pcap.setFilter (filterString);
 	if (!result)
 	{
-		writeLogLastError (TcpFlowMonLogRecordCode.FilterError);
+		writeLogLastError (PcapLogRecordCode.FilterError);
 		return false;
 	}
 
-	writeLog (TcpFlowMonLogRecordCode.FilterChanged);
+	writeLog (PcapLogRecordCode.FilterChanged);
 	return true;
 }
 
@@ -630,12 +630,12 @@ TcpFlowMonSession.onResolveCompleted (
 
 	if (error)
 	{
-		writeLogError (TcpFlowMonLogRecordCode.ResolveError, error);
+		writeLogError (SocketLogRecordCode.ResolveError, error);
 		return;
 	}
 
 	writeLog (
-		TcpFlowMonLogRecordCode.ResolveCompleted,
+		SocketLogRecordCode.ResolveCompleted,
 		addressTable,
 		sizeof (io.SocketAddress)
 		);

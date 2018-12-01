@@ -19,17 +19,6 @@ TcpFlowMonLogRepresenter.jnc
 
 [records]
 
-01d487c96e3d524e  # Resolving
-01d487c96e3d524f  # ResolveCompleted
-01d487c96e3d5250  # ResolveCancelled
-01d487c96e3d5251  # ResolveError
-01d487c96e3d5252  # StartingCapture
-01d487c96e3d5253  # CaptureStarted
-01d487c96e3d5254  # CaptureError
-01d487c96e3d5255  # CaptureStopped
-01d487c96e3d5256  # ChangingFilter
-01d487c96e3d5257  # FilterChanged
-01d487c96e3d5258  # FilterError
 01d487c96e3d5259  # Connecting
 01d487c96e3d525a  # ConnectCompleted
 01d487c96e3d525b  # ConnectionPickedUp
