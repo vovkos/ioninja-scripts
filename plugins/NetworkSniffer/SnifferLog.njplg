@@ -5,7 +5,7 @@
 
 [plugin]
 
-name        = Network Sniffer Log
+name        = "Network Sniffer Log"
 description = "Network Sniffer log representer"
 group       = net
 guid        = b0a872b3-de4b-4f15-88bd-8de55eba7a78
