@@ -344,7 +344,7 @@ bool errorcode UdpFlowMonSession.capture (
 	startSession ();
 
 	char const* filterString = createFilterString (filterAddress);
-	writeLogString (UdpFlowMonLogRecordCode.StartingCapture, filterString);
+	writeLogString (PcapLogRecordCode.StartingCapture, filterString);
 
 	m_pcap.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 
@@ -357,13 +357,13 @@ bool errorcode UdpFlowMonSession.capture (
 
 	if (!result)
 	{
-		writeLogLastError (UdpFlowMonLogRecordCode.CaptureError);
+		writeLogLastError (PcapLogRecordCode.CaptureError);
 		return false;
 	}
 
 	m_state = State.Capturing;
 	m_filterAddress = *filterAddress;
-	writeLog (UdpFlowMonLogRecordCode.CaptureStarted);
+	writeLog (PcapLogRecordCode.CaptureStarted);
 	waitPcapEvents ();
 	m_stdSessionInfoSet.startSession (m_pluginHost.m_mainThreadScheduler);
 	return true;
@@ -375,20 +375,20 @@ bool errorcode UdpFlowMonSession.openCapFile (
 	)
 {
 	char const* filterString = createFilterString (filterAddress);
-	writeLogString (UdpFlowMonLogRecordCode.StartingCapture, filterString);
+	writeLogString (PcapLogRecordCode.StartingCapture, filterString);
 
 	m_pcap.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 
 	bool result = try m_pcap.openFile (fileName, filterString);
 	if (!result)
 	{
-		writeLogLastError (UdpFlowMonLogRecordCode.CaptureError);
+		writeLogLastError (PcapLogRecordCode.CaptureError);
 		return false;
 	}
 
 	m_state = State.Capturing;
 	m_filterAddress = *filterAddress;
-	writeLog (UdpFlowMonLogRecordCode.CaptureStarted);
+	writeLog (PcapLogRecordCode.CaptureStarted);
 	waitPcapEvents ();
 	m_stdSessionInfoSet.startSession (m_pluginHost.m_mainThreadScheduler);
 	return true;
@@ -400,10 +400,10 @@ UdpFlowMonSession.stopCapture ()
 		return;
 
 	if (m_state & State.Resolving)
-		writeLog (UdpFlowMonLogRecordCode.ResolveCancelled);
+		writeLog (SocketLogRecordCode.ResolveCancelled);
 
 	if (m_state & State.Capturing)
-		writeLog (UdpFlowMonLogRecordCode.CaptureStopped);
+		writeLog (PcapLogRecordCode.CaptureStopped);
 
 	m_pcap.close ();
 	m_ipDefragmenter.reset ();
@@ -415,7 +415,7 @@ UdpFlowMonSession.stopCapture ()
 
 bool errorcode UdpFlowMonSession.resolve (char const* addressString)
 {
-	writeLogString (UdpFlowMonLogRecordCode.Resolving, addressString);
+	writeLogString (SocketLogRecordCode.Resolving, addressString);
 
 	bool result = try m_resolver.resolve (
 		addressString,
@@ -424,7 +424,7 @@ bool errorcode UdpFlowMonSession.resolve (char const* addressString)
 
 	if (!result)
 	{
-		writeLogLastError (UdpFlowMonLogRecordCode.ResolveError);
+		writeLogLastError (SocketLogRecordCode.ResolveError);
 		return false;
 	}
 
@@ -445,7 +445,7 @@ bool errorcode UdpFlowMonSession.applyFilter ()
 		return try setFilter (&filterAddress);
 	}
 
-	writeLogString (UdpFlowMonLogRecordCode.Resolving, filterString);
+	writeLogString (SocketLogRecordCode.Resolving, filterString);
 
 	bool result = try m_resolver.resolve (
 		filterString,
@@ -454,7 +454,7 @@ bool errorcode UdpFlowMonSession.applyFilter ()
 
 	if (!result)
 	{
-		writeLogLastError (UdpFlowMonLogRecordCode.ResolveError);
+		writeLogLastError (SocketLogRecordCode.ResolveError);
 		return false;
 	}
 
@@ -468,15 +468,15 @@ bool errorcode UdpFlowMonSession.setFilter (io.SocketAddress const* filterAddres
 		return true;
 
 	char const* filterString = createFilterString (filterAddress);
-	writeLogString (UdpFlowMonLogRecordCode.ChangingFilter, filterString);
+	writeLogString (PcapLogRecordCode.ChangingFilter, filterString);
 	bool result = try m_pcap.setFilter (filterString);
 	if (!result)
 	{
-		writeLogLastError (UdpFlowMonLogRecordCode.FilterError);
+		writeLogLastError (PcapLogRecordCode.FilterError);
 		return false;
 	}
 
-	writeLog (UdpFlowMonLogRecordCode.FilterChanged);
+	writeLog (PcapLogRecordCode.FilterChanged);
 	return true;
 }
 
@@ -579,12 +579,12 @@ UdpFlowMonSession.onResolveCompleted (
 
 	if (error)
 	{
-		writeLogError (UdpFlowMonLogRecordCode.ResolveError, error);
+		writeLogError (SocketLogRecordCode.ResolveError, error);
 		return;
 	}
 
 	writeLog (
-		UdpFlowMonLogRecordCode.ResolveCompleted,
+		SocketLogRecordCode.ResolveCompleted,
 		addressTable,
 		sizeof (io.SocketAddress)
 		);

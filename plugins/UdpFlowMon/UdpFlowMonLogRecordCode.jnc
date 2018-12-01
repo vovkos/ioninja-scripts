@@ -9,31 +9,8 @@ import "log_RecordCode.jnc"
 
 enum UdpFlowMonLogRecordCode: uint64_t
 {
-	Resolving        = 0x01d487c65087ebbe,
-	ResolveCompleted = 0x01d487c65087ebbf,
-	ResolveCancelled = 0x01d487c65087ebc0,
-	ResolveError     = 0x01d487c65087ebc1,
-	StartingCapture  = 0x01d487c65087ebc2,
-	CaptureStarted   = 0x01d487c65087ebc3,
-	CaptureError     = 0x01d487c65087ebc4,
-	CaptureStopped   = 0x01d487c65087ebc5,
-	ChangingFilter   = 0x01d487c65087ebc6,
-	FilterChanged    = 0x01d487c65087ebc7,
-	FilterError      = 0x01d487c65087ebc8,
-	TxPacket         = 0x01d487c65087ebc9,
-	RxPacket         = 0x01d487c65087ebca,
-}
-
-// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-enum UdpFlowMonLogPartCode: uint64_t
-{
-	Resolving        = 0x01d487c65087ebbe | log.PartCodeFlags.MergeableForward,
-	ResolveCompleted = 0x01d487c65087ebbe | log.PartCodeFlags.MergeableBackward,
-	StartingCapture  = 0x01d487c65087ebc2 | log.PartCodeFlags.MergeableForward,
-	CaptureCompleted = 0x01d487c65087ebc2 | log.PartCodeFlags.MergeableBackward,
-	ChangingFilter   = 0x01d487c65087ebc6 | log.PartCodeFlags.MergeableForward,
-	FilterCompleted  = 0x01d487c65087ebc6 | log.PartCodeFlags.MergeableBackward,
+	TxPacket = 0x01d487c65087ebc9,
+	RxPacket = 0x01d487c65087ebca,
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .

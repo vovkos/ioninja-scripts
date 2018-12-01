@@ -19,16 +19,5 @@ UdpFlowMonLogRepresenter.jnc
 
 [records]
 
-01d487c65087ebbe  # Resolving
-01d487c65087ebbf  # ResolveCompleted
-01d487c65087ebc0  # ResolveCancelled
-01d487c65087ebc1  # ResolveError
-01d487c65087ebc2  # StartingCapture
-01d487c65087ebc3  # CaptureStarted
-01d487c65087ebc4  # CaptureError
-01d487c65087ebc5  # CaptureStopped
-01d487c65087ebc6  # ChangingFilter
-01d487c65087ebc7  # FilterChanged
-01d487c65087ebc8  # FilterError
 01d487c65087ebc9  # TxPacket
 01d487c65087ebca  # RxPacket
