@@ -62,7 +62,12 @@ bool errorcode SerialMonitor.capture (char const* deviceName)
 	{
 		static io.psx.DeviceMonitorIoctlDesc ioctlDescTable [] =
 		{
-			{ psx.TCSETS, sizeof (psx.termios) },
+			{ psx.TCSETA,   sizeof (psx.termio) },
+			{ psx.TCSETAW,  sizeof (psx.termio) },
+			{ psx.TCSETAF,  sizeof (psx.termio) },
+			{ psx.TCSETS,   sizeof (psx.termios) },
+			{ psx.TCSETSW,  sizeof (psx.termios) },
+			{ psx.TCSETSF,  sizeof (psx.termios) },
 			{ psx.TIOCMGET, sizeof (uint_t) },
 			{ psx.TIOCMBIS, sizeof (uint_t) },
 			{ psx.TIOCMBIC, sizeof (uint_t) },

@@ -16,6 +16,11 @@ enum
 	// termios IOCTL codes
 
 	TCSETS    = 0x5402,
+	TCSETSW   = 0x5403,
+	TCSETSF   = 0x5404,
+	TCSETA    = 0x5406,
+	TCSETAW   = 0x5407,
+	TCSETAF   = 0x5408,
 	TIOCMGET  = 0x5415,
 	TIOCMBIS  = 0x5416,
 	TIOCMBIC  = 0x5417,
@@ -97,6 +102,22 @@ typedef unsigned char cc_t;
 typedef unsigned int speed_t;
 typedef unsigned int tcflag_t;
 
+enum
+{
+	NCC  = 8,
+	NCCS = 32
+}
+
+struct termio
+{
+	unsigned short c_iflag;
+	unsigned short c_oflag;
+	unsigned short c_cflag;
+	unsigned short c_lflag;
+	unsigned char c_line;
+	unsigned char c_cc [NCC];
+}
+
 struct termios
 {
 	tcflag_t c_iflag;
@@ -104,9 +125,120 @@ struct termios
 	tcflag_t c_cflag;
 	tcflag_t c_lflag;
 	cc_t c_line;
-	cc_t c_cc [32];
+	cc_t c_cc [NCCS];
 	speed_t c_ispeed;
 	speed_t c_ospeed;
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+uint_t getBaudRate (uint_t cflags, uint_t ospeed)
+{
+	uint_t speed = cflags & (CBAUD | CBAUDEX);
+	switch (speed)
+	{
+	case B110:
+		return 110;
+
+	case B300:
+		return 300;
+
+	case B600:
+		return 600;
+
+	case B1200:
+		return 1200;
+
+	case B2400:
+		return 2400;
+
+	case B4800:
+		return 4800;
+
+	case B9600:
+		return 9600;
+
+	case B19200:
+		return 19200;
+
+	case B38400:
+		return 38400;
+
+	case B57600:
+		return 57600;
+
+	case B115200:
+		return 115200;
+
+	case B1500000:
+		return 1500000;
+
+	case B2000000:
+		return 2000000;
+
+	case B2500000:
+		return 2500000;
+
+	case B3000000:
+		return 3000000;
+
+	case B3500000:
+		return 3500000;
+
+	case B4000000:
+		return 4000000;
+
+	default:
+		return ospeed;
+	}
+}
+
+uint_t getDataBits (uint_t cflags)
+{
+	uint_t byteSize = cflags & CSIZE;
+	switch (byteSize)
+	{
+	case CS5:
+		return 5;
+
+	case CS6:
+		return 6;
+
+	case CS7:
+		return 7;
+
+	case CS8:
+	default:
+		return 8;
+	}
+}
+
+io.SerialStopBits getStopBits (uint_t cflags)
+{
+	return (cflags & CSTOPB) ?
+		io.SerialStopBits._2 :
+		io.SerialStopBits._1;
+
+}
+
+io.SerialParity getParity (uint_t cflags)
+{
+	return
+		(cflags & PARENB) ?
+			(cflags & CMSPAR)  ?
+				(cflags & PARODD) ? io.SerialParity.Mark : io.SerialParity.Space :
+				(cflags & PARODD) ? io.SerialParity.Odd : io.SerialParity.Even :
+		io.SerialParity.None;
+}
+
+io.SerialFlowControl getFlowControl (
+	uint_t cflags,
+	uint_t iflags
+	)
+{
+	return
+		(cflags & CRTSCTS) ? io.SerialFlowControl.RtsCts :
+		(iflags & (IXON | IXOFF)) ? io.SerialFlowControl.XonXoff : io.SerialFlowControl.None;
 }
 
 } // namespace psx
@@ -130,6 +262,13 @@ protected:
 		long arg,
 		const void* argData,
 		size_t argDataSize
+		);
+
+	processTermiosSetAttr (
+		uint64_t timestamp,
+		uint_t cflags,
+		uint_t iflags,
+		uint_t ospeed
 		);
 }
 
@@ -205,141 +344,24 @@ SerialMonProcessor_lnx.processIoctlNotification (
 {
 	switch (code)
 	{
+	case psx.TCSETA:
+	case psx.TCSETAW:
+	case psx.TCSETAF:
+		if (argDataSize < sizeof (psx.termio))
+			break;
+
+		psx.termio const* attr = (psx.termio const*) argData;
+		processTermiosSetAttr (timestamp, attr.c_cflag, attr.c_iflag, 0);
+		break;
+
 	case psx.TCSETS:
+	case psx.TCSETSW:
+	case psx.TCSETSF:
 		if (argDataSize < sizeof (psx.termios))
 			break;
 
 		psx.termios const* attr = (psx.termios const*) argData;
-
-		uint_t baudRate;
-		uint_t dataBits;
-		uint_t stopBits;
-		uint_t parity;
-		uint_t flowControl;
-
-		uint_t speed = attr.c_cflag & (psx.CBAUD | psx.CBAUDEX);
-		switch (speed)
-		{
-		case psx.B110:
-			baudRate = 110;
-			break;
-
-		case psx.B300:
-			baudRate = 300;
-			break;
-
-		case psx.B600:
-			baudRate = 600;
-			break;
-
-		case psx.B1200:
-			baudRate = 1200;
-			break;
-
-		case psx.B2400:
-			baudRate = 2400;
-			break;
-
-		case psx.B4800:
-			baudRate = 4800;
-			break;
-
-		case psx.B9600:
-			baudRate = 9600;
-			break;
-
-		case psx.B19200:
-			baudRate = 19200;
-			break;
-
-		case psx.B38400:
-			baudRate = 38400;
-			break;
-
-		case psx.B57600:
-			baudRate = 57600;
-			break;
-
-		case psx.B115200:
-			baudRate = 115200;
-			break;
-
-		default:
-			baudRate = attr.c_ospeed;
-		}
-
-		uint_t byteSize = attr.c_cflag & psx.CSIZE;
-		switch (byteSize)
-		{
-		case psx.CS5:
-			dataBits = 5;
-			break;
-
-		case psx.CS6:
-			dataBits = 6;
-			break;
-
-		case psx.CS7:
-			dataBits = 7;
-			break;
-
-		case psx.CS8:
-		default:
-			dataBits = 8;
-			break;
-		}
-
-		stopBits = (attr.c_cflag & psx.CSTOPB) ?
-			io.SerialStopBits._2 :
-			io.SerialStopBits._1;
-
-		parity =
-			(attr.c_cflag & psx.PARENB) ?
-				(attr.c_cflag & psx.CMSPAR)  ?
-					(attr.c_cflag & psx.PARODD) ? io.SerialParity.Mark : io.SerialParity.Space :
-					(attr.c_cflag & psx.PARODD) ? io.SerialParity.Odd : io.SerialParity.Even :
-			io.SerialParity.None;
-
-		flowControl =
-			(attr.c_cflag & psx.CRTSCTS) ? io.SerialFlowControl.RtsCts :
-			(attr.c_iflag & (psx.IXON | psx.IXOFF)) ? io.SerialFlowControl.XonXoff : io.SerialFlowControl.None;
-
-
-		m_logWriter.write (
-			timestamp,
-			SerialLogRecordCode.BaudRateChanged,
-			&baudRate,
-			sizeof (baudRate)
-			);
-
-		m_logWriter.write (
-			timestamp,
-			SerialLogRecordCode.DataBitsChanged,
-			&dataBits,
-			sizeof (dataBits)
-			);
-
-		m_logWriter.write (
-			timestamp,
-			SerialLogRecordCode.StopBitsChanged,
-			&stopBits,
-			sizeof (stopBits)
-			);
-
-		m_logWriter.write (
-			timestamp,
-			SerialLogRecordCode.ParityChanged,
-			&parity,
-			sizeof (parity)
-			);
-
-		m_logWriter.write (
-			timestamp,
-			SerialLogRecordCode.FlowControlChanged,
-			&flowControl,
-			sizeof (flowControl)
-			);
-
+		processTermiosSetAttr (timestamp, attr.c_cflag, attr.c_iflag, attr.c_ospeed);
 		break;
 
 	case psx.TIOCMGET:
@@ -404,6 +426,143 @@ SerialMonProcessor_lnx.processIoctlNotification (
 
 		break;
 	};
+}
+
+SerialMonProcessor_lnx.processTermiosSetAttr (
+	uint64_t timestamp,
+	uint_t cflags,
+	uint_t iflags,
+	uint_t ospeed
+	)
+{
+	uint_t baudRate;
+	uint_t dataBits;
+	uint_t stopBits;
+	uint_t parity;
+	uint_t flowControl;
+
+	uint_t speed = cflags & (psx.CBAUD | psx.CBAUDEX);
+	switch (speed)
+	{
+	case psx.B110:
+		baudRate = 110;
+		break;
+
+	case psx.B300:
+		baudRate = 300;
+		break;
+
+	case psx.B600:
+		baudRate = 600;
+		break;
+
+	case psx.B1200:
+		baudRate = 1200;
+		break;
+
+	case psx.B2400:
+		baudRate = 2400;
+		break;
+
+	case psx.B4800:
+		baudRate = 4800;
+		break;
+
+	case psx.B9600:
+		baudRate = 9600;
+		break;
+
+	case psx.B19200:
+		baudRate = 19200;
+		break;
+
+	case psx.B38400:
+		baudRate = 38400;
+		break;
+
+	case psx.B57600:
+		baudRate = 57600;
+		break;
+
+	case psx.B115200:
+		baudRate = 115200;
+		break;
+
+	default:
+		baudRate = ospeed;
+	}
+
+	uint_t byteSize = cflags & psx.CSIZE;
+	switch (byteSize)
+	{
+	case psx.CS5:
+		dataBits = 5;
+		break;
+
+	case psx.CS6:
+		dataBits = 6;
+		break;
+
+	case psx.CS7:
+		dataBits = 7;
+		break;
+
+	case psx.CS8:
+	default:
+		dataBits = 8;
+		break;
+	}
+
+	stopBits = (cflags & psx.CSTOPB) ?
+		io.SerialStopBits._2 :
+		io.SerialStopBits._1;
+
+	parity =
+		(cflags & psx.PARENB) ?
+			(cflags & psx.CMSPAR)  ?
+				(cflags & psx.PARODD) ? io.SerialParity.Mark : io.SerialParity.Space :
+				(cflags & psx.PARODD) ? io.SerialParity.Odd : io.SerialParity.Even :
+		io.SerialParity.None;
+
+	flowControl =
+		(cflags & psx.CRTSCTS) ? io.SerialFlowControl.RtsCts :
+		(iflags & (psx.IXON | psx.IXOFF)) ? io.SerialFlowControl.XonXoff : io.SerialFlowControl.None;
+
+
+	m_logWriter.write (
+		timestamp,
+		SerialLogRecordCode.BaudRateChanged,
+		&baudRate,
+		sizeof (baudRate)
+		);
+
+	m_logWriter.write (
+		timestamp,
+		SerialLogRecordCode.DataBitsChanged,
+		&dataBits,
+		sizeof (dataBits)
+		);
+
+	m_logWriter.write (
+		timestamp,
+		SerialLogRecordCode.StopBitsChanged,
+		&stopBits,
+		sizeof (stopBits)
+		);
+
+	m_logWriter.write (
+		timestamp,
+		SerialLogRecordCode.ParityChanged,
+		&parity,
+		sizeof (parity)
+		);
+
+	m_logWriter.write (
+		timestamp,
+		SerialLogRecordCode.FlowControlChanged,
+		&flowControl,
+		sizeof (flowControl)
+		);
 }
 
 //..............................................................................

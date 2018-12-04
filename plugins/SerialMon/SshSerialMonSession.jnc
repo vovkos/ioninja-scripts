@@ -353,7 +353,12 @@ bool errorcode SshSerialMonSession.connect (io.SocketAddress const* remoteAddres
 
 	params.m_processExtra =
 		$"tdevmon -m $(m_portCombo.m_editText) --mi "
+		$"--ioctl $(psx.TCSETA):$(sizeof (psx.termio)) "
+		$"--ioctl $(psx.TCSETAW):$(sizeof (psx.termio)) "
+		$"--ioctl $(psx.TCSETAF):$(sizeof (psx.termio)) "
 		$"--ioctl $(psx.TCSETS):$(sizeof (psx.termios)) "
+		$"--ioctl $(psx.TCSETSW):$(sizeof (psx.termios)) "
+		$"--ioctl $(psx.TCSETSF):$(sizeof (psx.termios)) "
 		$"--ioctl $(psx.TIOCMGET):$(sizeof (uint_t)) "
 		$"--ioctl $(psx.TIOCMBIS):$(sizeof (uint_t)) "
 		$"--ioctl $(psx.TIOCMBIC):$(sizeof (uint_t))";
