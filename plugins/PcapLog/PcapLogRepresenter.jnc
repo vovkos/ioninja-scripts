@@ -27,7 +27,7 @@ bool representPcapLog (
 
 		target.addHyperText (
 			PcapLogPartCode.StartingCapture,
-			*p ?
+			*filter ?
 				$"Starting capture with filter '\e[34m$filter\e[m'..." :
 				"Starting capture without filter..."
 			);
