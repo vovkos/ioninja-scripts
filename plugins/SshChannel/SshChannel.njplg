@@ -19,5 +19,3 @@ session-class = SshChannelSession
 [scripts]
 
 SshChannelSession.jnc
-../../common/io_SocketUi.jnc
-../../common/io_BufferUi.jnc
