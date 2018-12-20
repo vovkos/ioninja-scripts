@@ -9,6 +9,8 @@ name        = Mailslot Monitor Log
 description = "Mailslot Monitor log representer"
 group       = fs
 guid        = 8B4D1156-4C00-40FF-8B24-015C7DF2FD80
+icon        = images/mailslotmon.png
+small-icon  = images/mailslotmon-16x16.png
 
 log-representer-func = representMailslotMonLog
 

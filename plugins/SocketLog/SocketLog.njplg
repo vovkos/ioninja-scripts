@@ -9,6 +9,8 @@ name        = "Socket Log"
 description = "Socket log representer"
 group       = net
 guid        = db8c8923-a699-46cc-be7c-f0bcd523082b
+icon        = images/socket.png
+small-icon  = images/socket-16x16.png
 
 log-representer-func = representSocketLog
 

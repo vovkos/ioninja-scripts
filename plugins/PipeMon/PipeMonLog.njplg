@@ -9,6 +9,8 @@ name        = "Pipe Monitor Log"
 description = "Pipe Monitor log representer"
 group       = fs
 guid        = 8D4114D9-5020-4E0D-8D6A-98C8C29E76F0
+icon        = images/pipemon.png
+small-icon  = images/pipemon-16x16.png
 
 log-representer-func = representPipeMonLog
 
