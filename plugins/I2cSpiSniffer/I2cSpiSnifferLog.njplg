@@ -9,13 +9,16 @@ name        = "I2C/SPI Sniffer Log"
 description = "I2C/SPI Sniffer log representer"
 group       = serial
 guid        = 39ee6b0f-a65e-4e8a-b252-6fa28d8e3327
+icon        = images/serialmon.png
+small-icon  = images/serialmon-16x16.png
 
-log-representer-func = representDeviceMonLog
+log-representer-func = representI2cSpiSnifferLog
 
 [scripts]
 
 I2cSpiSnifferLogRecordCode.jnc
 I2cSpiSnifferLogRepresenter.jnc
+RpdFile.jnc
 
 [records]
 
@@ -46,3 +49,5 @@ I2cSpiSnifferLogRepresenter.jnc
 01d487bb6423b815  # I2cRxNack
 01d487bb6423b816  # SpiStart
 01d487bb6423b817  # SpiStop
+01d487bb6423b818  # FirmwareUpdateCancelled
+01d487bb6423b819  # FirmwareUpdateCompleted

@@ -28,6 +28,9 @@ enum I2cSpiSnifferLogRecordCode: uint64_t
 	UploadingFirmware       = 0x01d487bb6423b80c,
 	EnablingFpga            = 0x01d487bb6423b80d,
 	FpgaReady               = 0x01d487bb6423b80e,
+	FirmwareUploadCancelled = 0x01d487bb6423b818,
+	FirmwareUploadCompleted = 0x01d487bb6423b819,
+
 
 	I2cStart                = 0x01d487bb6423b80f,
 	I2cFinalizeStart7Bit    = 0x01d487bb6423b810,

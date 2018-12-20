@@ -19,6 +19,7 @@ session-class = I2cSpiSnifferSession
 [scripts]
 
 Protocol.jnc
+RpdFile.jnc
 Uploader.jnc
 Decoder.jnc
 I2cDecoder.jnc

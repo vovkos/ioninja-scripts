@@ -9,38 +9,7 @@ import "sys_Timer.jnc"
 import "gui_Dialog.jnc"
 import "parseVersion.jnc"
 
-//..............................................................................
-
-struct LatticeHdr
-{
-	enum
-	{
-		Signature  = 0x00ff,
-		Signature2 = 0xff00,
-	}
-
-	uint16_t m_signature;  // FF 00
-	char m_tag [0x4c];
-	uint16_t m_signature2; // 00 FF
-
-	bool isValid () const
-	{
-		return
-			m_signature == Signature &&
-			m_signature2 == Signature2;
-	}
-
-	char const* getId () const
-	{
-		return m_tag;
-	}
-
-	uint_t getVersion () const
-	{
-		char const* p = memchr (m_tag, 0, countof (m_tag));
-		return p ? parseVersion (p + 1) : 0;
-	}
-}
+import "I2cSpiSnifferLogRecordCode.jnc"
 
 //..............................................................................
 
@@ -50,9 +19,10 @@ protected:
 	enum State
 	{
 		Idle,
-		ErasingFlash,
-		UploadingFile,
-		EnablingFpga,
+		PreErase,
+		Erasing,
+		Writing,
+		Loading,
 	}
 
 	enum UsbControlReqType
@@ -63,50 +33,51 @@ protected:
 
 	enum UsbControlReqCode
 	{
-		GetFlashStatus   = 0xaa,
-		ReadFlash        = 0xa9,
-		WriteFlash       = 0xa8,
-		EraseAllFlash    = 0xad,
-		EraseFlashSector = 0xac,
+		GetVersion = 0x50,
+		GetStatus  = 0x51,
+		Erase      = 0x52,
+		Write      = 0x53,
+		Load       = 0x54,
+	}
 
-		GetFpgaStatus    = 0xfa,
-		DisableFpga      = 0xfd,
-		EnableFpga       = 0xfe,
+	bitflag enum Status: uint16_t
+	{
+		InvalidApp      = 0x0100,
+		FlashWriteError = 0x0200,
+		FlashBusy       = 0x0400,
+		AppLoadError    = 0x0800,
+		FpgaBusy        = 0x1000,
 	}
 
 	enum
 	{
-		FlashSectorSize          = 0x10000,
-		FlashBlockSize           = 64,
-		FlashStatusCheckInterval = 500,
-		FpgaStatusCheckInterval  = 200,
-		FpgaCheckRetryCount      = 5, // 1 sec total -- more than enough to start FPGA
+		AtomSize           = 4,
+		BlockSize          = 64,
+		BaseIndex          = 0x1000,
+		TimerInterval      = 100,
+		StatusCheckCount   = 5,  // check n times before waiting
+		StillWaitingFactor = 1000 / TimerInterval, // once a second
 	}
 
 protected:
 	State m_state;
+	Protocol m_protocol;
 	log.Writer* m_logWriter;
 	jnc.Scheduler* m_mainThreadScheduler;
 	io.UsbDevice* m_device;
-	io.MappedFile m_firmwareFile;
+	io.MappedFile m_file;
 	gui.ProgressDlg m_progressDlg;
 	sys.Timer m_timer;
 	std.Buffer m_block;
-	Protocol m_protocol;
-	size_t m_offset;
-	size_t m_fpgaCheckRetryNum;
+	size_t m_fileSize;
+	size_t m_fileOffset;
+	size_t m_statusCheckIdx;
 	uint_t m_syncId;
 
-	static char const* const m_firmwareIdTable [] =
+	static char const* const m_fileNameTable [] =
 	{
-		"lattice-fpga-spi",
-		"lattice-fpga-i2c",
-	}
-
-	static char const* const m_firmwareFileNameTable [] =
-	{
-		"firmware/spi.bin",
-		"firmware/i2c.bin",
+		"firmware/spi.rpd",
+		"firmware/i2c.rpd",
 	}
 
 public:
@@ -123,15 +94,18 @@ public:
 		);
 
 protected:
-	bool errorcode enableFpga ();
-	bool errorcode eraseNextFlashSector ();
-	bool errorcode sendNextBlock ();
+	RpdVersion getVersion ();
+	Status getStatus ();
+	erase (bool isCheckRequired);
+	sendFirstBlock (bool isCheckRequired);
+	sendNextBlock (bool isCheckRequired);
+	load (bool isCheckRequired);
+	complete (bool result);
 
-	bool checkStatus (UsbControlReqCode code);
+	bool checkStatus ();
 
-	onFlashStatusTimer (uint_t syncId);
-	onFpgaStatusTimer (uint_t syncId);
 	onProgressDlgButtonClicked (gui.StdDlgButton button);
+	onTimer (uint_t syncId);
 
 	onTransferCompleted (
 		uint_t syncId,
@@ -154,12 +128,8 @@ Uploader.cancel ()
 	if (!m_state)
 		return;
 
-	m_progressDlg.hide ();
-	m_timer.stop ();
-	m_state = State.Idle;
-	m_syncId++;
-
-	m_onUpdateCompleted (false);
+	m_logWriter.write (I2cSpiSnifferLogRecordCode.FirmwareUploadCancelled);
+	complete (false);
 }
 
 bool errorcode Uploader.update (
@@ -172,208 +142,256 @@ bool errorcode Uploader.update (
 	m_device = device;
 	m_protocol = protocol;
 
-	m_device.controlTransfer (
-		UsbControlReqType.VendorOut,
-		UsbControlReqCode.DisableFpga,
-		0,
-		0,
-		null,
-		0
-		);
+	char const* fileName = m_fileNameTable [m_protocol];
+	m_file.open (fileName, io.FileOpenFlags.ReadOnly);
 
-	m_logWriter.write (I2cSpiSnifferLogRecordCode.FpgaDisabled);
+	RpdHdr const* hdr = (RpdHdr const*) m_file.view (0, sizeof (RpdHdr), false);
 
-	char const* fileName = m_firmwareFileNameTable [m_protocol];
-	m_firmwareFile.open (fileName, io.FileOpenFlags.ReadOnly);
-	LatticeHdr const* fileHdr = (LatticeHdr const*) m_firmwareFile.view (0, sizeof (LatticeHdr));
-	uint_t fileVersion = fileHdr.getVersion ();;
+	Status status = getStatus ();
+	RpdVersion version = getVersion ();
 
-	LatticeHdr deviceHdr;
-
-	m_device.controlTransfer (
-		UsbControlReqType.VendorIn,
-		UsbControlReqCode.ReadFlash,
-		0,
-		0,
-		&deviceHdr,
-		sizeof (deviceHdr)
-		);
+	printf ("device status: %x\n", status);
+	printf ("device type: %x\n", version.m_firmwareType);
+	printf ("device version: %x\n", version.m_firmwareVersion);
+	printf ("file type: %x\n", hdr.m_version.m_firmwareType);
+	printf ("file version: %x\n", hdr.m_version.m_firmwareVersion);
 
 	bool isUpToDate =
-		deviceHdr.isValid () &&
-		strcmp (deviceHdr.getId (), fileHdr.getId ()) == 0 &&
-		deviceHdr.getVersion () >= fileVersion;
+		status == 0 &&
+		version.m_firmwareType == hdr.m_version.m_firmwareType &&
+		version.m_firmwareVersion >= hdr.m_version.m_firmwareVersion;
 
 	if (isUpToDate)
 	{
 		m_logWriter.write (I2cSpiSnifferLogRecordCode.FirmwareUpToDate);
-		enableFpga ();
-	}
-	else
-	{
-		char const* params = $"$(fileVersion; B)$fileName";
-
-		m_logWriter.write (I2cSpiSnifferLogRecordCode.FirmwareUpdateRequired, params, dynamic sizeof (params));
-
-		m_progressDlg.m_title = "Updating FPGA Firmware";
-		m_progressDlg.m_status = "Erasing flash memory...";
-		m_progressDlg.m_progress = 0;
-		m_progressDlg.m_buttons = gui.StdDlgButtons.Abort;
-		m_progressDlg.show ();
-
-		m_logWriter.write (I2cSpiSnifferLogRecordCode.ErasingFlash);
-		m_state = State.ErasingFlash;
-		m_offset = 0;
-		eraseNextFlashSector ();
-
-		m_timer.startPeriodicTimer (
-			onFlashStatusTimer  ~(m_syncId) @ m_mainThreadScheduler,
-			FlashStatusCheckInterval
-			);
+		m_onUpdateCompleted (true);
+		return true;
 	}
 
+	char const* params = $"$(hdr.m_version; B)$fileName";
+
+	m_logWriter.write (I2cSpiSnifferLogRecordCode.FirmwareUpdateRequired, params, dynamic sizeof (params));
+
+	m_progressDlg.m_title = "Updating FPGA Firmware";
+	m_progressDlg.m_status = "Preparing...";
+	m_progressDlg.m_progress = 0;
+	m_progressDlg.m_buttons = gui.StdDlgButtons.Abort;
+	m_progressDlg.show ();
+
+	m_state = State.PreErase;
+	erase (true);
+
 	return true;
+
+catch:
+	m_logWriter.writeLastError (log.StdRecordCode.Error);
+	cancel ();
+	return false;
 }
 
-bool errorcode Uploader.enableFpga ()
+RpdVersion Uploader.getVersion ()
 {
-	m_logWriter.write (I2cSpiSnifferLogRecordCode.EnablingFpga);
-	m_progressDlg.m_status = "Enabling FPGA...";
-	m_state = State.EnablingFpga;
-	m_fpgaCheckRetryNum = 0;
+	RpdVersion version;
 
 	m_device.controlTransfer (
-		UsbControlReqType.VendorOut,
-		UsbControlReqCode.EnableFpga,
-		0,
-		0,
-		null,
-		0
-		);
-
-	m_timer.startPeriodicTimer (
-		onFpgaStatusTimer ~(m_syncId) @ m_mainThreadScheduler,
-		FpgaStatusCheckInterval
-		);
-
-	return true;
-}
-
-bool errorcode Uploader.eraseNextFlashSector ()
-{
-	m_device.controlTransfer (
-		UsbControlReqType.VendorOut,
-		UsbControlReqCode.EraseFlashSector,
-		0,
-		m_offset / FlashSectorSize,
-		null,
-		0
-		);
-
-	m_offset += FlashSectorSize;
-	return true;
-}
-
-bool errorcode Uploader.sendNextBlock ()
-{
-	size_t size = FlashBlockSize;
-	uint64_t fileSize = m_firmwareFile.m_size;
-
-	size_t leftover = m_offset >= fileSize ? 0 : fileSize - m_offset;
-	if (size > leftover)
-		size = leftover;
-
-	void const* p = m_firmwareFile.view (m_offset, size);
-
-	m_block.setSize (size);
-	memcpy (m_block.m_p, p, size);
-
-	if (!size)
-		return enableFpga ();
-
-	m_device.controlTransfer (
-		UsbControlReqType.VendorOut,
-		UsbControlReqCode.WriteFlash,
-		m_offset,
-		m_offset >> 16,
-		m_block.m_p,
-		size,,
-		onTransferCompleted ~(m_syncId) @ m_mainThreadScheduler
-		);
-
-	m_offset += size;
-	m_progressDlg.m_progress = m_offset * 100 / fileSize;
-	return true;
-}
-
-bool Uploader.checkStatus (UsbControlReqCode code)
-{
-	char status = -1;
-
-	try m_device.controlTransfer (
 		UsbControlReqType.VendorIn,
-		code,
+		UsbControlReqCode.GetVersion,
+		0,
+		0,
+		&version,
+		sizeof (version)
+		);
+
+	return version;
+}
+
+Status Uploader.getStatus ()
+{
+	Status status;
+
+	m_device.controlTransfer (
+		UsbControlReqType.VendorIn,
+		UsbControlReqCode.GetStatus,
 		0,
 		0,
 		&status,
 		sizeof (status)
 		);
 
-	return status == 0;
+	return status;
 }
 
-Uploader.onFlashStatusTimer (uint_t syncId)
+Uploader.erase (bool isCheckRequired)
 {
-	if (syncId != m_syncId)
+	if (isCheckRequired && !checkStatus ())
 		return;
 
-	bool result = checkStatus (UsbControlReqCode.GetFlashStatus);
-	if (!result)
-	{
-		m_logWriter.write (I2cSpiSnifferLogRecordCode.StillWaiting);
-	}
-	else if (m_offset < m_firmwareFile.m_size)
-	{
-		eraseNextFlashSector ();
-	}
-	else
-	{
-		m_timer.stop ();
-		m_logWriter.write (I2cSpiSnifferLogRecordCode.UploadingFirmware);
-		m_progressDlg.m_status = "Uploading firmware file...";
-		m_state = State.UploadingFile;
-		m_offset = 0;
-		sendNextBlock ();
-	}
+	m_logWriter.write (I2cSpiSnifferLogRecordCode.ErasingFlash);
+	m_progressDlg.m_status = "Erasing flash memory...";
+	m_state = State.Erasing;
 
-catch:
-	m_logWriter.writeLastError (log.StdRecordCode.Error);
-	cancel ();
+	m_device.controlTransfer (
+		UsbControlReqType.VendorOut,
+		UsbControlReqCode.Erase,
+		0,
+		0,
+		null,
+		0
+		);
+
+	if (checkStatus ())
+		sendFirstBlock (false);
 }
 
-Uploader.onFpgaStatusTimer (uint_t syncId)
+Uploader.load (bool isCheckRequired)
 {
-	if (syncId != m_syncId)
+	if (isCheckRequired && !checkStatus ())
 		return;
 
-	bool result = checkStatus (UsbControlReqCode.GetFpgaStatus);
+	m_logWriter.write (I2cSpiSnifferLogRecordCode.EnablingFpga);
+	m_progressDlg.m_status = "Switching to the newly uploaded firmware...";
+	m_state = State.Loading;
+
+	printf ("UsbControlReqCode.Load\n");
+
+	m_device.controlTransfer (
+		UsbControlReqType.VendorOut,
+		UsbControlReqCode.Load,
+		0,
+		0,
+		null,
+		0
+		);
+
+	if (checkStatus ())
+		complete (true);
+}
+
+Uploader.sendFirstBlock (bool isCheckRequired)
+{
+	if (isCheckRequired && !checkStatus ())
+		return;
+
+	m_logWriter.write (I2cSpiSnifferLogRecordCode.UploadingFirmware);
+	m_progressDlg.m_status = "Uploading firmware file...";
+	m_state = State.Writing;
+
+	m_fileSize = m_file.m_size;
+	m_fileOffset = sizeof (RpdHdr);
+
+	sendNextBlock (false);
+}
+
+Uploader.sendNextBlock (bool isCheckRequired)
+{
+	if (isCheckRequired && !checkStatus ())
+		return;
+
+	if (m_fileOffset >= m_fileSize)
+	{
+		load (false); // already checked
+		return;
+	}
+
+	size_t leftover = m_fileSize - m_fileOffset;
+	size_t size = BlockSize;
+
+	if (size > leftover)
+		size = leftover;
+
+	if (!size)
+		return; // nothing to write
+
+	void const* p = m_file.view (m_fileOffset, size);
+
+	m_block.setSize (size);
+	memcpy (m_block.m_p, p, size);
+
+	size_t atomIdx = (m_fileOffset - sizeof (RpdHdr)) / AtomSize;
+
+	m_device.controlTransfer (
+		UsbControlReqType.VendorOut,
+		UsbControlReqCode.Write,
+		size / AtomSize,
+		atomIdx + BaseIndex,
+		m_block.m_p,
+		size,,
+		onTransferCompleted ~(m_syncId) @ m_mainThreadScheduler
+		);
+
+	m_progressDlg.m_progress = m_fileOffset * 100 / m_fileSize;
+	m_fileOffset += size;
+}
+
+Uploader.complete (bool result)
+{
 	if (result)
+		m_logWriter.write (I2cSpiSnifferLogRecordCode.FirmwareUploadCompleted);
+
+	m_progressDlg.hide ();
+	m_timer.stop ();
+	m_file.close ();
+	m_state = State.Idle;
+	m_syncId++;
+
+	m_onUpdateCompleted (result);
+}
+
+bool Uploader.checkStatus ()
+{
+	for (size_t i = 0; i < StatusCheckCount; i++)
 	{
-		m_logWriter.write (I2cSpiSnifferLogRecordCode.FpgaReady);
-		m_timer.stop ();
-		m_progressDlg.hide ();
-		m_state = State.Idle;
-		m_onUpdateCompleted (true);
+		Status status = getStatus ();
+		if (!(status & (Status.FlashBusy | Status.FpgaBusy)))
+			return true;
 	}
-	else if (++m_fpgaCheckRetryNum < FpgaCheckRetryCount)
+
+	m_statusCheckIdx = 0;
+
+	m_timer.startPeriodicTimer (
+		onTimer ~(++m_syncId) @ m_mainThreadScheduler,
+		TimerInterval
+		);
+
+	return false;
+}
+
+Uploader.onTimer (uint_t syncId)
+{
+	if (syncId != m_syncId)
+		return;
+
+	Status status = getStatus ();
+	printf ("onTimer () status: %x\n", status);
+
+	if (status & (Status.FlashBusy | Status.FpgaBusy))
 	{
-		m_logWriter.write (I2cSpiSnifferLogRecordCode.StillWaiting);
+		if (++m_statusCheckIdx % StillWaitingFactor == 0)
+			m_logWriter.write (I2cSpiSnifferLogRecordCode.StillWaiting);
+
+		return; // not yet
 	}
-	else
+
+	m_timer.stop ();
+	m_syncId++;
+
+	switch (m_state)
 	{
-		std.setError ("Can't start FPGA");
-		m_logWriter.writeLastError (log.StdRecordCode.Error);
-		cancel ();
+	case State.PreErase:
+		erase (false);
+		break;
+
+	case State.Erasing:
+		sendFirstBlock (false);
+		break;
+
+	case State.Writing:
+		sendNextBlock (false);
+		break;
+
+	case State.Loading:
+		complete (true);
+		break;
 	}
 
 catch:
@@ -403,13 +421,11 @@ Uploader.onTransferCompleted (
 
 	if (error)
 	{
-		m_logWriter.writeError (log.StdRecordCode.Error, error);
-		cancel ();
+		std.setError (error);
+		throw;
 	}
-	else
-	{
-		sendNextBlock ();
-	}
+
+	sendNextBlock (true);
 
 catch:
 	m_logWriter.writeLastError (log.StdRecordCode.Error);
