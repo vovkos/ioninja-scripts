@@ -31,7 +31,6 @@ enum I2cSpiSnifferLogRecordCode: uint64_t
 	FirmwareUploadCancelled = 0x01d487bb6423b818,
 	FirmwareUploadCompleted = 0x01d487bb6423b819,
 
-
 	I2cStart                = 0x01d487bb6423b80f,
 	I2cFinalizeStart7Bit    = 0x01d487bb6423b810,
 	I2cFinalizeStart10Bit   = 0x01d487bb6423b811,
