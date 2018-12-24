@@ -10,7 +10,6 @@ description = "Implements TX modifications (re-transmission, prefixing, suffixin
 id          = tx-modifier
 group       =
 monitor     = false
-guid        = ecb5300b-4be8-45fe-aecc-62f1d6405cff
 icon        = images/txmodifier.png
 small-icon  = images/txmodifier-16x16.png
 
