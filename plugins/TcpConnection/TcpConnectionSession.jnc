@@ -118,6 +118,7 @@ public:
 		);
 
 protected:
+	close ();
 	handleSocketError (std.Error const* error);
 
 	onConnect ()
@@ -336,8 +337,16 @@ TcpConnectionSession.handleSocketError (std.Error const* error)
 		log.StdRecordCode.Error;
 
 	writeLog (recordCode, error, error.m_size);
+	close ();
+}
+
+TcpConnectionSession.close ()
+{
+	m_stdSessionInfoSet.endSession ();
+	m_isTransmitEnabled = false;
 	m_socket.close ();
 	m_state = State.Closed;
+	m_syncId++;
 }
 
 TcpConnectionSession.disconnect ()
@@ -366,14 +375,10 @@ TcpConnectionSession.disconnect ()
 			sizeof (params)
 			);
 
-		m_isTransmitEnabled = false;
-		m_stdSessionInfoSet.endSession ();
 		break;
 	}
 
-	m_socket.close ();
-	m_state = State.Closed;
-	m_syncId++;
+	close ();
 }
 
 void TcpConnectionSession.load (doc.Storage* storage)
@@ -491,10 +496,7 @@ TcpConnectionSession.onSocketEvent (
 			sizeof (recordParams)
 			);
 
-		m_socket.close ();
-		m_state = State.Closed;
-		m_isTransmitEnabled = false;
-		m_stdSessionInfoSet.endSession ();
+		close ();
 		return;
 	}
 
