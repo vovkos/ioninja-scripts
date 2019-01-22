@@ -22,8 +22,6 @@ protected:
 		SpiMode     = 0,
 		Endianness  = true,
 		DataBits    = 8,
-		ShowI2cStop = true,
-		ShowRawData = false,
 	}
 
 	enum State
@@ -64,24 +62,14 @@ protected:
 
 	enum UsbId
 	{
-		VendorId  = 0x04B4,
-		ProductId = 0x00F1,
-//		VendorId  = 0x16d0,
-//		ProductId = 0x0e26,
+		VendorId  = 0x16d0,
+		ProductId = 0x0e27,
 	}
 
 	enum UsbEndpoint
 	{
 		Out = 0x02,
 		In  = 0x86,
-//		Out = 0x01,
-//		In  = 0x82,
-	}
-
-	enum UsbEndpointTimeout
-	{
-		In  = 1000,
-		Out = 1500,
 	}
 
 	enum
@@ -119,8 +107,6 @@ protected:
 	gui.EnumProperty* m_spiModeProp;
 	gui.EnumProperty* m_endiannessProp;
 	gui.IntProperty* m_dataBitsProp;
-	gui.BoolProperty* m_showI2cStopProp;
-	gui.BoolProperty* m_showRawDataProp;
 	io.BufferPropertySet m_bufferPropertySet;
 
 	// information grid
@@ -138,11 +124,6 @@ public:
 
 	bool errorcode capture ();
 	void stopCapture ();
-
-	override size_t transmit (
-		void const* p,
-		size_t size
-		);
 
 	override void load (doc.Storage* storage);
 	override void save (doc.Storage* storage);
@@ -223,9 +204,6 @@ I2cSpiSnifferSession.createUi ()
 	m_actionTable [ActionId.Capture] = createAction("Capture", m_iconTable [IconId.Capture]);
 	m_actionTable [ActionId.Capture].m_onTriggered += onCapture;
 
-	m_actionTable [ActionId.Test] = createAction("Test");
-	m_actionTable [ActionId.Test].m_onTriggered += onTest;
-
 	// status bar
 
 	m_statusPaneTable [StatusPaneId.State] = m_pluginHost.m_statusBar.addPane (, 80);
@@ -277,18 +255,6 @@ I2cSpiSnifferSession.createUi ()
 	m_dataBitsProp.m_minValue = 4;
 	m_dataBitsProp.m_maxValue = 16;
 
-	m_showI2cStopProp = m_pluginHost.m_propertyGrid.createBoolProperty (
-		group,,
-		"Show I2C STOP",
-		"Show the I2C STOP transaction condition"
-		);
-
-	m_showRawDataProp = m_pluginHost.m_propertyGrid.createBoolProperty (
-		group,,
-		"Show Raw Data",
-		"Show raw data packets from HW sniffer"
-		);
-
 	io.BufferPropertySet.PropertyId ids =
 		io.BufferPropertySet.PropertyId.ReadParallelism |
 		io.BufferPropertySet.PropertyId.ReadBlockSize |
@@ -327,43 +293,17 @@ I2cSpiSnifferSession.onUpdateCompleted (bool result)
 		stopCapture ();
 }
 
-I2cSpiSnifferSession.onTest ()
-{
-	static char const data1 [] =
-		0x"""
-		11 32 23 32 21 32 2c 47 21 70 11 32 23 34 25 36
-		27 68 11 32 23 34 25 36 27 68 11 32 23 34 25 36
-		27 68 11 32 23 34 25 36 27 68 11 32 23 34 25 36
-		27 68 11 32 23 34 25 36 27 68 11 32 23 34 25 36
-		27 68
-		""";
-
-	m_decoder.decode (data1, sizeof (data1));
-}
-
-size_t I2cSpiSnifferSession.transmit (
-	void const* p,
-	size_t size
-	)
-{
-	if (m_showRawDataProp.m_value)
-		writeLog (log.StdRecordCode.Bin, p, size);
-
-	m_decoder.reset ();
-	m_decoder.decode (p, size);
-	return size;
-}
-
 I2cSpiSnifferSession.enumerateDevices ()
 {
 	m_deviceCombo.clear ();
 
 	io.UsbDevice* const* deviceArray = io.createUsbDeviceArray ();
-	size_t count = dynamic countof (deviceArray);
+	size_t totalCount = dynamic countof (deviceArray);
+	size_t actualCount = 0;
 
-	gui.EnumPropertyOption* optionTable = new gui.EnumPropertyOption [count];
+	gui.EnumPropertyOption* optionTable = new gui.EnumPropertyOption [totalCount];
 
-	for (size_t i = 0; i < count; i++)
+	for (size_t i = 0; i < totalCount; i++)
 	{
 		io.UsbDevice* device = deviceArray [i];
 		io.UsbDeviceDesc const* deviceDesc = device.m_deviceDesc;
@@ -379,11 +319,12 @@ I2cSpiSnifferSession.enumerateDevices ()
 
 		m_deviceCombo.addItem (text, device);
 
-		optionTable [i].m_text = text;
-		optionTable [i].m_value = device;
+		optionTable [actualCount].m_text = text;
+		optionTable [actualCount].m_value = device;
+		actualCount++;
 	}
 
-	m_deviceProp.setOptions (optionTable, count);
+	m_deviceProp.setOptions (optionTable, actualCount);
 }
 
 bool errorcode I2cSpiSnifferSession.capture ()
@@ -413,7 +354,6 @@ bool errorcode I2cSpiSnifferSession.startCapture ()
 	writeLog (I2cSpiSnifferLogRecordCode.InterfaceClaimed);
 
 	m_outEndpoint = m_iface.openEndpoint (UsbEndpoint.Out);
-	m_outEndpoint.m_transferTimeout = UsbEndpointTimeout.Out;
 	writeLog (I2cSpiSnifferLogRecordCode.OutEndpointOpened);
 
 	// align read block on 512 bytes
@@ -422,7 +362,6 @@ bool errorcode I2cSpiSnifferSession.startCapture ()
 	readBlockSize = (readBlockSize + UsbPacketSize - 1) & ~(UsbPacketSize - 1);
 
 	m_inEndpoint = m_iface.openEndpoint (UsbEndpoint.In);
-	m_inEndpoint.m_transferTimeout = UsbEndpointTimeout.In;
 	m_inEndpoint.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
 	m_inEndpoint.m_readBlockSize = readBlockSize;
 	m_inEndpoint.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
@@ -531,10 +470,6 @@ I2cSpiSnifferSession.onInEndpointEvent (
 	{
 		size_t size = m_inEndpoint.read (m_readBuffer.m_p, m_readBuffer.m_size);
 		m_stdSessionInfoSet.addRxData (size);
-
-		if (m_showRawDataProp.m_value)
-			writeLog (log.StdRecordCode.Bin, m_readBuffer.m_p, size);
-
 		m_decoder.decode (m_readBuffer.m_p, size);
 	}
 
@@ -548,8 +483,6 @@ I2cSpiSnifferSession.load (doc.Storage* storage)
 	m_spiModeProp.m_value = storage.readInt ("spiMode", Defaults.SpiMode);
 	m_endiannessProp.m_value = storage.readInt ("endianness", Defaults.Endianness);
 	m_dataBitsProp.m_value = storage.readInt ("dataBits", Defaults.DataBits);
-	m_showI2cStopProp.m_value = storage.readBool ("showI2cStop", Defaults.ShowI2cStop);
-	m_showRawDataProp.m_value = storage.readBool ("showRawData", Defaults.ShowRawData);
 	m_bufferPropertySet.load (storage);
 	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
 }
@@ -561,8 +494,6 @@ I2cSpiSnifferSession.save (doc.Storage* storage)
 	storage.writeInt ("spiMode", m_spiModeProp.m_value);
 	storage.writeInt ("endianness", m_endiannessProp.m_value);
 	storage.writeInt ("dataBits", m_dataBitsProp.m_value);
-	storage.writeBool ("showI2cStop", m_showI2cStopProp.m_value);
-	storage.writeBool ("showRawData", m_showRawDataProp.m_value);
 	m_bufferPropertySet.save (storage);
 }
 
@@ -592,8 +523,6 @@ I2cSpiSnifferSession.restoreDefaultProperties ()
 	m_spiModeProp.m_value = Defaults.SpiMode;
 	m_endiannessProp.m_value = Defaults.Endianness;
 	m_dataBitsProp.m_value = Defaults.DataBits;
-	m_showI2cStopProp.m_value = Defaults.ShowI2cStop;
-	m_showRawDataProp.m_value = false;
 	m_bufferPropertySet.restoreDefaults ();
 }
 
@@ -606,7 +535,6 @@ reactor I2cSpiSnifferSession.m_uiReactor
 	m_spiModeProp.m_isEnabled = m_protocolProp.m_value == Protocol.Spi;
 	m_endiannessProp.m_isEnabled = m_protocolProp.m_value == Protocol.Spi;
 	m_dataBitsProp.m_isEnabled = m_protocolProp.m_value == Protocol.Spi;
-	m_showI2cStopProp.m_isEnabled = m_protocolProp.m_value == Protocol.I2c;
 }
 
 //..............................................................................
