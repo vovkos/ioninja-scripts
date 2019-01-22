@@ -408,12 +408,12 @@ SerialTapSession.enumerateDevices ()
 	m_deviceCombo.clear ();
 
 	io.UsbDevice* const* deviceArray = io.createUsbDeviceArray ();
-	size_t count = dynamic countof (deviceArray);
+	size_t totalCount = dynamic countof (deviceArray);
+	size_t actualCount = 0;
 
-	gui.EnumPropertyOption* optionTable = new gui.EnumPropertyOption [count];
+	gui.EnumPropertyOption* optionTable = new gui.EnumPropertyOption [totalCount];
 
-	size_t ftdiCount = 0;
-	for (size_t i = 0; i < count; i++)
+	for (size_t i = 0; i < totalCount; i++)
 	{
 		io.UsbDevice* device = deviceArray [i];
 		io.UsbDeviceDesc const* deviceDesc = device.m_deviceDesc;
@@ -429,12 +429,12 @@ SerialTapSession.enumerateDevices ()
 
 		m_deviceCombo.addItem (text, device);
 
-		optionTable [ftdiCount].m_text = text;
-		optionTable [ftdiCount].m_value = device;
-		ftdiCount++;
+		optionTable [actualCount].m_text = text;
+		optionTable [actualCount].m_value = device;
+		actualCount++;
 	}
 
-	m_deviceProp.setOptions (optionTable, ftdiCount);
+	m_deviceProp.setOptions (optionTable, actualCount);
 }
 
 SerialTapSession.flipDteDce ()
