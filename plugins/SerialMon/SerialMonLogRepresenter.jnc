@@ -38,7 +38,7 @@ bool representSerialMonLog  (
 		break;
 
 	default:
-		return representSerialLog (target, recordCode, p, size, foldFlags);
+		return false; 
 	}
 
 	return true;
