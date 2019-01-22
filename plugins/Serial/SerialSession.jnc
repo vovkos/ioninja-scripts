@@ -22,10 +22,10 @@ class SerialSession: doc.Session
 protected:
 	enum Defaults
 	{
-		ReadMode       = SerialReadMode.WaitFirstChar,
-		ReadInterval   = 10,
-		Dtr            = true,
-		Rts            = true,
+		ReadMode     = SerialReadMode.WaitFirstChar,
+		ReadInterval = 10,
+		Dtr          = true,
+		Rts          = true,
 	}
 
 	enum State
