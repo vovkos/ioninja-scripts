@@ -5,17 +5,15 @@
 
 [plugin]
 
-name        = $(pluginName)
-description = $(pluginDescription)
+name        = "$(pluginName)"
+description = "$(pluginDescription)"
 id          = $(pluginId)
-guid        = $(pluginGuid)
+log-guid    = $(pluginGuid)
 icon        = images/plugin.png
 small-icon  = images/plugin-16x16.png
 
-layer-class          = $(layerClass)
-log-representer-func = $(logRepresenterFunc)
+layer-class = $(layerClass)
 
 [scripts]
 
 $(layerFile)
-$(logFile)

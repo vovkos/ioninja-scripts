@@ -5,19 +5,16 @@
 
 [plugin]
 
-name        = $(pluginName)
-description = $(pluginDescription)
+name        = "$(pluginName)"
+description = "$(pluginDescription)"
 id          = $(pluginId)
 group       = $(pluginGroup)
-guid        = $(pluginGuid)
+log-guid    = $(pluginGuid)
 icon        = images/plugin.png
 small-icon  = images/plugin-16x16.png
 
-session-class        = $(sessionClass)
-log-representer-func = $(logRepresenterFunc)
+session-class = $(sessionClass)
 
 [scripts]
 
 $(sessionFile)
-$(logFile)
-

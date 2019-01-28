@@ -3,7 +3,7 @@
 // $(pluginName) plugin for performing transmit-receive tests
 //
 
-import "doc_Plugin.jnc"
+import "doc_Layer.jnc"
 import "sys_Timer.jnc"
 
 //..............................................................................
@@ -69,7 +69,6 @@ $(layerClass).construct (doc.PluginHost* pluginHost)
 
 	createUi ();
 
-	pluginHost.m_log.addRepresenter ($(logRepresenterFunc));
 	pluginHost.m_log.addListener (onLogRecord @ pluginHost.m_mainThreadScheduler);
 }
 

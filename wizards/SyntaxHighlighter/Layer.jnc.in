@@ -3,7 +3,7 @@
 // $(pluginName) layer
 //
 
-import "doc_Plugin.jnc"
+import "doc_Layer.jnc"
 
 //..............................................................................
 

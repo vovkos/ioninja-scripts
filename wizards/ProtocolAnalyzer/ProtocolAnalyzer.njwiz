@@ -56,10 +56,17 @@ value       = $(layerClass).jnc
 rebuildOn   = layerClass
 
 [variable]
-id          = logFile
-name        = "Log File"
+id          = logRecordCodeFile
+name        = "Log Record Code File"
 readOnly    = true
-value       = $(pluginPrefix)Log.jnc
+value       = $(pluginPrefix)LogRecordCode.jnc
+rebuildOn   = pluginPrefix
+
+[variable]
+id          = logRepresenterFile
+name        = "Log Representer File"
+readOnly    = true
+value       = $(pluginPrefix)LogRepresenter.jnc
 rebuildOn   = pluginPrefix
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -75,8 +82,19 @@ target = $(layerFile)
 interpolate = true
 
 [file]
-source = Log.jnc.in
-target = $(logFile)
+source = Log.njplg.in
+target = $(projectName)Log.njplg
+interpolate = true
+
+[file]
+source = LogRecordCode.jnc.in
+target = $(logRecordCodeFile)
+interpolate = true
+script = true
+
+[file]
+source = LogRepresenter.jnc.in
+target = $(logRepresenterFile)
 interpolate = true
 script = true
 

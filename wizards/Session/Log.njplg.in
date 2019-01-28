@@ -1,0 +1,25 @@
+//..............................................................................
+//
+// $(pluginName) log representer plugin
+//
+
+[plugin]
+
+name        = "$(pluginName) Log"
+description = "$(pluginName) log representer"
+group       = $(pluginGroup)
+guid        = $(pluginGuid)
+icon        = images/plugin.png
+small-icon  = images/plugin-16x16.png
+
+log-representer-func = $(logRepresenterFunc)
+
+[scripts]
+
+$(logRecordCodeFile)
+$(logRepresenterFile)
+
+[records]
+
+$(getLogRecordCode (0))  # Connected
+$(getLogRecordCode (1))  # Disconnected

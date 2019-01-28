@@ -3,12 +3,7 @@
 // $(pluginName) log record declarations and representer
 //
 
-//..............................................................................
-
-enum $(logRecordCodeEnum)
-{
-	InBandCommand = 0x100,
-}
+import "log_Representer.jnc"
 
 //..............................................................................
 
@@ -22,14 +17,20 @@ bool $(logRepresenterFunc) (
 {
 	switch (recordCode)
 	{
-	case $(logRecordCodeEnum).InBandCommand:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText ($"In-band command: $((char const*) p)");
+	case $(logRecordCodeEnum).Connected:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Connect;
+		target.addHyperText ($"Connected to \e[34m$((char const*) p)");
+		break;
+
+	case $(logRecordCodeEnum).Disconnected:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
+		target.addHyperText ($"Disconnected from \e[34m$((char const*) p)");
 		break;
 
 	default:
-		return false; // fallback to default representer
+		return false;
 	}
 
 	return true;

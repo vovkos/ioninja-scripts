@@ -3,7 +3,7 @@
 // $(pluginName) plugin
 //
 
-import "doc_Plugin.jnc"
+import "doc_Session.jnc"
 import "gui_History.jnc"
 
 using extension gui.ComboBoxHistory;
@@ -104,7 +104,6 @@ $(sessionClass).construct (doc.PluginHost* pluginHost)
 {
 	basetype.construct (pluginHost);
 
-	pluginHost.m_log.addRepresenter ($(logRepresenterFunc));
 	m_state = State.Closed;
 	createUi ();
 }

@@ -3,7 +3,7 @@
 // $(pluginName) layer
 //
 
-import "doc_Plugin.jnc"
+import "doc_Layer.jnc"
 
 //..............................................................................
 
@@ -11,6 +11,8 @@ class $(layerClass):
 	doc.Layer,
 	log.Converter
 {
+	static const std.Guid m_guid = "$(pluginGuid)";
+
 protected:
 	jnc.RegexState m_txScannerState;
 	jnc.RegexState m_rxScannerState;
@@ -47,11 +49,7 @@ protected:
 $(layerClass).construct (doc.PluginHost* pluginHost)
 {
 	basetype1.construct (pluginHost);
-	pluginHost.m_log.addConverter (
-		this,
-		&pluginHost.m_pluginGuid,
-		$(logRepresenterFunc)
-		);
+	pluginHost.m_log.addConverter (this, &m_guid);
 
 	m_txScannerState.m_isIncremental = true;
 	m_rxScannerState.m_isIncremental = true;
