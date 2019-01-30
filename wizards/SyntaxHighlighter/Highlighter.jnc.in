@@ -127,12 +127,10 @@ $(highlighterClass).scan (
 
 	do
 	{
-		length = end - p;
-	
 		switch (m_stickyMode)
 		{
 		case StickyMode.None:
-			reswitch (m_scannerState, p, length)
+			reswitch (m_scannerState, p, end - p)
 			{
 			case
 				"auto|break|case|char|const|continue|default|do|"
@@ -198,7 +196,7 @@ $(highlighterClass).scan (
 			break;
 
 		case StickyMode.SlComment:
-			reswitch (m_scannerState, p, length)
+			reswitch (m_scannerState, p, end - p)
 			{
 			case "\n":
 				leaveStickyMode ();
@@ -211,7 +209,7 @@ $(highlighterClass).scan (
 			break;
 
 		case StickyMode.MlComment:
-			reswitch (m_scannerState, p, length)
+			reswitch (m_scannerState, p, end - p)
 			{
 			case r"\*/":
 				leaveStickyMode ();
@@ -224,7 +222,7 @@ $(highlighterClass).scan (
 			break;
 
 		case StickyMode.SqLiteral:
-			reswitch (m_scannerState, p, length)
+			reswitch (m_scannerState, p, end - p)
 			{
 			case "'":
 				leaveStickyMode ();
@@ -241,7 +239,7 @@ $(highlighterClass).scan (
 			break;
 
 		case StickyMode.DqLiteral:
-			reswitch (m_scannerState, p, length)
+			reswitch (m_scannerState, p, end - p)
 			{
 			case "\"":
 				leaveStickyMode ();
@@ -262,7 +260,7 @@ $(highlighterClass).scan (
 		}
 
 		p += m_scannerState.m_consumedLength;
-	} while (p < end);
+	} while (p < end || m_scannerState.m_replayLength);
 }
 
 //..............................................................................

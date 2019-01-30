@@ -90,21 +90,16 @@ bool $(layerClass).convert (
 	// scan
 
 	scanStream (state, p, size);
-
-	// write the rest of original data
-
-	writeOriginalData (state);
 	return true;
 }
 
 $(layerClass).writeOriginalData (jnc.RegexState* state)
 {
-	size_t chunkLength = state.m_currentOffset - m_offset;
-	if (!chunkLength)
+	if (state.m_currentOffset <= m_offset)
 		return;
 
+	size_t chunkLength = state.m_currentOffset - m_offset;
 	m_writer.write (m_timestamp, m_recordCode, m_p, chunkLength);
-
 	m_p += chunkLength;
 	m_offset += chunkLength;
 }
@@ -116,11 +111,11 @@ $(layerClass).scanStream (
 	)
 {
 	char const* end = p + length;
-	while (p < end)
+	while (p < end || state.m_replayLength)
 	{
-		reswitch (state, p, length)
+		reswitch (state, p, end - p)
 		{
-		case r"<[^>]*>":
+		case "<([^>]*)>":
 			// write original data first...
 
 			writeOriginalData (state);
@@ -130,8 +125,8 @@ $(layerClass).scanStream (
 			m_writer.write (
 				m_timestamp,
 				$(logRecordCodeEnum).InBandCommand,
-				state.m_match.m_text + 1,
-				state.m_match.m_length - 2
+				state.m_subMatchArray [0].m_text,
+				state.m_subMatchArray [0].m_length
 				);
 
 			break;
@@ -143,6 +138,10 @@ $(layerClass).scanStream (
 
 		p += state.m_consumedLength;
 	}
+
+	// write the rest of original data
+
+	writeOriginalData (state);
 }
 
 //..............................................................................

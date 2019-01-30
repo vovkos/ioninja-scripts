@@ -164,9 +164,9 @@ $(layerClass).scanRx (
 	)
 {
 	char const* end = p + length;
-	while (p < end)
+	while (p < end || m_rxScannerState.m_replayLength)
 	{
-		reswitch (m_rxScannerState, p, length)
+		reswitch (m_rxScannerState, p, end - p)
 		{
 		case r"info[\r\n]":
 			writeLog ($(logRecordCodeEnum).InfoMessage);
