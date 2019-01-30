@@ -107,9 +107,7 @@ RegexColorizerHighlighter.write_l (
 
 	do
 	{
-		size_t length = end - p;
-
-		result = try m_regexDfa.match (m_regexState, p, length);
+		result = try m_regexDfa.match (m_regexState, p, end - p);
 		if (result < m_attrArray.m_count)
 		{
 			writer.retroColorize (
