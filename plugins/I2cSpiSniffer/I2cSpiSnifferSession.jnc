@@ -18,10 +18,15 @@ class I2cSpiSnifferSession: doc.Session
 protected:
 	enum Defaults
 	{
-		Proto       = Protocol.Spi,
-		SpiMode     = 0,
-		Endianness  = true,
-		DataBits    = 8,
+		Proto           = Protocol.Spi,
+		SpiMode         = 0,
+		Endianness      = true,
+		DataBits        = 8,
+		ReadParallelism = 4,
+		ReadBlockSize   = 64 * 1024,
+		ReadBufferSize  = 1 * 1024 * 1024,
+		
+		LogCacheUpdateScrollRateLimit = 16,
 	}
 
 	enum State
@@ -60,22 +65,13 @@ protected:
 		_Count,
 	}
 
-	enum UsbId
+	enum Usb
 	{
-		VendorId  = 0x16d0,
-		ProductId = 0x0e27,
-	}
-
-	enum UsbEndpoint
-	{
-		Out = 0x02,
-		In  = 0x86,
-	}
-
-	enum
-	{
-		UsbPacketSize                 = 512,
-		LogCacheUpdateScrollRateLimit = 16,
+		VendorId    = 0x16d0,
+		ProductId   = 0x0e27,
+		OutEndpoint = 0x02,
+		InEndpoint  = 0x86,
+		PacketSize  = 512,
 	}
 
 protected:
@@ -162,9 +158,10 @@ I2cSpiSnifferSession.construct (doc.PluginHost* pluginHost)
 
 	createUi ();
 
-	pluginHost.m_log.m_cacheUpdateScrollRateLimit = LogCacheUpdateScrollRateLimit;
+	pluginHost.m_log.m_cacheUpdateScrollRateLimit = Defaults.LogCacheUpdateScrollRateLimit;
 	pluginHost.m_log.addSelectionProcessor (log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor (log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
+	m_stdSessionInfoSet.addLogListener (pluginHost.m_log);
 }
 
 I2cSpiSnifferSession.createUi ()
@@ -261,6 +258,9 @@ I2cSpiSnifferSession.createUi ()
 		io.BufferPropertySet.PropertyId.ReadBufferSize |
 		io.BufferPropertySet.PropertyId.NotifyReadBufferFull;
 
+	m_bufferPropertySet.m_defaultReadParallelism = Defaults.ReadParallelism;
+	m_bufferPropertySet.m_defaultReadBlockSize = Defaults.ReadBlockSize;
+	m_bufferPropertySet.m_defaultReadBufferSize = Defaults.ReadBufferSize;
 	m_bufferPropertySet.createPropertiesGrouped (m_pluginHost.m_propertyGrid,,, ids);
 
 	// information grid
@@ -469,7 +469,6 @@ I2cSpiSnifferSession.onInEndpointEvent (
 	if (triggeredEvents & io.UsbEndpointEvents.IncomingData)
 	{
 		size_t size = m_inEndpoint.read (m_readBuffer.m_p, m_readBuffer.m_size);
-		m_stdSessionInfoSet.addRxData (size);
 		m_decoder.decode (m_readBuffer.m_p, size);
 	}
 
