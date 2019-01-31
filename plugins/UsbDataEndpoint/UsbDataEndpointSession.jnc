@@ -17,6 +17,16 @@ import "log_ChecksumCalc.jnc"
 class UsbDataEndpointSession: doc.Session
 {
 protected:
+	enum Defaults
+	{
+		ReadParallelism = 4,
+		ReadBlockSize   = 32 * 1024,
+		ReadBufferSize  = 512 * 1024,
+		ReadTimeout     = 1000,
+		UseReadTimeout  = false,
+		AutoDetachKernelDriver = true,
+	}
+
 	enum State
 	{
 		Closed,
@@ -78,6 +88,8 @@ protected:
 	gui.EnumProperty* m_inEndpointProp;
 	gui.EnumProperty* m_outEndpointProp;
 	gui.BoolProperty* m_autoDetachKernelDriverProp;
+	gui.BoolProperty* m_useReadTimeoutProp;
+	gui.IntProperty* m_readTimeoutProp;
 	io.BufferPropertySet m_bufferPropertySet;
 
 	// information grid
@@ -125,6 +137,8 @@ protected:
 		uint_t syncId,
 		io.UsbEndpointEvents triggeredEvents
 		);
+
+	configureInEndpoint();
 
 	createUi ();
 	enumerateDevices ();
@@ -222,7 +236,27 @@ UsbDataEndpointSession.createUi ()
 		null, 0
 		);
 
-	m_bufferPropertySet.createPropertiesGrouped (m_pluginHost.m_propertyGrid);
+	group = m_pluginHost.m_propertyGrid.createGroupProperty (
+		"Buffering",
+		"Advanced buffering options affecting throughtput and compatibility"
+		);
+
+	m_useReadTimeoutProp = m_pluginHost.m_propertyGrid.createBoolProperty (
+		group,,
+		"Use read timeout",
+		"If turned OFF then USB read transfers only complete when read block is fully filled"
+		);
+
+	m_readTimeoutProp = m_pluginHost.m_propertyGrid.createIntProperty (
+		group,,
+		"Read timeout",
+		"Specify timeouts for USB read transfers"
+		);
+
+	m_bufferPropertySet.m_defaultReadParallelism = Defaults.ReadParallelism;
+	m_bufferPropertySet.m_defaultReadBlockSize = Defaults.ReadBlockSize;
+	m_bufferPropertySet.m_defaultReadBufferSize = Defaults.ReadBufferSize;
+	m_bufferPropertySet.createProperties (m_pluginHost.m_propertyGrid, group);
 
 	// information grid
 
@@ -455,12 +489,7 @@ bool UsbDataEndpointSession.startReading ()
 	io.UsbEndpointDesc const* endpointDesc = m_inEndpointCombo.m_currentData;
 
 	m_inEndpoint = m_interface.openEndpoint (endpointDesc.m_endpointId);
-	m_inEndpoint.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
-	m_inEndpoint.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
-	m_inEndpoint.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
-
-	m_inEndpoint.m_readParallelism = 8;
-	m_inEndpoint.m_readBufferSize = 8 * 1024 * 1024;
+	configureInEndpoint();
 
 	writeLog (UsbLogRecordCode.ReadingStarted, &endpointDesc.m_endpointId, sizeof (endpointDesc.m_endpointId));
 	m_state = State.Reading;
@@ -484,6 +513,24 @@ UsbDataEndpointSession.stopReading ()
 	writeLogLastError (UsbLogRecordCode.ReadingStopped);
 	m_state = State.Claimed;
 	m_inSyncId++;
+} 
+
+UsbDataEndpointSession.configureInEndpoint()
+{
+	if (m_useReadTimeoutProp.m_value)
+	{
+		m_inEndpoint.m_transferTimeout = m_readTimeoutProp.m_value;
+		m_inEndpoint.m_readParallelism = 1;
+		m_inEndpoint.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
+	}
+	else
+	{
+		m_inEndpoint.m_transferTimeout = -1;
+		m_inEndpoint.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
+		m_inEndpoint.m_readBlockSize = m_inEndpoint.m_endpointDesc.m_maxPacketSize; // if no timeout, we must read with the USB packet size
+	}
+
+	m_inEndpoint.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 }
 
 UsbDataEndpointSession.waitOutEndpointEvents  ()
@@ -509,7 +556,9 @@ UsbDataEndpointSession.waitInEndpointEvents  ()
 UsbDataEndpointSession.load (doc.Storage* storage)
 {
 	m_deviceCombo.m_currentIndex  = storage.readInt ("deviceIdx");
-	m_autoDetachKernelDriverProp.m_value = storage.readBool ("autoDetachKernelDriver");
+	m_autoDetachKernelDriverProp.m_value = storage.readBool ("autoDetachKernelDriver", Defaults.AutoDetachKernelDriver);
+	m_useReadTimeoutProp.m_value = storage.readBool ("useReadTimeoutProp", Defaults.UseReadTimeout);
+	m_readTimeoutProp.m_value = storage.readInt ("readTimeoutProp", Defaults.ReadTimeout);
 	m_bufferPropertySet.load (storage);
 	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
 }
@@ -519,6 +568,10 @@ UsbDataEndpointSession.save (doc.Storage* storage)
 	m_bufferPropertySet.save (storage);
 	storage.writeInt ("deviceIdx", (int) m_deviceCombo.m_currentIndex);
 	storage.writeBool ("autoDetachKernelDriver", m_autoDetachKernelDriverProp.m_value);
+	storage.writeBool ("useReadTimeoutProp", m_useReadTimeoutProp.m_value);
+	storage.writeInt ("readTimeoutProp", m_readTimeoutProp.m_value);
+	storage.writeBool ("useReadTimeoutProp", m_useReadTimeoutProp.m_value);
+	storage.readInt ("readTimeoutProp", m_readTimeoutProp.m_value);
 }
 
 UsbDataEndpointSession.updateProperties ()
@@ -538,11 +591,7 @@ bool errorcode UsbDataEndpointSession.applyProperties ()
 	m_readBuffer.setSize (m_bufferPropertySet.m_readBufferSizeProp.m_value);
 
 	if (m_inEndpoint)
-	{
-		m_inEndpoint.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
-		m_inEndpoint.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
-		m_inEndpoint.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
-	}
+		configureInEndpoint();
 
 	if (m_outEndpoint)
 		m_outEndpoint.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
@@ -552,8 +601,9 @@ bool errorcode UsbDataEndpointSession.applyProperties ()
 
 UsbDataEndpointSession.restoreDefaultProperties ()
 {
-	m_deviceProp.m_currentIndex = 0;
-	m_autoDetachKernelDriverProp.m_value = true;
+	m_autoDetachKernelDriverProp.m_value = Defaults.AutoDetachKernelDriver;
+	m_useReadTimeoutProp.m_value = Defaults.UseReadTimeout;
+	m_readTimeoutProp.m_value = Defaults.ReadTimeout;
 	m_bufferPropertySet.restoreDefaults ();
 }
 
@@ -654,6 +704,9 @@ reactor UsbDataEndpointSession.m_uiReactor
 	m_outEndpointProp.m_isEnabled = isClaimed;
 	m_inEndpointCombo.m_isEnabled = isClaimed;
 	m_inEndpointProp.m_isEnabled = isClaimed;
+	m_readTimeoutProp.m_isEnabled = m_useReadTimeoutProp.m_value;
+	m_bufferPropertySet.m_readParallelismProp.m_isEnabled = !m_useReadTimeoutProp.m_value;
+	m_bufferPropertySet.m_readBlockSizeProp.m_isEnabled = m_useReadTimeoutProp.m_value;
 
 	m_isTransmitEnabled = isClaimed && m_outEndpointCombo.m_currentIndex != -1;
 
