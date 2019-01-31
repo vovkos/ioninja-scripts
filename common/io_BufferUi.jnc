@@ -4,6 +4,7 @@
 //
 
 import "gui_PropertyGrid.jnc"
+import "doc_Storage.jnc"
 
 namespace io {
 
@@ -49,6 +50,12 @@ class BufferPropertySet
 	gui.BoolProperty* m_keepReadBlockSizeProp;
 	gui.BoolProperty* m_keepWriteBlockSizeProp;
 	gui.BoolProperty* m_notifyReadBufferFullProp;
+
+	size_t m_defaultReadParallelism = Defaults.ReadParallelism;
+	size_t m_defaultReadBlockSize = Defaults.ReadBlockSize;
+	size_t m_defaultReadBufferSize = Defaults.ReadBufferSize;
+	size_t m_defaultWriteBufferSize = Defaults.WriteBufferSize;
+
 
 	createProperties (
 		gui.PropertyGrid* propertyGrid,
@@ -230,16 +237,16 @@ BufferPropertySet.save (doc.Storage* storage)
 BufferPropertySet.restoreDefaults ()
 {
 	if (m_readParallelismProp)
-		m_readParallelismProp.m_value = Defaults.ReadParallelism;
+		m_readParallelismProp.m_value = m_defaultReadParallelism;
 
 	if (m_readBlockSizeProp)
-		m_readBlockSizeProp.m_value = Defaults.ReadBlockSize;
+		m_readBlockSizeProp.m_value = m_defaultReadBlockSize;
 
 	if (m_readBufferSizeProp)
-		m_readBufferSizeProp.m_value = Defaults.ReadBufferSize;
+		m_readBufferSizeProp.m_value = m_defaultReadBufferSize;
 
 	if (m_writeBufferSizeProp)
-		m_writeBufferSizeProp.m_value = Defaults.WriteBufferSize;
+		m_writeBufferSizeProp.m_value = m_defaultWriteBufferSize;
 
 	if (m_keepReadBlockSizeProp)
 		m_keepReadBlockSizeProp.m_value = Defaults.KeepReadBlockSize;
