@@ -73,6 +73,7 @@ protected:
 	io.SocketAddressResolver m_resolver;
 	io.SocketAddress m_localAddress;
 	io.SocketAddress m_remoteAddress;
+	sys.Timer m_reconnectTimer;
 	std.Buffer m_readBuffer;
 	uint_t m_syncId;
 
@@ -143,6 +144,16 @@ protected:
 		io.SocketEvents triggeredEvents
 		);
 
+	onReconnectTimer (uint_t syncId);
+
+	startReconnectTimer ()
+	{
+		m_reconnectTimer.startSingleShotTimer (
+			onReconnectTimer ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler,
+			m_socketPropertySet.m_reconnectTimeoutProp.m_value
+			);
+	}
+
 	createUi ();
 	waitSocketEvents ();
 }
@@ -188,7 +199,13 @@ TcpConnectionSession.createUi ()
 		"TCP-specific connection settings"
 		);
 
-	m_socketPropertySet.createProperties (m_pluginHost.m_propertyGrid, propGroup);
+	m_socketPropertySet.createProperties (
+		m_pluginHost.m_propertyGrid,
+		propGroup,,
+		io.SocketPropertySet.PropertyId.AllTcpClient |
+		io.SocketPropertySet.PropertyId.UseReconnect |
+		io.SocketPropertySet.PropertyId.ReconnectTimeout
+		);
 
 	m_bufferPropertySet.createPropertiesGrouped (m_pluginHost.m_propertyGrid);
 
@@ -497,6 +514,10 @@ TcpConnectionSession.onSocketEvent (
 			);
 
 		close ();
+
+		if (m_socketPropertySet.m_useReconnectProp.m_value)
+			startReconnectTimer ();
+
 		return;
 	}
 
@@ -548,9 +569,20 @@ TcpConnectionSession.onResolveCompleted (
 	connect (address);
 }
 
+TcpConnectionSession.onReconnectTimer (uint_t syncId)
+{
+	if (syncId != m_syncId)
+		return;
+
+	bool result = try connect ();
+	if (!result && m_socketPropertySet.m_useReconnectProp.m_value)
+		startReconnectTimer ();
+}
+
 reactor TcpConnectionSession.m_uiReactor
 {
 	m_title = $"TCP $(m_addressCombo.m_editText)";
+	m_socketPropertySet.m_reconnectTimeoutProp.m_isEnabled = m_socketPropertySet.m_useReconnectProp.m_value;
 	m_socketPropertySet.m_adapterProp.m_isEnabled = m_socketPropertySet.m_useLocalAddressProp.m_value;
 	m_socketPropertySet.m_localPortProp.m_isEnabled = m_socketPropertySet.m_useLocalAddressProp.m_value;
 	m_socketPropertySet.m_reuseLocalAddressProp.m_isEnabled = m_socketPropertySet.m_useLocalAddressProp.m_value;
@@ -561,6 +593,11 @@ reactor TcpConnectionSession.m_uiReactor
 	m_statusPaneTable [StatusPaneId.RemoteAddress].m_isVisible = m_state > State.Resolving;
 	m_infoTable [InfoId.LocalAddress].m_isEnabled = m_state == State.Connected;
 	m_infoTable [InfoId.RemoteAddress].m_isEnabled = m_state == State.Connected;
+
+	onevent m_addressCombo.m_onChanged ()
+	{
+		m_reconnectTimer.stop ();
+	}
 }
 
 //..............................................................................
