@@ -25,7 +25,7 @@ protected:
 		ReadParallelism = 4,
 		ReadBlockSize   = 64 * 1024,
 		ReadBufferSize  = 1 * 1024 * 1024,
-		
+
 		LogCacheUpdateScrollRateLimit = 16,
 	}
 
@@ -308,8 +308,8 @@ I2cSpiSnifferSession.enumerateDevices ()
 		io.UsbDevice* device = deviceArray [i];
 		io.UsbDeviceDesc const* deviceDesc = device.m_deviceDesc;
 
-		if (deviceDesc.m_vendorId != UsbId.VendorId ||
-			deviceDesc.m_productId != UsbId.ProductId)
+		if (deviceDesc.m_vendorId != Usb.VendorId ||
+			deviceDesc.m_productId != Usb.ProductId)
 			continue;
 
 		char const* text = $"@%(1;03d):%(2;03d) IO Ninja I2C/SPI Sniffer" (
@@ -353,15 +353,15 @@ bool errorcode I2cSpiSnifferSession.startCapture ()
 	m_iface = m_device.claimInterface (0);
 	writeLog (I2cSpiSnifferLogRecordCode.InterfaceClaimed);
 
-	m_outEndpoint = m_iface.openEndpoint (UsbEndpoint.Out);
+	m_outEndpoint = m_iface.openEndpoint (Usb.OutEndpoint);
 	writeLog (I2cSpiSnifferLogRecordCode.OutEndpointOpened);
 
 	// align read block on 512 bytes
 
 	size_t readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
-	readBlockSize = (readBlockSize + UsbPacketSize - 1) & ~(UsbPacketSize - 1);
+	readBlockSize = (readBlockSize + Usb.PacketSize - 1) & ~(Usb.PacketSize - 1);
 
-	m_inEndpoint = m_iface.openEndpoint (UsbEndpoint.In);
+	m_inEndpoint = m_iface.openEndpoint (Usb.InEndpoint);
 	m_inEndpoint.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
 	m_inEndpoint.m_readBlockSize = readBlockSize;
 	m_inEndpoint.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
