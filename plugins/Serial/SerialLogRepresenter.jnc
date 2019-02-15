@@ -47,6 +47,20 @@ char const* getStatusLineChangeString (
 	return string;
 }
 
+char const* getSerialLineErrorString (io.SerialLineErrors errors)
+{
+	char const* string;
+
+	if (errors & io.SerialLineErrors.FramingError)
+		string = "FRAMING";
+	else if (errors & io.SerialLineErrors.ParityError)
+		string = "PARITY";
+	else if (errors & io.SerialLineErrors.BreakError)
+		string = "BREAK";
+
+	return string;
+}
+
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 bool representSerialLog (
@@ -305,6 +319,13 @@ bool representSerialLog (
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Warning;
 		target.addHyperText ($"Using conservative serial settings due to an unsafe driver: \e[34m$driver");
+		break;
+
+	case SerialLogRecordCode.LineError:
+		io.SerialLineErrors errors = *(io.SerialLineErrors const*) p;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Warning;
+		target.addHyperText ($"Line error detected: \e[34m$(getSerialLineErrorString (errors))");
 		break;
 
 	default:

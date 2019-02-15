@@ -177,7 +177,6 @@ protected:
 		);
 }
 
-
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 SerialSession.construct (doc.PluginHost* pluginHost)
@@ -648,7 +647,8 @@ SerialSession.waitSerialEvents ()
 	io.SerialEvents eventMask =
 		io.SerialEvents.IoError |
 		io.SerialEvents.ReadBufferFull |
-		io.SerialEvents.IncomingData;
+		io.SerialEvents.IncomingData |
+		io.SerialEvents.LineError;
 
 	if (!m_isTransmitEnabled)
 		eventMask |= io.SerialEvents.WriteBufferReady;
@@ -692,6 +692,12 @@ SerialSession.onSerialEvent (
 		size_t result = m_serial.read (m_readBuffer.m_p, m_readBuffer.m_size);
 		if (result)
 			writeLog (log.StdRecordCode.Rx, m_readBuffer.m_p, result);
+	}
+
+	if (triggeredEvents & io.SerialEvents.LineError)
+	{
+		io.SerialLineErrors errors = m_serial.clearLineErrors ();
+		writeLog (SerialLogRecordCode.LineError, &errors, sizeof (errors));
 	}
 
 	if (!m_isTransmitEnabled)

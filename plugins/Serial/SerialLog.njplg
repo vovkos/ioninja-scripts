@@ -37,6 +37,7 @@ SerialLogRepresenter.jnc
 01d47c8fc7b0f70d  # ReadIntervalChanged
 01d47c8fc7b0f70e  # BuggyDriverDetected
 01d47c8fc7b0f70f  # ControlLineChanged
+01d47c8fc7b0f710  # LineError
 
 [filter]
 
@@ -69,3 +70,11 @@ name        = "Serial status line changes"
 description = "Show/hide serial control lines changes (RTS/CTS)"
 
 01d47c8fc7b0f70b  # StatusLineChanged
+
+[filter]
+
+id          = serial-line-error
+name        = "Serial line errors"
+description = "Show/hide serial line errors (FRAMING, PARITY, BREAK)"
+
+01d47c8fc7b0f710  # LineError
