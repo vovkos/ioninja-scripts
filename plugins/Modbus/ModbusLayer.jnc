@@ -133,7 +133,7 @@ reactor ModbusLayer.m_uiReactor
 
 void ModbusLayer.load (doc.Storage* storage)
 {
-	m_streamRoleCombo.m_currentData = storage.readInt ("streamRole", Def.StreamRole);
+	m_streamRoleProp.m_value = storage.readInt ("streamRole", Def.StreamRole); // will apply before returning
 	m_protocolProp.m_value = storage.readInt ("protocol", Def.Protocol);
 	m_halfDuplexTimeoutProp.m_value = storage.readInt ("halfDuplexTimeout", Def.HalfDuplexTimeout);
 
