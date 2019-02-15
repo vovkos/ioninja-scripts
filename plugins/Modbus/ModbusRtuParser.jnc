@@ -15,7 +15,6 @@ class ModbusRtuParser: ModbusParserBase
 	}
 
 protected:
-	uint64_t m_lastTimestamp;
 	size_t m_expectedSize;
 
 public:

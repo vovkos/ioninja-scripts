@@ -15,7 +15,6 @@ protected:
 
 protected:
 	State m_state;
-	uint64_t m_lastTimestamp;
 
 public:
 	construct ()
