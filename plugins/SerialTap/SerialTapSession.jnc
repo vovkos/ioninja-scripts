@@ -38,6 +38,14 @@ enum
 	// misc constants
 
 	CY_SCB_INDEX_POS = 15,
+
+	// interrupt bits
+
+	CY_UART_CTS_BIT          = 0x01,
+	CY_UART_DSR_BIT          = 0x02,
+	CY_UART_BREAK_BIT        = 0x04,
+	CY_UART_FRAME_ERROR_BIT  = 0x10,
+	CY_UART_PARITY_ERROR_BIT = 0x20,
 }
 
 struct CyUartConfig
@@ -643,12 +651,25 @@ SerialTapSession.onInterruptEndpointEvent (
 		size_t result = iface.m_interruptEndpoint.read (m_readBuffer.m_p, m_readBuffer.m_size);
 		if (result >= 10 && (m_readBuffer [6] & 0x02))
 		{
+			char bits = m_readBuffer [8];
+
 			io.SerialStatusLines statusLines;
-			if (m_readBuffer [8] & 0x02)
+			io.SerialLineErrors lineErrors;
+
+			if (bits & cy.CY_UART_DSR_BIT)
 				statusLines |= io.SerialStatusLines.Dsr;
 
-			if (m_readBuffer [8] & 0x01)
+			if (bits & cy.CY_UART_CTS_BIT)
 				statusLines |= io.SerialStatusLines.Cts;
+
+			if (bits & cy.CY_UART_FRAME_ERROR_BIT)
+				lineErrors |= io.SerialLineErrors.FramingError;
+
+			if (bits & cy.CY_UART_PARITY_ERROR_BIT)
+				lineErrors |= io.SerialLineErrors.ParityError;
+
+			if (bits & cy.CY_UART_BREAK_BIT)
+				lineErrors |= io.SerialLineErrors.BreakError;
 
 			io.SerialStatusLines statusLineMask = statusLines ^ iface.m_serialStatusLines;
 
@@ -663,6 +684,9 @@ SerialTapSession.onInterruptEndpointEvent (
 
 				iface.m_serialStatusLines = statusLines;
 			}
+
+			if (lineErrors)
+				writeLog (SerialLogRecordCode.LineError, &lineErrors, sizeof (lineErrors));
 		}
 	}
 
