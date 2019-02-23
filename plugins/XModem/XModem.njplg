@@ -5,7 +5,7 @@
 
 [plugin]
 
-name        = XModem
+name        = "XModem"
 description = "Implements XModem protocol for file transmit/receive"
 id          = xmodem
 icon        = images/xmodem.png

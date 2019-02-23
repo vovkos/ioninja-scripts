@@ -1,0 +1,21 @@
+#...............................................................................
+#
+#  Replay Log layer plugin
+#
+
+[plugin]
+
+name        = "Replay Log"
+description = "Replays TX/RX records from a log file with respect to timestamps"
+id          = replay-log
+group       =
+
+icon        = images/replay.png
+small-icon  = images/replay-16x16.png
+
+layer-class = ReplayLogLayer
+
+[scripts]
+
+LogRecordFile.jnc
+ReplayLogLayer.jnc
