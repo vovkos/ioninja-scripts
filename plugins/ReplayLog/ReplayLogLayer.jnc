@@ -41,7 +41,7 @@ protected:
 	sys.Timer m_transmitTimer;
 	uint_t m_syncId;
 
-	gui.Action* m_actionTable [ActionId._Count];
+	gui.Action* m_actionTable[ActionId._Count];
 	gui.ComboBox* m_fileNameCombo;
 	gui.FileProperty* m_fileNameProp;
 	gui.BoolProperty* m_replayTxProp;
@@ -51,113 +51,113 @@ protected:
 	reactor m_uiReactor;
 
 public:
-	construct (doc.PluginHost* pluginHost);
+	construct(doc.PluginHost* pluginHost);
 
-	override void load (doc.Storage* storage);
-	override void save (doc.Storage* storage);
-	override void updateProperties ();
-	override bool errorcode applyProperties ();
-	override void restoreDefaultProperties ();
+	override void load(doc.Storage* storage);
+	override void save(doc.Storage* storage);
+	override void updateProperties();
+	override bool errorcode applyProperties();
+	override void restoreDefaultProperties();
 
 protected:
-	createUi ();
-	stop ();
-	close ();
-	handleError ();
-	bool errorcode readLoop ();
-	bool errorcode sendNextRecord ();
+	createUi();
+	stop();
+	close();
+	handleError();
+	bool errorcode readLoop();
+	bool errorcode sendNextRecord();
 
-	onBrowse ();
-	onFileDlgCompleted (gui.StdDlgButton button);
-	onPlay ();
-	onTransmitTimer (uint_t syncId);
-	onProgressTimer (uint_t syncId);
+	onBrowse();
+	onFileDlgCompleted(gui.StdDlgButton button);
+	onPlay();
+	onTransmitTimer(uint_t syncId);
+	onProgressTimer(uint_t syncId);
 
-	onProgressDlgButtonClicked (gui.StdDlgButton button)
+	onProgressDlgButtonClicked(gui.StdDlgButton button)
 	{
-		close (); // any button essentialy ends the replay
+		close(); // any button essentialy ends the replay
 	}
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-ReplayLogLayer.construct (doc.PluginHost* pluginHost)
+ReplayLogLayer.construct(doc.PluginHost* pluginHost)
 {
-	basetype1.construct (pluginHost);
+	basetype1.construct(pluginHost);
 
 	m_fileDlg.m_onCompleted += onFileDlgCompleted;
 	m_progressDlg.m_onButtonClicked += onProgressDlgButtonClicked;
 
-	createUi ();
+	createUi();
 }
 
-void ReplayLogLayer.load (doc.Storage* storage)
+void ReplayLogLayer.load(doc.Storage* storage)
 {
-	m_fileNameCombo.loadHistory (storage, "fileNameHistory");
-	m_fileNameCombo.m_editText = storage.readString ("fileName");
-	m_replayTxProp.m_value = storage.readBool ("replayTx", Defaults.ReplayTx);
-	m_replayRxProp.m_value = storage.readBool ("replayRx", Defaults.ReplayRx);
+	m_fileNameCombo.loadHistory(storage, "fileNameHistory");
+	m_fileNameCombo.m_editText = storage.readString("fileName");
+	m_replayTxProp.m_value = storage.readBool("replayTx", Defaults.ReplayTx);
+	m_replayRxProp.m_value = storage.readBool("replayRx", Defaults.ReplayRx);
 }
 
-void ReplayLogLayer.save (doc.Storage* storage)
+void ReplayLogLayer.save(doc.Storage* storage)
 {
-	m_fileNameCombo.saveHistory (storage, "fileNameHistory");
-	storage.writeString ("fileName", m_fileNameCombo.m_editText);
-	storage.writeBool ("replayTx", m_replayTxProp.m_value);
-	storage.writeBool ("replayRx", m_replayRxProp.m_value);
+	m_fileNameCombo.saveHistory(storage, "fileNameHistory");
+	storage.writeString("fileName", m_fileNameCombo.m_editText);
+	storage.writeBool("replayTx", m_replayTxProp.m_value);
+	storage.writeBool("replayRx", m_replayRxProp.m_value);
 }
 
-void ReplayLogLayer.updateProperties ()
+void ReplayLogLayer.updateProperties()
 {
 	m_fileNameProp.m_value = m_fileNameCombo.m_editText;
 }
 
-bool errorcode ReplayLogLayer.applyProperties ()
+bool errorcode ReplayLogLayer.applyProperties()
 {
 	m_fileNameCombo.m_editText = m_fileNameProp.m_value;
 	return true;
 }
 
-void ReplayLogLayer.restoreDefaultProperties ()
+void ReplayLogLayer.restoreDefaultProperties()
 {
 	m_replayTxProp.m_value = Defaults.ReplayTx;
 	m_replayRxProp.m_value = Defaults.ReplayRx;
 }
 
-ReplayLogLayer.createUi ()
+ReplayLogLayer.createUi()
 {
-	m_pluginHost.m_toolBar.addSeparator ();
+	m_pluginHost.m_toolBar.addSeparator();
 
-	m_pluginHost.m_toolBar.addLabel ("File:");
-	m_fileNameCombo = m_pluginHost.m_toolBar.addComboBox (-1);
+	m_pluginHost.m_toolBar.addLabel("File:");
+	m_fileNameCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 	m_fileNameCombo.m_isEditable = true;
 	m_fileNameCombo.m_onEnter += onPlay;
 
-	m_actionTable [ActionId.Browse] = createAction ("Browse", "images/browse.png");
-	m_actionTable [ActionId.Browse].m_onTriggered += onBrowse;
-	m_actionTable [ActionId.Play] = createAction ("Replay log", "images/play.png");
-	m_actionTable [ActionId.Play].m_onTriggered += onPlay;
+	m_actionTable[ActionId.Browse] = createAction("Browse", "images/browse.png");
+	m_actionTable[ActionId.Browse].m_onTriggered += onBrowse;
+	m_actionTable[ActionId.Play] = createAction("Replay log", "images/play.png");
+	m_actionTable[ActionId.Play].m_onTriggered += onPlay;
 
-	m_fileNameProp = m_pluginHost.m_propertyGrid.createFileProperty ("File name", "Path to a *.njlog file");
-	m_replayTxProp = m_pluginHost.m_propertyGrid.createBoolProperty ("Replay TX", "Replay TX records");
-	m_replayRxProp = m_pluginHost.m_propertyGrid.createBoolProperty ("Replay RX", "Replay RX records");
+	m_fileNameProp = m_pluginHost.m_propertyGrid.createFileProperty("File name", "Path to a *.njlog file");
+	m_replayTxProp = m_pluginHost.m_propertyGrid.createBoolProperty("Replay TX", "Replay TX records");
+	m_replayRxProp = m_pluginHost.m_propertyGrid.createBoolProperty("Replay RX", "Replay RX records");
 
-	m_uiReactor.start ();
+	m_uiReactor.start();
 }
 
-ReplayLogLayer.stop ()
+ReplayLogLayer.stop()
 {
-	m_file.close ();
-	m_progressTimer.stop ();
-	m_transmitTimer.stop ();
+	m_file.close();
+	m_progressTimer.stop();
+	m_transmitTimer.stop();
 	m_syncId++;
 }
 
-ReplayLogLayer.close ()
+ReplayLogLayer.close()
 {
-	stop ();
+	stop();
 
-	m_progressDlg.hide ();
+	m_progressDlg.hide();
 
 	m_hdr = null;
 	m_offset = 0;
@@ -166,32 +166,32 @@ ReplayLogLayer.close ()
 	m_baseTimestamp = 0;
 }
 
-ReplayLogLayer.handleError ()
+ReplayLogLayer.handleError()
 {
-	stop ();
+	stop();
 
 	m_progressDlg.m_status = $"<font color=#800>$(std.getLastErrorDescription ())</font>";
 	m_progressDlg.m_buttons = gui.StdDlgButtons.Close;
 }
 
-bool errorcode ReplayLogLayer.readLoop ()
+bool errorcode ReplayLogLayer.readLoop()
 {
 	while (m_offset < m_hdr.m_totalRecordSize)
 	{
-		log.Record const* record = (log.Record const*) m_file.view (
+		log.Record const* record = (log.Record const*) m_file.view(
 			m_hdr.m_recordOffset + m_offset,
-			sizeof (log.Record)
+			sizeof(log.Record)
 			);
 
 		if (record.m_signature != log.RecordSignature)
 		{
-			std.setError ("Invalid log file format (bad file signature)");
+			std.setError("Invalid log file format (bad file signature)");
 			return false;
 		}
 
 		bool isReplayed;
 
-		switch (record.m_code)
+		switch(record.m_code)
 		{
 		case log.StdRecordCode.Tx:
 			isReplayed = m_replayTxProp.m_value;
@@ -204,7 +204,7 @@ bool errorcode ReplayLogLayer.readLoop ()
 
 		if (!isReplayed)
 		{
-			m_offset += sizeof (log.Record) + record.m_dataSize;
+			m_offset += sizeof(log.Record) + record.m_dataSize;
 			continue;
 		}
 
@@ -212,7 +212,7 @@ bool errorcode ReplayLogLayer.readLoop ()
 
 		if (m_baseTimestamp)
 		{
-			m_transmitTimer.startDueTimer (
+			m_transmitTimer.startDueTimer(
 				onTransmitTimer ~(m_syncId) @ m_pluginHost.m_mainThreadScheduler,
 				m_baseTimestamp + record.m_timestamp - m_firstRecordTimestamp
 				);
@@ -220,17 +220,17 @@ bool errorcode ReplayLogLayer.readLoop ()
 			return true;
 		}
 
-		m_baseTimestamp = sys.getTimestamp ();
+		m_baseTimestamp = sys.getTimestamp();
 		m_firstRecordTimestamp = record.m_timestamp;
-		sendNextRecord ();
+		sendNextRecord();
 
-		m_progressTimer.startPeriodicTimer (
+		m_progressTimer.startPeriodicTimer(
 			onProgressTimer ~(m_syncId) @ m_pluginHost.m_mainThreadScheduler,
 			UpdateProgressPeriod
 			);
 	}
 
-	stop ();
+	stop();
 
 	m_progressDlg.m_status = "Replay completed";
 	m_progressDlg.m_progress = 100;
@@ -238,96 +238,96 @@ bool errorcode ReplayLogLayer.readLoop ()
 	return true;
 }
 
-bool errorcode ReplayLogLayer.sendNextRecord ()
+bool errorcode ReplayLogLayer.sendNextRecord()
 {
-	void const* p = m_file.view (
-		m_hdr.m_recordOffset + m_offset + sizeof (log.Record),
+	void const* p = m_file.view(
+		m_hdr.m_recordOffset + m_offset + sizeof(log.Record),
 		m_nextRecord.m_dataSize
 		);
 
-	transmit (p, m_nextRecord.m_dataSize);
+	transmit(p, m_nextRecord.m_dataSize);
 	m_prevRecordOffset = m_offset;
-	m_offset += sizeof (log.Record) + m_nextRecord.m_dataSize;
+	m_offset += sizeof(log.Record) + m_nextRecord.m_dataSize;
 	return true;
 }
 
-ReplayLogLayer.onBrowse ()
+ReplayLogLayer.onBrowse()
 {
 	m_fileDlg.m_kind = gui.FileDlgKind.Open;
 	m_fileDlg.m_title = "Replay Log File...";
 	m_fileDlg.m_filter = "Log files (*.njlog);;All files (*.*)";
-	m_fileDlg.show ();
+	m_fileDlg.show();
 }
 
-ReplayLogLayer.onFileDlgCompleted (gui.StdDlgButton button)
+ReplayLogLayer.onFileDlgCompleted(gui.StdDlgButton button)
 {
 	if (button == gui.StdDlgButton.Ok)
 		m_fileNameCombo.m_editText = m_fileDlg.m_filePath;
 }
 
-ReplayLogLayer.onPlay ()
+ReplayLogLayer.onPlay()
 {
-	close ();
+	close();
 
-	m_fileNameCombo.addEditTextToHistory ();
+	m_fileNameCombo.addEditTextToHistory();
 	char const* fileName = m_fileNameCombo.m_editText;
 
 	m_progressDlg.m_title = fileName;
 	m_progressDlg.m_status = "Initializing...";
 	m_progressDlg.m_progress = 0;
 	m_progressDlg.m_buttons = gui.StdDlgButtons.Abort;
-	m_progressDlg.show ();
+	m_progressDlg.show();
 
-	m_file.open (fileName, io.FileOpenFlags.OpenExisting | io.FileOpenFlags.ReadOnly);
+	m_file.open(fileName, io.FileOpenFlags.OpenExisting | io.FileOpenFlags.ReadOnly);
 
-	m_hdr = (log.RecordFileHdr const*) m_file.view (0, sizeof (log.RecordFileHdr), true);
+	m_hdr = (log.RecordFileHdr const*) m_file.view(0, sizeof(log.RecordFileHdr), true);
 	if (m_hdr.m_signature != log.RecordFileSignature)
 	{
-		std.setError ("Invalid log file format (bad file signature)");
+		std.setError("Invalid log file format (bad file signature)");
 		throw;
 	}
 
 	if (!m_hdr.m_totalRecordSize)
 	{
-		std.setError ("Log file is empty");
+		std.setError("Log file is empty");
 		throw;
 	}
 
 	m_progressDlg.m_status = "Replay in progress...";
-	readLoop ();
+	readLoop();
 
 catch:
-	handleError ();
+	handleError();
 }
 
-ReplayLogLayer.onTransmitTimer (uint_t syncId)
+ReplayLogLayer.onTransmitTimer(uint_t syncId)
 {
 	if (syncId != m_syncId)
 		return;
 
-	sendNextRecord ();
-	readLoop ();
+	sendNextRecord();
+	readLoop();
 
 catch:
-	handleError ();
+	handleError();
 }
 
-ReplayLogLayer.onProgressTimer (uint_t syncId)
+ReplayLogLayer.onProgressTimer(uint_t syncId)
 {
 	if (syncId != m_syncId || m_nextRecord.m_timestamp == m_firstRecordTimestamp)
 		return;
 
-	uint64_t timestamp = sys.getTimestamp ();
+	uint64_t timestamp = sys.getTimestamp();
 
-	double timeFraction = (double) (timestamp - m_baseTimestamp) / (m_nextRecord.m_timestamp - m_firstRecordTimestamp);
+	double timeFraction = (double)(timestamp - m_baseTimestamp) / (m_nextRecord.m_timestamp - m_firstRecordTimestamp);
 	double offset = m_prevRecordOffset + (m_offset - m_prevRecordOffset) * timeFraction;
 
-	m_progressDlg.m_progress = (int) (offset / m_hdr.m_totalRecordSize * 100);
+	m_progressDlg.m_progress = (int)(offset / m_hdr.m_totalRecordSize * 100);
 }
 
 reactor ReplayLogLayer.m_uiReactor
 {
-	m_actionTable [ActionId.Play].m_isEnabled = m_isTransmitEnabled && strlen (m_fileNameCombo.m_editText);
+	m_actionTable[ActionId.Play].m_isEnabled = m_isTransmitEnabled && strlen(m_fileNameCombo.m_editText);
 }
 
 //..............................................................................

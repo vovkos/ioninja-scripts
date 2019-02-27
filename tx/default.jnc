@@ -2,22 +2,22 @@
 //
 // Use this script to define logic for packet transmission in Jancy language.
 //
-// If you are not familar with Jancy, no worries -- on the surface, you can 
-// think of it simply as a safe scripting dialect of C -- most of C declarations 
+// If you are not familar with Jancy, no worries -- on the surface, you can
+// think of it simply as a safe scripting dialect of C -- most of C declarations
 // and control-flow statements will compile just fine.
 //
-// The example below defines an infinite loop which sends packets with 
-// ever-incrementing index. Don't let the *infinite* part scare you -- you can 
+// The example below defines an infinite loop which sends packets with
+// ever-incrementing index. Don't let the *infinite* part scare you -- you can
 // always abort the execution of a script with the 'Stop' button.
 //
 //..............................................................................
 
-main ()
+main()
 {
 	for (size_t i = 0;; i++)
 	{
 		char const* p = $"packet $i\n"; // perl-like interpolating literals
-		transmit (p); // omitting length means, use strlen ()
-		sys.sleep (1000); // wait one second and repeat
+		transmit(p); // omitting length means, use strlen ()
+		sys.sleep(1000); // wait one second and repeat
 	}
 }

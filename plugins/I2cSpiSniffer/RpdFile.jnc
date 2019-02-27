@@ -26,7 +26,7 @@ struct RpdHdr
 	uint32_t m_signature;
 	RpdVersion m_version;
 	uint64_t m_timestamp;
-	char m_tag [16];
+	char m_tag[16];
 }
 
 //..............................................................................

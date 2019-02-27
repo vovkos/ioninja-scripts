@@ -1,6 +1,6 @@
 //..............................................................................
 //
-// This script iterates through all IPs on a class C network and sends 
+// This script iterates through all IPs on a class C network and sends
 // an ARP 'whois' request to each.
 //
 // Must be used with a Network Sniffer session.
@@ -13,18 +13,18 @@ struct ArpRequestFrame
 {
 	io.EthernetHdr m_ethernet;
 	io.ArpHdr m_arp;
-	uchar_t m_srcMac [6];
-	uchar_t m_srcIp [4];
-	uchar_t m_dstMac [6];
-	uchar_t m_dstIp [4];
+	uchar_t m_srcMac[6];
+	uchar_t m_srcIp[4];
+	uchar_t m_dstMac[6];
+	uchar_t m_dstIp[4];
 }
 
 // specify MAC/IP of the NIC opened in the Network Sniffer session:
 
-static uchar_t const g_srcMac [6] = 0x"00:e0:4c:68:01:12";
-static uchar_t const g_srcIp [4] = 0d"192.168.1.114";
+static uchar_t const g_srcMac[6] = 0x"00:e0:4c:68:01:12";
+static uchar_t const g_srcIp[4] = 0d"192.168.1.114";
 
-main ()
+main()
 {
 	ArpRequestFrame frame;
 	frame.m_ethernet.m_type = io.EthernetType.Arp;
@@ -41,8 +41,8 @@ main ()
 
 	for (uint_t i = 0; i <= 254; i++)
 	{
-		frame.m_dstIp [3] = i;
-		transmit (&frame, sizeof (frame));
-		sys.sleep (200); // wait 1/5 second before the next entry
+		frame.m_dstIp[3] = i;
+		transmit(&frame, sizeof(frame));
+		sys.sleep(200); // wait 1/5 second before the next entry
 	}
 }
