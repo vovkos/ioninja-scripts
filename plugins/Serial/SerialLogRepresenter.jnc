@@ -248,22 +248,31 @@ bool representSerialLog(
 		target.addHyperText($"Set parity: \e[34m$parityString");
 		break;
 
-	case SerialLogRecordCode.RtsChanged:
-		bool rts = *(bool const*) p;
-		char const* rtsString = getOnOffString(rts);
+	case SerialLogRecordCode.DtrChanged:
+		bool state = *(bool const*) p;
+		char const* stateString = getOnOffString(state);
 
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText($"Set RTS: $rtsString");
+		target.addHyperText($"Set DTR: $stateString");
 		break;
 
-	case SerialLogRecordCode.DtrChanged:
-		bool dtr = *(bool const*) p;
-		char const* dtrString = getOnOffString(dtr);
+	case SerialLogRecordCode.RtsChanged:
+		bool state = *(bool const*) p;
+		char const* stateString = getOnOffString(state);
 
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText($"Set DTR: $dtrString");
+		target.addHyperText($"Set RTS: $stateString");
+		break;
+
+	case SerialLogRecordCode.BreakConditionChanged:
+		bool state = *(bool const*) p;
+		char const* stateString = getOnOffString(state);
+
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText($"Set BREAK: $stateString");
 		break;
 
 	case SerialLogRecordCode.StatusLineChanged:

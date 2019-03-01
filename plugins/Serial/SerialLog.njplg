@@ -62,6 +62,7 @@ description = "Show/hide serial control lines changes (DTR/DSR)"
 01d47c8fc7b0f70f  # ControlLineChanged
 01d47c8fc7b0f709  # RtsChanged
 01d47c8fc7b0f70a  # DtrChanged
+01d47c8fc7b0f711  # BreakConditionChanged
 
 [filter]
 
