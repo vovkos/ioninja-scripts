@@ -26,7 +26,8 @@ protected:
 		ReadBlockSize   = 64 * 1024,
 		ReadBufferSize  = 1 * 1024 * 1024,
 
-		LogCacheUpdateScrollRateLimit = 16,
+		UseLogCacheUpdateScrollRateLimit = true,
+		LogCacheUpdateScrollRateLimit    = 16,
 	}
 
 	enum State
@@ -103,6 +104,8 @@ protected:
 	gui.EnumProperty* m_spiModeProp;
 	gui.EnumProperty* m_endiannessProp;
 	gui.IntProperty* m_dataBitsProp;
+	gui.BoolProperty* m_useLogUpdateRateLimitProp;
+	gui.IntProperty* m_logUpdateRateLimitProp;
 	io.BufferPropertySet m_bufferPropertySet;
 
 	// information grid
@@ -126,6 +129,11 @@ public:
 	override void updateProperties();
 	override errorcode bool applyProperties();
 	override void restoreDefaultProperties();
+
+	override size_t errorcode transmit(
+		void const* p,
+		size_t size
+		);
 
 protected:
 	onCapture();
@@ -247,6 +255,23 @@ I2cSpiSnifferSession.createUi()
 		group,,
 		"Data bits",
 		"SPI word size"
+		);
+
+	group = m_pluginHost.m_propertyGrid.createGroupProperty(
+		"Log update",
+		"Limit log update rate for better performance"
+		);
+
+	m_useLogUpdateRateLimitProp = m_pluginHost.m_propertyGrid.createBoolProperty(
+		group,,
+		"Use update rate limit",
+		"When ON, the engine only allows the specified number of scroll operations per second"
+		);
+
+	m_logUpdateRateLimitProp = m_pluginHost.m_propertyGrid.createIntProperty(
+		group,,
+		"Update rate limit",
+		"Log cache update limit (in scroll operations per second)"
 		);
 
 	m_dataBitsProp.m_minValue = 4;
@@ -482,6 +507,8 @@ I2cSpiSnifferSession.load(doc.Storage* storage)
 	m_spiModeProp.m_value = storage.readInt("spiMode", Defaults.SpiMode);
 	m_endiannessProp.m_value = storage.readInt("endianness", Defaults.Endianness);
 	m_dataBitsProp.m_value = storage.readInt("dataBits", Defaults.DataBits);
+	m_useLogUpdateRateLimitProp.m_value = storage.readBool("useLogUpdateRateLimitProp", Defaults.UseLogCacheUpdateScrollRateLimit);
+	m_logUpdateRateLimitProp.m_value = storage.readInt("logUpdateRateLimitProp", Defaults.LogCacheUpdateScrollRateLimit);
 	m_bufferPropertySet.load(storage);
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
 }
@@ -493,6 +520,8 @@ I2cSpiSnifferSession.save(doc.Storage* storage)
 	storage.writeInt("spiMode", m_spiModeProp.m_value);
 	storage.writeInt("endianness", m_endiannessProp.m_value);
 	storage.writeInt("dataBits", m_dataBitsProp.m_value);
+	storage.writeBool("dataBits", m_useLogUpdateRateLimitProp.m_value);
+	storage.writeInt("logUpdateRateLimitProp", m_logUpdateRateLimitProp.m_value);
 	m_bufferPropertySet.save(storage);
 }
 
@@ -506,6 +535,10 @@ bool errorcode I2cSpiSnifferSession.applyProperties()
 	m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
 	m_readBuffer.detach(); // drop buffer, so we re-allocate each time
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
+
+	m_pluginHost.m_log.m_cacheUpdateScrollRateLimit = m_useLogUpdateRateLimitProp.m_value ?
+		m_logUpdateRateLimitProp.m_value :
+		-1;
 
 	if (m_state != State.Capturing)
 		return true;
@@ -522,7 +555,18 @@ I2cSpiSnifferSession.restoreDefaultProperties()
 	m_spiModeProp.m_value = Defaults.SpiMode;
 	m_endiannessProp.m_value = Defaults.Endianness;
 	m_dataBitsProp.m_value = Defaults.DataBits;
+	m_useLogUpdateRateLimitProp.m_value = Defaults.UseLogCacheUpdateScrollRateLimit;
+	m_logUpdateRateLimitProp.m_value = Defaults.LogCacheUpdateScrollRateLimit;
 	m_bufferPropertySet.restoreDefaults();
+}
+
+size_t errorcode I2cSpiSnifferSession.transmit(
+	void const* p,
+	size_t size
+	)
+{
+	m_i2cDecoder.decode(p, size);
+	return size;
 }
 
 reactor I2cSpiSnifferSession.m_uiReactor
@@ -534,6 +578,7 @@ reactor I2cSpiSnifferSession.m_uiReactor
 	m_spiModeProp.m_isEnabled = m_protocolProp.m_value == Protocol.Spi;
 	m_endiannessProp.m_isEnabled = m_protocolProp.m_value == Protocol.Spi;
 	m_dataBitsProp.m_isEnabled = m_protocolProp.m_value == Protocol.Spi;
+	m_logUpdateRateLimitProp.m_isEnabled = m_useLogUpdateRateLimitProp.m_value;
 }
 
 //..............................................................................

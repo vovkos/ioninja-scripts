@@ -41,8 +41,8 @@ RpdFile.jnc
 01d487bb6423b80d  # EnablingFpga
 01d487bb6423b80e  # FpgaReady
 01d487bb6423b80f  # I2cStart
-01d487bb6423b810  # I2cFinalizeStart7Bit
-01d487bb6423b811  # I2cFinalizeStart10Bit
+01d487bb6423b810  # I2cFinalizeStart7BitAck
+01d487bb6423b811  # I2cFinalizeStart10BitAck
 01d487bb6423b812  # I2cStop
 01d487bb6423b813  # I2cStopOutOfTransaction
 01d487bb6423b814  # I2cTxNack
@@ -51,3 +51,5 @@ RpdFile.jnc
 01d487bb6423b817  # SpiStop
 01d487bb6423b818  # FirmwareUpdateCancelled
 01d487bb6423b819  # FirmwareUpdateCompleted
+01d487bb6423b81a  # I2cFinalizeStart7BitNack
+01d487bb6423b81b  # I2cFinalizeStart10BitNack

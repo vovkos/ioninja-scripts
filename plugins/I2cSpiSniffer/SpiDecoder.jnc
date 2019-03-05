@@ -192,9 +192,6 @@ SpiDecoder.decode(
 			}
 
 			uint_t bitCount = c & 0x0f;
-			if (m_state == State.MosiDataHi || m_state == State.MisoDataHi)
-				bitCount += 4;
-
 			if (bitCount)
 			{
 				*m_bitCount = bitCount;

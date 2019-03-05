@@ -150,12 +150,6 @@ bool errorcode Uploader.update(
 	Status status = getStatus();
 	RpdVersion version = getVersion();
 
-	printf("device status: %x\n", status);
-	printf("device type: %x\n", version.m_firmwareType);
-	printf("device version: %x\n", version.m_firmwareVersion);
-	printf("file type: %x\n", hdr.m_version.m_firmwareType);
-	printf("file version: %x\n", hdr.m_version.m_firmwareVersion);
-
 	bool isUpToDate =
 		status == 0 &&
 		version.m_firmwareType == hdr.m_version.m_firmwareType &&
@@ -251,8 +245,6 @@ Uploader.load(bool isCheckRequired)
 	m_logWriter.write(I2cSpiSnifferLogRecordCode.EnablingFpga);
 	m_progressDlg.m_status = "Switching to the newly uploaded firmware...";
 	m_state = State.Loading;
-
-	printf("UsbControlReqCode.Load\n");
 
 	m_device.controlTransfer(
 		UsbControlReqType.VendorOut,
@@ -362,8 +354,6 @@ Uploader.onTimer(uint_t syncId)
 		return;
 
 	Status status = getStatus();
-	printf("onTimer () status: %x\n", status);
-
 	if (status & (Status.FlashBusy | Status.FpgaBusy))
 	{
 		if (++m_statusCheckIdx % StillWaitingFactor == 0)

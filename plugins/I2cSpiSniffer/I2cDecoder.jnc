@@ -82,7 +82,19 @@ I2cDecoder.decode(
 	size_t size
 	)
 {
-	static uint64_t recordCodeTable[2] [2] =
+	static uint64_t start7BitRecordCodeTable[2] =
+	{
+		I2cSpiSnifferLogRecordCode.I2cFinalizeStart7BitNack,
+		I2cSpiSnifferLogRecordCode.I2cFinalizeStart7BitAck,
+	}
+
+	static uint64_t start10BitRecordCodeTable[2] =
+	{
+		I2cSpiSnifferLogRecordCode.I2cFinalizeStart10BitNack,
+		I2cSpiSnifferLogRecordCode.I2cFinalizeStart10BitAck,
+	}
+
+	static uint64_t dataRecordCodeTable[2][2] =
 	{
 		{ I2cSpiSnifferLogRecordCode.I2cTxNack, log.StdRecordCode.Tx, },
 		{ I2cSpiSnifferLogRecordCode.I2cRxNack, log.StdRecordCode.Rx, },
@@ -115,10 +127,9 @@ I2cDecoder.decode(
 		case Code.Start:
 			size_t size = data - (uchar_t*)m_buffer.m_p;
 			if (size)
-				m_logWriter.write(timestamp, recordCodeTable[m_isRead] [m_ack], m_buffer.m_p, size);
+				m_logWriter.write(timestamp, dataRecordCodeTable[m_isRead][m_ack], m_buffer.m_p, size);
 
 			uint_t bitCount = c & 0x0f;
-
 			if (bitCount)
 			{
 				*m_bitCount = bitCount;
@@ -134,7 +145,7 @@ I2cDecoder.decode(
 		case Code.StartDataHi:
 			size_t size = data - (uchar_t*)m_buffer.m_p;
 			if (size)
-				m_logWriter.write(timestamp, recordCodeTable[m_isRead] [m_ack], m_buffer.m_p, size);
+				m_logWriter.write(timestamp, dataRecordCodeTable[m_isRead][m_ack], m_buffer.m_p, size);
 
 			m_logWriter.write(timestamp, I2cSpiSnifferLogRecordCode.I2cStart);
 			m_data = c << 4;
@@ -176,7 +187,7 @@ I2cDecoder.decode(
 				else
 				{
 					*m_transactionHdr = m_data;
-					m_logWriter.write(timestamp, I2cSpiSnifferLogRecordCode.I2cFinalizeStart7Bit, m_transactionHdr, sizeof(uint8_t));
+					m_logWriter.write(timestamp, start7BitRecordCodeTable[ack], m_transactionHdr, sizeof(uint8_t));
 					m_addressState = AddressState.Address7Bit;
 				}
 
@@ -184,7 +195,7 @@ I2cDecoder.decode(
 
 			case AddressState.Address10BitHi:
 				*(uint8_t*)m_transactionHdr = m_data;
-				m_logWriter.write(timestamp, I2cSpiSnifferLogRecordCode.I2cFinalizeStart10Bit, m_transactionHdr, sizeof(uint16_t));
+				m_logWriter.write(timestamp, start10BitRecordCodeTable[ack], m_transactionHdr, sizeof(uint16_t));
 				m_addressState = AddressState.Address10BitLo;
 				break;
 
@@ -198,7 +209,7 @@ I2cDecoder.decode(
 					size_t size = data - (uchar_t*)m_buffer.m_p;
 					if (size)
 					{
-						m_logWriter.write(timestamp, recordCodeTable[m_isRead] [m_ack], m_buffer.m_p, size);
+						m_logWriter.write(timestamp, dataRecordCodeTable[m_isRead][m_ack], m_buffer.m_p, size);
 						data = m_buffer.m_p;
 					}
 
@@ -216,7 +227,7 @@ I2cDecoder.decode(
 				size_t size = data - (uchar_t*)m_buffer.m_p;
 				if (size)
 				{
-					m_logWriter.write(timestamp, recordCodeTable[m_isRead] [m_ack], m_buffer.m_p, size);
+					m_logWriter.write(timestamp, dataRecordCodeTable[m_isRead][m_ack], m_buffer.m_p, size);
 					data = m_buffer.m_p;
 				}
 
@@ -230,18 +241,15 @@ I2cDecoder.decode(
 			size_t size = data - (uchar_t*)m_buffer.m_p;
 			if (size)
 			{
-				m_logWriter.write(timestamp, recordCodeTable[m_isRead] [m_ack], m_buffer.m_p, size);
+				m_logWriter.write(timestamp, dataRecordCodeTable[m_isRead][m_ack], m_buffer.m_p, size);
 				data = m_buffer.m_p;
 			}
 
 			uint_t bitCount = c & 0x0f;
-			if (m_state == State.DataHi)
-				bitCount += 4;
-
 			if (bitCount)
 			{
 				*m_bitCount = bitCount;
-				m_logWriter.write(timestamp, I2cSpiSnifferLogRecordCode.IncompleteByte, &m_bitCount, sizeof(uint_t));
+				m_logWriter.write(timestamp, I2cSpiSnifferLogRecordCode.IncompleteByte, m_bitCount, sizeof(uint_t));
 				m_logWriter.write(timestamp, I2cSpiSnifferLogRecordCode.I2cStop);
 			}
 			else
