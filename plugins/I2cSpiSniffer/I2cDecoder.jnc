@@ -117,7 +117,7 @@ I2cDecoder.decode(
 			continue;
 
 		case Code.BufferOverflow:
-			m_logWriter.write(timestamp, I2cSpiSnifferLogRecordCode.BufferOverflow);
+			m_logWriter.write(timestamp, I2cSpiSnifferLogRecordCode.FpgaBufferOverflow);
 			continue;
 		}
 

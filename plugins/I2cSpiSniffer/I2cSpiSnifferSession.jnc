@@ -30,6 +30,12 @@ protected:
 		LogCacheUpdateScrollRateLimit    = 16,
 	}
 
+	enum
+	{
+		CypressBufferSize         = 2 * 1024, // 2K
+		CypressClearBufferTimeout = 200,      // 0.2sec
+	}
+
 	enum State
 	{
 		Closed,
@@ -150,6 +156,7 @@ protected:
 	enumerateDevices();
 	waitInEndpointEvents();
 	bool errorcode startCapture();
+	bool errorcode clearCypressBuffers();
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -381,6 +388,8 @@ bool errorcode I2cSpiSnifferSession.startCapture()
 	m_outEndpoint = m_iface.openEndpoint(Usb.OutEndpoint);
 	writeLog(I2cSpiSnifferLogRecordCode.OutEndpointOpened);
 
+	clearCypressBuffers();
+
 	// align read block on 512 bytes
 
 	size_t readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
@@ -412,7 +421,6 @@ bool errorcode I2cSpiSnifferSession.startCapture()
 	}
 
 	m_decoder.reset();
-
 	m_outEndpoint.write(&startCode, sizeof(startCode));
 	writeLog(I2cSpiSnifferLogRecordCode.CaptureStarted);
 
@@ -424,6 +432,27 @@ bool errorcode I2cSpiSnifferSession.startCapture()
 catch:
 	writeLogLastError(I2cSpiSnifferLogRecordCode.CaptureError);
 	return false;
+}
+
+bool errorcode I2cSpiSnifferSession.clearCypressBuffers()
+{
+	static char stopCode = 0xaa;
+	m_outEndpoint.write(&stopCode, sizeof(stopCode));
+
+	m_inEndpoint = m_iface.openEndpoint(Usb.InEndpoint);
+	m_inEndpoint.m_readParallelism = 1;
+	m_inEndpoint.m_readBlockSize = CypressBufferSize;
+	m_inEndpoint.m_readBufferSize = CypressBufferSize;
+	m_inEndpoint.m_options &= ~io.UsbEndpointOptions.KeepReadBlockSize;
+
+	m_inEndpoint.blockingWait(
+		io.UsbEndpointEvents.IncomingData | io.UsbEndpointEvents.IoError,
+		CypressClearBufferTimeout
+		);
+
+	m_inEndpoint.close();
+	writeLog(I2cSpiSnifferLogRecordCode.CypressBufferCleared);
+	return true;
 }
 
 I2cSpiSnifferSession.stopCapture()

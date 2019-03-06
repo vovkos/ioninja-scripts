@@ -76,10 +76,16 @@ bool representI2cSpiSnifferLog(
 		target.addHyperText($"Incomplete byte received ($(bitCount) bit(s))");
 		break;
 
-	case I2cSpiSnifferLogRecordCode.BufferOverflow:
+	case I2cSpiSnifferLogRecordCode.FpgaBufferOverflow:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Warning;
 		target.addHyperText("FPGA buffer overflow");
+		break;
+
+	case I2cSpiSnifferLogRecordCode.CypressBufferCleared:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText($"Cypress buffer cleared");
 		break;
 
 	case I2cSpiSnifferLogRecordCode.StillWaiting:

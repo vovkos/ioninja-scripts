@@ -18,7 +18,8 @@ enum I2cSpiSnifferLogRecordCode: uint64_t
 	CaptureError              = 0x01d487bb6423b803,
 	UnexpectedCode            = 0x01d487bb6423b804,
 	IncompleteByte            = 0x01d487bb6423b805,
-	BufferOverflow            = 0x01d487bb6423b806,
+	FpgaBufferOverflow        = 0x01d487bb6423b806,
+	CypressBufferCleared      = 0x01d487bb6423b81c,
 
 	StillWaiting              = 0x01d487bb6423b807,
 	FpgaDisabled              = 0x01d487bb6423b808,

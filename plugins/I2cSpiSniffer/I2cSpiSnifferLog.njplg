@@ -31,7 +31,7 @@ RpdFile.jnc
 01d487bb6423b803  # CaptureError
 01d487bb6423b804  # UnexpectedCode
 01d487bb6423b805  # IncompleteByte
-01d487bb6423b806  # BufferOverflow
+01d487bb6423b806  # FpgaBufferOverflow
 01d487bb6423b807  # StillWaiting
 01d487bb6423b808  # FpgaDisabled
 01d487bb6423b809  # FirmwareUpToDate
@@ -53,3 +53,4 @@ RpdFile.jnc
 01d487bb6423b819  # FirmwareUpdateCompleted
 01d487bb6423b81a  # I2cFinalizeStart7BitNack
 01d487bb6423b81b  # I2cFinalizeStart10BitNack
+01d487bb6423b81c  # CypressBufferCleared
