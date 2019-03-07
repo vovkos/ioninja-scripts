@@ -33,10 +33,9 @@ protected:
 
 	enum AddressState
 	{
-		Undefined,
-		Address7Bit,
+		Idle,
+		PreAddress,
 		Address10BitHi,
-		Address10BitLo,
 	}
 
 protected:
@@ -51,10 +50,7 @@ protected:
 public:
 	construct(log.Writer* logWriter);
 
-	override reset()
-	{
-		m_state = State.Idle;
-	}
+	override reset();
 
 	override decode(
 		void const thin* p,
@@ -75,6 +71,12 @@ I2cDecoder.construct(log.Writer* logWriter)
 	basetype.construct(logWriter);
 	m_transactionHdr = new uint16_t;
 	m_bitCount = new uint_t;
+}
+
+override I2cDecoder.reset()
+{
+	m_state = State.Idle;
+	m_addressState = AddressState.Idle;
 }
 
 I2cDecoder.decode(
@@ -138,7 +140,7 @@ I2cDecoder.decode(
 
 			m_logWriter.write(timestamp, I2cSpiSnifferLogRecordCode.I2cStart);
 			data = m_buffer.m_p;
-			m_addressState = AddressState.Undefined;
+			m_addressState = AddressState.PreAddress;
 			m_state = State.Transaction;
 			break;
 
@@ -150,14 +152,11 @@ I2cDecoder.decode(
 			m_logWriter.write(timestamp, I2cSpiSnifferLogRecordCode.I2cStart);
 			m_data = c << 4;
 			data = m_buffer.m_p;
-			m_addressState = AddressState.Undefined;
+			m_addressState = AddressState.PreAddress;
 			m_state = State.DataHi;
 			break;
 
 		case Code.DataHi:
-			if (m_state != State.Transaction)
-				writeLogUnexpectedCode(timestamp, code, m_state);
-
 			m_data = c << 4;
 			m_state = State.DataHi;
 			break;
@@ -176,7 +175,7 @@ I2cDecoder.decode(
 
 			switch(m_addressState)
 			{
-			case AddressState.Undefined:
+			case AddressState.PreAddress:
 				m_isRead = m_data & 1;
 
 				if (isAddress10Bit(m_data))
@@ -188,7 +187,7 @@ I2cDecoder.decode(
 				{
 					*m_transactionHdr = m_data;
 					m_logWriter.write(timestamp, start7BitRecordCodeTable[ack], m_transactionHdr, sizeof(uint8_t));
-					m_addressState = AddressState.Address7Bit;
+					m_addressState = AddressState.Idle;
 				}
 
 				break;
@@ -196,7 +195,7 @@ I2cDecoder.decode(
 			case AddressState.Address10BitHi:
 				*(uint8_t*)m_transactionHdr = m_data;
 				m_logWriter.write(timestamp, start10BitRecordCodeTable[ack], m_transactionHdr, sizeof(uint16_t));
-				m_addressState = AddressState.Address10BitLo;
+				m_addressState = AddressState.Idle;
 				break;
 
 			default:
