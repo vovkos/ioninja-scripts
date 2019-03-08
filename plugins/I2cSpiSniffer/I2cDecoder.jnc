@@ -106,7 +106,7 @@ I2cDecoder.decode(
 	uchar_t const thin* p = p0;
 	uchar_t const thin* end = p + size;
 
-	uchar_t thin* data = m_buffer.m_p + m_size;
+	uchar_t thin* data = m_buffer.m_p;
 	uchar_t thin* lastData = m_buffer.m_p + m_buffer.m_size - 1;
 
 	for (; p < end; p++)
@@ -127,7 +127,7 @@ I2cDecoder.decode(
 		switch(code)
 		{
 		case Code.Start:
-			size_t size = data - (uchar_t*)m_buffer.m_p;
+			size = data - (uchar_t*)m_buffer.m_p;
 			if (size)
 				m_logWriter.write(timestamp, dataRecordCodeTable[m_isRead][m_ack], m_buffer.m_p, size);
 
@@ -145,7 +145,7 @@ I2cDecoder.decode(
 			break;
 
 		case Code.StartDataHi:
-			size_t size = data - (uchar_t*)m_buffer.m_p;
+			size = data - (uchar_t*)m_buffer.m_p;
 			if (size)
 				m_logWriter.write(timestamp, dataRecordCodeTable[m_isRead][m_ack], m_buffer.m_p, size);
 
@@ -166,7 +166,17 @@ I2cDecoder.decode(
 		case Code.DataLoAckStop:
 		case Code.DataLoNackStop:
 			if (m_state != State.DataHi)
+			{
+				size = data - (uchar_t*)m_buffer.m_p;
+				if (size)
+				{
+					m_logWriter.write(timestamp, dataRecordCodeTable[m_isRead][m_ack], m_buffer.m_p, size);
+					data = m_buffer.m_p;
+				}
+
 				writeLogUnexpectedCode(timestamp, code, m_state);
+				m_addressState = AddressState.Idle;
+			}
 
 			bool ack = code & 1;
 			bool stop = code >= Code.DataLoAckStop;
@@ -205,7 +215,7 @@ I2cDecoder.decode(
 				}
 				else
 				{
-					size_t size = data - (uchar_t*)m_buffer.m_p;
+					size = data - (uchar_t*)m_buffer.m_p;
 					if (size)
 					{
 						m_logWriter.write(timestamp, dataRecordCodeTable[m_isRead][m_ack], m_buffer.m_p, size);
@@ -223,7 +233,7 @@ I2cDecoder.decode(
 			}
 			else
 			{
-				size_t size = data - (uchar_t*)m_buffer.m_p;
+				size = data - (uchar_t*)m_buffer.m_p;
 				if (size)
 				{
 					m_logWriter.write(timestamp, dataRecordCodeTable[m_isRead][m_ack], m_buffer.m_p, size);
@@ -237,7 +247,7 @@ I2cDecoder.decode(
 			break;
 
 		case Code.Stop:
-			size_t size = data - (uchar_t*)m_buffer.m_p;
+			size = data - (uchar_t*)m_buffer.m_p;
 			if (size)
 			{
 				m_logWriter.write(timestamp, dataRecordCodeTable[m_isRead][m_ack], m_buffer.m_p, size);
@@ -266,7 +276,9 @@ I2cDecoder.decode(
 		}
 	}
 
-	m_size = data - (uchar_t*)m_buffer.m_p;
+	size = data - (uchar_t*)m_buffer.m_p;
+	if (size)
+		m_logWriter.write(timestamp, dataRecordCodeTable[m_isRead][m_ack], m_buffer.m_p, size);
 }
 
 //..............................................................................

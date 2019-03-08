@@ -27,8 +27,8 @@ protected:
 		Idle,
 		Transaction,
 		MosiDataHi,
-		MosiDataLo,
 		MisoDataHi,
+		MosiDataLo,
 	}
 
 protected:
@@ -40,7 +40,6 @@ protected:
 
 public:
 	bool m_isBigEndian;
-	uint_t m_dataBits;
 
 public:
 	construct(log.Writer* logWriter);
@@ -63,6 +62,7 @@ SpiDecoder.construct(log.Writer* logWriter)
 	basetype.construct(logWriter);
 	m_misoBuffer.setSize(m_buffer.m_size / 2);
 	m_bitCount = new uint_t;
+	m_isBigEndian = true;
 }
 
 SpiDecoder.decode(
@@ -74,8 +74,8 @@ SpiDecoder.decode(
 	uchar_t const thin* p = p0;
 	uchar_t const thin* end = p + size;
 
-	uchar_t thin* mosi = m_buffer.m_p + m_size;
-	uchar_t thin* miso = m_misoBuffer.m_p + m_size;
+	uchar_t thin* mosi = m_buffer.m_p;
+	uchar_t thin* miso = m_misoBuffer.m_p;
 	uchar_t thin* lastMiso = m_misoBuffer.m_p + m_misoBuffer.m_size - 1;
 
 	for (; p < end; p++)
@@ -96,7 +96,7 @@ SpiDecoder.decode(
 		switch(code)
 		{
 		case Code.Start:
-			size_t size = mosi - (uchar_t*)m_buffer.m_p;
+			size = mosi - (uchar_t*)m_buffer.m_p;
 			if (size)
 			{
 				memcpy(m_buffer.m_p + size, m_misoBuffer.m_p, size);
@@ -171,7 +171,7 @@ SpiDecoder.decode(
 			}
 			else
 			{
-				size_t size = mosi - (uchar_t*)m_buffer.m_p;
+				size = mosi + 1 - (uchar_t*)m_buffer.m_p;
 				memcpy(m_buffer.m_p + size, m_misoBuffer.m_p, size);
 				m_logWriter.write(timestamp, log.StdRecordCode.TxRx, m_buffer.m_p, 2 * size);
 				mosi = m_buffer.m_p;
@@ -182,7 +182,7 @@ SpiDecoder.decode(
 			break;
 
 		case Code.Stop:
-			size_t size = mosi - (uchar_t*)m_buffer.m_p;
+			size = mosi - (uchar_t*)m_buffer.m_p;
 			if (size)
 			{
 				memcpy(m_buffer.m_p + size, m_misoBuffer.m_p, size);
@@ -204,7 +204,12 @@ SpiDecoder.decode(
 		}
 	}
 
-	m_size = mosi - (uchar_t*)m_buffer.m_p;
+	size = mosi - (uchar_t*)m_buffer.m_p;
+	if (size)
+	{
+		memcpy(m_buffer.m_p + size, m_misoBuffer.m_p, size);
+		m_logWriter.write(timestamp, log.StdRecordCode.TxRx, m_buffer.m_p, 2 * size);
+	}
 }
 
 //..............................................................................

@@ -408,7 +408,6 @@ bool errorcode I2cSpiSnifferSession.startCapture()
 	{
 	case Protocol.Spi:
 		m_spiDecoder.m_isBigEndian = m_endiannessProp.m_value;
-		m_spiDecoder.m_dataBits = 8;
 		m_decoder = m_spiDecoder;
 		startCode = m_spiModeProp.m_value;
 		startCode += m_endiannessProp.m_value ? 0x70 : 0x80;
@@ -594,7 +593,8 @@ size_t errorcode I2cSpiSnifferSession.transmit(
 	size_t size
 	)
 {
-	m_i2cDecoder.decode(p, size);
+	m_spiDecoder.reset();
+	m_spiDecoder.decode(p, size);
 	return size;
 }
 
