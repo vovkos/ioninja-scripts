@@ -537,7 +537,7 @@ TcpProxySession.onListenerSocketEvent(
 	if (triggeredEvents & io.SocketEvents.IncomingConnection)
 	{
 		io.SocketAddress address;
-		io.Socket* socket = m_listenerSocket.accept(&address);
+		io.Socket* socket = m_listenerSocket.accept(&address, true);
 
 		if (m_serverConnectionState == ServerConnectionState.Connected && !m_overrideConnectionProp.m_value)
 		{
@@ -551,6 +551,7 @@ TcpProxySession.onListenerSocketEvent(
 		socket.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 		socket.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
 		socket.m_options = io.getSocketOptions(m_connectionSocketPropertySet, m_bufferPropertySet);
+		socket.unsuspend();
 
 		disconnect();
 

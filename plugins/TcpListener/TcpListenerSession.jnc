@@ -412,7 +412,7 @@ TcpListenerSession.onListenerSocketEvent(
 	if (triggeredEvents & io.SocketEvents.IncomingConnection)
 	{
 		io.SocketAddress address;
-		io.Socket* socket = m_listenerSocket.accept(&address);
+		io.Socket* socket = m_listenerSocket.accept(&address, true);
 
 		if (m_connectionState == ConnectionState.Connected && !m_overrideOldConnectionProp.m_value)
 		{
@@ -426,6 +426,7 @@ TcpListenerSession.onListenerSocketEvent(
 		socket.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 		socket.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
 		socket.m_options = io.getSocketOptions(m_socketPropertySet, m_bufferPropertySet);
+		socket.unsuspend();
 
 		disconnect();
 
