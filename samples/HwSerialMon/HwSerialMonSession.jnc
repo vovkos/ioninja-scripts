@@ -322,10 +322,11 @@ bool errorcode HwSerialMonSession.openDevice()
 	m_device.open();
 	m_iface = m_device.claimInterface(0);
 	m_outEndpoint = m_iface.openEndpoint(0x01);
-	m_inEndpoint = m_iface.openEndpoint(0x81);
+	m_inEndpoint = m_iface.openEndpoint(0x81, true);
 	m_inEndpoint.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
 	m_inEndpoint.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
 	m_inEndpoint.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
+	m_inEndpoint.unsuspend();
 
 	io.UsbDeviceDesc const* deviceDesc = m_device.m_deviceDesc;
 
