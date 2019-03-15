@@ -321,6 +321,19 @@ SerialMonProcessor_win.processIoctlNotification(
 			sizeof(rts)
 			);
 		break;
+
+	case wdk.IOCTL_SERIAL_SET_BREAK_ON:
+	case wdk.IOCTL_SERIAL_SET_BREAK_OFF:
+		bool brk = code == wdk.IOCTL_SERIAL_SET_BREAK_ON;
+
+		m_logWriter.write(
+			timestamp,
+			SerialLogRecordCode.BreakConditionChanged,
+			&brk,
+			sizeof(brk)
+			);
+		break;
+
 	}
 }
 
