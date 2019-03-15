@@ -135,7 +135,7 @@ MailslotSession.createUi()
 	m_iconTable[IconId.Open] = new gui.Icon("images/open.png");
 	m_iconTable[IconId.Close] = new gui.Icon("images/close.png");
 
-	m_actionTable[ActionId.Open] = createAction("Open", m_iconTable [IconId.Open]);
+	m_actionTable[ActionId.Open] = createAction("Open", m_iconTable[IconId.Open]);
 	m_actionTable[ActionId.Open].m_onTriggered += onOpen;
 
 	// status bar

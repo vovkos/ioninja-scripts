@@ -168,7 +168,7 @@ representIp(
 
 	if ((ipHdr.m_flags & io.IpFlags.Mf) || ipHdr.m_fragmentOffset)
 	{
-		target.addHyperText($"%1 [PROTO:%2; FRAGMENTED]" (formatIpLogText (ipHdr), ipHdr.m_protocol));
+		target.addHyperText($"%1 [PROTO:%2; FRAGMENTED]" (formatIpLogText(ipHdr), ipHdr.m_protocol));
 		return;
 	}
 

@@ -75,12 +75,12 @@ representModbusCoils(
 
 	if (foldFlags & 2)
 	{
-		target.addHyperText($"    [\e^-2\e[34m-\e[m] Values [$count]");
+		target.addHyperText($"    [\e^-2\e[34m-\e[m] Values[$count]");
 		representModbusCoilValues(target, p, count, baseOffset, offsetMultiplier);
 	}
 	else
 	{
-		target.addHyperText($"    [\e^+2\e[34m+\e[m] Values [$count]");
+		target.addHyperText($"    [\e^+2\e[34m+\e[m] Values[$count]");
 		target.addHyperText($"        $(getModbusCoilsDigest (p, count))");
 	}
 }
@@ -192,12 +192,12 @@ representModbusRegisters(
 
 	if (foldFlags & 2)
 	{
-		target.addHyperText($"    [\e^-2\e[34m-\e[m] Values [$count]");
+		target.addHyperText($"    [\e^-2\e[34m-\e[m] Values[$count]");
 		representModbusRegisterValues(target, p, count, baseOffset, offsetMultiplier);
 	}
 	else
 	{
-		target.addHyperText($"    [\e^+2\e[34m+\e[m] Values [$count]");
+		target.addHyperText($"    [\e^+2\e[34m+\e[m] Values[$count]");
 		target.addHyperText($"        $(getModbusRegistersDigest (p, count))");
 	}
 }

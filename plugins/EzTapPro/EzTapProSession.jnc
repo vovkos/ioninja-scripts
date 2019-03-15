@@ -246,7 +246,7 @@ EzTapProSession.createUi()
 	m_actionTable[ActionId.Refresh] = createAction("Refresh port list", "images/refresh.png");
 	m_actionTable[ActionId.Refresh].m_onTriggered += enumeratePorts;
 
-	m_actionTable[ActionId.Capture]  = createAction("Capture", m_iconTable [IconId.Capture]);
+	m_actionTable[ActionId.Capture]  = createAction("Capture", m_iconTable[IconId.Capture]);
 	m_actionTable[ActionId.Capture].m_onTriggered += onCapture;
 
 	gui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty(
@@ -786,7 +786,7 @@ void EzTapProSession.save(doc.Storage* storage)
 	storage.writeString("portName", m_portCombo.m_editText);
 	storage.writeInt("parity", m_parityProp.m_currentIndex);
 	storage.writeInt("signalLevel", m_signalLevelProp.m_currentIndex);
-	storage.writeBool("flipDteDce", m_actionTable [ActionId.Flip].m_isChecked);
+	storage.writeBool("flipDteDce", m_actionTable[ActionId.Flip].m_isChecked);
 
 	storage.writeInt("readMode", m_readModeProp.m_value);
 	storage.writeInt("readInterval", m_readIntervalProp.m_value);

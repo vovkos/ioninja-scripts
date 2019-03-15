@@ -226,7 +226,7 @@ SerialTapSession.createUi()
 	m_actionTable[ActionId.Refresh]  = createAction("Refresh port list", "images/refresh.png");
 	m_actionTable[ActionId.Refresh].m_onTriggered += enumeratePorts;
 
-	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable [IconId.Capture]);
+	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable[IconId.Capture]);
 	m_actionTable[ActionId.Capture].m_onTriggered += onOpen;
 
 	gui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty(
@@ -546,7 +546,7 @@ void SerialTapSession.save(doc.Storage* storage)
 
 	storage.writeString("dtePortName", m_dtePortCombo.m_editText);
 	storage.writeString("dcePortName", m_dcePortCombo.m_editText);
-	storage.writeBool("flipDteDce", m_actionTable [ActionId.Flip].m_isChecked);
+	storage.writeBool("flipDteDce", m_actionTable[ActionId.Flip].m_isChecked);
 
 	storage.writeInt("readMode", m_readModeProp.m_value);
 	storage.writeInt("readInterval", m_readIntervalProp.m_value);

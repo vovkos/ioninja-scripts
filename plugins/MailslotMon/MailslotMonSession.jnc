@@ -132,7 +132,7 @@ MailslotMonSession.createUi()
 	m_iconTable[IconId.Capture] = new gui.Icon("images/capture.png");
 	m_iconTable[IconId.StopCapture] = new gui.Icon("images/pause.png");
 
-	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable [IconId.Capture]);
+	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable[IconId.Capture]);
 	m_actionTable[ActionId.Capture].m_onTriggered += onCapture;
 
 	// status bar

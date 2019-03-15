@@ -244,8 +244,8 @@ char const* getArpHardwareAddressString(
 		uint8_t const* mac = p;
 
 		return size >= 6 ?
-			$"$(mac [0]; 02x):$(mac [1]; 02x):$(mac [2]; 02x):"
-			$"$(mac [3]; 02x):$(mac [4]; 02x):$(mac [5]; 02x)" :
+			$"$(mac[0]; 02x):$(mac[1]; 02x):$(mac[2]; 02x):"
+			$"$(mac[3]; 02x):$(mac[4]; 02x):$(mac[5]; 02x)" :
 			"INVALID-MAC";
 
 	default:

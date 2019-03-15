@@ -154,16 +154,16 @@ FileSession.createUi()
 	m_fileNameCombo.m_isEditable = true;
 	m_fileNameCombo.m_onEnter += onFileNameComboEnter;
 
-	m_accessCombo = m_pluginHost.m_toolBar.addComboBox("Access:", accessModeTable, countof (accessModeTable));
+	m_accessCombo = m_pluginHost.m_toolBar.addComboBox("Access:", accessModeTable, countof(accessModeTable));
 
 	m_iconTable[IconId.Open] = new gui.Icon("images/open.png");
 	m_iconTable[IconId.Close] = new gui.Icon("images/close.png");
 	m_iconTable[IconId.Clear] = new gui.Icon("images/clear.png");
 
-	m_actionTable[ActionId.Open] = createAction("Open", m_iconTable [IconId.Open]);
+	m_actionTable[ActionId.Open] = createAction("Open", m_iconTable[IconId.Open]);
 	m_actionTable[ActionId.Open].m_onTriggered += onOpen;
 
-	m_actionTable[ActionId.Clear] = createAction("Clear", m_iconTable [IconId.Clear]);
+	m_actionTable[ActionId.Clear] = createAction("Clear", m_iconTable[IconId.Clear]);
 	m_actionTable[ActionId.Clear].m_onTriggered += clear;
 	m_actionTable[ActionId.Clear].m_isEnabled = false;
 

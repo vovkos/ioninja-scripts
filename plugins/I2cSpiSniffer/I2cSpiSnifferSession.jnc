@@ -218,10 +218,10 @@ I2cSpiSnifferSession.createUi()
 	m_pluginHost.m_toolBar.addLabel("Sniffer:");
 	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 
-	m_actionTable[ActionId.Refresh]  = createAction("Re-enumerate sniffers", m_iconTable [IconId.Refresh]);
+	m_actionTable[ActionId.Refresh]  = createAction("Re-enumerate sniffers", m_iconTable[IconId.Refresh]);
 	m_actionTable[ActionId.Refresh].m_onTriggered += enumerateDevices;
 
-	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable [IconId.Capture]);
+	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable[IconId.Capture]);
 	m_actionTable[ActionId.Capture].m_onTriggered += onCapture;
 
 	// status bar
@@ -622,7 +622,7 @@ size_t errorcode I2cSpiSnifferSession.transmit(
 
 reactor I2cSpiSnifferSession.m_uiReactor
 {
-	m_title = $"$(g_protocolNameTable [m_protocolProp.m_value]) $(m_deviceCombo.m_currentText)";
+	m_title = $"$(g_protocolNameTable[m_protocolProp.m_value]) $(m_deviceCombo.m_currentText)";
 	m_actionTable[ActionId.Capture].m_text = m_state ? "Close Device" : "Open Device";
 	m_actionTable[ActionId.Capture].m_icon = m_iconTable[m_state ? IconId.Stop : IconId.Capture];
 	m_statusPaneTable[StatusPaneId.State].m_text = m_statusText[m_state];

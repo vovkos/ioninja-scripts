@@ -55,15 +55,15 @@ bool representI2cSpiSnifferLog(
 		break;
 
 	case I2cSpiSnifferLogRecordCode.CaptureError:
-		std.Error const* error = (std.Error const*) p;
+		std.Error const* error = (std.Error const*)p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
 		target.addHyperText($"Cannot open sniffer: $(error.m_description)");
 		break;
 
 	case I2cSpiSnifferLogRecordCode.UnexpectedCode:
-		uint_t code = ((uint_t const*) p) [0];
-		uint_t state = ((uint_t const*) p) [1];
+		uint_t code = ((uint_t const*)p)[0];
+		uint_t state = ((uint_t const*)p)[1];
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
 		target.addHyperText($"Unexpected code from sniffer (code: $code, decoder state: $state)");

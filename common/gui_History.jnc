@@ -73,7 +73,7 @@ nestedscope:
 	storage.writeInt("count", m_itemCount);
 
 	for (size_t i = 0; i < m_itemCount; i++)
-		storage.writeString($"item$i", m_itemText [i]);
+		storage.writeString($"item$i", m_itemText[i]);
 
 finally:
 	storage.m_directory = prevDirectory;
