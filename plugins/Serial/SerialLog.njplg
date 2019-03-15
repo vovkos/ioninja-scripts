@@ -38,6 +38,7 @@ SerialLogRepresenter.jnc
 01d47c8fc7b0f70e  # BuggyDriverDetected
 01d47c8fc7b0f70f  # ControlLineChanged
 01d47c8fc7b0f710  # LineError
+01d47c8fc7b0f711  # BreakConditionChanged
 
 [filter]
 
