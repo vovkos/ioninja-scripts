@@ -53,6 +53,7 @@ public:
 	override reset();
 
 	override decode(
+		uint64_t timestamp,
 		void const thin* p,
 		size_t size
 		);
@@ -80,6 +81,7 @@ override I2cDecoder.reset()
 }
 
 I2cDecoder.decode(
+	uint64_t timestamp,
 	void const thin* p0,
 	size_t size
 	)
@@ -102,7 +104,6 @@ I2cDecoder.decode(
 		{ I2cSpiSnifferLogRecordCode.I2cRxNack, log.StdRecordCode.Rx, },
 	}
 
-	uint64_t timestamp = sys.getTimestamp();
 	uchar_t const thin* p = p0;
 	uchar_t const thin* end = p + size;
 

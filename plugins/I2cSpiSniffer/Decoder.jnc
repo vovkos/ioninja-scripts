@@ -28,6 +28,7 @@ public:
 	abstract reset();
 
 	abstract decode(
+		uint64_t timestamp,
 		void const thin* p,
 		size_t size
 		);

@@ -32,7 +32,7 @@ protected:
 
 	enum
 	{
-		CypressBufferSize         = 2 * 1024, // 2K
+		CypressBufferSize         = 4 * 1024, // 4K (2K built-in in Cypress + 512 FPGA FIFO)
 		CypressClearBufferTimeout = 200,      // 0.2sec
 	}
 
@@ -109,7 +109,7 @@ protected:
 	gui.EnumProperty* m_protocolProp;
 	gui.EnumProperty* m_spiModeProp;
 	gui.EnumProperty* m_endiannessProp;
-	gui.IntProperty* m_dataBitsProp;
+	gui.EnumProperty* m_dataBitsProp;
 	gui.BoolProperty* m_useLogUpdateRateLimitProp;
 	gui.IntProperty* m_logUpdateRateLimitProp;
 	io.BufferPropertySet m_bufferPropertySet;
@@ -156,7 +156,7 @@ protected:
 	enumerateDevices();
 	waitInEndpointEvents();
 	bool errorcode startCapture();
-	bool errorcode clearCypressBuffers();
+	bool errorcode gracefulStop();
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -199,6 +199,14 @@ I2cSpiSnifferSession.createUi()
 	{
 		{ "Little-endian (LSBit first)", false },
 		{ "Big-endian (MSBit first)",    true },
+	}
+
+	static gui.EnumPropertyOption dataBitsTable[] =
+	{
+		{ "4 bits",  4 },
+		{ "8 bits",  8 },
+		{ "12 bits", 12 },
+		{ "16 bits", 16 },
 	}
 
 	// toolbar
@@ -258,10 +266,12 @@ I2cSpiSnifferSession.createUi()
 		countof(endiannessTable)
 		);
 
-	m_dataBitsProp = m_pluginHost.m_propertyGrid.createIntProperty(
+	m_dataBitsProp = m_pluginHost.m_propertyGrid.createEnumProperty(
 		group,,
 		"Data bits",
-		"SPI word size"
+		"SPI word size",
+		dataBitsTable,
+		countof(dataBitsTable)
 		);
 
 	group = m_pluginHost.m_propertyGrid.createGroupProperty(
@@ -280,9 +290,6 @@ I2cSpiSnifferSession.createUi()
 		"Update rate limit",
 		"Log cache update limit (in scroll operations per second)"
 		);
-
-	m_dataBitsProp.m_minValue = 4;
-	m_dataBitsProp.m_maxValue = 16;
 
 	io.BufferPropertySet.PropertyId ids =
 		io.BufferPropertySet.PropertyId.ReadParallelism |
@@ -388,18 +395,20 @@ bool errorcode I2cSpiSnifferSession.startCapture()
 	m_outEndpoint = m_iface.openEndpoint(Usb.OutEndpoint);
 	writeLog(I2cSpiSnifferLogRecordCode.OutEndpointOpened);
 
-	clearCypressBuffers();
+	gracefulStop();
 
 	// align read block on 512 bytes
 
 	size_t readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
 	readBlockSize = (readBlockSize + Usb.PacketSize - 1) & ~(Usb.PacketSize - 1);
 
-	m_inEndpoint = m_iface.openEndpoint(Usb.InEndpoint);
+	m_inEndpoint = m_iface.openEndpoint(Usb.InEndpoint, true);
 	m_inEndpoint.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
 	m_inEndpoint.m_readBlockSize = readBlockSize;
 	m_inEndpoint.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 	m_inEndpoint.m_options &= ~io.UsbEndpointOptions.KeepReadBlockSize;
+	m_inEndpoint.unsuspend();
+
 	writeLog(I2cSpiSnifferLogRecordCode.InEndpointOpened);
 
 	char startCode;
@@ -408,6 +417,7 @@ bool errorcode I2cSpiSnifferSession.startCapture()
 	{
 	case Protocol.Spi:
 		m_spiDecoder.m_isBigEndian = m_endiannessProp.m_value;
+		m_spiDecoder.m_dataBits = m_dataBitsProp.m_value;
 		m_decoder = m_spiDecoder;
 		startCode = m_spiModeProp.m_value;
 		startCode += m_endiannessProp.m_value ? 0x70 : 0x80;
@@ -433,23 +443,32 @@ catch:
 	return false;
 }
 
-bool errorcode I2cSpiSnifferSession.clearCypressBuffers()
+bool errorcode I2cSpiSnifferSession.gracefulStop()
 {
 	static char stopCode = 0xaa;
 	m_outEndpoint.write(&stopCode, sizeof(stopCode));
+	m_outEndpoint.blockingWait(io.UsbEndpointEvents.WriteCompleted);
 
-	m_inEndpoint = m_iface.openEndpoint(Usb.InEndpoint);
-	m_inEndpoint.m_readParallelism = 1;
-	m_inEndpoint.m_readBlockSize = CypressBufferSize;
-	m_inEndpoint.m_readBufferSize = CypressBufferSize;
-	m_inEndpoint.m_options &= ~io.UsbEndpointOptions.KeepReadBlockSize;
+	io.UsbEndpoint* ep = m_iface.openEndpoint(Usb.InEndpoint, true);
+	ep.m_readParallelism = 1;
+	ep.m_readBlockSize = Usb.PacketSize;
+	ep.m_readBufferSize = CypressBufferSize;
+	ep.m_options &= ~io.UsbEndpointOptions.KeepReadBlockSize;
+	ep.unsuspend();
 
-	m_inEndpoint.blockingWait(
-		io.UsbEndpointEvents.IncomingData | io.UsbEndpointEvents.IoError,
-		CypressClearBufferTimeout
-		);
+	for (;;)
+	{
+		ep.blockingWait(io.UsbEndpointEvents.IncomingData, CypressClearBufferTimeout);
 
-	m_inEndpoint.close();
+		size_t size = ep.read(m_readBuffer.m_p, m_readBuffer.m_size);
+		if (!size)
+			break;
+
+		writeLogString(log.StdRecordCode.PlainText, $"Cypress buffer clear received: $size");
+		writeLog(log.StdRecordCode.Bin, m_readBuffer.m_p, size);
+	}
+
+	ep.close();
 	writeLog(I2cSpiSnifferLogRecordCode.CypressBufferCleared);
 	return true;
 }
@@ -458,9 +477,7 @@ I2cSpiSnifferSession.stopCapture()
 {
 	if (m_outEndpoint)
 	{
-		static char stopCode = 0xaa;
-		try m_outEndpoint.write(&stopCode, sizeof(stopCode));
-		m_outEndpoint.blockingWait(io.UsbEndpointEvents.WriteCompleted);
+		try gracefulStop();
 		m_outEndpoint.close();
 		m_outEndpoint = null;
 	}
@@ -522,7 +539,7 @@ I2cSpiSnifferSession.onInEndpointEvent(
 	if (triggeredEvents & io.UsbEndpointEvents.IncomingData)
 	{
 		size_t size = m_inEndpoint.read(m_readBuffer.m_p, m_readBuffer.m_size);
-		m_decoder.decode(m_readBuffer.m_p, size);
+		m_decoder.decode(sys.getTimestamp(), m_readBuffer.m_p, size);
 	}
 
 	waitInEndpointEvents();
@@ -548,7 +565,7 @@ I2cSpiSnifferSession.save(doc.Storage* storage)
 	storage.writeInt("spiMode", m_spiModeProp.m_value);
 	storage.writeInt("endianness", m_endiannessProp.m_value);
 	storage.writeInt("dataBits", m_dataBitsProp.m_value);
-	storage.writeBool("dataBits", m_useLogUpdateRateLimitProp.m_value);
+	storage.writeBool("useLogUpdateRateLimitProp", m_useLogUpdateRateLimitProp.m_value);
 	storage.writeInt("logUpdateRateLimitProp", m_logUpdateRateLimitProp.m_value);
 	m_bufferPropertySet.save(storage);
 }
@@ -567,6 +584,9 @@ bool errorcode I2cSpiSnifferSession.applyProperties()
 	m_pluginHost.m_log.m_cacheUpdateScrollRateLimit = m_useLogUpdateRateLimitProp.m_value ?
 		m_logUpdateRateLimitProp.m_value :
 		-1;
+
+	m_spiDecoder.m_isBigEndian = m_endiannessProp.m_value;
+	m_spiDecoder.m_dataBits = m_dataBitsProp.m_value;
 
 	if (m_state != State.Capturing)
 		return true;
@@ -593,8 +613,10 @@ size_t errorcode I2cSpiSnifferSession.transmit(
 	size_t size
 	)
 {
+	m_spiDecoder.m_isBigEndian = m_endiannessProp.m_value;
+	m_spiDecoder.m_dataBits = m_dataBitsProp.m_value;
 	m_spiDecoder.reset();
-	m_spiDecoder.decode(p, size);
+	m_spiDecoder.decode(sys.getTimestamp(), p, size);
 	return size;
 }
 
