@@ -288,6 +288,7 @@ StdSessionInfoSet.onLogRecord(
 		break;
 
 	case log.StdRecordCode.TxRx:
+		size /= 2;
 		addData(size, size);
 		break;
 	}
