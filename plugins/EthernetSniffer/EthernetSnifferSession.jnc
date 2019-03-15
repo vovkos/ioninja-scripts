@@ -1,0 +1,513 @@
+//..............................................................................
+//
+// Ethernet Sniffer session
+//
+
+import "io_usb.jncx"
+import "io_BufferUi.jnc"
+import "std_Buffer.jnc"
+import "doc_Session.jnc"
+import "gui_StdSessionInfo.jnc"
+import "log_ThroughputCalc.jnc"
+import "log_ChecksumCalc.jnc"
+
+//..............................................................................
+
+class EthernetSnifferSession: doc.Session
+{
+protected:
+	enum Defaults
+	{
+		ReadParallelism = 4,
+		ReadBlockSize   = 64 * 1024,
+		ReadBufferSize  = 1 * 1024 * 1024,
+
+		LogCacheUpdateScrollRateLimit = 16,
+	}
+
+	enum State
+	{
+		Closed,
+		Uploading,
+		Capturing,
+	}
+
+	char const* m_statusText[] =
+	{
+		"Closed",
+		"Uploading",
+		"Capturing",
+	}
+
+	enum ActionId
+	{
+		Refresh,
+		Capture,
+		Test,
+		_Count,
+	}
+
+	enum IconId
+	{
+		Capture,
+		Stop,
+		Refresh,
+		_Count,
+	}
+
+	enum StatusPaneId
+	{
+		State,
+		_Count,
+	}
+
+	enum Usb
+	{
+		VendorId    = 0x16d0,
+		ProductId   = 0x0e27,
+		OutEndpoint = 0x02,
+		InEndpoint  = 0x86,
+		PacketSize  = 512,
+	}
+
+protected:
+	// usb
+
+	State bindable m_state;
+	io.UsbDevice* m_device;
+	io.UsbInterface* m_iface;
+	io.UsbEndpoint* m_outEndpoint; // until we figure out how to use control ep 0
+	io.UsbEndpoint* m_inEndpoint;
+	std.Buffer m_readBuffer;
+	std.Buffer m_packetBuffer;
+	uint16_t m_packetOffset;
+	PacketFlags m_packetFlags;
+	uint_t m_syncId;
+
+	// toolbar, status bar & menu
+
+	gui.Action* m_actionTable[ActionId._Count];
+	gui.Icon* m_iconTable[IconId._Count];
+	gui.StatusPane* m_statusPaneTable[StatusPaneId._Count];
+	gui.ComboBox* m_deviceCombo;
+
+	// property grid
+
+	gui.EnumProperty* m_deviceProp;
+	gui.BoolProperty* m_rawDataProp;
+	io.BufferPropertySet m_bufferPropertySet;
+
+	// information grid
+
+	gui.StdSessionInfoSet m_stdSessionInfoSet;
+	log.ThroughputInfoSet m_throughputInfoSet;
+	log.ChecksumInfoSet m_checksumInfoSet;
+
+	// ui reactor
+
+	reactor m_uiReactor;
+
+public:
+	construct(doc.PluginHost* pluginHost);
+
+	bool errorcode capture();
+	void stopCapture();
+
+	override size_t errorcode transmit(
+		void const* p,
+		size_t size
+		);
+
+	override void load(doc.Storage* storage);
+	override void save(doc.Storage* storage);
+	override void updateProperties();
+	override errorcode bool applyProperties();
+	override void restoreDefaultProperties();
+
+protected:
+	onCapture();
+
+	onInEndpointEvent(
+		uint_t syncId,
+		io.UsbEndpointEvents triggeredEvents
+		);
+
+	createUi();
+	enumerateDevices();
+	waitInEndpointEvents();
+
+	parse(
+		uint32_t const* p,
+		size_t size
+		);
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+EthernetSnifferSession.construct(doc.PluginHost* pluginHost)
+{
+	basetype.construct(pluginHost);
+
+	createUi();
+
+	pluginHost.m_log.m_cacheUpdateScrollRateLimit = Defaults.LogCacheUpdateScrollRateLimit;
+	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
+	m_stdSessionInfoSet.addLogListener(pluginHost.m_log);
+}
+
+EthernetSnifferSession.createUi()
+{
+	// toolbar
+
+	m_iconTable[IconId.Capture] = new gui.Icon("images/capture.png");
+	m_iconTable[IconId.Stop] = new gui.Icon("images/stop.png");
+	m_iconTable[IconId.Refresh] = new gui.Icon("images/refresh.png");
+
+	m_pluginHost.m_toolBar.addLabel("Sniffer:");
+	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox(-1);
+
+	m_actionTable[ActionId.Refresh]  = createAction("Re-enumerate sniffers", m_iconTable [IconId.Refresh]);
+	m_actionTable[ActionId.Refresh].m_onTriggered += enumerateDevices;
+
+	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable [IconId.Capture]);
+	m_actionTable[ActionId.Capture].m_onTriggered += onCapture;
+
+	// status bar
+
+	m_statusPaneTable[StatusPaneId.State] = m_pluginHost.m_statusBar.addPane(, 80);
+
+	// property grid
+
+	gui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty(
+		"Connection",
+		"USB-specific connection settings"
+		);
+
+	m_deviceProp = m_pluginHost.m_propertyGrid.createEnumProperty(
+		group,,
+		"Device",
+		"Target USB device",
+		null, 0
+		);
+
+	m_rawDataProp = m_pluginHost.m_propertyGrid.createBoolProperty(
+		group,,
+		"Show raw data",
+		"Show raw USB data"
+		);
+
+	io.BufferPropertySet.PropertyId ids =
+		io.BufferPropertySet.PropertyId.ReadParallelism |
+		io.BufferPropertySet.PropertyId.ReadBlockSize |
+		io.BufferPropertySet.PropertyId.ReadBufferSize |
+		io.BufferPropertySet.PropertyId.NotifyReadBufferFull;
+
+	m_bufferPropertySet.m_defaultReadParallelism = Defaults.ReadParallelism;
+	m_bufferPropertySet.m_defaultReadBlockSize = Defaults.ReadBlockSize;
+	m_bufferPropertySet.m_defaultReadBufferSize = Defaults.ReadBufferSize;
+	m_bufferPropertySet.createPropertiesGrouped(m_pluginHost.m_propertyGrid,,, ids);
+
+	// information grid
+
+	gui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("USB connection");
+
+	m_stdSessionInfoSet.createInformationValues(m_pluginHost.m_informationGrid, infoGroup);
+	m_throughputInfoSet.createInformationValuesGrouped(m_pluginHost.m_informationGrid);
+	m_checksumInfoSet.createInformationValuesGrouped(m_pluginHost.m_informationGrid);
+
+	m_uiReactor.start();
+
+	enumerateDevices();
+	m_isTransmitEnabled = true;
+}
+
+EthernetSnifferSession.onCapture()
+{
+	if (m_state)
+		stopCapture();
+	else
+		try capture();
+}
+
+EthernetSnifferSession.enumerateDevices()
+{
+	m_deviceCombo.clear();
+
+	io.UsbDevice* const* deviceArray = io.createUsbDeviceArray();
+	size_t totalCount = dynamic countof(deviceArray);
+	size_t actualCount = 0;
+
+	gui.EnumPropertyOption* optionTable = new gui.EnumPropertyOption[totalCount];
+
+	for (size_t i = 0; i < totalCount; i++)
+	{
+		io.UsbDevice* device = deviceArray[i];
+		io.UsbDeviceDesc const* deviceDesc = device.m_deviceDesc;
+
+		if (deviceDesc.m_vendorId != Usb.VendorId ||
+			deviceDesc.m_productId != Usb.ProductId)
+			continue;
+
+		char const* text = $"@%(1;03d):%(2;03d) IO Ninja Ethernet Sniffer"(
+			device.m_bus,
+			device.m_address
+			);
+
+		m_deviceCombo.addItem(text, device);
+
+		optionTable[actualCount].m_text = text;
+		optionTable[actualCount].m_value = device;
+		actualCount++;
+	}
+
+	m_deviceProp.setOptions(optionTable, actualCount);
+}
+
+bool errorcode EthernetSnifferSession.capture()
+{
+	stopCapture();
+
+	if (m_deviceCombo.m_currentIndex == -1)
+		return true;
+
+	startSession();
+
+	m_device = m_deviceCombo.m_currentData;
+	m_device.open();
+
+	writeLogString(EthernetSnifferLogRecordCode.DeviceOpened, m_deviceCombo.m_currentText);
+
+	m_iface = m_device.claimInterface(0);
+	writeLog(EthernetSnifferLogRecordCode.InterfaceClaimed);
+
+	m_outEndpoint = m_iface.openEndpoint(Usb.OutEndpoint);
+	writeLog(EthernetSnifferLogRecordCode.OutEndpointOpened);
+
+	// align read block on 512 bytes
+
+	size_t readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
+	readBlockSize = (readBlockSize + Usb.PacketSize - 1) & ~(Usb.PacketSize - 1);
+
+	m_inEndpoint = m_iface.openEndpoint(Usb.InEndpoint, true);
+	m_inEndpoint.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
+	m_inEndpoint.m_readBlockSize = readBlockSize;
+	m_inEndpoint.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
+	m_inEndpoint.m_options &= ~io.UsbEndpointOptions.KeepReadBlockSize;
+	m_inEndpoint.unsuspend();
+
+	writeLog(EthernetSnifferLogRecordCode.InEndpointOpened);
+
+	// static char startCode = 0x70;
+	// m_outEndpoint.write (&startCode, sizeof (startCode));
+	writeLog(EthernetSnifferLogRecordCode.CaptureStarted);
+
+	waitInEndpointEvents();
+	m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
+	m_state = State.Capturing;
+	return true;
+
+catch:
+	writeLogLastError(EthernetSnifferLogRecordCode.CaptureError);
+	return false;
+}
+
+EthernetSnifferSession.stopCapture()
+{
+	if (m_outEndpoint)
+	{
+		// static char stopCode = 0xaa;
+		// try m_outEndpoint.write (&stopCode, sizeof (stopCode));
+		// m_outEndpoint.blockingWait (io.UsbEndpointEvents.WriteCompleted);
+		m_outEndpoint.close();
+		m_outEndpoint = null;
+	}
+
+	if (m_inEndpoint)
+	{
+		m_inEndpoint.close();
+		m_inEndpoint = null;
+	}
+
+	if (m_iface)
+	{
+		m_iface.release();
+		m_iface = null;
+	}
+
+	if (m_device)
+	{
+		m_device.close();
+		m_device = null;
+	}
+
+	if (m_state)
+	{
+		m_stdSessionInfoSet.endSession();
+		writeLog(EthernetSnifferLogRecordCode.CaptureStopped);
+		m_state = State.Closed;
+	}
+
+	m_packetBuffer.clear();
+	m_packetOffset = 0;
+	m_syncId++;
+}
+
+EthernetSnifferSession.waitInEndpointEvents()
+{
+	io.UsbEndpointEvents eventMask =
+		io.UsbEndpointEvents.IoError |
+		io.UsbEndpointEvents.ReadBufferFull |
+		io.UsbEndpointEvents.IncomingData;
+
+	m_inEndpoint.wait(eventMask, onInEndpointEvent ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
+}
+
+EthernetSnifferSession.onInEndpointEvent(
+	uint_t syncId,
+	io.UsbEndpointEvents triggeredEvents
+	)
+{
+	if (syncId != m_syncId)
+		return;
+
+	if (triggeredEvents & io.UsbEndpointEvents.IoError)
+	{
+		writeLogError(log.StdRecordCode.Error, m_inEndpoint.m_ioError);
+		stopCapture();
+		return;
+	}
+
+	if (triggeredEvents & io.UsbEndpointEvents.IncomingData)
+	{
+		size_t size = m_inEndpoint.read(m_readBuffer.m_p, m_readBuffer.m_size);
+
+		if (m_rawDataProp.m_value)
+			m_pluginHost.m_log.m_writer.write(log.StdRecordCode.Rx, m_readBuffer.m_p, size);
+
+		parse((uint32_t const*)m_readBuffer.m_p, size / sizeof(uint32_t));
+	}
+
+	waitInEndpointEvents();
+}
+
+EthernetSnifferSession.parse(
+	uint32_t const* p,
+	size_t count
+	)
+{
+	uint32_t const* end = p + count;
+
+	for (;;)
+	{
+		if (!m_packetBuffer.m_size)
+		{
+			while (p < end && (*p == -1 || *p == 0))
+				p++;
+
+			if (p >= end)
+				break;
+
+			size_t packetSize = sizeof(uint32_t) + (((*p & 0xffff) + 3) & ~3); // align on 4 bytes
+			m_packetOffset = 0;
+			m_packetBuffer.setSize(packetSize);
+		}
+
+		if (p >= end)
+			break;
+
+		size_t dstSize = m_packetBuffer.m_size - m_packetOffset;
+		assert(!(dstSize & 3)); // must be aligned
+
+		size_t srcSize = (end - p) * sizeof(uint32_t);
+		if (srcSize < dstSize)
+		{
+			memcpy(
+				m_packetBuffer.m_p + m_packetOffset,
+				p,
+				srcSize
+				);
+
+			m_packetOffset += srcSize;
+			break;
+		}
+
+		// packet is completed
+
+		memcpy(
+			m_packetBuffer.m_p + m_packetOffset,
+			p,
+			dstSize
+			);
+
+		p += dstSize / sizeof(uint32_t);
+
+		m_pluginHost.m_log.m_writer.write(
+			EthernetSnifferLogRecordCode.Packet,
+			m_packetBuffer.m_p,
+			m_packetBuffer.m_size
+			);
+
+		m_packetBuffer.clear();
+		m_packetOffset = 0;
+	}
+}
+
+EthernetSnifferSession.load(doc.Storage* storage)
+{
+	m_deviceCombo.m_currentIndex  = storage.readInt("deviceIdx");
+	m_bufferPropertySet.load(storage);
+	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
+}
+
+EthernetSnifferSession.save(doc.Storage* storage)
+{
+	storage.writeInt("deviceIdx", (int)m_deviceCombo.m_currentIndex);
+	m_bufferPropertySet.save(storage);
+}
+
+EthernetSnifferSession.updateProperties()
+{
+	m_deviceProp.m_currentIndex = m_deviceCombo.m_currentIndex;
+}
+
+bool errorcode EthernetSnifferSession.applyProperties()
+{
+	m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
+	m_readBuffer.detach(); // drop buffer, so we re-allocate each time
+	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
+
+	if (m_state != State.Capturing)
+		return true;
+
+	m_inEndpoint.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
+	m_inEndpoint.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
+	m_inEndpoint.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
+	return true;
+}
+
+EthernetSnifferSession.restoreDefaultProperties()
+{
+	m_bufferPropertySet.restoreDefaults();
+}
+
+size_t errorcode EthernetSnifferSession.transmit(
+	void const* p,
+	size_t size
+	)
+{
+	m_packetBuffer.clear();
+	m_packetOffset = 0;
+	parse((uint32_t const*)p, size / 4);
+	return size;
+}
+
+reactor EthernetSnifferSession.m_uiReactor
+{
+	m_title = $"Ethernet $(m_deviceCombo.m_currentText)";
+	m_actionTable[ActionId.Capture].m_text = m_state ? "Close Device" : "Open Device";
+	m_actionTable[ActionId.Capture].m_icon = m_iconTable[m_state ? IconId.Stop : IconId.Capture];
+	m_statusPaneTable[StatusPaneId.State].m_text = m_statusText[m_state];
+}
+
+//..............................................................................

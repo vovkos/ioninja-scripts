@@ -1,0 +1,39 @@
+//..............................................................................
+//
+// Ethernet sniffer log record codes
+//
+
+import "log_RecordCode.jnc"
+
+//..............................................................................
+
+enum EthernetSnifferLogRecordCode: uint64_t
+{
+	DeviceOpened            = 0x01d4cdafa0abb0e0,
+	InterfaceClaimed        = 0x01d4cdafa0abb0e1,
+	InEndpointOpened        = 0x01d4cdafa0abb0e2,
+	OutEndpointOpened       = 0x01d4cdafa0abb0e3,
+	CaptureStarted          = 0x01d4cdafa0abb0e4,
+	CaptureStopped          = 0x01d4cdafa0abb0e5,
+	CaptureError            = 0x01d4cdafa0abb0e6,
+	Packet                  = 0x01d4cdafa0abb0e7,
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+bitflag enum PacketFlags: uint8_t
+{
+	ChannelId,
+	CrcValid,
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+struct PacketHdr
+{
+	uint16_t m_size;
+	uint8_t m_reserved;
+	PacketFlags m_flags;
+}
+
+//..............................................................................

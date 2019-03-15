@@ -1,0 +1,30 @@
+#...............................................................................
+#
+#  Ethernet Sniffer Log log plugin
+#
+
+[plugin]
+
+name        = "Ethernet Sniffer Log"
+description = "Ethernet Sniffer log representer"
+group       = serial
+guid        = ae3dc2da-6124-4c14-b05a-200df2fc580a
+small-icon  = images/sniffer-16x16.png
+
+log-representer-func = representEthernetSnifferLog
+
+[scripts]
+
+EthernetSnifferLogRepresenter.jnc
+EthernetSnifferLogRecordCode.jnc
+
+[records]
+
+01d4cdafa0abb0e0  # DeviceOpened
+01d4cdafa0abb0e1  # InterfaceClaimed
+01d4cdafa0abb0e2  # InEndpointOpened
+01d4cdafa0abb0e3  # OutEndpointOpened
+01d4cdafa0abb0e4  # CaptureStarted
+01d4cdafa0abb0e5  # CaptureStopped
+01d4cdafa0abb0e6  # CaptureError
+01d4cdafa0abb0e7  # Packet
