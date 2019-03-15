@@ -5,6 +5,7 @@
 
 import "io_usb.jncx"
 import "io_UsbDb.jnc"
+import "io_UsbUi.jnc"
 import "io_BufferUi.jnc"
 import "std_Buffer.jnc"
 import "doc_Session.jnc"
@@ -105,6 +106,11 @@ public:
 		);
 
 protected:
+	onEnumerateDevices()
+	{
+		io.refreshUsbDeviceListUi(m_deviceCombo, m_deviceProp);
+	}
+
 	onOpenDevice();
 
 	onTransferCompleted(
@@ -119,7 +125,6 @@ protected:
 		);
 
 	createUi();
-	enumerateDevices();
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -183,7 +188,7 @@ UsbControlEndpointSession.createUi()
 	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 
 	m_actionTable[ActionId.Refresh]  = createAction("Re-enumerate devices", m_iconTable [IconId.Refresh]);
-	m_actionTable[ActionId.Refresh].m_onTriggered += enumerateDevices;
+	m_actionTable[ActionId.Refresh].m_onTriggered += onEnumerateDevices;
 
 	m_actionTable[ActionId.Open] = createAction("Open device", m_iconTable [IconId.Open]);
 	m_actionTable[ActionId.Open].m_onTriggered += onOpenDevice;
@@ -300,7 +305,7 @@ UsbControlEndpointSession.createUi()
 
 	m_uiReactor.start();
 
-	enumerateDevices();
+	io.refreshUsbDeviceListUi(m_deviceCombo, m_deviceProp);
 }
 
 UsbControlEndpointSession.onOpenDevice()
@@ -309,40 +314,6 @@ UsbControlEndpointSession.onOpenDevice()
 		closeDevice();
 	else
 		openDevice();
-}
-
-UsbControlEndpointSession.enumerateDevices()
-{
-	m_deviceCombo.clear();
-
-	io.UsbDevice* const* deviceArray = io.createUsbDeviceArray();
-	size_t count = dynamic countof(deviceArray);
-
-	gui.EnumPropertyOption* optionTable = new gui.EnumPropertyOption[count];
-
-	io.UsbDb* usbDb = io.getStdUsbDb();
-
-	for (size_t i = 0; i < count; i++)
-	{
-		io.UsbDevice* device = deviceArray[i];
-		io.UsbDeviceDesc const* deviceDesc = device.m_deviceDesc;
-		io.UsbVendor const* vendor = usbDb.findVendor(deviceDesc.m_vendorId);
-		io.UsbProduct const* product = vendor ? vendor.findProduct(deviceDesc.m_productId) : null;
-
-		char const* text = $"@%(1;03d):%(2;03d) %3 %4" (
-			device.m_bus,
-			device.m_address,
-			vendor ? vendor.m_name : $"VID_$(deviceDesc.m_vendorId; 04x)",
-			product ? product.m_name : $"PID_$(deviceDesc.m_productId; 04x)"
-			);
-
-		m_deviceCombo.addItem(text, device);
-
-		optionTable[i].m_text = text;
-		optionTable[i].m_value = device;
-	}
-
-	m_deviceProp.setOptions(optionTable, count);
 }
 
 bool UsbControlEndpointSession.openDevice()
@@ -389,7 +360,15 @@ UsbControlEndpointSession.closeDevice()
 
 UsbControlEndpointSession.load(doc.Storage* storage)
 {
-	m_deviceCombo.m_currentIndex  = storage.readInt("deviceIdx");
+	uint_t vid = storage.readInt("deviceVid");
+	uint_t pid = storage.readInt("devicePid");
+	uint_t bus = storage.readInt("deviceBus");
+	uint_t address = storage.readInt("deviceAddress");
+
+	size_t index = io.findUsbDeviceComboIndex(m_deviceCombo, vid, pid, bus, address);
+	if (index != -1)
+		m_deviceCombo.m_currentIndex = index;
+
 	m_autoDetachKernelDriverProp.m_value = storage.readBool("autoDetachKernelDriver");
 	m_reqDirectionCombo.m_currentIndex = storage.readInt("reqDirection");
 	m_reqRecipientCombo.m_currentIndex = storage.readInt("reqRecipient");
@@ -401,7 +380,15 @@ UsbControlEndpointSession.load(doc.Storage* storage)
 
 UsbControlEndpointSession.save(doc.Storage* storage)
 {
-	storage.writeInt("deviceIdx", (int) m_deviceCombo.m_currentIndex);
+	io.UsbDevice* device = m_deviceCombo.m_currentData;
+	if (device)
+	{
+		storage.writeInt("deviceVid", device.m_deviceDesc.m_vendorId);
+		storage.writeInt("devicePid", device.m_deviceDesc.m_productId);
+		storage.writeInt("deviceBus", device.m_bus);
+		storage.writeInt("deviceAddress", device.m_address);
+	}
+
 	storage.writeBool("autoDetachKernelDriver", m_autoDetachKernelDriverProp.m_value);
 	storage.writeInt("reqDirection", m_reqDirectionCombo.m_currentIndex);
 	storage.writeInt("reqRecipient", m_reqRecipientCombo.m_currentIndex);
@@ -437,7 +424,6 @@ bool errorcode UsbControlEndpointSession.applyProperties()
 
 UsbControlEndpointSession.restoreDefaultProperties()
 {
-	m_deviceProp.m_currentIndex = 0;
 	m_autoDetachKernelDriverProp.m_value = true;
 	m_reqDirectionCombo.m_currentIndex = 0;
 	m_reqRecipientCombo.m_currentIndex = 0;
