@@ -18,13 +18,13 @@ bool $(logRepresenterFunc) (
 	switch (recordCode)
 	{
 	case $(logRecordCodeEnum).Connected:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Connect;
 		target.addHyperText ($"Connected to \e[34m$((char const*) p)");
 		break;
 
 	case $(logRecordCodeEnum).Disconnected:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Pause;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
 		target.addHyperText ($"Disconnected from \e[34m$((char const*) p)");
 		break;
