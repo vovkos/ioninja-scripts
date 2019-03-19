@@ -613,10 +613,21 @@ size_t errorcode I2cSpiSnifferSession.transmit(
 	size_t size
 	)
 {
-	m_spiDecoder.m_isBigEndian = m_endiannessProp.m_value;
-	m_spiDecoder.m_dataBits = m_dataBitsProp.m_value;
-	m_spiDecoder.reset();
-	m_spiDecoder.decode(sys.getTimestamp(), p, size);
+	uint64_t timestamp = sys.getTimestamp();
+
+	if (m_protocolProp.m_value == Protocol.I2c)
+	{
+		m_i2cDecoder.reset();
+		m_i2cDecoder.decode(timestamp, p, size);
+	}
+	else
+	{
+		m_spiDecoder.m_isBigEndian = m_endiannessProp.m_value;
+		m_spiDecoder.m_dataBits = m_dataBitsProp.m_value;
+		m_spiDecoder.reset();
+		m_spiDecoder.decode(timestamp, p, size);
+	}
+
 	return size;
 }
 

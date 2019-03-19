@@ -156,47 +156,74 @@ bool representI2cSpiSnifferLog(
 		break;
 
 	case I2cSpiSnifferLogRecordCode.I2cStart:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText(I2cSpiSnifferLogPartCode.I2cStartBegin, "I2C \e[32mstart\e[m");
+		target.addHyperText(I2cSpiSnifferLogPartCode.I2cStartBegin, "I2C start");
 		break;
 
-	case I2cSpiSnifferLogRecordCode.I2cFinalizeStart7BitAck:
-	case I2cSpiSnifferLogRecordCode.I2cFinalizeStart7BitNack:
-		uchar_t hdr = *(const uchar_t*) p;
-		bool ack = recordCode == I2cSpiSnifferLogRecordCode.I2cFinalizeStart7BitAck;
-
-		target.addHyperText(
-			I2cSpiSnifferLogPartCode.I2cStartEnd,
-			$"\x15I2C \e[32mstart\e[m, %1 \e[%2m@%(3; 02x)\e[m" (
-				(hdr & 0x01) ? "read from" : "write to",
-				ack ? "34" : "31;9",
-				hdr >> 1
-				)
-			);
-
-		break;
-
-	case I2cSpiSnifferLogRecordCode.I2cFinalizeStart10BitAck:
-	case I2cSpiSnifferLogRecordCode.I2cFinalizeStart10BitNack:
+	case I2cSpiSnifferLogRecordCode.I2cFinalizeStart7Bit:
 		uint16_t hdr = *(const uint16_t*) p;
-		bool ack = recordCode == I2cSpiSnifferLogRecordCode.I2cFinalizeStart10BitAck;
+		bool isRead = hdr & 0x01;
+		bool isAck = hdr & 0x0100;
 
 		target.addHyperText(
 			I2cSpiSnifferLogPartCode.I2cStartEnd,
-			$"\x15I2C \e[32mstart\e[m, %1 \e[%2m@%(3; 03x)\e[m" (
-				(hdr & 0x100) ? "read" : "write",
-				ack ? "34" : "31;9",
-				(hdr & 0xff) | ((hdr & 0x60) >> 1)
+			$"\x15I2C start (%1, I2C 7-bit address: \e[%2m@%(3; 02x)\e[m)" (
+				isRead ? "read" : "write",
+				isAck ? "34" : "34;9",
+				(hdr & 0xfe) >> 1
 				)
 			);
+
+		target.m_lineAttr.m_iconIdx = isRead ? log.StdLogIcon.Rx : log.StdLogIcon.Tx;
+		target.m_lineAttr.m_backColor = gui.ColorFlags.Transparent;
+		target.m_lineAttr.m_textColor = gui.StdColor.Red;
+		target.m_lineAttr.m_fontFlags = isAck ? 0 : gui.FontFlags.Strikeout;
+		target.addBin(isRead ? log.StdRecordCode.Rx : log.StdRecordCode.Tx, p, 1);
+		break;
+
+	case I2cSpiSnifferLogRecordCode.I2cFinalizeStart10Bit:
+		uint32_t hdr = *(const uint32_t*) p;
+		bool isRead = hdr & 0x01;
+		bool isAck1 = hdr & 0x00010000;
+		bool isAck2 = hdr & 0x00020000;
+
+		target.addHyperText(
+			I2cSpiSnifferLogPartCode.I2cStartEnd,
+			$"\x15I2C start (%1, I2C 10-bit address: \e[%2m@%(3; 03x)\e[m)" (
+				isRead ? "read" : "write",
+				isAck1 && isAck2 ? "34" : "34;9",
+				((hdr & 0x06) << 7) | ((hdr & 0xff00) >> 8)
+				)
+			);
+
+		target.m_lineAttr.m_iconIdx = isRead ? log.StdLogIcon.Rx : log.StdLogIcon.Tx;
+		target.m_lineAttr.m_backColor = gui.ColorFlags.Transparent;
+		target.m_lineAttr.m_textColor = gui.StdColor.Red;
+
+		uint64_t binRecordCode = isRead ? log.StdRecordCode.Rx : log.StdRecordCode.Tx;
+		gui.FontFlags fontFlags1 = isAck1 ? 0 : gui.FontFlags.Strikeout;
+		gui.FontFlags fontFlags2 = isAck2 ? 0 : gui.FontFlags.Strikeout;
+
+		if (fontFlags1 == fontFlags2)
+		{
+			target.m_lineAttr.m_fontFlags = fontFlags1;
+			target.addBin(binRecordCode, p, 2);
+		}
+		else
+		{
+			target.m_lineAttr.m_fontFlags = fontFlags1;
+			target.addBin(binRecordCode, p, 1);
+			target.m_lineAttr.m_fontFlags = fontFlags2;
+			target.addBin(binRecordCode, p + 1, 1);
+		}
 
 		break;
 
 	case I2cSpiSnifferLogRecordCode.I2cStop:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Stop;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText("I2C \e[31mstop\e[m");
+		target.addHyperText("I2C stop");
 		break;
 
 	case I2cSpiSnifferLogRecordCode.I2cStopOutOfTransaction:
@@ -222,13 +249,13 @@ bool representI2cSpiSnifferLog(
 		break;
 
 	case I2cSpiSnifferLogRecordCode.SpiStart:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Play;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText("SPI SS \e[32mlow\e[m");
 		break;
 
 	case I2cSpiSnifferLogRecordCode.SpiStop:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Stop;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		target.addHyperText("SPI SS \e[31mhigh\e[m");
 		break;

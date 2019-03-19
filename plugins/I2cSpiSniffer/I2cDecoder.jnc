@@ -44,8 +44,8 @@ protected:
 	uchar_t m_data;
 	bool m_isRead;
 	bool m_ack;
-	uint16_t* m_transactionHdr; // as to avoid "lifting" allocations
-	uint_t* m_bitCount;         // as to avoid "lifting" allocations
+	uint_t* m_transactionHdr; // as to avoid "lifting" allocations
+	uint_t* m_bitCount;       // as to avoid "lifting" allocations
 
 public:
 	construct(log.Writer* logWriter);
@@ -70,7 +70,7 @@ protected:
 I2cDecoder.construct(log.Writer* logWriter)
 {
 	basetype.construct(logWriter);
-	m_transactionHdr = new uint16_t;
+	m_transactionHdr = new uint_t;
 	m_bitCount = new uint_t;
 }
 
@@ -86,18 +86,6 @@ I2cDecoder.decode(
 	size_t size
 	)
 {
-	static uint64_t start7BitRecordCodeTable[2] =
-	{
-		I2cSpiSnifferLogRecordCode.I2cFinalizeStart7BitNack,
-		I2cSpiSnifferLogRecordCode.I2cFinalizeStart7BitAck,
-	}
-
-	static uint64_t start10BitRecordCodeTable[2] =
-	{
-		I2cSpiSnifferLogRecordCode.I2cFinalizeStart10BitNack,
-		I2cSpiSnifferLogRecordCode.I2cFinalizeStart10BitAck,
-	}
-
 	static uint64_t dataRecordCodeTable[2][2] =
 	{
 		{ I2cSpiSnifferLogRecordCode.I2cTxNack, log.StdRecordCode.Tx, },
@@ -191,21 +179,21 @@ I2cDecoder.decode(
 
 				if (isAddress10Bit(m_data))
 				{
-					*m_transactionHdr = m_data << 8;
+					*m_transactionHdr = m_data | (ack << 16);
 					m_addressState = AddressState.Address10BitHi;
 				}
 				else
 				{
-					*m_transactionHdr = m_data;
-					m_logWriter.write(timestamp, start7BitRecordCodeTable[ack], m_transactionHdr, sizeof(uint8_t));
+					*m_transactionHdr = m_data | (ack << 8);
+					m_logWriter.write(timestamp, I2cSpiSnifferLogRecordCode.I2cFinalizeStart7Bit, m_transactionHdr, sizeof(uint16_t));
 					m_addressState = AddressState.Idle;
 				}
 
 				break;
 
 			case AddressState.Address10BitHi:
-				*(uint8_t*)m_transactionHdr = m_data;
-				m_logWriter.write(timestamp, start10BitRecordCodeTable[ack], m_transactionHdr, sizeof(uint16_t));
+				*m_transactionHdr |= (m_data << 8) | (ack << 17);
+				m_logWriter.write(timestamp, I2cSpiSnifferLogRecordCode.I2cFinalizeStart10Bit, m_transactionHdr, sizeof(uint32_t));
 				m_addressState = AddressState.Idle;
 				break;
 
