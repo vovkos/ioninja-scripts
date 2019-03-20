@@ -1,12 +1,12 @@
 #...............................................................................
 #
-#  I2C/SPI Sniffer log representer plugin
+#  I2C/SPI Tap log representer plugin
 #
 
 [plugin]
 
-name        = "I2C/SPI Sniffer Log"
-description = "I2C/SPI Sniffer log representer"
+name        = "I2C/SPI Tap Log"
+description = "I2C/SPI Tap log representer"
 group       = serial
 guid        = 39ee6b0f-a65e-4e8a-b252-6fa28d8e3327
 icon        = images/serialmon.png
