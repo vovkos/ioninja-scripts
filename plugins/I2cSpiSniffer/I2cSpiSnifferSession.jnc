@@ -20,8 +20,8 @@ protected:
 	{
 		Proto           = Protocol.Spi,
 		SpiMode         = 0,
-		Endianness      = true,
-		DataBits        = 8,
+		SpiEndianness   = true,
+		SpiDataBits     = 8,
 		ReadParallelism = 4,
 		ReadBlockSize   = 64 * 1024,
 		ReadBufferSize  = 1 * 1024 * 1024,
@@ -54,7 +54,7 @@ protected:
 	{
 		Refresh,
 		Capture,
-		Test,
+		Flip,
 		_Count,
 	}
 
@@ -63,6 +63,7 @@ protected:
 		Capture,
 		Stop,
 		Refresh,
+		Flip,
 		_Count,
 	}
 
@@ -102,14 +103,16 @@ protected:
 	gui.Icon* m_iconTable[IconId._Count];
 	gui.StatusPane* m_statusPaneTable[StatusPaneId._Count];
 	gui.ComboBox* m_deviceCombo;
+	gui.ComboBox* m_protocolCombo;
 
 	// property grid
 
 	gui.EnumProperty* m_deviceProp;
 	gui.EnumProperty* m_protocolProp;
 	gui.EnumProperty* m_spiModeProp;
-	gui.EnumProperty* m_endiannessProp;
-	gui.EnumProperty* m_dataBitsProp;
+	gui.EnumProperty* m_spiDataBitsProp;
+	gui.EnumProperty* m_spiEndiannessProp;
+	gui.BoolProperty* m_spiFlipMosiMisoProp;
 	gui.BoolProperty* m_useLogUpdateRateLimitProp;
 	gui.IntProperty* m_logUpdateRateLimitProp;
 	io.BufferPropertySet m_bufferPropertySet;
@@ -143,14 +146,18 @@ public:
 
 protected:
 	onCapture();
+
+	onFlipMosiMiso()
+	{
+		m_spiDecoder.m_isFlipMosiMiso = m_actionTable[ActionId.Flip].m_isChecked;
+	}
+
 	onUpdateCompleted(bool result);
 
 	onInEndpointEvent(
 		uint_t syncId,
 		io.UsbEndpointEvents triggeredEvents
 		);
-
-	onTest();
 
 	createUi();
 	enumerateDevices();
@@ -214,15 +221,25 @@ I2cSpiSnifferSession.createUi()
 	m_iconTable[IconId.Capture] = new gui.Icon("images/capture.png");
 	m_iconTable[IconId.Stop] = new gui.Icon("images/stop.png");
 	m_iconTable[IconId.Refresh] = new gui.Icon("images/refresh.png");
+	m_iconTable[IconId.Flip] = new gui.Icon("images/flip.png");
 
-	m_pluginHost.m_toolBar.addLabel("Sniffer:");
+	m_pluginHost.m_toolBar.addLabel("Tap:");
 	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 
-	m_actionTable[ActionId.Refresh]  = createAction("Re-enumerate sniffers", m_iconTable[IconId.Refresh]);
+	m_actionTable[ActionId.Refresh]  = createAction("Re-enumerate I2C/SPI tap devices", m_iconTable[IconId.Refresh]);
 	m_actionTable[ActionId.Refresh].m_onTriggered += enumerateDevices;
+
+	m_protocolCombo = m_pluginHost.m_toolBar.addComboBox(
+		"Protocol:",
+		protocolTable,
+		countof(protocolTable)
+		);
 
 	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable[IconId.Capture]);
 	m_actionTable[ActionId.Capture].m_onTriggered += onCapture;
+	m_actionTable[ActionId.Flip] = createAction("Flip SPI MOSI/MISO", m_iconTable[IconId.Flip]);
+	m_actionTable[ActionId.Flip].m_isCheckable = true;
+	m_actionTable[ActionId.Flip].m_onTriggered += onFlipMosiMiso;
 
 	// status bar
 
@@ -258,20 +275,26 @@ I2cSpiSnifferSession.createUi()
 		countof(spiModeTable)
 		);
 
-	m_endiannessProp = m_pluginHost.m_propertyGrid.createEnumProperty(
+	m_spiDataBitsProp = m_pluginHost.m_propertyGrid.createEnumProperty(
 		group,,
-		"Endianness",
+		"SPI data bits",
+		"SPI word size",
+		dataBitsTable,
+		countof(dataBitsTable)
+		);
+
+	m_spiEndiannessProp = m_pluginHost.m_propertyGrid.createEnumProperty(
+		group,,
+		"SPI endianness",
 		"SPI bit endianness",
 		endiannessTable,
 		countof(endiannessTable)
 		);
 
-	m_dataBitsProp = m_pluginHost.m_propertyGrid.createEnumProperty(
+	m_spiFlipMosiMisoProp = m_pluginHost.m_propertyGrid.createBoolProperty(
 		group,,
-		"Data bits",
-		"SPI word size",
-		dataBitsTable,
-		countof(dataBitsTable)
+		"Flip SPI MOSI/MISO",
+		"Flip interpretation of SPI MOSI/MISO lines as TX/RX"
 		);
 
 	group = m_pluginHost.m_propertyGrid.createGroupProperty(
@@ -351,7 +374,7 @@ I2cSpiSnifferSession.enumerateDevices()
 			deviceDesc.m_productId != Usb.ProductId)
 			continue;
 
-		char const* text = $"@%(1;03d):%(2;03d) IO Ninja I2C/SPI Sniffer" (
+		char const* text = $"@%(1;03d):%(2;03d) IO Ninja I2C/SPI Tap" (
 			device.m_bus,
 			device.m_address
 			);
@@ -380,7 +403,7 @@ bool errorcode I2cSpiSnifferSession.capture()
 
 	writeLogString(I2cSpiSnifferLogRecordCode.DeviceOpened, m_deviceCombo.m_currentText);
 
-	return m_uploader.update(m_device, m_protocolProp.m_value);
+	return m_uploader.update(m_device, m_protocolCombo.m_currentData);
 
 catch:
 	writeLogLastError(I2cSpiSnifferLogRecordCode.CaptureError);
@@ -390,11 +413,7 @@ catch:
 bool errorcode I2cSpiSnifferSession.startCapture()
 {
 	m_iface = m_device.claimInterface(0);
-	writeLog(I2cSpiSnifferLogRecordCode.InterfaceClaimed);
-
 	m_outEndpoint = m_iface.openEndpoint(Usb.OutEndpoint);
-	writeLog(I2cSpiSnifferLogRecordCode.OutEndpointOpened);
-
 	gracefulStop();
 
 	// align read block on 512 bytes
@@ -409,18 +428,17 @@ bool errorcode I2cSpiSnifferSession.startCapture()
 	m_inEndpoint.m_options &= ~io.UsbEndpointOptions.KeepReadBlockSize;
 	m_inEndpoint.unsuspend();
 
-	writeLog(I2cSpiSnifferLogRecordCode.InEndpointOpened);
-
 	char startCode;
 
-	switch(m_protocolProp.m_value)
+	switch (m_protocolCombo.m_currentData)
 	{
 	case Protocol.Spi:
-		m_spiDecoder.m_isBigEndian = m_endiannessProp.m_value;
-		m_spiDecoder.m_dataBits = m_dataBitsProp.m_value;
+		m_spiDecoder.m_dataBits = m_spiDataBitsProp.m_value;
+		m_spiDecoder.m_isBigEndian = m_spiEndiannessProp.m_value;
+		m_spiDecoder.m_isFlipMosiMiso = m_actionTable[ActionId.Flip].m_isChecked;
 		m_decoder = m_spiDecoder;
 		startCode = m_spiModeProp.m_value;
-		startCode += m_endiannessProp.m_value ? 0x70 : 0x80;
+		startCode += m_spiEndiannessProp.m_value ? 0x70 : 0x80;
 		break;
 
 	case Protocol.I2c:
@@ -464,8 +482,8 @@ bool errorcode I2cSpiSnifferSession.gracefulStop()
 		if (!size)
 			break;
 
-		writeLogString(log.StdRecordCode.PlainText, $"Cypress buffer clear received: $size");
-		writeLog(log.StdRecordCode.Bin, m_readBuffer.m_p, size);
+		// writeLogString(log.StdRecordCode.PlainText, $"Cypress buffer clear received: $size");
+		// writeLog(log.StdRecordCode.Bin, m_readBuffer.m_p, size);
 	}
 
 	ep.close();
@@ -548,10 +566,11 @@ I2cSpiSnifferSession.onInEndpointEvent(
 I2cSpiSnifferSession.load(doc.Storage* storage)
 {
 	m_deviceCombo.m_currentIndex  = storage.readInt("deviceIdx");
-	m_protocolProp.m_value = storage.readInt("protocol", Defaults.Proto);
+	m_protocolCombo.m_currentData = storage.readInt("protocol", Defaults.Proto);
 	m_spiModeProp.m_value = storage.readInt("spiMode", Defaults.SpiMode);
-	m_endiannessProp.m_value = storage.readInt("endianness", Defaults.Endianness);
-	m_dataBitsProp.m_value = storage.readInt("dataBits", Defaults.DataBits);
+	m_spiDataBitsProp.m_value = storage.readInt("spiDataBits", Defaults.SpiDataBits);
+	m_spiEndiannessProp.m_value = storage.readInt("spiEndianness", Defaults.SpiEndianness);
+	m_actionTable[ActionId.Flip].m_isChecked = storage.readBool("spiFlipMosiMiso", false);
 	m_useLogUpdateRateLimitProp.m_value = storage.readBool("useLogUpdateRateLimitProp", Defaults.UseLogCacheUpdateScrollRateLimit);
 	m_logUpdateRateLimitProp.m_value = storage.readInt("logUpdateRateLimitProp", Defaults.LogCacheUpdateScrollRateLimit);
 	m_bufferPropertySet.load(storage);
@@ -560,11 +579,12 @@ I2cSpiSnifferSession.load(doc.Storage* storage)
 
 I2cSpiSnifferSession.save(doc.Storage* storage)
 {
-	storage.writeInt("deviceIdx", (int) m_deviceCombo.m_currentIndex);
-	storage.writeInt("protocol", m_protocolProp.m_value);
+	storage.writeInt("deviceIdx", m_deviceCombo.m_currentIndex);
+	storage.writeInt("protocol", m_protocolCombo.m_currentData);
 	storage.writeInt("spiMode", m_spiModeProp.m_value);
-	storage.writeInt("endianness", m_endiannessProp.m_value);
-	storage.writeInt("dataBits", m_dataBitsProp.m_value);
+	storage.writeInt("spiDataBits", m_spiDataBitsProp.m_value);
+	storage.writeInt("spiEndianness", m_spiEndiannessProp.m_value);
+	storage.writeBool("spiFlipMosiMiso", m_actionTable[ActionId.Flip].m_isChecked);
 	storage.writeBool("useLogUpdateRateLimitProp", m_useLogUpdateRateLimitProp.m_value);
 	storage.writeInt("logUpdateRateLimitProp", m_logUpdateRateLimitProp.m_value);
 	m_bufferPropertySet.save(storage);
@@ -573,11 +593,16 @@ I2cSpiSnifferSession.save(doc.Storage* storage)
 I2cSpiSnifferSession.updateProperties()
 {
 	m_deviceProp.m_currentIndex = m_deviceCombo.m_currentIndex;
+	m_protocolProp.m_currentIndex = m_protocolCombo.m_currentIndex;
+	m_spiFlipMosiMisoProp.m_value = m_actionTable[ActionId.Flip].m_isChecked;
 }
 
 bool errorcode I2cSpiSnifferSession.applyProperties()
 {
 	m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
+	m_protocolCombo.m_currentIndex = m_protocolProp.m_currentIndex;
+	m_actionTable[ActionId.Flip].m_isChecked = m_spiFlipMosiMisoProp.m_value;
+
 	m_readBuffer.detach(); // drop buffer, so we re-allocate each time
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
 
@@ -585,8 +610,9 @@ bool errorcode I2cSpiSnifferSession.applyProperties()
 		m_logUpdateRateLimitProp.m_value :
 		-1;
 
-	m_spiDecoder.m_isBigEndian = m_endiannessProp.m_value;
-	m_spiDecoder.m_dataBits = m_dataBitsProp.m_value;
+	m_spiDecoder.m_dataBits = m_spiDataBitsProp.m_value;
+	m_spiDecoder.m_isBigEndian = m_spiEndiannessProp.m_value;
+	m_spiDecoder.m_isFlipMosiMiso = m_actionTable[ActionId.Flip].m_isChecked;
 
 	if (m_state != State.Capturing)
 		return true;
@@ -601,8 +627,9 @@ I2cSpiSnifferSession.restoreDefaultProperties()
 {
 	m_protocolProp.m_value = Defaults.Proto;
 	m_spiModeProp.m_value = Defaults.SpiMode;
-	m_endiannessProp.m_value = Defaults.Endianness;
-	m_dataBitsProp.m_value = Defaults.DataBits;
+	m_spiDataBitsProp.m_value = Defaults.SpiDataBits;
+	m_spiEndiannessProp.m_value = Defaults.SpiEndianness;
+	m_spiFlipMosiMisoProp.m_value = false;
 	m_useLogUpdateRateLimitProp.m_value = Defaults.UseLogCacheUpdateScrollRateLimit;
 	m_logUpdateRateLimitProp.m_value = Defaults.LogCacheUpdateScrollRateLimit;
 	m_bufferPropertySet.restoreDefaults();
@@ -615,15 +642,16 @@ size_t errorcode I2cSpiSnifferSession.transmit(
 {
 	uint64_t timestamp = sys.getTimestamp();
 
-	if (m_protocolProp.m_value == Protocol.I2c)
+	if (m_protocolCombo.m_currentData == Protocol.I2c)
 	{
 		m_i2cDecoder.reset();
 		m_i2cDecoder.decode(timestamp, p, size);
 	}
 	else
 	{
-		m_spiDecoder.m_isBigEndian = m_endiannessProp.m_value;
-		m_spiDecoder.m_dataBits = m_dataBitsProp.m_value;
+		m_spiDecoder.m_dataBits = m_spiDataBitsProp.m_value;
+		m_spiDecoder.m_isBigEndian = m_spiEndiannessProp.m_value;
+		m_spiDecoder.m_isFlipMosiMiso  = m_actionTable[ActionId.Flip].m_isChecked;
 		m_spiDecoder.reset();
 		m_spiDecoder.decode(timestamp, p, size);
 	}
@@ -633,13 +661,15 @@ size_t errorcode I2cSpiSnifferSession.transmit(
 
 reactor I2cSpiSnifferSession.m_uiReactor
 {
-	m_title = $"$(g_protocolNameTable[m_protocolProp.m_value]) $(m_deviceCombo.m_currentText)";
+	m_title = $"$(m_protocolCombo.m_currentText) $(m_deviceCombo.m_currentText)";
 	m_actionTable[ActionId.Capture].m_text = m_state ? "Close Device" : "Open Device";
 	m_actionTable[ActionId.Capture].m_icon = m_iconTable[m_state ? IconId.Stop : IconId.Capture];
 	m_statusPaneTable[StatusPaneId.State].m_text = m_statusText[m_state];
 	m_spiModeProp.m_isEnabled = m_protocolProp.m_value == Protocol.Spi;
-	m_endiannessProp.m_isEnabled = m_protocolProp.m_value == Protocol.Spi;
-	m_dataBitsProp.m_isEnabled = m_protocolProp.m_value == Protocol.Spi;
+	m_spiDataBitsProp.m_isEnabled = m_protocolProp.m_value == Protocol.Spi;
+	m_spiEndiannessProp.m_isEnabled = m_protocolProp.m_value == Protocol.Spi;
+	m_spiFlipMosiMisoProp.m_isEnabled = m_protocolProp.m_value == Protocol.Spi;
+	m_actionTable[ActionId.Flip].m_isEnabled = m_protocolCombo.m_currentData == Protocol.Spi;
 	m_logUpdateRateLimitProp.m_isEnabled = m_useLogUpdateRateLimitProp.m_value;
 }
 

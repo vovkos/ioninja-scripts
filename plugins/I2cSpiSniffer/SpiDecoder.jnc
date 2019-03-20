@@ -47,8 +47,9 @@ protected:
 	uint_t* m_incompleteBitCount; // as to avoid "lifting" allocations
 
 public:
-	bool m_isBigEndian;
 	uint_t m_dataBits;
+	bool m_isBigEndian;
+	bool m_isFlipMosiMiso;
 
 public:
 	construct(log.Writer* logWriter);
@@ -70,8 +71,8 @@ SpiDecoder.construct(log.Writer* logWriter)
 	m_incompleteBitCount = new uint_t;
 	m_miso0 = m_buffer.m_p + m_buffer.m_size / 2;
 	m_misoEnd = m_miso0 + m_buffer.m_size / 2;
-	m_isBigEndian = Defaults.BigEndian;
 	m_dataBits = Defaults.DataBits;
+	m_isBigEndian = Defaults.BigEndian;
 }
 
 override SpiDecoder.reset()
@@ -180,6 +181,13 @@ SpiDecoder.decode(
 
 		if (m_bitOffset < m_dataBits)
 			continue;
+
+		if (m_isFlipMosiMiso)
+		{
+			uint16_t t = m_mosi;
+			m_mosi = m_miso;
+			m_miso = t;
+		}
 
 		switch (m_dataBits)
 		{

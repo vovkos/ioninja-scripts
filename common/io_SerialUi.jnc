@@ -4,6 +4,7 @@
 //
 
 import "gui_PropertyGrid.jnc"
+import "gui_ComboBox.jnc"
 import "io_base.jncx"
 import "io_Serial.jnc"
 
