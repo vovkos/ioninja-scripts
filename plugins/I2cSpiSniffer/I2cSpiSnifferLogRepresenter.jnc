@@ -21,7 +21,7 @@ bool representI2cSpiSnifferLog(
 		char const* name = (char const*) p;
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText($"Sniffer device \e[34m$name\e[m opened");
+		target.addHyperText($"Opened tap device \e[34m$name\e[m");
 		break;
 
 	case I2cSpiSnifferLogRecordCode.InterfaceClaimed:
@@ -79,13 +79,13 @@ bool representI2cSpiSnifferLog(
 	case I2cSpiSnifferLogRecordCode.FpgaBufferOverflow:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Warning;
-		target.addHyperText("FPGA buffer overflow");
+		target.addHyperText("Hardware buffer overflow");
 		break;
 
 	case I2cSpiSnifferLogRecordCode.CypressBufferCleared:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText($"Cypress buffer cleared");
+		target.addHyperText($"Hardware buffer cleared");
 		break;
 
 	case I2cSpiSnifferLogRecordCode.StillWaiting:
@@ -102,7 +102,7 @@ bool representI2cSpiSnifferLog(
 	case I2cSpiSnifferLogRecordCode.FirmwareUpToDate:
 		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText("FPGA firmware up-to-date");
+		target.addHyperText("FPGA firmware is up-to-date");
 		break;
 
 	case I2cSpiSnifferLogRecordCode.FirmwareUpdateRequired:
@@ -168,7 +168,7 @@ bool representI2cSpiSnifferLog(
 
 		target.addHyperText(
 			I2cSpiSnifferLogPartCode.I2cStartEnd,
-			$"\x15I2C start (%1, I2C 7-bit address: \e[%2m@%(3; 02x)\e[m)" (
+			$"\x15I2C start (%1, I2C 7-bit address: \e[%2m0x%(3; 02x)\e[m)" (
 				isRead ? "read" : "write",
 				isAck ? "34" : "34;9",
 				(hdr & 0xfe) >> 1
@@ -190,7 +190,7 @@ bool representI2cSpiSnifferLog(
 
 		target.addHyperText(
 			I2cSpiSnifferLogPartCode.I2cStartEnd,
-			$"\x15I2C start (%1, I2C 10-bit address: \e[%2m@%(3; 03x)\e[m)" (
+			$"\x15I2C start (%1, I2C 10-bit address: \e[%2m0x%(3; 03x)\e[m)" (
 				isRead ? "read" : "write",
 				isAck1 && isAck2 ? "34" : "34;9",
 				((hdr & 0x06) << 7) | ((hdr & 0xff00) >> 8)
