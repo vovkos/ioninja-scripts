@@ -191,7 +191,7 @@ bool errorcode ReplayLogLayer.readLoop()
 
 		bool isReplayed;
 
-		switch(record.m_code)
+		switch (record.m_code)
 		{
 		case log.StdRecordCode.Tx:
 			isReplayed = m_replayTxProp.m_value;

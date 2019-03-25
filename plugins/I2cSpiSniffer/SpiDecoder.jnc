@@ -98,7 +98,7 @@ SpiDecoder.decode(
 	{
 		uchar_t c = *p;
 
-		switch(c)
+		switch (c)
 		{
 		case Code.Padding:
 			continue;
@@ -109,7 +109,7 @@ SpiDecoder.decode(
 		}
 
 		uchar_t code = (c & 0xf0) >> 4;
-		switch(code)
+		switch (code)
 		{
 		case Code.Start:
 		case Code.Stop:

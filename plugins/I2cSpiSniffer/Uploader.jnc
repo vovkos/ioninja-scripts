@@ -365,7 +365,7 @@ Uploader.onTimer(uint_t syncId)
 	m_timer.stop();
 	m_syncId++;
 
-	switch(m_state)
+	switch (m_state)
 	{
 	case State.PreErase:
 		erase(false);
@@ -391,7 +391,7 @@ catch:
 
 Uploader.onProgressDlgButtonClicked(gui.StdDlgButton button)
 {
-	switch(button)
+	switch (button)
 	{
 	case gui.StdDlgButton.Cancel:
 	case gui.StdDlgButton.Abort:
