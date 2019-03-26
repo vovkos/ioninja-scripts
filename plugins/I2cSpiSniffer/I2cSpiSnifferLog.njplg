@@ -9,8 +9,8 @@ name        = "I2C/SPI Tap Log"
 description = "I2C/SPI Tap log representer"
 group       = serial
 guid        = 39ee6b0f-a65e-4e8a-b252-6fa28d8e3327
-icon        = images/serialmon.png
-small-icon  = images/serialmon-16x16.png
+icon        = images/sniffer.png
+small-icon  = images/sniffer-16x16.png
 
 log-representer-func = representI2cSpiSnifferLog
 
