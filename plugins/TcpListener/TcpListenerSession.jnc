@@ -453,7 +453,7 @@ TcpListenerSession.onConnectionSocketEvent(
 
 	if (triggeredEvents & io.SocketEvents.IoError)
 	{
-		writeLog(log.StdRecordCode.Error, m_listenerSocket.m_ioError, m_listenerSocket.m_ioError.m_size);
+		writeLog(log.StdRecordCode.Error, m_connectionSocket.m_ioError, m_connectionSocket.m_ioError.m_size);
 		m_connectionSocket.close();
 		m_connectionSocket = null;
 		m_connectionState = ConnectionState.Closed;
