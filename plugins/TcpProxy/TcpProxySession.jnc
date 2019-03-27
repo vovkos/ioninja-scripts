@@ -24,8 +24,9 @@ class TcpProxySession: doc.Session
 protected:
 	enum Defaults
 	{
-		LocalPort          = 8080,
-		OverrideConnection = true,
+		LocalPort           = 8080,
+		TxDisconnectTimeout = 1000, // wait TX on disconnect for at most 1 sec
+		OverrideConnection  = true,
 	}
 
 	enum ListenerState
@@ -99,6 +100,7 @@ protected:
 	ServerConnectionState bindable m_serverConnectionState;
 	io.Socket* m_serverConnectionSocket;
 	io.SocketAddress m_serverRemoteAddress;
+	std.Buffer m_serverPendingData;
 	uint_t m_serverConnectionSyncId;
 
 	// client connection socket
@@ -190,6 +192,8 @@ protected:
 	waitListenerSocketEvents();
 	waitServerConnectionSocketEvents();
 	waitClientConnectionSocketEvents();
+	size_t errorcode forwardDataFromClientToServer();
+	size_t errorcode forwardDataFromServerToClient();
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -560,6 +564,7 @@ TcpProxySession.onListenerSocketEvent(
 		m_serverRemoteAddress = address;
 		m_serverConnectionSocket = socket;
 		m_serverConnectionState = ServerConnectionState.Connected;
+		m_serverPendingData.clear();
 		waitServerConnectionSocketEvents();
 
 		bool result = connectTarget();
@@ -580,7 +585,7 @@ TcpProxySession.onServerConnectionSocketEvent(
 
 	if (triggeredEvents & io.SocketEvents.IoError)
 	{
-		writeLog(log.StdRecordCode.Error, m_listenerSocket.m_ioError, m_listenerSocket.m_ioError.m_size);
+		writeLog(log.StdRecordCode.Error, m_serverConnectionSocket.m_ioError, m_serverConnectionSocket.m_ioError.m_size);
 		m_serverConnectionSocket.close();
 		m_serverConnectionSocket = null;
 		m_serverConnectionState = ServerConnectionState.Closed;
@@ -592,12 +597,13 @@ TcpProxySession.onServerConnectionSocketEvent(
 	{
 		for (;;) // read all the buffered data
 		{
-			size_t result = m_serverConnectionSocket.read(m_readBuffer.m_p, m_readBuffer.m_size);
+			size_t result = forwardDataFromServerToClient();
 			if (!result)
 				break;
-
-			writeLog(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 		}
+
+		if (m_clientConnectionState == ClientConnectionState.Connected)
+			m_clientConnectionSocket.blockingWait(io.SocketEvents.WriteBufferEmpty, Defaults.TxDisconnectTimeout);
 
 		TcpDisconnectLogRecordParams params;
 		params.m_address = m_serverRemoteAddress;
@@ -611,22 +617,12 @@ TcpProxySession.onServerConnectionSocketEvent(
 		m_serverConnectionSocket.close();
 		m_serverConnectionSocket = null;
 		m_serverConnectionState = ServerConnectionState.Closed;
-
 		disconnectTarget();
 		return;
 	}
 
 	if (triggeredEvents & io.SocketEvents.IncomingData)
-	{
-		size_t result = m_serverConnectionSocket.read(m_readBuffer.m_p, m_readBuffer.m_size);
-		if (result)
-		{
-			writeLog(log.StdRecordCode.Tx, m_readBuffer.m_p, result);
-
-			if (m_clientConnectionState == ClientConnectionState.Connected)
-				m_clientConnectionSocket.write(m_readBuffer.m_p, result);
-		}
-	}
+		forwardDataFromServerToClient();
 
 	waitServerConnectionSocketEvents();
 }
@@ -650,18 +646,33 @@ TcpProxySession.onClientConnectionSocketEvent(
 	{
 		writeLog(SocketLogRecordCode.ConnectCompleted);
 		m_clientConnectionState = ClientConnectionState.Connected;
+
+		if (m_serverPendingData.m_size)
+		{
+			writeLog(log.StdRecordCode.Tx, m_serverPendingData.m_p, m_serverPendingData.m_size);
+			m_clientConnectionSocket.write(m_serverPendingData.m_p, m_serverPendingData.m_size);
+			m_serverPendingData.clear();
+		}
+
+		if (m_serverConnectionState != ServerConnectionState.Connected)
+		{
+			m_clientConnectionSocket.blockingWait(io.SocketEvents.WriteBufferEmpty, Defaults.TxDisconnectTimeout);
+			disconnect();
+			return;
+		}
 	}
 
 	if (triggeredEvents & io.SocketEvents.Disconnected)
 	{
 		for (;;) // read all the buffered data
 		{
-			size_t result = m_clientConnectionSocket.read(m_readBuffer.m_p, m_readBuffer.m_size);
+			size_t result = forwardDataFromClientToServer();
 			if (!result)
 				break;
-
-			writeLog(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 		}
+
+		if (m_serverConnectionState == ClientConnectionState.Connected)
+			m_serverConnectionSocket.blockingWait(io.SocketEvents.WriteBufferEmpty, Defaults.TxDisconnectTimeout);
 
 		TcpDisconnectLogRecordParams params;
 		params.m_address = m_clientRemoteAddress;
@@ -679,14 +690,7 @@ TcpProxySession.onClientConnectionSocketEvent(
 	}
 
 	if (triggeredEvents & io.SocketEvents.IncomingData)
-	{
-		size_t result = m_clientConnectionSocket.read(m_readBuffer.m_p, m_readBuffer.m_size);
-		if (result)
-			writeLog(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
-
-		if (m_serverConnectionState == ServerConnectionState.Connected)
-			m_serverConnectionSocket.write(m_readBuffer.m_p, result);
-	}
+		forwardDataFromClientToServer();
 
 	waitClientConnectionSocketEvents();
 }
@@ -722,6 +726,39 @@ TcpProxySession.onResolveCompleted(
 		m_isTargetAddressResolved = true;
 
 	listenImpl();
+}
+
+size_t errorcode TcpProxySession.forwardDataFromClientToServer()
+{
+	size_t result = m_clientConnectionSocket.read(m_readBuffer.m_p, m_readBuffer.m_size);
+	if (!result)
+		return 0;
+
+	writeLog(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
+
+	if (m_serverConnectionState == ServerConnectionState.Connected)
+		m_serverConnectionSocket.write(m_readBuffer.m_p, result);
+
+	return result;
+}
+
+size_t errorcode TcpProxySession.forwardDataFromServerToClient()
+{
+	size_t result = m_serverConnectionSocket.read(m_readBuffer.m_p, m_readBuffer.m_size);
+	if (!result)
+		return 0;
+
+	if (m_clientConnectionState != ClientConnectionState.Connected)
+	{
+		m_serverPendingData.append(m_readBuffer.m_p, result);
+	}
+	else
+	{
+		writeLog(log.StdRecordCode.Tx, m_readBuffer.m_p, result);
+		m_clientConnectionSocket.write(m_readBuffer.m_p, result);
+	}
+
+	return result;
 }
 
 TcpProxySession.handleListenError(std.Error const* error)
