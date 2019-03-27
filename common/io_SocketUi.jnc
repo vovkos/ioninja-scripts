@@ -267,14 +267,6 @@ SocketPropertySet.createProperties(
 			"Specify the delay between reconnect attempts"
 			);
 
-	if (mask & PropertyId.RemotePort)
-		m_remotePortProp = propertyGrid.createIntProperty(
-			group,
-			insertBefore,
-			"Remote port (default)",
-			"Remote port to connect to (if not specified in remote address)"
-			);
-
 	if (mask & PropertyId.UseLocalAddress)
 		m_useLocalAddressProp = propertyGrid.createBoolProperty(
 			group,
