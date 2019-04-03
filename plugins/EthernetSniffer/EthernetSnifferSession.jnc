@@ -81,6 +81,7 @@ protected:
 	std.Buffer m_readBuffer;
 	std.Buffer m_packetBuffer;
 	uint16_t m_packetOffset;
+	uint32_t m_packetIndex;
 	PacketFlags m_packetFlags;
 	uint_t m_syncId;
 
@@ -350,6 +351,7 @@ EthernetSnifferSession.stopCapture()
 
 	m_packetBuffer.clear();
 	m_packetOffset = 0;
+	m_packetIndex = 0;
 	m_syncId++;
 }
 
@@ -398,23 +400,20 @@ EthernetSnifferSession.parse(
 {
 	uint32_t const* end = p + count;
 
-	for (;;)
+	while (p < end)
 	{
 		if (!m_packetBuffer.m_size)
 		{
-			while (p < end && (*p == -1 || *p == 0))
-				p++;
+			while (*p == -1 || *p == 0)
+				if (++p >= end)
+					break2;
 
-			if (p >= end)
-				break;
-
-			size_t packetSize = sizeof(uint32_t) + (((*p & 0xffff) + 3) & ~3); // align on 4 bytes
-			m_packetOffset = 0;
-			m_packetBuffer.setSize(packetSize);
+			size_t packetSize = ((*p & 0xffff) + 3) & ~3; // align on 4 bytes
+			size_t bufferSize = sizeof(uint32_t) * 2 + packetSize;
+			m_packetBuffer.setSize(bufferSize);
+			*(uint32_t*) m_packetBuffer.m_p = ++m_packetIndex;
+			m_packetOffset = sizeof(uint32_t);
 		}
-
-		if (p >= end)
-			break;
 
 		size_t dstSize = m_packetBuffer.m_size - m_packetOffset;
 		assert(!(dstSize & 3)); // must be aligned

@@ -62,8 +62,8 @@ bool representEthernetSnifferLog(
 		break;
 
 	case EthernetSnifferLogRecordCode.Packet:
-		PacketHdr const* hdr = (PacketHdr const*)p;
-
+		uint32_t i = *(uint32_t const*)p;
+		PacketHdr const* hdr = (PacketHdr const*)(p + sizeof(uint32_t));
 		uint_t channel = hdr.m_flags & PacketFlags.ChannelId;
 
 		target.m_lineAttr.m_backColor = gui.StdColor.PastelGray;
@@ -72,9 +72,10 @@ bool representEthernetSnifferLog(
 			log.StdLogIcon.RxPacket;
 
 		target.addHyperText(
+			$"[\e[34m$i\e[m] "
 			$"channel: \e[34m$channel\e[m "
-			$"size: \e[34m$(hdr.m_size)\e[m "
-			$"checksum: $((hdr.m_flags & PacketFlags.CrcValid) ? "\e[32mOK" : "\e[31mINVALID")\e[m"
+			$"size: \e[34m$(hdr.m_size - sizeof(uint32_t))\e[m + CRC-32 "
+			$"CRC: $((hdr.m_flags & PacketFlags.CrcValid) ? "\e[32mOK" : "\e[31mINVALID")\e[m"
 			);
 
 		if (channel)
