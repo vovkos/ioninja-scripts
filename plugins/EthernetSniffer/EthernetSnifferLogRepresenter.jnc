@@ -64,7 +64,7 @@ bool representEthernetSnifferLog(
 	case EthernetSnifferLogRecordCode.Packet:
 		uint32_t i = *(uint32_t const*)p;
 		PacketHdr const* hdr = (PacketHdr const*)(p + sizeof(uint32_t));
-		uint_t channel = hdr.m_flags & PacketFlags.ChannelId;
+		uint_t channel = (hdr.m_flags & PacketFlags.ChannelId) != 0;
 
 		target.m_lineAttr.m_backColor = gui.StdColor.PastelGray;
 		target.m_lineAttr.m_iconIdx = channel ?
@@ -73,7 +73,7 @@ bool representEthernetSnifferLog(
 
 		target.addHyperText(
 			$"[\e[34m$i\e[m] "
-			$"channel: \e[34m$channel\e[m "
+			$"channel: \e[34m$(channel + 1)\e[m "
 			$"size: \e[34m$(hdr.m_size - sizeof(uint32_t))\e[m + CRC-32 "
 			$"CRC: $((hdr.m_flags & PacketFlags.CrcValid) ? "\e[32mOK" : "\e[31mINVALID")\e[m"
 			);
@@ -91,6 +91,12 @@ bool representEthernetSnifferLog(
 
 		target.m_lineAttr.m_backColor = gui.ColorFlags.Transparent;
 		target.addBin(hdr + 1, hdr.m_size);
+		break;
+
+	case EthernetSnifferLogRecordCode.CypressBufferCleared:
+		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		target.addHyperText($"Hardware buffer cleared");
 		break;
 
 	default:

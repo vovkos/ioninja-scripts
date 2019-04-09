@@ -28,3 +28,4 @@ EthernetSnifferLogRecordCode.jnc
 01d4cdafa0abb0e5  # CaptureStopped
 01d4cdafa0abb0e6  # CaptureError
 01d4cdafa0abb0e7  # Packet
+01d4cdafa0abb0e8  # CypressBufferCleared

@@ -25,6 +25,12 @@ protected:
 		LogCacheUpdateScrollRateLimit = 16,
 	}
 
+	enum
+	{
+		CypressBufferSize         = 4 * 1024, // 4K (2K built-in in Cypress + 512 FPGA FIFO)
+		CypressClearBufferTimeout = 200,      // 0.2sec
+	}
+
 	enum State
 	{
 		Closed,
@@ -141,6 +147,8 @@ protected:
 		uint32_t const* p,
 		size_t size
 		);
+
+	bool errorcode gracefulStop();
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -284,6 +292,7 @@ bool errorcode EthernetSnifferSession.capture()
 
 	m_outEndpoint = m_iface.openEndpoint(Usb.OutEndpoint);
 	writeLog(EthernetSnifferLogRecordCode.OutEndpointOpened);
+	gracefulStop();
 
 	// align read block on 512 bytes
 
@@ -299,8 +308,8 @@ bool errorcode EthernetSnifferSession.capture()
 
 	writeLog(EthernetSnifferLogRecordCode.InEndpointOpened);
 
-	// static char startCode = 0x70;
-	// m_outEndpoint.write (&startCode, sizeof (startCode));
+	static char startCode = 0x55;
+	m_outEndpoint.write (&startCode, sizeof (startCode));
 	writeLog(EthernetSnifferLogRecordCode.CaptureStarted);
 
 	waitInEndpointEvents();
@@ -313,13 +322,41 @@ catch:
 	return false;
 }
 
+bool errorcode EthernetSnifferSession.gracefulStop()
+{
+	static char stopCode = 0xaa;
+	m_outEndpoint.write(&stopCode, sizeof(stopCode));
+	m_outEndpoint.blockingWait(io.UsbEndpointEvents.WriteCompleted);
+
+	io.UsbEndpoint* ep = m_iface.openEndpoint(Usb.InEndpoint, true);
+	ep.m_readParallelism = 1;
+	ep.m_readBlockSize = Usb.PacketSize;
+	ep.m_readBufferSize = CypressBufferSize;
+	ep.m_options &= ~io.UsbEndpointOptions.KeepReadBlockSize;
+	ep.unsuspend();
+
+	for (;;)
+	{
+		ep.blockingWait(io.UsbEndpointEvents.IncomingData, CypressClearBufferTimeout);
+
+		size_t size = ep.read(m_readBuffer.m_p, m_readBuffer.m_size);
+		if (!size)
+			break;
+
+		writeLogString(log.StdRecordCode.PlainText, $"Cypress buffer clear received: $size");
+		writeLog(log.StdRecordCode.Bin, m_readBuffer.m_p, size);
+	}
+
+	ep.close();
+	writeLog(EthernetSnifferLogRecordCode.CypressBufferCleared);
+	return true;
+}
+
 EthernetSnifferSession.stopCapture()
 {
 	if (m_outEndpoint)
 	{
-		// static char stopCode = 0xaa;
-		// try m_outEndpoint.write (&stopCode, sizeof (stopCode));
-		// m_outEndpoint.blockingWait (io.UsbEndpointEvents.WriteCompleted);
+		try gracefulStop();
 		m_outEndpoint.close();
 		m_outEndpoint = null;
 	}

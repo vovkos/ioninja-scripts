@@ -17,14 +17,16 @@ enum EthernetSnifferLogRecordCode: uint64_t
 	CaptureStopped          = 0x01d4cdafa0abb0e5,
 	CaptureError            = 0x01d4cdafa0abb0e6,
 	Packet                  = 0x01d4cdafa0abb0e7,
+	CypressBufferCleared    = 0x01d4cdafa0abb0e8,
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 bitflag enum PacketFlags: uint8_t
 {
-	ChannelId,
-	CrcValid,
+	Reserved,    // 1
+	CrcValid,    // 2
+	ChannelId,   // 4
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
