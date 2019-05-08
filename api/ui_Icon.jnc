@@ -1,20 +1,19 @@
 //..............................................................................
 //
-// Ninja GUI - terminal
+// Ninja GUI - icons
 //
 
-namespace gui {
+import "ui_Icon.jnc"
+
+namespace ui {
 
 //..............................................................................
 
-class Terminal
+opaque class Icon
 {
-	uint_t readonly m_consoleWidth;
-	uint_t readonly m_consoleHeight;
-
-	event m_onConsoleSizeChanged();
+	construct(char const* fileName);
 }
 
 //..............................................................................
 
-} // namespace doc {
+} // namespace ui

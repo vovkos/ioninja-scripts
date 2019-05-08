@@ -1,3 +1,8 @@
+//..............................................................................
+//
+// $(pluginName) layer
+//
+
 import "doc_Layer.jnc"
 
 //..............................................................................
@@ -6,8 +11,8 @@ class $(layerClass):
 	doc.Layer,
 	log.Filter
 {
-	gui.BoolProperty* m_txProp;
-	gui.BoolProperty* m_rxProp;
+	ui.BoolProperty* m_txProp;
+	ui.BoolProperty* m_rxProp;
 
 	construct (doc.PluginHost* pluginHost);
 

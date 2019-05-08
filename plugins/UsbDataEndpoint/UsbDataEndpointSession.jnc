@@ -3,15 +3,15 @@
 // USB Data Endpoint terminal session
 //
 
+import "doc_Session.jnc"
 import "io_usb.jncx"
 import "io_UsbDb.jnc"
-import "io_UsbUi.jnc"
-import "io_BufferUi.jnc"
-import "std_Buffer.jnc"
-import "doc_Session.jnc"
-import "gui_StdSessionInfo.jnc"
+import "ui_UsbUi.jnc"
+import "ui_BufferPropertySet.jnc"
+import "ui_StdSessionInfoSet.jnc"
 import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
+import "std_Buffer.jnc"
 
 //..............................................................................
 
@@ -74,30 +74,30 @@ protected:
 
 	// toolbar, status bar & menu
 
-	gui.Action* m_actionTable[ActionId._Count];
-	gui.Icon* m_iconTable[IconId._Count];
-	gui.StatusPane* m_statusPaneTable[StatusPaneId._Count];
-	gui.ComboBox* m_deviceCombo;
-	gui.ComboBox* m_interfaceCombo;
-	gui.ComboBox* m_outEndpointCombo;
-	gui.ComboBox* m_inEndpointCombo;
+	ui.Action* m_actionTable[ActionId._Count];
+	ui.Icon* m_iconTable[IconId._Count];
+	ui.StatusPane* m_statusPaneTable[StatusPaneId._Count];
+	ui.ComboBox* m_deviceCombo;
+	ui.ComboBox* m_interfaceCombo;
+	ui.ComboBox* m_outEndpointCombo;
+	ui.ComboBox* m_inEndpointCombo;
 
 	// property grid
 
-	gui.EnumProperty* m_deviceProp;
-	gui.EnumProperty* m_interfaceProp;
-	gui.EnumProperty* m_inEndpointProp;
-	gui.EnumProperty* m_outEndpointProp;
-	gui.BoolProperty* m_autoDetachKernelDriverProp;
-	gui.BoolProperty* m_useReadTimeoutProp;
-	gui.IntProperty* m_readTimeoutProp;
-	io.BufferPropertySet m_bufferPropertySet;
+	ui.EnumProperty* m_deviceProp;
+	ui.EnumProperty* m_interfaceProp;
+	ui.EnumProperty* m_inEndpointProp;
+	ui.EnumProperty* m_outEndpointProp;
+	ui.BoolProperty* m_autoDetachKernelDriverProp;
+	ui.BoolProperty* m_useReadTimeoutProp;
+	ui.IntProperty* m_readTimeoutProp;
+	ui.BufferPropertySet m_bufferPropertySet;
 
 	// information grid
 
-	gui.StdSessionInfoSet m_stdSessionInfoSet;
-	log.ThroughputInfoSet m_throughputInfoSet;
-	log.ChecksumInfoSet m_checksumInfoSet;
+	ui.StdSessionInfoSet m_stdSessionInfoSet;
+	ui.ThroughputInfoSet m_throughputInfoSet;
+	ui.ChecksumInfoSet m_checksumInfoSet;
 
 	// ui reactor
 
@@ -127,7 +127,7 @@ public:
 protected:
 	onEnumerateDevices()
 	{
-		io.refreshUsbDeviceListUi(m_deviceCombo, m_deviceProp);
+		ui.refreshUsbDeviceListUi(m_deviceCombo, m_deviceProp);
 	}
 
 	onOpenDevice();
@@ -168,9 +168,9 @@ UsbDataEndpointSession.createUi()
 {
 	// toolbar
 
-	m_iconTable[IconId.Open] = new gui.Icon("images/open.png");
-	m_iconTable[IconId.Close] = new gui.Icon("images/close.png");
-	m_iconTable[IconId.Refresh] = new gui.Icon("images/refresh.png");
+	m_iconTable[IconId.Open] = new ui.Icon("images/open.png");
+	m_iconTable[IconId.Close] = new ui.Icon("images/close.png");
+	m_iconTable[IconId.Refresh] = new ui.Icon("images/refresh.png");
 
 	m_pluginHost.m_toolBar.addLabel("Device:");
 	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox(-1);
@@ -202,7 +202,7 @@ UsbDataEndpointSession.createUi()
 
 	// property grid
 
-	gui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty(
+	ui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty(
 		"Connection",
 		"USB-specific connection settings"
 		);
@@ -265,7 +265,7 @@ UsbDataEndpointSession.createUi()
 
 	// information grid
 
-	gui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("USB connection");
+	ui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("USB connection");
 
 	m_stdSessionInfoSet.createInformationValues(m_pluginHost.m_informationGrid, infoGroup);
 	m_throughputInfoSet.createInformationValuesGrouped(m_pluginHost.m_informationGrid);
@@ -273,7 +273,7 @@ UsbDataEndpointSession.createUi()
 
 	m_uiReactor.start();
 
-	io.refreshUsbDeviceListUi(m_deviceCombo, m_deviceProp);
+	ui.refreshUsbDeviceListUi(m_deviceCombo, m_deviceProp);
 }
 
 UsbDataEndpointSession.onOpenDevice()
@@ -317,7 +317,7 @@ bool UsbDataEndpointSession.openDevice()
 	m_interfaceCombo.clear();
 
 	io.UsbConfigurationDesc const* confDesc = m_device.m_activeConfigurationDesc;
-	gui.EnumPropertyOption* optionTable = new gui.EnumPropertyOption[confDesc.m_interfaceCount];
+	ui.EnumPropertyOption* optionTable = new ui.EnumPropertyOption[confDesc.m_interfaceCount];
 
 	for (size_t i = 0; i < confDesc.m_interfaceCount; i++)
 	{
@@ -389,8 +389,8 @@ bool UsbDataEndpointSession.claimInterface()
 	m_outEndpointCombo.clear();
 	m_inEndpointCombo.clear();
 
-	gui.EnumPropertyOption* outEnpointOptionTable = new gui.EnumPropertyOption[ifaceDesc.m_endpointCount];
-	gui.EnumPropertyOption* inEnpointOptionTable = new gui.EnumPropertyOption[ifaceDesc.m_endpointCount];
+	ui.EnumPropertyOption* outEnpointOptionTable = new ui.EnumPropertyOption[ifaceDesc.m_endpointCount];
+	ui.EnumPropertyOption* inEnpointOptionTable = new ui.EnumPropertyOption[ifaceDesc.m_endpointCount];
 
 	size_t outEndpointCount = 0;
 	size_t inEndpointCount = 0;
@@ -532,7 +532,7 @@ UsbDataEndpointSession.load(doc.Storage* storage)
 	uint_t bus = storage.readInt("deviceBus");
 	uint_t address = storage.readInt("deviceAddress");
 
-	size_t index = io.findUsbDeviceComboIndex(m_deviceCombo, vid, pid, bus, address);
+	size_t index = ui.findUsbDeviceComboIndex(m_deviceCombo, vid, pid, bus, address);
 	if (index != -1)
 		m_deviceCombo.m_currentIndex = index;
 

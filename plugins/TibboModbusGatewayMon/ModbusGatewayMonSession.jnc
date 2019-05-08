@@ -3,17 +3,17 @@
 // Tibbo Modbus gateway monitor session
 //
 
+import "doc_Session.jnc"
 import "io_base.jncx"
 import "io_Socket.jnc"
 import "io_SocketAddressResolver.jnc"
-import "io_SocketUi.jnc"
-import "doc_Session.jnc"
-import "gui_History.jnc"
-import "gui_StdSessionInfo.jnc"
+import "ui_History.jnc"
+import "ui_SocketUi.jnc"
+import "ui_StdSessionInfoSet.jnc"
 import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
 
-using extension gui.ComboBoxHistory;
+using extension ui.ComboBoxHistory;
 
 //..............................................................................
 
@@ -75,21 +75,21 @@ protected:
 
 	// toolbar, status bar & menu
 
-	gui.Action* m_actionTable[ActionId._Count];
-	gui.Icon* m_iconTable[IconId._Count];
-	gui.StatusPane* m_statusPaneTable[StatusPaneId._Count];
-	gui.ComboBox* m_addressCombo;
+	ui.Action* m_actionTable[ActionId._Count];
+	ui.Icon* m_iconTable[IconId._Count];
+	ui.StatusPane* m_statusPaneTable[StatusPaneId._Count];
+	ui.ComboBox* m_addressCombo;
 
 	// property grid
 
-	io.SocketPropertySet m_socketPropertySet;
-	io.BufferPropertySet m_bufferPropertySet;
+	ui.SocketPropertySet m_socketPropertySet;
+	ui.BufferPropertySet m_bufferPropertySet;
 
 	// information grid
 
-	gui.StdSessionInfoSet m_stdSessionInfoSet;
-	log.ThroughputInfoSet m_throughputInfoSet;
-	log.ChecksumInfoSet m_checksumInfoSet;
+	ui.StdSessionInfoSet m_stdSessionInfoSet;
+	ui.ThroughputInfoSet m_throughputInfoSet;
+	ui.ChecksumInfoSet m_checksumInfoSet;
 
 	// ui reactor
 
@@ -163,8 +163,8 @@ ModbusGatewayMonSession.createUi()
 	m_addressCombo.m_isEditable = true;
 	m_addressCombo.m_onEnter += connect;
 
-	m_iconTable[IconId.Connect] = new gui.Icon("images/connect.png");
-	m_iconTable[IconId.Disconnect] = new gui.Icon("images/disconnect.png");
+	m_iconTable[IconId.Connect] = new ui.Icon("images/connect.png");
+	m_iconTable[IconId.Disconnect] = new ui.Icon("images/disconnect.png");
 
 	m_actionTable[ActionId.Connect] = createAction("Connect", m_iconTable [IconId.Connect]);
 	m_actionTable[ActionId.Connect].m_onTriggered += onConnect;
@@ -172,19 +172,19 @@ ModbusGatewayMonSession.createUi()
 	// status bar
 
 	m_statusPaneTable[StatusPaneId.RemoteAddress] = m_pluginHost.m_statusBar.addPane(, 100);
-	m_statusPaneTable[StatusPaneId.RemoteAddress].m_color = gui.StdColor.Blue;
+	m_statusPaneTable[StatusPaneId.RemoteAddress].m_color = ui.StdColor.Blue;
 	m_statusPaneTable[StatusPaneId.State] = m_pluginHost.m_statusBar.addPane(, 80);
 	m_statusPaneTable[StatusPaneId.Temp] = m_pluginHost.m_statusBar.addPane(, 100);
 
 	// property grid
 
-	gui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty(
+	ui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty(
 		"Connection",
 		"TCP-specific connection settings"
 		);
 
     m_socketPropertySet.m_defaultRemotePort = 23;
-    //io.SocketPropertySet.PropertyId mask = io.SocketPropertySet.PropertyId.AllTcpClient & ~io.SocketPropertySet.PropertyId.RemotePort;
+    //ui.SocketPropertySet.PropertyId mask = ui.SocketPropertySet.PropertyId.AllTcpClient & ~ui.SocketPropertySet.PropertyId.RemotePort;
 	m_socketPropertySet.createProperties(m_pluginHost.m_propertyGrid, group); //,, mask);
 
 	group = m_pluginHost.m_propertyGrid.createGroupProperty(
@@ -196,7 +196,7 @@ ModbusGatewayMonSession.createUi()
 
 	// information grid
 
-	gui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("Modbus Gateway Connection");
+	ui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("Modbus Gateway Connection");
 	m_stdSessionInfoSet.createInformationValues(m_pluginHost.m_informationGrid, infoGroup);
 
 	m_throughputInfoSet.createInformationValuesGrouped(m_pluginHost.m_informationGrid);
@@ -267,7 +267,7 @@ nestedscope:
 	m_socket.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
 	m_socket.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 	m_socket.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
-	m_socket.m_options = io.getSocketOptions(m_socketPropertySet, m_bufferPropertySet);
+	m_socket.m_options = ui.getSocketOptions(m_socketPropertySet, m_bufferPropertySet);
 
 	if (!m_socketPropertySet.m_useLocalAddressProp.m_value)
 	{
@@ -396,7 +396,7 @@ bool errorcode ModbusGatewayMonSession.applyProperties()
 	m_socket.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
 	m_socket.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 	m_socket.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
-	m_socket.m_options = io.getSocketOptions(m_socketPropertySet, m_bufferPropertySet);
+	m_socket.m_options = ui.getSocketOptions(m_socketPropertySet, m_bufferPropertySet);
 	return true;
 }
 

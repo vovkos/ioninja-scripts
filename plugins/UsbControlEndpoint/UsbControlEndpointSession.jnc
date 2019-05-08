@@ -3,16 +3,16 @@
 // USB Control Endpoint terminal session
 //
 
+import "doc_Session.jnc"
 import "io_usb.jncx"
 import "io_UsbDb.jnc"
-import "io_UsbUi.jnc"
-import "io_BufferUi.jnc"
-import "std_Buffer.jnc"
-import "doc_Session.jnc"
-import "gui_StdSessionInfo.jnc"
+import "ui_UsbUi.jnc"
+import "ui_BufferPropertySet.jnc"
+import "ui_StdSessionInfoSet.jnc"
 import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
 import "parseInteger.jnc"
+import "std_Buffer.jnc"
 
 //..............................................................................
 
@@ -56,33 +56,33 @@ protected:
 
 	// toolbar, status bar & menu
 
-	gui.Action* m_actionTable[ActionId._Count];
-	gui.Icon* m_iconTable[IconId._Count];
-	gui.StatusPane* m_statusPaneTable[StatusPaneId._Count];
-	gui.ComboBox* m_deviceCombo;
-	gui.ComboBox* m_reqDirectionCombo;
-	gui.ComboBox* m_reqRecipientCombo;
-	gui.ComboBox* m_reqTypeCombo;
-	gui.ComboBox* m_reqCodeCombo;
-	gui.ComboBox* m_reqValueCombo;
-	gui.ComboBox* m_reqIndexCombo;
+	ui.Action* m_actionTable[ActionId._Count];
+	ui.Icon* m_iconTable[IconId._Count];
+	ui.StatusPane* m_statusPaneTable[StatusPaneId._Count];
+	ui.ComboBox* m_deviceCombo;
+	ui.ComboBox* m_reqDirectionCombo;
+	ui.ComboBox* m_reqRecipientCombo;
+	ui.ComboBox* m_reqTypeCombo;
+	ui.ComboBox* m_reqCodeCombo;
+	ui.ComboBox* m_reqValueCombo;
+	ui.ComboBox* m_reqIndexCombo;
 
 	// property grid
 
-	gui.EnumProperty* m_deviceProp;
-	gui.BoolProperty* m_autoDetachKernelDriverProp;
-	gui.EnumProperty* m_reqDirectionProp;
-	gui.EnumProperty* m_reqRecipientProp;
-	gui.EnumProperty* m_reqTypeProp;
-	gui.ComboProperty* m_reqCodeProp;
-	gui.StringProperty* m_reqValueProp;
-	gui.StringProperty* m_reqIndexProp;
+	ui.EnumProperty* m_deviceProp;
+	ui.BoolProperty* m_autoDetachKernelDriverProp;
+	ui.EnumProperty* m_reqDirectionProp;
+	ui.EnumProperty* m_reqRecipientProp;
+	ui.EnumProperty* m_reqTypeProp;
+	ui.ComboProperty* m_reqCodeProp;
+	ui.StringProperty* m_reqValueProp;
+	ui.StringProperty* m_reqIndexProp;
 
 	// information grid
 
-	gui.StdSessionInfoSet m_stdSessionInfoSet;
-	log.ThroughputInfoSet m_throughputInfoSet;
-	log.ChecksumInfoSet m_checksumInfoSet;
+	ui.StdSessionInfoSet m_stdSessionInfoSet;
+	ui.ThroughputInfoSet m_throughputInfoSet;
+	ui.ChecksumInfoSet m_checksumInfoSet;
 
 	// ui reactor
 
@@ -108,7 +108,7 @@ public:
 protected:
 	onEnumerateDevices()
 	{
-		io.refreshUsbDeviceListUi(m_deviceCombo, m_deviceProp);
+		ui.refreshUsbDeviceListUi(m_deviceCombo, m_deviceProp);
 	}
 
 	onOpenDevice();
@@ -142,13 +142,13 @@ UsbControlEndpointSession.construct(doc.PluginHost* pluginHost)
 
 UsbControlEndpointSession.createUi()
 {
-	static gui.EnumPropertyOption reqDirectionTable[] =
+	static ui.EnumPropertyOption reqDirectionTable[] =
 	{
 		{ "Out", 0x00 },
 		{ "In",  0x80 },
 	}
 
-	static gui.EnumPropertyOption reqTypeTable[] =
+	static ui.EnumPropertyOption reqTypeTable[] =
 	{
 		{ "Standard", 0x00 << 5 },
 		{ "Class",    0x01 << 5 },
@@ -156,7 +156,7 @@ UsbControlEndpointSession.createUi()
 		{ "Reserved", 0x03 << 5 },
 	}
 
-	static gui.EnumPropertyOption reqRecipientTable[] =
+	static ui.EnumPropertyOption reqRecipientTable[] =
 	{
 		{ "Device",    0x00 },
 		{ "Interface", 0x01 },
@@ -164,7 +164,7 @@ UsbControlEndpointSession.createUi()
 		{ "Other",     0x03 },
 	}
 
-	static gui.EnumPropertyOption reqIdTable[] =
+	static ui.EnumPropertyOption reqIdTable[] =
 	{
 		{ "Get Status",        "0x00" },
 		{ "Clear Feature",     "0x01" },
@@ -180,9 +180,9 @@ UsbControlEndpointSession.createUi()
 
 	// toolbar
 
-	m_iconTable[IconId.Open] = new gui.Icon("images/open.png");
-	m_iconTable[IconId.Close] = new gui.Icon("images/close.png");
-	m_iconTable[IconId.Refresh] = new gui.Icon("images/refresh.png");
+	m_iconTable[IconId.Open] = new ui.Icon("images/open.png");
+	m_iconTable[IconId.Close] = new ui.Icon("images/close.png");
+	m_iconTable[IconId.Refresh] = new ui.Icon("images/refresh.png");
 
 	m_pluginHost.m_toolBar.addLabel("Device:");
 	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox(-1);
@@ -233,7 +233,7 @@ UsbControlEndpointSession.createUi()
 
 	// property grid
 
-	gui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty(
+	ui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty(
 		"Connection",
 		"USB-specific connection settings"
 		);
@@ -297,7 +297,7 @@ UsbControlEndpointSession.createUi()
 
 	// information grid
 
-	gui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("USB connection");
+	ui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("USB connection");
 
 	m_stdSessionInfoSet.createInformationValues(m_pluginHost.m_informationGrid, infoGroup);
 	m_throughputInfoSet.createInformationValuesGrouped(m_pluginHost.m_informationGrid);
@@ -305,7 +305,7 @@ UsbControlEndpointSession.createUi()
 
 	m_uiReactor.start();
 
-	io.refreshUsbDeviceListUi(m_deviceCombo, m_deviceProp);
+	ui.refreshUsbDeviceListUi(m_deviceCombo, m_deviceProp);
 }
 
 UsbControlEndpointSession.onOpenDevice()
@@ -365,7 +365,7 @@ UsbControlEndpointSession.load(doc.Storage* storage)
 	uint_t bus = storage.readInt("deviceBus");
 	uint_t address = storage.readInt("deviceAddress");
 
-	size_t index = io.findUsbDeviceComboIndex(m_deviceCombo, vid, pid, bus, address);
+	size_t index = ui.findUsbDeviceComboIndex(m_deviceCombo, vid, pid, bus, address);
 	if (index != -1)
 		m_deviceCombo.m_currentIndex = index;
 

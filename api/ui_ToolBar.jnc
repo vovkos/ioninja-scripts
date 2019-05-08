@@ -3,10 +3,10 @@
 // Ninja GUI - tool bar
 //
 
-import "gui_Action.jnc"
-import "gui_ComboBox.jnc"
+import "ui_Action.jnc"
+import "ui_ComboBox.jnc"
 
-namespace gui {
+namespace ui {
 
 //..............................................................................
 
@@ -23,7 +23,7 @@ opaque class ToolBar
 
 	ComboBox* addComboBox(
 		const char* labelText,
-		gui.EnumPropertyOption const* optionTable,
+		EnumPropertyOption const* optionTable,
 		size_t optionCount
 		);  // 0 = default, -1 = stretch
 
@@ -34,12 +34,12 @@ opaque class ToolBar
 
 ComboBox* ToolBar.addComboBox(
 	const char* labelText,
-	gui.EnumPropertyOption const* optionTable,
+	EnumPropertyOption const* optionTable,
 	size_t optionCount
 	)
 {
 	addLabel(labelText);
-	gui.ComboBox* comboBox = addComboBox();
+	ComboBox* comboBox = addComboBox();
 
 	for (size_t i = 0; i < optionCount; i++)
 		comboBox.addItem(optionTable[i].m_text, optionTable[i].m_value);
@@ -50,4 +50,4 @@ ComboBox* ToolBar.addComboBox(
 
 //..............................................................................
 
-} // namespace gui {
+} // namespace ui

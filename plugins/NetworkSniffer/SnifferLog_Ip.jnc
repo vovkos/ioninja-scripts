@@ -16,7 +16,7 @@ char const* formatIpString(bigendian uint32_t ip32)
 
 size_t
 representIpHdr(
-	log.RepresenterTarget* target,
+	log.Representation* representation,
 	void const* p,
 	size_t size,
 	size_t baseOffset,
@@ -28,7 +28,7 @@ representIpHdr(
 	io.IpHdr const* ipHdr = (io.IpHdr const*) (p + baseOffset);
 	size_t ipHdrSize = ipHdr.m_headerLength * 4;
 
-	target.addHyperText(std.format(
+	representation.addHyperText(std.format(
 		"\e[1mIP\n"
 		"   \e[90mVERSION:  \e^!%d,%d\e[34m%d\n"
 		"   \e[90mHLENGTH:  \e^!%d,%d\e[34m%d\n"
@@ -94,14 +94,14 @@ representIpHdr(
 
 	if	(ipHdrSize < sizeof(io.IpHdr) || baseOffset + ipHdrSize > size)
 	{
-		target.addHyperText($"INVALID HEADER SIZE: $ipHdrSize");
+		representation.addHyperText($"INVALID HEADER SIZE: $ipHdrSize");
 		hdrSizeTable[hdrIdx] = sizeof(io.IpHdr);
 		return hdrIdx + 1;
 	}
 
 	if ((ipHdr.m_flags & io.IpFlags.Mf) || ipHdr.m_fragmentOffset)
 	{
-		target.addHyperText("\e[1mFRAGMENTED");
+		representation.addHyperText("\e[1mFRAGMENTED");
 		hdrSizeTable[hdrIdx] = sizeof(io.IpHdr);
 		return hdrIdx + 1;
 	}
@@ -120,13 +120,13 @@ representIpHdr(
 	switch (ipHdr.m_protocol)
 	{
 	case io.IpProtocol.Icmp:
-		return representIcmpHdr(target, p, size, baseOffset + ipHdrSize, hdrSizeTable, hdrColorTable, hdrIdx);
+		return representIcmpHdr(representation, p, size, baseOffset + ipHdrSize, hdrSizeTable, hdrColorTable, hdrIdx);
 
 	case io.IpProtocol.Tcp:
-		return representTcpHdr(target, p, size, baseOffset + ipHdrSize, hdrSizeTable, hdrColorTable, hdrIdx);
+		return representTcpHdr(representation, p, size, baseOffset + ipHdrSize, hdrSizeTable, hdrColorTable, hdrIdx);
 
 	case io.IpProtocol.Udp:
-		return representUdpHdr(target, p, size, baseOffset + ipHdrSize, hdrSizeTable, hdrColorTable, hdrIdx);
+		return representUdpHdr(representation, p, size, baseOffset + ipHdrSize, hdrSizeTable, hdrColorTable, hdrIdx);
 	}
 
 	return hdrIdx;
@@ -141,7 +141,7 @@ char const* formatIpLogText(io.IpHdr const* ipHdr)
 }
 
 representIp(
-	log.RepresenterTarget* target,
+	log.Representation* representation,
 	void const* p,
 	size_t size,
 	size_t baseOffset
@@ -149,7 +149,7 @@ representIp(
 {
 	if (baseOffset + sizeof(io.IpHdr) > size)
 	{
-		target.addHyperText(std.format("[\e^+1\e[34m+\e[m] \e[1mIP\e[m [INVALID SIZE:%d]", size));
+		representation.addHyperText(std.format("[\e^+1\e[34m+\e[m] \e[1mIP\e[m [INVALID SIZE:%d]", size));
 		return;
 	}
 
@@ -157,7 +157,7 @@ representIp(
 	size_t ipHdrSize = ipHdr.m_headerLength * 4;
 	if (baseOffset + ipHdrSize > size)
 	{
-		target.addHyperText(
+		representation.addHyperText(
 			$"%1 [PROTO:%2; INVALID HEADER SIZE: %3]" (
 				formatIpLogText(ipHdr),
 				ipHdr.m_protocol,
@@ -168,28 +168,28 @@ representIp(
 
 	if ((ipHdr.m_flags & io.IpFlags.Mf) || ipHdr.m_fragmentOffset)
 	{
-		target.addHyperText($"%1 [PROTO:%2; FRAGMENTED]" (formatIpLogText(ipHdr), ipHdr.m_protocol));
+		representation.addHyperText($"%1 [PROTO:%2; FRAGMENTED]" (formatIpLogText(ipHdr), ipHdr.m_protocol));
 		return;
 	}
 
 	switch (ipHdr.m_protocol)
 	{
 	case io.IpProtocol.Icmp:
-		representIcmp(target, ipHdr, p, size, baseOffset + ipHdrSize);
+		representIcmp(representation, ipHdr, p, size, baseOffset + ipHdrSize);
 		break;
 
 	case io.IpProtocol.Tcp:
-		representTcp(target, ipHdr, p, size, baseOffset + ipHdrSize);
+		representTcp(representation, ipHdr, p, size, baseOffset + ipHdrSize);
 		break;
 
 	case io.IpProtocol.Udp:
-		representUdp(target, ipHdr, p, size, baseOffset + ipHdrSize);
+		representUdp(representation, ipHdr, p, size, baseOffset + ipHdrSize);
 		break;
 
 	default:
-		target.addHyperText($"%1 [PROTO:%2]" (formatIpLogText (ipHdr), ipHdr.m_protocol));
+		representation.addHyperText($"%1 [PROTO:%2]" (formatIpLogText (ipHdr), ipHdr.m_protocol));
 		size_t dataSize = ipHdr.m_totalLength - ipHdrSize;
-		representPacketData(target, p, size, baseOffset + ipHdrSize, dataSize);
+		representPacketData(representation, p, size, baseOffset + ipHdrSize, dataSize);
 	}
 }
 

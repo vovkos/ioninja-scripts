@@ -15,7 +15,7 @@ char const* formatEthernetString(uint8_t const* ethernet)
 }
 
 representEthernet(
-	log.RepresenterTarget* target,
+	log.Representation* representation,
 	void const* p,
 	size_t size,
 	uint_t foldFlags
@@ -23,21 +23,21 @@ representEthernet(
 {
 	io.EthernetHdr const* ethernetHdr = (io.EthernetHdr const*) p;
 
-	target.m_lineAttr.m_backColor = gui.StdColor.PastelGray;
+	representation.m_lineAttr.m_backColor = ui.StdColor.PastelGray;
 
 	if (size < sizeof(io.EthernetHdr))
 	{
-		target.addHyperText("\e[1mBAD FRAME");
+		representation.addHyperText("\e[1mBAD FRAME");
 
-		target.m_lineAttr.m_textColor = gui.StdColor.Gray;
-		target.m_lineAttr.m_backColor = gui.ColorFlags.Transparent;
-		target.addBin(p, size);
+		representation.m_lineAttr.m_textColor = ui.StdColor.Gray;
+		representation.m_lineAttr.m_backColor = ui.ColorFlags.Transparent;
+		representation.addBin(p, size);
 		return;
 	}
 
 	if (foldFlags)
 	{
-		target.addHyperText(std.format(
+		representation.addHyperText(std.format(
 			"[\e^-1\e[34m-\e[m]\n"
 			"\e[1mETHERNET\n"
 			"   \e[90mTYPE: \e^!%d,%d\e[34m%04Xh\n"
@@ -64,37 +64,37 @@ representEthernet(
 		switch (ethernetHdr.m_type)
 		{
 		case io.EthernetType.Ip:
-			hdrCount = representIpHdr(target, p, size, sizeof(io.EthernetHdr), hdrSizeTable, hdrColorTable, 1);
+			hdrCount = representIpHdr(representation, p, size, sizeof(io.EthernetHdr), hdrSizeTable, hdrColorTable, 1);
 			break;
 
 		case io.EthernetType.Arp:
-			hdrCount = representArpHdr(target, p, size, sizeof(io.EthernetHdr), hdrSizeTable, hdrColorTable, 1);
+			hdrCount = representArpHdr(representation, p, size, sizeof(io.EthernetHdr), hdrSizeTable, hdrColorTable, 1);
 			break;
 		}
 
-		representColorizedBin(target, p, size, hdrSizeTable, hdrColorTable, hdrCount);
+		representColorizedBin(representation, p, size, hdrSizeTable, hdrColorTable, hdrCount);
 	}
 	else
 	{
 		switch (ethernetHdr.m_type)
 		{
 		case io.EthernetType.Ip:
-			representIp(target, p, size, sizeof(io.EthernetHdr));
+			representIp(representation, p, size, sizeof(io.EthernetHdr));
 			return;
 
 		case io.EthernetType.Arp:
-			representArp(target, p, size, sizeof(io.EthernetHdr));
+			representArp(representation, p, size, sizeof(io.EthernetHdr));
 			return;
 		}
 
-		target.addHyperText(std.format(
+		representation.addHyperText(std.format(
 			"[\e^+1\e[34m+\e[m] \e[1mETHERNET \e[10;34m%s\e[m > \e[34m%s\e[m [TYPE:%04Xh]",
 			formatEthernetString(ethernetHdr.m_srcAddress),
 			formatEthernetString(ethernetHdr.m_dstAddress),
 			ethernetHdr.m_type
 			));
 
-		representPacketData(target, p, size, sizeof(io.EthernetHdr), -1);
+		representPacketData(representation, p, size, sizeof(io.EthernetHdr), -1);
 	}
 }
 

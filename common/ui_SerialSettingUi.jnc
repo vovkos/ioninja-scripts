@@ -3,12 +3,12 @@
 // Socket & network adapter user interface
 //
 
-import "gui_PropertyGrid.jnc"
-import "gui_ComboBox.jnc"
+import "ui_PropertyGrid.jnc"
+import "ui_ComboBox.jnc"
 import "io_base.jncx"
 import "io_Serial.jnc"
 
-namespace io {
+namespace ui {
 
 //..............................................................................
 
@@ -39,17 +39,17 @@ class SerialSettingUi
 		FlowControl = io.SerialFlowControl.None,
 	}
 
-	gui.ComboBox* m_baudRateCombo;
-	gui.ComboBox* m_dataBitsCombo;
-	gui.ComboBox* m_stopBitsCombo;
-	gui.ComboBox* m_parityCombo;
-	gui.ComboBox* m_flowControlCombo;
+	ui.ComboBox* m_baudRateCombo;
+	ui.ComboBox* m_dataBitsCombo;
+	ui.ComboBox* m_stopBitsCombo;
+	ui.ComboBox* m_parityCombo;
+	ui.ComboBox* m_flowControlCombo;
 
-	gui.ComboProperty* m_baudRateProp;
-	gui.EnumProperty* m_dataBitsProp;
-	gui.EnumProperty* m_stopBitsProp;
-	gui.EnumProperty* m_parityProp;
-	gui.EnumProperty* m_flowControlProp;
+	ui.ComboProperty* m_baudRateProp;
+	ui.EnumProperty* m_dataBitsProp;
+	ui.EnumProperty* m_stopBitsProp;
+	ui.EnumProperty* m_parityProp;
+	ui.EnumProperty* m_flowControlProp;
 
 	property m_baudRate
 	{
@@ -148,9 +148,9 @@ class SerialSettingUi
 
 public:
 	create(
-		gui.ToolBar* toolBar,
-		gui.PropertyGrid* propertyGrid,
-		gui.GroupProperty* groupProp = null,
+		ui.ToolBar* toolBar,
+		ui.PropertyGrid* propertyGrid,
+		ui.GroupProperty* groupProp = null,
 		SettingId comboMask = SettingId.All,
 		SettingId propertyMask = SettingId.All
 		);
@@ -165,14 +165,14 @@ public:
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 SerialSettingUi.create(
-	gui.ToolBar* toolBar,
-	gui.PropertyGrid* propertyGrid,
-	gui.GroupProperty* groupProp,
+	ui.ToolBar* toolBar,
+	ui.PropertyGrid* propertyGrid,
+	ui.GroupProperty* groupProp,
 	SettingId comboMask,
 	SettingId propMask
 	)
 {
-	static gui.EnumPropertyOption baudRateTable[] =
+	static ui.EnumPropertyOption baudRateTable[] =
 	{
 		{ "110 bps" },
 		{ "300 bps" },
@@ -195,20 +195,20 @@ SerialSettingUi.create(
 		{ "921600 bps" },
 	}
 
-	static gui.EnumPropertyOption dataBitsTable[] =
+	static ui.EnumPropertyOption dataBitsTable[] =
 	{
 		{ "7 bits", 7 },
 		{ "8 bits", 8 },
 	}
 
-	static gui.EnumPropertyOption stopBitsTable[] =
+	static ui.EnumPropertyOption stopBitsTable[] =
 	{
 		{ "1 bit",    io.SerialStopBits._1 },
 		{ "1.5 bits", io.SerialStopBits._15 },
 		{ "2 bits",   io.SerialStopBits._2 },
 	}
 
-	static gui.EnumPropertyOption parityTable[] =
+	static ui.EnumPropertyOption parityTable[] =
 	{
 		{ "None",  io.SerialParity.None },
 		{ "Odd",   io.SerialParity.Odd },
@@ -217,7 +217,7 @@ SerialSettingUi.create(
 		{ "Space", io.SerialParity.Space },
 	}
 
-	static gui.EnumPropertyOption flowControlTable[] =
+	static ui.EnumPropertyOption flowControlTable[] =
 	{
 		{ "None",     io.SerialFlowControl.None },
 		{ "RTS/CTS",  io.SerialFlowControl.RtsCts },
@@ -383,4 +383,4 @@ SerialSettingUi.restoreDefaultProperties()
 
 //..............................................................................
 
-} // namespace io {
+} // namespace ui

@@ -3,15 +3,15 @@
 // Pcap device user interface
 //
 
-import "gui_ComboBox.jnc"
-import "gui_PropertyGrid.jnc"
+import "ui_ComboBox.jnc"
+import "ui_PropertyGrid.jnc"
 import "io_pcap.jncx"
 
-namespace io {
+namespace ui {
 
 //..............................................................................
 
-gui.EnumPropertyOption const* createPcapDeviceOptionArray(bool canOpenFile = true)
+EnumPropertyOption const* createPcapDeviceOptionArray(bool canOpenFile = true)
 {
 	size_t count;
 	io.PcapDeviceDesc const* device = io.createPcapDeviceDescList(&count);
@@ -19,8 +19,8 @@ gui.EnumPropertyOption const* createPcapDeviceOptionArray(bool canOpenFile = tru
 	if (canOpenFile)
 		count++;
 
-	gui.EnumPropertyOption* optionArray = new gui.EnumPropertyOption[count];
-	gui.EnumPropertyOption* option = optionArray;
+	EnumPropertyOption* optionArray = new EnumPropertyOption[count];
+	EnumPropertyOption* option = optionArray;
 
 	for (; device; device = device.m_next, option++)
 	{
@@ -43,16 +43,16 @@ gui.EnumPropertyOption const* createPcapDeviceOptionArray(bool canOpenFile = tru
 
 //..............................................................................
 
-gui.EnumProperty* createPcapDeviceProperty(
-	gui.PropertyGrid* propertyGrid,
-	gui.GroupProperty* group = null,
-	gui.Property* beforeProp = null,
+EnumProperty* createPcapDeviceProperty(
+	PropertyGrid* propertyGrid,
+	GroupProperty* group = null,
+	Property* beforeProp = null,
 	bool canOpenFile = true,
 	char const* name,
 	char const* toolTipText
 	)
 {
-	gui.EnumPropertyOption const* optionArray = createPcapDeviceOptionArray(canOpenFile);
+	EnumPropertyOption const* optionArray = createPcapDeviceOptionArray(canOpenFile);
 	size_t optionCount = dynamic countof(optionArray);
 
 	return propertyGrid.createEnumProperty(
@@ -67,17 +67,17 @@ gui.EnumProperty* createPcapDeviceProperty(
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-gui.ComboBox*
+ComboBox*
 createPcapDeviceComboBox(
-	gui.ToolBar* toolBar,
+	ToolBar* toolBar,
 	bool canOpenFile = true,
 	uint_t width = -1
 	)
 {
-	gui.EnumPropertyOption const* optionArray = createPcapDeviceOptionArray(canOpenFile);
+	EnumPropertyOption const* optionArray = createPcapDeviceOptionArray(canOpenFile);
 	size_t optionCount = dynamic countof(optionArray);
 
-	gui.ComboBox* comboBox = toolBar.addComboBox(width);
+	ComboBox* comboBox = toolBar.addComboBox(width);
 
 	for (size_t i = 0; i < optionCount; i++)
 		comboBox.addItem(
@@ -90,4 +90,4 @@ createPcapDeviceComboBox(
 
 //..............................................................................
 
-} // namespace io {
+} // namespace ui

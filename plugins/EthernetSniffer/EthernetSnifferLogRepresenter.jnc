@@ -3,12 +3,12 @@
 // Ethernet sniffer log representer
 //
 
-import "log_Representer.jnc"
+import "log_Representation.jnc"
 
 //..............................................................................
 
 bool representEthernetSnifferLog(
-	log.RepresenterTarget* target,
+	log.Representation* representation,
 	uint64_t recordCode,
 	void const* p,
 	size_t size,
@@ -19,46 +19,46 @@ bool representEthernetSnifferLog(
 	{
 	case EthernetSnifferLogRecordCode.DeviceOpened:
 		char const* name = (char const*)p;
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText($"Sniffer device \e[34m$name\e[m opened");
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		representation.addHyperText($"Sniffer device \e[34m$name\e[m opened");
 		break;
 
 	case EthernetSnifferLogRecordCode.InterfaceClaimed:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText($"Interface \e[34m#0\e[m claimed");
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		representation.addHyperText($"Interface \e[34m#0\e[m claimed");
 		break;
 
 	case EthernetSnifferLogRecordCode.InEndpointOpened:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText($"In endpoint \e[34m#86\e[m opened");
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		representation.addHyperText($"In endpoint \e[34m#86\e[m opened");
 		break;
 
 	case EthernetSnifferLogRecordCode.OutEndpointOpened:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText($"Out endpoint \e[34m#2\e[m opened");
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		representation.addHyperText($"Out endpoint \e[34m#2\e[m opened");
 		break;
 
 	case EthernetSnifferLogRecordCode.CaptureStarted:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Connect;
-		target.addHyperText($"Capture started");
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Connect;
+		representation.addHyperText($"Capture started");
 		break;
 
 	case EthernetSnifferLogRecordCode.CaptureStopped:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
-		target.addHyperText("Capture stopped");
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
+		representation.addHyperText("Capture stopped");
 		break;
 
 	case EthernetSnifferLogRecordCode.CaptureError:
 		std.Error const* error = (std.Error const*)p;
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		target.addHyperText($"Cannot open sniffer: $(error.m_description)");
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Error;
+		representation.addHyperText($"Cannot open sniffer: $(error.m_description)");
 		break;
 
 	case EthernetSnifferLogRecordCode.Packet:
@@ -66,12 +66,12 @@ bool representEthernetSnifferLog(
 		PacketHdr const* hdr = (PacketHdr const*)(p + sizeof(uint32_t));
 		uint_t channel = (hdr.m_flags & PacketFlags.ChannelId) != 0;
 
-		target.m_lineAttr.m_backColor = gui.StdColor.PastelGray;
-		target.m_lineAttr.m_iconIdx = channel ?
+		representation.m_lineAttr.m_backColor = ui.StdColor.PastelGray;
+		representation.m_lineAttr.m_iconIdx = channel ?
 			log.StdLogIcon.TxPacket :
 			log.StdLogIcon.RxPacket;
 
-		target.addHyperText(
+		representation.addHyperText(
 			$"[\e[34m$i\e[m] "
 			$"channel: \e[34m$(channel + 1)\e[m "
 			$"size: \e[34m$(hdr.m_size - sizeof(uint32_t))\e[m + CRC-32 "
@@ -80,23 +80,23 @@ bool representEthernetSnifferLog(
 
 		if (channel)
 		{
-			target.m_lineAttr.m_iconIdx = log.StdLogIcon.Tx;
-			target.m_lineAttr.m_textColor = log.StdLogColor.Tx;
+			representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Tx;
+			representation.m_lineAttr.m_textColor = log.StdLogColor.Tx;
 		}
 		else
 		{
-			target.m_lineAttr.m_iconIdx = log.StdLogIcon.Rx;
-			target.m_lineAttr.m_textColor = log.StdLogColor.Rx;
+			representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Rx;
+			representation.m_lineAttr.m_textColor = log.StdLogColor.Rx;
 		}
 
-		target.m_lineAttr.m_backColor = gui.ColorFlags.Transparent;
-		target.addBin(hdr + 1, hdr.m_size);
+		representation.m_lineAttr.m_backColor = ui.ColorFlags.Transparent;
+		representation.addBin(hdr + 1, hdr.m_size);
 		break;
 
 	case EthernetSnifferLogRecordCode.CypressBufferCleared:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText($"Hardware buffer cleared");
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		representation.addHyperText($"Hardware buffer cleared");
 		break;
 
 	default:

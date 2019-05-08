@@ -3,13 +3,13 @@
 // Ethernet Sniffer session
 //
 
-import "io_usb.jncx"
-import "io_BufferUi.jnc"
-import "std_Buffer.jnc"
 import "doc_Session.jnc"
-import "gui_StdSessionInfo.jnc"
+import "io_usb.jncx"
+import "ui_BufferPropertySet.jnc"
+import "ui_StdSessionInfoSet.jnc"
 import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
+import "std_Buffer.jnc"
 
 //..............................................................................
 
@@ -93,22 +93,22 @@ protected:
 
 	// toolbar, status bar & menu
 
-	gui.Action* m_actionTable[ActionId._Count];
-	gui.Icon* m_iconTable[IconId._Count];
-	gui.StatusPane* m_statusPaneTable[StatusPaneId._Count];
-	gui.ComboBox* m_deviceCombo;
+	ui.Action* m_actionTable[ActionId._Count];
+	ui.Icon* m_iconTable[IconId._Count];
+	ui.StatusPane* m_statusPaneTable[StatusPaneId._Count];
+	ui.ComboBox* m_deviceCombo;
 
 	// property grid
 
-	gui.EnumProperty* m_deviceProp;
-	gui.BoolProperty* m_rawDataProp;
-	io.BufferPropertySet m_bufferPropertySet;
+	ui.EnumProperty* m_deviceProp;
+	ui.BoolProperty* m_rawDataProp;
+	ui.BufferPropertySet m_bufferPropertySet;
 
 	// information grid
 
-	gui.StdSessionInfoSet m_stdSessionInfoSet;
-	log.ThroughputInfoSet m_throughputInfoSet;
-	log.ChecksumInfoSet m_checksumInfoSet;
+	ui.StdSessionInfoSet m_stdSessionInfoSet;
+	ui.ThroughputInfoSet m_throughputInfoSet;
+	ui.ChecksumInfoSet m_checksumInfoSet;
 
 	// ui reactor
 
@@ -169,9 +169,9 @@ EthernetSnifferSession.createUi()
 {
 	// toolbar
 
-	m_iconTable[IconId.Capture] = new gui.Icon("images/capture.png");
-	m_iconTable[IconId.Stop] = new gui.Icon("images/stop.png");
-	m_iconTable[IconId.Refresh] = new gui.Icon("images/refresh.png");
+	m_iconTable[IconId.Capture] = new ui.Icon("images/capture.png");
+	m_iconTable[IconId.Stop] = new ui.Icon("images/stop.png");
+	m_iconTable[IconId.Refresh] = new ui.Icon("images/refresh.png");
 
 	m_pluginHost.m_toolBar.addLabel("Sniffer:");
 	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox(-1);
@@ -188,7 +188,7 @@ EthernetSnifferSession.createUi()
 
 	// property grid
 
-	gui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty(
+	ui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty(
 		"Connection",
 		"USB-specific connection settings"
 		);
@@ -206,11 +206,11 @@ EthernetSnifferSession.createUi()
 		"Show raw USB data"
 		);
 
-	io.BufferPropertySet.PropertyId ids =
-		io.BufferPropertySet.PropertyId.ReadParallelism |
-		io.BufferPropertySet.PropertyId.ReadBlockSize |
-		io.BufferPropertySet.PropertyId.ReadBufferSize |
-		io.BufferPropertySet.PropertyId.NotifyReadBufferFull;
+	ui.BufferPropertySet.PropertyId ids =
+		ui.BufferPropertySet.PropertyId.ReadParallelism |
+		ui.BufferPropertySet.PropertyId.ReadBlockSize |
+		ui.BufferPropertySet.PropertyId.ReadBufferSize |
+		ui.BufferPropertySet.PropertyId.NotifyReadBufferFull;
 
 	m_bufferPropertySet.m_defaultReadParallelism = Defaults.ReadParallelism;
 	m_bufferPropertySet.m_defaultReadBlockSize = Defaults.ReadBlockSize;
@@ -219,7 +219,7 @@ EthernetSnifferSession.createUi()
 
 	// information grid
 
-	gui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("USB connection");
+	ui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("USB connection");
 
 	m_stdSessionInfoSet.createInformationValues(m_pluginHost.m_informationGrid, infoGroup);
 	m_throughputInfoSet.createInformationValuesGrouped(m_pluginHost.m_informationGrid);
@@ -247,7 +247,7 @@ EthernetSnifferSession.enumerateDevices()
 	size_t totalCount = dynamic countof(deviceArray);
 	size_t actualCount = 0;
 
-	gui.EnumPropertyOption* optionTable = new gui.EnumPropertyOption[totalCount];
+	ui.EnumPropertyOption* optionTable = new ui.EnumPropertyOption[totalCount];
 
 	for (size_t i = 0; i < totalCount; i++)
 	{

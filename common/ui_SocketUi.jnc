@@ -3,14 +3,13 @@
 // Socket & network adapter user interface
 //
 
-import "gui_ToolBar.jnc"
-import "gui_PropertyGrid.jnc"
+import "ui_ToolBar.jnc"
+import "ui_BufferPropertySet.jnc"
 import "io_base.jncx"
 import "io_Socket.jnc"
 import "io_NetworkAdapter.jnc"
-import "io_BufferUi.jnc"
 
-namespace io {
+namespace ui {
 
 //..............................................................................
 
@@ -22,19 +21,19 @@ enum NetworkAdapterUsage
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-gui.EnumPropertyOption const* createNetworkAdapterOptionArray(NetworkAdapterUsage usage)
+EnumPropertyOption const* createNetworkAdapterOptionArray(NetworkAdapterUsage usage)
 {
 	size_t addressCount;
 	io.NetworkAdapterDesc const* adapterList = io.createNetworkAdapterDescList(null, &addressCount);
 
-	gui.EnumPropertyOption* optionArray;
-	gui.EnumPropertyOption* option;
+	EnumPropertyOption* optionArray;
+	EnumPropertyOption* option;
 
 	switch (usage)
 	{
 	case NetworkAdapterUsage.Connection:
 		addressCount++; // include 'Auto'
-		optionArray = new gui.EnumPropertyOption[addressCount];
+		optionArray = new EnumPropertyOption[addressCount];
 		option = optionArray;
 
 		option.m_text = "Auto";
@@ -47,7 +46,7 @@ gui.EnumPropertyOption const* createNetworkAdapterOptionArray(NetworkAdapterUsag
 		static io.SocketAddress autoAddress_ip6 = { m_family = io.AddressFamily.Ip6 }
 
 		addressCount += 2; // include 'All IPv4/IPv6 adapters'
-		optionArray = new gui.EnumPropertyOption[addressCount];
+		optionArray = new EnumPropertyOption[addressCount];
 		option = optionArray;
 
 		option.m_text = "All IPv4 adapters";
@@ -80,16 +79,16 @@ gui.EnumPropertyOption const* createNetworkAdapterOptionArray(NetworkAdapterUsag
 
 //..............................................................................
 
-gui.EnumProperty* createNetworkAdapterProperty(
-	gui.PropertyGrid* propertyGrid,
-	gui.GroupProperty* group = null,
-	gui.Property* insertBefore = null,
+EnumProperty* createNetworkAdapterProperty(
+	PropertyGrid* propertyGrid,
+	GroupProperty* group = null,
+	Property* insertBefore = null,
 	NetworkAdapterUsage usage,
 	char const* name,
 	char const* toolTipText
 	)
 {
-	gui.EnumPropertyOption const* optionArray = createNetworkAdapterOptionArray(usage);
+	EnumPropertyOption const* optionArray = createNetworkAdapterOptionArray(usage);
 	size_t optionCount = dynamic countof(optionArray);
 
 	return propertyGrid.createEnumProperty(
@@ -102,8 +101,8 @@ gui.EnumProperty* createNetworkAdapterProperty(
 		);
 }
 
-gui.EnumProperty* createNetworkAdapterProperty(
-	gui.PropertyGrid* propertyGrid,
+EnumProperty* createNetworkAdapterProperty(
+	PropertyGrid* propertyGrid,
 	NetworkAdapterUsage usage,
 	char const* name,
 	char const* toolTipText
@@ -114,17 +113,17 @@ gui.EnumProperty* createNetworkAdapterProperty(
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-gui.ComboBox*
+ComboBox*
 createNetworkAdapterComboBox(
-	gui.ToolBar* toolBar,
+	ToolBar* toolBar,
 	NetworkAdapterUsage usage,
 	uint_t width = -1
 	)
 {
-	gui.EnumPropertyOption const* optionArray = createNetworkAdapterOptionArray(usage);
+	EnumPropertyOption const* optionArray = createNetworkAdapterOptionArray(usage);
 	size_t optionCount = dynamic countof(optionArray);
 
-	gui.ComboBox* comboBox = toolBar.addComboBox(width);
+	ComboBox* comboBox = toolBar.addComboBox(width);
 
 	for (size_t i = 0; i < optionCount; i++)
 		comboBox.addItem(
@@ -197,27 +196,27 @@ class SocketPropertySet
 
 	static char DefaultRemoteAddress[] = "ioninja.com";
 
-	gui.StringProperty* m_remoteAddressProp;
-	gui.IntProperty* m_remotePortProp;
-	gui.BoolProperty* m_useReconnectProp;
-	gui.IntProperty* m_reconnectTimeoutProp;
-	gui.BoolProperty* m_useLocalAddressProp;
-	gui.EnumProperty* m_adapterProp;
-	gui.IntProperty* m_localPortProp;
-	gui.BoolProperty* m_reuseLocalAddressProp;
-	gui.BoolProperty* m_tcpKeepAliveProp;
-	gui.BoolProperty* m_tcpNagleProp;
-	gui.BoolProperty* m_tcpResetProp;
-	gui.BoolProperty* m_udpBroadcastProp;
+	StringProperty* m_remoteAddressProp;
+	IntProperty* m_remotePortProp;
+	BoolProperty* m_useReconnectProp;
+	IntProperty* m_reconnectTimeoutProp;
+	BoolProperty* m_useLocalAddressProp;
+	EnumProperty* m_adapterProp;
+	IntProperty* m_localPortProp;
+	BoolProperty* m_reuseLocalAddressProp;
+	BoolProperty* m_tcpKeepAliveProp;
+	BoolProperty* m_tcpNagleProp;
+	BoolProperty* m_tcpResetProp;
+	BoolProperty* m_udpBroadcastProp;
 
 	uint16_t m_defaultRemotePort = Defaults.RemotePort;
 	uint16_t m_defaultLocalPort = Defaults.LocalPort;
 	uint_t m_defaultReconnectTimeout = Defaults.ReconnectTimeout;
 
 	createProperties(
-		gui.PropertyGrid* propertyGrid,
-		gui.GroupProperty* group = null,
-		gui.Property* insertBefore = null,
+		PropertyGrid* propertyGrid,
+		GroupProperty* group = null,
+		Property* insertBefore = null,
 		PropertyId mask = PropertyId.AllTcpClient
 		);
 
@@ -229,9 +228,9 @@ class SocketPropertySet
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 SocketPropertySet.createProperties(
-	gui.PropertyGrid* propertyGrid,
-	gui.GroupProperty* group,
-	gui.Property* insertBefore,
+	PropertyGrid* propertyGrid,
+	GroupProperty* group,
+	Property* insertBefore,
 	PropertyId mask
 	)
 {
@@ -276,13 +275,13 @@ SocketPropertySet.createProperties(
 			);
 
 	if (mask & (PropertyId.ClientAdapter | PropertyId.ServerAdapter))
-		m_adapterProp = io.createNetworkAdapterProperty(
+		m_adapterProp = createNetworkAdapterProperty(
 			propertyGrid,
 			group,
 			insertBefore,
 			(mask & PropertyId.ClientAdapter) ?
-				io.NetworkAdapterUsage.Connection :
-				io.NetworkAdapterUsage.Listener,
+				NetworkAdapterUsage.Connection :
+				NetworkAdapterUsage.Listener,
 			"Adapter",
 			"Network adapter to bind to"
 			);
@@ -455,8 +454,8 @@ SocketPropertySet.restoreDefaults()
 //..............................................................................
 
 io.SocketOptions getSocketOptions(
-	io.SocketPropertySet* socketPropSet,
-	io.BufferPropertySet* bufferPropSet
+	SocketPropertySet* socketPropSet,
+	BufferPropertySet* bufferPropSet
 	)
 {
 	io.SocketOptions options;
@@ -487,4 +486,4 @@ io.SocketOptions getSocketOptions(
 
 //..............................................................................
 
-} // namespace io {
+} // namespace ui

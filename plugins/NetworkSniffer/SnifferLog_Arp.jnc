@@ -7,7 +7,7 @@
 
 size_t
 representArpHdr(
-	log.RepresenterTarget* target,
+	log.Representation* representation,
 	void const* p,
 	size_t size,
 	size_t baseOffset,
@@ -25,7 +25,7 @@ representArpHdr(
 
 	size_t arpSize = sizeof(io.ArpHdr) + (arpHdr.m_hardwareLength + arpHdr.m_protocolLength) * 2;
 
-	target.addHyperText(std.format(
+	representation.addHyperText(std.format(
 		"\e[1mARP\n"
 		"   \e[90mHARDWARE: \e^!%d,%d\e[34m%04x\e[m - %s\n"
 		"   \e[90mPROTOCOL: \e^!%d,%d\e[34m%04x\e[m - %s\n"
@@ -100,7 +100,7 @@ representArpHdr(
 }
 
 representArp(
-	log.RepresenterTarget* target,
+	log.Representation* representation,
 	void const* p,
 	size_t size,
 	size_t baseOffset
@@ -108,7 +108,7 @@ representArp(
 {
 	if (baseOffset + sizeof(io.ArpHdr) > size)
 	{
-		target.addHyperText($"[\e^+1\e[34m+\e[m] \e[1mARP\e[m INVALID SIZE: \e[34m$size");
+		representation.addHyperText($"[\e^+1\e[34m+\e[m] \e[1mARP\e[m INVALID SIZE: \e[34m$size");
 		return;
 	}
 
@@ -116,7 +116,7 @@ representArp(
 	size_t arpSize = sizeof(io.ArpHdr) + 2 * (arpHdr.m_hardwareLength + arpHdr.m_protocolLength);
 	if (baseOffset + arpSize > size)
 	{
-		target.addHyperText($"[\e^+1\e[34m+\e[m] \e[1mARP\e[m INVALID SIZE: \e[34m$size");
+		representation.addHyperText($"[\e^+1\e[34m+\e[m] \e[1mARP\e[m INVALID SIZE: \e[34m$size");
 		return;
 	}
 
@@ -128,7 +128,7 @@ representArp(
 	switch (arpHdr.m_opcode)
 	{
 	case io.ArpOpcode.Request:
-		target.addHyperText(
+		representation.addHyperText(
 			$"[\e^+1\e[34m+\e[m] \e[1mARP\e[m REQUEST: who-has \e[34m%1\e[m reply-to \e[34m%2" (
 			getArpProtocolAddressString(
 				arpHdr.m_protocolType,
@@ -144,7 +144,7 @@ representArp(
 		break;
 
 	case io.ArpOpcode.Reply:
-		target.addHyperText(
+		representation.addHyperText(
 			$"[\e^+1\e[34m+\e[m] \e[1mARP\e[m REPLY: \e[34m%1\e[m is-at \e[34m%2" (
 			getArpProtocolAddressString(
 				arpHdr.m_protocolType,
@@ -160,7 +160,7 @@ representArp(
 		break;
 
 	case io.ArpOpcode.RequestReverse:
-		target.addHyperText(
+		representation.addHyperText(
 			$"[\e^+1\e[34m+\e[m] \e[1mARP-INV\e[m REQUEST-INV: who-has \e[34m%1\e[m reply-to \e[34m%2" (
 			getArpHardwareAddressString(
 				arpHdr.m_hardwareType,
@@ -175,7 +175,7 @@ representArp(
 			));
 
 	case io.ArpOpcode.ReplyReverese:
-		target.addHyperText(
+		representation.addHyperText(
 			$"[\e^+1\e[34m+\e[m] \e[1mARP-INV\e[m REPLY-INV: \e[34m%1\e[m is-at \e[34m%2" (
 			getArpHardwareAddressString(
 				arpHdr.m_hardwareType,
@@ -190,7 +190,7 @@ representArp(
 			));
 
 	default:
-		target.addHyperText($"[\e^+1\e[34m+\e[m] \e[1mARP\e[m INVALID OPCODE \e[34m$(arpHdr.m_opcode)");
+		representation.addHyperText($"[\e^+1\e[34m+\e[m] \e[1mARP\e[m INVALID OPCODE \e[34m$(arpHdr.m_opcode)");
 	}
 }
 

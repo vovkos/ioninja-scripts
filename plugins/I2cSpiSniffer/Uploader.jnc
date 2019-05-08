@@ -6,7 +6,7 @@
 import "io_base.jncx"
 import "io_MappedFile.jnc"
 import "sys_Timer.jnc"
-import "gui_Dialog.jnc"
+import "ui_Dialog.jnc"
 import "parseVersion.jnc"
 
 import "I2cSpiSnifferLogRecordCode.jnc"
@@ -66,7 +66,7 @@ protected:
 	jnc.Scheduler* m_mainThreadScheduler;
 	io.UsbDevice* m_device;
 	io.MappedFile m_file;
-	gui.ProgressDlg m_progressDlg;
+	ui.ProgressDlg m_progressDlg;
 	sys.Timer m_timer;
 	std.Buffer m_block;
 	size_t m_fileSize;
@@ -104,7 +104,7 @@ protected:
 
 	bool checkStatus();
 
-	onProgressDlgButtonClicked(gui.StdDlgButton button);
+	onProgressDlgButtonClicked(ui.StdDlgButton button);
 	onTimer(uint_t syncId);
 
 	onTransferCompleted(
@@ -169,7 +169,7 @@ bool errorcode Uploader.update(
 	m_progressDlg.m_title = "Updating FPGA Firmware";
 	m_progressDlg.m_status = "Preparing...";
 	m_progressDlg.m_progress = 0;
-	m_progressDlg.m_buttons = gui.StdDlgButtons.Abort;
+	m_progressDlg.m_buttons = ui.StdDlgButtons.Abort;
 	m_progressDlg.show();
 
 	m_state = State.PreErase;
@@ -389,12 +389,12 @@ catch:
 	cancel();
 }
 
-Uploader.onProgressDlgButtonClicked(gui.StdDlgButton button)
+Uploader.onProgressDlgButtonClicked(ui.StdDlgButton button)
 {
 	switch (button)
 	{
-	case gui.StdDlgButton.Cancel:
-	case gui.StdDlgButton.Abort:
+	case ui.StdDlgButton.Cancel:
+	case ui.StdDlgButton.Abort:
 		cancel();
 		break;
 	}

@@ -3,9 +3,9 @@
 // SSH connection user interface
 //
 
-import "gui_PropertyGrid.jnc"
+import "ui_PropertyGrid.jnc"
 
-namespace io {
+namespace ui {
 
 //..............................................................................
 
@@ -35,7 +35,7 @@ class SshPropertySet
 
 	enum Defaults
 	{
-		AuthenticationMethod = gui.AuthenticationMethod.Password,
+		AuthenticationMethod = ui.AuthenticationMethod.Password,
 		RememberLastPassword = false,
 	}
 
@@ -43,19 +43,19 @@ class SshPropertySet
 	static char DefaultProcessType[] = "shell";
 	static char DefaultPtyType[] = "xterm";
 
-	gui.StringProperty* m_userNameProp;
-	gui.EnumProperty* m_authenticationMethodProp;
-	gui.FileProperty* m_privateKeyFileProp;
-	gui.BoolProperty* m_rememberLastPasswordProp;
-	gui.StringProperty* m_channelTypeProp;
-	gui.StringProperty* m_processTypeProp;
-	gui.StringProperty* m_execProp;
-	gui.StringProperty* m_ptyTypeProp;
+	StringProperty* m_userNameProp;
+	EnumProperty* m_authenticationMethodProp;
+	FileProperty* m_privateKeyFileProp;
+	BoolProperty* m_rememberLastPasswordProp;
+	StringProperty* m_channelTypeProp;
+	StringProperty* m_processTypeProp;
+	StringProperty* m_execProp;
+	StringProperty* m_ptyTypeProp;
 
 	createProperties(
-		gui.PropertyGrid* propertyGrid,
-		gui.GroupProperty* group = null,
-		gui.Property* insertBefore = null,
+		PropertyGrid* propertyGrid,
+		GroupProperty* group = null,
+		Property* insertBefore = null,
 		PropertyId mask = PropertyId.All
 		);
 
@@ -67,16 +67,16 @@ class SshPropertySet
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 SshPropertySet.createProperties(
-	gui.PropertyGrid* propertyGrid,
-	gui.GroupProperty* group,
-	gui.Property* insertBefore,
+	PropertyGrid* propertyGrid,
+	GroupProperty* group,
+	Property* insertBefore,
 	PropertyId mask
 	)
 {
-	static gui.EnumPropertyOption authenticationMethodTable[] =
+	static EnumPropertyOption authenticationMethodTable[] =
 	{
-		{ "Password",    gui.AuthenticationMethod.Password },
-		{ "Private key", gui.AuthenticationMethod.PrivateKey },
+		{ "Password",    AuthenticationMethod.Password },
+		{ "Private key", AuthenticationMethod.PrivateKey },
 	}
 
 	if (mask & PropertyId.UserName)
@@ -214,4 +214,4 @@ SshPropertySet.restoreDefaults()
 
 //..............................................................................
 
-} // namespace io {
+} // namespace ui

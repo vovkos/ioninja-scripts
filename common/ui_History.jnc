@@ -4,9 +4,9 @@
 //
 
 import "doc_Storage.jnc"
-import "gui_ComboBox.jnc"
+import "ui_ComboBox.jnc"
 
-namespace gui {
+namespace ui {
 
 //..............................................................................
 
@@ -101,4 +101,4 @@ finally:
 
 //..............................................................................
 
-} // namespace gui {
+} // namespace ui

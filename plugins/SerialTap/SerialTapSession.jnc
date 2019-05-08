@@ -3,17 +3,17 @@
 // Serial tap cable session
 //
 
+import "doc_Session.jnc"
 import "io_usb.jncx"
 import "io_base.jncx"
 import "io_Serial.jnc"
-import "io_SerialUi.jnc"
-import "io_BufferUi.jnc"
 import "io_UsbDb.jnc"
-import "std_Buffer.jnc"
-import "doc_Session.jnc"
-import "gui_StdSessionInfo.jnc"
+import "ui_SerialSettingUi.jnc"
+import "ui_BufferPropertySet.jnc"
+import "ui_StdSessionInfoSet.jnc"
 import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
+import "std_Buffer.jnc"
 
 namespace cy {
 
@@ -220,27 +220,27 @@ protected:
 
 	// common serial ui
 
-	io.SerialSettingUi m_serialSettingUi;
+	ui.SerialSettingUi m_serialSettingUi;
 
 	// toolbar, status bar & menu
 
-	gui.Action* m_actionTable[ActionId._Count];
-	gui.Icon* m_iconTable[IconId._Count];
-	gui.StatusPane* m_statusPane;
-	gui.ComboBox* m_deviceCombo;
+	ui.Action* m_actionTable[ActionId._Count];
+	ui.Icon* m_iconTable[IconId._Count];
+	ui.StatusPane* m_statusPane;
+	ui.ComboBox* m_deviceCombo;
 
 	// serial property grid
 
-	gui.EnumProperty* m_deviceProp;
-	gui.BoolProperty* m_flipProp;
-	io.BufferPropertySet m_bufferPropertySet;
+	ui.EnumProperty* m_deviceProp;
+	ui.BoolProperty* m_flipProp;
+	ui.BufferPropertySet m_bufferPropertySet;
 
 	// information grid
 
-	gui.StdSessionInfoSet m_stdSessionInfoSet;
-	log.ThroughputInfoSet m_throughputInfoSet;
-	log.ChecksumInfoSet m_checksumInfoSet;
-	gui.InformationValue* m_infoTable[InfoId._Count];
+	ui.StdSessionInfoSet m_stdSessionInfoSet;
+	ui.ThroughputInfoSet m_throughputInfoSet;
+	ui.ChecksumInfoSet m_checksumInfoSet;
+	ui.InformationValue* m_infoTable[InfoId._Count];
 
 	// ui reactor
 
@@ -303,7 +303,7 @@ SerialTapSession.construct(doc.PluginHost* pluginHost)
 {
 	basetype.construct(pluginHost);
 
-	m_readBuffer.setSize(io.BufferPropertySet.Defaults.ReadBufferSize);
+	m_readBuffer.setSize(ui.BufferPropertySet.Defaults.ReadBufferSize);
 
 	m_dteIface = new SerialIface;
 	m_dceIface = new SerialIface;
@@ -319,8 +319,8 @@ SerialTapSession.createUi()
 {
 	// toolbar
 
-	m_iconTable[IconId.Capture] = new gui.Icon("images/capture.png");
-	m_iconTable[IconId.StopCapture] = new gui.Icon("images/pause.png");
+	m_iconTable[IconId.Capture] = new ui.Icon("images/capture.png");
+	m_iconTable[IconId.StopCapture] = new ui.Icon("images/pause.png");
 
 	m_pluginHost.m_toolBar.addLabel("Tap:");
 	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox(-1);
@@ -338,7 +338,7 @@ SerialTapSession.createUi()
 
 	// serial settings
 
-	gui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty(
+	ui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty(
 		"Connection",
 		"USB-specific connection settings"
 		);
@@ -354,11 +354,11 @@ SerialTapSession.createUi()
 		m_pluginHost.m_toolBar,
 		m_pluginHost.m_propertyGrid,
 		group,
-		io.SerialSettingUi.SettingId.BaudRate,
-		io.SerialSettingUi.SettingId.BaudRate |
-		io.SerialSettingUi.SettingId.DataBits |
-		io.SerialSettingUi.SettingId.StopBits |
-		io.SerialSettingUi.SettingId.Parity
+		ui.SerialSettingUi.SettingId.BaudRate,
+		ui.SerialSettingUi.SettingId.BaudRate |
+		ui.SerialSettingUi.SettingId.DataBits |
+		ui.SerialSettingUi.SettingId.StopBits |
+		ui.SerialSettingUi.SettingId.Parity
 		);
 
 	m_serialSettingUi.m_baudRateCombo.m_onEnter += onBaudRateChanged;
@@ -383,17 +383,17 @@ SerialTapSession.createUi()
 		"Advanced options controlling performance, throughtput and compatibility"
 		);
 
-	io.BufferPropertySet.PropertyId mask = io.BufferPropertySet.PropertyId.All;
+	ui.BufferPropertySet.PropertyId mask = ui.BufferPropertySet.PropertyId.All;
 	mask &= ~(
-		io.BufferPropertySet.PropertyId.WriteBufferSize |
-		io.BufferPropertySet.PropertyId.KeepWriteBlockSize
+		ui.BufferPropertySet.PropertyId.WriteBufferSize |
+		ui.BufferPropertySet.PropertyId.KeepWriteBlockSize
 		);
 
 	m_bufferPropertySet.createProperties(m_pluginHost.m_propertyGrid, group,, mask);
 
 	// information grid
 
-	gui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("Serial tap");
+	ui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("Serial tap");
 
 	m_stdSessionInfoSet.createInformationValues(m_pluginHost.m_informationGrid, infoGroup);
 
@@ -419,7 +419,7 @@ SerialTapSession.enumerateDevices()
 	size_t totalCount = dynamic countof(deviceArray);
 	size_t actualCount = 0;
 
-	gui.EnumPropertyOption* optionTable = new gui.EnumPropertyOption[totalCount];
+	ui.EnumPropertyOption* optionTable = new ui.EnumPropertyOption[totalCount];
 
 	for (size_t i = 0; i < totalCount; i++)
 	{
@@ -803,7 +803,7 @@ SerialTapSession.updateLineInfoValue(
 	)
 {
 	m_infoTable[infoId].m_value = line ? "on" : "off";
-	m_infoTable[infoId].m_valueColor = line ? gui.StdColor.LightRed : gui.StdColor.Gray;
+	m_infoTable[infoId].m_valueColor = line ? ui.StdColor.LightRed : ui.StdColor.Gray;
 }
 
 reactor SerialTapSession.m_uiReactor

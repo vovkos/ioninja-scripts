@@ -3,7 +3,7 @@
 // UDP log packet declarations and representer
 //
 
-import "log_Representer.jnc"
+import "log_Representation.jnc"
 
 //..............................................................................
 

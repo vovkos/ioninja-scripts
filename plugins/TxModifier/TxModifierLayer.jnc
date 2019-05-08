@@ -52,15 +52,15 @@ protected:
 
 	// properties
 
-	gui.BoolProperty* m_isPrefixEnabledProp;
-	gui.StringProperty* m_prefixProp;
-	gui.BoolProperty* m_isSuffixEnabledProp;
-	gui.StringProperty* m_suffixProp;
-	gui.BoolProperty* m_isRetransmitEnabledProp;
-	gui.IntProperty* m_retransmitCountProp;
-	gui.IntProperty* m_retransmitDelayProp;
-	gui.BoolProperty* m_isInterCharDelayEnabledProp;
-	gui.IntProperty* m_interCharDelayProp;
+	ui.BoolProperty* m_isPrefixEnabledProp;
+	ui.StringProperty* m_prefixProp;
+	ui.BoolProperty* m_isSuffixEnabledProp;
+	ui.StringProperty* m_suffixProp;
+	ui.BoolProperty* m_isRetransmitEnabledProp;
+	ui.IntProperty* m_retransmitCountProp;
+	ui.IntProperty* m_retransmitDelayProp;
+	ui.BoolProperty* m_isInterCharDelayEnabledProp;
+	ui.IntProperty* m_interCharDelayProp;
 
 	// ui reactor
 

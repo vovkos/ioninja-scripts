@@ -3,13 +3,13 @@
 // Standard session information (session time and byte counters)
 //
 
-import "gui_InformationGrid.jnc"
+import "ui_InformationGrid.jnc"
 import "sys_Timer.jnc"
 import "sys_Lock.jnc"
 import "log_Log.jnc"
 import "formatInteger.jnc"
 
-namespace gui {
+namespace ui {
 
 //..............................................................................
 
@@ -35,13 +35,13 @@ public:
 	}
 
 public:
-	gui.InformationValue* readonly m_sessionTimeInfo;
-	gui.InformationValue* readonly m_txTotalSizeInfo;
-	gui.InformationValue* readonly m_txThroughputInfo;
-	gui.InformationValue* readonly m_rxTotalSizeInfo;
-	gui.InformationValue* readonly m_rxThroughputInfo;
-	gui.InformationValue* readonly m_totalSizeInfo;
-	gui.InformationValue* readonly m_totalThroughputInfo;
+	InformationValue* readonly m_sessionTimeInfo;
+	InformationValue* readonly m_txTotalSizeInfo;
+	InformationValue* readonly m_txThroughputInfo;
+	InformationValue* readonly m_rxTotalSizeInfo;
+	InformationValue* readonly m_rxThroughputInfo;
+	InformationValue* readonly m_totalSizeInfo;
+	InformationValue* readonly m_totalThroughputInfo;
 
 protected:
 	// m_txTotalSize and m_rxTotalSize are modified in the log index thread
@@ -60,9 +60,9 @@ protected:
 
 public:
 	createInformationValues(
-		gui.InformationGrid* informationGrid,
-		gui.InformationGroup* group = null,
-		gui.InformationValue* insertBefore = null,
+		InformationGrid* informationGrid,
+		InformationGroup* group = null,
+		InformationValue* insertBefore = null,
 		InfoId mask = InfoId.Default
 		);
 
@@ -106,9 +106,9 @@ protected:
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 StdSessionInfoSet.createInformationValues(
-	gui.InformationGrid* informationGrid,
-	gui.InformationGroup* group,
-	gui.InformationValue* insertBefore,
+	InformationGrid* informationGrid,
+	InformationGroup* group,
+	InformationValue* insertBefore,
 	InfoId mask
 	)
 {
@@ -355,4 +355,4 @@ StdSessionInfoSet.update(uint64_t timestamp)
 
 //..............................................................................
 
-} // namespace gui {
+} // namespace ui

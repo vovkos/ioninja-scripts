@@ -3,14 +3,14 @@
 // SPI tap session
 //
 
+import "doc_Session.jnc"
 import "io_usb.jncx"
 import "io_UsbDb.jnc"
-import "io_BufferUi.jnc"
-import "std_Buffer.jnc"
-import "doc_Session.jnc"
-import "gui_StdSessionInfo.jnc"
+import "ui_BufferPropertySet.jnc"
+import "ui_StdSessionInfoSet.jnc"
 import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
+import "std_Buffer.jnc"
 
 namespace cy {
 
@@ -70,7 +70,7 @@ class SpiIface
 
 	release();
 
-	bool errorcode setBufferProperties(io.BufferPropertySet* bufferPropertySet);
+	bool errorcode setBufferProperties(ui.BufferPropertySet* bufferPropertySet);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -101,7 +101,7 @@ SpiIface.release()
 	}
 }
 
-bool errorcode SpiIface.setBufferProperties(io.BufferPropertySet* bufferPropertySet)
+bool errorcode SpiIface.setBufferProperties(ui.BufferPropertySet* bufferPropertySet)
 {
 	m_endpoint.m_readParallelism = bufferPropertySet.m_readParallelismProp.m_value;
 	m_endpoint.m_readBlockSize = bufferPropertySet.m_readBlockSizeProp.m_value;
@@ -169,30 +169,30 @@ protected:
 
 	// toolbar, status bar & menu
 
-	gui.Action* m_actionTable[ActionId._Count];
-	gui.Icon* m_iconTable[IconId._Count];
-	gui.StatusPane* m_statusPane;
-	gui.ComboBox* m_deviceCombo;
-	gui.ComboBox* m_modeCombo;
+	ui.Action* m_actionTable[ActionId._Count];
+	ui.Icon* m_iconTable[IconId._Count];
+	ui.StatusPane* m_statusPane;
+	ui.ComboBox* m_deviceCombo;
+	ui.ComboBox* m_modeCombo;
 
 	// serial property grid
 
-	gui.EnumProperty* m_deviceProp;
-	gui.IntProperty* m_frequencyProp;
-	gui.EnumProperty* m_modeProp;
-	gui.EnumProperty* m_endiannessProp;
-	gui.IntProperty* m_dataBitsProp;
-	gui.BoolProperty* m_flipProp;
-	gui.BoolProperty* m_useDualHexViewProp;
-	gui.BoolProperty* m_useTextFilter;
-	gui.IntProperty* m_flushTimeoutProp;
-	io.BufferPropertySet m_bufferPropertySet;
+	ui.EnumProperty* m_deviceProp;
+	ui.IntProperty* m_frequencyProp;
+	ui.EnumProperty* m_modeProp;
+	ui.EnumProperty* m_endiannessProp;
+	ui.IntProperty* m_dataBitsProp;
+	ui.BoolProperty* m_flipProp;
+	ui.BoolProperty* m_useDualHexViewProp;
+	ui.BoolProperty* m_useTextFilter;
+	ui.IntProperty* m_flushTimeoutProp;
+	ui.BufferPropertySet m_bufferPropertySet;
 
 	// information grid
 
-	gui.StdSessionInfoSet m_stdSessionInfoSet;
-	log.ThroughputInfoSet m_throughputInfoSet;
-	log.ChecksumInfoSet m_checksumInfoSet;
+	ui.StdSessionInfoSet m_stdSessionInfoSet;
+	ui.ThroughputInfoSet m_throughputInfoSet;
+	ui.ChecksumInfoSet m_checksumInfoSet;
 
 	// ui reactor
 
@@ -261,7 +261,7 @@ SpiTapSession.construct(doc.PluginHost* pluginHost)
 {
 	basetype.construct(pluginHost);
 
-	m_readBuffer.setSize(io.BufferPropertySet.Defaults.ReadBufferSize);
+	m_readBuffer.setSize(ui.BufferPropertySet.Defaults.ReadBufferSize);
 
 	m_ifaceA = new SpiIface;
 	m_ifaceB = new SpiIface;
@@ -277,7 +277,7 @@ SpiTapSession.construct(doc.PluginHost* pluginHost)
 
 SpiTapSession.createUi()
 {
-	static gui.EnumPropertyOption modeTable[] =
+	static ui.EnumPropertyOption modeTable[] =
 	{
 		{ "SPI 0 (CPOL 0, CPHA 0)",  0 },
 		{ "SPI 1 (CPOL 0, CPHA 1)",  1 },
@@ -285,7 +285,7 @@ SpiTapSession.createUi()
 		{ "SPI 3 (CPOL 1, CPHA 1)",  3 },
 	}
 
-	static gui.EnumPropertyOption endiannessTable[] =
+	static ui.EnumPropertyOption endiannessTable[] =
 	{
 		{ "Big-endian (MSBit first)",    true },
 		{ "Little-endian (LSBit first)", false },
@@ -293,8 +293,8 @@ SpiTapSession.createUi()
 
 	// toolbar
 
-	m_iconTable[IconId.Capture] = new gui.Icon("images/capture.png");
-	m_iconTable[IconId.StopCapture] = new gui.Icon("images/pause.png");
+	m_iconTable[IconId.Capture] = new ui.Icon("images/capture.png");
+	m_iconTable[IconId.StopCapture] = new ui.Icon("images/pause.png");
 
 	m_pluginHost.m_toolBar.addLabel("Tap:");
 	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox(-1);
@@ -325,7 +325,7 @@ SpiTapSession.createUi()
 
 	// property grid
 
-	gui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty(
+	ui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty(
 		"Connection",
 		"USB-specific connection settings"
 		);
@@ -400,17 +400,17 @@ SpiTapSession.createUi()
 		"Advanced options controlling performance, throughtput and compatibility"
 		);
 
-	io.BufferPropertySet.PropertyId mask = io.BufferPropertySet.PropertyId.All;
+	ui.BufferPropertySet.PropertyId mask = ui.BufferPropertySet.PropertyId.All;
 	mask &= ~(
-		io.BufferPropertySet.PropertyId.WriteBufferSize |
-		io.BufferPropertySet.PropertyId.KeepWriteBlockSize
+		ui.BufferPropertySet.PropertyId.WriteBufferSize |
+		ui.BufferPropertySet.PropertyId.KeepWriteBlockSize
 		);
 
 	m_bufferPropertySet.createProperties(m_pluginHost.m_propertyGrid, group,, mask);
 
 	// information grid
 
-	gui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("SPI tap");
+	ui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("SPI tap");
 
 	m_stdSessionInfoSet.createInformationValues(m_pluginHost.m_informationGrid, infoGroup);
 	m_throughputInfoSet.createInformationValuesGrouped(m_pluginHost.m_informationGrid);
@@ -430,7 +430,7 @@ SpiTapSession.enumerateDevices()
 	io.UsbDevice* const* deviceArray = io.createUsbDeviceArray();
 	size_t count = dynamic countof(deviceArray);
 
-	gui.EnumPropertyOption* optionTable = new gui.EnumPropertyOption[count];
+	ui.EnumPropertyOption* optionTable = new ui.EnumPropertyOption[count];
 
 	size_t ftdiCount = 0;
 	for (size_t i = 0; i < count; i++)

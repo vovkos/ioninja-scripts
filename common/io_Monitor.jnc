@@ -4,8 +4,8 @@
 //
 
 import "io_devmon.jncx"
-import "io_BufferUi.jnc"
 import "io_FileIdMgr.jnc"
+import "ui_BufferPropertySet.jnc"
 import "std_Buffer.jnc"
 
 namespace io {
@@ -44,7 +44,7 @@ public:
 	}
 
 	bool errorcode applyProperties(
-		BufferPropertySet* propSet,
+		ui.BufferPropertySet* propSet,
 		size_t pendingNotifySizeLimit
 		);
 
@@ -96,7 +96,7 @@ Monitor.close()
 }
 
 bool errorcode Monitor.applyProperties(
-	BufferPropertySet* bufferPropSet,
+	ui.BufferPropertySet* bufferPropSet,
 	size_t pendingNotifySizeLimit
 	)
 {

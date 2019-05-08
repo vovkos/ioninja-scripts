@@ -70,4 +70,4 @@ FileIdMgr.removeLowFileId  (intptr_t lowFileId)
 
 //..............................................................................
 
-} // namespace io {
+} // namespace io

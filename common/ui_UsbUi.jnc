@@ -4,23 +4,23 @@
 //
 
 import "io_usb.jncx"
-import "gui_ComboBox.jnc"
-import "gui_PropertyGrid.jnc"
+import "ui_ComboBox.jnc"
+import "ui_PropertyGrid.jnc"
 import "io_UsbDb.jnc"
 
-namespace io {
+namespace ui {
 
 //..............................................................................
 
 populateUsbDeviceListUi(
-	gui.ComboBox* deviceCombo,
-	gui.EnumProperty* deviceProp,
+	ComboBox* deviceCombo,
+	EnumProperty* deviceProp,
 	io.UsbDevice* const* deviceArray,
 	size_t deviceCount
 	)
 {
 	io.UsbDb* usbDb = io.getStdUsbDb();
-	gui.EnumPropertyOption* optionTable = new gui.EnumPropertyOption[deviceCount];
+	EnumPropertyOption* optionTable = new EnumPropertyOption[deviceCount];
 	deviceCombo.clear();
 
 	for (size_t i = 0; i < deviceCount; i++)
@@ -47,8 +47,8 @@ populateUsbDeviceListUi(
 }
 
 refreshUsbDeviceListUi(
-	gui.ComboBox* deviceCombo,
-	gui.EnumProperty* deviceProp
+	ComboBox* deviceCombo,
+	EnumProperty* deviceProp
 	)
 {
 	size_t deviceCount;
@@ -86,7 +86,7 @@ refreshUsbDeviceListUi(
 }
 
 size_t findUsbDeviceComboIndex(
-	gui.ComboBox* deviceCombo,
+	ComboBox* deviceCombo,
 	uint_t vid,
 	uint_t pid,
 	uint_t bus = -1,
@@ -115,4 +115,4 @@ size_t findUsbDeviceComboIndex(
 
 //..............................................................................
 
-} // namespace io
+} // namespace ui

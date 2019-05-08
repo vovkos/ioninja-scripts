@@ -3,18 +3,18 @@
 // Pipe Listener session
 //
 
+import "doc_Session.jnc"
 import "io_base.jncx"
 import "io_NamedPipe.jnc"
 import "io_FileStream.jnc"
-import "io_BufferUi.jnc"
-import "std_Buffer.jnc"
-import "doc_Session.jnc"
-import "gui_History.jnc"
-import "gui_StdSessionInfo.jnc"
+import "ui_History.jnc"
+import "ui_BufferPropertySet.jnc"
+import "ui_StdSessionInfoSet.jnc"
 import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
+import "std_Buffer.jnc"
 
-using extension gui.ComboBoxHistory;
+using extension ui.ComboBoxHistory;
 
 //..............................................................................
 
@@ -73,23 +73,23 @@ protected:
 
 	// toolbar, status bar & menu
 
-	gui.Action* m_actionTable[ActionId._Count];
-	gui.Icon* m_iconTable[IconId._Count];
-	gui.StatusPane* m_statusPaneTable[StatusPaneId._Count];
-	gui.ComboBox* m_pipeNameCombo;
+	ui.Action* m_actionTable[ActionId._Count];
+	ui.Icon* m_iconTable[IconId._Count];
+	ui.StatusPane* m_statusPaneTable[StatusPaneId._Count];
+	ui.ComboBox* m_pipeNameCombo;
 
 	// property grid
 
-	gui.StringProperty* m_pipeNameProp;
-	gui.BoolProperty* m_messageModeProp;
-	gui.BoolProperty* m_overrideOldConnectionProp;
-	io.BufferPropertySet m_bufferPropertySet;
+	ui.StringProperty* m_pipeNameProp;
+	ui.BoolProperty* m_messageModeProp;
+	ui.BoolProperty* m_overrideOldConnectionProp;
+	ui.BufferPropertySet m_bufferPropertySet;
 
 	// information grid
 
-	gui.StdSessionInfoSet m_stdSessionInfoSet;
-	log.ThroughputInfoSet m_throughputInfoSet;
-	log.ChecksumInfoSet m_checksumInfoSet;
+	ui.StdSessionInfoSet m_stdSessionInfoSet;
+	ui.ThroughputInfoSet m_throughputInfoSet;
+	ui.ChecksumInfoSet m_checksumInfoSet;
 
 	// ui reactor
 
@@ -162,9 +162,9 @@ PipeListenerSession.createUi()
 	m_pipeNameCombo.m_isEditable = true;
 	m_pipeNameCombo.m_onEnter += onPipeNameComboEnter;
 
-	m_iconTable[IconId.Listen] = new gui.Icon("images/listen.png");
-	m_iconTable[IconId.StopListen] = new gui.Icon("images/pause.png");
-	m_iconTable[IconId.Disconnect] = new gui.Icon("images/disconnect.png");
+	m_iconTable[IconId.Listen] = new ui.Icon("images/listen.png");
+	m_iconTable[IconId.StopListen] = new ui.Icon("images/pause.png");
+	m_iconTable[IconId.Disconnect] = new ui.Icon("images/disconnect.png");
 
 	m_actionTable[ActionId.Listen] = createAction("Listen", m_iconTable [IconId.Listen]);
 	m_actionTable[ActionId.Listen].m_onTriggered += onListen;
@@ -179,7 +179,7 @@ PipeListenerSession.createUi()
 
 	// property grid
 
-	gui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty(
+	ui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty(
 		"Connection",
 		"Named pipe-specific connection settings"
 		);
@@ -206,7 +206,7 @@ PipeListenerSession.createUi()
 
 	// information grid
 
-	gui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("Pipe listener");
+	ui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("Pipe listener");
 
 	m_stdSessionInfoSet.createInformationValues(m_pluginHost.m_informationGrid, infoGroup);
 	m_throughputInfoSet.createInformationValuesGrouped(m_pluginHost.m_informationGrid);

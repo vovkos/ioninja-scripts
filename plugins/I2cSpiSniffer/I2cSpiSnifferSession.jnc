@@ -3,13 +3,13 @@
 // I2C Sniffer session
 //
 
-import "io_usb.jncx"
-import "io_BufferUi.jnc"
-import "std_Buffer.jnc"
 import "doc_Session.jnc"
-import "gui_StdSessionInfo.jnc"
+import "io_usb.jncx"
+import "ui_BufferPropertySet.jnc"
+import "ui_StdSessionInfoSet.jnc"
 import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
+import "std_Buffer.jnc"
 
 //..............................................................................
 
@@ -99,29 +99,29 @@ protected:
 
 	// toolbar, status bar & menu
 
-	gui.Action* m_actionTable[ActionId._Count];
-	gui.Icon* m_iconTable[IconId._Count];
-	gui.StatusPane* m_statusPaneTable[StatusPaneId._Count];
-	gui.ComboBox* m_deviceCombo;
-	gui.ComboBox* m_protocolCombo;
+	ui.Action* m_actionTable[ActionId._Count];
+	ui.Icon* m_iconTable[IconId._Count];
+	ui.StatusPane* m_statusPaneTable[StatusPaneId._Count];
+	ui.ComboBox* m_deviceCombo;
+	ui.ComboBox* m_protocolCombo;
 
 	// property grid
 
-	gui.EnumProperty* m_deviceProp;
-	gui.EnumProperty* m_protocolProp;
-	gui.EnumProperty* m_spiModeProp;
-	gui.EnumProperty* m_spiDataBitsProp;
-	gui.EnumProperty* m_spiEndiannessProp;
-	gui.BoolProperty* m_spiFlipMosiMisoProp;
-	gui.BoolProperty* m_useLogUpdateRateLimitProp;
-	gui.IntProperty* m_logUpdateRateLimitProp;
-	io.BufferPropertySet m_bufferPropertySet;
+	ui.EnumProperty* m_deviceProp;
+	ui.EnumProperty* m_protocolProp;
+	ui.EnumProperty* m_spiModeProp;
+	ui.EnumProperty* m_spiDataBitsProp;
+	ui.EnumProperty* m_spiEndiannessProp;
+	ui.BoolProperty* m_spiFlipMosiMisoProp;
+	ui.BoolProperty* m_useLogUpdateRateLimitProp;
+	ui.IntProperty* m_logUpdateRateLimitProp;
+	ui.BufferPropertySet m_bufferPropertySet;
 
 	// information grid
 
-	gui.StdSessionInfoSet m_stdSessionInfoSet;
-	log.ThroughputInfoSet m_throughputInfoSet;
-	log.ChecksumInfoSet m_checksumInfoSet;
+	ui.StdSessionInfoSet m_stdSessionInfoSet;
+	ui.ThroughputInfoSet m_throughputInfoSet;
+	ui.ChecksumInfoSet m_checksumInfoSet;
 
 	// ui reactor
 
@@ -188,13 +188,13 @@ I2cSpiSnifferSession.construct(doc.PluginHost* pluginHost)
 
 I2cSpiSnifferSession.createUi()
 {
-	static gui.EnumPropertyOption protocolTable[] =
+	static ui.EnumPropertyOption protocolTable[] =
 	{
 		{ "SPI", Protocol.Spi },
 		{ "I2C", Protocol.I2c },
 	}
 
-	static gui.EnumPropertyOption spiModeTable[] =
+	static ui.EnumPropertyOption spiModeTable[] =
 	{
 		{ "SPI 0 (CPOL 0, CPHA 0)",  0 },
 		{ "SPI 1 (CPOL 0, CPHA 1)",  1 },
@@ -202,13 +202,13 @@ I2cSpiSnifferSession.createUi()
 		{ "SPI 3 (CPOL 1, CPHA 1)",  3 },
 	}
 
-	static gui.EnumPropertyOption endiannessTable[] =
+	static ui.EnumPropertyOption endiannessTable[] =
 	{
 		{ "Little-endian (LSBit first)", false },
 		{ "Big-endian (MSBit first)",    true },
 	}
 
-	static gui.EnumPropertyOption dataBitsTable[] =
+	static ui.EnumPropertyOption dataBitsTable[] =
 	{
 		{ "4 bits",  4 },
 		{ "8 bits",  8 },
@@ -218,10 +218,10 @@ I2cSpiSnifferSession.createUi()
 
 	// toolbar
 
-	m_iconTable[IconId.Capture] = new gui.Icon("images/capture.png");
-	m_iconTable[IconId.Stop] = new gui.Icon("images/stop.png");
-	m_iconTable[IconId.Refresh] = new gui.Icon("images/refresh.png");
-	m_iconTable[IconId.Flip] = new gui.Icon("images/flip.png");
+	m_iconTable[IconId.Capture] = new ui.Icon("images/capture.png");
+	m_iconTable[IconId.Stop] = new ui.Icon("images/stop.png");
+	m_iconTable[IconId.Refresh] = new ui.Icon("images/refresh.png");
+	m_iconTable[IconId.Flip] = new ui.Icon("images/flip.png");
 
 	m_pluginHost.m_toolBar.addLabel("Tap:");
 	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox(-1);
@@ -247,7 +247,7 @@ I2cSpiSnifferSession.createUi()
 
 	// property grid
 
-	gui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty(
+	ui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty(
 		"Connection",
 		"USB-specific connection settings"
 		);
@@ -314,11 +314,11 @@ I2cSpiSnifferSession.createUi()
 		"Log cache update limit (in scroll operations per second)"
 		);
 
-	io.BufferPropertySet.PropertyId ids =
-		io.BufferPropertySet.PropertyId.ReadParallelism |
-		io.BufferPropertySet.PropertyId.ReadBlockSize |
-		io.BufferPropertySet.PropertyId.ReadBufferSize |
-		io.BufferPropertySet.PropertyId.NotifyReadBufferFull;
+	ui.BufferPropertySet.PropertyId ids =
+		ui.BufferPropertySet.PropertyId.ReadParallelism |
+		ui.BufferPropertySet.PropertyId.ReadBlockSize |
+		ui.BufferPropertySet.PropertyId.ReadBufferSize |
+		ui.BufferPropertySet.PropertyId.NotifyReadBufferFull;
 
 	m_bufferPropertySet.m_defaultReadParallelism = Defaults.ReadParallelism;
 	m_bufferPropertySet.m_defaultReadBlockSize = Defaults.ReadBlockSize;
@@ -327,7 +327,7 @@ I2cSpiSnifferSession.createUi()
 
 	// information grid
 
-	gui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("USB connection");
+	ui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("USB connection");
 
 	m_stdSessionInfoSet.createInformationValues(m_pluginHost.m_informationGrid, infoGroup);
 	m_throughputInfoSet.createInformationValuesGrouped(m_pluginHost.m_informationGrid);
@@ -363,7 +363,7 @@ I2cSpiSnifferSession.enumerateDevices()
 	size_t totalCount = dynamic countof(deviceArray);
 	size_t actualCount = 0;
 
-	gui.EnumPropertyOption* optionTable = new gui.EnumPropertyOption[totalCount];
+	ui.EnumPropertyOption* optionTable = new ui.EnumPropertyOption[totalCount];
 
 	for (size_t i = 0; i < totalCount; i++)
 	{

@@ -3,16 +3,16 @@
 // Serial tap cable session
 //
 
+import "doc_Session.jnc"
 import "io_base.jncx"
 import "io_Serial.jnc"
 import "io_SerialBuggyDrivers.jnc"
-import "io_SerialUi.jnc"
-import "io_BufferUi.jnc"
-import "std_Buffer.jnc"
-import "doc_Session.jnc"
-import "gui_StdSessionInfo.jnc"
+import "ui_SerialSettingUi.jnc"
+import "ui_BufferPropertySet.jnc"
+import "ui_StdSessionInfoSet.jnc"
 import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
+import "std_Buffer.jnc"
 
 //..............................................................................
 
@@ -80,31 +80,31 @@ protected:
 
 	// common serial ui
 
-	io.SerialSettingUi m_serialSettingUi;
+	ui.SerialSettingUi m_serialSettingUi;
 
 	// toolbar, status bar & menu
 
-	gui.Action* m_actionTable[ActionId._Count];
-	gui.Icon* m_iconTable[IconId._Count];
-	gui.StatusPane* m_statusPane;
-	gui.ComboBox* m_dtePortCombo;
-	gui.ComboBox* m_dcePortCombo;
+	ui.Action* m_actionTable[ActionId._Count];
+	ui.Icon* m_iconTable[IconId._Count];
+	ui.StatusPane* m_statusPane;
+	ui.ComboBox* m_dtePortCombo;
+	ui.ComboBox* m_dcePortCombo;
 
 	// serial property grid
 
-	gui.ComboProperty* m_dtePortProp;
-	gui.ComboProperty* m_dcePortProp;
-	gui.BoolProperty* m_flipProp;
-	gui.EnumProperty* m_readModeProp;
-	gui.IntProperty* m_readIntervalProp;
-	io.BufferPropertySet m_bufferPropertySet;
+	ui.ComboProperty* m_dtePortProp;
+	ui.ComboProperty* m_dcePortProp;
+	ui.BoolProperty* m_flipProp;
+	ui.EnumProperty* m_readModeProp;
+	ui.IntProperty* m_readIntervalProp;
+	ui.BufferPropertySet m_bufferPropertySet;
 
 	// information grid
 
-	gui.InformationValue* m_infoTable[InfoId._Count];
-	gui.StdSessionInfoSet m_stdSessionInfoSet;
-	log.ThroughputInfoSet m_throughputInfoSet;
-	log.ChecksumInfoSet m_checksumInfoSet;
+	ui.InformationValue* m_infoTable[InfoId._Count];
+	ui.StdSessionInfoSet m_stdSessionInfoSet;
+	ui.ThroughputInfoSet m_throughputInfoSet;
+	ui.ChecksumInfoSet m_checksumInfoSet;
 
 	// ui reactor
 
@@ -145,9 +145,9 @@ protected:
 	enumeratePorts();
 	flipDteDce();
 
-	gui.ComboBox* createSerialSettingComboBox(
+	ui.ComboBox* createSerialSettingComboBox(
 		char const* labelText,
-		gui.EnumPropertyOption const* optionTable,
+		ui.EnumPropertyOption const* optionTable,
 		size_t optionCount,
 		function* onChanged()
 		);
@@ -175,7 +175,7 @@ SerialTapSession.construct(doc.PluginHost* pluginHost)
 {
 	basetype.construct(pluginHost);
 
-	m_readBuffer.setSize(io.BufferPropertySet.Defaults.ReadBufferSize);
+	m_readBuffer.setSize(ui.BufferPropertySet.Defaults.ReadBufferSize);
 
 	m_dtePort = new SerialPort;
 	m_dcePort = new SerialPort;
@@ -189,7 +189,7 @@ SerialTapSession.construct(doc.PluginHost* pluginHost)
 
 SerialTapSession.createUi()
 {
-	static gui.EnumPropertyOption readModeTable[] =
+	static ui.EnumPropertyOption readModeTable[] =
 	{
 		{ "Check COMSTAT.cbInQue", SerialReadMode.CheckComstat },
 		{ "Wait for the 1st char", SerialReadMode.WaitFirstChar },
@@ -198,8 +198,8 @@ SerialTapSession.createUi()
 
 	// toolbar
 
-	m_iconTable[IconId.Capture] = new gui.Icon("images/capture.png");
-	m_iconTable[IconId.StopCapture] = new gui.Icon("images/pause.png");
+	m_iconTable[IconId.Capture] = new ui.Icon("images/capture.png");
+	m_iconTable[IconId.StopCapture] = new ui.Icon("images/pause.png");
 
 	m_pluginHost.m_toolBar.addLabel("DTE:");
 	m_dtePortCombo = m_pluginHost.m_toolBar.addComboBox(-1);
@@ -229,7 +229,7 @@ SerialTapSession.createUi()
 	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable[IconId.Capture]);
 	m_actionTable[ActionId.Capture].m_onTriggered += onOpen;
 
-	gui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty(
+	ui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty(
 		"Connection",
 		"Serial port-specific connection settings"
 		);
@@ -250,11 +250,11 @@ SerialTapSession.createUi()
 		m_pluginHost.m_toolBar,
 		m_pluginHost.m_propertyGrid,
 		group,
-		io.SerialSettingUi.SettingId.BaudRate,
-		io.SerialSettingUi.SettingId.BaudRate |
-		io.SerialSettingUi.SettingId.DataBits |
-		io.SerialSettingUi.SettingId.StopBits |
-		io.SerialSettingUi.SettingId.Parity
+		ui.SerialSettingUi.SettingId.BaudRate,
+		ui.SerialSettingUi.SettingId.BaudRate |
+		ui.SerialSettingUi.SettingId.DataBits |
+		ui.SerialSettingUi.SettingId.StopBits |
+		ui.SerialSettingUi.SettingId.Parity
 		);
 
 	m_serialSettingUi.m_baudRateCombo.m_onEnter += onBaudRateChanged;
@@ -306,21 +306,21 @@ SerialTapSession.createUi()
 	{
 		// still, we want valid property pointers, so there's less checking
 
-		m_readModeProp = new gui.EnumProperty(null);
-		m_readIntervalProp = new gui.IntProperty(null);
+		m_readModeProp = new ui.EnumProperty(null);
+		m_readIntervalProp = new ui.IntProperty(null);
 	}
 
 	m_bufferPropertySet.createProperties(
 		m_pluginHost.m_propertyGrid,
 		group,,
-		io.BufferPropertySet.PropertyId.All &
-		~io.BufferPropertySet.PropertyId.WriteBufferSize &
-		~io.BufferPropertySet.PropertyId.KeepWriteBlockSize
+		ui.BufferPropertySet.PropertyId.All &
+		~ui.BufferPropertySet.PropertyId.WriteBufferSize &
+		~ui.BufferPropertySet.PropertyId.KeepWriteBlockSize
 		);
 
 	// information grid
 
-	gui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("Serial tap");
+	ui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("Serial tap");
 
 	m_stdSessionInfoSet.createInformationValues(m_pluginHost.m_informationGrid, infoGroup);
 
@@ -338,15 +338,15 @@ SerialTapSession.createUi()
 	m_uiReactor.start();
 }
 
-gui.ComboBox* SerialTapSession.createSerialSettingComboBox(
+ui.ComboBox* SerialTapSession.createSerialSettingComboBox(
 	char const* labelText,
-	gui.EnumPropertyOption const* optionTable,
+	ui.EnumPropertyOption const* optionTable,
 	size_t optionCount,
 	function* onChanged()
 	)
 {
 	m_pluginHost.m_toolBar.addLabel(labelText);
-	gui.ComboBox* comboBox = m_pluginHost.m_toolBar.addComboBox();
+	ui.ComboBox* comboBox = m_pluginHost.m_toolBar.addComboBox();
 
 	for (size_t i = 0; i < optionCount; i++)
 		comboBox.addItem(optionTable[i].m_text, optionTable[i].m_value);
@@ -369,8 +369,8 @@ SerialTapSession.enumeratePorts()
 	io.SerialPortDesc const* portList = io.createSerialPortDescList(&count);
 	io.SerialPortDesc const* port = portList;
 
-	gui.EnumPropertyOption* optionArray = new gui.EnumPropertyOption[count];
-	gui.EnumPropertyOption* option = optionArray;
+	ui.EnumPropertyOption* optionArray = new ui.EnumPropertyOption[count];
+	ui.EnumPropertyOption* option = optionArray;
 
 	for (; port; port = port.m_next, option++)
 	{
@@ -724,7 +724,7 @@ SerialTapSession.updateLineInfoValue(
 	)
 {
 	m_infoTable[infoId].m_value = line ? "on" : "off";
-	m_infoTable[infoId].m_valueColor = line ? gui.StdColor.LightRed : gui.StdColor.Gray;
+	m_infoTable[infoId].m_valueColor = line ? ui.StdColor.LightRed : ui.StdColor.Gray;
 }
 
 reactor SerialTapSession.m_uiReactor
@@ -738,7 +738,7 @@ reactor SerialTapSession.m_uiReactor
 	m_bufferPropertySet.m_readParallelismProp.m_isEnabled = m_readModeProp.m_value != SerialReadMode.CheckComstat;
 	m_readIntervalProp.m_isEnabled = m_readModeProp.m_value == SerialReadMode.IntervalBased;
 	m_statusPane.m_text = m_state ? $"$(m_dtePort.m_name):$(m_dcePort.m_name)" : "Ports closed";
-	m_statusPane.m_color = m_state ? gui.StdColor.Blue : gui.StdColor.Gray;
+	m_statusPane.m_color = m_state ? ui.StdColor.Blue : ui.StdColor.Gray;
 	m_infoTable[InfoId.Dtr].m_isEnabled = m_state;
 	m_infoTable[InfoId.Rts].m_isEnabled = m_state;
 	m_infoTable[InfoId.Dsr].m_isEnabled = m_state;

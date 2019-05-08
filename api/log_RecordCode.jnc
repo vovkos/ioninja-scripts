@@ -3,7 +3,7 @@
 // Ninja log - standard record codes and record params
 //
 
-import "gui_TextAttr.jnc"
+import "ui_TextAttr.jnc"
 
 namespace log {
 
@@ -56,10 +56,10 @@ struct RetroColorizeParams
 {
 	int m_retroOffset;
 	uint_t m_length;
-	gui.TextAttr m_attr;
+	ui.TextAttr m_attr;
 	RetroColorizeFlags m_flags;
 }
 
 //..............................................................................
 
-} // namespace log {
+} // namespace log

@@ -3,7 +3,7 @@
 // Ninja GUI - information grid
 //
 
-namespace gui {
+namespace ui {
 
 //..............................................................................
 
@@ -126,4 +126,4 @@ InformationValue* InformationGrid.createValue(
 
 //..............................................................................
 
-} // namespace gui {
+} // namespace ui

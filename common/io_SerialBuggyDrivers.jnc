@@ -46,4 +46,4 @@ void setConservativeSerialSettings(io.Serial* serial)
 
 //..............................................................................
 
-} // namespace io {
+} // namespace io

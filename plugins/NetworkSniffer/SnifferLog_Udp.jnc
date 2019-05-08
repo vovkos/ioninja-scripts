@@ -7,7 +7,7 @@
 
 size_t
 representUdpHdr(
-	log.RepresenterTarget* target,
+	log.Representation* representation,
 	void const* p,
 	size_t size,
 	size_t baseOffset,
@@ -18,7 +18,7 @@ representUdpHdr(
 {
 	io.UdpHdr const* udpHdr = (io.UdpHdr const*) (p + baseOffset);
 
-	target.addHyperText(std.format(
+	representation.addHyperText(std.format(
 		"\e[1mUDP\n"
 		"   \e[90mSRC:      \e^!%d,%d\e[34m%d\n"
 		"   \e[90mDST:      \e^!%d,%d\e[34m%d\n"
@@ -48,7 +48,7 @@ representUdpHdr(
 }
 
 representUdp(
-	log.RepresenterTarget* target,
+	log.Representation* representation,
 	io.IpHdr const* ipHdr,
 	void const* p,
 	size_t size,
@@ -57,7 +57,7 @@ representUdp(
 {
 	if (baseOffset + sizeof(io.UdpHdr) > size)
 	{
-		target.addHyperText(std.format(
+		representation.addHyperText(std.format(
 			"[\e^+1\e[34m+\e[m] \e[1mUDP \e[10;34m%s\e[m > \e[34m%s\e[m [INVALID SIZE:%d]",
 			formatIpString(ipHdr.m_srcAddress),
 			formatIpString(ipHdr.m_dstAddress),
@@ -83,7 +83,7 @@ representUdp(
 		dataSize = size - baseOffset;
 	}
 
-	target.addHyperText(std.format(
+	representation.addHyperText(std.format(
 		"[\e^+1\e[34m+\e[m] \e[1mUDP \e[10;34m%s:%d\e[m > \e[34m%s:%d\e[m (%s)",
 		formatIpString(ipHdr.m_srcAddress),
 		udpHdr.m_srcPort,
@@ -92,7 +92,7 @@ representUdp(
 		lengthString
 		));
 
-	representPacketData(target, p, size, baseOffset, dataSize);
+	representPacketData(representation, p, size, baseOffset, dataSize);
 }
 
 //..............................................................................

@@ -336,4 +336,4 @@ size_t errorcode getModbusRtuAduSize(
 
 //..............................................................................
 
-} // namespace io {
+} // namespace io

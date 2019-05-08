@@ -13,10 +13,10 @@ class $(layerClass): doc.Layer
 protected:
 	jnc.RegexState m_rxScannerState;
 
-	gui.BoolProperty* m_enableRetransmitProp;
-	gui.IntProperty* m_retransmitCountProp;
-	gui.IntProperty* m_retransmitDelayProp;
-	gui.BoolProperty* m_analyzeRxProp;
+	ui.BoolProperty* m_enableRetransmitProp;
+	ui.IntProperty* m_retransmitCountProp;
+	ui.IntProperty* m_retransmitDelayProp;
+	ui.BoolProperty* m_analyzeRxProp;
 
 	reactor m_uiReactor;
 

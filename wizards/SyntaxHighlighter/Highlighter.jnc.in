@@ -8,14 +8,14 @@
 
 enum TokenColor
 {
-	Keyword   = gui.StdColor.LightBlue,
-	SlComment = gui.StdColor.Gray,
-	MlComment = gui.StdColor.Gray,
-	SqLiteral = gui.StdColor.Cyan,
-	DqLiteral = gui.StdColor.Cyan,
-	DecNumber = gui.StdColor.Purple,
-	OctNumber = gui.StdColor.Purple,
-	HexNumber = gui.StdColor.Purple,
+	Keyword   = ui.StdColor.LightBlue,
+	SlComment = ui.StdColor.Gray,
+	MlComment = ui.StdColor.Gray,
+	SqLiteral = ui.StdColor.Cyan,
+	DqLiteral = ui.StdColor.Cyan,
+	DecNumber = ui.StdColor.Purple,
+	OctNumber = ui.StdColor.Purple,
+	HexNumber = ui.StdColor.Purple,
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .

@@ -49,15 +49,15 @@ enum StdLogIcon
 
 enum StdLogColor
 {
-	Start      = gui.StdColor.PastelPurple,
-	Connect    = gui.StdColor.PastelGreen,
-	Disconnect = gui.StdColor.PastelGreen,
-	Info       = gui.StdColor.PastelBlue,
-	Warning    = gui.StdColor.PastelYellow,
-	Alert      = gui.StdColor.PastelOrange,
-	Error      = gui.StdColor.PastelRed,
-	Tx         = gui.StdColor.Blue,
-	Rx         = gui.StdColor.Green,
+	Start      = ui.StdColor.PastelPurple,
+	Connect    = ui.StdColor.PastelGreen,
+	Disconnect = ui.StdColor.PastelGreen,
+	Info       = ui.StdColor.PastelBlue,
+	Warning    = ui.StdColor.PastelYellow,
+	Alert      = ui.StdColor.PastelOrange,
+	Error      = ui.StdColor.PastelRed,
+	Tx         = ui.StdColor.Blue,
+	Rx         = ui.StdColor.Green,
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -71,7 +71,7 @@ bitflag enum LineAttrFlags
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-struct LineAttr: gui.TextAttr
+struct LineAttr: ui.TextAttr
 {
 	LineAttrFlags m_flags;
 	uint_t m_iconIdx;
@@ -79,14 +79,12 @@ struct LineAttr: gui.TextAttr
 
 //..............................................................................
 
-// represneter-target pair
-
-opaque class RepresenterTarget
+opaque class Representation
 {
 	uint64_t readonly m_timestamp;
 	uint64_t readonly m_recordCode;
 	LineAttr m_lineAttr;
-	gui.TextAttr m_auxTextAttr; // for dual bin
+	ui.TextAttr m_auxTextAttr; // for dual bin
 
 	void addPart(
 		PartKind partKind,
@@ -98,7 +96,7 @@ opaque class RepresenterTarget
 	void retroColorize(
 		intptr_t retroOffset,
 		size_t length,
-		gui.TextAttr attr,
+		ui.TextAttr attr,
 		RetroColorizeFlags flags = 0
 		);
 
@@ -166,12 +164,12 @@ opaque class RepresenterTarget
 	}
 }
 
-// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+//..............................................................................
 
 // each representer must be a pure stateless function (depend ONLY on params)
 
 typedef bool RepresenterFunc(
-	RepresenterTarget* target,
+	Representation* representation,
 	uint64_t recordCode,
 	void const* p,
 	size_t size,
@@ -180,4 +178,4 @@ typedef bool RepresenterFunc(
 
 //..............................................................................
 
-} // namespace log {
+} // namespace log

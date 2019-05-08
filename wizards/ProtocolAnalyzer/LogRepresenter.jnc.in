@@ -3,12 +3,12 @@
 // $(pluginName) log representer
 //
 
-import "log_Representer.jnc"
+import "log_Representation.jnc"
 
 //..............................................................................
 
 bool $(logRepresenterFunc) (
-	log.RepresenterTarget* target,
+	log.Representation* representation,
 	uint64_t recordCode,
 	void const* p,
 	size_t size,
@@ -18,9 +18,9 @@ bool $(logRepresenterFunc) (
 	switch (recordCode)
 	{
 	case $(logRecordCodeEnum).InBandCommand:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText ($"In-band command: $((char const*) p)");
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		representation.addHyperText ($"In-band command: $((char const*) p)");
 		break;
 
 	default:

@@ -3,12 +3,12 @@
 // $(pluginName) log representer
 //
 
-import "log_Representer.jnc"
+import "log_Representation.jnc"
 
 //..............................................................................
 
 bool $(logRepresenterFunc) (
-	log.RepresenterTarget* target,
+	log.Representation* representation,
 	uint64_t recordCode,
 	void const* p,
 	size_t size,
@@ -18,21 +18,21 @@ bool $(logRepresenterFunc) (
 	switch (recordCode)
 	{
 	case $(logRecordCodeEnum).InfoMessage:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		target.addHyperText ("InfoMessage");
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		representation.addHyperText ("InfoMessage");
 		break;
 
 	case $(logRecordCodeEnum).WarningMessage:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Warning;
-		target.addHyperText ("WarningMessage");
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Warning;
+		representation.addHyperText ("WarningMessage");
 		break;
 
 	case $(logRecordCodeEnum).ErrorMessage:
-		target.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
-		target.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		target.addHyperText ("ErrorMessage");
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Error;
+		representation.addHyperText ("ErrorMessage");
 		break;
 
 	default:

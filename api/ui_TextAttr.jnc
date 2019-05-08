@@ -3,9 +3,9 @@
 // Ninja GUI - text attributes
 //
 
-import "gui_Color.jnc"
+import "ui_Color.jnc"
 
-namespace gui {
+namespace ui {
 
 //..............................................................................
 
@@ -30,4 +30,4 @@ struct TextAttr
 
 //..............................................................................
 
-} // namespace gui {
+} // namespace ui

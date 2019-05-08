@@ -3,9 +3,9 @@
 // Ninja GUI - actions (QT-style model)
 //
 
-import "gui_Icon.jnc"
+import "ui_Icon.jnc"
 
-namespace gui {
+namespace ui {
 
 //..............................................................................
 
@@ -29,4 +29,4 @@ opaque class Action
 
 //..............................................................................
 
-} // namespace gui {
+} // namespace ui

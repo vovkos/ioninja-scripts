@@ -3,8 +3,8 @@
 // Modbus RTU Protocol Analyzer layer
 //
 
-import "io_Modbus.jnc"
 import "doc_Layer.jnc"
+import "io_Modbus.jnc"
 import "std_Buffer.jnc"
 import "crc16.jnc"
 
@@ -27,11 +27,11 @@ protected:
 	ModbusParserBase* m_txParser;
 	ModbusParserBase* m_rxParser;
 
-	gui.ComboBox* m_streamRoleCombo;
+	ui.ComboBox* m_streamRoleCombo;
 
-	gui.EnumProperty* m_protocolProp;
-	gui.EnumProperty* m_streamRoleProp;
-	gui.IntProperty* m_halfDuplexTimeoutProp;
+	ui.EnumProperty* m_protocolProp;
+	ui.EnumProperty* m_streamRoleProp;
+	ui.IntProperty* m_halfDuplexTimeoutProp;
 
 	reactor m_uiReactor;
 
@@ -82,14 +82,14 @@ ModbusLayer.construct(doc.PluginHost* pluginHost)
 
 ModbusLayer.createUi()
 {
-	static gui.EnumPropertyOption protocolTable[] =
+	static ui.EnumPropertyOption protocolTable[] =
 	{
 		{ "Modbus RTU",   io.ModbusProtocol.Rtu },
 		{ "Modbus ASCII", io.ModbusProtocol.Ascii },
 		{ "Modbus TCP",   io.ModbusProtocol.Tcp },
 	}
 
-	static gui.EnumPropertyOption streamRoleTable[] =
+	static ui.EnumPropertyOption streamRoleTable[] =
 	{
 		{ "TX - Master; RX - Slave", ModbusParserMode.Master },
 		{ "TX - Slave; RX - Master", ModbusParserMode.Slave },

@@ -40,7 +40,7 @@ public:
 
 	bool errorcode addRegexPattern_s(
 		char const* regexString,
-		gui.TextAttr attr
+		ui.TextAttr attr
 		);
 
 	bool errorcode finalizeRegex_s();
@@ -70,7 +70,7 @@ RegexColorizerHighlighter.clearRegex_s()
 
 bool errorcode RegexColorizerHighlighter.addRegexPattern_s(
 	char const* regexString,
-	gui.TextAttr attr
+	ui.TextAttr attr
 	)
 {
 	m_regexDfa.incrementalCompile(regexString);
@@ -113,7 +113,7 @@ RegexColorizerHighlighter.write_l(
 			writer.retroColorize(
 				m_regexState.m_match.m_offset,
 				m_regexState.m_match.m_length,
-				(gui.TextAttr) m_attrArray[result],
+				(ui.TextAttr) m_attrArray[result],
 				m_retroColorizerFlags
 				);
 		}

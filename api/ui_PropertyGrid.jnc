@@ -3,7 +3,7 @@
 // Ninja GUI - property grid
 //
 
-namespace gui {
+namespace ui {
 
 //..............................................................................
 
@@ -532,4 +532,4 @@ FileProperty* PropertyGrid.createFileProperty(
 
 //..............................................................................
 
-} // namespace gui {
+} // namespace ui

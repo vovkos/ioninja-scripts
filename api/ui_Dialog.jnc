@@ -3,7 +3,7 @@
 // Ninja GUI - standard dialogs
 //
 
-namespace gui {
+namespace ui {
 
 //..............................................................................
 
@@ -129,4 +129,4 @@ opaque class ProgressDlg
 
 //..............................................................................
 
-} // namespace gui {
+} // namespace ui

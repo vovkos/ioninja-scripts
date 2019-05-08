@@ -3,9 +3,9 @@
 // Ninja GUI - menu
 //
 
-import "gui_Action.jnc"
+import "ui_Action.jnc"
 
-namespace gui {
+namespace ui {
 
 //..............................................................................
 
@@ -19,4 +19,4 @@ opaque class Menu
 
 //..............................................................................
 
-} // namespace gui {
+} // namespace ui

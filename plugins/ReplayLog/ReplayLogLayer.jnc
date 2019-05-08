@@ -1,11 +1,16 @@
+//..............................................................................
+//
+// Replay Log layer
+//
+
+import "doc_Layer.jnc"
 import "io_base.jncx"
 import "io_MappedFile.jnc"
 import "sys_Timer.jnc"
-import "doc_Layer.jnc"
-import "gui_History.jnc"
-import "gui_Dialog.jnc"
+import "ui_History.jnc"
+import "ui_Dialog.jnc"
 
-using extension gui.ComboBoxHistory;
+using extension ui.ComboBoxHistory;
 
 //..............................................................................
 
@@ -41,13 +46,13 @@ protected:
 	sys.Timer m_transmitTimer;
 	uint_t m_syncId;
 
-	gui.Action* m_actionTable[ActionId._Count];
-	gui.ComboBox* m_fileNameCombo;
-	gui.FileProperty* m_fileNameProp;
-	gui.BoolProperty* m_replayTxProp;
-	gui.BoolProperty* m_replayRxProp;
-	gui.FileDlg m_fileDlg;
-	gui.ProgressDlg m_progressDlg;
+	ui.Action* m_actionTable[ActionId._Count];
+	ui.ComboBox* m_fileNameCombo;
+	ui.FileProperty* m_fileNameProp;
+	ui.BoolProperty* m_replayTxProp;
+	ui.BoolProperty* m_replayRxProp;
+	ui.FileDlg m_fileDlg;
+	ui.ProgressDlg m_progressDlg;
 	reactor m_uiReactor;
 
 public:
@@ -68,12 +73,12 @@ protected:
 	bool errorcode sendNextRecord();
 
 	onBrowse();
-	onFileDlgCompleted(gui.StdDlgButton button);
+	onFileDlgCompleted(ui.StdDlgButton button);
 	onPlay();
 	onTransmitTimer(uint_t syncId);
 	onProgressTimer(uint_t syncId);
 
-	onProgressDlgButtonClicked(gui.StdDlgButton button)
+	onProgressDlgButtonClicked(ui.StdDlgButton button)
 	{
 		close(); // any button essentialy ends the replay
 	}
@@ -171,7 +176,7 @@ ReplayLogLayer.handleError()
 	stop();
 
 	m_progressDlg.m_status = $"<font color=#800>$(std.getLastErrorDescription ())</font>";
-	m_progressDlg.m_buttons = gui.StdDlgButtons.Close;
+	m_progressDlg.m_buttons = ui.StdDlgButtons.Close;
 }
 
 bool errorcode ReplayLogLayer.readLoop()
@@ -234,7 +239,7 @@ bool errorcode ReplayLogLayer.readLoop()
 
 	m_progressDlg.m_status = "Replay completed";
 	m_progressDlg.m_progress = 100;
-	m_progressDlg.m_buttons = gui.StdDlgButtons.Ok;
+	m_progressDlg.m_buttons = ui.StdDlgButtons.Ok;
 	return true;
 }
 
@@ -253,15 +258,15 @@ bool errorcode ReplayLogLayer.sendNextRecord()
 
 ReplayLogLayer.onBrowse()
 {
-	m_fileDlg.m_kind = gui.FileDlgKind.Open;
+	m_fileDlg.m_kind = ui.FileDlgKind.Open;
 	m_fileDlg.m_title = "Replay Log File...";
 	m_fileDlg.m_filter = "Log files (*.njlog);;All files (*.*)";
 	m_fileDlg.show();
 }
 
-ReplayLogLayer.onFileDlgCompleted(gui.StdDlgButton button)
+ReplayLogLayer.onFileDlgCompleted(ui.StdDlgButton button)
 {
-	if (button == gui.StdDlgButton.Ok)
+	if (button == ui.StdDlgButton.Ok)
 		m_fileNameCombo.m_editText = m_fileDlg.m_filePath;
 }
 
@@ -275,7 +280,7 @@ ReplayLogLayer.onPlay()
 	m_progressDlg.m_title = fileName;
 	m_progressDlg.m_status = "Initializing...";
 	m_progressDlg.m_progress = 0;
-	m_progressDlg.m_buttons = gui.StdDlgButtons.Abort;
+	m_progressDlg.m_buttons = ui.StdDlgButtons.Abort;
 	m_progressDlg.show();
 
 	m_file.open(fileName, io.FileOpenFlags.OpenExisting | io.FileOpenFlags.ReadOnly);
