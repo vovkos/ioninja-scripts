@@ -7,6 +7,9 @@ import "ui_PropertyGrid.jnc"
 
 namespace ui {
 
+//! \addtogroup common-ui
+//! @{
+
 //..............................................................................
 
 class SshPropertySet
@@ -213,5 +216,7 @@ SshPropertySet.restoreDefaults()
 }
 
 //..............................................................................
+
+//! @}
 
 } // namespace ui

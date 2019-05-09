@@ -12,6 +12,9 @@ import "log_RangeProcessor.jnc"
 
 namespace log {
 
+//! \addtogroup api-log
+//! @{
+
 //..............................................................................
 
 opaque class Log
@@ -61,5 +64,7 @@ opaque class Log
 }
 
 //..............................................................................
+
+//! @}
 
 } // namespace log

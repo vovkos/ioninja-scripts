@@ -10,6 +10,9 @@ import "io_UsbDb.jnc"
 
 namespace ui {
 
+//! \addtogroup common-ui
+//! @{
+
 //..............................................................................
 
 populateUsbDeviceListUi(
@@ -114,5 +117,7 @@ size_t findUsbDeviceComboIndex(
 }
 
 //..............................................................................
+
+//! @}
 
 } // namespace ui

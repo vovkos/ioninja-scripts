@@ -9,6 +9,9 @@ import "crc32.jnc"
 
 namespace log {
 
+//! \addtogroup common-log
+//! @{
+
 //..............................................................................
 
 class ChecksumCalcRangeProcessor: RangeProcessor
@@ -161,5 +164,7 @@ uint64_t sum8(
 }
 
 //..............................................................................
+
+//! @}
 
 } // namespace log

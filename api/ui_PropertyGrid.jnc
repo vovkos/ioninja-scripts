@@ -5,6 +5,9 @@
 
 namespace ui {
 
+//! \addtogroup api-ui
+//! @{
+
 //..............................................................................
 
 opaque class Property
@@ -531,5 +534,7 @@ FileProperty* PropertyGrid.createFileProperty(
 }
 
 //..............................................................................
+
+//! @}
 
 } // namespace ui

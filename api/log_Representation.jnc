@@ -7,6 +7,9 @@ import "log_RecordCode.jnc"
 
 namespace log {
 
+//! \addtogroup api-log
+//! @{
+
 //..............................................................................
 
 // each record is represented as a sequence of 'parts'
@@ -177,5 +180,7 @@ typedef bool RepresenterFunc(
 	);
 
 //..............................................................................
+
+//! @}
 
 } // namespace log

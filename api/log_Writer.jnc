@@ -7,6 +7,9 @@ import "log_RecordCode.jnc"
 
 namespace log {
 
+//! \addtogroup api-log
+//! @{
+
 //..............................................................................
 
 opaque class Writer
@@ -105,5 +108,7 @@ opaque class Writer
 }
 
 //..............................................................................
+
+//! @}
 
 } // namespace log

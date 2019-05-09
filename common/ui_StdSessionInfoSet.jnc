@@ -11,6 +11,9 @@ import "formatInteger.jnc"
 
 namespace ui {
 
+//! \addtogroup common-ui
+//! @{
+
 //..............................................................................
 
 class StdSessionInfoSet
@@ -354,5 +357,7 @@ StdSessionInfoSet.update(uint64_t timestamp)
 }
 
 //..............................................................................
+
+//! @}
 
 } // namespace ui

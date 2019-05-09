@@ -1,5 +1,10 @@
 import "std_String.jnc"
 
+//! \addtogroup common-enc
+//! @{
+
+//..............................................................................
+
 // both functions return mutable pointers
 
 char* formatIntegerWithThousandSep(
@@ -31,3 +36,7 @@ char* formatFileSize(uint64_t size)
 		size > 9999 ? $"$(size / KB) KB" :
 		$"$(formatIntegerWithThousandSep (size)) B";
 }
+
+//..............................................................................
+
+//! @}

@@ -7,6 +7,9 @@ import "ui_TextAttr.jnc"
 
 namespace log {
 
+//! \addtogroup api-log
+//! @{
+
 //..............................................................................
 
 // foldable records must be marked to avoid unintentional merging with neighbors
@@ -61,5 +64,7 @@ struct RetroColorizeParams
 }
 
 //..............................................................................
+
+//! @}
 
 } // namespace log

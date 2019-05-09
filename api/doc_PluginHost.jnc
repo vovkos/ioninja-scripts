@@ -13,6 +13,9 @@ import "log_Log.jnc"
 
 namespace doc {
 
+//! \addtogroup api-doc
+//! @{
+
 //..............................................................................
 
 opaque class MainThreadScheduler: jnc.Scheduler
@@ -39,6 +42,8 @@ opaque class PluginHost
 }
 
 //..............................................................................
+
+//! @}
 
 } // namespace doc
 

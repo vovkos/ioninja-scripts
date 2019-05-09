@@ -10,6 +10,9 @@ import "std_Buffer.jnc"
 
 namespace io {
 
+//! \addtogroup common-io
+//! @{
+
 //..............................................................................
 
 class Monitor
@@ -210,5 +213,7 @@ Monitor.processError(std.Error const* error)
 }
 
 //..............................................................................
+
+//! @}
 
 } // namespace io

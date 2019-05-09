@@ -7,6 +7,9 @@ import "std_HashTable.jnc"
 
 namespace io {
 
+//! \addtogroup common-io
+//! @{
+
 //..............................................................................
 
 class FileIdMgr
@@ -69,5 +72,7 @@ FileIdMgr.removeLowFileId  (intptr_t lowFileId)
 }
 
 //..............................................................................
+
+//! @}
 
 } // namespace io

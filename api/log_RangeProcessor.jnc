@@ -5,6 +5,9 @@
 
 namespace log {
 
+//! \addtogroup api-log
+//! @{
+
 //..............................................................................
 
 class RangeProcessor
@@ -53,5 +56,7 @@ class RangeProcessor
 typedef RangeProcessor* RangeProcessorFactoryFunc();
 
 //..............................................................................
+
+//! @}
 
 } // namespace log

@@ -8,6 +8,9 @@ import "formatInteger.jnc"
 
 namespace log {
 
+//! \addtogroup common-log
+//! @{
+
 //..............................................................................
 
 class ThroughputCalcRangeProcessor: RangeProcessor
@@ -150,5 +153,7 @@ ThroughputCalcRangeProcessor.processEndOfRange()
 }
 
 //..............................................................................
+
+//! @}
 
 } // namespace log

@@ -9,6 +9,9 @@ import "std_HashTable.jnc"
 
 namespace io {
 
+//! \addtogroup common-usb
+//! @{
+
 //..............................................................................
 
 struct UsbProduct
@@ -184,5 +187,7 @@ bool errorcode UsbDb.load(char const* fileName)
 }
 
 //..............................................................................
+
+//! @}
 
 } // namespace io

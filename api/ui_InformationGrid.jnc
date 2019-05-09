@@ -5,6 +5,9 @@
 
 namespace ui {
 
+//! \addtogroup api-ui
+//! @{
+
 //..............................................................................
 
 opaque class InformationItem
@@ -125,5 +128,7 @@ InformationValue* InformationGrid.createValue(
 }
 
 //..............................................................................
+
+//! @}
 
 } // namespace ui

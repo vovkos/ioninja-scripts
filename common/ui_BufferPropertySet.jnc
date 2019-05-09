@@ -8,6 +8,9 @@ import "doc_Storage.jnc"
 
 namespace ui {
 
+//! \addtogroup common-ui
+//! @{
+
 //..............................................................................
 
 class BufferPropertySet
@@ -259,5 +262,7 @@ BufferPropertySet.restoreDefaults()
 }
 
 //..............................................................................
+
+//! @}
 
 } // namespace ui

@@ -11,6 +11,9 @@ import "io_NetworkAdapter.jnc"
 
 namespace ui {
 
+//! \addtogroup common-ui
+//! @{
+
 //..............................................................................
 
 enum NetworkAdapterUsage
@@ -485,5 +488,7 @@ io.SocketOptions getSocketOptions(
 }
 
 //..............................................................................
+
+//! @}
 
 } // namespace ui

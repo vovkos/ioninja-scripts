@@ -7,6 +7,9 @@ import "ui_InformationGrid.jnc"
 
 namespace ui {
 
+//! \addtogroup common-ui
+//! @{
+
 //..............................................................................
 
 class ChecksumInfoSet
@@ -167,5 +170,7 @@ ChecksumInfoSet.createInformationValuesGrouped(
 }
 
 //..............................................................................
+
+//! @}
 
 } // namespace ui

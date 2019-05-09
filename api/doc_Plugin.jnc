@@ -8,6 +8,9 @@ import "doc_Storage.jnc"
 
 namespace doc {
 
+//! \addtogroup api-doc
+//! @{
+
 //..............................................................................
 
 class Plugin
@@ -128,5 +131,7 @@ ui.Action* Plugin.createAction(
 }
 
 //..............................................................................
+
+// @}
 
 } // namespace doc

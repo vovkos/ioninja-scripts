@@ -9,6 +9,9 @@ import "io_pcap.jncx"
 
 namespace ui {
 
+//! \addtogroup common-ui
+//! @{
+
 //..............................................................................
 
 EnumPropertyOption const* createPcapDeviceOptionArray(bool canOpenFile = true)
@@ -89,5 +92,7 @@ createPcapDeviceComboBox(
 }
 
 //..............................................................................
+
+//! @}
 
 } // namespace ui

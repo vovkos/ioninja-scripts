@@ -5,6 +5,9 @@
 
 namespace io {
 
+//! \addtogroup common-signal-decode
+//! @{
+
 //..............................................................................
 
 enum SpiDecodeResult
@@ -158,5 +161,7 @@ SpiDecodeResult SpiSignalDecoder.add(
 }
 
 //..............................................................................
+
+//! @}
 
 } // namespace io

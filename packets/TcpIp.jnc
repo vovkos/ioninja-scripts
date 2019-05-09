@@ -9,6 +9,9 @@ import "io_TcpIp.jnc"
 
 alignment(1);
 
+//! \addtogroup packets-tcpip
+//! @{
+
 //..............................................................................
 
 struct EthernetFrame
@@ -321,3 +324,5 @@ bigendian uint16_t calcTcpUdpChecksum(
 }
 
 //..............................................................................
+
+//! @}

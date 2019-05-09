@@ -10,6 +10,9 @@ import "io_Serial.jnc"
 
 namespace ui {
 
+//! \addtogroup common-ui
+//! @{
+
 //..............................................................................
 
 class SerialSettingUi
@@ -382,5 +385,7 @@ SerialSettingUi.restoreDefaultProperties()
 }
 
 //..............................................................................
+
+//! @}
 
 } // namespace ui

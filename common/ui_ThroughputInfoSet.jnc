@@ -7,6 +7,9 @@ import "ui_InformationGrid.jnc"
 
 namespace ui {
 
+//! \addtogroup common-ui
+//! @{
+
 //..............................................................................
 
 class ThroughputInfoSet
@@ -101,5 +104,7 @@ ThroughputInfoSet.createInformationValuesGrouped(
 }
 
 //..............................................................................
+
+//! @}
 
 } // namespace ui

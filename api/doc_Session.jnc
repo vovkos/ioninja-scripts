@@ -7,6 +7,9 @@ import "doc_Plugin.jnc"
 
 namespace doc {
 
+//! \addtogroup api-doc
+//! @{
+
 //..............................................................................
 
 class Session: Plugin
@@ -36,5 +39,7 @@ class Session: Plugin
 }
 
 //..............................................................................
+
+//! @}
 
 } // namespace doc

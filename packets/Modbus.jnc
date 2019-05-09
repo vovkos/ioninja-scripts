@@ -6,6 +6,9 @@
 import "io_Modbus.jnc"
 import "crc16.jnc"
 
+//! \addtogroup packets-modbus
+//! @{
+
 //..............................................................................
 
 struct ModbusReadFrame
@@ -89,3 +92,5 @@ updateModbusChecksum(void* p)
 }
 
 //..............................................................................
+
+//! @}

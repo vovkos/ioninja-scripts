@@ -8,6 +8,9 @@ import "ui_ComboBox.jnc"
 
 namespace ui {
 
+//! \addtogroup common-ui
+//! @{
+
 //..............................................................................
 
 extension ComboBoxHistory: ComboBox
@@ -100,5 +103,7 @@ finally:
 }
 
 //..............................................................................
+
+//! @}
 
 } // namespace ui
