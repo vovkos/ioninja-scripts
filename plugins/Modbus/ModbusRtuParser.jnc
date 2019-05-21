@@ -90,12 +90,8 @@ ModbusRtuParser.parse(
 
 		// check ADU size once again (as we have appended some data)
 
-		size_t expectedSize = io.getModbusRtuAduSize(
-			m_modbusRole,
-			(io.ModbusRtuAduHdr const*) m_dataBuffer.m_p,
-			m_dataBuffer.m_size
-			);
-
+		io.ModbusRtuAduHdr const* aduHdr = (io.ModbusRtuAduHdr const*) m_dataBuffer.m_p;
+		size_t expectedSize = io.getModbusRtuAduSize(m_modbusRole, aduHdr, m_dataBuffer.m_size);
 		if (expectedSize > m_expectedSize)
 		{
 			m_expectedSize = expectedSize;
@@ -106,14 +102,17 @@ ModbusRtuParser.parse(
 
 		writer.write(timestamp, recordCode, m_dataBuffer.m_p, m_dataBuffer.m_size);
 
-		m_dataBuffer.clear();
-		m_expectedSize = 0;
-
 		if (m_mode == ModbusParserMode.HalfDuplex)
 		{
-			m_modbusRole = (io.ModbusRole) !m_modbusRole;
+			m_modbusRole = aduHdr.m_deviceAddress != 0 ? // write-only broadcast from master
+				(io.ModbusRole) !m_modbusRole :
+				io.ModbusRole.Master;
+				
 			recordCode = getPacketRecordCode();
 		}
+
+		m_dataBuffer.clear();
+		m_expectedSize = 0;
 	}
 
 catch:
