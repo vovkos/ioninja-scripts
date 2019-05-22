@@ -16,8 +16,6 @@ bool representPcapLog(
 	uint_t foldFlags
 	)
 {
-	printf("representPcapLog (%llu)\n", recordCode);
-
 	switch (recordCode)
 	{
 	case PcapLogRecordCode.StartingCapture:
@@ -27,7 +25,7 @@ bool representPcapLog(
 
 		representation.addHyperText(
 			PcapLogPartCode.StartingCapture,
-			*filter ?
+			size && *filter ?
 				$"Starting capture with filter '\e[34m$filter\e[m'..." :
 				"Starting capture without filter..."
 			);
