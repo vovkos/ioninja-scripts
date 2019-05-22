@@ -61,22 +61,38 @@ bool representEthernetSnifferLog(
 		representation.addHyperText($"Cannot open sniffer: $(error.m_description)");
 		break;
 
-	case EthernetSnifferLogRecordCode.Packet:
-		uint32_t i = *(uint32_t const*)p;
+	case EthernetSnifferLogRecordCode.Packet_ch1:
+	case EthernetSnifferLogRecordCode.Packet_ch2:
 		PacketHdr const* hdr = (PacketHdr const*)(p + sizeof(uint32_t));
 		uint_t channel = (hdr.m_flags & PacketFlags.ChannelId) != 0;
 
 		representation.m_lineAttr.m_backColor = ui.StdColor.PastelGray;
-		representation.m_lineAttr.m_iconIdx = channel ?
-			log.StdLogIcon.TxPacket :
-			log.StdLogIcon.RxPacket;
+
+		if (channel)
+		{
+			representation.m_lineAttr.m_iconIdx = log.StdLogIcon.TxPacket;
+			representation.m_lineAttr.m_backColor = ui.StdColor.PastelGray + 0x00000f;
+		}
+		else
+		{
+			representation.m_lineAttr.m_iconIdx = log.StdLogIcon.RxPacket;
+			representation.m_lineAttr.m_backColor = ui.StdColor.PastelGray + 0x000f00;
+		}
 
 		representation.addHyperText(
-			$"[\e[34m$i\e[m] "
-			$"channel: \e[34m$(channel + 1)\e[m "
-			$"size: \e[34m$(hdr.m_size - sizeof(uint32_t))\e[m + CRC-32 "
-			$"CRC: $((hdr.m_flags & PacketFlags.CrcValid) ? "\e[32mOK" : "\e[31mINVALID")\e[m"
-			);
+			$"%1 \e[34m#%(2; 03d)\e[m "
+			$"channel: \e[34m%3\e[m "
+			$"size: \e[34m%4 + 4\e[m "
+			$"CRC: %5\e[m"(
+			foldFlags ? "[\e^-1\e[34m-\e[m]" : "[\e^+1\e[34m+\e[m]",
+			*(uint32_t const*)p,
+			channel + 1,
+			hdr.m_size - sizeof(uint32_t),
+			(hdr.m_flags & PacketFlags.CrcValid) ? "\e[32mOK" : "\e[31mINVALID"
+			));
+
+		if (!foldFlags)
+			break;
 
 		if (channel)
 		{
@@ -89,6 +105,7 @@ bool representEthernetSnifferLog(
 			representation.m_lineAttr.m_textColor = log.StdLogColor.Rx;
 		}
 
+		representation.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
 		representation.m_lineAttr.m_backColor = ui.ColorFlags.Transparent;
 		representation.addBin(hdr + 1, hdr.m_size);
 		break;

@@ -478,12 +478,12 @@ EthernetSnifferSession.parse(
 
 		p += dstSize / sizeof(uint32_t);
 
-		m_pluginHost.m_log.m_writer.write(
-			EthernetSnifferLogRecordCode.Packet,
-			m_packetBuffer.m_p,
-			m_packetBuffer.m_size
-			);
+		PacketHdr const* hdr = (PacketHdr const*)m_packetBuffer.m_p;
+		uint64_t recordCode = (hdr.m_flags & PacketFlags.ChannelId) ?
+			EthernetSnifferLogRecordCode.Packet_ch2 :
+			EthernetSnifferLogRecordCode.Packet_ch1;
 
+		m_pluginHost.m_log.m_writer.write(recordCode, m_packetBuffer.m_p, m_packetBuffer.m_size);
 		m_packetBuffer.clear();
 		m_packetOffset = 0;
 	}
