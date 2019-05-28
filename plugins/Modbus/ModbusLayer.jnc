@@ -18,6 +18,7 @@ class ModbusLayer:
 	{
 		Protocol          = io.ModbusProtocol.Rtu,
 		StreamRole        = ModbusParserMode.Master,
+		HalfDuplexStream  = log.StdRecordCode.Rx,
 		HalfDuplexTimeout = 2000, // reset to master after 2 seconds
 	}
 
@@ -31,6 +32,7 @@ protected:
 
 	ui.EnumProperty* m_protocolProp;
 	ui.EnumProperty* m_streamRoleProp;
+	ui.EnumProperty* m_halfDuplexStreamProp;
 	ui.IntProperty* m_halfDuplexTimeoutProp;
 
 	reactor m_uiReactor;
@@ -96,6 +98,13 @@ ModbusLayer.createUi()
 		{ "Half-duplex",             ModbusParserMode.HalfDuplex },
 	}
 
+	static ui.EnumPropertyOption halfDuplexStreamTable[] =
+	{
+		{ "TX & RX", 0 },
+		{ "TX only", log.StdRecordCode.Tx },
+		{ "RX only", log.StdRecordCode.Rx },
+	}
+
 	m_streamRoleCombo = m_pluginHost.m_toolBar.addComboBox(
 		"Modbus roles:",
 		streamRoleTable,
@@ -118,6 +127,13 @@ ModbusLayer.createUi()
 		countof(streamRoleTable)
 		);
 
+	m_halfDuplexStreamProp = m_pluginHost.m_propertyGrid.createEnumProperty(
+		"Half-duplex stream",
+		"Choose streams to analyze",
+		halfDuplexStreamTable,
+		countof(halfDuplexStreamTable)
+		);
+
 	m_halfDuplexTimeoutProp = m_pluginHost.m_propertyGrid.createIntProperty(
 		"Half-duplex timeout (ms)",
 		"Reset the current Modbus role to 'master' after this delay"
@@ -128,6 +144,7 @@ ModbusLayer.createUi()
 
 reactor ModbusLayer.m_uiReactor
 {
+	m_halfDuplexStreamProp.m_isEnabled = m_streamRoleProp.m_value == ModbusParserMode.HalfDuplex;
 	m_halfDuplexTimeoutProp.m_isEnabled = m_streamRoleProp.m_value == ModbusParserMode.HalfDuplex;
 }
 
@@ -135,6 +152,7 @@ void ModbusLayer.load(doc.Storage* storage)
 {
 	m_streamRoleProp.m_value = storage.readInt("streamRole", Def.StreamRole); // will apply before returning
 	m_protocolProp.m_value = storage.readInt("protocol", Def.Protocol);
+	m_halfDuplexStreamProp.m_value = storage.readInt("halfDuplexStream", Def.HalfDuplexStream);
 	m_halfDuplexTimeoutProp.m_value = storage.readInt("halfDuplexTimeout", Def.HalfDuplexTimeout);
 
 	applyProperties();
@@ -144,6 +162,7 @@ void ModbusLayer.save(doc.Storage* storage)
 {
 	storage.writeInt("streamRole", m_streamRoleCombo.m_currentData);
 	storage.writeInt("protocol", m_protocolProp.m_value);
+	storage.writeInt("halfDuplexStream", m_halfDuplexStreamProp.m_value);
 	storage.writeInt("halfDuplexTimeout", m_halfDuplexTimeoutProp.m_value);
 }
 
@@ -200,6 +219,11 @@ bool ModbusLayer.convert(
 	size_t size
 	)
 {
+	if (m_streamRoleProp.m_value == ModbusParserMode.HalfDuplex &&
+		m_halfDuplexStreamProp.m_value &&
+		m_halfDuplexStreamProp.m_value != recordCode)
+		return false;
+
 	ModbusParserBase* parser;
 
 	switch (recordCode)
