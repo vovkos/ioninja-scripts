@@ -51,10 +51,11 @@ opaque class Log
 		addConverter(converter, classGuid, 1);
 	}
 
-	removeAllConverters();
-
 	addFilter(Filter* filter);
-	removeAllFilters();
+	removeAllConversions();
+
+	addFoldingFilter(FoldingFilter* filter);
+	removeAllFoldingFilters();
 
 	addListener(ListenerFunc* listenerFunc);
 	removeAllListeners();
