@@ -3,6 +3,7 @@
 // Ninja document model - plugin host
 //
 
+import "doc_MainThreadScheduler.jnc"
 import "ui_Menu.jnc"
 import "ui_ToolBar.jnc"
 import "ui_StatusBar.jnc"
@@ -15,13 +16,6 @@ namespace doc {
 
 //! \addtogroup api-doc
 //! @{
-
-//..............................................................................
-
-opaque class MainThreadScheduler: jnc.Scheduler
-{
-	override schedule(function* f());
-}
 
 //..............................................................................
 
