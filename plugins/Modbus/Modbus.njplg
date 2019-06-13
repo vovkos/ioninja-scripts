@@ -13,6 +13,7 @@ icon        = images/modbus.png
 small-icon  = images/modbus-16x16.png
 
 layer-class = ModbusLayer
+pure-layer  = true
 
 [scripts]
 

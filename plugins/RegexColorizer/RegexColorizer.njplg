@@ -13,6 +13,7 @@ icon        = images/colorizer.png
 small-icon  = images/colorizer-16x16.png
 
 layer-class = RegexColorizerLayer
+pure-layer  = true
 
 [scripts]
 

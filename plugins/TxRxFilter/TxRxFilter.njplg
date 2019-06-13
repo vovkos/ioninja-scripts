@@ -12,6 +12,7 @@ icon        = images/filter.png
 small-icon  = images/filter-16x16.png
 
 layer-class = TxRxFilterLayer
+pure-layer  = true
 
 [scripts]
 
