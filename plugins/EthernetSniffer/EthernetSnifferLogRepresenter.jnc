@@ -4,8 +4,14 @@
 //
 
 import "log_Representation.jnc"
+import "crc32.jnc"
 
 //..............................................................................
+
+char const* getValidityString(bool isValid)
+{
+	return isValid ? "\e[32mOK\e[m" : "\e[31mINVALID\e[m";
+}
 
 bool representEthernetSnifferLog(
 	log.Representation* representation,
@@ -66,6 +72,22 @@ bool representEthernetSnifferLog(
 		PacketHdr const* hdr = (PacketHdr const*)(p + sizeof(uint32_t));
 		uint_t channel = (hdr.m_flags & PacketFlags.ChannelId) != 0;
 
+		if (hdr.m_flags & PacketFlags.BufferOverflow)
+		{
+			representation.m_lineAttr.m_backColor = ui.StdColor.PastelOrange;
+			representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
+			representation.addHyperText($"Hardware buffer overflow on channel \e[34m$(channel + 1)");
+			break;
+		}
+
+		if (hdr.m_size < sizeof(uint32_t))
+		{
+			representation.m_lineAttr.m_backColor = ui.StdColor.PastelRed;
+			representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+			representation.addHyperText($"Invalid packet size: \e[34m$(hdr.m_size)");
+			break;
+		}
+
 		representation.m_lineAttr.m_backColor = ui.StdColor.PastelGray;
 
 		if (channel)
@@ -79,16 +101,21 @@ bool representEthernetSnifferLog(
 			representation.m_lineAttr.m_backColor = ui.StdColor.PastelGray + 0x000f00;
 		}
 
+		size_t dataSize = hdr.m_size - sizeof(uint32_t);
+		uint32_t actualCrc = *(uint32_t const*)(p + sizeof(uint32_t) + hdr.m_size);
+		uint32_t expectedCrc = crc32(hdr + 1, dataSize);
+
 		representation.addHyperText(
 			$"%1 \e[34m#%(2; 03d)\e[m "
 			$"channel: \e[34m%3\e[m "
 			$"size: \e[34m%4 + 4\e[m "
-			$"CRC: %5\e[m"(
+			$"CRC-hw: %5 CRC-sw: %6"(
 			foldFlags ? "[\e^-1\e[34m-\e[m]" : "[\e^+1\e[34m+\e[m]",
 			*(uint32_t const*)p,
 			channel + 1,
-			hdr.m_size - sizeof(uint32_t),
-			(hdr.m_flags & PacketFlags.CrcValid) ? "\e[32mOK" : "\e[31mINVALID"
+			dataSize,
+			getValidityString(hdr.m_flags & PacketFlags.CrcValid),
+			getValidityString(actualCrc == expectedCrc)
 			));
 
 		if (!foldFlags)

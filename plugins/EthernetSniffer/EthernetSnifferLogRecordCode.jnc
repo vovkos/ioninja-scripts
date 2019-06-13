@@ -25,9 +25,10 @@ enum EthernetSnifferLogRecordCode: uint64_t
 
 bitflag enum PacketFlags: uint8_t
 {
-	Reserved,    // 1
-	CrcValid,    // 2
-	ChannelId,   // 4
+	Reserved,       // 1
+	CrcValid,       // 2
+	BufferOverflow, // 4
+	ChannelId,      // 8
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
