@@ -54,6 +54,8 @@ public:
 		size_t size
 		);
 
+	override void reset();
+
 protected:
 	createUi();
 
@@ -176,7 +178,6 @@ bool errorcode ModbusLayer.applyProperties()
 	m_pluginHost.m_log.suspend();
 
 	if (m_protocolProp.m_value != m_txParser.m_protocol)
-	{
 		switch (m_protocolProp.m_value)
 		{
 		case io.ModbusProtocol.Rtu:
@@ -194,7 +195,6 @@ bool errorcode ModbusLayer.applyProperties()
 			m_rxParser = new ModbusTcpParser;
 			break;
 		}
-	}
 
 	ModbusParserMode mode = m_streamRoleProp.m_value;
 	m_streamRoleCombo.m_currentData = mode;
@@ -242,6 +242,12 @@ bool ModbusLayer.convert(
 
 	parser.parse(writer, timestamp, recordCode, p, size);
 	return true;
+}
+
+void ModbusLayer.reset()
+{
+	m_txParser.reset();
+	m_rxParser.reset();
 }
 
 void ModbusLayer.setStreamRoles(ModbusParserMode mode)
