@@ -3,12 +3,17 @@
 // Modbus stream parser base class
 //
 
+//..............................................................................
+
 enum ModbusParserMode
 {
+	None,
 	Master,
 	Slave,
-	HalfDuplex,
+	Alternate,
 }
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 class ModbusParserBase
 {
@@ -20,7 +25,7 @@ protected:
 public:
 	io.ModbusProtocol readonly m_protocol;
 	ModbusParserMode autoget property m_mode;
-	uint64_t m_halfDuplexTimeout; // in 100-nsec intervals
+	uint64_t m_alternateTimeout; // in 100-nsec intervals
 
 public:
 	abstract parse(
@@ -55,8 +60,8 @@ ModbusParserBase.m_mode.set(ModbusParserMode mode)
 
 ModbusParserBase.updateLastTimestamp(uint64_t timestamp)
 {
-	if (m_mode == ModbusParserMode.HalfDuplex &&
-		timestamp - m_lastTimestamp > m_halfDuplexTimeout)
+	if (m_mode == ModbusParserMode.Alternate &&
+		timestamp - m_lastTimestamp > m_alternateTimeout)
 		reset();
 
 	m_lastTimestamp = timestamp;

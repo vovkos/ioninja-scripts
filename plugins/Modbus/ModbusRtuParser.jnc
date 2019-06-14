@@ -102,12 +102,12 @@ ModbusRtuParser.parse(
 
 		writer.write(timestamp, recordCode, m_dataBuffer.m_p, m_dataBuffer.m_size);
 
-		if (m_mode == ModbusParserMode.HalfDuplex)
+		if (m_mode == ModbusParserMode.Alternate)
 		{
 			m_modbusRole = aduHdr.m_deviceAddress != 0 ? // write-only broadcast from master
 				(io.ModbusRole) !m_modbusRole :
 				io.ModbusRole.Master;
-				
+
 			recordCode = getPacketRecordCode();
 		}
 
@@ -125,7 +125,7 @@ ModbusRtuParser.reset()
 	m_dataBuffer.clear();
 	m_expectedSize = 0;
 
-	if (m_mode == ModbusParserMode.HalfDuplex)
+	if (m_mode == ModbusParserMode.Alternate)
 		m_modbusRole = io.ModbusRole.Master;
 }
 
