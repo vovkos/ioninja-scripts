@@ -1,6 +1,6 @@
 //..............................................................................
 //
-// I2C sniffer log representer
+// I2C/SPI Tap log representer
 //
 
 import "log_Representation.jnc"

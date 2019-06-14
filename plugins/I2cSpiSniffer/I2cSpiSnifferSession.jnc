@@ -1,6 +1,6 @@
 //..............................................................................
 //
-// I2C Sniffer session
+// I2C/SPI Tap session
 //
 
 import "doc_Session.jnc"

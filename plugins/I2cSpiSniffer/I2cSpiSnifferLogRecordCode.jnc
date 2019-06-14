@@ -1,6 +1,6 @@
 //..............................................................................
 //
-// I2C sniffer log record codes
+// I2C/SPI Tap log record codes
 //
 
 import "log_RecordCode.jnc"
