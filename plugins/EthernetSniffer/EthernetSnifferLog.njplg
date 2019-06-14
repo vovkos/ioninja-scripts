@@ -1,12 +1,12 @@
 #...............................................................................
 #
-#  Ethernet Sniffer Log log plugin
+#  Ethernet Tap log representer plugin
 #
 
 [plugin]
 
-name        = "Ethernet Sniffer Log"
-description = "Ethernet Sniffer log representer"
+name        = "Ethernet Tap Log"
+description = "Ethernet Tap log representer"
 group       = serial
 guid        = ae3dc2da-6124-4c14-b05a-200df2fc580a
 small-icon  = images/sniffer-16x16.png

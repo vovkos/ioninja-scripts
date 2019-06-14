@@ -1,6 +1,6 @@
 //..............................................................................
 //
-// Ethernet sniffer log record codes
+// Ethernet Tap log record codes
 //
 
 import "log_RecordCode.jnc"

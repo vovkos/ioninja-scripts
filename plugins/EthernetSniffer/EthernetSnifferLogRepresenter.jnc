@@ -1,6 +1,6 @@
 //..............................................................................
 //
-// Ethernet sniffer log representer
+// Ethernet Tap log representer
 //
 
 import "log_Representation.jnc"

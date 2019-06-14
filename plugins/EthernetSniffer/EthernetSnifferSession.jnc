@@ -1,6 +1,6 @@
 //..............................................................................
 //
-// Ethernet Sniffer session
+// Ethernet Tap session
 //
 
 import "doc_Session.jnc"

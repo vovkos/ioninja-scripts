@@ -1,13 +1,13 @@
 #...............................................................................
 #
-#  Ethernet Sniffer session plugin
+#  Ethernet Tap session plugin
 #
 
 [plugin]
 
-name        = "Ethernet Sniffer"
-description = "Monitor Ethernet packets via an Ethernet Sniffer device from Tibbo"
-id          = ethernet-sniffer
+name        = "Ethernet Tap"
+description = "Monitor Ethernet packets via an Ethernet Tap device from Tibbo"
+id          = ethernet-tap
 group       = others
 monitor     = false
 log-guid    = ae3dc2da-6124-4c14-b05a-200df2fc580a  # ethernet sniffer
