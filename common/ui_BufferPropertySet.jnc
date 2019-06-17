@@ -59,7 +59,6 @@ class BufferPropertySet
 	size_t m_defaultReadBufferSize = Defaults.ReadBufferSize;
 	size_t m_defaultWriteBufferSize = Defaults.WriteBufferSize;
 
-
 	createProperties(
 		PropertyGrid* propertyGrid,
 		GroupProperty* group = null,
@@ -67,7 +66,7 @@ class BufferPropertySet
 		PropertyId mask = PropertyId.All
 		);
 
-	createPropertiesGrouped(
+	GroupProperty* createPropertiesGrouped(
 		PropertyGrid* propertyGrid,
 		GroupProperty* group = null,
 		Property* insertBefore = null,
@@ -172,7 +171,7 @@ BufferPropertySet.createProperties(
 			);
 }
 
-BufferPropertySet.createPropertiesGrouped(
+GroupProperty* BufferPropertySet.createPropertiesGrouped(
 	PropertyGrid* propertyGrid,
 	GroupProperty* group,
 	Property* insertBefore,
@@ -187,6 +186,7 @@ BufferPropertySet.createPropertiesGrouped(
 		);
 
 	createProperties(propertyGrid, subGroup,, mask);
+	return subGroup;
 }
 
 BufferPropertySet.load(doc.Storage* storage)
