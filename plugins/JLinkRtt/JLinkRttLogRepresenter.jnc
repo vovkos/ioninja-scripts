@@ -1,0 +1,48 @@
+//..............................................................................
+//
+// J-Link RTT log representer
+//
+
+import "log_Representation.jnc"
+import "JLinkRttLogRecordCode.jnc"
+
+//..............................................................................
+
+bool representJLinkRttLog(
+	log.Representation* representation,
+	uint64_t recordCode,
+	void const* p,
+	size_t size,
+	uint_t foldFlags
+	)
+{
+	switch (recordCode)
+	{
+	case JLinkRttLogRecordCode.Opened:
+		char const* fileName = (char const*) p;
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Connect;
+		representation.addHyperText($"Opened J-Link RTT \e[34m$fileName");
+		break;
+
+	case JLinkRttLogRecordCode.OpenError:
+		std.Error const* error = (std.Error const*) p;
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Error;
+		representation.addHyperText($"Cannot open J-Link RTT: $(error.m_description)");
+		break;
+
+	case JLinkRttLogRecordCode.Closed:
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
+		representation.addHyperText($"J-Link RTT closed");
+		break;
+
+	default:
+		return false;
+	}
+
+	return true;
+}
+
+//..............................................................................

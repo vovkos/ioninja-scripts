@@ -1,0 +1,25 @@
+#...............................................................................
+#
+#  J-Link RTT log representer plugin
+#
+
+[plugin]
+
+name        = "J-Link RTT Log"
+description = "J-Link RTT log representer"
+guid        = b1c1cd8b-f182-41fe-af19-f5fc0ab33a16
+icon        = images/jlink.png
+small-icon  = images/jlink-16x16.png
+
+log-representer-func = representJLinkRttLog
+
+[scripts]
+
+JLinkRttLogRecordCode.jnc
+JLinkRttLogRepresenter.jnc
+
+[records]
+
+01d5244182b20ba0  # Opened
+01d5244182b20ba1  # OpenError
+01d5244182b20ba2  # Closed
