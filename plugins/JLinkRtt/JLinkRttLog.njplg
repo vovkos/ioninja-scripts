@@ -20,6 +20,28 @@ JLinkRttLogRepresenter.jnc
 
 [records]
 
-01d5244182b20ba0  # Opened
-01d5244182b20ba1  # OpenError
-01d5244182b20ba2  # Closed
+01d5244182b20ba0  # Connected
+01d5244182b20ba1  # ConnectError
+01d5244182b20ba2  # Attached
+01d5244182b20ba3  # SearchingRtt
+01d5244182b20ba4  # RttSearchCompleted
+01d5244182b20ba5  # RttSearchFailed
+01d5244182b20ba6  # Closed
+01d5244182b20ba7  # TraceInfo
+01d5244182b20ba8  # TraceError
+
+[filter]
+
+id          = trace-info
+name        = "J-Link info traces"
+description = "Show/hide J-Link informational message traces"
+
+01d5244182b20ba7  # TraceInfo
+
+[filter]
+
+id          = trace-error
+name        = "J-Link error traces"
+description = "Show/hide J-Link error message traces"
+
+01d5244182b20ba8  # TraceError

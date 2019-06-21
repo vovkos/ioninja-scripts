@@ -18,24 +18,67 @@ bool representJLinkRttLog(
 {
 	switch (recordCode)
 	{
-	case JLinkRttLogRecordCode.Opened:
-		char const* fileName = (char const*) p;
+	case JLinkRttLogRecordCode.Connected:
+		uint_t const* serialNumber = (uint_t const*)p;
+		char const* deviceName = (char const*)(serialNumber + 1);
+
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Connect;
-		representation.addHyperText($"Opened J-Link RTT \e[34m$fileName");
+		representation.addHyperText(
+			$"Established J-Link RTT connection to \e[34m%1\e[m (S/N: \e[34m%2\e[m)"(
+			deviceName,
+			*serialNumber
+			));
 		break;
 
-	case JLinkRttLogRecordCode.OpenError:
+	case JLinkRttLogRecordCode.ConnectError:
 		std.Error const* error = (std.Error const*) p;
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		representation.addHyperText($"Cannot open J-Link RTT: $(error.m_description)");
+		representation.addHyperText($"Cannot establish J-Link RTT connection: $(error.m_description)");
+		break;
+
+	case JLinkRttLogRecordCode.Attached:
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Connect;
+		representation.addHyperText("Using existing J-Link RTT connection");
+		break;
+
+	case JLinkRttLogRecordCode.SearchingRtt:
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		representation.addHyperText(JLinkRttLogPartCode.SearchingRtt, "Searching for RTT block...");
+		break;
+
+	case JLinkRttLogRecordCode.RttSearchCompleted:
+		representation.m_lineAttr.m_flags = log.LineAttrFlags.Override;
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		representation.addHyperText(JLinkRttLogPartCode.RttSearchCompleted, "ok");
+		break;
+
+	case JLinkRttLogRecordCode.RttSearchFailed:
+		std.Error const* error = (std.Error const*) p;
+		representation.m_lineAttr.m_flags = log.LineAttrFlags.Override;
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Error;
+		representation.addHyperText(JLinkRttLogPartCode.RttSearchCompleted, $"error: $(error.m_description)");
 		break;
 
 	case JLinkRttLogRecordCode.Closed:
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
-		representation.addHyperText($"J-Link RTT closed");
+		representation.addHyperText("J-Link RTT connection closed");
+		break;
+
+	case JLinkRttLogRecordCode.TraceInfo:
+		representation.m_lineAttr.m_backColor = ui.StdColor.PastelGray;
+		representation.addPlainText(p);
+		break;
+
+	case JLinkRttLogRecordCode.TraceError:
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Error;
+		representation.addPlainText(p);
 		break;
 
 	default:

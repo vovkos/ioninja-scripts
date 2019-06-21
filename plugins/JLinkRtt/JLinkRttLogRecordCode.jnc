@@ -9,9 +9,21 @@ import "log_RecordCode.jnc"
 
 enum JLinkRttLogRecordCode: uint64_t
 {
-	Opened    = 0x01d5244182b20ba0,
-	OpenError = 0x01d5244182b20ba1,
-	Closed    = 0x01d5244182b20ba2,
+	Connected          = 0x01d5244182b20ba0,
+	ConnectError       = 0x01d5244182b20ba1,
+	Attached           = 0x01d5244182b20ba2,
+	SearchingRtt       = 0x01d5244182b20ba3,
+	RttSearchCompleted = 0x01d5244182b20ba4,
+	RttSearchFailed    = 0x01d5244182b20ba5,
+	Closed             = 0x01d5244182b20ba6,
+	TraceInfo          = 0x01d5244182b20ba7,
+	TraceError         = 0x01d5244182b20ba8,
+}
+
+enum JLinkRttLogPartCode: uint64_t
+{
+	SearchingRtt       = JLinkRttLogRecordCode.SearchingRtt | log.PartCodeFlags.MergeableForward,
+	RttSearchCompleted = JLinkRttLogRecordCode.SearchingRtt | log.PartCodeFlags.MergeableBackward,
 }
 
 //..............................................................................
