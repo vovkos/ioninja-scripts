@@ -127,10 +127,10 @@ ModbusLayer.createUi()
 	static ui.EnumPropertyOption halfDuplexModeTable[] =
 	{
 		{ "Alternate Master/Slave",      HalfDuplexMode.Alternate },
-		{ "RTS ON - Master; else Slave", HalfDuplexMode.RtsMaster },
-		{ "RTS ON - Slave; else Master", HalfDuplexMode.RtsSlave },
-		{ "CTS ON - Master; else Slave", HalfDuplexMode.CtsMaster },
-		{ "CTS ON - Slave; else Master", HalfDuplexMode.CtsSlave },
+		{ "RTS ON - Master, else Slave", HalfDuplexMode.RtsMaster },
+		{ "RTS ON - Slave, else Master", HalfDuplexMode.RtsSlave },
+		{ "CTS ON - Master, else Slave", HalfDuplexMode.CtsMaster },
+		{ "CTS ON - Slave, else Master", HalfDuplexMode.CtsSlave },
 	}
 
 	m_streamRolesCombo = m_pluginHost.m_toolBar.addComboBox(
@@ -253,6 +253,11 @@ bool ModbusLayer.convert(
 
 	switch (recordCode)
 	{
+	case log.StdRecordCode.SessionStarted:
+		m_txParser.reset();
+		m_rxParser.reset();
+		break;
+
 	case log.StdRecordCode.Tx:
 		parser = m_txParser;
 		break;

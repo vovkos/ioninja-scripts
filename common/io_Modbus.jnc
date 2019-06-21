@@ -90,7 +90,7 @@ char const* getModbusFuncString(ModbusFunc func)
 		"Read File Record",              // ReadFileRecord             = 20,
 		"Write File Record",             // WriteFileRecord            = 21,
 		"Mask Write Register",           // MaskWriteRegister          = 22,
-		"Read Write Multiple Registers", // ReadWriteMultipleRegisters = 23,
+		"Read/Write Multiple Registers", // ReadWriteMultipleRegisters = 23,
 		"Read Fifo Queue",               // ReadFifoQueue              = 24,
 	}
 
@@ -187,6 +187,32 @@ struct ModbusWritePdu: ModbusPduHdr
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
+struct ModbusReadExceptionStatusReplyPdu: ModbusPduHdr
+{
+	uint8_t m_status;
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+struct ModbusGetCommEventCounterReplyPdu: ModbusPduHdr
+{
+	bigendian uint16_t m_status;
+	bigendian uint16_t m_eventCount;
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+struct ModbusGetCommEventLogReplyPdu: ModbusReadReplyPdu
+{
+	bigendian uint16_t m_status;
+	bigendian uint16_t m_eventCount;
+	bigendian uint16_t m_messageCount;
+
+	// followed by event log data
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
 struct ModbusWriteMultiplePdu: ModbusPduHdr
 {
 	bigendian uint16_t m_address;
@@ -215,6 +241,34 @@ struct ModbusMaskWritePdu: ModbusPduHdr
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
+struct ModbusReadWriteMultiplePdu: ModbusPduHdr
+{
+	bigendian uint16_t m_readAddress;
+	bigendian uint16_t m_readCount;
+	bigendian uint16_t m_writeAddress;
+	bigendian uint16_t m_writeCount;
+	uint8_t m_writeSize;
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+struct ModbusReadFifoPdu: ModbusPduHdr
+{
+	bigendian uint16_t m_address;
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+struct ModbusReadFifoReplyPdu: ModbusPduHdr
+{
+	bigendian uint16_t m_byteCount;
+	bigendian uint16_t m_fifoCount;
+
+	// followed by FIFO data
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
 enum
 {
 	ModbusMaxPduSize = sizeof(ModbusWriteMultiplePdu) + 255,
@@ -239,6 +293,7 @@ size_t errorcode getModbusPduSize(
 	case io.ModbusFunc.ReadDiscreteInputs:
 	case io.ModbusFunc.ReadHoldingRegisters:
 	case io.ModbusFunc.ReadInputRegisters:
+	case io.ModbusFunc.ReportServerId:
 		return
 			role == ModbusRole.Master ? sizeof(ModbusReadPdu) :
 			size < sizeof(ModbusReadReplyPdu) ? sizeof(ModbusReadReplyPdu) :
@@ -248,6 +303,26 @@ size_t errorcode getModbusPduSize(
 	case io.ModbusFunc.WriteRegister:
 		return sizeof(ModbusWritePdu);
 
+	case io.ModbusFunc.ReadExceptionStatus:
+		return role == ModbusRole.Master ?
+			sizeof(ModbusPduHdr) :
+			sizeof(ModbusReadExceptionStatusReplyPdu);
+
+	case io.ModbusFunc.Diagnostics:
+		std.setError("ModbusFunc.Diagnostics is unsupported");
+		return -1;
+
+	case io.ModbusFunc.GetCommEventCounter:
+		return role == ModbusRole.Master ?
+			sizeof(ModbusPduHdr) :
+			sizeof(ModbusGetCommEventCounterReplyPdu);
+
+	case io.ModbusFunc.GetCommEventLog:
+		return role == ModbusRole.Master ?
+			sizeof(ModbusPduHdr) :
+			size < sizeof(ModbusGetCommEventLogReplyPdu) ? sizeof(ModbusGetCommEventLogReplyPdu) :
+			sizeof(ModbusReadReplyPdu) + ((ModbusReadReplyPdu const*) pduHdr).m_size;
+
 	case io.ModbusFunc.WriteMultipleCoils:
 	case io.ModbusFunc.WriteMultipleRegisters:
 		return
@@ -255,22 +330,31 @@ size_t errorcode getModbusPduSize(
 			size < sizeof(ModbusWriteMultiplePdu) ? sizeof(ModbusWriteMultiplePdu) :
 			sizeof(ModbusWriteMultiplePdu) + ((ModbusWriteMultiplePdu const*) pduHdr).m_size;
 
+	case io.ModbusFunc.ReadFileRecord:
+	case io.ModbusFunc.WriteFileRecord:
+		return
+			size < sizeof(ModbusReadReplyPdu) ? sizeof(ModbusReadReplyPdu) :
+			sizeof(ModbusReadReplyPdu) + ((ModbusReadReplyPdu const*) pduHdr).m_size;
+
 	case io.ModbusFunc.MaskWriteRegister:
 		return sizeof(ModbusMaskWritePdu);
 
-	case io.ModbusFunc.ReadExceptionStatus:
-	case io.ModbusFunc.Diagnostics:
-	case io.ModbusFunc.GetCommEventCounter:
-	case io.ModbusFunc.GetCommEventLog:
-	case io.ModbusFunc.ReportServerId:
-	case io.ModbusFunc.ReadFileRecord:
-	case io.ModbusFunc.WriteFileRecord:
 	case io.ModbusFunc.ReadWriteMultipleRegisters:
-	case io.ModbusFunc.ReadFifoQueue:
-	case io.ModbusFunc.EncapsulatedInterface:
-		// TODO: process these function codes
+		return
+			role == ModbusRole.Master ?
+			size < sizeof(ModbusReadWriteMultiplePdu) ? sizeof(ModbusReadWriteMultiplePdu) :
+			sizeof(ModbusReadWriteMultiplePdu) + ((ModbusReadWriteMultiplePdu const*) pduHdr).m_writeSize :
+			size < sizeof(ModbusReadReplyPdu) ? sizeof(ModbusReadReplyPdu) :
+			sizeof(ModbusReadReplyPdu) + ((ModbusReadReplyPdu const*) pduHdr).m_size;
 
-		std.setError("Unsupported Modbus function");
+	case io.ModbusFunc.ReadFifoQueue:
+		return
+			role == ModbusRole.Master ? sizeof(ModbusReadFifoPdu) :
+			size < sizeof(ModbusReadFifoReplyPdu) ? sizeof(ModbusReadFifoReplyPdu) :
+			sizeof(ModbusReadFifoReplyPdu) + ((ModbusReadFifoReplyPdu const*) pduHdr).m_fifoCount * sizeof(uint16_t);
+
+	case io.ModbusFunc.EncapsulatedInterface:
+		std.setError("ModbusFunc.EncapsulatedInterface is unsupported");
 		return -1;
 
 	default:
@@ -338,6 +422,8 @@ size_t errorcode getModbusRtuAduSize(
 }
 
 //..............................................................................
+
+alignment(default);
 
 //! @}
 
