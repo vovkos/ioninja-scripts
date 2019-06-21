@@ -9,6 +9,8 @@ import "crc16.jnc"
 //! \addtogroup packets-modbus
 //! @{
 
+alignment(1);
+
 //..............................................................................
 
 struct ModbusReadFrame
@@ -69,7 +71,43 @@ struct ModbusWriteMultipleFrame
 		*this = null;
 		m_deviceAddress = 1;
 		m_write.m_func = io.ModbusFunc.WriteMultipleRegisters;
-		m_write.m_count = 1;
+	}
+
+	[ packetTemplateAction ]
+	updateSize()
+	{
+		m_write.m_count = getWriteMultipleCount(this, sizeof(ModbusWriteMultipleFrame));
+		m_write.m_size = m_write.m_count * sizeof(uint16_t);
+	}
+
+	[ packetTemplateAction ]
+	calcChecksum()
+	{
+		updateModbusChecksum(this);
+	}
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+struct ModbusReadWriteMultipleFrame
+{
+	uint8_t m_deviceAddress;
+	io.ModbusReadWriteMultiplePdu m_readWrite;
+
+	[ packetTemplateAction ]
+	initialize()
+	{
+		*this = null;
+		m_deviceAddress = 1;
+		m_readWrite.m_func = io.ModbusFunc.ReadWriteMultipleRegisters;
+		m_readWrite.m_readCount = 1;
+	}
+
+	[ packetTemplateAction ]
+	updateSize()
+	{
+		m_readWrite.m_writeCount = getWriteMultipleCount(this, sizeof(ModbusReadWriteMultipleFrame));
+		m_readWrite.m_writeSize = m_readWrite.m_writeCount * sizeof(uint16_t);
 	}
 
 	[ packetTemplateAction ]
@@ -80,6 +118,15 @@ struct ModbusWriteMultipleFrame
 }
 
 //..............................................................................
+
+size_t getWriteMultipleCount(
+	void* p,
+	size_t baseSize
+	)
+{
+	size_t extra = dynamic sizeof(p) - baseSize;
+	return extra > sizeof(uint16_t) ? (extra - sizeof(uint16_t)) / sizeof(uint16_t) : 0;
+}
 
 updateModbusChecksum(void* p)
 {
@@ -92,5 +139,7 @@ updateModbusChecksum(void* p)
 }
 
 //..............................................................................
+
+alignment(default);
 
 //! @}
