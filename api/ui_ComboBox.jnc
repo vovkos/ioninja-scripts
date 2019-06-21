@@ -3,6 +3,8 @@
 // Ninja GUI - combo boxes
 //
 
+import "ui_ComboItem.jnc"
+
 namespace ui {
 
 //! \addtogroup api-ui
@@ -45,6 +47,11 @@ opaque class ComboBox
 		);
 
 	bool removeItem(size_t index);
+
+	void setItems(
+		ComboItem const* itemArray,
+		size_t count
+		);
 
 	void clear();
 

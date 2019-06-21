@@ -3,6 +3,8 @@
 // Ninja GUI - property grid
 //
 
+import "ui_ComboItem.jnc"
+
 namespace ui {
 
 //! \addtogroup api-ui
@@ -65,11 +67,7 @@ opaque class StringProperty: Property
 
 //..............................................................................
 
-struct EnumPropertyOption
-{
-	char const* m_text;
-	variant m_value;
-}
+typedef ComboItem EnumPropertyOption;
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
