@@ -67,7 +67,7 @@ bool representJLinkRttLog(
 	case JLinkRttLogRecordCode.Closed:
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
-		representation.addHyperText("J-Link RTT connection closed");
+		representation.addHyperText("J-Link RTT session closed");
 		break;
 
 	case JLinkRttLogRecordCode.TraceInfo:
