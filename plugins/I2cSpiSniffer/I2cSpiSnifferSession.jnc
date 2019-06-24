@@ -5,6 +5,7 @@
 
 import "doc_Session.jnc"
 import "io_usb.jncx"
+import "io_FpgaUploader.jnc"
 import "ui_BufferPropertySet.jnc"
 import "ui_StdSessionInfoSet.jnc"
 import "log_ThroughputCalc.jnc"
@@ -16,6 +17,12 @@ import "std_Buffer.jnc"
 class I2cSpiSnifferSession: doc.Session
 {
 protected:
+	enum Protocol
+	{
+		Spi,
+		I2c,
+	}
+
 	enum Defaults
 	{
 		Proto           = Protocol.Spi,
@@ -82,6 +89,12 @@ protected:
 		PacketSize  = 512,
 	}
 
+	static char const* const m_fileNameTable[] =
+	{
+		__DIR__ "/firmware/spi.rpd",
+		__DIR__ "/firmware/i2c.rpd",
+	}
+
 protected:
 	// usb
 
@@ -90,7 +103,7 @@ protected:
 	io.UsbInterface* m_iface;
 	io.UsbEndpoint* m_outEndpoint; // until we figure out how to use control ep 0
 	io.UsbEndpoint* m_inEndpoint;
-	Uploader m_uploader;
+	io.FpgaUploader m_uploader;
 	std.Buffer m_readBuffer;
 	SpiDecoder m_spiDecoder;
 	I2cDecoder m_i2cDecoder;
@@ -403,7 +416,8 @@ bool errorcode I2cSpiSnifferSession.capture()
 
 	writeLogString(I2cSpiSnifferLogRecordCode.DeviceOpened, m_deviceCombo.m_currentText);
 
-	return m_uploader.update(m_device, m_protocolCombo.m_currentData);
+	Protocol protocol = m_protocolCombo.m_currentData;
+	return m_uploader.update(m_device, m_fileNameTable[protocol]);
 
 catch:
 	writeLogLastError(I2cSpiSnifferLogRecordCode.CaptureError);

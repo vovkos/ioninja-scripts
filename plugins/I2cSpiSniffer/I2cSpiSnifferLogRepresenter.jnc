@@ -4,6 +4,7 @@
 //
 
 import "log_Representation.jnc"
+import "io_RpdFile.jnc"
 
 //..............................................................................
 
@@ -86,73 +87,6 @@ bool representI2cSpiSnifferLog(
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		representation.addHyperText($"Hardware buffer cleared");
-		break;
-
-	case I2cSpiSnifferLogRecordCode.StillWaiting:
-		representation.m_lineAttr.m_backColor = ui.StdColor.PastelGray;
-		representation.addHyperText("...still waiting...");
-		break;
-
-	case I2cSpiSnifferLogRecordCode.FpgaDisabled:
-		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		representation.addHyperText("FPGA disabled");
-		break;
-
-	case I2cSpiSnifferLogRecordCode.FirmwareUpToDate:
-		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		representation.addHyperText("FPGA firmware is up-to-date");
-		break;
-
-	case I2cSpiSnifferLogRecordCode.FirmwareUpdateRequired:
-		uint_t version = ((RpdVersion const*) p)->m_firmwareVersion;
-		char const* fileName = (char const*) ((RpdVersion const*) p + 1);
-
-		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
-		representation.m_lineAttr.m_backColor = log.StdLogColor.Warning;
-		representation.addHyperText(
-			$"FPGA firmware update required: file \e[34m%1\e[m version \e[34m%2.%3\e[m" (
-			fileName,
-			(version >> 8) & 0xff,
-			version & 0xff
-			));
-		break;
-
-	case I2cSpiSnifferLogRecordCode.ErasingFlash:
-		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		representation.addHyperText("Erasing flash memory...");
-		break;
-
-	case I2cSpiSnifferLogRecordCode.UploadingFirmware:
-		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		representation.addHyperText("Uploading FPGA firmware...");
-		break;
-
-	case I2cSpiSnifferLogRecordCode.EnablingFpga:
-		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		representation.addHyperText("Enabling FPGA...");
-		break;
-
-	case I2cSpiSnifferLogRecordCode.FpgaReady:
-		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		representation.addHyperText("FPGA ready");
-		break;
-
-	case I2cSpiSnifferLogRecordCode.FirmwareUploadCancelled:
-		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
-		representation.m_lineAttr.m_backColor = log.StdLogColor.Warning;
-		representation.addHyperText("Uploading FPGA firmware cancelled");
-		break;
-
-	case I2cSpiSnifferLogRecordCode.FirmwareUploadCompleted:
-		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		representation.addHyperText("Uploading FPGA firmware completed");
 		break;
 
 	case I2cSpiSnifferLogRecordCode.I2cStart:

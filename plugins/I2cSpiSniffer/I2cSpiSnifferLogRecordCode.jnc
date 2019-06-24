@@ -21,17 +21,6 @@ enum I2cSpiSnifferLogRecordCode: uint64_t
 	FpgaBufferOverflow        = 0x01d487bb6423b806,
 	CypressBufferCleared      = 0x01d487bb6423b81c,
 
-	StillWaiting              = 0x01d487bb6423b807,
-	FpgaDisabled              = 0x01d487bb6423b808,
-	FirmwareUpToDate          = 0x01d487bb6423b809,
-	FirmwareUpdateRequired    = 0x01d487bb6423b80a,
-	ErasingFlash              = 0x01d487bb6423b80b,
-	UploadingFirmware         = 0x01d487bb6423b80c,
-	EnablingFpga              = 0x01d487bb6423b80d,
-	FpgaReady                 = 0x01d487bb6423b80e,
-	FirmwareUploadCancelled   = 0x01d487bb6423b818,
-	FirmwareUploadCompleted   = 0x01d487bb6423b819,
-
 	I2cStart                  = 0x01d487bb6423b80f,
 	I2cFinalizeStart7Bit      = 0x01d487bb6423b810,
 	I2cFinalizeStart10Bit     = 0x01d487bb6423b811,
