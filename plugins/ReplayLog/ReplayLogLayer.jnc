@@ -6,6 +6,7 @@
 import "doc_Layer.jnc"
 import "io_base.jncx"
 import "io_MappedFile.jnc"
+import "log_RecordFile.jnc"
 import "sys_Timer.jnc"
 import "ui_History.jnc"
 import "ui_Dialog.jnc"

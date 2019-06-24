@@ -15,5 +15,4 @@ layer-class = ReplayLogLayer
 
 [scripts]
 
-LogRecordFile.jnc
 ReplayLogLayer.jnc
