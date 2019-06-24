@@ -26,8 +26,8 @@ opaque class ToolBar
 
 	ComboBox* addComboBox(
 		const char* labelText,
-		EnumPropertyOption const* optionTable,
-		size_t optionCount
+		ComboItem const* itemArray,
+		size_t itemCount
 		);  // 0 = default, -1 = stretch
 
 	addSeparator();
@@ -37,16 +37,13 @@ opaque class ToolBar
 
 ComboBox* ToolBar.addComboBox(
 	const char* labelText,
-	EnumPropertyOption const* optionTable,
-	size_t optionCount
+	ComboItem const* itemArray,
+	size_t itemCount
 	)
 {
 	addLabel(labelText);
 	ComboBox* comboBox = addComboBox();
-
-	for (size_t i = 0; i < optionCount; i++)
-		comboBox.addItem(optionTable[i].m_text, optionTable[i].m_value);
-
+	comboBox.setItems(itemArray, itemCount);
 	comboBox.adjustSizeToContents();
 	return comboBox;
 }
