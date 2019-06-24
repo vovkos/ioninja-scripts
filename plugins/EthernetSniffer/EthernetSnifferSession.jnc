@@ -5,6 +5,7 @@
 
 import "doc_Session.jnc"
 import "io_usb.jncx"
+import "io_FpgaUploader.jnc"
 import "ui_BufferPropertySet.jnc"
 import "ui_StdSessionInfoSet.jnc"
 import "log_ThroughputCalc.jnc"
@@ -76,6 +77,8 @@ protected:
 		PacketSize  = 512,
 	}
 
+	static char const m_firmwareFileName[] = __DIR__ "/firmware/eth.rpd";
+
 protected:
 	// usb
 
@@ -84,6 +87,7 @@ protected:
 	io.UsbInterface* m_iface;
 	io.UsbEndpoint* m_outEndpoint; // until we figure out how to use control ep 0
 	io.UsbEndpoint* m_inEndpoint;
+	io.FpgaUploader m_uploader;
 	std.Buffer m_readBuffer;
 	std.Buffer m_packetBuffer;
 	uint16_t m_packetOffset;
@@ -139,6 +143,8 @@ protected:
 		io.UsbEndpointEvents triggeredEvents
 		);
 
+	onUpdateCompleted(bool result);
+
 	createUi();
 	enumerateDevices();
 	waitInEndpointEvents();
@@ -148,6 +154,7 @@ protected:
 		size_t size
 		);
 
+	bool errorcode startCapture();
 	bool errorcode gracefulStop();
 }
 
@@ -156,6 +163,8 @@ protected:
 EthernetSnifferSession.construct(doc.PluginHost* pluginHost)
 {
 	basetype.construct(pluginHost);
+	m_uploader.construct(pluginHost);
+	m_uploader.m_onUpdateCompleted += onUpdateCompleted;
 
 	createUi();
 
@@ -239,6 +248,14 @@ EthernetSnifferSession.onCapture()
 		try capture();
 }
 
+EthernetSnifferSession.onUpdateCompleted(bool result)
+{
+	if (result)
+		try startCapture();
+	else
+		stopCapture();
+}
+
 EthernetSnifferSession.enumerateDevices()
 {
 	m_deviceCombo.clear();
@@ -286,7 +303,15 @@ bool errorcode EthernetSnifferSession.capture()
 	m_device.open();
 
 	writeLogString(EthernetSnifferLogRecordCode.DeviceOpened, m_deviceCombo.m_currentText);
+	return m_uploader.update(m_device, m_firmwareFileName);
 
+catch:
+	writeLogLastError(EthernetSnifferLogRecordCode.CaptureError);
+	return false;
+}
+
+bool errorcode EthernetSnifferSession.startCapture()
+{
 	m_iface = m_device.claimInterface(0);
 	writeLog(EthernetSnifferLogRecordCode.InterfaceClaimed);
 
@@ -386,6 +411,7 @@ EthernetSnifferSession.stopCapture()
 		m_state = State.Closed;
 	}
 
+	m_uploader.cancel();
 	m_packetBuffer.clear();
 	m_packetOffset = 0;
 	m_packetIndex = 0;
