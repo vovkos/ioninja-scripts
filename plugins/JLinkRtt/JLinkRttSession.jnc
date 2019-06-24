@@ -15,7 +15,7 @@ import "log_ChecksumCalc.jnc"
 import "std_Buffer.jnc"
 import "sys_Thread.jnc"
 
-import "../SocketLog/SocketLogRecordCode.jnc"
+import "SocketLog/SocketLogRecordCode.jnc"
 
 using extension ui.ComboBoxHistory;
 
