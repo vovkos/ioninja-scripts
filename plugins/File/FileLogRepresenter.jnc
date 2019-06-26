@@ -28,6 +28,13 @@ bool representFileLog(
 		representation.addHyperText($"Opened file \e[34m$fileName\e[m ($(io.getFileStreamKindString (*kind)))");
 		break;
 
+	case FileLogRecordCode.FileOpened:
+		char const* fileName = (char const*) p;
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Connect;
+		representation.addHyperText($"Opened file \e[34m$fileName");
+		break;
+
 	case FileLogRecordCode.OpenError:
 		std.Error const* error = (std.Error const*) p;
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;

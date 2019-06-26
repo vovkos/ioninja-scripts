@@ -26,3 +26,4 @@ FileLogRepresenter.jnc
 01d485548790df2b  # Closed
 01d485548790df2c  # Eof
 01d485548790df2d  # Cleared
+01d485548790df2e  # FileOpened
