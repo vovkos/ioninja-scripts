@@ -1,6 +1,6 @@
 //..............................................................................
 //
-// SSH Connection session
+// Serial Monitor over SSH session
 //
 
 import "doc_Session.jnc"
