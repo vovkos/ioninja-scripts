@@ -6,7 +6,7 @@
 [plugin]
 
 name        = "Serial MI Dump Viewer"
-description = "Displays MI (machine-interface) dump previsouly captured by the Device Monitor utility"
+description = "Displays MI (machine-interface) dumps previsouly captured by the Device Monitor utility"
 id          = serial-mi-dump-view
 group       = serial
 monitor     = true
