@@ -3,6 +3,8 @@
 // Modbus RTU stream parser
 //
 
+import "ModbusLogRecordCode.jnc"
+
 class ModbusRtuParser: ModbusParserBase
 {
 	// checking for correct serial modbus delays (1.5/3.5 chars) is not possible

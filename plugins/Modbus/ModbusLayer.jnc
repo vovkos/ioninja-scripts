@@ -39,7 +39,7 @@ class ModbusLayer:
 	{
 		Protocol          = io.ModbusProtocol.Rtu,
 		StreamRoles       = ModbusLayer.StreamRoles.TxMasterRxSlave,
-		HalfDuplexMode    = log.StdRecordCode.Rx,
+		HalfDuplexMode    = ModbusLayer.HalfDuplexMode.Alternate,
 		HalfDuplexTimeout = 2000, // reset to master after 2 seconds
 	}
 
