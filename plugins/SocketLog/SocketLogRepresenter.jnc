@@ -108,6 +108,12 @@ bool representSocketLog(
 		representation.addHyperText($"Disconnected from \e[34m$addressString\e[m");
 		break;
 
+	case SocketLogRecordCode.ReconnectDelay:
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		representation.addHyperText($"About to reconnect...");
+		break;
+
 	case SocketLogRecordCode.Listening:
 		char const* addressString = ((io.SocketAddress const*) p).getString();
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Listen;
