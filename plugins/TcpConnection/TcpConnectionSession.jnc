@@ -26,6 +26,7 @@ protected:
 	{
 		Closed,
 		Resolving,
+		ReconnectDelay,
 		Connecting,
 		Connected,
 	}
@@ -34,6 +35,7 @@ protected:
 	{
 		"Closed",
 		"Resolving...",
+		"Waiting...",
 		"Connecting...",
 		"Connected",
 	}
@@ -73,8 +75,9 @@ protected:
 	io.SocketAddressResolver m_resolver;
 	io.SocketAddress m_localAddress;
 	io.SocketAddress m_remoteAddress;
-	sys.Timer m_reconnectTimer;
 	std.Buffer m_readBuffer;
+	sys.Timer m_reconnectTimer;
+	uint64_t m_lastReconnectTime;
 	uint_t m_syncId;
 
 	// toolbar, status bar & menu
@@ -146,15 +149,8 @@ protected:
 
 	onReconnectTimer(uint_t syncId);
 
-	startReconnectTimer()
-	{
-		m_reconnectTimer.startSingleShotTimer(
-			onReconnectTimer ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler,
-			m_socketPropertySet.m_reconnectTimeoutProp.m_value
-			);
-	}
-
 	createUi();
+	startReconnectTimer(bool canConnectNow);
 	waitSocketEvents();
 }
 
@@ -465,6 +461,26 @@ size_t errorcode TcpConnectionSession.transmit(
 	return result;
 }
 
+TcpConnectionSession.startReconnectTimer(bool isForced)
+{
+	uint64_t delay = m_socketPropertySet.m_reconnectTimeoutProp.m_value;
+	uint64_t dueTime = m_lastReconnectTime + delay * 10000;
+
+	if (!isForced && sys.getTimestamp() >= dueTime) // immediate
+	{
+		onReconnectTimer(m_syncId);
+		return;
+	}
+
+	m_state = State.ReconnectDelay;
+	writeLog(SocketLogRecordCode.ReconnectDelay);
+
+	m_reconnectTimer.startDueTimer(
+		onReconnectTimer ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler,
+		dueTime
+		);
+}
+
 TcpConnectionSession.onSocketEvent(
 	uint_t syncId,
 	io.SocketEvents triggeredEvents
@@ -516,7 +532,7 @@ TcpConnectionSession.onSocketEvent(
 		close();
 
 		if (m_socketPropertySet.m_useReconnectProp.m_value)
-			startReconnectTimer();
+			startReconnectTimer(true);
 
 		return;
 	}
@@ -574,9 +590,11 @@ TcpConnectionSession.onReconnectTimer(uint_t syncId)
 	if (syncId != m_syncId)
 		return;
 
+	m_lastReconnectTime = sys.getTimestamp();
+
 	bool result = try connect();
 	if (!result && m_socketPropertySet.m_useReconnectProp.m_value)
-		startReconnectTimer();
+		startReconnectTimer(false);
 }
 
 reactor TcpConnectionSession.m_uiReactor
