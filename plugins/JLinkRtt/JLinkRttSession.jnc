@@ -168,7 +168,6 @@ protected:
 	}
 
 	enumerateDevices();
-
 	waitSocketEvents();
 	handleSocketError(std.Error const* error);
 
@@ -506,7 +505,7 @@ bool errorcode JLinkRttSession.connectJlink()
 	if (errorString)
 	{
 		std.setError(std.format("J-Link open failed: %s", errorString));
-		return false;
+		throw;
 	}
 
 	char buffer[256];
@@ -519,7 +518,7 @@ bool errorcode JLinkRttSession.connectJlink()
 	if (buffer[0])
 	{
 		std.setError(buffer);
-		return false;
+		throw;
 	}
 
 	m_jlinkLib.lib.JLINK_TIF_Select(m_interfaceProp.m_value);
@@ -529,7 +528,7 @@ bool errorcode JLinkRttSession.connectJlink()
 	if (result)
 	{
 		std.setError("J-Link connect failed");
-		return false;
+		throw;
 	}
 
 	int connectionCount = m_jlinkLib.lib.JLINK_EMU_GetNumConnections();
