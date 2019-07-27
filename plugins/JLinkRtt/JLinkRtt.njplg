@@ -18,3 +18,15 @@ session-class = JLinkRttSession
 [scripts]
 
 JLinkRttSession.jnc
+
+[scripts-win]
+
+io_JLink_win.jnc
+
+[scripts-lnx]
+
+io_JLink_lnx.jnc
+
+[scripts-drw]
+
+io_JLink_drw.jnc

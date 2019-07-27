@@ -632,6 +632,9 @@ bool errorcode JLinkRttSession.applyProperties()
 
 void JLinkRttSession.restoreDefaultProperties()
 {
+	if (strlen(m_jlinkLibPathProp.m_value) == 0) // re-write only if empty
+		m_jlinkLibPathProp.m_value = io.detectJLinkLibPath();
+
 	m_connectionTypeProp.m_value = Defaults.ConnectionType;
 	m_addressCombo.m_editText = DefaultAddress;
 	m_interfaceProp.m_value = Defaults.Interface;
