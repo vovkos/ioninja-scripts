@@ -66,6 +66,26 @@ enum IpProtocol: uint8_t
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
+char const* getIpProtocolString(IpProtocol proto)
+{
+	switch (proto)
+	{
+	case IpProtocol.Icmp:
+		return "ICMP";
+
+	case IpProtocol.Tcp:
+		return "TCP";
+
+	case IpProtocol.Udp:
+		return "UDP";
+
+	default:
+		return $"IPPROTO($proto)";
+	}
+}
+
+//..............................................................................
+
 bitflag enum IpFlags
 {
 	Mf = 0x01,

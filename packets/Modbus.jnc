@@ -37,6 +37,13 @@ struct ModbusReadFrame
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
+struct ModbusTcpWriteFrame
+{
+	io.ModbusTcpAduHdr m_adu;
+	io.ModbusWritePdu m_write;
+}
+
+
 struct ModbusWriteFrame
 {
 	uint8_t m_deviceAddress;

@@ -1,0 +1,98 @@
+//..............................................................................
+//
+// Sniffer log ICMP packets handling
+//
+
+//..............................................................................
+
+void representIcmpDigest(
+	log.Representation* representation,
+	io.IpHdr const* ipHdr,
+	void const* p,
+	size_t size,
+	size_t baseOffset
+	)
+{
+	if (baseOffset + sizeof(io.IcmpHdr) > size)
+	{
+		representation.addHyperText(std.format(
+			"\e[1mICMP \e[10;34m%s\e[m > \e[34m%s\e[m [BROKEN PACKET]",
+			formatIpString(ipHdr.m_srcAddress),
+			formatIpString(ipHdr.m_dstAddress)
+			));
+
+		return;
+	}
+
+	io.IcmpHdr const* icmpHdr = (io.IcmpHdr const*)(p + baseOffset);
+	representation.addHyperText(std.format(
+		"\e[1mICMP \e[10;34m%s\e[m > \e[34m%s\e[m [TYPE:%d CODE:%d]",
+		formatIpString(ipHdr.m_srcAddress),
+		formatIpString(ipHdr.m_dstAddress),
+		icmpHdr.m_type,
+		icmpHdr.m_code
+		));
+}
+
+void representIcmpHdr(
+	log.Representation* representation,
+	std.Array* protoRangeArray,
+	io.IpHdr const* ipHdr,
+	void const* p,
+	size_t size,
+	size_t baseOffset,
+	uint_t foldFlags
+	)
+{
+	representation.m_lineAttr.m_backColor = ProtoColor.Icmp;
+
+	if (baseOffset + sizeof(io.IcmpHdr) > size)
+	{
+		representation.addHyperText("\e[1mICMP [BROKEN PACKET]");
+		return;
+	}
+
+	io.IcmpHdr const* icmpHdr = (io.IcmpHdr const*)(p + baseOffset);
+
+	if (foldFlags & ProtoFoldFlag.Icmp)
+		representation.addHyperText(std.format(
+			"[\e^-%d\e[34m-\e[m] \e[1mICMP\n"
+			"    \e[90mTYPE:     \e^!%d,%d\e[34m%d\n"
+			"    \e[90mCODE:     \e^!%d,%d\e[34m%d\n"
+			"    \e[90mCHECKSUM: \e^!%d,%d\e[34m%04Xh\n"
+			"    \e[90mID:       \e^!%d,%d\e[34m%d\n"
+			"    \e[90mSEQ:      \e^!%d,%d\e[34m%d",
+
+			ProtoFoldFlag.Icmp,
+
+			baseOffset + offsetof(icmpHdr.m_type),
+			sizeof(icmpHdr.m_type),
+			icmpHdr.m_type,
+
+			baseOffset + offsetof(icmpHdr.m_code),
+			sizeof(icmpHdr.m_code),
+			icmpHdr.m_code,
+
+			baseOffset + offsetof(icmpHdr.m_checksum),
+			sizeof(icmpHdr.m_checksum),
+			icmpHdr.m_checksum,
+
+			baseOffset + offsetof(icmpHdr.m_id),
+			sizeof(icmpHdr.m_id),
+			icmpHdr.m_id,
+
+			baseOffset + offsetof(icmpHdr.m_seqNumber),
+			sizeof(icmpHdr.m_seqNumber),
+			icmpHdr.m_seqNumber
+			));
+	else
+		representation.addHyperText(std.format(
+			"[\e^+%d\e[34m+\e[m] \e[1mICMP",
+			ProtoFoldFlag.Icmp
+			));
+
+	ProtoRange range = { sizeof(io.IcmpHdr), ProtoColor.Icmp }
+	protoRangeArray.append(range);
+}
+
+//..............................................................................

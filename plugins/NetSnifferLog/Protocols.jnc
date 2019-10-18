@@ -1,0 +1,46 @@
+//..............................................................................
+//
+// Sniffer log protocol colors
+//
+
+import "ui_Color.jnc"
+
+//..............................................................................
+
+enum ProtoFoldFlag
+{
+	Ethernet    = 0x01,
+	Arp         = 0x02,
+	Ip          = 0x04,
+	Ip6         = 0x04,
+	IpOptions   = 0x08,
+	Tcp         = 0x10,
+	TcpOptions  = 0x20,
+	TcpPayload  = 0x40,
+	Udp         = 0x10,
+	UdpPayload  = 0x20,
+	Icmp        = 0x10,
+}
+
+enum ProtoColor
+{
+	Ethernet   = ui.StdColor.PastelBlue,
+	Arp        = ui.StdColor.PastelPurple,
+	Ip         = ui.StdColor.PastelPurple,
+	IpOptions  = ui.StdColor.PastelCyan,
+	Ip6        = ui.StdColor.PastelPurple,
+	Tcp        = ui.StdColor.PastelOrange,
+	TcpOptions = ui.StdColor.PastelCyan,
+	TcpPayload = ui.StdColor.PastelYellow,
+	Udp        = ui.StdColor.PastelRed,
+	UdpPayload = ui.StdColor.PastelYellow,
+	Icmp       = ui.StdColor.PastelOrange,
+}
+
+struct ProtoRange
+{
+	size_t m_size;
+	uint_t m_color;
+}
+
+//..............................................................................

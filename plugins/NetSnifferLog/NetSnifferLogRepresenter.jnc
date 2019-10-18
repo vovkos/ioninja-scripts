@@ -1,0 +1,149 @@
+//..............................................................................
+//
+// Sniffer log representer
+//
+
+import "log_Representation.jnc"
+import "log_Writer.jnc"
+import "io_TcpIp.jnc"
+import "std_Array.jnc"
+import "NetSnifferLogRecordCode.jnc"
+
+//..............................................................................
+
+bool representNetSnifferLog(
+	log.Representation* representation,
+	uint64_t recordCode,
+	void const* p,
+	size_t size,
+	uint_t foldFlags
+	)
+{
+	switch (recordCode)
+	{
+	case NetSnifferLogRecordCode.Packet:
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Packet;
+		representPacketDigest(representation, p, size);
+		break;
+
+	case NetSnifferLogRecordCode.InjectedPacket:
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.TxPacket;
+		representPacketDigest(representation, p, size);
+		break;
+
+	case NetSnifferLogRecordCode.PacketDetails:
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Packet;
+		representPacketDetails(representation, p, size, foldFlags);
+		break;
+
+	case NetSnifferLogRecordCode.DefragmentedIp:
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Packet;
+		representDefragmentedIpDigest(representation, p, size);
+		break;
+
+	case NetSnifferLogRecordCode.DefragmentedIpDetails:
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Packet;
+		representDefragmentedIpDetails(representation, p, size, foldFlags);
+		break;
+
+	default:
+		return false;
+	}
+
+	return true;
+}
+
+bool detailizeNetSnifferLog(
+	log.Writer* writer,
+	uint64_t recordCode,
+	void const* p,
+	size_t size
+	)
+{
+	switch (recordCode)
+	{
+	case NetSnifferLogRecordCode.Packet:
+	case NetSnifferLogRecordCode.InjectedPacket:
+		writer.write(NetSnifferLogRecordCode.PacketDetails, p, size);
+		break;
+
+	case NetSnifferLogRecordCode.DefragmentedIp:
+		writer.write(NetSnifferLogRecordCode.DefragmentedIpDetails, p, size);
+		break;
+
+	default:
+		return false;
+	}
+
+	return true;
+}
+
+//..............................................................................
+
+void representPacketDigest(
+	log.Representation* representation,
+	void const* p,
+	size_t size
+	)
+{
+	representEthernetDigest(representation, p, size);
+}
+
+void representPacketDetails(
+	log.Representation* representation,
+	void const* p,
+	size_t size,
+	uint_t foldFlags
+	)
+{
+	std.Array protoRangeArray;
+	representEthernetHdr(representation, protoRangeArray, p, size, foldFlags);
+	representation.addBreak();
+	representColorizedBin(representation, protoRangeArray, p, size);
+}
+
+void representColorizedBin(
+	log.Representation* representation,
+	std.Array const* protoRangeArray,
+	void const* p,
+	size_t size
+	)
+{
+	representation.m_lineAttr.m_textColor = ui.StdColor.Gray;
+	representation.m_lineAttr.m_backColor = ui.ColorFlags.Transparent;
+	representation.addBin(p, size);
+
+	ui.TextAttr attr;
+	attr.m_backColor = ui.ColorFlags.Transparent;
+
+	size_t protoCount = protoRangeArray.m_count;
+	intptr_t offset = -size;
+	for (size_t i = 0; i < protoCount; i++)
+	{
+		ProtoRange range = protoRangeArray[i];
+		attr.m_backColor = range.m_color;
+		representation.retroColorize(offset, range.m_size, attr);
+		offset += range.m_size;
+	}
+}
+
+void representPacketData(
+	log.Representation* representation,
+	void const* p,
+	size_t size,
+	size_t offset,
+	size_t length
+	)
+{
+	if (offset >= size)
+		return;
+
+	if (length == -1 || offset + length >= size)
+		length = size - offset;
+
+	representation.m_lineAttr.m_textColor = ui.StdColor.Gray;
+	representation.m_lineAttr.m_backColor = ui.ColorFlags.Transparent;
+	representation.addBinPreview(p + offset, length);
+}
+
+//..............................................................................

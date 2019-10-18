@@ -20,6 +20,9 @@ enum PartKind
 	HyperText,
 	Bin,
 	DualBin,
+	Break,
+	BinPreview,
+	DualBinPreview,
 }
 
 //..............................................................................
@@ -103,6 +106,11 @@ opaque class Representation
 		RetroColorizeFlags flags = 0
 		);
 
+	void addBreak()
+	{
+		addPart(PartKind.Break, 0, null, 0);
+	}
+
 	void addPlainText(
 		uint64_t partCode,
 		char const* text
@@ -146,6 +154,23 @@ opaque class Representation
 		addPart(PartKind.Bin, m_recordCode, p, size);
 	}
 
+	void addBinPreview(
+		uint64_t partCode,
+		void const* p,
+		size_t size
+		)
+	{
+		addPart(PartKind.BinPreview, partCode, p, size);
+	}
+
+	void addBinPreview(
+		void const* p,
+		size_t size
+		)
+	{
+		addPart(PartKind.BinPreview, m_recordCode, p, size);
+	}
+
 	void addDualBin(
 		uint64_t partCode,
 		void const* p1,
@@ -164,6 +189,26 @@ opaque class Representation
 		)
 	{
 		addDualBin(m_recordCode, p1, p2, size);
+	}
+
+	void addDualBinPreview(
+		uint64_t partCode,
+		void const* p1,
+		void const* p2,
+		size_t size
+		)
+	{
+		void const* p = memcat(p1, size, p2, size);
+		addPart(PartKind.DualBinPreview, partCode, p, size * 2);
+	}
+
+	void addDualBinPreview(
+		void const* p1,
+		void const* p2,
+		size_t size
+		)
+	{
+		addDualBinPreview(m_recordCode, p1, p2, size);
 	}
 }
 

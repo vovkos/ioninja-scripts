@@ -62,7 +62,7 @@ protected:
 	{
 		AtomSize           = 4,
 		BlockSize          = 64,
-		BaseIndex          = 0x1000,
+		BaseIndex          = 0x2000,
 		TimerInterval      = 100,
 		StatusCheckCount   = 5,  // check n times before waiting
 		StillWaitingFactor = 1000 / TimerInterval, // once a second

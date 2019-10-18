@@ -7,7 +7,7 @@ import "log_RecordCode.jnc"
 
 //..............................................................................
 
-enum EthernetSnifferLogRecordCode: uint64_t
+enum EthernetTapLogRecordCode: uint64_t
 {
 	DeviceOpened            = 0x01d4cdafa0abb0e0,
 	InterfaceClaimed        = 0x01d4cdafa0abb0e1,

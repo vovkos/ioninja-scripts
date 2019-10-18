@@ -14,7 +14,7 @@ import "std_Buffer.jnc"
 
 //..............................................................................
 
-class EthernetSnifferSession: doc.Session
+class EthernetTapSession: doc.Session
 {
 protected:
 	enum Defaults
@@ -160,7 +160,7 @@ protected:
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-EthernetSnifferSession.construct(doc.PluginHost* pluginHost)
+EthernetTapSession.construct(doc.PluginHost* pluginHost)
 {
 	basetype.construct(pluginHost);
 	m_uploader.construct(pluginHost);
@@ -174,7 +174,7 @@ EthernetSnifferSession.construct(doc.PluginHost* pluginHost)
 	m_stdSessionInfoSet.addLogListener(pluginHost.m_log);
 }
 
-EthernetSnifferSession.createUi()
+EthernetTapSession.createUi()
 {
 	// toolbar
 
@@ -182,7 +182,7 @@ EthernetSnifferSession.createUi()
 	m_iconTable[IconId.Stop] = new ui.Icon("images/stop.png");
 	m_iconTable[IconId.Refresh] = new ui.Icon("images/refresh.png");
 
-	m_pluginHost.m_toolBar.addLabel("Sniffer:");
+	m_pluginHost.m_toolBar.addLabel("Tap:");
 	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 
 	m_actionTable[ActionId.Refresh]  = createAction("Re-enumerate sniffers", m_iconTable [IconId.Refresh]);
@@ -240,7 +240,7 @@ EthernetSnifferSession.createUi()
 	m_isTransmitEnabled = true;
 }
 
-EthernetSnifferSession.onCapture()
+EthernetTapSession.onCapture()
 {
 	if (m_state)
 		stopCapture();
@@ -248,7 +248,7 @@ EthernetSnifferSession.onCapture()
 		try capture();
 }
 
-EthernetSnifferSession.onUpdateCompleted(bool result)
+EthernetTapSession.onUpdateCompleted(bool result)
 {
 	if (result)
 		try startCapture();
@@ -256,7 +256,7 @@ EthernetSnifferSession.onUpdateCompleted(bool result)
 		stopCapture();
 }
 
-EthernetSnifferSession.enumerateDevices()
+EthernetTapSession.enumerateDevices()
 {
 	m_deviceCombo.clear();
 
@@ -275,7 +275,7 @@ EthernetSnifferSession.enumerateDevices()
 			deviceDesc.m_productId != Usb.ProductId)
 			continue;
 
-		char const* text = $"@%(1;03d):%(2;03d) IO Ninja Ethernet Sniffer"(
+		char const* text = $"@%(1;03d):%(2;03d) IO Ninja Ethernet Tap"(
 			device.m_bus,
 			device.m_address
 			);
@@ -290,7 +290,7 @@ EthernetSnifferSession.enumerateDevices()
 	m_deviceProp.setOptions(optionTable, actualCount);
 }
 
-bool errorcode EthernetSnifferSession.capture()
+bool errorcode EthernetTapSession.capture()
 {
 	stopCapture();
 
@@ -302,21 +302,21 @@ bool errorcode EthernetSnifferSession.capture()
 	m_device = m_deviceCombo.m_currentData;
 	m_device.open();
 
-	writeLogString(EthernetSnifferLogRecordCode.DeviceOpened, m_deviceCombo.m_currentText);
+	writeLogString(EthernetTapLogRecordCode.DeviceOpened, m_deviceCombo.m_currentText);
 	return m_uploader.update(m_device, m_firmwareFileName);
 
 catch:
-	writeLogLastError(EthernetSnifferLogRecordCode.CaptureError);
+	writeLogLastError(EthernetTapLogRecordCode.CaptureError);
 	return false;
 }
 
-bool errorcode EthernetSnifferSession.startCapture()
+bool errorcode EthernetTapSession.startCapture()
 {
 	m_iface = m_device.claimInterface(0);
-	writeLog(EthernetSnifferLogRecordCode.InterfaceClaimed);
+	writeLog(EthernetTapLogRecordCode.InterfaceClaimed);
 
 	m_outEndpoint = m_iface.openEndpoint(Usb.OutEndpoint);
-	writeLog(EthernetSnifferLogRecordCode.OutEndpointOpened);
+	writeLog(EthernetTapLogRecordCode.OutEndpointOpened);
 	gracefulStop();
 
 	// align read block on 512 bytes
@@ -331,11 +331,11 @@ bool errorcode EthernetSnifferSession.startCapture()
 	m_inEndpoint.m_options &= ~io.UsbEndpointOptions.KeepReadBlockSize;
 	m_inEndpoint.unsuspend();
 
-	writeLog(EthernetSnifferLogRecordCode.InEndpointOpened);
+	writeLog(EthernetTapLogRecordCode.InEndpointOpened);
 
 	static char startCode = 0x55;
 	m_outEndpoint.write (&startCode, sizeof (startCode));
-	writeLog(EthernetSnifferLogRecordCode.CaptureStarted);
+	writeLog(EthernetTapLogRecordCode.CaptureStarted);
 
 	waitInEndpointEvents();
 	m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
@@ -343,11 +343,11 @@ bool errorcode EthernetSnifferSession.startCapture()
 	return true;
 
 catch:
-	writeLogLastError(EthernetSnifferLogRecordCode.CaptureError);
+	writeLogLastError(EthernetTapLogRecordCode.CaptureError);
 	return false;
 }
 
-bool errorcode EthernetSnifferSession.gracefulStop()
+bool errorcode EthernetTapSession.gracefulStop()
 {
 	static char stopCode = 0xaa;
 	m_outEndpoint.write(&stopCode, sizeof(stopCode));
@@ -373,11 +373,11 @@ bool errorcode EthernetSnifferSession.gracefulStop()
 	}
 
 	ep.close();
-	writeLog(EthernetSnifferLogRecordCode.CypressBufferCleared);
+	writeLog(EthernetTapLogRecordCode.CypressBufferCleared);
 	return true;
 }
 
-EthernetSnifferSession.stopCapture()
+EthernetTapSession.stopCapture()
 {
 	if (m_outEndpoint)
 	{
@@ -407,7 +407,7 @@ EthernetSnifferSession.stopCapture()
 	if (m_state)
 	{
 		m_stdSessionInfoSet.endSession();
-		writeLog(EthernetSnifferLogRecordCode.CaptureStopped);
+		writeLog(EthernetTapLogRecordCode.CaptureStopped);
 		m_state = State.Closed;
 	}
 
@@ -418,7 +418,7 @@ EthernetSnifferSession.stopCapture()
 	m_syncId++;
 }
 
-EthernetSnifferSession.waitInEndpointEvents()
+EthernetTapSession.waitInEndpointEvents()
 {
 	io.UsbEndpointEvents eventMask =
 		io.UsbEndpointEvents.IoError |
@@ -428,7 +428,7 @@ EthernetSnifferSession.waitInEndpointEvents()
 	m_inEndpoint.wait(eventMask, onInEndpointEvent ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
 }
 
-EthernetSnifferSession.onInEndpointEvent(
+EthernetTapSession.onInEndpointEvent(
 	uint_t syncId,
 	io.UsbEndpointEvents triggeredEvents
 	)
@@ -456,7 +456,7 @@ EthernetSnifferSession.onInEndpointEvent(
 	waitInEndpointEvents();
 }
 
-EthernetSnifferSession.parse(
+EthernetTapSession.parse(
 	uint32_t const* p,
 	size_t count
 	)
@@ -506,8 +506,8 @@ EthernetSnifferSession.parse(
 
 		PacketHdr const* hdr = (PacketHdr const*)m_packetBuffer.m_p;
 		uint64_t recordCode = (hdr.m_flags & PacketFlags.ChannelId) ?
-			EthernetSnifferLogRecordCode.Packet_ch2 :
-			EthernetSnifferLogRecordCode.Packet_ch1;
+			EthernetTapLogRecordCode.Packet_ch2 :
+			EthernetTapLogRecordCode.Packet_ch1;
 
 		m_pluginHost.m_log.m_writer.write(recordCode, m_packetBuffer.m_p, m_packetBuffer.m_size);
 		m_packetBuffer.clear();
@@ -515,25 +515,25 @@ EthernetSnifferSession.parse(
 	}
 }
 
-EthernetSnifferSession.load(doc.Storage* storage)
+EthernetTapSession.load(doc.Storage* storage)
 {
 	m_deviceCombo.m_currentIndex  = storage.readInt("deviceIdx");
 	m_bufferPropertySet.load(storage);
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
 }
 
-EthernetSnifferSession.save(doc.Storage* storage)
+EthernetTapSession.save(doc.Storage* storage)
 {
 	storage.writeInt("deviceIdx", (int)m_deviceCombo.m_currentIndex);
 	m_bufferPropertySet.save(storage);
 }
 
-EthernetSnifferSession.updateProperties()
+EthernetTapSession.updateProperties()
 {
 	m_deviceProp.m_currentIndex = m_deviceCombo.m_currentIndex;
 }
 
-bool errorcode EthernetSnifferSession.applyProperties()
+bool errorcode EthernetTapSession.applyProperties()
 {
 	m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
 	m_readBuffer.detach(); // drop buffer, so we re-allocate each time
@@ -548,12 +548,12 @@ bool errorcode EthernetSnifferSession.applyProperties()
 	return true;
 }
 
-EthernetSnifferSession.restoreDefaultProperties()
+EthernetTapSession.restoreDefaultProperties()
 {
 	m_bufferPropertySet.restoreDefaults();
 }
 
-size_t errorcode EthernetSnifferSession.transmit(
+size_t errorcode EthernetTapSession.transmit(
 	void const* p,
 	size_t size
 	)
@@ -564,7 +564,7 @@ size_t errorcode EthernetSnifferSession.transmit(
 	return size;
 }
 
-reactor EthernetSnifferSession.m_uiReactor
+reactor EthernetTapSession.m_uiReactor
 {
 	m_title = $"Ethernet $(m_deviceCombo.m_currentText)";
 	m_actionTable[ActionId.Capture].m_text = m_state ? "Close Device" : "Open Device";
