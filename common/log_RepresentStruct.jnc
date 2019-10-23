@@ -1,0 +1,76 @@
+import "log_Representation.jnc"
+import "std_String.jnc"
+
+namespace log {
+
+//..............................................................................
+
+bitflag enum RepresentStructFlags
+{
+	FirstLevelBold,
+}
+
+//..............................................................................
+
+void representStruct(
+	Representation* representation,
+	jnc.StructType* type,
+	void const* p,
+	size_t size,
+	uint_t foldFlags,
+	uint_t foldFlagBase = 1,
+	size_t indentLevel = 0,
+	RepresentStructFlags flags = RepresentStructFlags.FirstLevelBold
+	)
+{
+	bool isExpanded = foldFlags & foldFlagBase;
+
+	std.StringBuilder indent;
+	indent.append(' ', indentLevel * 4);
+
+	representation.addHyperText($"%1[\e^%2%3\e[34m%2\e[m] %4%5"(
+		indent.m_sz,
+		isExpanded ? "-" : "+",
+		foldFlagBase,
+		(flags & RepresentStructFlags.FirstLevelBold) ? "\e[1m" : null,
+		type.m_name
+		));
+
+	if (!isExpanded)
+		return;
+
+	indent.append(' ', 4);
+
+	size_t maxFieldNameLength = 0;
+	size_t count = type.m_fieldCount;
+	for (size_t i = 0; i < count; i++)
+	{
+		jnc.Field* field = type.m_fieldArray[i];
+		size_t length = strlen(field.m_name);
+		if (length > maxFieldNameLength)
+			maxFieldNameLength = length;
+	}
+
+	std.StringBuilder gap;
+
+	for (size_t i = 0; i < count; i++)
+	{
+		jnc.Field* field = type.m_fieldArray[i];
+		jnc.Type* type = field.m_type;
+		size_t length = strlen(field.m_name);
+		gap.copy(' ', maxFieldNameLength - length);
+
+		representation.addHyperText($"%1%2: %3\e^!%4,%5\e[34m%6"(
+			indent.m_sz,
+			field.m_name,
+			gap.m_sz,
+			field.m_offset,
+			field.m_type.m_size,
+			"<value>"
+			));
+	}
+}
+
+//..............................................................................
+
+} // namespace log
