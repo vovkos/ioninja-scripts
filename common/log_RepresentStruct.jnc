@@ -5,39 +5,48 @@ namespace log {
 
 //..............................................................................
 
-bitflag enum RepresentStructFlags
+typedef char const* FormatFunc(void const* p);
+
+char const* getDisplayName(jnc.ModuleItemDecl* decl)
 {
-	FirstLevelBold,
+	char const* displayName = decl.findAttributeValue("displayName");
+	return displayName ? displayName : decl.m_name;
 }
 
-//..............................................................................
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 void representStruct(
 	Representation* representation,
 	jnc.StructType* type,
+	uint_t binPartRecordCode,
 	void const* p,
-	size_t size,
-	uint_t foldFlags,
+	size_t baseOffset = 0,
+	uint_t foldFlags = 1,
 	uint_t foldFlagBase = 1,
-	size_t indentLevel = 0,
-	RepresentStructFlags flags = RepresentStructFlags.FirstLevelBold
+	size_t indentLevel = 0
 	)
 {
-	bool isExpanded = foldFlags & foldFlagBase;
-
 	std.StringBuilder indent;
-	indent.append(' ', indentLevel * 4);
+	indent.copy(' ', indentLevel * 4);
 
-	representation.addHyperText($"%1[\e^%2%3\e[34m%2\e[m] %4%5"(
-		indent.m_sz,
-		isExpanded ? "-" : "+",
-		foldFlagBase,
-		(flags & RepresentStructFlags.FirstLevelBold) ? "\e[1m" : null,
-		type.m_name
-		));
+	if (!(foldFlags & foldFlagBase))
+	{
+		FormatFunc thin* formatDigestFunc = type.findAttributeValue("formatDigestFunc");
 
-	if (!isExpanded)
+		representation.addHyperText($"%1[\e^+%2\e[34m+\e[m] \e[1m%3"(
+			indent.m_sz,
+			foldFlagBase,
+			formatDigestFunc ? formatDigestFunc(p) : getDisplayName(type)
+			));
+
 		return;
+	}
+
+	representation.addHyperText($"%1[\e^-%2\e[34m-\e[m] \e[1m%3"(
+		indent.m_sz,
+		foldFlagBase,
+		getDisplayName(type)
+		));
 
 	indent.append(' ', 4);
 
@@ -46,7 +55,7 @@ void representStruct(
 	for (size_t i = 0; i < count; i++)
 	{
 		jnc.Field* field = type.m_fieldArray[i];
-		size_t length = strlen(field.m_name);
+		size_t length = strlen(getDisplayName(field));
 		if (length > maxFieldNameLength)
 			maxFieldNameLength = length;
 	}
@@ -56,17 +65,24 @@ void representStruct(
 	for (size_t i = 0; i < count; i++)
 	{
 		jnc.Field* field = type.m_fieldArray[i];
-		jnc.Type* type = field.m_type;
-		size_t length = strlen(field.m_name);
+		char const* displayName = getDisplayName(field);
+		size_t length = strlen(displayName);
 		gap.copy(' ', maxFieldNameLength - length);
 
-		representation.addHyperText($"%1%2: %3\e^!%4,%5\e[34m%6"(
+		FormatFunc thin* formatFunc = field.findAttributeValue("formatFunc");
+
+		char const* valueString = formatFunc ?
+			valueString = formatFunc(p + field.m_offset) :
+			field.m_type.getValueString(p + field.m_offset, field.findAttributeValue("formatSpec"));
+
+		representation.addHyperText($"%1%2: %3\e^!0x%x,%5,%6\e[34m%7"(
 			indent.m_sz,
-			field.m_name,
+			displayName,
 			gap.m_sz,
-			field.m_offset,
+			binPartRecordCode,
+			baseOffset + field.m_offset,
 			field.m_type.m_size,
-			"<value>"
+			valueString
 			));
 	}
 }
