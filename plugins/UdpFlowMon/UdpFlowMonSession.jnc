@@ -468,15 +468,15 @@ bool errorcode UdpFlowMonSession.setFilter(io.SocketAddress const* filterAddress
 		return true;
 
 	char const* filterString = createFilterString(filterAddress);
-	writeLogString(PcapLogRecordCode.ChangingFilter, filterString);
+	writeLogString(PcapLogRecordCode.ChangingCaptureFilter, filterString);
 	bool result = try m_pcap.setFilter(filterString);
 	if (!result)
 	{
-		writeLogLastError(PcapLogRecordCode.FilterError);
+		writeLogLastError(PcapLogRecordCode.CaptureFilterError);
 		return false;
 	}
 
-	writeLog(PcapLogRecordCode.FilterChanged);
+	writeLog(PcapLogRecordCode.CaptureFilterChanged);
 	return true;
 }
 
