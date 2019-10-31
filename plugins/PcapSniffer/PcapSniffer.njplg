@@ -23,3 +23,4 @@ session-class = PcapSnifferSession
 [scripts]
 
 PcapSnifferSession.jnc
+../NetSnifferLog/NetSnifferLogFilter.jnc
