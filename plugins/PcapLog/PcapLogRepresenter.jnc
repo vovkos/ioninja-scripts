@@ -53,23 +53,23 @@ bool representPcapLog(
 		representation.addPlainText("Capture stopped");
 		break;
 
-	case PcapLogRecordCode.ChangingFilter:
+	case PcapLogRecordCode.ChangingCaptureFilter:
 		char const* filter = (char const*) p;
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		representation.addHyperText(PcapLogPartCode.ChangingFilter, $"Changing capture filter to \e[34m$filter\e[m...");
+		representation.addHyperText(PcapLogPartCode.ChangingCaptureFilter, $"Changing capture filter to \e[34m$filter\e[m...");
 		break;
 
-	case PcapLogRecordCode.FilterChanged:
-		representation.addPlainText(PcapLogPartCode.FilterCompleted, "ok");
+	case PcapLogRecordCode.CaptureFilterChanged:
+		representation.addPlainText(PcapLogPartCode.CaptureFilterCompleted, "ok");
 		break;
 
-	case PcapLogRecordCode.FilterError:
+	case PcapLogRecordCode.CaptureFilterError:
 		std.Error const* error = (std.Error const*) p;
 		representation.m_lineAttr.m_flags = log.LineAttrFlags.Override;
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Error;
-		representation.addPlainText(PcapLogPartCode.FilterCompleted, $"error: $(error.m_description)");
+		representation.addPlainText(PcapLogPartCode.CaptureFilterCompleted, $"error: $(error.m_description)");
 		break;
 
 	default:
