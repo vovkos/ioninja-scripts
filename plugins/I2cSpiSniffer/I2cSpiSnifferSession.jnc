@@ -41,6 +41,7 @@ protected:
 	{
 		CypressBufferSize         = 4 * 1024, // 4K (2K built-in in Cypress + 512 FPGA FIFO)
 		CypressClearBufferTimeout = 200,      // 0.2sec
+		FpgaUploadBaseIndex       = 0x1000,
 	}
 
 	enum State
@@ -417,7 +418,7 @@ bool errorcode I2cSpiSnifferSession.capture()
 	writeLogString(I2cSpiSnifferLogRecordCode.DeviceOpened, m_deviceCombo.m_currentText);
 
 	Protocol protocol = m_protocolCombo.m_currentData;
-	return m_uploader.update(m_device, m_fileNameTable[protocol]);
+	return m_uploader.update(m_device, m_fileNameTable[protocol], FpgaUploadBaseIndex);
 
 catch:
 	writeLogLastError(I2cSpiSnifferLogRecordCode.CaptureError);
