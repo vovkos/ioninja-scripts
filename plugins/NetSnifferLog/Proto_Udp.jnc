@@ -7,50 +7,62 @@
 
 void representUdpDigest(
 	log.Representation* representation,
-	io.IpHdr const* ipHdr,
+	char const* srcString,
+	char const* dstString,
 	void const* p,
 	size_t size,
-	size_t baseOffset
+	int payloadPreviewIconIdx = -1
 	)
 {
-	if (baseOffset + sizeof(io.UdpHdr) > size)
+	if (size < sizeof(io.UdpHdr))
 	{
-		representation.addHyperText($"$(formatIpLogText(ipHdr)) [BROKEN PACKET]");
+		representation.addHyperText(
+			$"\e[1mUDP \e[10;34m%1\e[m \u2192 \e[34m%2\e[m [INCOMPLETE]"(
+			srcString,
+			dstString
+			));
 		return;
 	}
 
-	io.UdpHdr const* udpHdr = (io.UdpHdr const*)(p + baseOffset);
-	size_t dataSize = udpHdr.m_length - sizeof(io.UdpHdr);
-	baseOffset += sizeof(io.UdpHdr);
-
-	char const* lengthString;
-
-	if (baseOffset + dataSize <= size)
+	io.UdpHdr const* udpHdr = (io.UdpHdr const*)p;
+	if (size < udpHdr.m_length || udpHdr.m_length < sizeof(io.UdpHdr))
 	{
-		lengthString = $"$dataSize bytes";
-	}
-	else
-	{
-		lengthString = $"INVALID SIZE: $dataSize bytes";
-		dataSize = size - baseOffset;
+		representation.addHyperText(formatUdpDigest(udpHdr, srcString, dstString, " [BROKEN]"));
+		return;
 	}
 
-	representation.addHyperText(std.format(
-		"\e[1mUDP \e[10;34m%s:%d\e[m > \e[34m%s:%d\e[m (%s)",
-		formatIpString(ipHdr.m_srcAddress),
-		udpHdr.m_srcPort,
-		formatIpString(ipHdr.m_dstAddress),
-		udpHdr.m_dstPort,
-		lengthString
-		));
+	representation.addHyperText(formatUdpDigest(udpHdr, srcString, dstString));
 
-	representPacketData(representation, p, size, baseOffset, dataSize);
+	if (udpHdr.m_length == sizeof(io.UdpHdr))
+		return;
+
+	p += sizeof(io.UdpHdr);
+	size = udpHdr.m_length - sizeof(io.UdpHdr);
+
+	representPayloadPreview(representation, p, size, payloadPreviewIconIdx);
+}
+
+char const* formatUdpDigest(
+	io.UdpHdr const* hdr,
+	char const* srcString,
+	char const* dstString,
+	char const* extra = null
+	)
+{
+	return
+		$"\e[1mUDP \e[10;34m%1:%2\e[m \u2192 \e[10;34m%3:%4\e[m%5%6"(
+		srcString,
+		hdr.m_srcPort,
+		dstString,
+		hdr.m_dstPort,
+		hdr.m_length > sizeof(io.UdpHdr) ? $" ($(hdr.m_length - sizeof(io.UdpHdr)) bytes)" : null,
+		extra
+		);
 }
 
 void representUdpHdr(
 	log.Representation* representation,
 	std.Array* protoRangeArray,
-	io.IpHdr const* ipHdr,
 	void const* p,
 	size_t size,
 	size_t baseOffset,
@@ -59,82 +71,50 @@ void representUdpHdr(
 {
 	representation.m_lineAttr.m_backColor = ProtoColor.Udp;
 
-	if (baseOffset + sizeof(io.UdpHdr) > size)
+	if (size < sizeof(io.UdpHdr))
 	{
-		representation.addHyperText($"$(formatIpLogText(ipHdr)) [BROKEN PACKET]");
+		representation.addHyperText("\e[1mUDP\e[m [INCOMPLETE]");
 		return;
 	}
 
-	io.UdpHdr const* udpHdr = (io.UdpHdr const*)(p + baseOffset);
+	log.representStruct(
+		representation,
+		typeof(io.UdpHdr),
+		NetSnifferLogPartCode.RawPacket,
+		p,
+		baseOffset,
+		foldFlags,
+		ProtoFoldFlag.Udp
+		);
 
-	if (foldFlags & ProtoFoldFlag.Udp)
-		representation.addHyperText(std.format(
-			"[\e^-%d\e[34m-\e[m] \e[1mUDP\n"
-			"    \e[90mSRC:      \e^!%d,%d\e[34m%d\n"
-			"    \e[90mDST:      \e^!%d,%d\e[34m%d\n"
-			"    \e[90mLENGTH:   \e^!%d,%d\e[34m%d\n"
-			"    \e[90mCHECKSUM: \e^!%d,%d\e[34m%04Xh",
-
-			ProtoFoldFlag.Udp,
-
-			baseOffset + offsetof(udpHdr.m_srcPort),
-			sizeof(udpHdr.m_srcPort),
-			udpHdr.m_srcPort,
-
-			baseOffset + offsetof(udpHdr.m_dstPort),
-			sizeof(udpHdr.m_dstPort),
-			udpHdr.m_dstPort,
-
-			baseOffset + offsetof(udpHdr.m_length),
-			sizeof(udpHdr.m_length),
-			udpHdr.m_length,
-
-			baseOffset + offsetof(udpHdr.m_checksum),
-			sizeof(udpHdr.m_checksum),
-			udpHdr.m_checksum
-			));
-	else
-		representation.addHyperText(std.format(
-			"[\e^+%d\e[34m+\e[m] \e[1mUDP \e^!%d,%d\e[10;34m%d\e[m > \e^!%d,%d\e[34m%d\e[m",
-			ProtoFoldFlag.Udp,
-
-			baseOffset + offsetof(udpHdr.m_srcPort),
-			sizeof(udpHdr.m_srcPort),
-			udpHdr.m_srcPort,
-
-			baseOffset + offsetof(udpHdr.m_dstPort),
-			sizeof(udpHdr.m_dstPort),
-			udpHdr.m_dstPort
-			));
-
-	ProtoRange range = { sizeof(io.UdpHdr), ProtoColor.Udp }
+	ProtoRange range = { baseOffset, sizeof(io.UdpHdr), ProtoColor.Udp }
 	protoRangeArray.append(range);
 
-	if (udpHdr.m_length <= sizeof(io.UdpHdr))
+	io.UdpHdr const* udpHdr = (io.UdpHdr const*)p;
+	if (size < udpHdr.m_length || udpHdr.m_length < sizeof(io.UdpHdr))
+	{
+		representation.addHyperText($"[BROKEN] size: %1 %2"(size, udpHdr.m_length));
+		return;
+	}
+
+	if (udpHdr.m_length == sizeof(io.UdpHdr))
 		return;
 
-	representation.m_lineAttr.m_backColor = ProtoColor.UdpPayload;
-	size_t dataSize = udpHdr.m_length - sizeof(io.UdpHdr);
+	p += sizeof(io.UdpHdr);
+	size = udpHdr.m_length - sizeof(io.UdpHdr);
+	baseOffset += sizeof(io.UdpHdr);
 
-	range = { dataSize, ProtoColor.UdpPayload };
-	protoRangeArray.append(range);
-
-	if (foldFlags & ProtoFoldFlag.UdpPayload)
-	{
-		representation.addHyperText(std.format(
-			"[\e^-%d\e[34m-\e[m] \e[1mUDP\e[m payload",
-			ProtoFoldFlag.UdpPayload
-			));
-
-		representation.m_lineAttr.m_backColor = ui.ColorFlags.Transparent;
-		representation.addBin(udpHdr + 1, dataSize);
-	}
-	else
-		representation.addHyperText(std.format(
-			"[\e^+%d\e[34m+\e[m] \e[1mUDP\e[m payload (%d bytes)",
-			ProtoFoldFlag.UdpPayload,
-			dataSize
-			));
+	representPayload(
+		representation,
+		protoRangeArray,
+		"\e[1mUDP\e[m Payload",
+		p,
+		size,
+		baseOffset,
+		foldFlags,
+		ProtoFoldFlag.UdpPayload,
+		ProtoColor.UdpPayload
+		);
 }
 
 //..............................................................................

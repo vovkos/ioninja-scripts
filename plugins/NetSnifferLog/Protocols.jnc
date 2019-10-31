@@ -7,38 +7,59 @@ import "ui_Color.jnc"
 
 //..............................................................................
 
-enum ProtoFoldFlag
+bitflag enum ProtoFoldFlag: uint8_t
 {
-	Ethernet    = 0x01,
-	Arp         = 0x02,
-	Ip          = 0x04,
-	Ip6         = 0x04,
-	IpOptions   = 0x08,
-	Tcp         = 0x10,
-	TcpOptions  = 0x20,
-	TcpPayload  = 0x40,
-	Udp         = 0x10,
-	UdpPayload  = 0x20,
-	Icmp        = 0x10,
+	MetaLayer      = 0x01,
+	LinkLayer      = 0x02,
+	NetworkLayer   = 0x04,
+	TransportLayer = 0x08,
+	Payload        = 0x10,
+	Options        = 0x20,
+
+	Ethernet     = LinkLayer,
+	Arp          = NetworkLayer,
+	ArpPayload   = Payload,
+	Ip           = NetworkLayer,
+	IpOptions    = Options,
+	Ip6          = NetworkLayer,
+	Icmp         = TransportLayer,
+	IcmpPayload  = Payload,
+	Igmp         = TransportLayer,
+	Tcp          = TransportLayer,
+	TcpOptions   = Options,
+	TcpPayload   = Payload,
+	Udp          = TransportLayer,
+	UdpPayload   = Payload,
 }
 
 enum ProtoColor
 {
-	Ethernet   = ui.StdColor.PastelBlue,
-	Arp        = ui.StdColor.PastelPurple,
-	Ip         = ui.StdColor.PastelPurple,
-	IpOptions  = ui.StdColor.PastelCyan,
-	Ip6        = ui.StdColor.PastelPurple,
-	Tcp        = ui.StdColor.PastelOrange,
-	TcpOptions = ui.StdColor.PastelCyan,
-	TcpPayload = ui.StdColor.PastelYellow,
-	Udp        = ui.StdColor.PastelRed,
-	UdpPayload = ui.StdColor.PastelYellow,
-	Icmp       = ui.StdColor.PastelOrange,
+	MetaLayer      = ui.StdColor.PastelGreen,
+	LinkLayer      = ui.StdColor.PastelBlue,
+	NetworkLayer   = ui.StdColor.PastelPurple,
+	TransportLayer = ui.StdColor.PastelRed,
+	Payload        = ui.StdColor.PastelYellow,
+	Options        = ui.StdColor.PastelCyan,
+
+	Ethernet    = LinkLayer,
+	Arp         = NetworkLayer,
+	ArpPayload  = Payload,
+	Ip          = NetworkLayer,
+	IpOptions   = Options,
+	Ip6         = NetworkLayer,
+	Icmp        = TransportLayer,
+	IcmpPayload = Payload,
+	Igmp        = TransportLayer,
+	Tcp         = TransportLayer,
+	TcpOptions  = Options,
+	TcpPayload  = Payload,
+	Udp         = TransportLayer,
+	UdpPayload  = Payload,
 }
 
 struct ProtoRange
 {
+	size_t m_offset;
 	size_t m_size;
 	uint_t m_color;
 }

@@ -8,95 +8,59 @@
 void representArpDigest(
 	log.Representation* representation,
 	void const* p,
-	size_t size,
-	size_t baseOffset
+	size_t size
 	)
 {
-	if (baseOffset + sizeof(io.ArpHdr) > size)
+	if (size < sizeof(io.ArpHdr))
 	{
-		representation.addHyperText("\e[1mARP\e[m BROKEN PACKET");
+		representation.addHyperText("\e[1mARP\e[m [INCOMPLETE]");
 		return;
 	}
 
-	io.ArpHdr const* arpHdr = (io.ArpHdr const*)(p + baseOffset);
+	io.ArpHdr const* arpHdr = (io.ArpHdr const*)p;
 	size_t arpSize = sizeof(io.ArpHdr) + 2 * (arpHdr.m_hardwareLength + arpHdr.m_protocolLength);
-	if (baseOffset + arpSize > size)
+	if (size < arpSize)
 	{
-		representation.addHyperText("\e[1mARP\e[m BROKEN PACKET");
+		representation.addHyperText($"\e[1mARP\e[m %1 [BROKEN]"(typeof(io.ArpOpcode).getValueString(&arpHdr.m_opcode)));
 		return;
 	}
-
-	size_t srcHardwareAddrOffset = baseOffset + sizeof(io.ArpHdr);
-	size_t srcProtocolAddrOffset = srcHardwareAddrOffset + arpHdr.m_hardwareLength;
-	size_t dstHardwareAddrOffset = srcProtocolAddrOffset + arpHdr.m_protocolLength;
-	size_t dstProtocolAddrOffset = dstHardwareAddrOffset + arpHdr.m_hardwareLength;
 
 	switch (arpHdr.m_opcode)
 	{
 	case io.ArpOpcode.Request:
 		representation.addHyperText(
-			$"\e[1mARP\e[m REQUEST: who-has \e[34m%1\e[m reply-to \e[34m%2" (
-			getArpProtocolAddressString(
-				arpHdr.m_protocolType,
-				p + dstProtocolAddrOffset,
-				arpHdr.m_protocolLength
-				),
-			getArpProtocolAddressString(
-				arpHdr.m_protocolType,
-				p + srcProtocolAddrOffset,
-				arpHdr.m_protocolLength
-				)
+			$"\e[1mARP\e[m \e[34m%1\e[m \u2192 request: who-has \e[34m%2" (
+			getArpProtocolAddressString(arpHdr, 0),
+			getArpProtocolAddressString(arpHdr, 1)
 			));
 		break;
 
 	case io.ArpOpcode.Reply:
 		representation.addHyperText(
-			$"\e[1mARP\e[m REPLY: \e[34m%1\e[m is-at \e[34m%2" (
-			getArpProtocolAddressString(
-				arpHdr.m_protocolType,
-				p + srcProtocolAddrOffset,
-				arpHdr.m_protocolLength
-				),
-			getArpHardwareAddressString(
-				arpHdr.m_hardwareType,
-				p + srcHardwareAddrOffset,
-				arpHdr.m_hardwareLength
-				)
+			$"\e[1mARP\e[m \e[34m%1\e[m \u2192 \e[34m%2\e[m reply: \e[34m%3" (
+			getArpProtocolAddressString(arpHdr, 0),
+			getArpProtocolAddressString(arpHdr, 1),
+			getArpHardwareAddressString(arpHdr, 0)
 			));
 		break;
 
 	case io.ArpOpcode.RequestReverse:
 		representation.addHyperText(
-			$"\e[1mARP-INV\e[m REQUEST-INV: who-has \e[34m%1\e[m reply-to \e[34m%2" (
-			getArpHardwareAddressString(
-				arpHdr.m_hardwareType,
-				p + dstHardwareAddrOffset,
-				arpHdr.m_hardwareLength
-				),
-			getArpProtocolAddressString(
-				arpHdr.m_protocolType,
-				p + srcProtocolAddrOffset,
-				arpHdr.m_protocolLength
-				)
+			$"\e[1mRARP\e[m \e[34m%1\e[m \u2192 request: who-has \e[34m%2" (
+			getArpProtocolAddressString(arpHdr, 0),
+			getArpHardwareAddressString(arpHdr, 1)
 			));
 
 	case io.ArpOpcode.ReplyReverese:
 		representation.addHyperText(
-			$"\e[1mARP-INV\e[m REPLY-INV: \e[34m%1\e[m is-at \e[34m%2" (
-			getArpHardwareAddressString(
-				arpHdr.m_hardwareType,
-				p + srcHardwareAddrOffset,
-				arpHdr.m_hardwareLength
-				),
-			getArpProtocolAddressString(
-				arpHdr.m_protocolType,
-				p + srcProtocolAddrOffset,
-				arpHdr.m_protocolLength
-				)
+			$"\e[1mRARP\e[m \e[34m%1\e[m \u2192 \e[34m%2\e[m reply: \e[34m%3" (
+			getArpHardwareAddressString(arpHdr, 0),
+			getArpProtocolAddressString(arpHdr, 1),
+			getArpProtocolAddressString(arpHdr, 0)
 			));
 
 	default:
-		representation.addHyperText($"\e[1mARP\e[m INVALID OPCODE \e[34m$(arpHdr.m_opcode)");
+		representation.addHyperText($"\e[1mARP\e[m [INVALID]");
 	}
 }
 
@@ -111,182 +75,144 @@ void representArpHdr(
 {
 	representation.m_lineAttr.m_backColor = ProtoColor.Arp;
 
-	if (baseOffset + sizeof(io.ArpHdr) > size)
+	if (size < sizeof(io.ArpHdr))
 	{
-		representation.addHyperText("\e[1mARP\e[m [BROKEN PACKET]");
+		representation.addHyperText("\e[1mARP\e[m [INCOMPLETE]");
 		return;
 	}
 
-	io.ArpHdr const* arpHdr = (io.ArpHdr const*)(p + baseOffset);
-	size_t arpSize = sizeof(io.ArpHdr) + 2 * (arpHdr.m_hardwareLength + arpHdr.m_protocolLength);
-	if (baseOffset + arpSize > size)
+	log.representStruct(
+		representation,
+		typeof(io.ArpHdr),
+		NetSnifferLogPartCode.RawPacket,
+		p,
+		baseOffset,
+		foldFlags,
+		ProtoFoldFlag.Arp
+		);
+
+	ProtoRange range = { baseOffset, sizeof(io.ArpHdr), ProtoColor.Arp }
+	protoRangeArray.append(range);
+
+	representArpPayload(representation, protoRangeArray, p, size, baseOffset, foldFlags);
+}
+
+void representArpPayload(
+	log.Representation* representation,
+	std.Array* protoRangeArray,
+	void const* p,
+	size_t size,
+	size_t baseOffset,
+	uint_t foldFlags
+	)
+{
+	io.ArpHdr const* arpHdr = (io.ArpHdr const*)p;
+	size_t payloadSize = 2 * (arpHdr.m_hardwareLength + arpHdr.m_protocolLength);
+	if (size < sizeof(io.ArpHdr) + payloadSize)
 	{
-		representation.addHyperText("\e[1mARP\e[m [BROKEN PACKET]");
+		representation.addHyperText("\e[1mARP\e[m Payload [INCOMPLETE]");
 		return;
 	}
 
-	size_t srcHardwareAddrOffset = baseOffset + sizeof(io.ArpHdr);
-	size_t srcProtocolAddrOffset = srcHardwareAddrOffset + arpHdr.m_hardwareLength;
-	size_t dstHardwareAddrOffset = srcProtocolAddrOffset + arpHdr.m_protocolLength;
-	size_t dstProtocolAddrOffset = dstHardwareAddrOffset + arpHdr.m_hardwareLength;
+	representation.m_lineAttr.m_backColor = ProtoColor.ArpPayload;
 
-	if (foldFlags & ProtoFoldFlag.Arp)
-		representation.addHyperText(std.format(
-			"[\e^-%d\e[34m-\e[m] \e[1mARP\n"
-			"    \e[90mHARDWARE: \e^!%d,%d\e[34m%04x\e[m - %s\n"
-			"    \e[90mPROTOCOL: \e^!%d,%d\e[34m%04x\e[m - %s\n"
-			"    \e[90mHADDRLEN: \e^!%d,%d\e[34m%d\n"
-			"    \e[90mPADDRLEN: \e^!%d,%d\e[34m%d\n"
-			"    \e[90mOPCODE:   \e^!%d,%d\e[34m%d\e[m - %s\n"
-			"    \e[90mSRCHADDR: \e^!%d,%d\e[34m%s\e[m\n"
-			"    \e[90mSRCPADDR: \e^!%d,%d\e[34m%s\e[m\n"
-			"    \e[90mDSTHADDR: \e^!%d,%d\e[34m%s\e[m\n"
-			"    \e[90mDSTPADDR: \e^!%d,%d\e[34m%s\e[m",
-
-			ProtoFoldFlag.Arp,
-
-			baseOffset + offsetof(arpHdr.m_hardwareType),
-			sizeof(arpHdr.m_hardwareType),
-			arpHdr.m_hardwareType,
-			getArpHardwareTypeString(arpHdr.m_hardwareType),
-
-			baseOffset + offsetof(arpHdr.m_protocolType),
-			sizeof(arpHdr.m_protocolType),
-			arpHdr.m_protocolType,
-			getArpProtocolTypeString(arpHdr.m_protocolType),
-
-			baseOffset + offsetof(arpHdr.m_hardwareLength),
-			sizeof(arpHdr.m_hardwareLength),
-			arpHdr.m_hardwareLength,
-
-			baseOffset + offsetof(arpHdr.m_protocolLength),
-			sizeof(arpHdr.m_protocolLength),
-			arpHdr.m_protocolLength,
-
-			baseOffset + offsetof(arpHdr.m_opcode),
-			sizeof(arpHdr.m_opcode),
-			arpHdr.m_opcode,
-			getArpOpcodeString(arpHdr.m_opcode),
-
-			srcHardwareAddrOffset,
-			arpHdr.m_hardwareLength,
-			getArpHardwareAddressString(
-				arpHdr.m_hardwareType,
-				p + srcHardwareAddrOffset,
-				arpHdr.m_hardwareLength
-				),
-
-			srcProtocolAddrOffset,
-			arpHdr.m_protocolLength,
-			getArpProtocolAddressString(
-				arpHdr.m_protocolType,
-				p + srcProtocolAddrOffset,
-				arpHdr.m_protocolLength
-				),
-
-			dstHardwareAddrOffset,
-			arpHdr.m_hardwareLength,
-			getArpHardwareAddressString(
-				arpHdr.m_hardwareType,
-				p + dstHardwareAddrOffset,
-				arpHdr.m_hardwareLength
-				),
-
-			dstProtocolAddrOffset,
-			arpHdr.m_protocolLength,
-			getArpProtocolAddressString(
-				arpHdr.m_protocolType,
-				p + dstProtocolAddrOffset,
-				arpHdr.m_protocolLength
-				)
+	if (foldFlags & ProtoFoldFlag.ArpPayload)
+	{
+		representation.addHyperText(
+			$"[\e^-%1\e[34m-\e[m] \e[1mARP\e[m Payload\n"
+			$"    Sender hardware address: %2\n"
+			$"    Sender protocol address: %3\n"
+			$"    Target hardware address: %4\n"
+			$"    Target protocol address: %5" (
+			ProtoFoldFlag.ArpPayload,
+			formatArpHardwareAddress(arpHdr, baseOffset, 0),
+			formatArpProtocolAddress(arpHdr, baseOffset, 0),
+			formatArpHardwareAddress(arpHdr, baseOffset, 1),
+			formatArpProtocolAddress(arpHdr, baseOffset, 1)
 			));
+	}
 	else
-		representation.addHyperText(std.format(
-			"[\e^+%d\e[34m+\e[m] \e[1mARP",
-			ProtoFoldFlag.Arp
+	{
+		representation.addHyperText(
+			$"[\e^+%1\e[34m+\e[m] \e[1mARP\e[m Payload (%2 bytes)"(
+			ProtoFoldFlag.ArpPayload,
+			payloadSize
 			));
+	}
 
-	ProtoRange range = { arpSize, ProtoColor.Arp }
+	baseOffset += sizeof(io.ArpHdr);
+
+	ProtoRange range = { baseOffset, payloadSize, ProtoColor.ArpPayload };
 	protoRangeArray.append(range);
 }
 
-//..............................................................................
-
-char const* getArpHardwareTypeString(io.ArpHardwareType type)
-{
-	switch (type)
-	{
-	case io.ArpHardwareType.Ethernet:
-		return "ETHERNET";
-
-	default:
-		return "<unknown>";
-	}
-}
-
-char const* getArpProtocolTypeString(io.ArpProtocolType type)
-{
-	switch (type)
-	{
-	case io.ArpProtocolType.Ip:
-		return "IP";
-
-	default:
-		return "<unknown>";
-	}
-}
-
-char const* getArpOpcodeString(io.ArpOpcode opcode)
-{
-	static char const* opcodeStringTable[] =
-	{
-		"<unknown>",
-		"REQUEST",
-		"REPLY",
-		"REQUEST-INV",
-		"REPLY-INV",
-	}
-
-	return opcodeStringTable[opcode < countof(opcodeStringTable) ? opcode : 0];
-}
-
 char const* getArpHardwareAddressString(
-	io.ArpHardwareType type,
-	void const* p,
-	size_t size
+	io.ArpHdr const* hdr,
+	size_t index
 	)
 {
-	switch (type)
+	void const* p = hdr + 1;
+	p += index * (hdr.m_hardwareLength + hdr.m_protocolLength);
+
+	switch (hdr.m_hardwareType)
 	{
 	case io.ArpHardwareType.Ethernet:
-		uint8_t const* mac = p;
-
-		return size >= 6 ?
-			$"$(mac[0]; 02x):$(mac[1]; 02x):$(mac[2]; 02x):"
-			$"$(mac[3]; 02x):$(mac[4]; 02x):$(mac[5]; 02x)" :
-			"INVALID-MAC";
+		return hdr.m_hardwareLength >= 6 ? io.formatEthernetAddress(p) : "[INCOMPLETE-MAC]";
 
 	default:
-		return "<unknown>";
+		return "[UNKNOWN-HARDWARE]";
 	}
 }
 
 char const* getArpProtocolAddressString(
-	io.ArpProtocolType type,
-	void const* p,
-	size_t size
+	io.ArpHdr const* hdr,
+	size_t index
 	)
 {
-	switch (type)
+	void const* p = hdr + 1;
+	p += index * (hdr.m_hardwareLength + hdr.m_protocolLength) + hdr.m_hardwareLength;
+
+	switch (hdr.m_protocolType)
 	{
-	case io.ArpProtocolType.Ip:
-		return size >= 4 ?
-			formatIpString(*(bigendian uint32_t const*) p) :
-			"INVALID-IP";
+	case io.EthernetType.Ip:
+		return hdr.m_protocolLength >= sizeof(io.Address_ip4) ? io.formatIpAddress(p) : "[INCOMPLETE-IPv4]";
+
+	case io.EthernetType.Ip6:
+		return hdr.m_protocolLength >= sizeof(io.Address_ip6) ? io.formatIp6Address(p) : "[INCOMPLETE-IPv6]";
 
 	default:
-		return "<unknown>";
+		return "[UNKNOWN-PROTOCOL]";
 	}
+}
+
+char const* formatArpHardwareAddress(
+	io.ArpHdr const* arpHdr,
+	size_t baseOffset,
+	size_t index
+	)
+{
+	size_t offset = sizeof(io.ArpHdr) +  index * (arpHdr.m_hardwareLength + arpHdr.m_protocolLength);
+
+	return $"\e^!%1,%2\e[34m%3\e[m"(
+		baseOffset + offset,
+		arpHdr.m_hardwareLength,
+		getArpHardwareAddressString(arpHdr, index)
+		);
+}
+
+char const* formatArpProtocolAddress(
+	io.ArpHdr const* arpHdr,
+	size_t baseOffset,
+	size_t index
+	)
+{
+	size_t offset = sizeof(io.ArpHdr) +  index * (arpHdr.m_hardwareLength + arpHdr.m_protocolLength) + arpHdr.m_hardwareLength;
+
+	return $"\e^!%1,%2\e[34m%3\e[m"(
+		baseOffset + offset,
+		arpHdr.m_hardwareLength,
+		getArpProtocolAddressString(arpHdr, index)
+		);
 }
 
 //..............................................................................

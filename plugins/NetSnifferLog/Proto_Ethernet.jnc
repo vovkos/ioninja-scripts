@@ -4,53 +4,50 @@
 //
 
 import "Protocols.jnc"
+import "log_RepresentStruct.jnc"
 
 //..............................................................................
-
-char const* formatEthernetString(uint8_t const* ethernet)
-{
-	return std.format(
-		"%02X:%02X:%02X:%02X:%02X:%02X",
-		ethernet[0], ethernet[1], ethernet[2],
-		ethernet[3], ethernet[4], ethernet[5]
-		);
-}
 
 void representEthernetDigest(
 	log.Representation* representation,
 	void const* p,
-	size_t size
+	size_t size,
+	int payloadPreviewIconIdx = -1
 	)
 {
-	io.EthernetHdr const* ethernetHdr = (io.EthernetHdr const*) p;
-
-	representation.m_lineAttr.m_backColor = ui.StdColor.PastelGray;
-
 	if (size < sizeof(io.EthernetHdr))
 	{
-		representation.addHyperText("\e[1mETHERNET [BROKEN FRAME]");
+		representation.addHyperText("\e[1mETHERNET\e[m [INCOMPLETE]");
 		return;
 	}
+
+	io.EthernetHdr const* ethernetHdr = (io.EthernetHdr const*) p;
+	p += sizeof(io.EthernetHdr);
+	size -= sizeof(io.EthernetHdr);
 
 	switch (ethernetHdr.m_type)
 	{
 	case io.EthernetType.Ip:
-		representIpDigest(representation, p, size, sizeof(io.EthernetHdr));
+		representIpDigest(representation, p, size, payloadPreviewIconIdx);
+		return;
+
+	case io.EthernetType.Ip6:
+		representIp6Digest(representation, p, size, payloadPreviewIconIdx);
 		return;
 
 	case io.EthernetType.Arp:
-		representArpDigest(representation, p, size, sizeof(io.EthernetHdr));
+		representArpDigest(representation, p, size);
 		return;
 
 	default:
-		representation.addHyperText(std.format(
-			"\e[1mETHERNET \e[10;34m%s\e[m > \e[34m%s\e[m [TYPE:%04Xh]",
-			formatEthernetString(ethernetHdr.m_srcAddress),
-			formatEthernetString(ethernetHdr.m_dstAddress),
-			ethernetHdr.m_type
+		representation.addHyperText(
+			$"\e[1mETHERNET \e[10;34m%1\e[m \u2192 \e[34m%2\e[m (type: \e[34m%3\e[m)"(
+			io.formatEthernetAddress(ethernetHdr.m_srcAddress),
+			io.formatEthernetAddress(ethernetHdr.m_dstAddress),
+			typeof(io.EthernetType).getValueString(&ethernetHdr.m_type)
 			));
 
-		representPacketData(representation, p, size, sizeof(io.EthernetHdr), -1);
+		representPayloadPreview(representation, p, size, payloadPreviewIconIdx);
 	}
 }
 
@@ -59,6 +56,7 @@ void representEthernetHdr(
 	std.Array* protoRangeArray,
 	void const* p,
 	size_t size,
+	size_t baseOffset,
 	uint_t foldFlags
 	)
 {
@@ -66,59 +64,40 @@ void representEthernetHdr(
 
 	if (size < sizeof(io.EthernetHdr))
 	{
-		representation.addHyperText("\e[1mETHERNET [BROKEN FRAME]");
+		representation.addHyperText("\e[1nETHERNET\e[m [INCOMPLETE]");
 		return;
 	}
 
-	ProtoRange range = { sizeof(io.EthernetHdr), ProtoColor.Ethernet };
+	log.representStruct(
+		representation,
+		typeof(io.EthernetHdr),
+		NetSnifferLogPartCode.RawPacket,
+		p,
+		baseOffset,
+		foldFlags,
+		ProtoFoldFlag.Ethernet
+		);
+
+	ProtoRange range = { baseOffset, sizeof(io.EthernetHdr), ProtoColor.Ethernet };
 	protoRangeArray.append(range);
 
 	io.EthernetHdr const* ethernetHdr = (io.EthernetHdr const*) p;
-
-	if (foldFlags & ProtoFoldFlag.Ethernet)
-		representation.addHyperText(std.format(
-			"[\e^-%d\e[34m-\e[m] \e[1mETHERNET\n"
-			"    \e[90mTYPE: \e^!%d,%d\e[34m%04Xh\n"
-			"    \e[90mSRC:  \e^!%d,%d\e[34m%s\n"
-			"    \e[90mDST:  \e^!%d,%d\e[34m%s",
-
-			ProtoFoldFlag.Ethernet,
-
-			offsetof(ethernetHdr.m_type),
-			sizeof(ethernetHdr.m_type),
-			ethernetHdr.m_type,
-
-			offsetof(ethernetHdr.m_srcAddress),
-			sizeof(ethernetHdr.m_srcAddress),
-			formatEthernetString(ethernetHdr.m_srcAddress),
-
-			offsetof(ethernetHdr.m_dstAddress),
-			sizeof(ethernetHdr.m_dstAddress),
-			formatEthernetString(ethernetHdr.m_dstAddress)
-			));
-	else
-		representation.addHyperText(std.format(
-			"[\e^+%d\e[34m+\e[m] \e[1mETHERNET \e^!%d,%d\e[10;34m%s\e[m > \e^!%d,%d\e[34m%s\e[m",
-
-			ProtoFoldFlag.Ethernet,
-
-			offsetof(ethernetHdr.m_srcAddress),
-			sizeof(ethernetHdr.m_srcAddress),
-			formatEthernetString(ethernetHdr.m_srcAddress),
-
-			offsetof(ethernetHdr.m_dstAddress),
-			sizeof(ethernetHdr.m_dstAddress),
-			formatEthernetString(ethernetHdr.m_dstAddress)
-			));
+	p += sizeof(io.EthernetHdr);
+	size -= sizeof(io.EthernetHdr);
+	baseOffset += sizeof(io.EthernetHdr);
 
 	switch (ethernetHdr.m_type)
 	{
 	case io.EthernetType.Ip:
-		representIpHdr(representation, protoRangeArray, p, size, sizeof(io.EthernetHdr), foldFlags);
+		representIpHdr(representation, protoRangeArray, p, size, baseOffset, foldFlags);
+		break;
+
+	case io.EthernetType.Ip6:
+		representIp6Hdr(representation, protoRangeArray, p, size, baseOffset, foldFlags);
 		break;
 
 	case io.EthernetType.Arp:
-		representArpHdr(representation, protoRangeArray, p, size, sizeof(io.EthernetHdr), foldFlags);
+		representArpHdr(representation, protoRangeArray, p, size, baseOffset, foldFlags);
 		break;
 	}
 }

@@ -23,9 +23,14 @@ Protocols.jnc
 Proto_Ethernet.jnc
 Proto_Arp.jnc
 Proto_Ip.jnc
+Proto_Ip6.jnc
 Proto_Icmp.jnc
+Proto_Igmp.jnc
 Proto_Tcp.jnc
 Proto_Udp.jnc
+
+log_RepresentStruct.jnc
+io_TcpIp.jnc
 
 [records]
 

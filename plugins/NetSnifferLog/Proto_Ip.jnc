@@ -5,62 +5,76 @@
 
 //..............................................................................
 
-char const* formatIpString(bigendian uint32_t ip32)
-{
-	uint8_t const* ip8 = (uint8_t const*) &ip32;
-	return std.format(
-		"%d.%d.%d.%d",
-		ip8[0], ip8[1], ip8[2], ip8[3]
-		);
-}
-
 void representIpDigest(
 	log.Representation* representation,
 	void const* p,
 	size_t size,
-	size_t baseOffset
+	int payloadPreviewIconIdx = -1
 	)
 {
-	if (baseOffset + sizeof(io.IpHdr) > size)
+	if (size < sizeof(io.IpHdr))
 	{
-		representation.addHyperText("\e[1mIP\e[m [BROKEN PACKET]");
+		representation.addHyperText("\e[1nIP\e[m [INCOMPLETE]");
 		return;
 	}
 
-	io.IpHdr const* ipHdr = (io.IpHdr const*)(p + baseOffset);
+	io.IpHdr const* ipHdr = (io.IpHdr const*)p;
 	size_t ipHdrSize = ipHdr.m_headerLength * 4;
-	if (baseOffset + ipHdrSize > size)
+
+	if (size < ipHdr.m_totalLength || ipHdr.m_totalLength < ipHdrSize)
 	{
-		representation.addHyperText($"$(formatIpLogText(ipHdr)) [BROKEN PACKET]");
+		representation.addHyperText(formatIpDigest(ipHdr, " [BROKEN]"));
 		return;
 	}
+
+	p += ipHdrSize;
+	size = ipHdr.m_totalLength - ipHdrSize;
 
 	if ((ipHdr.m_flags & io.IpFlags.Mf) || ipHdr.m_fragmentOffset)
 	{
-		representation.addHyperText($"$(formatIpLogText(ipHdr)) [FRAGMENTED IP]");
+		representation.addHyperText(formatIpDigest(ipHdr, " [FRAGMENTED]"));
+		representPayloadPreview(representation, p, size, payloadPreviewIconIdx);
 		return;
 	}
 
-	baseOffset += ipHdrSize;
+	char const* srcString = io.formatIpAddress(&ipHdr.m_srcAddress);
+	char const* dstString = io.formatIpAddress(&ipHdr.m_dstAddress);
+
 	switch (ipHdr.m_protocol)
 	{
 	case io.IpProtocol.Icmp:
-		representIcmpDigest(representation, ipHdr, p, size, baseOffset);
+		representIcmpDigest(representation, srcString, dstString, p, size, payloadPreviewIconIdx);
+		break;
+
+	case io.IpProtocol.Igmp:
+		representIgmpDigest(representation, srcString, dstString, p, size);
 		break;
 
 	case io.IpProtocol.Tcp:
-		representTcpDigest(representation, ipHdr, p, size, baseOffset);
+		representTcpDigest(representation, srcString, dstString, p, size, payloadPreviewIconIdx);
 		break;
 
 	case io.IpProtocol.Udp:
-		representUdpDigest(representation, ipHdr, p, size, baseOffset);
+		representUdpDigest(representation, srcString, dstString, p, size, payloadPreviewIconIdx);
 		break;
 
 	default:
-		representation.addHyperText(formatIpLogText(ipHdr));
-		size_t dataSize = ipHdr.m_totalLength - ipHdrSize;
-		representPacketData(representation, p, size, baseOffset, dataSize);
+		representation.addHyperText(formatIpDigest(ipHdr));
+		representPayloadPreview(representation, p, size, payloadPreviewIconIdx);
 	}
+}
+
+char const* formatIpDigest(
+	io.IpHdr const* hdr,
+	char const* extra = null
+	)
+{
+	return $"\e[1mIP \e[10;34m%1\e[m \u2192 \e[34m%2\e[m (proto: \e[34m%3\e[m)%4" (
+		io.formatIpAddress(&hdr.m_srcAddress),
+		io.formatIpAddress(&hdr.m_dstAddress),
+		typeof(io.IpProtocol).getValueString(&hdr.m_protocol),
+		extra
+		);
 }
 
 void representIpHdr(
@@ -74,134 +88,122 @@ void representIpHdr(
 {
 	representation.m_lineAttr.m_backColor = ProtoColor.Ip;
 
-	if (baseOffset + sizeof(io.IpHdr) > size)
+	if (size < sizeof(io.IpHdr))
 	{
-		representation.addHyperText("\e[1mIP\e[m [BROKEN PACKET]");
+		representation.addHyperText("\e[1nIP\e[m [INCOMPLETE]");
 		return;
 	}
 
-	io.IpHdr const* ipHdr = (io.IpHdr const*)(p + baseOffset);
+	log.representStruct(
+		representation,
+		typeof(io.IpHdr),
+		NetSnifferLogPartCode.RawPacket,
+		p,
+		baseOffset,
+		foldFlags,
+		ProtoFoldFlag.Ip
+		);
+
+	ProtoRange range = { baseOffset, sizeof(io.IpHdr), ProtoColor.Ip }
+	protoRangeArray.append(range);
+
+	io.IpHdr const* ipHdr = (io.IpHdr const*)p;
 	size_t ipHdrSize = ipHdr.m_headerLength * 4;
-	if (baseOffset + ipHdrSize > size)
+
+	if (size < ipHdr.m_totalLength || ipHdr.m_totalLength < ipHdrSize)
 	{
-		representation.addHyperText($"$(formatIpLogText(ipHdr)) [BROKEN PACKET]");
-		ProtoRange range = { sizeof(io.IpHdr), ProtoColor.Ip }
-		protoRangeArray.append(range);
+		representation.addHyperText("[BROKEN]");
 		return;
 	}
 
 	if ((ipHdr.m_flags & io.IpFlags.Mf) || ipHdr.m_fragmentOffset)
 	{
-		representation.addHyperText($"$(formatIpLogText(ipHdr)) [FRAGMENTED IP]");
-		ProtoRange range = { sizeof(io.IpHdr), ProtoColor.Ip }
-		protoRangeArray.append(range);
+		representation.addHyperText("[FRAGMENTED]");
 		return;
 	}
 
-	if (foldFlags & ProtoFoldFlag.Ip)
-		representation.addHyperText(std.format(
-			"[\e^-%d\e[34m-\e[m] \e[1mIP\n"
-			"    \e[90mVERSION:  \e^!%d,%d\e[34m%d\n"
-			"    \e[90mHLENGTH:  \e^!%d,%d\e[34m%d\n"
-			"    \e[90mTOS:      \e^!%d,%d\e[34m%d\n"
-			"    \e[90mTLENGTH:  \e^!%d,%d\e[34m%d\n"
-			"    \e[90mID:       \e^!%d,%d\e[34m%d\n"
-			"    \e[90mFLAGS:    \e^!%d,%d\e[34m%d\n"
-			"    \e[90mFRAGOFFS: \e^!%d,%d\e[34m%d\n"
-			"    \e[90mTTL:      \e^!%d,%d\e[34m%d\n"
-			"    \e[90mPROTO:    \e^!%d,%d\e[34m%d\n"
-			"    \e[90mCHECKSUM: \e^!%d,%d\e[34m%04Xh\n"
-			"    \e[90mSRC:      \e^!%d,%d\e[34m%s\n"
-			"    \e[90mDST:      \e^!%d,%d\e[34m%s",
-
-			ProtoFoldFlag.Ip,
-
-			baseOffset + offsetof(ipHdr.m_version),
-			sizeof(ipHdr.m_version),
-			ipHdr.m_version,
-
-			baseOffset + offsetof(ipHdr.m_headerLength),
-			sizeof(ipHdr.m_headerLength),
-			ipHdrSize,
-
-			baseOffset + offsetof(ipHdr.m_typeOfService),
-			sizeof(ipHdr.m_typeOfService),
-			ipHdr.m_typeOfService,
-
-			baseOffset + offsetof(ipHdr.m_totalLength),
-			sizeof(ipHdr.m_totalLength),
-			ipHdr.m_totalLength,
-
-			baseOffset + offsetof(ipHdr.m_identification),
-			sizeof(ipHdr.m_identification),
-			ipHdr.m_identification,
-
-			baseOffset + offsetof(ipHdr.m_flags),
-			sizeof(ipHdr.m_flags),
-			ipHdr.m_flags,
-
-			baseOffset + offsetof(ipHdr.m_fragmentOffset),
-			sizeof(ipHdr.m_fragmentOffset),
-			ipHdr.m_fragmentOffset,
-
-			baseOffset + offsetof(ipHdr.m_timeToLive),
-			sizeof(ipHdr.m_timeToLive),
-			ipHdr.m_timeToLive,
-
-			baseOffset + offsetof(ipHdr.m_protocol),
-			sizeof(ipHdr.m_protocol),
-			ipHdr.m_protocol,
-
-			baseOffset + offsetof(ipHdr.m_headerChecksum),
-			sizeof(ipHdr.m_headerChecksum),
-			ipHdr.m_headerChecksum,
-
-			baseOffset + offsetof(ipHdr.m_srcAddress),
-			sizeof(ipHdr.m_srcAddress),
-			formatIpString(ipHdr.m_srcAddress),
-
-			baseOffset + offsetof(ipHdr.m_dstAddress),
-			sizeof(ipHdr.m_dstAddress),
-			formatIpString(ipHdr.m_dstAddress)
-			));
-	else
-		representation.addHyperText(std.format(
-			"[\e^+%d\e[34m+\e[m] \e[1mIP \e^!%d,%d\e[10;34m%s\e[m > \e^!%d,%d\e[34m%s\e[m",
-
-			ProtoFoldFlag.Ip,
-
-			baseOffset + offsetof(ipHdr.m_srcAddress),
-			sizeof(ipHdr.m_srcAddress),
-			formatIpString(ipHdr.m_srcAddress),
-
-			baseOffset + offsetof(ipHdr.m_dstAddress),
-			sizeof(ipHdr.m_dstAddress),
-			formatIpString(ipHdr.m_dstAddress)
-			));
-
-	ProtoRange range = { ipHdrSize, ProtoColor.Ip }
-	protoRangeArray.append(range);
-
 	if (ipHdrSize > sizeof(io.IpHdr))
-	{
-		range = { ipHdrSize - sizeof(io.IpHdr), ProtoColor.IpOptions };
-		protoRangeArray.append(range);
-	}
+		representIpOptions(
+			representation,
+			protoRangeArray,
+			ipHdr + 1,
+			ipHdrSize - sizeof(io.IpHdr),
+			baseOffset + sizeof(io.IpHdr),
+			foldFlags
+			);
 
+	p += ipHdrSize;
+	size = ipHdr.m_totalLength - ipHdrSize;
 	baseOffset += ipHdrSize;
 
 	switch (ipHdr.m_protocol)
 	{
 	case io.IpProtocol.Icmp:
-		return representIcmpHdr(representation, protoRangeArray, ipHdr, p, size, baseOffset, foldFlags);
+		return representIcmpHdr(representation, protoRangeArray, p, size, baseOffset, foldFlags);
+
+	case io.IpProtocol.Igmp:
+		return representIgmpHdr(representation, protoRangeArray, p, size, baseOffset, foldFlags);
 
 	case io.IpProtocol.Tcp:
-		return representTcpHdr(representation, protoRangeArray, ipHdr, p, size, baseOffset, foldFlags);
+		return representTcpHdr(representation, protoRangeArray, p, size, baseOffset, foldFlags);
 
 	case io.IpProtocol.Udp:
-		return representUdpHdr(representation, protoRangeArray, ipHdr, p, size, baseOffset, foldFlags);
+		return representUdpHdr(representation, protoRangeArray, p, size, baseOffset, foldFlags);
 	}
 }
+
+void representIpOptions(
+	log.Representation* representation,
+	std.Array* protoRangeArray,
+	void const* p,
+	size_t size,
+	size_t baseOffset,
+	uint_t foldFlags
+	)
+{
+	representation.m_lineAttr.m_backColor = ProtoColor.IpOptions;
+
+	if (foldFlags & ProtoFoldFlag.IpOptions)
+	{
+		representation.addHyperText(
+			$"[\e^-%1\e[34m-\e[m] \e[1mIP\e[m Options"(
+			ProtoFoldFlag.IpOptions
+			));
+
+		size_t offset = baseOffset;
+		void const* end = p + size;
+
+		while (p < end)
+		{
+			uint8_t type = *(uint8_t const*)p;
+			uint8_t length = type <= io.IpOptionType.Nop ? 1 : *(uint8_t const*)(p + 1);
+
+			representation.addHyperText(
+				$"    \e^!0x%x,%2,%3\e[34m%4"(
+				NetSnifferLogPartCode.RawPacket,
+				offset,
+				length,
+				typeof(io.IpOptionType).getValueString(p)
+				));
+
+			offset += length;
+			p += length;
+		}
+	}
+	else
+	{
+		representation.addHyperText(
+			$"[\e^+%1\e[34m+\e[m] \e[1mIP\e[m Options (%2 bytes)"(
+			ProtoFoldFlag.IpOptions,
+			size
+			));
+	}
+
+	ProtoRange range = { baseOffset, size, ProtoColor.IpOptions };
+	protoRangeArray.append(range);
+}
+
+//..............................................................................
 
 void representDefragmentedIpDigest(
 	log.Representation* representation,
@@ -211,7 +213,7 @@ void representDefragmentedIpDigest(
 {
 	representation.m_lineAttr.m_backColor = ui.StdColor.PastelCyan;
 	representation.addPlainText("Defragmented IP packet");
-	representIpDigest(representation, p, size, 0);
+	representIpDigest(representation, p, size);
 }
 
 void representDefragmentedIpDetails(
@@ -223,27 +225,7 @@ void representDefragmentedIpDetails(
 {
 	std.Array protoRangeArray;
 	representIpHdr(representation, protoRangeArray, p, size, 0, foldFlags);
-	representColorizedBin(representation, protoRangeArray, p, size);
-}
-
-char const* formatIpLogText(io.IpHdr const* ipHdr)
-{
-	return formatIpLogText(
-		ipHdr,
-		io.getIpProtocolString((io.IpProtocol)ipHdr.m_protocol)
-		);
-}
-
-char const* formatIpLogText(
-	io.IpHdr const* ipHdr,
-	char const* protoString
-	)
-{
-	return $"\e[1m%1 \e[34m%2\e[m > \e[34m%3\e[m" (
-		protoString,
-		formatIpString(ipHdr.m_srcAddress),
-		formatIpString(ipHdr.m_dstAddress)
-		);
+	representRawPacketData(representation, protoRangeArray, p, size);
 }
 
 //..............................................................................

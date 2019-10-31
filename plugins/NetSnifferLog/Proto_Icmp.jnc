@@ -7,37 +7,44 @@
 
 void representIcmpDigest(
 	log.Representation* representation,
-	io.IpHdr const* ipHdr,
+	char const* srcString,
+	char const* dstString,
 	void const* p,
 	size_t size,
-	size_t baseOffset
+	int payloadPreviewIconIdx = -1
 	)
 {
-	if (baseOffset + sizeof(io.IcmpHdr) > size)
+	if (size < sizeof(io.IcmpHdr))
 	{
-		representation.addHyperText(std.format(
-			"\e[1mICMP \e[10;34m%s\e[m > \e[34m%s\e[m [BROKEN PACKET]",
-			formatIpString(ipHdr.m_srcAddress),
-			formatIpString(ipHdr.m_dstAddress)
+		representation.addHyperText(
+			$"\e[1mICMP \e[10;34m%1\e[m \u2192 \e[34m%2\e[m [INCOMPLETE]"(
+			srcString,
+			dstString
 			));
-
 		return;
 	}
 
-	io.IcmpHdr const* icmpHdr = (io.IcmpHdr const*)(p + baseOffset);
-	representation.addHyperText(std.format(
-		"\e[1mICMP \e[10;34m%s\e[m > \e[34m%s\e[m [TYPE:%d CODE:%d]",
-		formatIpString(ipHdr.m_srcAddress),
-		formatIpString(ipHdr.m_dstAddress),
-		icmpHdr.m_type,
-		icmpHdr.m_code
+	io.IcmpHdr const* hdr = (io.IcmpHdr const*)p;
+
+	representation.addHyperText(
+		$"\e[1mICMP \e[10;34m%1\e[m \u2192 \e[34m%2\e[m %3" (
+		srcString,
+		dstString,
+		typeof(io.IcmpType).getValueString(&hdr.m_type)
 		));
+
+	if (size == sizeof(io.IcmpHdr))
+		return;
+
+	p += sizeof(io.IcmpHdr);
+	size -= sizeof(io.IcmpHdr);
+
+	representPayloadPreview(representation, p, size, payloadPreviewIconIdx);
 }
 
 void representIcmpHdr(
 	log.Representation* representation,
 	std.Array* protoRangeArray,
-	io.IpHdr const* ipHdr,
 	void const* p,
 	size_t size,
 	size_t baseOffset,
@@ -46,53 +53,43 @@ void representIcmpHdr(
 {
 	representation.m_lineAttr.m_backColor = ProtoColor.Icmp;
 
-	if (baseOffset + sizeof(io.IcmpHdr) > size)
+	if (size < sizeof(io.IcmpHdr))
 	{
-		representation.addHyperText("\e[1mICMP [BROKEN PACKET]");
+		representation.addHyperText("\e[1mICMP\e[m [INCOMPLETE]");
 		return;
 	}
 
-	io.IcmpHdr const* icmpHdr = (io.IcmpHdr const*)(p + baseOffset);
+	log.representStruct(
+		representation,
+		typeof(io.IcmpHdr),
+		NetSnifferLogPartCode.RawPacket,
+		p,
+		baseOffset,
+		foldFlags,
+		ProtoFoldFlag.Icmp
+		);
 
-	if (foldFlags & ProtoFoldFlag.Icmp)
-		representation.addHyperText(std.format(
-			"[\e^-%d\e[34m-\e[m] \e[1mICMP\n"
-			"    \e[90mTYPE:     \e^!%d,%d\e[34m%d\n"
-			"    \e[90mCODE:     \e^!%d,%d\e[34m%d\n"
-			"    \e[90mCHECKSUM: \e^!%d,%d\e[34m%04Xh\n"
-			"    \e[90mID:       \e^!%d,%d\e[34m%d\n"
-			"    \e[90mSEQ:      \e^!%d,%d\e[34m%d",
-
-			ProtoFoldFlag.Icmp,
-
-			baseOffset + offsetof(icmpHdr.m_type),
-			sizeof(icmpHdr.m_type),
-			icmpHdr.m_type,
-
-			baseOffset + offsetof(icmpHdr.m_code),
-			sizeof(icmpHdr.m_code),
-			icmpHdr.m_code,
-
-			baseOffset + offsetof(icmpHdr.m_checksum),
-			sizeof(icmpHdr.m_checksum),
-			icmpHdr.m_checksum,
-
-			baseOffset + offsetof(icmpHdr.m_id),
-			sizeof(icmpHdr.m_id),
-			icmpHdr.m_id,
-
-			baseOffset + offsetof(icmpHdr.m_seqNumber),
-			sizeof(icmpHdr.m_seqNumber),
-			icmpHdr.m_seqNumber
-			));
-	else
-		representation.addHyperText(std.format(
-			"[\e^+%d\e[34m+\e[m] \e[1mICMP",
-			ProtoFoldFlag.Icmp
-			));
-
-	ProtoRange range = { sizeof(io.IcmpHdr), ProtoColor.Icmp }
+	ProtoRange range = { baseOffset, sizeof(io.IcmpHdr), ProtoColor.Icmp }
 	protoRangeArray.append(range);
+
+	if (size == sizeof(io.IcmpHdr))
+		return;
+
+	p += sizeof(io.IcmpHdr);
+	size -= sizeof(io.IcmpHdr);
+	baseOffset += sizeof(io.IcmpHdr);
+
+	representPayload(
+		representation,
+		protoRangeArray,
+		"\e[1mICMP\e[m Payload",
+		p,
+		size,
+		baseOffset,
+		foldFlags,
+		256,
+		ProtoColor.IcmpPayload
+		);
 }
 
 //..............................................................................

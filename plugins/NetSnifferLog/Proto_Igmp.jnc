@@ -1,0 +1,67 @@
+//..............................................................................
+//
+// Sniffer log IGMP packets handling
+//
+
+//..............................................................................
+
+void representIgmpDigest(
+	log.Representation* representation,
+	char const* srcString,
+	char const* dstString,
+	void const* p,
+	size_t size
+	)
+{
+	if (size < sizeof(io.IgmpHdr))
+	{
+		representation.addHyperText(
+			$"\e[1mIGMP \e[10;34m%1\e[m \u2192 \e[34m%2\e[m [INCOMPLETE]"(
+			srcString,
+			dstString
+			));
+		return;
+	}
+
+	io.IgmpHdr const* hdr = (io.IgmpHdr const*)p;
+
+	representation.addHyperText(
+		$"\e[1mIGMP \e[10;34m%1\e[m \u2192 \e[34m%2\e[m %3" (
+		srcString,
+		dstString,
+		typeof(io.IgmpType).getValueString(&hdr.m_type)
+		));
+}
+
+void representIgmpHdr(
+	log.Representation* representation,
+	std.Array* protoRangeArray,
+	void const* p,
+	size_t size,
+	size_t baseOffset,
+	uint_t foldFlags
+	)
+{
+	representation.m_lineAttr.m_backColor = ProtoColor.Icmp;
+
+	if (size < sizeof(io.IgmpHdr))
+	{
+		representation.addHyperText("\e[1mIGMP\e[m [INCOMPLETE]");
+		return;
+	}
+
+	log.representStruct(
+		representation,
+		typeof(io.IgmpHdr),
+		NetSnifferLogPartCode.RawPacket,
+		p,
+		baseOffset,
+		foldFlags,
+		ProtoFoldFlag.Igmp
+		);
+
+	ProtoRange range = { baseOffset, sizeof(io.IgmpHdr), ProtoColor.Igmp }
+	protoRangeArray.append(range);
+}
+
+//..............................................................................

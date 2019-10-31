@@ -16,4 +16,9 @@ enum NetSnifferLogRecordCode: uint64_t
 	DefragmentedIpDetails  = 0x01d4856b81a408cb | log.RecordCodeFlags.Foldable,
 }
 
+enum NetSnifferLogPartCode
+{
+	RawPacket = 1,
+}
+
 //..............................................................................
