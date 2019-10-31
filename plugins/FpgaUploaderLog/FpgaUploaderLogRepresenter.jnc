@@ -85,6 +85,12 @@ bool representFpgaUploaderLog(
 		representation.addHyperText("Uploading FPGA firmware completed");
 		break;
 
+	case FpgaUploaderLogRecordCode.FirmwareBootFailed:
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Error;
+		representation.addHyperText("FPGA has been uploaded, but couldn't boot");
+		break;
+
 	default:
 		return false;
 	}
