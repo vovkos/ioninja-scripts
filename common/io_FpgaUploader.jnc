@@ -62,7 +62,6 @@ protected:
 	{
 		AtomSize           = 4,
 		BlockSize          = 64,
-		BaseIndex          = 0x2000,
 		TimerInterval      = 100,
 		StatusCheckCount   = 5,  // check n times before waiting
 		StillWaitingFactor = 1000 / TimerInterval, // once a second
@@ -74,11 +73,13 @@ protected:
 	jnc.Scheduler* m_mainThreadScheduler;
 	io.UsbDevice* m_device;
 	io.MappedFile m_file;
+	RpdVersion m_fileVersion;
 	ui.ProgressDlg m_progressDlg;
 	sys.Timer m_timer;
 	std.Buffer m_block;
 	size_t m_fileSize;
 	size_t m_fileOffset;
+	size_t m_baseIndex;
 	size_t m_statusCheckIdx;
 	uint_t m_syncId;
 
@@ -92,7 +93,8 @@ public:
 
 	bool errorcode update(
 		io.UsbDevice* device,
-		char const* fileName
+		char const* fileName,
+		size_t baseIndex
 		);
 
 protected:
@@ -102,6 +104,7 @@ protected:
 	sendFirstBlock(bool isCheckRequired);
 	sendNextBlock(bool isCheckRequired);
 	load(bool isCheckRequired);
+	finalizeLoad();
 	complete(bool result);
 
 	bool checkStatus();
@@ -136,22 +139,25 @@ FpgaUploader.cancel()
 
 bool errorcode FpgaUploader.update(
 	io.UsbDevice* device,
-	char const* fileName
+	char const* fileName,
+	size_t baseIndex
 	)
 {
 	cancel();
 
 	m_device = device;
 	m_file.open(fileName, io.FileOpenFlags.ReadOnly);
-	RpdHdr const* hdr = (RpdHdr const*) m_file.view(0, sizeof(RpdHdr), false);
+	RpdHdr const* hdr = (RpdHdr const*)m_file.view(0, sizeof(RpdHdr), false);
+	m_fileVersion = hdr.m_version;
+	m_baseIndex = baseIndex;
 
 	Status status = getStatus();
 	RpdVersion version = getVersion();
 
 	bool isUpToDate =
 		status == 0 &&
-		version.m_firmwareType == hdr.m_version.m_firmwareType &&
-		version.m_firmwareVersion >= hdr.m_version.m_firmwareVersion;
+		version.m_firmwareType == m_fileVersion.m_firmwareType &&
+		version.m_firmwareVersion >= m_fileVersion.m_firmwareVersion;
 
 	if (isUpToDate)
 	{
@@ -255,7 +261,7 @@ FpgaUploader.load(bool isCheckRequired)
 		);
 
 	if (checkStatus())
-		complete(true);
+		finalizeLoad();
 }
 
 FpgaUploader.sendFirstBlock(bool isCheckRequired)
@@ -290,9 +296,6 @@ FpgaUploader.sendNextBlock(bool isCheckRequired)
 	if (size > leftover)
 		size = leftover;
 
-	if (!size)
-		return; // nothing to write
-
 	void const* p = m_file.view(m_fileOffset, size);
 
 	m_block.setSize(size);
@@ -304,7 +307,7 @@ FpgaUploader.sendNextBlock(bool isCheckRequired)
 		UsbControlReqType.VendorOut,
 		UsbControlReqCode.Write,
 		size / AtomSize,
-		atomIdx + BaseIndex,
+		m_baseIndex + atomIdx,
 		m_block.m_p,
 		size,,
 		onTransferCompleted ~(m_syncId) @ m_mainThreadScheduler
@@ -312,6 +315,30 @@ FpgaUploader.sendNextBlock(bool isCheckRequired)
 
 	m_progressDlg.m_progress = m_fileOffset * 100 / m_fileSize;
 	m_fileOffset += size;
+}
+
+FpgaUploader.finalizeLoad()
+{
+	RpdVersion version = getVersion();
+
+	printf(
+		"finalizeLoad: (%d, %d) vs (%d, %d)\n",
+		version.m_firmwareType,
+		version.m_firmwareVersion,
+		m_fileVersion.m_firmwareType,
+		m_fileVersion.m_firmwareVersion
+		);
+
+	if (version.m_firmwareType == m_fileVersion.m_firmwareType &&
+		version.m_firmwareVersion == m_fileVersion.m_firmwareVersion)
+	{
+		complete(true);
+	}
+	else
+	{
+		m_logWriter.write(FpgaUploaderLogRecordCode.FirmwareBootFailed);
+		complete(false);
+	}
 }
 
 FpgaUploader.complete(bool result)
@@ -379,7 +406,7 @@ FpgaUploader.onTimer(uint_t syncId)
 		break;
 
 	case State.Loading:
-		complete(true);
+		finalizeLoad();
 		break;
 	}
 
