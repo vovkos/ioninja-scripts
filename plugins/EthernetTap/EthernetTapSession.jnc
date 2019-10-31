@@ -8,9 +8,12 @@ import "io_usb.jncx"
 import "io_FpgaUploader.jnc"
 import "ui_BufferPropertySet.jnc"
 import "ui_StdSessionInfoSet.jnc"
+import "ui_History.jnc"
 import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
 import "std_Buffer.jnc"
+
+using extension ui.ComboBoxHistory;
 
 //..............................................................................
 
@@ -30,6 +33,7 @@ protected:
 	{
 		CypressBufferSize         = 4 * 1024, // 4K (2K built-in in Cypress + 512 FPGA FIFO)
 		CypressClearBufferTimeout = 200,      // 0.2sec
+		FpgaUploadBaseIndex       = 0x2000,
 	}
 
 	enum State
@@ -70,11 +74,11 @@ protected:
 
 	enum Usb
 	{
-		VendorId    = 0x16d0,
-		ProductId   = 0x0e27,
-		OutEndpoint = 0x02,
-		InEndpoint  = 0x86,
-		PacketSize  = 512,
+		VendorId      = 0x16d0,
+		ProductId     = 0x0e27,
+		OutEndpoint   = 0x02,
+		InEndpoint    = 0x86,
+		PacketSize    = 512,
 	}
 
 	static char const m_firmwareFileName[] = __DIR__ "/firmware/eth.rpd";
@@ -95,16 +99,20 @@ protected:
 	PacketFlags m_packetFlags;
 	uint_t m_syncId;
 
+	EthernetTapLogFilter m_filter;
+
 	// toolbar, status bar & menu
 
 	ui.Action* m_actionTable[ActionId._Count];
 	ui.Icon* m_iconTable[IconId._Count];
 	ui.StatusPane* m_statusPaneTable[StatusPaneId._Count];
 	ui.ComboBox* m_deviceCombo;
+	ui.ComboBox* m_filterCombo;
 
 	// property grid
 
 	ui.EnumProperty* m_deviceProp;
+	ui.StringProperty* m_filterProp;
 	ui.BoolProperty* m_rawDataProp;
 	ui.BufferPropertySet m_bufferPropertySet;
 
@@ -138,6 +146,11 @@ public:
 protected:
 	onCapture();
 
+	onSetFilter()
+	{
+		try applyFilter(true);
+	}
+
 	onInEndpointEvent(
 		uint_t syncId,
 		io.UsbEndpointEvents triggeredEvents
@@ -156,6 +169,7 @@ protected:
 
 	bool errorcode startCapture();
 	bool errorcode gracefulStop();
+	bool errorcode applyFilter(bool rebuildLog = false);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -171,6 +185,7 @@ EthernetTapSession.construct(doc.PluginHost* pluginHost)
 	pluginHost.m_log.m_cacheUpdateScrollRateLimit = Defaults.LogCacheUpdateScrollRateLimit;
 	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
+	pluginHost.m_log.addFilter(m_filter);
 	m_stdSessionInfoSet.addLogListener(pluginHost.m_log);
 }
 
@@ -191,6 +206,11 @@ EthernetTapSession.createUi()
 	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable [IconId.Capture]);
 	m_actionTable[ActionId.Capture].m_onTriggered += onCapture;
 
+	m_pluginHost.m_toolBar.addLabel("Filter:");
+	m_filterCombo = m_pluginHost.m_toolBar.addComboBox(-1);
+	m_filterCombo.m_isEditable = true;
+	m_filterCombo.m_onEnter += onSetFilter;
+
 	// status bar
 
 	m_statusPaneTable[StatusPaneId.State] = m_pluginHost.m_statusBar.addPane(, 80);
@@ -207,6 +227,12 @@ EthernetTapSession.createUi()
 		"Device",
 		"Target USB device",
 		null, 0
+		);
+
+	m_filterProp = m_pluginHost.m_propertyGrid.createStringProperty(
+		group,,
+		"Filter",
+		"View only the packets which have passed this filter"
 		);
 
 	m_rawDataProp = m_pluginHost.m_propertyGrid.createBoolProperty(
@@ -303,7 +329,7 @@ bool errorcode EthernetTapSession.capture()
 	m_device.open();
 
 	writeLogString(EthernetTapLogRecordCode.DeviceOpened, m_deviceCombo.m_currentText);
-	return m_uploader.update(m_device, m_firmwareFileName);
+	return m_uploader.update(m_device, m_firmwareFileName, FpgaUploadBaseIndex);
 
 catch:
 	writeLogLastError(EthernetTapLogRecordCode.CaptureError);
@@ -418,6 +444,27 @@ EthernetTapSession.stopCapture()
 	m_syncId++;
 }
 
+bool errorcode EthernetTapSession.applyFilter(bool rebuildLog)
+{
+	m_pluginHost.m_log.suspend();
+	bool result = try m_filter.setFilter(m_filterCombo.m_editText);
+	m_pluginHost.m_log.resume();
+
+	if (!result)
+	{
+		m_filterCombo.m_backgroundColor = ui.StdColor.PastelRed;
+		return false;
+	}
+
+	m_filterCombo.m_backgroundColor = ui.ColorFlags.Transparent;
+	m_filterCombo.addEditTextToHistory();
+
+	if (rebuildLog)
+		m_pluginHost.m_log.rebuild();
+
+	return true;
+}
+
 EthernetTapSession.waitInEndpointEvents()
 {
 	io.UsbEndpointEvents eventMask =
@@ -504,7 +551,7 @@ EthernetTapSession.parse(
 
 		p += dstSize / sizeof(uint32_t);
 
-		PacketHdr const* hdr = (PacketHdr const*)m_packetBuffer.m_p;
+		PacketHdr const* hdr = (PacketHdr const*)(m_packetBuffer.m_p + sizeof(uint32_t));
 		uint64_t recordCode = (hdr.m_flags & PacketFlags.ChannelId) ?
 			EthernetTapLogRecordCode.Packet_ch2 :
 			EthernetTapLogRecordCode.Packet_ch1;
@@ -531,13 +578,17 @@ EthernetTapSession.save(doc.Storage* storage)
 EthernetTapSession.updateProperties()
 {
 	m_deviceProp.m_currentIndex = m_deviceCombo.m_currentIndex;
+	m_filterProp.m_value = m_filterCombo.m_editText;
 }
 
 bool errorcode EthernetTapSession.applyProperties()
 {
 	m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
+	m_filterCombo.m_editText = m_filterProp.m_value;
 	m_readBuffer.detach(); // drop buffer, so we re-allocate each time
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
+
+	applyFilter();
 
 	if (m_state != State.Capturing)
 		return true;

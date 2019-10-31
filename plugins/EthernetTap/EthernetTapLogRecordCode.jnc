@@ -18,7 +18,9 @@ enum EthernetTapLogRecordCode: uint64_t
 	CaptureError            = 0x01d4cdafa0abb0e6,
 	Packet_ch1              = 0x81d4cdafa0abb0e7,
 	Packet_ch2              = 0x81d4cdafa0abb0e8,
-	CypressBufferCleared    = 0x01d4cdafa0abb0e9,
+	PacketDetails_ch1       = 0x81d4cdafa0abb0e9,
+	PacketDetails_ch2       = 0x81d4cdafa0abb0ea,
+	CypressBufferCleared    = 0x01d4cdafa0abb0eb,
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -38,6 +40,11 @@ struct PacketHdr
 	uint16_t m_size;
 	uint8_t m_reserved;
 	PacketFlags m_flags;
+}
+
+enum
+{
+	MetaSize = sizeof(uint32_t) + sizeof(PacketHdr)
 }
 
 //..............................................................................
