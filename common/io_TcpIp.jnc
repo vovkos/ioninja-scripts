@@ -3,6 +3,9 @@
 // Packet definitions for TCP/IP stack
 //
 
+import "io_base.jncx"
+import "io_SocketAddress.jnc"
+
 namespace io {
 
 //! \addtogroup common-tcpip
@@ -19,11 +22,48 @@ enum EthernetType: bigendian uint16_t
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
+[
+	displayName = "ETHERNET",
+	formatDigestFunc = formatEthernetDigest
+]
 struct EthernetHdr
 {
+	[
+		displayName = "Destination",
+		formatFunc = formatEthernetAddress
+	]
 	uint8_t m_dstAddress[6];
+
+	[
+		displayName = "Source",
+		formatFunc = formatEthernetAddress
+	]
 	uint8_t m_srcAddress[6];
+
+	[ displayName = "Type" ]
 	EthernetType m_type;
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+char const* formatEthernetDigest(void const* p)
+{
+	EthernetHdr const* hdr = (EthernetHdr const*)p;
+
+	return $"\e[1nETHERNET\e[m %1 \u2192 %2" (
+		formatEthernetAddress(&hdr.m_srcAddress),
+		formatEthernetAddress(&hdr.m_dstAddress)
+		);
+}
+
+char const* formatEthernetAddress(void const* p)
+{
+	uchar_t const* mac = (uchar_t const*)p;
+
+	return $"%02X:%02X:%02X:%02X:%02X:%02X"(
+		mac[0], mac[1], mac[2],
+		mac[3], mac[4], mac[5]
+		);
 }
 
 //..............................................................................
@@ -31,11 +71,6 @@ struct EthernetHdr
 enum ArpHardwareType: bigendian uint16_t
 {
 	Ethernet = 1,
-}
-
-enum ArpProtocolType: bigendian uint16_t
-{
-	Ip = 0x0800,
 }
 
 enum ArpOpcode: bigendian uint16_t
@@ -46,13 +81,32 @@ enum ArpOpcode: bigendian uint16_t
 	ReplyReverese  = 4,
 }
 
+[
+	displayName = "ARP",
+	formatDigestFunc = formatArpDigest
+]
 struct ArpHdr
 {
+	[ displayName = "Hardware type" ]
 	ArpHardwareType m_hardwareType;
-	ArpProtocolType m_protocolType;
+
+	[ displayName = "Protocol type" ]
+	EthernetType m_protocolType;
+
+	[ displayName = "Hardware size" ]
 	uint8_t m_hardwareLength;
+
+	[ displayName = "Protocol size" ]
 	uint8_t m_protocolLength;
+
+	[ displayName = "Opcode" ]
 	ArpOpcode m_opcode;
+}
+
+char const* formatArpDigest(void const* p)
+{
+	ArpHdr const* hdr = (ArpHdr const*)p;
+	return $"\e[1nARP\e[m %1" (typeof(ArpOpcode).getValueString(&hdr.m_opcode));
 }
 
 //..............................................................................
@@ -60,28 +114,9 @@ struct ArpHdr
 enum IpProtocol: uint8_t
 {
 	Icmp = 1,
+	Igmp = 2,
 	Tcp  = 6,
 	Udp  = 17,
-}
-
-// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-char const* getIpProtocolString(IpProtocol proto)
-{
-	switch (proto)
-	{
-	case IpProtocol.Icmp:
-		return "ICMP";
-
-	case IpProtocol.Tcp:
-		return "TCP";
-
-	case IpProtocol.Udp:
-		return "UDP";
-
-	default:
-		return $"IPPROTO($proto)";
-	}
 }
 
 //..............................................................................
@@ -94,33 +129,79 @@ bitflag enum IpFlags
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
+[
+	displayName = "IP",
+	formatDigestFunc = formatIpDigest
+]
 struct IpHdr
 {
-	uint8_t m_headerLength: 4;
-	uint8_t m_version: 4;
+	[ displayName = "Header length" ]
+	uint8_t m_headerLength : 4;
+
+	[ displayName = "Version" ]
+	uint8_t m_version      : 4;
+
+	[ displayName = "Type of service" ]
 	uint8_t m_typeOfService;
+
+	[ displayName = "Total length" ]
 	bigendian uint16_t m_totalLength;
-	uint16_t m_identification;
-	bigendian uint16_t m_flags: 3;
-	bigendian uint16_t m_fragmentOffset: 13;
+
+	[
+		displayName = "Identification",
+		formatSpec = "0x%04X"
+	]
+	bigendian uint16_t m_identification;
+
+	[ displayName = "Flags" ]
+	bigendian uint16_t m_flags          : 3;
+
+	[ displayName = "Fragment offset" ]
+	bigendian uint16_t m_fragmentOffset : 13;
+
+	[ displayName = "Time to live" ]
 	uint8_t m_timeToLive;
+
+	[ displayName = "Protocol" ]
 	IpProtocol m_protocol;
+
+	[
+		displayName = "Header checksum",
+		formatSpec = "0x%04X"
+	]
 	bigendian uint16_t m_headerChecksum;
+
+	[
+		displayName = "Source",
+		formatFunc = formatIpAddress
+	]
 	bigendian uint32_t m_srcAddress;
+
+	[
+		displayName = "Destination",
+		formatFunc = formatIpAddress
+	]
 	bigendian uint32_t m_dstAddress;
 }
 
-struct Ip6Hdr
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+char const* formatIpDigest(void const* p)
 {
-	uint32_t m_flowLabel: 20;
-	uint32_t m_trafficClass: 8;
-	uint32_t m_version: 4;
-	bigendian uint16_t m_payloadLength;
-	uint8_t m_nextHeader;
-	uint8_t m_hopLimit;
-	uint16_t m_srcAddress[8];
-	uint16_t m_dstAddress[8];
+	IpHdr const* hdr = (IpHdr const*)p;
+
+	return $"\e[1mIP\e[m %1 \u2192 %2" (
+		formatIpAddress(&hdr.m_srcAddress),
+		formatIpAddress(&hdr.m_dstAddress)
+		);
 }
+
+char const* formatIpAddress(void const* p)
+{
+	return ((io.Address_ip4 const*)p).getString();
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 struct IpPseudoHdr
 {
@@ -129,6 +210,135 @@ struct IpPseudoHdr
 	uint8_t m_zero;
 	uint8_t m_protocol;
 	bigendian uint16_t m_length;
+}
+
+//..............................................................................
+
+bitflag enum IpOptionTypeFlag: uint8_t
+{
+	Copy  = 0x80,
+	Debug = 0x40,
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+enum IpOptionNumber: uint8_t
+{
+	Eool    = 0, // no length field
+	Nop     = 1, // no length field
+	Sec     = 2,
+	Lsr     = 3,
+	Ts      = 4,
+	Esec    = 5,
+	Cipso   = 6,
+	Rr      = 7,
+	Sid     = 8,
+	Ssr     = 9,
+	Zsu     = 10,
+	Mtup    = 11,
+	Mtur    = 12,
+	Finn    = 13,
+	Visa    = 14,
+	Encode  = 15,
+	Imitd   = 16,
+	Eip     = 17,
+	Tr      = 18,
+	Addext  = 19,
+	Rtralt  = 20,
+	Sdb     = 21,
+	Dps     = 23,
+	Ump     = 24,
+	Qs      = 25,
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+enum IpOptionType: uint8_t
+{
+	Eool    = IpOptionNumber.Eool,
+	Nop     = IpOptionNumber.Nop,
+	Sec     = IpOptionNumber.Sec    | IpOptionTypeFlag.Copy,
+	Lsr     = IpOptionNumber.Lsr    | IpOptionTypeFlag.Copy,
+	Ts      = IpOptionNumber.Ts     | IpOptionTypeFlag.Debug,
+	Esec    = IpOptionNumber.Esec   | IpOptionTypeFlag.Copy,
+	Cipso   = IpOptionNumber.Cipso  | IpOptionTypeFlag.Copy,
+	Rr      = IpOptionNumber.Rr,
+	Sid     = IpOptionNumber.Sid    | IpOptionTypeFlag.Copy,
+	Ssr     = IpOptionNumber.Ssr    | IpOptionTypeFlag.Copy,
+	Zsu     = IpOptionNumber.Zsu,
+	Mtup    = IpOptionNumber.Mtup,
+	Mtur    = IpOptionNumber.Mtur,
+	Finn    = IpOptionNumber.Finn   | IpOptionTypeFlag.Copy | IpOptionTypeFlag.Debug,
+	Visa    = IpOptionNumber.Visa   | IpOptionTypeFlag.Copy,
+	Encode  = IpOptionNumber.Encode,
+	Imitd   = IpOptionNumber.Imitd  | IpOptionTypeFlag.Copy,
+	Eip     = IpOptionNumber.Eip    | IpOptionTypeFlag.Copy,
+	Tr      = IpOptionNumber.Tr     | IpOptionTypeFlag.Debug,
+	Addext  = IpOptionNumber.Addext | IpOptionTypeFlag.Copy,
+	Rtralt  = IpOptionNumber.Rtralt | IpOptionTypeFlag.Copy,
+	Sdb     = IpOptionNumber.Sdb    | IpOptionTypeFlag.Copy,
+	Dps     = IpOptionNumber.Dps    | IpOptionTypeFlag.Copy,
+	Ump     = IpOptionNumber.Ump    | IpOptionTypeFlag.Copy,
+	Qs      = IpOptionNumber.Qs,
+}
+
+//..............................................................................
+
+[
+	displayName = "IPv6",
+	formatDigestFunc = formatIp6Digest
+]
+struct Ip6Hdr
+{
+	[ displayName = "Version" ]
+	bigendian uint32_t m_version      : 4;
+
+	[ displayName = "Traffic class" ]
+	bigendian uint32_t m_trafficClass : 8;
+
+	[
+		displayName = "Flow label",
+		formatSpec = "0x%05x"
+	]
+	bigendian uint32_t m_flowLabel    : 20;
+
+	[ displayName = "Payload length" ]
+	bigendian uint16_t m_payloadLength;
+
+	[ displayName = "Next header" ]
+	IpProtocol m_nextHeader;
+
+	[ displayName = "Hop limit" ]
+	uint8_t m_hopLimit;
+
+	[
+		displayName = "Source",
+		formatFunc = formatIp6Address
+	]
+	uint16_t m_srcAddress[8];
+
+	[
+		displayName = "Destination",
+		formatFunc = formatIp6Address
+	]
+	uint16_t m_dstAddress[8];
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+char const* formatIp6Digest(void const* p)
+{
+	Ip6Hdr const* hdr = (Ip6Hdr const*)p;
+
+	return $"\e[1mIPv6\e[m %1 \u2192 %2" (
+		formatIp6Address(&hdr.m_srcAddress),
+		formatIp6Address(&hdr.m_dstAddress)
+		);
+}
+
+char const* formatIp6Address(void const* p)
+{
+	return ((io.Address_ip6 const*)p).getString();
 }
 
 //..............................................................................
@@ -155,13 +365,83 @@ enum IcmpType: uint8_t
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
+[
+	displayName = "ICMP",
+	formatDigestFunc = formatIcmpDigest
+]
 struct IcmpHdr
 {
+	[ displayName = "Type" ]
 	IcmpType m_type;
+
+	[ displayName = "Code" ]
 	uint8_t m_code;
+
+	[
+		displayName = "Checksum",
+		formatSpec = "0x%04X"
+	]
 	bigendian uint16_t m_checksum;
+
+	[ displayName = "Identifier" ]
 	bigendian uint16_t m_id;
+
+	[ displayName = "Sequence number" ]
 	bigendian uint16_t m_seqNumber;
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+char const* formatIcmpDigest(void const* p)
+{
+	IcmpHdr const* hdr = (IcmpHdr const*)p;
+	return $"\e[1mICMP\e[m %1" (typeof(IcmpType).getValueString(&hdr.m_type));
+}
+
+//..............................................................................
+
+enum IgmpType: uint8_t
+{
+	MembershipQuery     = 0x11,
+	MembershipReport_v1 = 0x12,
+	MembershipReport_v2 = 0x16,
+	MembershipReport_v3 = 0x22,
+	LeaveGroup          = 0x17,
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+[
+	displayName = "IGMP",
+	formatDigestFunc = formatIgmpDigest
+]
+struct IgmpHdr
+{
+	[ displayName = "Type" ]
+	IgmpType m_type;
+
+	[ displayName = "Max resp time" ]
+	uint8_t m_maxRespTime;
+
+	[
+		displayName = "Checksum",
+		formatSpec = "0x%04X"
+	]
+	bigendian uint16_t m_checksum;
+
+	[
+		displayName = "Group address",
+		formatFunc = formatIpAddress
+	]
+	bigendian uint32_t m_groupAddress;
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+char const* formatIgmpDigest(void const* p)
+{
+	IgmpHdr const* hdr = (IgmpHdr const*)p;
+	return $"\e[1mIGMP\e[m %1" (typeof(IgmpType).getValueString(&hdr.m_type));
 }
 
 //..............................................................................
@@ -179,28 +459,99 @@ bitflag enum TcpFlags: uint8_t
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
+char const* formatTcpFlagString(TcpFlags flags)
+{
+	return $"%c%c%c%c%c%c%c"(
+		(flags & TcpFlags.Fin) ? 'F' : '.',
+		(flags & TcpFlags.Syn) ? 'S' : '.',
+		(flags & TcpFlags.Rst) ? 'R' : '.',
+		(flags & TcpFlags.Psh) ? 'P' : '.',
+		(flags & TcpFlags.Ack) ? 'A' : '.',
+		(flags & TcpFlags.Urg) ? 'U' : '.',
+		(flags & TcpFlags.Bog) ? 'B' : '.'
+		);
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+[
+	displayName = "TCP",
+	formatDigestFunc = formatTcpDigest
+]
 struct TcpHdr
 {
+	[ displayName = "Source port" ]
 	bigendian uint16_t m_srcPort;
+
+	[ displayName = "Destination port" ]
 	bigendian uint16_t m_dstPort;
+
+	[ displayName = "Sequence number" ]
 	bigendian uint32_t m_seqNumber;
+
+	[ displayName = "Acknowledgement number" ]
 	bigendian uint32_t m_ackNumber;
-	uint8_t m_reserved: 4;
-	uint8_t m_dataOffset: 4;
+
+	[ displayName = "Padding" ]
+	uint8_t m_reserved   : 4;
+
+	[ displayName = "Header length" ]
+	uint8_t m_dataOffset : 4;
+
+	[ displayName = "Flags" ]
 	TcpFlags m_flags;
+
+	[ displayName = "Windows size" ]
 	bigendian uint16_t m_window;
+
+	[
+		displayName = "Checksum",
+		formatSpec = "0x%04X"
+	]
 	bigendian uint16_t m_checksum;
+
+	[ displayName = "Urgent pointer" ]
 	bigendian uint16_t m_urgentData;
+}
+
+char const* formatTcpDigest(void const* p)
+{
+	TcpHdr const* hdr = (TcpHdr const*)p;
+	return $"\e[1mTCP\e[m %1 \u2192 %2 [%3]" (
+		hdr.m_srcPort,
+		hdr.m_dstPort,
+		formatTcpFlagString(hdr.m_flags)
+		);
 }
 
 //..............................................................................
 
+[
+	displayName = "UDP",
+	formatDigestFunc = formatUdpDigest
+]
 struct UdpHdr
 {
+	[ displayName = "Source port" ]
 	bigendian uint16_t m_srcPort;
+
+	[ displayName = "Destination port" ]
 	bigendian uint16_t m_dstPort;
+
+	[ displayName = "Length" ]
 	bigendian uint16_t m_length;
+
+	[
+		displayName = "Checksum",
+		formatSpec = "0x%04X"
+	]
 	bigendian uint16_t m_checksum;
+}
+
+char const* formatUdpDigest(void const* p)
+{
+	UdpHdr const* hdr = (UdpHdr const*)p;
+	return $"\e[1mUDP\e[m %1 \u2192 %2" (hdr.m_srcPort, hdr.m_dstPort);
 }
 
 //..............................................................................
