@@ -52,9 +52,9 @@ protected:
 
 	enum ActionId
 	{
+		ApplyFilter,
 		Refresh,
 		Capture,
-		Test,
 		_Count,
 	}
 
@@ -62,7 +62,6 @@ protected:
 	{
 		Capture,
 		Stop,
-		Refresh,
 		_Count,
 	}
 
@@ -195,21 +194,23 @@ EthernetTapSession.createUi()
 
 	m_iconTable[IconId.Capture] = new ui.Icon("images/capture.png");
 	m_iconTable[IconId.Stop] = new ui.Icon("images/stop.png");
-	m_iconTable[IconId.Refresh] = new ui.Icon("images/refresh.png");
-
-	m_pluginHost.m_toolBar.addLabel("Tap:");
-	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox(-1);
-
-	m_actionTable[ActionId.Refresh]  = createAction("Re-enumerate sniffers", m_iconTable [IconId.Refresh]);
-	m_actionTable[ActionId.Refresh].m_onTriggered += enumerateDevices;
-
-	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable [IconId.Capture]);
-	m_actionTable[ActionId.Capture].m_onTriggered += onCapture;
 
 	m_pluginHost.m_toolBar.addLabel("Filter:");
 	m_filterCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 	m_filterCombo.m_isEditable = true;
 	m_filterCombo.m_onEnter += onSetFilter;
+
+	m_actionTable[ActionId.ApplyFilter]  = createAction("Apply filter", "images/apply.png");
+	m_actionTable[ActionId.ApplyFilter].m_onTriggered += onSetFilter;
+
+	m_pluginHost.m_toolBar.addLabel("Tap:");
+	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox(-1);
+
+	m_actionTable[ActionId.Refresh]  = createAction("Re-enumerate sniffers", "images/refresh.png");
+	m_actionTable[ActionId.Refresh].m_onTriggered += enumerateDevices;
+
+	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable[IconId.Capture]);
+	m_actionTable[ActionId.Capture].m_onTriggered += onCapture;
 
 	// status bar
 
@@ -551,10 +552,13 @@ EthernetTapSession.parse(
 
 		p += dstSize / sizeof(uint32_t);
 
-		PacketHdr const* hdr = (PacketHdr const*)(m_packetBuffer.m_p + sizeof(uint32_t));
+		PacketHdr* hdr = (PacketHdr*)(m_packetBuffer.m_p + sizeof(uint32_t));
 		uint64_t recordCode = (hdr.m_flags & PacketFlags.ChannelId) ?
 			EthernetTapLogRecordCode.Packet_ch2 :
 			EthernetTapLogRecordCode.Packet_ch1;
+
+//		if (rand() & 1)
+//			hdr.m_flags &= ~PacketFlags.CrcValid;
 
 		m_pluginHost.m_log.m_writer.write(recordCode, m_packetBuffer.m_p, m_packetBuffer.m_size);
 		m_packetBuffer.clear();

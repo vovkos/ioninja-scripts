@@ -177,6 +177,13 @@ void representPacketDigest(
 
 	representation.m_lineAttr.m_backColor = ui.StdColor.PastelGray;
 	representEthernetDigest(representation, hdr + 1, hdr.m_size, payloadPreviewIconIdx);
+
+	if (!(hdr.m_flags & PacketFlags.CrcValid))
+	{
+		representation.m_lineAttr.m_iconIdx = -1;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Warning;
+		representation.addHyperText("\e[31mINVALID CRC");
+	}
 }
 
 void representPacketDetails(
@@ -216,11 +223,12 @@ size_t representPacketMeta(
 	if (!(foldFlags & ProtoFoldFlag.MetaLayer))
 	{
 		representation.addHyperText(
-			$"[\e^+%1\e[34m+\e[m] \e[1mMETA\e[m frame #%2 ch #%3 (%4 bytes)"(
+			$"[\e^+%1\e[34m+\e[m] \e[1mMETA\e[m frame #%2 ch #%3 (%4 bytes)%5"(
 			ProtoFoldFlag.MetaLayer,
 			packetId,
 			channel,
-			hdr.m_size
+			hdr.m_size,
+			(hdr.m_flags & PacketFlags.CrcValid) ? "" : " [\e[31mINVALID CRC\e[m]"
 			));
 	}
 	else
