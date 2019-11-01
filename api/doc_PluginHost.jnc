@@ -28,7 +28,6 @@ opaque class PluginHost
 	ui.InformationGrid m_informationGrid;
 	ui.Terminal m_terminal;
 	log.Log m_log;
-	log.Writer* m_detailWriter;
 	MainThreadScheduler* m_mainThreadScheduler;
 
 	char const* const property m_pluginDir;
