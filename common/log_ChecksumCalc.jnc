@@ -117,31 +117,31 @@ ChecksumCalcRangeProcessor.processBin(
 ChecksumCalcRangeProcessor.processEndOfRange()
 {
 	if (m_infoSet.m_crc16Info_ansi)
-		m_infoSet.m_crc16Info_ansi.m_value = $"$(m_crc16_ansi; %04x)";
+		m_infoSet.m_crc16Info_ansi.m_value = $"$(m_crc16_ansi; 04X)";
 
 	if (m_infoSet.m_crc16Info_modbus)
-		m_infoSet.m_crc16Info_modbus.m_value = $"$(m_crc16_modbus; %04x)";
+		m_infoSet.m_crc16Info_modbus.m_value = $"$(m_crc16_modbus; 04X)";
 
 	if (m_infoSet.m_crc16Info_xmodem)
-		m_infoSet.m_crc16Info_xmodem.m_value = $"$(m_crc16_xmodem; %04x)";
+		m_infoSet.m_crc16Info_xmodem.m_value = $"$(m_crc16_xmodem; 04X)";
 
 	if (m_infoSet.m_crc16Info_usb)
-		m_infoSet.m_crc16Info_usb.m_value = $"$(~m_crc16_modbus & 0xffff; %04x)";
+		m_infoSet.m_crc16Info_usb.m_value = $"$(~m_crc16_modbus & 0xffff; 04X)";
 
 	if (m_infoSet.m_crc32Info)
-		m_infoSet.m_crc32Info.m_value = $"$(m_crc32; %08x)";
+		m_infoSet.m_crc32Info.m_value = $"$(m_crc32; 08X)";
 
 	if (m_infoSet.m_ip4ChecksumInfo)
-		m_infoSet.m_ip4ChecksumInfo.m_value = $"$(~m_ip4Checksum & 0xffff; %04x)";
+		m_infoSet.m_ip4ChecksumInfo.m_value = $"$(~m_ip4Checksum & 0xffff; 04X)";
 
 	if (m_infoSet.m_sum8Info)
-		m_infoSet.m_sum8Info.m_value = $"$(m_sum8; x)";
+		m_infoSet.m_sum8Info.m_value = $"$(m_sum8; 02X)";
 
 	if (m_infoSet.m_sum16Info_le)
-		m_infoSet.m_sum16Info_le.m_value = $"$(m_sum16_le; x)";
+		m_infoSet.m_sum16Info_le.m_value = $"$(m_sum16_le; 04X)";
 
 	if (m_infoSet.m_sum16Info_be)
-		m_infoSet.m_sum16Info_be.m_value = $"$(m_sum16_be; x)";
+		m_infoSet.m_sum16Info_be.m_value = $"$(m_sum16_be; 04X)";
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
