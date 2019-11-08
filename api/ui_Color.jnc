@@ -38,7 +38,7 @@ enum StdColor
 
 	PastelGray   = 0xefefef,
 	PastelRed    = 0xffe4e1,
-	PastelOrange = 0xfffacd,
+	PastelOrange = 0xffefc0,
 	PastelYellow = 0xffffc0,
 	PastelGreen  = 0xe1fada,
 	PastelCyan   = 0xcdfaff,
