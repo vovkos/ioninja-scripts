@@ -223,10 +223,9 @@ size_t representPacketMeta(
 	if (!(foldFlags & ProtoFoldFlag.MetaLayer))
 	{
 		representation.addHyperText(
-			$"[\e^+%1\e[34m+\e[m] \e[1mMETA\e[m frame #%2 ch #%3 (%4 bytes)%5"(
+			$"[\e^+%1\e[34m+\e[m] \e[1mMETA\e[m Frame #%2 (%3 bytes)%4"(
 			ProtoFoldFlag.MetaLayer,
 			packetId,
-			channel,
 			hdr.m_size,
 			(hdr.m_flags & PacketFlags.CrcValid) ? "" : " [\e[31mINVALID CRC\e[m]"
 			));
@@ -281,7 +280,7 @@ size_t representPacketMeta(
 	range = { MetaSize + dataSize, sizeof(uint32_t), ProtoColor.MetaLayer };
 	protoRangeArray.append(range);
 
-	representEthernetHdr(representation, protoRangeArray, hdr + 1, dataSize, MetaSize, foldFlags);
+	representEthernetDetails(representation, protoRangeArray, hdr + 1, dataSize, MetaSize, foldFlags);
 	return MetaSize + hdr.m_size;
 }
 

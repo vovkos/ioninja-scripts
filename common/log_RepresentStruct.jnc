@@ -13,72 +13,98 @@ char const* getDisplayName(jnc.ModuleItemDecl* decl)
 	return displayName ? displayName : decl.m_name;
 }
 
+char const* getStructDigest(
+	jnc.StructType* type,
+	void const* p
+	)
+{
+	FormatFunc thin* formatDigestFunc = type.findAttributeValue("formatDigestFunc");
+	return formatDigestFunc ? formatDigestFunc(p) : null;
+}
+
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 void representStruct(
 	Representation* representation,
 	jnc.StructType* type,
+	char const* name = null,
 	uint_t binPartRecordCode,
 	void const* p,
 	size_t baseOffset = 0,
 	uint_t foldFlags = 1,
-	uint_t foldFlagBase = 1,
+	uint_t structFoldFlag = 1, // 0 to exclude the folding header
 	size_t indentLevel = 0
 	)
 {
 	std.StringBuilder indent;
 	indent.copy(' ', indentLevel * 4);
 
-	if (!(foldFlags & foldFlagBase))
+	if (structFoldFlag)
 	{
-		FormatFunc thin* formatDigestFunc = type.findAttributeValue("formatDigestFunc");
+		if (!name)
+			name = getDisplayName(type);
 
-		representation.addHyperText($"%1[\e^+%2\e[34m+\e[m] \e[1m%3"(
+		if (!(foldFlags & structFoldFlag))
+		{
+			char const* digest = getStructDigest(type, p);
+
+			representation.addHyperText($"%1[\e^+%2\e[34m+\e[m] \e[1m%3%4%5"(
+				indent.m_sz,
+				structFoldFlag,
+				name,
+				digest ? "\e[m " : null,
+				digest
+				));
+
+			return;
+		}
+
+		representation.addHyperText($"%1[\e^-%2\e[34m-\e[m] \e[1m%3"(
 			indent.m_sz,
-			foldFlagBase,
-			formatDigestFunc ? formatDigestFunc(p) : getDisplayName(type)
+			structFoldFlag,
+			name
 			));
-
-		return;
 	}
-
-	representation.addHyperText($"%1[\e^-%2\e[34m-\e[m] \e[1m%3"(
-		indent.m_sz,
-		foldFlagBase,
-		getDisplayName(type)
-		));
 
 	indent.append(' ', 4);
 
-	size_t maxFieldNameLength = 0;
 	size_t count = type.m_fieldCount;
-	for (size_t i = 0; i < count; i++)
-	{
-		jnc.Field* field = type.m_fieldArray[i];
-		size_t length = strlen(getDisplayName(field));
-		if (length > maxFieldNameLength)
-			maxFieldNameLength = length;
-	}
-
-	std.StringBuilder gap;
-
 	for (size_t i = 0; i < count; i++)
 	{
 		jnc.Field* field = type.m_fieldArray[i];
 		char const* displayName = getDisplayName(field);
 		size_t length = strlen(displayName);
-		gap.copy(' ', maxFieldNameLength - length);
+
+		char const* valueString;
 
 		FormatFunc thin* formatFunc = field.findAttributeValue("formatFunc");
+		if (formatFunc)
+		{
+			valueString = formatFunc(p + field.m_offset);
+		}
+		else
+		{
+			char const* formatSpec = field.findAttributeValue("formatSpec");
+			jnc.Type* displayType = field.findAttributeValue("displayType");
 
-		char const* valueString = formatFunc ?
-			valueString = formatFunc(p + field.m_offset) :
-			field.m_type.getValueString(p + field.m_offset, field.findAttributeValue("formatSpec"));
+			if (!displayType)
+			{
+				valueString = field.m_type.getValueString(p + field.m_offset, formatSpec);
+			}
+			else if (field.m_type.m_typeKind != jnc.TypeKind.BitField)
+			{
+				valueString = displayType.getValueString(p + field.m_offset, formatSpec);
+			}
+			else
+			{
+				variant value = (dynamic (jnc.BitFieldType*)field.m_type).extract(p + field.m_offset);
+				valueString = displayType.getValueString(value, formatSpec);
+			}
+		}
 
-		representation.addHyperText($"%1%2: %3\e^!0x%x,%5,%6\e[34m%7"(
+		representation.addHyperText($"%1%2:\t\e^!0x%x,%4,%5\e[34m%6"(
 			indent.m_sz,
 			displayName,
-			gap.m_sz,
 			binPartRecordCode,
 			baseOffset + field.m_offset,
 			field.m_type.m_size,

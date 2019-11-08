@@ -1,6 +1,6 @@
 //..............................................................................
 //
-// Sniffer log IP packets handling
+// Sniffer log IPv6 packets handling
 //
 
 //..............................................................................
@@ -28,21 +28,46 @@ void representIp6Digest(
 	p += sizeof(io.Ip6Hdr);
 	size = ipHdr.m_payloadLength;
 
-	char const* srcString = $"[$(io.formatIp6Address(&ipHdr.m_srcAddress))]";
-	char const* dstString = $"[$(io.formatIp6Address(&ipHdr.m_dstAddress))]";
+	char const* srcString = io.formatIp6Address(&ipHdr.m_srcAddress);
+	char const* dstString = io.formatIp6Address(&ipHdr.m_dstAddress);
 
 	switch (ipHdr.m_nextHeader)
 	{
-	case io.IpProtocol.Icmp:
-		representIcmpDigest(representation, srcString, dstString, p, size, payloadPreviewIconIdx);
+	case io.IpProtocol.Icmp6:
+		representSimpleProtoDigest(
+			representation,
+			typeof(io.Icmp6Hdr),,
+			srcString,
+			dstString,
+			p,
+			size,
+			payloadPreviewIconIdx
+			);
+
 		break;
 
 	case io.IpProtocol.Tcp:
-		representTcpDigest(representation, srcString, dstString, p, size, payloadPreviewIconIdx);
+		representTcpDigest(
+			representation,
+			$"[$srcString]",
+			$"[$dstString]",
+			p,
+			size,
+			payloadPreviewIconIdx
+			);
+
 		break;
 
 	case io.IpProtocol.Udp:
-		representUdpDigest(representation, srcString, dstString, p, size, payloadPreviewIconIdx);
+		representUdpDigest(
+			representation,
+			$"[$srcString]",
+			$"[$dstString]",
+			p,
+			size,
+			payloadPreviewIconIdx
+			);
+
 		break;
 
 	default:
@@ -63,7 +88,7 @@ char const* formatIp6Digest(
 		extra
 		);
 }
-void representIp6Hdr(
+void representIp6Details(
 	log.Representation* representation,
 	std.Array* protoRangeArray,
 	void const* p,
@@ -72,7 +97,7 @@ void representIp6Hdr(
 	uint_t foldFlags
 	)
 {
-	representation.m_lineAttr.m_backColor = ProtoColor.Ip;
+	representation.m_lineAttr.m_backColor = ProtoColor.NetworkLayer;
 
 	if (size < sizeof(io.Ip6Hdr))
 	{
@@ -82,15 +107,15 @@ void representIp6Hdr(
 
 	log.representStruct(
 		representation,
-		typeof(io.Ip6Hdr),
+		typeof(io.Ip6Hdr),,
 		NetSnifferLogPartCode.RawPacket,
 		p,
 		baseOffset,
 		foldFlags,
-		ProtoFoldFlag.Ip6
+		ProtoFoldFlag.NetworkLayer
 		);
 
-	ProtoRange range = { baseOffset, sizeof(io.Ip6Hdr), ProtoColor.Ip6 }
+	ProtoRange range = { baseOffset, sizeof(io.Ip6Hdr), ProtoColor.NetworkLayer }
 	protoRangeArray.append(range);
 
 	io.Ip6Hdr const* ipHdr = (io.Ip6Hdr const*)p;
@@ -106,14 +131,29 @@ void representIp6Hdr(
 
 	switch (ipHdr.m_nextHeader)
 	{
-	case io.IpProtocol.Icmp:
-		return representIcmpHdr(representation, protoRangeArray, p, size, baseOffset, foldFlags);
+	case io.IpProtocol.Icmp6:
+		representSimpleProtoDetails(
+			representation,
+			protoRangeArray,
+			typeof(io.Icmp6Hdr),,
+			p,
+			size,
+			baseOffset,
+			foldFlags,
+			ProtoFoldFlag.TransportLayer,
+			ProtoColor.TransportLayer,
+			ProtoFoldFlag.Payload,
+			ProtoColor.Payload
+			);
+		break;
 
 	case io.IpProtocol.Tcp:
-		return representTcpHdr(representation, protoRangeArray, p, size, baseOffset, foldFlags);
+		representTcpDetails(representation, protoRangeArray, p, size, baseOffset, foldFlags);
+		break;
 
 	case io.IpProtocol.Udp:
-		return representUdpHdr(representation, protoRangeArray, p, size, baseOffset, foldFlags);
+		representUdpDetails(representation, protoRangeArray, p, size, baseOffset, foldFlags);
+		break;
 	}
 }
 

@@ -20,22 +20,37 @@ log-detailizer-func = detailizeNetSnifferLog
 NetSnifferLogRecordCode.jnc
 NetSnifferLogRepresenter.jnc
 Protocols.jnc
+Proto_Simple.jnc
 Proto_Ethernet.jnc
+Proto_Loopback.jnc
 Proto_Arp.jnc
 Proto_Ip.jnc
 Proto_Ip6.jnc
-Proto_Icmp.jnc
-Proto_Igmp.jnc
 Proto_Tcp.jnc
 Proto_Udp.jnc
+Proto_Dns.jnc
 
 log_RepresentStruct.jnc
-io_TcpIp.jnc
+
+io_Loopback.jnc
+io_Ethernet.jnc
+io_Llc.jnc
+io_Arp.jnc
+io_Ip.jnc
+io_Ip6.jnc
+io_Icmp.jnc
+io_Icmp6.jnc
+io_Igmp.jnc
+io_Tcp.jnc
+io_Udp.jnc
+io_Dns.jnc
 
 [records]
 
-81d4856b81a408c7  # Packet
-81d4856b81a408c8  # InjectedPacket
+81d4856b81a408c7  # EthernetPacket
+81d4856b81a408c8  # InjectedEthernetPacket
 81d4856b81a408c9  # DefragmentedIp
-81d4856b81a408ca  # PacketDetails
-81d4856b81a408cb  # DefragmentedIpDetails
+81d4856b81a408ca  # Packet
+81d4856b81a408cb  # InjectedPacket
+81d4856b81a408cc  # PacketDetails
+81d4856b81a408cd  # DefragmentedIpDetails

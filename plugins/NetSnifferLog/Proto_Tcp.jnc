@@ -65,7 +65,7 @@ char const* formatTcpDigest(
 		);
 }
 
-void representTcpHdr(
+void representTcpDetails(
 	log.Representation* representation,
 	std.Array* protoRangeArray,
 	void const* p,
@@ -74,7 +74,7 @@ void representTcpHdr(
 	uint_t foldFlags
 	)
 {
-	representation.m_lineAttr.m_backColor = ProtoColor.Tcp;
+	representation.m_lineAttr.m_backColor = ProtoColor.TransportLayer;
 
 	if (size < sizeof(io.TcpHdr))
 	{
@@ -84,15 +84,15 @@ void representTcpHdr(
 
 	log.representStruct(
 		representation,
-		typeof(io.TcpHdr),
+		typeof(io.TcpHdr),,
 		NetSnifferLogPartCode.RawPacket,
 		p,
 		baseOffset,
 		foldFlags,
-		ProtoFoldFlag.Tcp
+		ProtoFoldFlag.TransportLayer
 		);
 
-	ProtoRange range = { baseOffset, sizeof(io.TcpHdr), ProtoColor.Tcp }
+	ProtoRange range = { baseOffset, sizeof(io.TcpHdr), ProtoColor.TransportLayer }
 	protoRangeArray.append(range);
 
 	io.TcpHdr const* tcpHdr = (io.TcpHdr const*)p;
@@ -107,7 +107,7 @@ void representTcpHdr(
 
 	if (dataOffset > sizeof(io.TcpHdr))
 	{
-		range = { baseOffset + sizeof(io.TcpHdr), dataOffset - sizeof(io.TcpHdr), ProtoColor.TcpOptions };
+		range = { baseOffset + sizeof(io.TcpHdr), dataOffset - sizeof(io.TcpHdr), ProtoColor.Options };
 		protoRangeArray.append(range);
 	}
 
@@ -121,13 +121,13 @@ void representTcpHdr(
 	representPayload(
 		representation,
 		protoRangeArray,
-		"\e[1mTCP\e[m Payload",
+		"TCP",
 		p,
 		size,
 		baseOffset,
 		foldFlags,
-		ProtoFoldFlag.UdpPayload,
-		ProtoColor.UdpPayload
+		ProtoFoldFlag.Payload,
+		ProtoColor.Payload
 		);
 }
 

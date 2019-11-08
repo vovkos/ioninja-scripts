@@ -568,13 +568,17 @@ EthernetTapSession.parse(
 
 EthernetTapSession.load(doc.Storage* storage)
 {
-	m_deviceCombo.m_currentIndex  = storage.readInt("deviceIdx");
+	m_filterCombo.loadHistory(storage, "filterHistory");
+	m_filterCombo.m_editText = storage.readString("filter");
+	m_deviceCombo.m_currentIndex = storage.readInt("deviceIdx");
 	m_bufferPropertySet.load(storage);
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
 }
 
 EthernetTapSession.save(doc.Storage* storage)
 {
+	m_filterCombo.saveHistory(storage, "filterHistory");
+	storage.writeString("filter", m_filterCombo.m_editText);
 	storage.writeInt("deviceIdx", (int)m_deviceCombo.m_currentIndex);
 	m_bufferPropertySet.save(storage);
 }

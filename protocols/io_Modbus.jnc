@@ -1,11 +1,11 @@
 //..............................................................................
 //
-// Packet definitions for Modbus
+// Modbus RTU/TCP defitions
 //
 
 namespace io {
 
-//! \addtogroup common-modbus
+//! \addtogroup protocols
 //! @{
 
 alignment(1);

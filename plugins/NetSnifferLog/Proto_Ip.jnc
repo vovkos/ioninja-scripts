@@ -1,6 +1,6 @@
 //..............................................................................
 //
-// Sniffer log IP packets handling
+// Sniffer log IPv4 packets handling
 //
 
 //..............................................................................
@@ -43,11 +43,28 @@ void representIpDigest(
 	switch (ipHdr.m_protocol)
 	{
 	case io.IpProtocol.Icmp:
-		representIcmpDigest(representation, srcString, dstString, p, size, payloadPreviewIconIdx);
+		representSimpleProtoDigest(
+			representation,
+			typeof(io.IcmpHdr),,
+			srcString,
+			dstString,
+			p,
+			size,
+			payloadPreviewIconIdx
+			);
+
 		break;
 
 	case io.IpProtocol.Igmp:
-		representIgmpDigest(representation, srcString, dstString, p, size);
+		representSimpleProtoDigest(
+			representation,
+			typeof(io.IgmpHdr),,
+			srcString,
+			dstString,
+			p,
+			size
+			);
+
 		break;
 
 	case io.IpProtocol.Tcp:
@@ -77,7 +94,7 @@ char const* formatIpDigest(
 		);
 }
 
-void representIpHdr(
+void representIpDetails(
 	log.Representation* representation,
 	std.Array* protoRangeArray,
 	void const* p,
@@ -86,7 +103,7 @@ void representIpHdr(
 	uint_t foldFlags
 	)
 {
-	representation.m_lineAttr.m_backColor = ProtoColor.Ip;
+	representation.m_lineAttr.m_backColor = ProtoColor.NetworkLayer;
 
 	if (size < sizeof(io.IpHdr))
 	{
@@ -96,15 +113,15 @@ void representIpHdr(
 
 	log.representStruct(
 		representation,
-		typeof(io.IpHdr),
+		typeof(io.IpHdr),,
 		NetSnifferLogPartCode.RawPacket,
 		p,
 		baseOffset,
 		foldFlags,
-		ProtoFoldFlag.Ip
+		ProtoFoldFlag.NetworkLayer
 		);
 
-	ProtoRange range = { baseOffset, sizeof(io.IpHdr), ProtoColor.Ip }
+	ProtoRange range = { baseOffset, sizeof(io.IpHdr), ProtoColor.NetworkLayer }
 	protoRangeArray.append(range);
 
 	io.IpHdr const* ipHdr = (io.IpHdr const*)p;
@@ -139,16 +156,42 @@ void representIpHdr(
 	switch (ipHdr.m_protocol)
 	{
 	case io.IpProtocol.Icmp:
-		return representIcmpHdr(representation, protoRangeArray, p, size, baseOffset, foldFlags);
+		representSimpleProtoDetails(
+			representation,
+			protoRangeArray,
+			typeof(io.IcmpHdr),,
+			p,
+			size,
+			baseOffset,
+			foldFlags,
+			ProtoFoldFlag.TransportLayer,
+			ProtoColor.TransportLayer,
+			ProtoFoldFlag.Payload,
+			ProtoColor.Payload
+			);
+		break;
 
 	case io.IpProtocol.Igmp:
-		return representIgmpHdr(representation, protoRangeArray, p, size, baseOffset, foldFlags);
+		representSimpleProtoDetails(
+			representation,
+			protoRangeArray,
+			typeof(io.IgmpHdr),,
+			p,
+			size,
+			baseOffset,
+			foldFlags,
+			ProtoFoldFlag.TransportLayer,
+			ProtoColor.TransportLayer
+			);
+		break;
 
 	case io.IpProtocol.Tcp:
-		return representTcpHdr(representation, protoRangeArray, p, size, baseOffset, foldFlags);
+		representTcpDetails(representation, protoRangeArray, p, size, baseOffset, foldFlags);
+		break;
 
 	case io.IpProtocol.Udp:
-		return representUdpHdr(representation, protoRangeArray, p, size, baseOffset, foldFlags);
+		representUdpDetails(representation, protoRangeArray, p, size, baseOffset, foldFlags);
+		break;
 	}
 }
 
@@ -161,13 +204,13 @@ void representIpOptions(
 	uint_t foldFlags
 	)
 {
-	representation.m_lineAttr.m_backColor = ProtoColor.IpOptions;
+	representation.m_lineAttr.m_backColor = ProtoColor.Options;
 
-	if (foldFlags & ProtoFoldFlag.IpOptions)
+	if (foldFlags & ProtoFoldFlag.Options)
 	{
 		representation.addHyperText(
 			$"[\e^-%1\e[34m-\e[m] \e[1mIP\e[m Options"(
-			ProtoFoldFlag.IpOptions
+			ProtoFoldFlag.Options
 			));
 
 		size_t offset = baseOffset;
@@ -194,12 +237,12 @@ void representIpOptions(
 	{
 		representation.addHyperText(
 			$"[\e^+%1\e[34m+\e[m] \e[1mIP\e[m Options (%2 bytes)"(
-			ProtoFoldFlag.IpOptions,
+			ProtoFoldFlag.Options,
 			size
 			));
 	}
 
-	ProtoRange range = { baseOffset, size, ProtoColor.IpOptions };
+	ProtoRange range = { baseOffset, size, ProtoColor.Options };
 	protoRangeArray.append(range);
 }
 
@@ -224,7 +267,7 @@ void representDefragmentedIpDetails(
 	)
 {
 	std.Array protoRangeArray;
-	representIpHdr(representation, protoRangeArray, p, size, 0, foldFlags);
+	representIpDetails(representation, protoRangeArray, p, size, 0, foldFlags);
 	representRawPacketData(representation, protoRangeArray, p, size);
 }
 

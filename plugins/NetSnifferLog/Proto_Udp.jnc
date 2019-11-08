@@ -3,7 +3,25 @@
 // Sniffer log UDP packets handling
 //
 
+import "std_HashTable.jnc"
+
 //..............................................................................
+
+std.HashTable g_udpPortAppProtoParserMap; // uint16_t port -> AppProtoParser*
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+AppProtoParser* getUdpAppProtoParser(io.UdpHdr const* hdr)
+{
+	AppProtoParser* srcParser = g_udpPortAppProtoParserMap[hdr.m_srcPort];
+	AppProtoParser* dstParser = g_udpPortAppProtoParserMap[hdr.m_dstPort];
+
+	return srcParser ?
+		dstParser && hdr.m_dstPort < hdr.m_srcPort? dstParser : srcParser :
+		dstParser ? dstParser : null;
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 void representUdpDigest(
 	log.Representation* representation,
@@ -31,14 +49,23 @@ void representUdpDigest(
 		return;
 	}
 
-	representation.addHyperText(formatUdpDigest(udpHdr, srcString, dstString));
-
 	if (udpHdr.m_length == sizeof(io.UdpHdr))
+	{
+		representation.addHyperText(formatUdpDigest(udpHdr, srcString, dstString));
 		return;
+	}
 
 	p += sizeof(io.UdpHdr);
 	size = udpHdr.m_length - sizeof(io.UdpHdr);
 
+	AppProtoParser* parser = getUdpAppProtoParser(udpHdr);
+	if (parser)
+	{
+		parser.representDigest(representation, srcString, dstString, p, size, payloadPreviewIconIdx);
+		return;
+	}
+
+	representation.addHyperText(formatUdpDigest(udpHdr, srcString, dstString));
 	representPayloadPreview(representation, p, size, payloadPreviewIconIdx);
 }
 
@@ -60,7 +87,7 @@ char const* formatUdpDigest(
 		);
 }
 
-void representUdpHdr(
+void representUdpDetails(
 	log.Representation* representation,
 	std.Array* protoRangeArray,
 	void const* p,
@@ -69,7 +96,7 @@ void representUdpHdr(
 	uint_t foldFlags
 	)
 {
-	representation.m_lineAttr.m_backColor = ProtoColor.Udp;
+	representation.m_lineAttr.m_backColor = ProtoColor.TransportLayer;
 
 	if (size < sizeof(io.UdpHdr))
 	{
@@ -79,15 +106,15 @@ void representUdpHdr(
 
 	log.representStruct(
 		representation,
-		typeof(io.UdpHdr),
+		typeof(io.UdpHdr),,
 		NetSnifferLogPartCode.RawPacket,
 		p,
 		baseOffset,
 		foldFlags,
-		ProtoFoldFlag.Udp
+		ProtoFoldFlag.TransportLayer
 		);
 
-	ProtoRange range = { baseOffset, sizeof(io.UdpHdr), ProtoColor.Udp }
+	ProtoRange range = { baseOffset, sizeof(io.UdpHdr), ProtoColor.TransportLayer }
 	protoRangeArray.append(range);
 
 	io.UdpHdr const* udpHdr = (io.UdpHdr const*)p;
@@ -104,17 +131,29 @@ void representUdpHdr(
 	size = udpHdr.m_length - sizeof(io.UdpHdr);
 	baseOffset += sizeof(io.UdpHdr);
 
-	representPayload(
-		representation,
-		protoRangeArray,
-		"\e[1mUDP\e[m Payload",
-		p,
-		size,
-		baseOffset,
-		foldFlags,
-		ProtoFoldFlag.UdpPayload,
-		ProtoColor.UdpPayload
-		);
+	AppProtoParser* parser = getUdpAppProtoParser(udpHdr);
+
+	if (parser)
+		parser.representDetails(
+			representation,
+			protoRangeArray,
+			p,
+			size,
+			baseOffset,
+			foldFlags
+			);
+	else
+		representPayload(
+			representation,
+			protoRangeArray,
+			"UDP",
+			p,
+			size,
+			baseOffset,
+			foldFlags,
+			ProtoFoldFlag.Payload,
+			ProtoColor.Payload
+			);
 }
 
 //..............................................................................

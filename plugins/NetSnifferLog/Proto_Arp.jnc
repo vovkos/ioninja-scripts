@@ -64,7 +64,7 @@ void representArpDigest(
 	}
 }
 
-void representArpHdr(
+void representArpDetails(
 	log.Representation* representation,
 	std.Array* protoRangeArray,
 	void const* p,
@@ -73,7 +73,7 @@ void representArpHdr(
 	uint_t foldFlags
 	)
 {
-	representation.m_lineAttr.m_backColor = ProtoColor.Arp;
+	representation.m_lineAttr.m_backColor = ProtoColor.NetworkLayer;
 
 	if (size < sizeof(io.ArpHdr))
 	{
@@ -83,15 +83,15 @@ void representArpHdr(
 
 	log.representStruct(
 		representation,
-		typeof(io.ArpHdr),
+		typeof(io.ArpHdr),,
 		NetSnifferLogPartCode.RawPacket,
 		p,
 		baseOffset,
 		foldFlags,
-		ProtoFoldFlag.Arp
+		ProtoFoldFlag.NetworkLayer
 		);
 
-	ProtoRange range = { baseOffset, sizeof(io.ArpHdr), ProtoColor.Arp }
+	ProtoRange range = { baseOffset, sizeof(io.ArpHdr), ProtoColor.NetworkLayer }
 	protoRangeArray.append(range);
 
 	representArpPayload(representation, protoRangeArray, p, size, baseOffset, foldFlags);
@@ -114,9 +114,9 @@ void representArpPayload(
 		return;
 	}
 
-	representation.m_lineAttr.m_backColor = ProtoColor.ArpPayload;
+	representation.m_lineAttr.m_backColor = ProtoColor.Payload;
 
-	if (foldFlags & ProtoFoldFlag.ArpPayload)
+	if (foldFlags & ProtoFoldFlag.Payload)
 	{
 		representation.addHyperText(
 			$"[\e^-%1\e[34m-\e[m] \e[1mARP\e[m Payload\n"
@@ -124,7 +124,7 @@ void representArpPayload(
 			$"    Sender protocol address: %3\n"
 			$"    Target hardware address: %4\n"
 			$"    Target protocol address: %5" (
-			ProtoFoldFlag.ArpPayload,
+			ProtoFoldFlag.Payload,
 			formatArpHardwareAddress(arpHdr, baseOffset, 0),
 			formatArpProtocolAddress(arpHdr, baseOffset, 0),
 			formatArpHardwareAddress(arpHdr, baseOffset, 1),
@@ -135,14 +135,14 @@ void representArpPayload(
 	{
 		representation.addHyperText(
 			$"[\e^+%1\e[34m+\e[m] \e[1mARP\e[m Payload (%2 bytes)"(
-			ProtoFoldFlag.ArpPayload,
+			ProtoFoldFlag.Payload,
 			payloadSize
 			));
 	}
 
 	baseOffset += sizeof(io.ArpHdr);
 
-	ProtoRange range = { baseOffset, payloadSize, ProtoColor.ArpPayload };
+	ProtoRange range = { baseOffset, payloadSize, ProtoColor.Payload };
 	protoRangeArray.append(range);
 }
 

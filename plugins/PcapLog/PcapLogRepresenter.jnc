@@ -26,8 +26,8 @@ bool representPcapLog(
 		representation.addHyperText(
 			PcapLogPartCode.StartingCapture,
 			size && *filter ?
-				$"Starting capture with filter '\e[34m$filter\e[m'..." :
-				"Starting capture without filter..."
+				$"Starting capture (capture filter '\e[34m$filter\e[m')..." :
+				"Starting capture (no capture filter)..."
 			);
 
 		break;

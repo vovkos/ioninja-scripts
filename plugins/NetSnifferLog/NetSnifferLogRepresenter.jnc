@@ -7,6 +7,7 @@ import "log_Representation.jnc"
 import "log_Writer.jnc"
 import "io_TcpIp.jnc"
 import "std_Array.jnc"
+import "io_pcap.jncx"
 import "NetSnifferLogRecordCode.jnc"
 
 //..............................................................................
@@ -19,8 +20,22 @@ bool representNetSnifferLog(
 	uint_t foldFlags
 	)
 {
+	printf("representNetSnifferLog\n");
+
 	switch (recordCode)
 	{
+	case NetSnifferLogRecordCode.EthernetPacket:
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Packet;
+		representation.m_lineAttr.m_backColor = ui.StdColor.PastelGray;
+		representEthernetDigest(representation, p, size);
+		break;
+
+	case NetSnifferLogRecordCode.InjectedEthernetPacket:
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.TxPacket;
+		representation.m_lineAttr.m_backColor = ui.StdColor.PastelGray;
+		representEthernetDigest(representation, p, size, log.StdLogIcon.Tx);
+		break;
+
 	case NetSnifferLogRecordCode.Packet:
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Packet;
 		representation.m_lineAttr.m_backColor = ui.StdColor.PastelGray;
@@ -90,7 +105,33 @@ void representPacketDigest(
 	int payloadPreviewIconIdx = -1
 	)
 {
-	representEthernetDigest(representation, p, size, payloadPreviewIconIdx);
+	io.PcapLinkType linkType = *(io.PcapLinkType const*)p;
+	p += sizeof(io.PcapLinkType);
+	size -= sizeof(io.PcapLinkType);
+	representPacketDigest(representation, linkType, p, size);
+}
+
+void representPacketDigest(
+	log.Representation* representation,
+	io.PcapLinkType linkType,
+	void const* p,
+	size_t size,
+	int payloadPreviewIconIdx = -1
+	)
+{
+	switch (linkType)
+	{
+	case io.PcapLinkType.Loopback:
+		representLoopbackDigest(representation, p, size, payloadPreviewIconIdx);
+		break;
+
+	case io.PcapLinkType.Ethernet:
+		representEthernetDigest(representation, p, size, payloadPreviewIconIdx);
+		break;
+
+	default:
+		representUnsupportedLinkType(representation, linkType);
+	}
 }
 
 void representPacketDetails(
@@ -100,10 +141,38 @@ void representPacketDetails(
 	uint_t foldFlags
 	)
 {
+	io.PcapLinkType linkType = *(io.PcapLinkType const*)p;
+	p += sizeof(io.PcapLinkType);
+	size -= sizeof(io.PcapLinkType);
+
 	std.Array protoRangeArray;
-	representEthernetHdr(representation, protoRangeArray, p, size, 0, foldFlags);
+
+	switch (linkType)
+	{
+	case io.PcapLinkType.Loopback:
+		representLoopbackDetails(representation, protoRangeArray, p, size, 0, foldFlags);
+		break;
+
+	case io.PcapLinkType.Ethernet:
+		representEthernetDetails(representation, protoRangeArray, p, size, 0, foldFlags);
+		break;
+
+	default:
+		representUnsupportedLinkType(representation, linkType);
+	}
+
 	representation.addBreak();
 	representRawPacketData(representation, protoRangeArray, p, size);
+}
+
+void representUnsupportedLinkType(
+	log.Representation* representation,
+	io.PcapLinkType linkType
+	)
+{
+	representation.m_lineAttr.m_backColor = log.StdLogColor.Warning;
+	representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
+	representation.addHyperText($"Unsupported link type: \e[34m%1"(typeof(io.PcapLinkType).getValueString(&linkType)));
 }
 
 void representRawPacketData(
@@ -149,7 +218,7 @@ void representPayload(
 	if (foldFlags & payloadFoldFlag)
 	{
 		representation.addHyperText(
-			$"[\e^-%1\e[34m-\e[m] %2"(
+			$"[\e^-%1\e[34m-\e[m] \e[1m%2\e[m Payload"(
 			payloadFoldFlag,
 			name
 			));
@@ -160,7 +229,7 @@ void representPayload(
 	else
 	{
 		representation.addHyperText(
-			$"[\e^+%1\e[34m+\e[m] %2 (%3 bytes)"(
+			$"[\e^+%1\e[34m+\e[m] \e[1m%2\e[m Payload (%3 bytes)"(
 			payloadFoldFlag,
 			name,
 			size
