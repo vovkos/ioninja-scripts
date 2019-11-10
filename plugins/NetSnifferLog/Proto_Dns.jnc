@@ -468,15 +468,16 @@ protected:
 		string.append(' ',  length);
 
 		for (size_t i = 0, j = 0; i < length; i++, j += 2)
-			string[originalLength + i] = ((string[i] - 'A') << 4) | (string[i + 1] - 'A');
+			string[originalLength + i] = ((string[j] - 'A') << 4) | (string[j + 1] - 'A');
 
 		string.remove(0, originalLength);
 
 		if (length == 16) // last character is the type
 		{
+			char type = string[15];
 			string.chop(1);
 			string.trimRight();
-			string.append($" (%1)"(typeof(NetBiosNameType).getValueType(string[15])));
+			string.append($" (%1)"(typeof(NetBiosNameType).getValueString(type, "0x%02x")));
 		}
 	}
 }
