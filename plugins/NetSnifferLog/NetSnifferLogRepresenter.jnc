@@ -73,6 +73,7 @@ bool representNetSnifferLog(
 
 bool detailizeNetSnifferLog(
 	log.Writer* writer,
+	uint64_t timestamp,
 	uint64_t recordCode,
 	void const* p,
 	size_t size
@@ -82,11 +83,11 @@ bool detailizeNetSnifferLog(
 	{
 	case NetSnifferLogRecordCode.Packet:
 	case NetSnifferLogRecordCode.InjectedPacket:
-		writer.write(NetSnifferLogRecordCode.PacketDetails, p, size);
+		writer.write(timestamp, NetSnifferLogRecordCode.PacketDetails, p, size);
 		break;
 
 	case NetSnifferLogRecordCode.DefragmentedIp:
-		writer.write(NetSnifferLogRecordCode.DefragmentedIpDetails, p, size);
+		writer.write(timestamp, NetSnifferLogRecordCode.DefragmentedIpDetails, p, size);
 		break;
 
 	default:
