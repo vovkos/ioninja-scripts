@@ -7,6 +7,11 @@ namespace log {
 
 typedef char const* FormatFunc(void const* p);
 
+typedef char const* FormatExFunc(
+	void const* p,
+	size_t size
+	);
+
 char const* getDisplayName(jnc.ModuleItemDecl* decl)
 {
 	char const* displayName = decl.findAttributeValue("displayName");

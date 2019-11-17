@@ -81,7 +81,7 @@ char const* formatIp6Digest(
 	char const* extra = null
 	)
 {
-	return $"\e[1mIPv6 \e[10;34m%1\e[m \u2192 \e[34m%2\e[m (proto: \e[34m%3\e[m)%4" (
+	return $"\e[1mIPv6 \e[10;34m%1\e[m \u2192 \e[34m%2\e[m (proto: \e[34m%3\e[m)%4"(
 		io.formatIp6Address(&hdr.m_srcAddress),
 		io.formatIp6Address(&hdr.m_dstAddress),
 		typeof(io.IpProtocol).getValueString(&hdr.m_nextHeader),

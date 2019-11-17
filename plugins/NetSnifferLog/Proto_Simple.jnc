@@ -34,7 +34,7 @@ void representSimpleProtoDigest(
 	char const* digest = log.getStructDigest(type, p);
 
 	representation.addHyperText(
-		$"\e[1m%1 \e[10;34m%2\e[m \u2192 \e[34m%3%4%5" (
+		$"\e[1m%1 \e[10;34m%2\e[m \u2192 \e[34m%3%4%5"(
 		name,
 		srcString,
 		dstString,

@@ -29,7 +29,7 @@ void representArpDigest(
 	{
 	case io.ArpOpcode.Request:
 		representation.addHyperText(
-			$"\e[1mARP\e[m \e[34m%1\e[m \u2192 request: who-has \e[34m%2" (
+			$"\e[1mARP\e[m \e[34m%1\e[m \u2192 request: who-has \e[34m%2"(
 			getArpProtocolAddressString(arpHdr, 0),
 			getArpProtocolAddressString(arpHdr, 1)
 			));
@@ -37,7 +37,7 @@ void representArpDigest(
 
 	case io.ArpOpcode.Reply:
 		representation.addHyperText(
-			$"\e[1mARP\e[m \e[34m%1\e[m \u2192 \e[34m%2\e[m reply: \e[34m%3" (
+			$"\e[1mARP\e[m \e[34m%1\e[m \u2192 \e[34m%2\e[m reply: \e[34m%3"(
 			getArpProtocolAddressString(arpHdr, 0),
 			getArpProtocolAddressString(arpHdr, 1),
 			getArpHardwareAddressString(arpHdr, 0)
@@ -46,14 +46,14 @@ void representArpDigest(
 
 	case io.ArpOpcode.RequestReverse:
 		representation.addHyperText(
-			$"\e[1mRARP\e[m \e[34m%1\e[m \u2192 request: who-has \e[34m%2" (
+			$"\e[1mRARP\e[m \e[34m%1\e[m \u2192 request: who-has \e[34m%2"(
 			getArpProtocolAddressString(arpHdr, 0),
 			getArpHardwareAddressString(arpHdr, 1)
 			));
 
 	case io.ArpOpcode.ReplyReverese:
 		representation.addHyperText(
-			$"\e[1mRARP\e[m \e[34m%1\e[m \u2192 \e[34m%2\e[m reply: \e[34m%3" (
+			$"\e[1mRARP\e[m \e[34m%1\e[m \u2192 \e[34m%2\e[m reply: \e[34m%3"(
 			getArpHardwareAddressString(arpHdr, 0),
 			getArpProtocolAddressString(arpHdr, 1),
 			getArpProtocolAddressString(arpHdr, 0)
@@ -123,7 +123,7 @@ void representArpPayload(
 			$"    Sender hardware address: %2\n"
 			$"    Sender protocol address: %3\n"
 			$"    Target hardware address: %4\n"
-			$"    Target protocol address: %5" (
+			$"    Target protocol address: %5"(
 			ProtoFoldFlag.Payload,
 			formatArpHardwareAddress(arpHdr, baseOffset, 0),
 			formatArpProtocolAddress(arpHdr, baseOffset, 0),
