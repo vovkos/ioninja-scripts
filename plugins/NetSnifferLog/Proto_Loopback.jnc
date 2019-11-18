@@ -3,8 +3,7 @@
 // Sniffer log loopback packets handling
 //
 
-import "Protocols.jnc"
-import "log_RepresentStruct.jnc"
+import "io_Loopback.jnc"
 
 //..............................................................................
 

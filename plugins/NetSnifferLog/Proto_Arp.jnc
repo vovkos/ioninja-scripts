@@ -3,6 +3,8 @@
 // Sniffer log ARP/InARP packets handling
 //
 
+import "io_Arp.jnc"
+
 //..............................................................................
 
 void representArpDigest(

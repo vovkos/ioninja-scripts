@@ -3,6 +3,8 @@
 // Sniffer log TCP packets handling
 //
 
+import "io_Tcp.jnc"
+
 //..............................................................................
 
 void representTcpDigest(

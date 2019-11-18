@@ -3,7 +3,7 @@
 // Sniffer log DHCP packets handling
 //
 
-import "std_String.jnc"
+import "io_Dhcp.jnc"
 
 //..............................................................................
 

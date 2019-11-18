@@ -5,9 +5,10 @@
 
 import "log_Representation.jnc"
 import "log_Writer.jnc"
-import "io_TcpIp.jnc"
-import "std_Array.jnc"
+import "log_RepresentStruct.jnc"
 import "io_pcap.jncx"
+import "std_Array.jnc"
+import "Protocols.jnc"
 import "NetSnifferLogRecordCode.jnc"
 
 //..............................................................................
@@ -20,8 +21,6 @@ bool representNetSnifferLog(
 	uint_t foldFlags
 	)
 {
-	printf("representNetSnifferLog\n");
-
 	switch (recordCode)
 	{
 	case NetSnifferLogRecordCode.EthernetPacket:

@@ -3,6 +3,7 @@
 // Sniffer log UDP packets handling
 //
 
+import "io_Udp.jnc"
 import "std_HashTable.jnc"
 
 //..............................................................................

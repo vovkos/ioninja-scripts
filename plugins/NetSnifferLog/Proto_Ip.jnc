@@ -3,6 +3,10 @@
 // Sniffer log IPv4 packets handling
 //
 
+import "io_Ip.jnc"
+import "io_Icmp.jnc"
+import "io_Igmp.jnc"
+
 //..............................................................................
 
 void representIpDigest(

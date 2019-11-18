@@ -3,6 +3,9 @@
 // Sniffer log IPv6 packets handling
 //
 
+import "io_Ip6.jnc"
+import "io_Icmp6.jnc"
+
 //..............................................................................
 
 void representIp6Digest(

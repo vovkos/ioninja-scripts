@@ -3,8 +3,8 @@
 // Sniffer log ethernet packets handling
 //
 
-import "Protocols.jnc"
-import "log_RepresentStruct.jnc"
+import "io_Ethernet.jnc"
+import "io_Llc.jnc"
 
 //..............................................................................
 

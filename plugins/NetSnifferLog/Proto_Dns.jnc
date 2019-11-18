@@ -3,6 +3,7 @@
 // Sniffer log DNS packets handling
 //
 
+import "io_Dns.jnc"
 import "std_String.jnc"
 
 //..............................................................................
