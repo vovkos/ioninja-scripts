@@ -118,7 +118,6 @@ protected:
 	// information grid
 
 	ui.StdSessionInfoSet m_stdSessionInfoSet;
-	ui.ThroughputInfoSet m_throughputInfoSet;
 	ui.ChecksumInfoSet m_checksumInfoSet;
 
 	// ui reactor
@@ -182,10 +181,8 @@ EthernetTapSession.construct(doc.PluginHost* pluginHost)
 	createUi();
 
 	pluginHost.m_log.m_cacheUpdateScrollRateLimit = Defaults.LogCacheUpdateScrollRateLimit;
-	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
 	pluginHost.m_log.addFilter(m_filter);
-	m_stdSessionInfoSet.addLogListener(pluginHost.m_log);
 }
 
 EthernetTapSession.createUi()
@@ -255,10 +252,18 @@ EthernetTapSession.createUi()
 
 	// information grid
 
-	ui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("USB connection");
+	ui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("Ethernet tap");
 
-	m_stdSessionInfoSet.createInformationValues(m_pluginHost.m_informationGrid, infoGroup);
-	m_throughputInfoSet.createInformationValuesGrouped(m_pluginHost.m_informationGrid);
+	m_stdSessionInfoSet.createInformationValues(
+		m_pluginHost.m_informationGrid,
+		infoGroup,,
+		ui.StdSessionInfoSet.InfoId.SessionTime |
+		ui.StdSessionInfoSet.InfoId.TxTotalSize |
+		ui.StdSessionInfoSet.InfoId.RxTotalSize |
+		ui.StdSessionInfoSet.InfoId.TxThroughput |
+		ui.StdSessionInfoSet.InfoId.RxThroughput
+		);
+
 	m_checksumInfoSet.createInformationValuesGrouped(m_pluginHost.m_informationGrid);
 
 	m_uiReactor.start();
@@ -364,13 +369,15 @@ bool errorcode EthernetTapSession.startCapture()
 	m_outEndpoint.write (&startCode, sizeof (startCode));
 	writeLog(EthernetTapLogRecordCode.CaptureStarted);
 
+	m_state = State.Capturing;
 	waitInEndpointEvents();
 	m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
-	m_state = State.Capturing;
+	applyFilter();
 	return true;
 
 catch:
 	writeLogLastError(EthernetTapLogRecordCode.CaptureError);
+	stopCapture();
 	return false;
 }
 
@@ -553,12 +560,21 @@ EthernetTapSession.parse(
 		p += dstSize / sizeof(uint32_t);
 
 		PacketHdr* hdr = (PacketHdr*)(m_packetBuffer.m_p + sizeof(uint32_t));
-		uint64_t recordCode = (hdr.m_flags & PacketFlags.ChannelId) ?
-			EthernetTapLogRecordCode.Packet_ch2 :
-			EthernetTapLogRecordCode.Packet_ch1;
+		uint64_t recordCode;
 
 //		if (rand() & 1)
 //			hdr.m_flags &= ~PacketFlags.CrcValid;
+
+		if (hdr.m_flags & PacketFlags.ChannelId)
+		{
+			recordCode = EthernetTapLogRecordCode.Packet_ch2;
+			m_stdSessionInfoSet.addRxData(m_packetBuffer.m_size);
+		}
+		else
+		{
+			recordCode = EthernetTapLogRecordCode.Packet_ch1;
+			m_stdSessionInfoSet.addTxData(m_packetBuffer.m_size);
+		}
 
 		m_pluginHost.m_log.m_writer.write(recordCode, m_packetBuffer.m_p, m_packetBuffer.m_size);
 		m_packetBuffer.clear();

@@ -100,6 +100,7 @@ bool representEthernetTapLog(
 
 bool detailizeEthernetTapLog(
 	log.Writer* writer,
+	uint64_t timestamp,
 	uint64_t recordCode,
 	void const* p,
 	size_t size
@@ -108,11 +109,11 @@ bool detailizeEthernetTapLog(
 	switch (recordCode)
 	{
 	case EthernetTapLogRecordCode.Packet_ch1:
-		writer.write(EthernetTapLogRecordCode.PacketDetails_ch1, p, size);
+		writer.write(timestamp, EthernetTapLogRecordCode.PacketDetails_ch1, p, size);
 		break;
 
 	case EthernetTapLogRecordCode.Packet_ch2:
-		writer.write(EthernetTapLogRecordCode.PacketDetails_ch2, p, size);
+		writer.write(timestamp, EthernetTapLogRecordCode.PacketDetails_ch2, p, size);
 		break;
 
 	default:
