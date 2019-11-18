@@ -90,7 +90,6 @@ protected:
 	// information grid
 
 	ui.StdSessionInfoSet m_stdSessionInfoSet;
-	ui.ThroughputInfoSet m_throughputInfoSet;
 	ui.ChecksumInfoSet m_checksumInfoSet;
 
 	// ui reactor
@@ -169,7 +168,6 @@ PcapSnifferSession.construct(doc.PluginHost* pluginHost)
 
 	createUi();
 
-	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
 	pluginHost.m_log.addFilter(m_filter);
 }
@@ -277,14 +275,8 @@ PcapSnifferSession.createUi()
 		m_pluginHost.m_informationGrid,
 		infoGroup,,
 		ui.StdSessionInfoSet.InfoId.SessionTime |
-		ui.StdSessionInfoSet.InfoId.TotalSize
-		);
-
-	m_throughputInfoSet.createInformationValuesGrouped(
-		m_pluginHost.m_informationGrid,,,
-		ui.ThroughputInfoSet.InfoId.TimeSpan |
-		ui.ThroughputInfoSet.InfoId.TotalSize |
-		ui.ThroughputInfoSet.InfoId.TotalThroughput
+		ui.StdSessionInfoSet.InfoId.TotalSize |
+		ui.StdSessionInfoSet.InfoId.TotalThroughput
 		);
 
 	m_checksumInfoSet.createInformationValuesGrouped(m_pluginHost.m_informationGrid);
