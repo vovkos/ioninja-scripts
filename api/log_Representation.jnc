@@ -73,6 +73,7 @@ bitflag enum LineAttrFlags
 	TileIcon,
 	Delimiter,
 	Override,
+	Preview,
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
