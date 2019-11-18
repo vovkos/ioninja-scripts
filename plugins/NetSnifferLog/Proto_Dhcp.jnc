@@ -40,14 +40,13 @@ void DhcpProtoParser.representDigest(
 	int payloadPreviewIconIdx
 	)
 {
-	representSimpleProtoDigest(
+	representSimpleProtoDigestNoPayload(
 		representation,
 		typeof(io.DhcpHdr),,
 		srcString,
 		dstString,
 		p,
-		size,
-		payloadPreviewIconIdx
+		size
 		);
 }
 
@@ -92,8 +91,7 @@ size_t representDhcpOption(
 		size = sizeof(io.DhcpOptionHdr) + optionHdr.m_length;
 	}
 
-	representation.addHyperText($"%1%(2;5d): Option:\t\e^!%3,%4\e[34m%5"(
-		i > 1 ? "\n" : null,
+	representation.addHyperText($"%(1;5d): Option:\t\e^!%2,%3\e[34m%4"(
 		i,
 		baseOffset,
 		sizeof(io.DhcpOptionHdr.m_type),
@@ -185,8 +183,11 @@ void DhcpProtoParser.representDetails(
 	}
 	else
 	{
+		size_t optionCount = 0;
 		while (p < end)
 		{
+			optionCount++;
+
 			io.DhcpOptionHdr const* optionHdr = (io.DhcpOptionHdr const*)p;
 			switch (optionHdr.m_type)
 			{
@@ -206,8 +207,9 @@ void DhcpProtoParser.representDetails(
 		optionSize = p - options;
 
 		representation.addHyperText(
-			$"[\e^+%1\e[34m+\e[m] \e[1mDHCP\e[m Options (%2 bytes)"(
+			$"[\e^+%1\e[34m+\e[m] \e[1mDHCP\e[m Options (%2 items, %3 bytes)"(
 			ProtoFoldFlag.Payload,
+			optionCount,
 			optionSize
 			));
 	}

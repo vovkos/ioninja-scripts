@@ -62,7 +62,8 @@ void representIpDigest(
 			srcString,
 			dstString,
 			p,
-			size
+			size,
+			payloadPreviewIconIdx
 			);
 
 		break;

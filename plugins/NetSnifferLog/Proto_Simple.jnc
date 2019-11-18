@@ -5,22 +5,20 @@
 
 //..............................................................................
 
-void representSimpleProtoDigest(
+void representSimpleProtoDigestNoPayload(
 	log.Representation* representation,
 	jnc.StructType* type,
 	char const* name = null,
 	char const* srcString,
 	char const* dstString,
 	void const* p,
-	size_t size,
-	int payloadPreviewIconIdx = -1
+	size_t size
 	)
 {
 	if (!name)
 		name = log.getDisplayName(type);
 
-	size_t typeSize = type.m_size;
-	if (size < typeSize)
+	if (size < type.m_size)
 	{
 		representation.addHyperText(
 			$"\e[1m%1 \e[10;34m%2\e[m \u2192 \e[34m%3\e[m [INCOMPLETE]"(
@@ -41,7 +39,30 @@ void representSimpleProtoDigest(
 		digest ? "\e[m " : null,
 		digest
 		));
+}
 
+void representSimpleProtoDigest(
+	log.Representation* representation,
+	jnc.StructType* type,
+	char const* name = null,
+	char const* srcString,
+	char const* dstString,
+	void const* p,
+	size_t size,
+	int payloadPreviewIconIdx = -1
+	)
+{
+	representSimpleProtoDigestNoPayload(
+		representation,
+		type,
+		name,
+		srcString,
+		dstString,
+		p,
+		size
+		);
+
+	size_t typeSize = type.m_size;
 	if (size > typeSize)
 		representPayloadPreview(
 			representation,

@@ -245,9 +245,10 @@ char const* formatDnsDigest(void const* p)
 	DnsHdr const* hdr = (DnsHdr const*)p;
 	uint_t opcode = hdr.m_opcode;
 
-	return $"%1%2"(
+	return $"%1 (ID: 0x%04X%3)"(
 		typeof(DnsOpcode).getValueString(&opcode),
-		hdr.m_isReply ? " (reply)" : null
+		hdr.m_id,
+		hdr.m_isReply ? ", reply" : null
 		);
 }
 
