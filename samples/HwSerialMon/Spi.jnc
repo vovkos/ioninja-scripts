@@ -125,6 +125,8 @@ Spi.processSignal(
 		lines & Lines.Ss
 		);
 
+	log.Writer* logWriter = m_pluginHost.m_log.m_writer;
+
 	switch (result)
 	{
 	case io.SpiDecodeResult.Continue:
@@ -132,13 +134,13 @@ Spi.processSignal(
 		break;
 
 	case io.SpiDecodeResult.Stop:
-		m_logWriter.write(timestamp, log.StdRecordCode.Break);
+		logWriter.write(timestamp, log.StdRecordCode.Break);
 		break;
 
 	case io.SpiDecodeResult.Char:
 		char buffer[2] = { m_decoder.m_mosiChar, m_decoder.m_misoChar }
 
-		m_logWriter.write(
+		logWriter.write(
 			timestamp,
 			log.StdRecordCode.TxRx,
 			buffer,
@@ -147,11 +149,11 @@ Spi.processSignal(
 		break;
 
 	case io.SpiDecodeResult.FramingError:
-		m_logWriter.write(timestamp, HwSerialMonRecordCode.SpiFramingError);
+		logWriter.write(timestamp, HwSerialMonRecordCode.SpiFramingError);
 		break;
 
 	case io.SpiDecodeResult.EmptyMessage:
-		m_logWriter.write(timestamp, HwSerialMonRecordCode.SpiEmptyMessage);
+		logWriter.write(timestamp, HwSerialMonRecordCode.SpiEmptyMessage);
 		break;
 	}
 }
