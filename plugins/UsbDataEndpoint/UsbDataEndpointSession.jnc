@@ -346,12 +346,12 @@ bool UsbDataEndpointSession.openDevice()
 	params.m_productId = deviceDesc.m_productId;
 	params.m_vendorId = deviceDesc.m_vendorId;
 
-	writeLog(UsbLogRecordCode.DeviceOpened, &params, sizeof(params));
+	m_logWriter.write(UsbLogRecordCode.DeviceOpened, &params, sizeof(params));
 	m_state = State.Opened;
 	return true;
 
 catch:
-	writeLogLastError(UsbLogRecordCode.DeviceOpenError);
+	m_logWriter.writeLastError(UsbLogRecordCode.DeviceOpenError);
 	return false;
 }
 
@@ -364,7 +364,7 @@ UsbDataEndpointSession.closeDevice()
 	m_device.close();
 	m_device = null;
 
-	writeLog(UsbLogRecordCode.DeviceClosed);
+	m_logWriter.write(UsbLogRecordCode.DeviceClosed);
 	m_state = State.Closed;
 }
 
@@ -381,7 +381,7 @@ bool UsbDataEndpointSession.claimInterface()
 		m_autoDetachKernelDriverProp.m_value)
 	{
 		m_device.detachKernelDriver(ifaceDesc.m_interfaceId);
-		writeLog(UsbLogRecordCode.KernelDriverDetached, &ifaceDesc.m_interfaceId, sizeof(ifaceDesc.m_interfaceId));
+		m_logWriter.write(UsbLogRecordCode.KernelDriverDetached, &ifaceDesc.m_interfaceId, sizeof(ifaceDesc.m_interfaceId));
 	}
 
 	m_interface = m_device.claimInterface(ifaceDesc.m_interfaceId, ifaceDesc.m_altSettingId);
@@ -424,13 +424,13 @@ bool UsbDataEndpointSession.claimInterface()
 	params.m_interfaceId = ifaceDesc.m_interfaceId;
 	params.m_altSettingId = ifaceDesc.m_altSettingId;
 
-	writeLog(UsbLogRecordCode.InterfaceClaimed, &params, sizeof(params));
+	m_logWriter.write(UsbLogRecordCode.InterfaceClaimed, &params, sizeof(params));
 	m_state = State.Claimed;
 	m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
 	return true;
 
 catch:
-	writeLogLastError(UsbLogRecordCode.InterfaceClaimError);
+	m_logWriter.writeLastError(UsbLogRecordCode.InterfaceClaimError);
 	return false;
 }
 
@@ -443,7 +443,7 @@ UsbDataEndpointSession.releaseInterface()
 	m_interface.release();
 	m_interface = null;
 
-	writeLogLastError(UsbLogRecordCode.InterfaceReleased);
+	m_logWriter.writeLastError(UsbLogRecordCode.InterfaceReleased);
 	m_state = State.Opened;
 	m_inSyncId++;
 	m_outSyncId++;
@@ -463,14 +463,14 @@ bool UsbDataEndpointSession.startReading()
 	configureInEndpoint();
 	m_inEndpoint.unsuspend();
 
-	writeLog(UsbLogRecordCode.ReadingStarted, &endpointDesc.m_endpointId, sizeof(endpointDesc.m_endpointId));
+	m_logWriter.write(UsbLogRecordCode.ReadingStarted, &endpointDesc.m_endpointId, sizeof(endpointDesc.m_endpointId));
 	m_state = State.Reading;
 
 	waitInEndpointEvents();
 	return true;
 
 catch:
-	writeLogLastError(UsbLogRecordCode.EndpointOpenError);
+	m_logWriter.writeLastError(UsbLogRecordCode.EndpointOpenError);
 	return false;
 }
 
@@ -482,7 +482,7 @@ UsbDataEndpointSession.stopReading()
 	m_inEndpoint.close();
 	m_inEndpoint = null;
 
-	writeLogLastError(UsbLogRecordCode.ReadingStopped);
+	m_logWriter.writeLastError(UsbLogRecordCode.ReadingStopped);
 	m_state = State.Claimed;
 	m_inSyncId++;
 }
@@ -612,11 +612,11 @@ size_t errorcode UsbDataEndpointSession.transmit(
 	}
 
 	size = m_outEndpoint.write(p, size);
-	writeLog(log.StdRecordCode.Tx, p, size);
+	m_logWriter.write(log.StdRecordCode.Tx, p, size);
 	return size;
 
 catch:
-	writeLogLastError(log.StdRecordCode.Error);
+	m_logWriter.writeLastError(log.StdRecordCode.Error);
 	return -1;
 }
 
@@ -630,7 +630,7 @@ UsbDataEndpointSession.onOutEndpointEvent(
 
 	if (triggeredEvents & io.UsbEndpointEvents.IoError)
 	{
-		writeLog(log.StdRecordCode.Error, m_inEndpoint.m_ioError, m_inEndpoint.m_ioError.m_size);
+		m_logWriter.write(log.StdRecordCode.Error, m_inEndpoint.m_ioError, m_inEndpoint.m_ioError.m_size);
 		closeDevice();
 		return;
 	}
@@ -651,20 +651,20 @@ UsbDataEndpointSession.onInEndpointEvent(
 
 	if (triggeredEvents & io.UsbEndpointEvents.IoError)
 	{
-		writeLog(log.StdRecordCode.Error, m_inEndpoint.m_ioError, m_inEndpoint.m_ioError.m_size);
+		m_logWriter.write(log.StdRecordCode.Error, m_inEndpoint.m_ioError, m_inEndpoint.m_ioError.m_size);
 		closeDevice();
 		return;
 	}
 
 	if ((triggeredEvents & io.UsbEndpointEvents.ReadBufferFull) &&
 		m_bufferPropertySet.m_notifyReadBufferFullProp.m_value)
-		writeLog(log.StdRecordCode.RxBufferFull);
+		m_logWriter.write(log.StdRecordCode.RxBufferFull);
 
 	if (triggeredEvents & io.UsbEndpointEvents.IncomingData)
 	{
 		size_t result = m_inEndpoint.read(m_readBuffer.m_p, m_readBuffer.m_size);
 		if (result)
-			writeLog(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
+			m_logWriter.write(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 	}
 
 	waitInEndpointEvents();

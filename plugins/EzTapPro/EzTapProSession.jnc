@@ -473,7 +473,7 @@ bool errorcode EzTapProSession.capture()
 	params.m_osKind = sys.g_systemInfo.m_osKind;
 
 	char const* p = $"$(params; B)$portName";
-	writeLog(SerialLogRecordCode.PortOpened, p, dynamic sizeof(p));
+	m_logWriter.write(SerialLogRecordCode.PortOpened, p, dynamic sizeof(p));
 
 	m_responseSize = 0;
 	m_responseBuffer.clear();
@@ -493,7 +493,7 @@ bool errorcode EzTapProSession.capture()
 catch:
 	std.Error const* error = std.getLastError();
 
-	writeLog(
+	m_logWriter.write(
 		SerialLogRecordCode.PortOpenError,
 		error,
 		error.m_size
@@ -510,7 +510,7 @@ EzTapProSession.stopCapture()
 
 	resetAcquisition();
 
-	writeLogString(SerialLogRecordCode.PortClosed, m_portName);
+	m_logWriter.write(SerialLogRecordCode.PortClosed, m_portName);
 	m_stdSessionInfoSet.endSession();
 	m_serial.close();
 	m_state = State.Closed;
@@ -548,25 +548,25 @@ bool errorcode EzTapProSession.configureSerial()
 
 	if (m_baudRate != baudRate)
 	{
-		writeLog(SerialLogRecordCode.BaudRateChanged, &baudRate, sizeof(baudRate));
+		m_logWriter.write(SerialLogRecordCode.BaudRateChanged, &baudRate, sizeof(baudRate));
 		m_baudRate = baudRate;
 	}
 
 	if (m_dataBits != dataBits)
 	{
-		writeLog(SerialLogRecordCode.DataBitsChanged, &dataBits, sizeof(dataBits));
+		m_logWriter.write(SerialLogRecordCode.DataBitsChanged, &dataBits, sizeof(dataBits));
 		m_dataBits = dataBits;
 	}
 
 	if (m_stopBits != stopBits)
 	{
-		writeLog(SerialLogRecordCode.StopBitsChanged, &stopBits, sizeof(stopBits));
+		m_logWriter.write(SerialLogRecordCode.StopBitsChanged, &stopBits, sizeof(stopBits));
 		m_stopBits = stopBits;
 	}
 
 	if (m_parity != parity)
 	{
-		writeLog(SerialLogRecordCode.ParityChanged, &parity, sizeof(parity));
+		m_logWriter.write(SerialLogRecordCode.ParityChanged, &parity, sizeof(parity));
 		m_parity = parity;
 	}
 
@@ -618,7 +618,7 @@ void EzTapProSession.updateDteControlLines(
 	if (mask)
 	{
 		SerialStatusLineChangedParams params = { lines, mask }
-		writeLog(SerialLogRecordCode.ControlLineChanged, params, sizeof(params));
+		m_logWriter.write(SerialLogRecordCode.ControlLineChanged, params, sizeof(params));
 		m_dteControlLines = lines;
 	}
 }
@@ -640,7 +640,7 @@ void EzTapProSession.updateDceControlLines(
 	if (mask)
 	{
 		SerialStatusLineChangedParams params = { lines, mask }
-		writeLog(SerialLogRecordCode.StatusLineChanged, params, sizeof(params));
+		m_logWriter.write(SerialLogRecordCode.StatusLineChanged, params, sizeof(params));
 		m_dceControlLines = lines;
 	}
 }
@@ -694,7 +694,7 @@ bool errorcode EzTapProSession.decodeResponse(
 				log.StdRecordCode.Tx :
 				log.StdRecordCode.Rx;
 
-			writeLog(recordCode, &params.m_data, 1);
+			m_logWriter.write(recordCode, &params.m_data, 1);
 			break;
 
 		case EzTapResponseCode.DteControlLineChanged:
@@ -733,7 +733,7 @@ bool errorcode EzTapProSession.decodeResponse(
 			EzTapErrorParams const* params = (EzTapErrorParams const*) m_responseBuffer.m_p;
 			if (params.m_error == EzTapErrorCode.BufferOverflow)
 			{
-				writeLog(log.StdRecordCode.RxBufferFullLossy);
+				m_logWriter.write(log.StdRecordCode.RxBufferFullLossy);
 			}
 			else
 			{
@@ -759,7 +759,7 @@ size_t errorcode EzTapProSession.transmit(
 	)
 {
 	size_t result = m_serial.write(p, size);
-	writeLog(log.StdRecordCode.Tx, p, result);
+	m_logWriter.write(log.StdRecordCode.Tx, p, result);
 	return result;
 }
 
@@ -821,11 +821,11 @@ bool errorcode EzTapProSession.applyProperties()
 	if (optionMask & (io.SerialOptions.WinReadCheckComstat | io.SerialOptions.WinReadWaitFirstChar))
 	{
 		uint_t mode = m_readModeProp.m_value;
-		writeLog(SerialLogRecordCode.ReadModeChanged, &mode, sizeof(mode));
+		m_logWriter.write(SerialLogRecordCode.ReadModeChanged, &mode, sizeof(mode));
 	}
 
 	if (m_serial.m_readInterval != readInterval)
-		writeLog(SerialLogRecordCode.ReadIntervalChanged, &readInterval, sizeof(readInterval));
+		m_logWriter.write(SerialLogRecordCode.ReadIntervalChanged, &readInterval, sizeof(readInterval));
 
 	m_serial.m_options = options;
 	m_serial.m_readInterval = readInterval;
@@ -871,14 +871,14 @@ EzTapProSession.onSerialEvent(
 
 	if (triggeredEvents & io.SerialEvents.IoError)
 	{
-		writeLog(log.StdRecordCode.Error, &m_serial.m_ioError, m_serial.m_ioError.m_size);
+		m_logWriter.write(log.StdRecordCode.Error, &m_serial.m_ioError, m_serial.m_ioError.m_size);
 		stopCapture();
 		return;
 	}
 
 	if ((triggeredEvents & io.SerialEvents.ReadBufferFull) &&
 		m_bufferPropertySet.m_notifyReadBufferFullProp.m_value)
-		writeLog(log.StdRecordCode.RxBufferFullLossy);
+		m_logWriter.write(log.StdRecordCode.RxBufferFullLossy);
 
 	if (triggeredEvents & io.SerialEvents.IncomingData)
 	{
@@ -890,7 +890,7 @@ EzTapProSession.onSerialEvent(
 	waitSerialEvents();
 
 catch:
-	writeLogLastError(log.StdRecordCode.Error);
+	m_logWriter.writeLastError(log.StdRecordCode.Error);
 	stopCapture();
 }
 

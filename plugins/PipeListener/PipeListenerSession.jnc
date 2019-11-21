@@ -238,7 +238,7 @@ bool errorcode PipeListenerSession.listen()
 	m_listenerPipe.m_options = options;
 	m_listenerPipe.open(name);
 
-	writeLog(
+	m_logWriter.write(
 		PipeListenerLogRecordCode.Listening,
 		name,
 		strlen(name)
@@ -253,7 +253,7 @@ bool errorcode PipeListenerSession.listen()
 
 catch:
 	std.Error const* error = std.getLastError();
-	writeLog(
+	m_logWriter.write(
 		PipeListenerLogRecordCode.ListenError,
 		error,
 		error.m_size
@@ -268,7 +268,7 @@ PipeListenerSession.stopListen()
 	if (m_listenerState != State.Opened)
 		return;
 
-	writeLog(
+	m_logWriter.write(
 		PipeListenerLogRecordCode.ListenStopped,
 		m_pipeName,
 		strlen(m_pipeName)
@@ -285,7 +285,7 @@ PipeListenerSession.disconnect()
 	if (m_connectionState != State.Opened)
 		return;
 
-	writeLog(PipeListenerLogRecordCode.ClientDisconnected);
+	m_logWriter.write(PipeListenerLogRecordCode.ClientDisconnected);
 	m_connectionPipe.close();
 	m_connectionPipe = null;
 	m_connectionState = State.Closed;
@@ -398,7 +398,7 @@ size_t errorcode PipeListenerSession.transmit(
 
 	size_t result = m_connectionPipe.write(p, size);
 	if (result)
-		writeLog(log.StdRecordCode.Tx, p, result);
+		m_logWriter.write(log.StdRecordCode.Tx, p, result);
 
 	return result;
 }
@@ -413,7 +413,7 @@ PipeListenerSession.onListenerPipeEvent(
 
 	if (triggeredEvents & io.NamedPipeEvents.IoError)
 	{
-		writeLog(log.StdRecordCode.Error, m_listenerPipe.m_ioError, m_listenerPipe.m_ioError.m_size);
+		m_logWriter.write(log.StdRecordCode.Error, m_listenerPipe.m_ioError, m_listenerPipe.m_ioError.m_size);
 		stopListen();
 		return;
 	}
@@ -425,13 +425,13 @@ PipeListenerSession.onListenerPipeEvent(
 		if (m_connectionState == State.Opened && !m_overrideOldConnectionProp.m_value)
 		{
 			pipe.close();
-			writeLog(PipeListenerLogRecordCode.ClientRejected);
+			m_logWriter.write(PipeListenerLogRecordCode.ClientRejected);
 		}
 		else
 		{
 			disconnect();
 
-			writeLog(PipeListenerLogRecordCode.ClientConnected);
+			m_logWriter.write(PipeListenerLogRecordCode.ClientConnected);
 
 			m_connectionPipe = pipe;
 			m_connectionState = State.Opened;
@@ -452,20 +452,20 @@ PipeListenerSession.onConnectionPipeEvent(
 
 	if (triggeredEvents & io.FileStreamEvents.IoError)
 	{
-		writeLog(log.StdRecordCode.Error, m_connectionPipe.m_ioError, m_connectionPipe.m_ioError.m_size);
+		m_logWriter.write(log.StdRecordCode.Error, m_connectionPipe.m_ioError, m_connectionPipe.m_ioError.m_size);
 		disconnect();
 		return;
 	}
 
 	if ((triggeredEvents & io.FileStreamEvents.ReadBufferFull) &&
 		m_bufferPropertySet.m_notifyReadBufferFullProp.m_value)
-		writeLog(log.StdRecordCode.RxBufferFull);
+		m_logWriter.write(log.StdRecordCode.RxBufferFull);
 
 	if (triggeredEvents & io.FileStreamEvents.IncomingData)
 	{
 		size_t result = m_connectionPipe.read(m_readBuffer.m_p, m_readBuffer.m_size);
 		if (result)
-			writeLog(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
+			m_logWriter.write(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 	}
 
 	if (triggeredEvents & io.FileStreamEvents.Eof)

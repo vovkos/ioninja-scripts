@@ -336,12 +336,12 @@ bool UsbControlEndpointSession.openDevice()
 	params.m_productId = deviceDesc.m_productId;
 	params.m_vendorId = deviceDesc.m_vendorId;
 
-	writeLog(UsbLogRecordCode.DeviceOpened, &params, sizeof(params));
+	m_logWriter.write(UsbLogRecordCode.DeviceOpened, &params, sizeof(params));
 	m_state = State.Opened;
 	return true;
 
 catch:
-	writeLogLastError(UsbLogRecordCode.DeviceOpenError);
+	m_logWriter.writeLastError(UsbLogRecordCode.DeviceOpenError);
 	return false;
 }
 
@@ -353,7 +353,7 @@ UsbControlEndpointSession.closeDevice()
 	m_device.close();
 	m_device = null;
 
-	writeLog(UsbLogRecordCode.DeviceClosed);
+	m_logWriter.write(UsbLogRecordCode.DeviceClosed);
 	m_state = State.Closed;
 	m_syncId++;
 }
@@ -473,7 +473,7 @@ size_t errorcode UsbControlEndpointSession.transmit(
 	return size;
 
 catch:
-	writeLogLastError(log.StdRecordCode.Error);
+	m_logWriter.writeLastError(log.StdRecordCode.Error);
 	return -1;
 }
 
@@ -497,12 +497,12 @@ UsbControlEndpointSession.onTransferCompleted(
 	params.m_value = value;
 	params.m_index = index;
 
-	writeLog(UsbLogRecordCode.ControlTransfer, &params, sizeof(params));
+	m_logWriter.write(UsbLogRecordCode.ControlTransfer, &params, sizeof(params));
 
 	if (error)
-		writeLogError(log.StdRecordCode.Error, error);
+		m_logWriter.write(log.StdRecordCode.Error, error);
 	else
-		writeLog((type & 0x80) ? log.StdRecordCode.Rx : log.StdRecordCode.Tx, p, size);
+		m_logWriter.write((type & 0x80) ? log.StdRecordCode.Rx : log.StdRecordCode.Tx, p, size);
 }
 
 reactor UsbControlEndpointSession.m_uiReactor

@@ -267,7 +267,7 @@ bool errorcode SshSerialMonSession.connect()
 
 	m_state = State.Resolving;
 
-	writeLog(
+	m_logWriter.write(
 		SocketLogRecordCode.Resolving,
 		addressString,
 		strlen(addressString)
@@ -320,7 +320,7 @@ bool errorcode SshSerialMonSession.connect(io.SocketAddress const* remoteAddress
 	m_state = State.TcpConnecting;
 	m_remoteAddress = *remoteAddress;
 
-	writeLog(
+	m_logWriter.write(
 		SocketLogRecordCode.Connecting,
 		remoteAddress,
 		sizeof(io.SocketAddress)
@@ -417,7 +417,7 @@ SshSerialMonSession.waitSshEvents()
 
 SshSerialMonSession.handleConnectError(std.Error const* error)
 {
-	writeLog(
+	m_logWriter.write(
 		SocketLogRecordCode.ConnectError,
 		error,
 		error.m_size
@@ -429,7 +429,7 @@ SshSerialMonSession.handleConnectError(std.Error const* error)
 
 SshSerialMonSession.handleSshAuthenticateError(std.Error const* error)
 {
-	writeLog(
+	m_logWriter.write(
 		SocketLogRecordCode.ConnectError,
 		error,
 		error.m_size
@@ -473,12 +473,12 @@ SshSerialMonSession.onLoginDlgCompleted(ui.StdDlgButton button)
 	if (strcmp(m_loginDlg.m_userName, m_sshPropertySet.m_userNameProp.m_value) == 0)
 	{
 		nextState = State.SshAuthenticating;
-		writeLog(SshLogRecordCode.SshAuthenticating);
+		m_logWriter.write(SshLogRecordCode.SshAuthenticating);
 	}
 	else
 	{
 		nextState = State.TcpConnecting;
-		writeLog(SshLogRecordCode.Reconnecting);
+		m_logWriter.write(SshLogRecordCode.Reconnecting);
 	}
 
 	switch (m_loginDlg.m_authenticationMethod)
@@ -533,14 +533,14 @@ SshSerialMonSession.disconnect()
 	case State.SshOpeningChannel:
 	case State.SshRequestingPty:
 	case State.SshStartingProcess:
-		writeLog(SocketLogRecordCode.ConnectCancelled);
+		m_logWriter.write(SocketLogRecordCode.ConnectCancelled);
 		break;
 
 	case State.Connected:
 		TcpDisconnectLogRecordParams params;
 		params.m_address = m_remoteAddress;
 
-		writeLog(
+		m_logWriter.write(
 			SocketLogRecordCode.Disconnected,
 			&params,
 			sizeof(params)
@@ -627,38 +627,38 @@ SshSerialMonSession.onSshEvent(
 
 	if (triggeredEvents & io.SshEvents.TcpConnectCompleted)
 	{
-		writeLog(SshLogRecordCode.TcpConnectCompleted);
+		m_logWriter.write(SshLogRecordCode.TcpConnectCompleted);
 		m_state = State.SshHandshaking;
 	}
 
 	if (triggeredEvents & io.SshEvents.SshHandshakeCompleted)
 	{
-		writeLog(SshLogRecordCode.SshHandshakeCompleted);
+		m_logWriter.write(SshLogRecordCode.SshHandshakeCompleted);
 		m_state = State.SshAuthenticating;
 	}
 
 	if (triggeredEvents & io.SshEvents.SshAuthenticateCompleted)
 	{
-		writeLog(SshLogRecordCode.SshAuthCompleted);
+		m_logWriter.write(SshLogRecordCode.SshAuthCompleted);
 		m_state = State.SshOpeningChannel;
 	}
 
 	if (triggeredEvents & io.SshEvents.SshChannelOpened)
 	{
-		writeLog(SshLogRecordCode.SshChannelOpened);
+		m_logWriter.write(SshLogRecordCode.SshChannelOpened);
 		m_state = State.SshRequestingPty;
 	}
 
 	if (triggeredEvents & io.SshEvents.SshPtyRequestCompleted)
 	{
-		writeLog(SshLogRecordCode.SshPtyRequested);
+		m_logWriter.write(SshLogRecordCode.SshPtyRequested);
 		m_state = State.SshStartingProcess;
 	}
 
 	if (triggeredEvents & io.SshEvents.SshConnectCompleted)
 	{
-		writeLog(SshLogRecordCode.SshProcessStarted);
-		writeLog(SshLogRecordCode.ConnectCompleted);
+		m_logWriter.write(SshLogRecordCode.SshProcessStarted);
+		m_logWriter.write(SshLogRecordCode.ConnectCompleted);
 		m_state = State.Connected;
 		m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
 	}
@@ -681,7 +681,7 @@ SshSerialMonSession.onSshEvent(
 		if (triggeredEvents & io.SocketEvents.Reset)
 			params.m_flags |= TcpDisconnectLogRecordFlags.Reset;
 
-		writeLog(
+		m_logWriter.write(
 			SocketLogRecordCode.Disconnected,
 			&params,
 			sizeof(params)
@@ -703,7 +703,7 @@ SshSerialMonSession.onSshEvent(
 	waitSshEvents();
 
 catch:
-	m_pluginHost.m_log.m_writer.writeLastError(log.StdRecordCode.Error);
+	m_logWriter.writeLastError(log.StdRecordCode.Error);
 	disconnect();
 }
 
@@ -723,7 +723,7 @@ SshSerialMonSession.onResolveCompleted(
 		return;
 	}
 
-	writeLog(
+	m_logWriter.write(
 		SocketLogRecordCode.ResolveCompleted,
 		addressTable,
 		sizeof(io.SocketAddress)

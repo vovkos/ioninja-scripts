@@ -331,7 +331,7 @@ bool errorcode TcpProxySession.listen()
 	}
 	else
 	{
-		writeLog(
+		m_logWriter.write(
 			SocketLogRecordCode.Resolving,
 			targetAddressString,
 			strlen(targetAddressString)
@@ -359,7 +359,7 @@ TcpProxySession.listenImpl()
 	m_listenerSocket.open(io.Protocol.Tcp, &address);
 	m_listenerSocket.listen();
 
-	writeLog(
+	m_logWriter.write(
 		SocketLogRecordCode.Listening,
 		&address,
 		sizeof(address)
@@ -385,12 +385,12 @@ TcpProxySession.stopListen()
 			return;
 
 		case ListenerState.Resolving:
-			writeLog(SocketLogRecordCode.ResolveCancelled);
+			m_logWriter.write(SocketLogRecordCode.ResolveCancelled);
 			m_resolverSyncId++;
 			break;
 
 		case ListenerState.Listening:
-			writeLog(
+			m_logWriter.write(
 				SocketLogRecordCode.ListenStopped,
 				&m_localAddress,
 				sizeof(m_localAddress)
@@ -415,7 +415,7 @@ TcpProxySession.disconnect()
 	TcpDisconnectLogRecordParams params;
 	params.m_address = m_serverRemoteAddress;
 
-	writeLog(SocketLogRecordCode.Disconnected, &params, sizeof(params));
+	m_logWriter.write(SocketLogRecordCode.Disconnected, &params, sizeof(params));
 
 	m_serverConnectionSocket.close();
 	m_serverConnectionSocket = null;
@@ -427,7 +427,7 @@ bool TcpProxySession.connectTarget()
 {
 	disconnectTarget();
 
-	writeLog(
+	m_logWriter.write(
 		SocketLogRecordCode.Connecting,
 		&m_clientRemoteAddress,
 		sizeof(m_clientRemoteAddress)
@@ -453,7 +453,7 @@ TcpProxySession.disconnectTarget()
 	TcpDisconnectLogRecordParams params;
 	params.m_address = m_clientRemoteAddress;
 
-	writeLog(SocketLogRecordCode.Disconnected, &params, sizeof(params));
+	m_logWriter.write(SocketLogRecordCode.Disconnected, &params, sizeof(params));
 
 	m_clientConnectionSocket.close();
 	m_clientConnectionState = ClientConnectionState.Closed;
@@ -531,7 +531,7 @@ TcpProxySession.onListenerSocketEvent(
 
 	if (triggeredEvents & io.SocketEvents.IoError)
 	{
-		writeLog(log.StdRecordCode.Error, m_listenerSocket.m_ioError, m_listenerSocket.m_ioError.m_size);
+		m_logWriter.write(log.StdRecordCode.Error, m_listenerSocket.m_ioError, m_listenerSocket.m_ioError.m_size);
 		m_listenerSocket.close();
 		m_listenerState = ListenerState.Closed;
 		m_stdSessionInfoSet.endSession();
@@ -546,7 +546,7 @@ TcpProxySession.onListenerSocketEvent(
 		if (m_serverConnectionState == ServerConnectionState.Connected && !m_overrideConnectionProp.m_value)
 		{
 			socket.close();
-			writeLog(SocketLogRecordCode.ClientRejected, &address, sizeof(address));
+			m_logWriter.write(SocketLogRecordCode.ClientRejected, &address, sizeof(address));
 			return;
 		}
 
@@ -559,7 +559,7 @@ TcpProxySession.onListenerSocketEvent(
 
 		disconnect();
 
-		writeLog(SocketLogRecordCode.ClientConnected, &address, sizeof(address));
+		m_logWriter.write(SocketLogRecordCode.ClientConnected, &address, sizeof(address));
 
 		m_serverRemoteAddress = address;
 		m_serverConnectionSocket = socket;
@@ -585,7 +585,7 @@ TcpProxySession.onServerConnectionSocketEvent(
 
 	if (triggeredEvents & io.SocketEvents.IoError)
 	{
-		writeLog(log.StdRecordCode.Error, m_serverConnectionSocket.m_ioError, m_serverConnectionSocket.m_ioError.m_size);
+		m_logWriter.write(log.StdRecordCode.Error, m_serverConnectionSocket.m_ioError, m_serverConnectionSocket.m_ioError.m_size);
 		m_serverConnectionSocket.close();
 		m_serverConnectionSocket = null;
 		m_serverConnectionState = ServerConnectionState.Closed;
@@ -612,7 +612,7 @@ TcpProxySession.onServerConnectionSocketEvent(
 		if (triggeredEvents & io.SocketEvents.Reset)
 			params.m_flags |= TcpDisconnectLogRecordFlags.Reset;
 
-		writeLog(SocketLogRecordCode.Disconnected, &params, sizeof(params));
+		m_logWriter.write(SocketLogRecordCode.Disconnected, &params, sizeof(params));
 
 		m_serverConnectionSocket.close();
 		m_serverConnectionSocket = null;
@@ -644,12 +644,12 @@ TcpProxySession.onClientConnectionSocketEvent(
 
 	if (triggeredEvents & io.SocketEvents.Connected)
 	{
-		writeLog(SocketLogRecordCode.ConnectCompleted);
+		m_logWriter.write(SocketLogRecordCode.ConnectCompleted);
 		m_clientConnectionState = ClientConnectionState.Connected;
 
 		if (m_serverPendingData.m_size)
 		{
-			writeLog(log.StdRecordCode.Tx, m_serverPendingData.m_p, m_serverPendingData.m_size);
+			m_logWriter.write(log.StdRecordCode.Tx, m_serverPendingData.m_p, m_serverPendingData.m_size);
 			m_clientConnectionSocket.write(m_serverPendingData.m_p, m_serverPendingData.m_size);
 			m_serverPendingData.clear();
 		}
@@ -681,7 +681,7 @@ TcpProxySession.onClientConnectionSocketEvent(
 		if (triggeredEvents & io.SocketEvents.Reset)
 			params.m_flags |= TcpDisconnectLogRecordFlags.Reset;
 
-		writeLog(SocketLogRecordCode.Disconnected, &params, sizeof(params));
+		m_logWriter.write(SocketLogRecordCode.Disconnected, &params, sizeof(params));
 
 		m_clientConnectionSocket.close();
 		m_clientConnectionState = ClientConnectionState.Closed;
@@ -707,12 +707,12 @@ TcpProxySession.onResolveCompleted(
 
 	if (error)
 	{
-		writeLog(SocketLogRecordCode.ResolveError, error, error.m_size);
+		m_logWriter.write(SocketLogRecordCode.ResolveError, error, error.m_size);
 		m_listenerState = ListenerState.Closed;
 		return;
 	}
 
-	writeLog(
+	m_logWriter.write(
 		SocketLogRecordCode.ResolveCompleted,
 		addressTable,
 		sizeof(io.SocketAddress)
@@ -734,7 +734,7 @@ size_t errorcode TcpProxySession.forwardDataFromClientToServer()
 	if (!result)
 		return 0;
 
-	writeLog(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
+	m_logWriter.write(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 
 	if (m_serverConnectionState == ServerConnectionState.Connected)
 		m_serverConnectionSocket.write(m_readBuffer.m_p, result);
@@ -754,7 +754,7 @@ size_t errorcode TcpProxySession.forwardDataFromServerToClient()
 	}
 	else
 	{
-		writeLog(log.StdRecordCode.Tx, m_readBuffer.m_p, result);
+		m_logWriter.write(log.StdRecordCode.Tx, m_readBuffer.m_p, result);
 		m_clientConnectionSocket.write(m_readBuffer.m_p, result);
 	}
 
@@ -763,7 +763,7 @@ size_t errorcode TcpProxySession.forwardDataFromServerToClient()
 
 TcpProxySession.handleListenError(std.Error const* error)
 {
-	writeLog(
+	m_logWriter.write(
 		SocketLogRecordCode.ListenError,
 		error,
 		error.m_size
@@ -777,7 +777,7 @@ TcpProxySession.handleListenError(std.Error const* error)
 
 TcpProxySession.handleConnectError(std.Error const* error)
 {
-	writeLog(
+	m_logWriter.write(
 		SocketLogRecordCode.ConnectError,
 		error,
 		error.m_size

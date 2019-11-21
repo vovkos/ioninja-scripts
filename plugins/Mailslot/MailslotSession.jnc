@@ -198,7 +198,7 @@ bool errorcode MailslotSession.open()
 	m_mailslot.m_options = getMailslotOptions();
 	m_mailslot.open(fileName);
 
-	writeLogString(MailslotLogRecordCode.Opened, fileName);
+	m_logWriter.write(MailslotLogRecordCode.Opened, fileName);
 	m_state = State.Opened;
 	waitMailslotEvents();
 	m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
@@ -206,7 +206,7 @@ bool errorcode MailslotSession.open()
 
 catch:
 	std.Error const* error = std.getLastError();
-	writeLog(
+	m_logWriter.write(
 		MailslotLogRecordCode.OpenError,
 		error,
 		error.m_size
@@ -221,7 +221,7 @@ MailslotSession.close()
 	if (m_state != State.Opened)
 		return;
 
-	writeLog(MailslotLogRecordCode.Closed);
+	m_logWriter.write(MailslotLogRecordCode.Closed);
 	m_mailslot.close();
 	m_state = State.Closed;
 	m_stdSessionInfoSet.endSession();
@@ -299,7 +299,7 @@ MailslotSession.onMailslotEvent(
 
 	if (triggeredEvents & io.MailslotEvents.IoError)
 	{
-		writeLog(log.StdRecordCode.Error, m_mailslot.m_ioError, m_mailslot.m_ioError.m_size);
+		m_logWriter.write(log.StdRecordCode.Error, m_mailslot.m_ioError, m_mailslot.m_ioError.m_size);
 		close();
 		return;
 	}
@@ -308,7 +308,7 @@ MailslotSession.onMailslotEvent(
 	{
 		size_t result = m_mailslot.read(m_readBuffer.m_p, m_readBuffer.m_size);
 		if (result)
-			writeLog(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
+			m_logWriter.write(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 	}
 
 	waitMailslotEvents();

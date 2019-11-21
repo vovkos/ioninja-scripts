@@ -255,7 +255,7 @@ bool errorcode SshChannelSession.connect()
 
 	m_state = State.Resolving;
 
-	writeLog(
+	m_logWriter.write(
 		SocketLogRecordCode.Resolving,
 		addressString,
 		strlen(addressString)
@@ -307,7 +307,7 @@ bool errorcode SshChannelSession.connect(io.SocketAddress const* remoteAddress)
 	m_state = State.TcpConnecting;
 	m_remoteAddress = *remoteAddress;
 
-	writeLog(
+	m_logWriter.write(
 		SocketLogRecordCode.Connecting,
 		remoteAddress,
 		sizeof(io.SocketAddress)
@@ -396,7 +396,7 @@ SshChannelSession.waitSshEvents()
 
 SshChannelSession.handleConnectError(std.Error const* error)
 {
-	writeLog(
+	m_logWriter.write(
 		SocketLogRecordCode.ConnectError,
 		error,
 		error.m_size
@@ -408,7 +408,7 @@ SshChannelSession.handleConnectError(std.Error const* error)
 
 SshChannelSession.handleSshAuthenticateError(std.Error const* error)
 {
-	writeLog(
+	m_logWriter.write(
 		SocketLogRecordCode.ConnectError,
 		error,
 		error.m_size
@@ -452,12 +452,12 @@ SshChannelSession.onLoginDlgCompleted(ui.StdDlgButton button)
 	if (strcmp(m_loginDlg.m_userName, m_sshPropertySet.m_userNameProp.m_value) == 0)
 	{
 		nextState = State.SshAuthenticating;
-		writeLog(SshLogRecordCode.SshAuthenticating);
+		m_logWriter.write(SshLogRecordCode.SshAuthenticating);
 	}
 	else
 	{
 		nextState = State.TcpConnecting;
-		writeLog(SshLogRecordCode.Reconnecting);
+		m_logWriter.write(SshLogRecordCode.Reconnecting);
 	}
 
 	switch (m_loginDlg.m_authenticationMethod)
@@ -512,14 +512,14 @@ SshChannelSession.disconnect()
 	case State.SshOpeningChannel:
 	case State.SshRequestingPty:
 	case State.SshStartingProcess:
-		writeLog(SocketLogRecordCode.ConnectCancelled);
+		m_logWriter.write(SocketLogRecordCode.ConnectCancelled);
 		break;
 
 	case State.Connected:
 		TcpDisconnectLogRecordParams params;
 		params.m_address = m_remoteAddress;
 
-		writeLog(
+		m_logWriter.write(
 			SocketLogRecordCode.Disconnected,
 			&params,
 			sizeof(params)
@@ -589,7 +589,7 @@ size_t errorcode SshChannelSession.transmit(
 
 	size_t result = m_ssh.write(p, size);
 	if (result)
-		writeLog(log.StdRecordCode.Tx, p, result);
+		m_logWriter.write(log.StdRecordCode.Tx, p, result);
 
 	if (result < size)
 	{
@@ -622,38 +622,38 @@ SshChannelSession.onSshEvent(
 
 	if (triggeredEvents & io.SshEvents.TcpConnectCompleted)
 	{
-		writeLog(SshLogRecordCode.TcpConnectCompleted);
+		m_logWriter.write(SshLogRecordCode.TcpConnectCompleted);
 		m_state = State.SshHandshaking;
 	}
 
 	if (triggeredEvents & io.SshEvents.SshHandshakeCompleted)
 	{
-		writeLog(SshLogRecordCode.SshHandshakeCompleted);
+		m_logWriter.write(SshLogRecordCode.SshHandshakeCompleted);
 		m_state = State.SshAuthenticating;
 	}
 
 	if (triggeredEvents & io.SshEvents.SshAuthenticateCompleted)
 	{
-		writeLog(SshLogRecordCode.SshAuthCompleted);
+		m_logWriter.write(SshLogRecordCode.SshAuthCompleted);
 		m_state = State.SshOpeningChannel;
 	}
 
 	if (triggeredEvents & io.SshEvents.SshChannelOpened)
 	{
-		writeLog(SshLogRecordCode.SshChannelOpened);
+		m_logWriter.write(SshLogRecordCode.SshChannelOpened);
 		m_state = State.SshRequestingPty;
 	}
 
 	if (triggeredEvents & io.SshEvents.SshPtyRequestCompleted)
 	{
-		writeLog(SshLogRecordCode.SshPtyRequested);
+		m_logWriter.write(SshLogRecordCode.SshPtyRequested);
 		m_state = State.SshStartingProcess;
 	}
 
 	if (triggeredEvents & io.SshEvents.SshConnectCompleted)
 	{
-		writeLog(SshLogRecordCode.SshProcessStarted);
-		writeLog(SshLogRecordCode.ConnectCompleted);
+		m_logWriter.write(SshLogRecordCode.SshProcessStarted);
+		m_logWriter.write(SshLogRecordCode.ConnectCompleted);
 		m_state = State.Connected;
 		m_isTransmitEnabled = true;
 		m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
@@ -667,7 +667,7 @@ SshChannelSession.onSshEvent(
 			if (!result)
 				break;
 
-			writeLog(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
+			m_logWriter.write(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 		}
 
 		TcpDisconnectLogRecordParams params;
@@ -677,7 +677,7 @@ SshChannelSession.onSshEvent(
 		if (triggeredEvents & io.SocketEvents.Reset)
 			params.m_flags |= TcpDisconnectLogRecordFlags.Reset;
 
-		writeLog(
+		m_logWriter.write(
 			SocketLogRecordCode.Disconnected,
 			&params,
 			sizeof(params)
@@ -694,7 +694,7 @@ SshChannelSession.onSshEvent(
 	{
 		size_t result = m_ssh.read(m_readBuffer.m_p, m_readBuffer.m_size);
 		if (result)
-			writeLog(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
+			m_logWriter.write(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 	}
 
 	if (triggeredEvents & io.SshEvents.WriteBufferReady)
@@ -719,7 +719,7 @@ SshChannelSession.onResolveCompleted(
 		return;
 	}
 
-	writeLog(
+	m_logWriter.write(
 		SocketLogRecordCode.ResolveCompleted,
 		addressTable,
 		sizeof(io.SocketAddress)

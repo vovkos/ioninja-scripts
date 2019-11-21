@@ -415,13 +415,13 @@ bool errorcode I2cSpiSnifferSession.capture()
 	m_device = m_deviceCombo.m_currentData;
 	m_device.open();
 
-	writeLogString(I2cSpiSnifferLogRecordCode.DeviceOpened, m_deviceCombo.m_currentText);
+	m_logWriter.write(I2cSpiSnifferLogRecordCode.DeviceOpened, m_deviceCombo.m_currentText);
 
 	Protocol protocol = m_protocolCombo.m_currentData;
 	return m_uploader.update(m_device, m_fileNameTable[protocol], FpgaUploadBaseIndex);
 
 catch:
-	writeLogLastError(I2cSpiSnifferLogRecordCode.CaptureError);
+	m_logWriter.writeLastError(I2cSpiSnifferLogRecordCode.CaptureError);
 	return false;
 }
 
@@ -464,7 +464,7 @@ bool errorcode I2cSpiSnifferSession.startCapture()
 
 	m_decoder.reset();
 	m_outEndpoint.write(&startCode, sizeof(startCode));
-	writeLog(I2cSpiSnifferLogRecordCode.CaptureStarted);
+	m_logWriter.write(I2cSpiSnifferLogRecordCode.CaptureStarted);
 
 	waitInEndpointEvents();
 	m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
@@ -472,7 +472,7 @@ bool errorcode I2cSpiSnifferSession.startCapture()
 	return true;
 
 catch:
-	writeLogLastError(I2cSpiSnifferLogRecordCode.CaptureError);
+	m_logWriter.writeLastError(I2cSpiSnifferLogRecordCode.CaptureError);
 	return false;
 }
 
@@ -497,12 +497,12 @@ bool errorcode I2cSpiSnifferSession.gracefulStop()
 		if (!size)
 			break;
 
-		// writeLogString(log.StdRecordCode.PlainText, $"Cypress buffer clear received: $size");
-		// writeLog(log.StdRecordCode.Bin, m_readBuffer.m_p, size);
+		// m_logWriter.write(log.StdRecordCode.PlainText, $"Cypress buffer clear received: $size");
+		// m_logWriter.write(log.StdRecordCode.Bin, m_readBuffer.m_p, size);
 	}
 
 	ep.close();
-	writeLog(I2cSpiSnifferLogRecordCode.CypressBufferCleared);
+	m_logWriter.write(I2cSpiSnifferLogRecordCode.CypressBufferCleared);
 	return true;
 }
 
@@ -536,7 +536,7 @@ I2cSpiSnifferSession.stopCapture()
 	if (m_state)
 	{
 		m_stdSessionInfoSet.endSession();
-		writeLog(I2cSpiSnifferLogRecordCode.CaptureStopped);
+		m_logWriter.write(I2cSpiSnifferLogRecordCode.CaptureStopped);
 		m_state = State.Closed;
 	}
 
@@ -564,7 +564,7 @@ I2cSpiSnifferSession.onInEndpointEvent(
 
 	if (triggeredEvents & io.UsbEndpointEvents.IoError)
 	{
-		writeLogError(log.StdRecordCode.Error, m_inEndpoint.m_ioError);
+		m_logWriter.write(log.StdRecordCode.Error, m_inEndpoint.m_ioError);
 		stopCapture();
 		return;
 	}

@@ -237,7 +237,7 @@ bool errorcode TcpListenerSession.listen()
 
 	address = m_listenerSocket.m_address;
 
-	writeLog(
+	m_logWriter.write(
 		SocketLogRecordCode.Listening,
 		&address,
 		sizeof(address)
@@ -251,7 +251,7 @@ bool errorcode TcpListenerSession.listen()
 
 catch:
 	std.Error const* error = std.getLastError();
-	writeLog(
+	m_logWriter.write(
 		SocketLogRecordCode.ListenError,
 		error,
 		error.m_size
@@ -266,7 +266,7 @@ TcpListenerSession.stopListen()
 	if (m_listenerState != ListenerState.Listening)
 		return;
 
-	writeLog(
+	m_logWriter.write(
 		SocketLogRecordCode.ListenStopped,
 		&m_localAddress,
 		sizeof(m_localAddress)
@@ -289,7 +289,7 @@ TcpListenerSession.disconnect()
 	if (m_socketPropertySet.m_tcpResetProp.m_value)
 		params.m_flags |= TcpDisconnectLogRecordFlags.Reset;
 
-	writeLog(
+	m_logWriter.write(
 		SocketLogRecordCode.ClientDisconnected,
 		&params,
 		sizeof(params)
@@ -364,7 +364,7 @@ size_t errorcode TcpListenerSession.transmit(
 
 	size_t result = m_connectionSocket.write(p, size);
 	if (result)
-		writeLog(log.StdRecordCode.Tx, p, result);
+		m_logWriter.write(log.StdRecordCode.Tx, p, result);
 
 	if (result < size)
 		m_isTransmitEnabled = false;
@@ -402,7 +402,7 @@ TcpListenerSession.onListenerSocketEvent(
 
 	if (triggeredEvents & io.SocketEvents.IoError)
 	{
-		writeLog(log.StdRecordCode.Error, m_listenerSocket.m_ioError, m_listenerSocket.m_ioError.m_size);
+		m_logWriter.write(log.StdRecordCode.Error, m_listenerSocket.m_ioError, m_listenerSocket.m_ioError.m_size);
 		m_listenerSocket.close();
 		m_listenerState = ListenerState.Closed;
 		m_stdSessionInfoSet.endSession();
@@ -417,7 +417,7 @@ TcpListenerSession.onListenerSocketEvent(
 		if (m_connectionState == ConnectionState.Connected && !m_overrideOldConnectionProp.m_value)
 		{
 			socket.close();
-			writeLog(SocketLogRecordCode.ClientRejected, &address, sizeof(address));
+			m_logWriter.write(SocketLogRecordCode.ClientRejected, &address, sizeof(address));
 			return;
 		}
 
@@ -430,7 +430,7 @@ TcpListenerSession.onListenerSocketEvent(
 
 		disconnect();
 
-		writeLog(SocketLogRecordCode.ClientConnected, &address, sizeof(address));
+		m_logWriter.write(SocketLogRecordCode.ClientConnected, &address, sizeof(address));
 
 		m_remoteAddress = address;
 		m_connectionSocket = socket;
@@ -453,7 +453,7 @@ TcpListenerSession.onConnectionSocketEvent(
 
 	if (triggeredEvents & io.SocketEvents.IoError)
 	{
-		writeLog(log.StdRecordCode.Error, m_connectionSocket.m_ioError, m_connectionSocket.m_ioError.m_size);
+		m_logWriter.write(log.StdRecordCode.Error, m_connectionSocket.m_ioError, m_connectionSocket.m_ioError.m_size);
 		m_connectionSocket.close();
 		m_connectionSocket = null;
 		m_connectionState = ConnectionState.Closed;
@@ -469,7 +469,7 @@ TcpListenerSession.onConnectionSocketEvent(
 			if (!result)
 				break;
 
-			writeLog(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
+			m_logWriter.write(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 		}
 
 		TcpDisconnectLogRecordParams recordParams;
@@ -479,7 +479,7 @@ TcpListenerSession.onConnectionSocketEvent(
 		if (triggeredEvents & io.SocketEvents.Reset)
 			recordParams.m_flags |= TcpDisconnectLogRecordFlags.Reset;
 
-		writeLog(
+		m_logWriter.write(
 			SocketLogRecordCode.ClientDisconnected,
 			&recordParams,
 			sizeof(recordParams)
@@ -496,7 +496,7 @@ TcpListenerSession.onConnectionSocketEvent(
 	{
 		size_t result = m_connectionSocket.read(m_readBuffer.m_p, m_readBuffer.m_size);
 		if (result)
-			writeLog(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
+			m_logWriter.write(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 	}
 
 	if (io.SocketEvents.WriteBufferReady)

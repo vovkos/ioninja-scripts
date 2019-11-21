@@ -334,21 +334,21 @@ bool errorcode EthernetTapSession.capture()
 	m_device = m_deviceCombo.m_currentData;
 	m_device.open();
 
-	writeLogString(EthernetTapLogRecordCode.DeviceOpened, m_deviceCombo.m_currentText);
+	m_logWriter.write(EthernetTapLogRecordCode.DeviceOpened, m_deviceCombo.m_currentText);
 	return m_uploader.update(m_device, m_firmwareFileName, FpgaUploadBaseIndex);
 
 catch:
-	writeLogLastError(EthernetTapLogRecordCode.CaptureError);
+	m_logWriter.writeLastError(EthernetTapLogRecordCode.CaptureError);
 	return false;
 }
 
 bool errorcode EthernetTapSession.startCapture()
 {
 	m_iface = m_device.claimInterface(0);
-	writeLog(EthernetTapLogRecordCode.InterfaceClaimed);
+	m_logWriter.write(EthernetTapLogRecordCode.InterfaceClaimed);
 
 	m_outEndpoint = m_iface.openEndpoint(Usb.OutEndpoint);
-	writeLog(EthernetTapLogRecordCode.OutEndpointOpened);
+	m_logWriter.write(EthernetTapLogRecordCode.OutEndpointOpened);
 	gracefulStop();
 
 	// align read block on 512 bytes
@@ -363,11 +363,11 @@ bool errorcode EthernetTapSession.startCapture()
 	m_inEndpoint.m_options &= ~io.UsbEndpointOptions.KeepReadBlockSize;
 	m_inEndpoint.unsuspend();
 
-	writeLog(EthernetTapLogRecordCode.InEndpointOpened);
+	m_logWriter.write(EthernetTapLogRecordCode.InEndpointOpened);
 
 	static char startCode = 0x55;
 	m_outEndpoint.write (&startCode, sizeof (startCode));
-	writeLog(EthernetTapLogRecordCode.CaptureStarted);
+	m_logWriter.write(EthernetTapLogRecordCode.CaptureStarted);
 
 	m_state = State.Capturing;
 	waitInEndpointEvents();
@@ -376,7 +376,7 @@ bool errorcode EthernetTapSession.startCapture()
 	return true;
 
 catch:
-	writeLogLastError(EthernetTapLogRecordCode.CaptureError);
+	m_logWriter.writeLastError(EthernetTapLogRecordCode.CaptureError);
 	stopCapture();
 	return false;
 }
@@ -402,12 +402,12 @@ bool errorcode EthernetTapSession.gracefulStop()
 		if (!size)
 			break;
 
-		writeLogString(log.StdRecordCode.PlainText, $"Cypress buffer clear received: $size");
-		writeLog(log.StdRecordCode.Bin, m_readBuffer.m_p, size);
+		m_logWriter.write(log.StdRecordCode.PlainText, $"Cypress buffer clear received: $size");
+		m_logWriter.write(log.StdRecordCode.Bin, m_readBuffer.m_p, size);
 	}
 
 	ep.close();
-	writeLog(EthernetTapLogRecordCode.CypressBufferCleared);
+	m_logWriter.write(EthernetTapLogRecordCode.CypressBufferCleared);
 	return true;
 }
 
@@ -441,7 +441,7 @@ EthernetTapSession.stopCapture()
 	if (m_state)
 	{
 		m_stdSessionInfoSet.endSession();
-		writeLog(EthernetTapLogRecordCode.CaptureStopped);
+		m_logWriter.write(EthernetTapLogRecordCode.CaptureStopped);
 		m_state = State.Closed;
 	}
 
@@ -493,7 +493,7 @@ EthernetTapSession.onInEndpointEvent(
 
 	if (triggeredEvents & io.UsbEndpointEvents.IoError)
 	{
-		writeLogError(log.StdRecordCode.Error, m_inEndpoint.m_ioError);
+		m_logWriter.write(log.StdRecordCode.Error, m_inEndpoint.m_ioError);
 		stopCapture();
 		return;
 	}
@@ -503,7 +503,7 @@ EthernetTapSession.onInEndpointEvent(
 		size_t size = m_inEndpoint.read(m_readBuffer.m_p, m_readBuffer.m_size);
 
 		if (m_rawDataProp.m_value)
-			m_pluginHost.m_log.m_writer.write(log.StdRecordCode.Rx, m_readBuffer.m_p, size);
+			m_logWriter.write(log.StdRecordCode.Rx, m_readBuffer.m_p, size);
 
 		parse((uint32_t const*)m_readBuffer.m_p, size / sizeof(uint32_t));
 	}
@@ -576,7 +576,7 @@ EthernetTapSession.parse(
 			m_stdSessionInfoSet.addTxData(m_packetBuffer.m_size);
 		}
 
-		m_pluginHost.m_log.m_writer.write(recordCode, m_packetBuffer.m_p, m_packetBuffer.m_size);
+		m_logWriter.write(recordCode, m_packetBuffer.m_p, m_packetBuffer.m_size);
 		m_packetBuffer.clear();
 		m_packetOffset = 0;
 	}

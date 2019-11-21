@@ -218,7 +218,7 @@ bool errorcode PipeMonSession.capture()
 		m_lanmanMonitor.capture(r"\device\lanmanredirector", name);
 	}
 
-	writeLogString(DeviceMonLogRecordCode.CaptureStarted_filter, name);
+	m_logWriter.write(DeviceMonLogRecordCode.CaptureStarted_filter, name);
 	m_state = State.Opened;
 	m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
 	return true;
@@ -228,7 +228,7 @@ catch:
 	m_lanmanMonitor.close();
 
 	std.Error const* error = std.getLastError();
-	writeLog(
+	m_logWriter.write(
 		DeviceMonLogRecordCode.CaptureError,
 		error,
 		error.m_size
@@ -241,7 +241,7 @@ PipeMonSession.close()
 	if (m_state != State.Opened)
 		return;
 
-	writeLog(DeviceMonLogRecordCode.CaptureStopped);
+	m_logWriter.write(DeviceMonLogRecordCode.CaptureStopped);
 
 	m_npfsMonitor.close();
 	m_lanmanMonitor.close();

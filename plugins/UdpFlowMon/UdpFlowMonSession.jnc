@@ -344,7 +344,7 @@ bool errorcode UdpFlowMonSession.capture(
 	startSession();
 
 	char const* filterString = createFilterString(filterAddress);
-	writeLogString(PcapLogRecordCode.StartingCapture, filterString);
+	m_logWriter.write(PcapLogRecordCode.StartingCapture, filterString);
 
 	m_pcap.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 
@@ -357,13 +357,13 @@ bool errorcode UdpFlowMonSession.capture(
 
 	if (!result)
 	{
-		writeLogLastError(PcapLogRecordCode.CaptureError);
+		m_logWriter.writeLastError(PcapLogRecordCode.CaptureError);
 		return false;
 	}
 
 	m_state = State.Capturing;
 	m_filterAddress = *filterAddress;
-	writeLog(PcapLogRecordCode.CaptureStarted);
+	m_logWriter.write(PcapLogRecordCode.CaptureStarted);
 	waitPcapEvents();
 	m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
 	return true;
@@ -375,20 +375,20 @@ bool errorcode UdpFlowMonSession.openCapFile(
 	)
 {
 	char const* filterString = createFilterString(filterAddress);
-	writeLogString(PcapLogRecordCode.StartingCapture, filterString);
+	m_logWriter.write(PcapLogRecordCode.StartingCapture, filterString);
 
 	m_pcap.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 
 	bool result = try m_pcap.openFile(fileName, filterString);
 	if (!result)
 	{
-		writeLogLastError(PcapLogRecordCode.CaptureError);
+		m_logWriter.writeLastError(PcapLogRecordCode.CaptureError);
 		return false;
 	}
 
 	m_state = State.Capturing;
 	m_filterAddress = *filterAddress;
-	writeLog(PcapLogRecordCode.CaptureStarted);
+	m_logWriter.write(PcapLogRecordCode.CaptureStarted);
 	waitPcapEvents();
 	m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
 	return true;
@@ -400,10 +400,10 @@ UdpFlowMonSession.stopCapture()
 		return;
 
 	if (m_state & State.Resolving)
-		writeLog(SocketLogRecordCode.ResolveCancelled);
+		m_logWriter.write(SocketLogRecordCode.ResolveCancelled);
 
 	if (m_state & State.Capturing)
-		writeLog(PcapLogRecordCode.CaptureStopped);
+		m_logWriter.write(PcapLogRecordCode.CaptureStopped);
 
 	m_pcap.close();
 	m_ipDefragmenter.reset();
@@ -415,7 +415,7 @@ UdpFlowMonSession.stopCapture()
 
 bool errorcode UdpFlowMonSession.resolve(char const* addressString)
 {
-	writeLogString(SocketLogRecordCode.Resolving, addressString);
+	m_logWriter.write(SocketLogRecordCode.Resolving, addressString);
 
 	bool result = try m_resolver.resolve(
 		addressString,
@@ -424,7 +424,7 @@ bool errorcode UdpFlowMonSession.resolve(char const* addressString)
 
 	if (!result)
 	{
-		writeLogLastError(SocketLogRecordCode.ResolveError);
+		m_logWriter.writeLastError(SocketLogRecordCode.ResolveError);
 		return false;
 	}
 
@@ -445,7 +445,7 @@ bool errorcode UdpFlowMonSession.applyFilter()
 		return try setFilter(&filterAddress);
 	}
 
-	writeLogString(SocketLogRecordCode.Resolving, filterString);
+	m_logWriter.write(SocketLogRecordCode.Resolving, filterString);
 
 	bool result = try m_resolver.resolve(
 		filterString,
@@ -454,7 +454,7 @@ bool errorcode UdpFlowMonSession.applyFilter()
 
 	if (!result)
 	{
-		writeLogLastError(SocketLogRecordCode.ResolveError);
+		m_logWriter.writeLastError(SocketLogRecordCode.ResolveError);
 		return false;
 	}
 
@@ -468,15 +468,15 @@ bool errorcode UdpFlowMonSession.setFilter(io.SocketAddress const* filterAddress
 		return true;
 
 	char const* filterString = createFilterString(filterAddress);
-	writeLogString(PcapLogRecordCode.ChangingCaptureFilter, filterString);
+	m_logWriter.write(PcapLogRecordCode.ChangingCaptureFilter, filterString);
 	bool result = try m_pcap.setFilter(filterString);
 	if (!result)
 	{
-		writeLogLastError(PcapLogRecordCode.CaptureFilterError);
+		m_logWriter.writeLastError(PcapLogRecordCode.CaptureFilterError);
 		return false;
 	}
 
-	writeLog(PcapLogRecordCode.CaptureFilterChanged);
+	m_logWriter.write(PcapLogRecordCode.CaptureFilterChanged);
 	return true;
 }
 
@@ -579,11 +579,11 @@ UdpFlowMonSession.onResolveCompleted(
 
 	if (error)
 	{
-		writeLogError(SocketLogRecordCode.ResolveError, error);
+		m_logWriter.write(SocketLogRecordCode.ResolveError, error);
 		return;
 	}
 
-	writeLog(
+	m_logWriter.write(
 		SocketLogRecordCode.ResolveCompleted,
 		addressTable,
 		sizeof(io.SocketAddress)
@@ -607,14 +607,14 @@ UdpFlowMonSession.onPcapEvent(
 
 	if (triggeredEvents & io.PcapEvents.IoError)
 	{
-		writeLog(log.StdRecordCode.Error, m_pcap.m_ioError, m_pcap.m_ioError.m_size);
+		m_logWriter.write(log.StdRecordCode.Error, m_pcap.m_ioError, m_pcap.m_ioError.m_size);
 		stopCapture();
 		return;
 	}
 
 	if ((triggeredEvents & io.PcapEvents.ReadBufferFull) &&
 		m_bufferPropertySet.m_notifyReadBufferFullProp.m_value)
-		writeLog(log.StdRecordCode.RxBufferFull);
+		m_logWriter.write(log.StdRecordCode.RxBufferFull);
 
 	if (triggeredEvents & io.PcapEvents.IncomingData)
 	{
@@ -720,13 +720,13 @@ bool UdpFlowMonSession.decodePacket(
 
 	if (params.m_srcAddress.isMatch(m_filterAddress))
 	{
-		writeLog(UdpFlowMonLogRecordCode.RxPacket, &params, sizeof(params));
-		writeLog(log.StdRecordCode.Rx, p, size);
+		m_logWriter.write(UdpFlowMonLogRecordCode.RxPacket, &params, sizeof(params));
+		m_logWriter.write(log.StdRecordCode.Rx, p, size);
 	}
 	else if (params.m_dstAddress.isMatch(m_filterAddress))
 	{
-		writeLog(UdpFlowMonLogRecordCode.TxPacket, &params, sizeof(params));
-		writeLog(log.StdRecordCode.Tx, p, size);
+		m_logWriter.write(UdpFlowMonLogRecordCode.TxPacket, &params, sizeof(params));
+		m_logWriter.write(log.StdRecordCode.Tx, p, size);
 	}
 	else
 	{

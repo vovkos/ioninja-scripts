@@ -217,18 +217,18 @@ Uart.processSignal(
 	uint16_t changedLines = m_lastLines ^ lines;
 	m_lastLines = lines;
 
-	// m_pluginHost.m_log.m_writer.write (timestamp, log.StdRecordCode.Rx, p, sizeof (Snapshot));
+	// m_logWriter.write (timestamp, log.StdRecordCode.Rx, p, sizeof (Snapshot));
 
 	if (changedLines & Lines.Rts)
 	{
 		bool state = !(lines & Lines.Rts);
-		m_pluginHost.m_log.m_writer.write(timestamp, HwSerialMonRecordCode.UartRtsChanged, &state, sizeof(state));
+		m_logWriter.write(timestamp, HwSerialMonRecordCode.UartRtsChanged, &state, sizeof(state));
 	}
 
 	if (changedLines & Lines.Cts)
 	{
 		bool state = !(lines & Lines.Cts);
-		m_pluginHost.m_log.m_writer.write(timestamp, HwSerialMonRecordCode.UartCtsChanged, &state, sizeof(state));
+		m_logWriter.write(timestamp, HwSerialMonRecordCode.UartCtsChanged, &state, sizeof(state));
 	}
 
 	if (changedLines & Lines.Tx)
@@ -264,16 +264,16 @@ Uart.finalizeFrame(
 	)
 {
 	// write data byte even in case of framing/parity errors
-	m_pluginHost.m_log.m_writer.write(timestamp, recordCode, &data, 1);
+	m_logWriter.write(timestamp, recordCode, &data, 1);
 
 	switch (result)
 	{
 	case io.UartDecodeResult.FramingError:
-		m_pluginHost.m_log.m_writer.write(timestamp, HwSerialMonRecordCode.UartFramingError);
+		m_logWriter.write(timestamp, HwSerialMonRecordCode.UartFramingError);
 		break;
 
 	case io.UartDecodeResult.ParityError:
-		m_pluginHost.m_log.m_writer.write(timestamp, HwSerialMonRecordCode.UartParityError);
+		m_logWriter.write(timestamp, HwSerialMonRecordCode.UartParityError);
 		break;
 	}
 }

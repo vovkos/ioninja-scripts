@@ -128,8 +128,7 @@ public:
 		);
 
 protected:
-	onOpen  ();
-
+	onOpen();
 	onRemoteAddressChanged();
 
 	onResolveCompleted(
@@ -189,6 +188,7 @@ UdpSession.createUi()
 	m_pluginHost.m_toolBar.addLabel("Port:");
 	m_localPortCombo = m_pluginHost.m_toolBar.addComboBox();
 	m_localPortCombo.m_isEditable = true;
+	m_localPortCombo.m_onEnter += openSocket;
 
 	m_actionTable[ActionId.Open] = createAction("Open socket", m_iconTable [IconId.Open]);
 	m_actionTable[ActionId.Open].m_onTriggered += onOpen;
@@ -241,7 +241,7 @@ UdpSession.createUi()
 	m_uiReactor.start();
 }
 
-UdpSession.onOpen  ()
+UdpSession.onOpen()
 {
 	if (m_state)
 		closeSocket();
@@ -271,7 +271,7 @@ nestedscope:
 
 	m_socket.open(io.Protocol.Udp, &address);
 	address = m_socket.m_address;
-	writeLog(SocketLogRecordCode.Open, &address, sizeof(address));
+	m_logWriter.write(SocketLogRecordCode.Open, &address, sizeof(address));
 	m_state = State.Opened;
 	waitSocketEvents();
 	m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
@@ -279,7 +279,7 @@ nestedscope:
 catch:
 	std.Error const* error = std.getLastError();
 	void const* p = memcat(&address, sizeof(address), error, error.m_size);
-	writeLog(SocketLogRecordCode.OpenError, p, dynamic sizeof(p));
+	m_logWriter.write(SocketLogRecordCode.OpenError, p, dynamic sizeof(p));
 }
 
 UdpSession.closeSocket()
@@ -290,7 +290,7 @@ UdpSession.closeSocket()
 	io.SocketAddress address = m_socket.m_address;
 	m_socket.close();
 
-	writeLog(SocketLogRecordCode.Close, &address, sizeof(address));
+	m_logWriter.write(SocketLogRecordCode.Close, &address, sizeof(address));
 
 	m_state = State.Closed;
 	m_socketSyncId++;
@@ -404,7 +404,7 @@ size_t errorcode UdpSession.transmit(
 
 		if (m_resolveState == ResolveState.Unresolved)
 		{
-			writeLog(
+			m_logWriter.write(
 				SocketLogRecordCode.Resolving,
 				addressString,
 				strlen(addressString)
@@ -444,10 +444,16 @@ size_t UdpSession.writeDatagram(
 {
 	size_t result = m_socket.writeDatagram(p, size, address);
 
-	m_pluginHost.m_log.m_writer.write(UdpLogRecordCode.TxPacket, address, sizeof(io.SocketAddress));
+	m_logWriter.write(
+		UdpLogRecordCode.TxPacketEx,
+		&result,
+		sizeof(uint32_t),
+		address,
+		sizeof(io.SocketAddress)
+		);
 
 	if (result)
-		m_pluginHost.m_log.m_writer.write(log.StdRecordCode.Tx, p, result);
+		m_logWriter.write(log.StdRecordCode.Tx, p, result);
 
 	return result;
 }
@@ -469,7 +475,7 @@ UdpSession.onSocketEvent(
 
 	if (triggeredEvents & io.SocketEvents.IoError)
 	{
-		writeLog(log.StdRecordCode.Error, m_socket.m_ioError, m_socket.m_ioError.m_size);
+		m_logWriter.write(log.StdRecordCode.Error, m_socket.m_ioError, m_socket.m_ioError.m_size);
 		m_socket.close();
 		m_state = State.Closed;
 		m_isTransmitEnabled = false;
@@ -479,7 +485,7 @@ UdpSession.onSocketEvent(
 
 	if ((triggeredEvents & io.SocketEvents.ReadBufferFull) &&
 		m_bufferPropertySet.m_notifyReadBufferFullProp.m_value)
-		writeLog(log.StdRecordCode.RxBufferFullLossy);
+		m_logWriter.write(log.StdRecordCode.RxBufferFullLossy);
 
 	if (triggeredEvents & io.SocketEvents.IncomingData)
 	{
@@ -489,10 +495,16 @@ UdpSession.onSocketEvent(
 		if (m_actionTable[ActionId.AutoRemoteAddress].m_isChecked)
 			m_remoteAddressCombo.m_editText = remoteAddress.getString();
 
-		writeLog(UdpLogRecordCode.RxPacket, &remoteAddress, sizeof(io.SocketAddress));
+		m_logWriter.write(
+			UdpLogRecordCode.RxPacketEx,
+			&result,
+			sizeof(uint32_t),
+			&remoteAddress,
+			sizeof(io.SocketAddress)
+			);
 
 		if (result)
-			writeLog(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
+			m_logWriter.write(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 	}
 
 	if (io.SocketEvents.WriteBufferReady)
@@ -513,12 +525,12 @@ UdpSession.onResolveCompleted(
 
 	if (error)
 	{
-		writeLog(SocketLogRecordCode.ResolveError, error, error.m_size);
+		m_logWriter.write(SocketLogRecordCode.ResolveError, error, error.m_size);
 		m_resolveState = ResolveState.Unresolved;
 		return;
 	}
 
-	writeLog(
+	m_logWriter.write(
 		SocketLogRecordCode.ResolveCompleted,
 		addressTable,
 		sizeof(io.SocketAddress)
@@ -533,8 +545,8 @@ UdpSession.onResolveCompleted(
 	writeDatagram(m_pendingDatagram.m_p, m_pendingDatagram.m_size, &m_remoteAddress);
 
 catch:
-	std.Error const* error = std.getLastError();
-	writeLog(log.StdRecordCode.Error, error, error.m_size);
+	error = std.getLastError();
+	m_logWriter.write(log.StdRecordCode.Error, error, error.m_size);
 }
 
 reactor UdpSession.m_uiReactor

@@ -525,7 +525,7 @@ bool errorcode SerialTapSession.capture()
 	params.m_osKind = sys.g_systemInfo.m_osKind;
 
 	char const* p = $"$(params; B)$(m_deviceCombo.m_currentText)";
-	writeLog(SerialLogRecordCode.PortOpened, p, dynamic sizeof(p));
+	m_logWriter.write(SerialLogRecordCode.PortOpened, p, dynamic sizeof(p));
 
 	m_state = State.Opened;
 
@@ -540,7 +540,7 @@ bool errorcode SerialTapSession.capture()
 catch:
 	std.Error const* error = std.getLastError();
 
-	writeLog(
+	m_logWriter.write(
 		SerialLogRecordCode.PortOpenError,
 		error,
 		error.m_size
@@ -563,7 +563,7 @@ SerialTapSession.stopCapture()
 	if (m_state != State.Opened)
 		return;
 
-	writeLog(SerialLogRecordCode.PortClosed);
+	m_logWriter.write(SerialLogRecordCode.PortClosed);
 	m_stdSessionInfoSet.endSession();
 	m_dteIface.release();
 	m_dceIface.release();
@@ -608,14 +608,14 @@ SerialTapSession.onBulkEndpointEvent(
 
 	if (triggeredEvents & io.UsbEndpointEvents.IoError)
 	{
-		writeLog(log.StdRecordCode.Error, iface.m_bulkEndpoint.m_ioError, iface.m_bulkEndpoint.m_ioError.m_size);
+		m_logWriter.write(log.StdRecordCode.Error, iface.m_bulkEndpoint.m_ioError, iface.m_bulkEndpoint.m_ioError.m_size);
 		stopCapture();
 		return;
 	}
 
 	if ((triggeredEvents & io.UsbEndpointEvents.ReadBufferFull) &&
 		m_bufferPropertySet.m_notifyReadBufferFullProp.m_value)
-		writeLog(log.StdRecordCode.RxBufferFull);
+		m_logWriter.write(log.StdRecordCode.RxBufferFull);
 
 	if (triggeredEvents & io.UsbEndpointEvents.IncomingData)
 	{
@@ -623,7 +623,7 @@ SerialTapSession.onBulkEndpointEvent(
 		if (result)
 		{
 			uint64_t recordCode = iface == m_dteIface ? log.StdRecordCode.Rx : log.StdRecordCode.Tx;
-			writeLog(recordCode, m_readBuffer.m_p, result);
+			m_logWriter.write(recordCode, m_readBuffer.m_p, result);
 		}
 	}
 
@@ -641,7 +641,7 @@ SerialTapSession.onInterruptEndpointEvent(
 
 	if (triggeredEvents & io.UsbEndpointEvents.IoError)
 	{
-		writeLog(log.StdRecordCode.Error, iface.m_interruptEndpoint.m_ioError, iface.m_interruptEndpoint.m_ioError.m_size);
+		m_logWriter.write(log.StdRecordCode.Error, iface.m_interruptEndpoint.m_ioError, iface.m_interruptEndpoint.m_ioError.m_size);
 		stopCapture();
 		return;
 	}
@@ -680,13 +680,13 @@ SerialTapSession.onInterruptEndpointEvent(
 					SerialLogRecordCode.ControlLineChanged;
 
 				SerialStatusLineChangedParams params = { statusLines, statusLineMask }
-				writeLog(recordCode, params, sizeof(params));
+				m_logWriter.write(recordCode, params, sizeof(params));
 
 				iface.m_serialStatusLines = statusLines;
 			}
 
 			if (lineErrors)
-				writeLog(SerialLogRecordCode.LineError, &lineErrors, sizeof(lineErrors));
+				m_logWriter.write(SerialLogRecordCode.LineError, &lineErrors, sizeof(lineErrors));
 		}
 	}
 
@@ -740,25 +740,25 @@ bool errorcode SerialTapSession.applyProperties()
 
 	if (m_baudRate != baudRate)
 	{
-		writeLog(SerialLogRecordCode.BaudRateChanged, &baudRate, sizeof(baudRate));
+		m_logWriter.write(SerialLogRecordCode.BaudRateChanged, &baudRate, sizeof(baudRate));
 		m_baudRate = baudRate;
 	}
 
 	if (m_dataBits != dataBits)
 	{
-		writeLog(SerialLogRecordCode.DataBitsChanged, &dataBits, sizeof(dataBits));
+		m_logWriter.write(SerialLogRecordCode.DataBitsChanged, &dataBits, sizeof(dataBits));
 		m_dataBits = dataBits;
 	}
 
 	if (m_stopBits != stopBits)
 	{
-		writeLog(SerialLogRecordCode.StopBitsChanged, &stopBits, sizeof(stopBits));
+		m_logWriter.write(SerialLogRecordCode.StopBitsChanged, &stopBits, sizeof(stopBits));
 		m_stopBits = stopBits;
 	}
 
 	if (m_parity != parity)
 	{
-		writeLog(SerialLogRecordCode.ParityChanged, &parity, sizeof(parity));
+		m_logWriter.write(SerialLogRecordCode.ParityChanged, &parity, sizeof(parity));
 		m_parity = parity;
 	}
 
@@ -767,7 +767,7 @@ bool errorcode SerialTapSession.applyProperties()
 	return true;
 
 catch:
-	writeLogLastError(log.StdRecordCode.Error);
+	m_logWriter.writeLastError(log.StdRecordCode.Error);
 	return false;
 }
 
@@ -790,11 +790,11 @@ SerialTapSession.onBaudRateChanged()
 	configureSerialIface(0);
 	configureSerialIface(1);
 
-	writeLog(SerialLogRecordCode.BaudRateChanged, &baudRate, sizeof(baudRate));
+	m_logWriter.write(SerialLogRecordCode.BaudRateChanged, &baudRate, sizeof(baudRate));
 	m_baudRate = baudRate;
 
 catch:
-	writeLogLastError(log.StdRecordCode.Error);
+	m_logWriter.writeLastError(log.StdRecordCode.Error);
 }
 
 SerialTapSession.updateLineInfoValue(

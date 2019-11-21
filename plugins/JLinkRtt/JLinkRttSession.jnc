@@ -191,12 +191,12 @@ protected:
 
 	static jlinkTraceInfo(char const thin* p)
 	{
-		m_singleton.writeLogString(JLinkRttLogRecordCode.TraceInfo, jnc.createDataPtr(p));
+		m_singleton.m_logWriter.write(JLinkRttLogRecordCode.TraceInfo, jnc.createDataPtr(p));
 	}
 
 	static jlinkTraceError(char const thin* p)
 	{
-		m_singleton.writeLogString(JLinkRttLogRecordCode.TraceError, jnc.createDataPtr(p));
+		m_singleton.m_logWriter.write(JLinkRttLogRecordCode.TraceError, jnc.createDataPtr(p));
 	}
 }
 
@@ -440,7 +440,7 @@ JLinkRttSession.enumerateDevices()
 	m_deviceProp.setOptions(itemArray, count);
 
 catch:
-	writeLogLastError(log.StdRecordCode.Error);
+	m_logWriter.writeLastError(log.StdRecordCode.Error);
 }
 
 bool errorcode JLinkRttSession.open()
@@ -472,7 +472,7 @@ JLinkRttSession.close()
 		m_syncId++;
 	}
 
-	writeLog(JLinkRttLogRecordCode.Closed);
+	m_logWriter.write(JLinkRttLogRecordCode.Closed);
 	m_state = State.Closed;
 	m_stdSessionInfoSet.endSession();
 }
@@ -484,7 +484,7 @@ bool errorcode JLinkRttSession.connectSocket()
 	m_socket.open(io.Protocol.Tcp);
 	m_socket.connect(m_socketRemoteAddress);
 	m_state = State.SocketConnecting;
-	writeLog(SocketLogRecordCode.Connecting, &m_socketRemoteAddress, sizeof(io.SocketAddress));
+	m_logWriter.write(SocketLogRecordCode.Connecting, &m_socketRemoteAddress, sizeof(io.SocketAddress));
 	waitSocketEvents();
 	return true;
 
@@ -549,7 +549,7 @@ bool errorcode JLinkRttSession.connectJlink()
 	m_jlinkLib.lib.JLINK_EMU_GetProductName(buffer, sizeof(buffer) - 1);
 
 	char const* params = $"$(serialNumber;B)$buffer";
-	writeLog(JLinkRttLogRecordCode.Connected, params, dynamic sizeof(params));
+	m_logWriter.write(JLinkRttLogRecordCode.Connected, params, dynamic sizeof(params));
 	m_state = State.JlinkConnected;
 
 	m_jlinkReadThreadStopFlag = false;
@@ -563,7 +563,7 @@ bool errorcode JLinkRttSession.connectJlink()
 
 catch:
 	std.Error const* error = std.getLastError();
-	writeLog(
+	m_logWriter.write(
 		JLinkRttLogRecordCode.ConnectError,
 		error,
 		error.m_size
@@ -688,7 +688,7 @@ JLinkRttSession.handleSocketError(std.Error const* error)
 		SocketLogRecordCode.ConnectError :
 		log.StdRecordCode.Error;
 
-	writeLog(recordCode, error, error.m_size);
+	m_logWriter.write(recordCode, error, error.m_size);
 	m_socket.close();
 	startSocketReconnectTimer();
 }
@@ -709,7 +709,7 @@ JLinkRttSession.onSocketEvent(
 
 	if (triggeredEvents & io.SocketEvents.Connected)
 	{
-		writeLog(SocketLogRecordCode.ConnectCompleted);
+		m_logWriter.write(SocketLogRecordCode.ConnectCompleted);
 		m_state = State.SocketConnected;
 		m_isTransmitEnabled = true;
 		m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
@@ -723,7 +723,7 @@ JLinkRttSession.onSocketEvent(
 			if (!result)
 				break;
 
-			writeLog(log.StdRecordCode.Rx, m_socketReadBuffer.m_p, result);
+			m_logWriter.write(log.StdRecordCode.Rx, m_socketReadBuffer.m_p, result);
 		}
 
 		TcpDisconnectLogRecordParams recordParams;
@@ -733,7 +733,7 @@ JLinkRttSession.onSocketEvent(
 		if (triggeredEvents & io.SocketEvents.Reset)
 			recordParams.m_flags |= TcpDisconnectLogRecordFlags.Reset;
 
-		writeLog(
+		m_logWriter.write(
 			SocketLogRecordCode.Disconnected,
 			&recordParams,
 			sizeof(recordParams)
@@ -746,13 +746,13 @@ JLinkRttSession.onSocketEvent(
 
 	if ((triggeredEvents & io.SocketEvents.ReadBufferFull) &&
 		m_bufferPropertySet.m_notifyReadBufferFullProp.m_value)
-		writeLog(log.StdRecordCode.RxBufferFull);
+		m_logWriter.write(log.StdRecordCode.RxBufferFull);
 
 	if (triggeredEvents & io.SocketEvents.IncomingData)
 	{
 		size_t result = m_socket.read(m_socketReadBuffer.m_p, m_socketReadBuffer.m_size);
 		if (result)
-			writeLog(log.StdRecordCode.Rx, m_socketReadBuffer.m_p, result);
+			m_logWriter.write(log.StdRecordCode.Rx, m_socketReadBuffer.m_p, result);
 	}
 
 	if (io.SocketEvents.WriteBufferReady)
@@ -787,12 +787,12 @@ JLinkRttSession.jlinkReadThreadFunc()
 		if (result < 0)
 		{
 			std.setError("Error reading RTT data");
-			writeLogLastError(log.StdRecordCode.Error);
+			m_logWriter.writeLastError(log.StdRecordCode.Error);
 			break;
 		}
 
 		if (result)
-			writeLog(log.StdRecordCode.Rx, readBuffer.m_p, result);
+			m_logWriter.write(log.StdRecordCode.Rx, readBuffer.m_p, result);
 		else
 			sys.sleep(m_jlinkReadThreadDelay);
 	}

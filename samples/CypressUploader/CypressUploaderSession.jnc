@@ -379,12 +379,12 @@ bool CypressUploaderSession.openDevice()
 	params.m_productId = deviceDesc.m_productId;
 	params.m_vendorId = deviceDesc.m_vendorId;
 
-	writeLog(UsbLogRecordCode.DeviceOpened, &params, sizeof(params));
+	m_logWriter.write(UsbLogRecordCode.DeviceOpened, &params, sizeof(params));
 	m_state = State.Opened;
 	return true;
 
 catch:
-	writeLogLastError(UsbLogRecordCode.DeviceOpenError);
+	m_logWriter.writeLastError(UsbLogRecordCode.DeviceOpenError);
 	return false;
 }
 
@@ -396,7 +396,7 @@ CypressUploaderSession.closeDevice()
 	m_device.close();
 	m_device = null;
 
-	writeLog(UsbLogRecordCode.DeviceClosed);
+	m_logWriter.write(UsbLogRecordCode.DeviceClosed);
 	m_state = State.Closed;
 	m_syncId++;
 }
@@ -478,10 +478,10 @@ CypressUploaderSession.onDownloadFile()
 {
 	cancelFileTransfer();
 
-	writeLogString(log.StdRecordCode.PlainText, "Disabling FPGA...");
+	m_logWriter.write(log.StdRecordCode.PlainText, "Disabling FPGA...");
 	syncControlTransfer(ReqType.VendorOut, ReqCode.DisableFpga);
 
-	writeLogString(log.StdRecordCode.PlainText, "Downloading file...");
+	m_logWriter.write(log.StdRecordCode.PlainText, "Downloading file...");
 	m_state = State.Downloading;
 	m_offset = 0;
 	nextBlock();
@@ -518,16 +518,16 @@ CypressUploaderSession.onFileDlgCompleted(ui.StdDlgButton button)
 		io.FileOpenFlags.OpenExisting | io.FileOpenFlags.ReadOnly
 		);
 
-	writeLogString(log.StdRecordCode.PlainText, "Disabling FPGA...");
+	m_logWriter.write(log.StdRecordCode.PlainText, "Disabling FPGA...");
 	syncControlTransfer(ReqType.VendorOut, ReqCode.DisableFpga);
 
-	writeLogString(log.StdRecordCode.PlainText, $"Uploading file: $(m_fileDlg.m_filePath) ($(m_file.m_size) bytes)...");
+	m_logWriter.write(log.StdRecordCode.PlainText, $"Uploading file: $(m_fileDlg.m_filePath) ($(m_file.m_size) bytes)...");
 	m_state = State.Uploading;
 	m_offset = 0;
 
 	if (m_eraseBeforeUploadProp.m_value)
 	{
-		writeLogString(log.StdRecordCode.PlainText, "Erasing flash...");
+		m_logWriter.write(log.StdRecordCode.PlainText, "Erasing flash...");
 		syncControlTransfer(ReqType.VendorOut, ReqCode.EraseFlash);
 		setStatusCheckTimer();
 	}
@@ -556,7 +556,7 @@ CypressUploaderSession.onStatusCheckTimer()
 
 	m_timer.stop();
 
-	writeLogString(log.StdRecordCode.PlainText, $"Device ready, resuming upload...");
+	m_logWriter.write(log.StdRecordCode.PlainText, $"Device ready, resuming upload...");
 	m_state = State.Uploading;
 	nextBlock();
 
@@ -569,7 +569,7 @@ CypressUploaderSession.onFpgaCheckTimer()
 	bool isReady = checkStatus(ReqCode.GetFpgaStatus);
 	if (isReady)
 	{
-		writeLogString(log.StdRecordCode.PlainText, $"FPGA is functional");
+		m_logWriter.write(log.StdRecordCode.PlainText, $"FPGA is functional");
 		cancelFileTransfer();
 	}
 
@@ -578,7 +578,7 @@ CypressUploaderSession.onFpgaCheckTimer()
 		return;
 
 	std.setError("Can't load FPGA");
-	writeLogLastError(log.StdRecordCode.Error);
+	m_logWriter.writeLastError(log.StdRecordCode.Error);
 	cancelFileTransfer();
 
 catch:
@@ -587,7 +587,7 @@ catch:
 
 CypressUploaderSession.enableFpga()
 {
-	writeLogString(log.StdRecordCode.PlainText, $"Enabling FPGA...");
+	m_logWriter.write(log.StdRecordCode.PlainText, $"Enabling FPGA...");
 	m_state = State.EnablingFpga;
 	syncControlTransfer(ReqType.VendorOut, ReqCode.EnableFpga);
 
@@ -645,8 +645,8 @@ bool errorcode CypressUploaderSession.nextBlock()
 
 	if (!size)
 	{
-		writeLogString(log.StdRecordCode.PlainText, $"File transfer completed ($m_offset bytes).");
-		writeLog(log.StdRecordCode.Break); // separate from the next message
+		m_logWriter.write(log.StdRecordCode.PlainText, $"File transfer completed ($m_offset bytes).");
+		m_logWriter.write(log.StdRecordCode.Break); // separate from the next message
 
 		enableFpga();
 		return true;
@@ -673,7 +673,7 @@ bool errorcode CypressUploaderSession.nextBlock()
 	return true;
 
 catch:
-	writeLogError(log.StdRecordCode.Error, std.getLastError());
+	m_logWriter.write(log.StdRecordCode.Error, std.getLastError());
 	cancelFileTransfer();
 	return false;
 }
@@ -693,7 +693,7 @@ bool errorcode CypressUploaderSession.syncControlTransfer(
 	params.m_value = value;
 	params.m_index = index;
 
-	writeLog(UsbLogRecordCode.ControlTransfer, &params, sizeof(params));
+	m_logWriter.write(UsbLogRecordCode.ControlTransfer, &params, sizeof(params));
 
 	m_device.controlTransfer(
 		type,
@@ -705,12 +705,12 @@ bool errorcode CypressUploaderSession.syncControlTransfer(
 		);
 
 	if (size)
-		writeLog((type & ReqType.VendorIn) ? log.StdRecordCode.Rx : log.StdRecordCode.Tx, p, size);
+		m_logWriter.write((type & ReqType.VendorIn) ? log.StdRecordCode.Rx : log.StdRecordCode.Tx, p, size);
 
 	return true;
 
 catch:
-	writeLogError(log.StdRecordCode.Error, std.getLastError());
+	m_logWriter.write(log.StdRecordCode.Error, std.getLastError());
 	cancelFileTransfer();
 	return false;
 }
@@ -735,18 +735,18 @@ CypressUploaderSession.onTransferCompleted(
 	params.m_value = value;
 	params.m_index = index;
 
-	writeLog(UsbLogRecordCode.ControlTransfer, &params, sizeof(params));
+	m_logWriter.write(UsbLogRecordCode.ControlTransfer, &params, sizeof(params));
 
 	if (error)
 	{
-		writeLogError(log.StdRecordCode.Error, error);
+		m_logWriter.write(log.StdRecordCode.Error, error);
 		cancelFileTransfer();
 		return;
 	}
 
 	bool isUpload = !(type & 0x80);
 	uint64_t logRecordCode = isUpload ? log.StdRecordCode.Tx : log.StdRecordCode.Rx;
-	writeLog(logRecordCode, p, size);
+	m_logWriter.write(logRecordCode, p, size);
 
 	m_offset += size;
 

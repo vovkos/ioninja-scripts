@@ -173,14 +173,14 @@ bool errorcode SerialMiDumpViewSession.open()
 	char const* fileName = m_fileNameCombo.m_editText;
 	m_fileNameCombo.addEditTextToHistory();
 	m_file.open(fileName, io.FileOpenFlags.ReadOnly);
-	writeLogString(FileLogRecordCode.FileOpened, fileName);
+	m_logWriter.write(FileLogRecordCode.FileOpened, fileName);
 	m_readThreadStopFlag = false;
 	m_readThread.start(readThreadFunc);
 	m_state = State.Opened;
 	return true;
 
 catch:
-	writeLogLastError(FileLogRecordCode.OpenError);
+	m_logWriter.writeLastError(FileLogRecordCode.OpenError);
 	return false;
 }
 
@@ -253,7 +253,7 @@ SerialMiDumpViewSession.readThreadFunc()
 	}
 
 catch:
-	writeLogLastError(log.StdRecordCode.Error);
+	m_logWriter.writeLastError(log.StdRecordCode.Error);
 
 finally:
 	(close @ m_pluginHost.m_mainThreadScheduler)();

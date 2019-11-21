@@ -462,7 +462,7 @@ bool errorcode SerialTapSession.open()
 	char const* driverNameB = io.detectSerialBuggyDriver(m_dcePort.m_name);
 	if (driverNameA || driverNameB)
 	{
-		writeLogString(SerialLogRecordCode.BuggyDriverDetected, driverNameA ? driverNameA : driverNameB);
+		m_logWriter.write(SerialLogRecordCode.BuggyDriverDetected, driverNameA ? driverNameA : driverNameB);
 		io.setConservativeSerialSettings(m_dtePort.m_serial);
 		io.setConservativeSerialSettings(m_dcePort.m_serial);
 	}
@@ -486,7 +486,7 @@ bool errorcode SerialTapSession.open()
 	params.m_osKind = sys.g_systemInfo.m_osKind;
 
 	char const* p = $"$(params; B)$(m_dtePort.m_name):$(m_dcePort.m_name)";
-	writeLog(SerialLogRecordCode.PortOpened, p, dynamic sizeof(p));
+	m_logWriter.write(SerialLogRecordCode.PortOpened, p, dynamic sizeof(p));
 
 	m_serialBaudRate = m_dtePort.m_serial.m_baudRate;
 	m_state = State.Opened;
@@ -499,7 +499,7 @@ bool errorcode SerialTapSession.open()
 catch:
 	std.Error const* error = std.getLastError();
 
-	writeLog(
+	m_logWriter.write(
 		SerialLogRecordCode.PortOpenError,
 		error,
 		error.m_size
@@ -515,7 +515,7 @@ SerialTapSession.close()
 	if (m_state != State.Opened)
 		return;
 
-	writeLogString(SerialLogRecordCode.PortClosed, $"$(m_dtePort.m_name):$(m_dcePort.m_name)");
+	m_logWriter.write(SerialLogRecordCode.PortClosed, $"$(m_dtePort.m_name):$(m_dcePort.m_name)");
 
 	m_dtePort.m_serial.close();
 	m_dcePort.m_serial.close();
@@ -593,31 +593,31 @@ bool errorcode SerialTapSession.applyProperties()
 	configurePort(m_dcePort);
 
 	if (baudRate != prevBaudRate)
-		writeLog(SerialLogRecordCode.BaudRateChanged, &baudRate, sizeof(baudRate));
+		m_logWriter.write(SerialLogRecordCode.BaudRateChanged, &baudRate, sizeof(baudRate));
 
 	if (dataBits != prevDataBits)
-		writeLog(SerialLogRecordCode.DataBitsChanged, &dataBits, sizeof(dataBits));
+		m_logWriter.write(SerialLogRecordCode.DataBitsChanged, &dataBits, sizeof(dataBits));
 
 	if (stopBits != prevStopBits)
-		writeLog(SerialLogRecordCode.StopBitsChanged, &stopBits, sizeof(stopBits));
+		m_logWriter.write(SerialLogRecordCode.StopBitsChanged, &stopBits, sizeof(stopBits));
 
 	if (parity != prevParity)
-		writeLog(SerialLogRecordCode.ParityChanged, &parity, sizeof(parity));
+		m_logWriter.write(SerialLogRecordCode.ParityChanged, &parity, sizeof(parity));
 
 	io.SerialOptions optionMask = prevOptions ^ options;
 	if (optionMask & (io.SerialOptions.WinReadCheckComstat | io.SerialOptions.WinReadWaitFirstChar))
 	{
 		uint_t mode = m_readModeProp.m_value;
-		writeLog(SerialLogRecordCode.ReadModeChanged, &mode, sizeof(mode));
+		m_logWriter.write(SerialLogRecordCode.ReadModeChanged, &mode, sizeof(mode));
 	}
 
 	if (readInterval != prevReadInterval)
-		writeLog(SerialLogRecordCode.ReadIntervalChanged, &readInterval, sizeof(readInterval));
+		m_logWriter.write(SerialLogRecordCode.ReadIntervalChanged, &readInterval, sizeof(readInterval));
 
 	return true;
 
 catch:
-	writeLogLastError(log.StdRecordCode.Error);
+	m_logWriter.writeLastError(log.StdRecordCode.Error);
 	return false;
 }
 
@@ -661,14 +661,14 @@ SerialTapSession.onSerialEvent(
 
 	if (triggeredEvents & io.SerialEvents.IoError)
 	{
-		writeLog(log.StdRecordCode.Error, port.m_serial.m_ioError, port.m_serial.m_ioError.m_size);
+		m_logWriter.write(log.StdRecordCode.Error, port.m_serial.m_ioError, port.m_serial.m_ioError.m_size);
 		close();
 		return;
 	}
 
 	if ((triggeredEvents & io.SerialEvents.ReadBufferFull) &&
 		m_bufferPropertySet.m_notifyReadBufferFullProp.m_value)
-		writeLog(log.StdRecordCode.RxBufferFullLossy);
+		m_logWriter.write(log.StdRecordCode.RxBufferFullLossy);
 
 	if (triggeredEvents & io.SerialEvents.IncomingData)
 	{
@@ -676,7 +676,7 @@ SerialTapSession.onSerialEvent(
 		if (result)
 		{
 			uint64_t code = port == m_dtePort ? log.StdRecordCode.Rx : log.StdRecordCode.Tx;
-			writeLog(code, m_readBuffer.m_p, result);
+			m_logWriter.write(code, m_readBuffer.m_p, result);
 		}
 	}
 
@@ -690,7 +690,7 @@ SerialTapSession.onSerialEvent(
 			SerialLogRecordCode.ControlLineChanged;
 
 		SerialStatusLineChangedParams params = { statusLines, statusLineMask }
-		writeLog(recordCode, params, sizeof(params));
+		m_logWriter.write(recordCode, params, sizeof(params));
 
 		port.m_serialStatusLines = statusLines;
 	}
@@ -711,11 +711,11 @@ SerialTapSession.onBaudRateChanged()
 	configurePort(m_dcePort);
 
 	uint_t value = m_serialSettingUi.m_baudRate;
-	writeLog(SerialLogRecordCode.BaudRateChanged, &value, sizeof(value));
+	m_logWriter.write(SerialLogRecordCode.BaudRateChanged, &value, sizeof(value));
 	m_serialBaudRate = baudRate;
 
 catch:
-	writeLogLastError(log.StdRecordCode.Error);
+	m_logWriter.writeLastError(log.StdRecordCode.Error);
 }
 
 SerialTapSession.updateLineInfoValue(

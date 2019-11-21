@@ -83,7 +83,7 @@ PipeMonitor.setFileId(
 	if (fileId != lastFileId)
 	{
 		uint32_t ids[] = { fileId, processId }
-		m_pluginHost.m_log.m_writer.write(timestamp, PipeMonLogRecordCode.FileIdChanged, ids, sizeof(ids));
+		m_logWriter.write(timestamp, PipeMonLogRecordCode.FileIdChanged, ids, sizeof(ids));
 	}
 }
 
@@ -121,7 +121,7 @@ PipeMonitor.processNotification(io.DeviceMonitorNotifyHdr const* notifyHdr)
 		name.copy((utf16_t const*) (params + 1));
 		logParams.append(name.m_sz, name.m_length + 1);
 
-		m_pluginHost.m_log.m_writer.write(
+		m_logWriter.write(
 			notifyHdr.m_timestamp,
 			recordCode,
 			logParams.m_p,
@@ -160,7 +160,7 @@ PipeMonitor.processNotification(io.DeviceMonitorNotifyHdr const* notifyHdr)
 		name.copy((utf16_t const*) (params + 1));
 		logParams.append(name.m_sz, name.m_length + 1);
 
-		m_pluginHost.m_log.m_writer.write(
+		m_logWriter.write(
 			notifyHdr.m_timestamp,
 			recordCode,
 			logParams.m_p,
@@ -173,7 +173,7 @@ PipeMonitor.processNotification(io.DeviceMonitorNotifyHdr const* notifyHdr)
 		io.win.DeviceMonitorCloseNotifyParams const* params = (io.win.DeviceMonitorCloseNotifyParams const*) (notifyHdr + 1);
 		setFileId(notifyHdr.m_timestamp, params.m_fileId, notifyHdr.m_processId);
 		m_fileIdMgr.removeLowFileId(params.m_fileId);
-		m_pluginHost.m_log.m_writer.write(notifyHdr.m_timestamp, PipeMonLogRecordCode.FileClosed);
+		m_logWriter.write(notifyHdr.m_timestamp, PipeMonLogRecordCode.FileClosed);
 		break;
 
 	case io.win.DeviceMonitorNotifyCode.Read:
@@ -184,7 +184,7 @@ PipeMonitor.processNotification(io.DeviceMonitorNotifyHdr const* notifyHdr)
 
 		setFileId(notifyHdr.m_timestamp, params.m_fileId, notifyHdr.m_processId);
 
-		m_pluginHost.m_log.m_writer.write(
+		m_logWriter.write(
 			notifyHdr.m_timestamp,
 			log.StdRecordCode.Rx,
 			params + 1,
@@ -200,7 +200,7 @@ PipeMonitor.processNotification(io.DeviceMonitorNotifyHdr const* notifyHdr)
 
 		setFileId(notifyHdr.m_timestamp, params.m_fileId, notifyHdr.m_processId);
 
-		m_pluginHost.m_log.m_writer.write(
+		m_logWriter.write(
 			notifyHdr.m_timestamp,
 			log.StdRecordCode.Tx,
 			params + 1,
@@ -248,12 +248,12 @@ PipeMonitor.processFsctlNotification(
 			break;
 
 		setFileId(timestamp, loFileId, processId);
-		m_pluginHost.m_log.m_writer.write(timestamp, PipeMonLogRecordCode.ConnectionAccepted);
+		m_logWriter.write(timestamp, PipeMonLogRecordCode.ConnectionAccepted);
 		break;
 
 	case wdk.FSCTL_PIPE_DISCONNECT:
 		setFileId(timestamp, loFileId, processId);
-		m_pluginHost.m_log.m_writer.write(timestamp, PipeMonLogRecordCode.ConnectionClosed);
+		m_logWriter.write(timestamp, PipeMonLogRecordCode.ConnectionClosed);
 		break;
 
 	case wdk.FSCTL_PIPE_TRANSCEIVE:
@@ -267,7 +267,7 @@ PipeMonitor.processFsctlNotification(
 
 		setFileId(timestamp, loFileId, processId);
 
-		m_pluginHost.m_log.m_writer.write(
+		m_logWriter.write(
 			timestamp,
 			PipeMonLogRecordCode.Transaction,
 			&transactionParams,
@@ -275,7 +275,7 @@ PipeMonitor.processFsctlNotification(
 			);
 
 		if (inDataSize)
-			m_pluginHost.m_log.m_writer.write(
+			m_logWriter.write(
 				timestamp,
 				log.StdRecordCode.Tx,
 				inData,
@@ -283,7 +283,7 @@ PipeMonitor.processFsctlNotification(
 				);
 
 		if (outDataSize)
-			m_pluginHost.m_log.m_writer.write(
+			m_logWriter.write(
 				timestamp,
 				log.StdRecordCode.Rx,
 				outData,
@@ -296,7 +296,7 @@ PipeMonitor.processFsctlNotification(
 
 PipeMonitor.processError(std.Error const* error)
 {
-	m_pluginHost.m_log.m_writer.write(log.StdRecordCode.Error, error, error.m_size);
+	m_logWriter.write(log.StdRecordCode.Error, error, error.m_size);
 	m_session.close();
 }
 

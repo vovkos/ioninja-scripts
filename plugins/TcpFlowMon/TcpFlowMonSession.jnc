@@ -390,7 +390,7 @@ bool errorcode TcpFlowMonSession.capture(
 	startSession();
 
 	char const* filterString = createFilterString(filterAddress);
-	writeLogString(PcapLogRecordCode.StartingCapture, filterString);
+	m_logWriter.write(PcapLogRecordCode.StartingCapture, filterString);
 
 	m_pcap.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 
@@ -403,13 +403,13 @@ bool errorcode TcpFlowMonSession.capture(
 
 	if (!result)
 	{
-		writeLogLastError(PcapLogRecordCode.CaptureError);
+		m_logWriter.writeLastError(PcapLogRecordCode.CaptureError);
 		return false;
 	}
 
 	m_state = State.Capturing;
 	m_filterAddress = *filterAddress;
-	writeLog(PcapLogRecordCode.CaptureStarted);
+	m_logWriter.write(PcapLogRecordCode.CaptureStarted);
 	waitPcapEvents();
 	m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
 	return true;
@@ -421,20 +421,20 @@ bool errorcode TcpFlowMonSession.openCapFile(
 	)
 {
 	char const* filterString = createFilterString(filterAddress);
-	writeLogString(PcapLogRecordCode.StartingCapture, filterString);
+	m_logWriter.write(PcapLogRecordCode.StartingCapture, filterString);
 
 	m_pcap.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 
 	bool result = try m_pcap.openFile(fileName, filterString);
 	if (!result)
 	{
-		writeLogLastError(PcapLogRecordCode.CaptureError);
+		m_logWriter.writeLastError(PcapLogRecordCode.CaptureError);
 		return false;
 	}
 
 	m_state = State.Capturing;
 	m_filterAddress = *filterAddress;
-	writeLog(PcapLogRecordCode.CaptureStarted);
+	m_logWriter.write(PcapLogRecordCode.CaptureStarted);
 	waitPcapEvents();
 	m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
 	return true;
@@ -446,10 +446,10 @@ TcpFlowMonSession.stopCapture()
 		return;
 
 	if (m_state & State.Resolving)
-		writeLog(SocketLogRecordCode.ResolveCancelled);
+		m_logWriter.write(SocketLogRecordCode.ResolveCancelled);
 
 	if (m_state & State.Capturing)
-		writeLog(PcapLogRecordCode.CaptureStopped);
+		m_logWriter.write(PcapLogRecordCode.CaptureStopped);
 
 	m_pcap.close();
 	m_ipDefragmenter.reset();
@@ -461,7 +461,7 @@ TcpFlowMonSession.stopCapture()
 
 bool errorcode TcpFlowMonSession.resolve(char const* addressString)
 {
-	writeLogString(SocketLogRecordCode.Resolving, addressString);
+	m_logWriter.write(SocketLogRecordCode.Resolving, addressString);
 
 	bool result = try m_resolver.resolve(
 		addressString,
@@ -470,7 +470,7 @@ bool errorcode TcpFlowMonSession.resolve(char const* addressString)
 
 	if (!result)
 	{
-		writeLogLastError(SocketLogRecordCode.ResolveError);
+		m_logWriter.writeLastError(SocketLogRecordCode.ResolveError);
 		return false;
 	}
 
@@ -491,7 +491,7 @@ bool errorcode TcpFlowMonSession.applyFilter()
 		return try setFilter(&filterAddress);
 	}
 
-	writeLogString(SocketLogRecordCode.Resolving, filterString);
+	m_logWriter.write(SocketLogRecordCode.Resolving, filterString);
 
 	bool result = try m_resolver.resolve(
 		filterString,
@@ -500,7 +500,7 @@ bool errorcode TcpFlowMonSession.applyFilter()
 
 	if (!result)
 	{
-		writeLogLastError(SocketLogRecordCode.ResolveError);
+		m_logWriter.writeLastError(SocketLogRecordCode.ResolveError);
 		return false;
 	}
 
@@ -514,15 +514,15 @@ bool errorcode TcpFlowMonSession.setFilter(io.SocketAddress const* filterAddress
 		return true;
 
 	char const* filterString = createFilterString(filterAddress);
-	writeLogString(PcapLogRecordCode.ChangingCaptureFilter, filterString);
+	m_logWriter.write(PcapLogRecordCode.ChangingCaptureFilter, filterString);
 	bool result = try m_pcap.setFilter(filterString);
 	if (!result)
 	{
-		writeLogLastError(PcapLogRecordCode.CaptureFilterError);
+		m_logWriter.writeLastError(PcapLogRecordCode.CaptureFilterError);
 		return false;
 	}
 
-	writeLog(PcapLogRecordCode.CaptureFilterChanged);
+	m_logWriter.write(PcapLogRecordCode.CaptureFilterChanged);
 	return true;
 }
 
@@ -630,11 +630,11 @@ TcpFlowMonSession.onResolveCompleted(
 
 	if (error)
 	{
-		writeLogError(SocketLogRecordCode.ResolveError, error);
+		m_logWriter.write(SocketLogRecordCode.ResolveError, error);
 		return;
 	}
 
-	writeLog(
+	m_logWriter.write(
 		SocketLogRecordCode.ResolveCompleted,
 		addressTable,
 		sizeof(io.SocketAddress)
@@ -658,14 +658,14 @@ TcpFlowMonSession.onPcapEvent(
 
 	if (triggeredEvents & io.PcapEvents.IoError)
 	{
-		writeLog(log.StdRecordCode.Error, m_pcap.m_ioError, m_pcap.m_ioError.m_size);
+		m_logWriter.write(log.StdRecordCode.Error, m_pcap.m_ioError, m_pcap.m_ioError.m_size);
 		stopCapture();
 		return;
 	}
 
 	if ((triggeredEvents & io.PcapEvents.ReadBufferFull) &&
 		m_bufferPropertySet.m_notifyReadBufferFullProp.m_value)
-		writeLog(log.StdRecordCode.RxBufferFull);
+		m_logWriter.write(log.StdRecordCode.RxBufferFull);
 
 	if (triggeredEvents & io.PcapEvents.IncomingData)
 	{
@@ -689,12 +689,12 @@ TcpFlowMonSession.onData(
 	size_t size
 	)
 {
-	writeLog(recordCode, p, size);
+	m_logWriter.write(recordCode, p, size);
 }
 
 TcpFlowMonSession.onDataDrop()
 {
-	writeLog(TcpFlowMonLogRecordCode.OutOfOrderDataDropped);
+	m_logWriter.write(TcpFlowMonLogRecordCode.OutOfOrderDataDropped);
 }
 
 bool TcpFlowMonSession.decodePacket(
@@ -814,7 +814,7 @@ bool TcpFlowMonSession.decodePacket(
 
 		if (!(tcpHdr.m_flags & io.TcpFlags.Syn))
 		{
-			writeLog(
+			m_logWriter.write(
 				TcpFlowMonLogRecordCode.ConnectionPickedUp,
 				params,
 				dynamic sizeof(params)
@@ -822,7 +822,7 @@ bool TcpFlowMonSession.decodePacket(
 		}
 		else if (!(tcpHdr.m_flags & io.TcpFlags.Ack))
 		{
-			writeLog(
+			m_logWriter.write(
 				TcpFlowMonLogRecordCode.Connecting,
 				params,
 				dynamic sizeof(params)
@@ -832,13 +832,13 @@ bool TcpFlowMonSession.decodePacket(
 		}
 		else // Syn + Ack
 		{
-			writeLog(
+			m_logWriter.write(
 				TcpFlowMonLogRecordCode.Connecting,
 				params,
 				dynamic sizeof(params)
 				);
 
-			writeLog(TcpFlowMonLogRecordCode.ConnectCompleted);
+			m_logWriter.write(TcpFlowMonLogRecordCode.ConnectCompleted);
 		}
 
 		m_state |= State.TcpConnection;
@@ -874,7 +874,7 @@ TcpFlowMonSession.decodeTcpPacket(
 	if ((tcpHdr.m_flags & io.TcpFlags.Rst) ||
 		(tcpHdr.m_flags & io.TcpFlags.Fin))
 	{
-		writeLog(
+		m_logWriter.write(
 			TcpFlowMonLogRecordCode.Disconnected,
 			peer.m_address,
 			sizeof(peer.m_address)
@@ -887,7 +887,7 @@ TcpFlowMonSession.decodeTcpPacket(
 		(tcpHdr.m_flags & io.TcpFlags.Ack) &&
 		m_state & State.TcpSyn)
 	{
-		writeLog(TcpFlowMonLogRecordCode.ConnectCompleted);
+		m_logWriter.write(TcpFlowMonLogRecordCode.ConnectCompleted);
 		peer.m_tcpSequencer.reset(tcpHdr.m_seqNumber + 1);
 		m_state &= ~State.TcpSyn;
 	}

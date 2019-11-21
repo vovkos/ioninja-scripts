@@ -326,7 +326,7 @@ bool errorcode PcapSnifferSession.capture(
 	stopCapture();
 	startSession();
 
-	writeLogString(PcapLogRecordCode.StartingCapture, filterString);
+	m_logWriter.write(PcapLogRecordCode.StartingCapture, filterString);
 
 	m_pcap.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 
@@ -340,12 +340,12 @@ bool errorcode PcapSnifferSession.capture(
 
 	if (!result)
 	{
-		writeLogLastError(PcapLogRecordCode.CaptureError);
+		m_logWriter.writeLastError(PcapLogRecordCode.CaptureError);
 		return false;
 	}
 
 	m_state = State.Capturing;
-	writeLog(PcapLogRecordCode.CaptureStarted);
+	m_logWriter.write(PcapLogRecordCode.CaptureStarted);
 	waitPcapEvents();
 	m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
 	applyViewFilter();
@@ -357,7 +357,7 @@ bool errorcode PcapSnifferSession.openCapFile(
 	char const* filterString
 	)
 {
-	writeLogString(PcapLogRecordCode.StartingCapture, filterString);
+	m_logWriter.write(PcapLogRecordCode.StartingCapture, filterString);
 
 	m_pcap.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 
@@ -368,12 +368,12 @@ bool errorcode PcapSnifferSession.openCapFile(
 
 	if (!result)
 	{
-		writeLogLastError(PcapLogRecordCode.CaptureError);
+		m_logWriter.writeLastError(PcapLogRecordCode.CaptureError);
 		return false;
 	}
 
 	m_state = State.Capturing;
-	writeLog(PcapLogRecordCode.CaptureStarted);
+	m_logWriter.write(PcapLogRecordCode.CaptureStarted);
 	waitPcapEvents();
 	m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
 	return true;
@@ -384,7 +384,7 @@ PcapSnifferSession.stopCapture()
 	if (!m_state)
 		return;
 
-	writeLog(PcapLogRecordCode.CaptureStopped);
+	m_logWriter.write(PcapLogRecordCode.CaptureStopped);
 	m_pcap.close();
 	m_state = State.Closed;
 	m_syncId++;
@@ -394,15 +394,15 @@ PcapSnifferSession.stopCapture()
 bool errorcode PcapSnifferSession.applyCaptureFilter()
 {
 	char const* filter = m_captureFilterProp.m_value;
-	writeLogString(PcapLogRecordCode.ChangingCaptureFilter, filter);
+	m_logWriter.write(PcapLogRecordCode.ChangingCaptureFilter, filter);
 	bool result = try m_pcap.setFilter(filter);
 	if (!result)
 	{
-		writeLogLastError(PcapLogRecordCode.CaptureFilterError);
+		m_logWriter.writeLastError(PcapLogRecordCode.CaptureFilterError);
 		return false;
 	}
 
-	writeLog(PcapLogRecordCode.CaptureFilterChanged);
+	m_logWriter.write(PcapLogRecordCode.CaptureFilterChanged);
 	return true;
 }
 
@@ -513,7 +513,7 @@ size_t errorcode PcapSnifferSession.transmit(
 	{
 		io.PcapLinkType linkType = m_pcap.m_linkType;
 		void const* params = memcat(&linkType, sizeof(linkType), p, size);
-		writeLog(NetSnifferLogRecordCode.InjectedPacket, params, result + sizeof(linkType));
+		m_logWriter.write(NetSnifferLogRecordCode.InjectedPacket, params, result + sizeof(linkType));
 		m_stdSessionInfoSet.addTxData(size);
 	}
 
@@ -530,14 +530,14 @@ PcapSnifferSession.onPcapEvent(
 
 	if (triggeredEvents & io.PcapEvents.IoError)
 	{
-		writeLog(log.StdRecordCode.Error, m_pcap.m_ioError, m_pcap.m_ioError.m_size);
+		m_logWriter.write(log.StdRecordCode.Error, m_pcap.m_ioError, m_pcap.m_ioError.m_size);
 		stopCapture();
 		return;
 	}
 
 	if ((triggeredEvents & io.PcapEvents.ReadBufferFull) &&
 		m_bufferPropertySet.m_notifyReadBufferFullProp.m_value)
-		writeLog(log.StdRecordCode.RxBufferFull);
+		m_logWriter.write(log.StdRecordCode.RxBufferFull);
 
 	if (triggeredEvents & io.PcapEvents.IncomingData)
 	{
@@ -564,7 +564,7 @@ PcapSnifferSession.processPacket(
 {
 	io.PcapLinkType linkType = m_pcap.m_linkType;
 	void const* params = memcat(&linkType, sizeof(linkType), p, size);
-	m_pluginHost.m_log.m_writer.write(timestamp, NetSnifferLogRecordCode.Packet, params, size + sizeof(linkType));
+	m_logWriter.write(timestamp, NetSnifferLogRecordCode.Packet, params, size + sizeof(linkType));
 
 	m_stdSessionInfoSet.addRxData(size);
 
@@ -587,7 +587,7 @@ PcapSnifferSession.processPacket(
 		if (ipHdr)
 		{
 			size = dynamic sizeof(ipHdr);
-			writeLog(NetSnifferLogRecordCode.DefragmentedIp, ipHdr, size);
+			m_logWriter.write(NetSnifferLogRecordCode.DefragmentedIp, ipHdr, size);
 		}
 	}
 }

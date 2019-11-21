@@ -132,13 +132,13 @@ Spi.processSignal(
 		break;
 
 	case io.SpiDecodeResult.Stop:
-		m_pluginHost.m_log.m_writer.write(timestamp, log.StdRecordCode.Break);
+		m_logWriter.write(timestamp, log.StdRecordCode.Break);
 		break;
 
 	case io.SpiDecodeResult.Char:
 		char buffer[2] = { m_decoder.m_mosiChar, m_decoder.m_misoChar }
 
-		m_pluginHost.m_log.m_writer.write(
+		m_logWriter.write(
 			timestamp,
 			log.StdRecordCode.TxRx,
 			buffer,
@@ -147,11 +147,11 @@ Spi.processSignal(
 		break;
 
 	case io.SpiDecodeResult.FramingError:
-		m_pluginHost.m_log.m_writer.write(timestamp, HwSerialMonRecordCode.SpiFramingError);
+		m_logWriter.write(timestamp, HwSerialMonRecordCode.SpiFramingError);
 		break;
 
 	case io.SpiDecodeResult.EmptyMessage:
-		m_pluginHost.m_log.m_writer.write(timestamp, HwSerialMonRecordCode.SpiEmptyMessage);
+		m_logWriter.write(timestamp, HwSerialMonRecordCode.SpiEmptyMessage);
 		break;
 	}
 }
