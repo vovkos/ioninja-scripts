@@ -33,8 +33,6 @@ opaque class PluginHost
 	char const* const property m_pluginDir;
 
 	destruct();
-
-	clearDetailPane();
 }
 
 //..............................................................................
