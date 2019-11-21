@@ -17,6 +17,14 @@ class Plugin
 {
 	PluginHost* readonly m_pluginHost;
 
+	property m_logWriter
+	{
+		log.Writer* get()
+		{
+			return m_pluginHost.m_log.m_writer;
+		}
+	}
+
 	construct(PluginHost* host)
 	{
 		m_pluginHost = host;
@@ -56,41 +64,6 @@ class Plugin
 		)
 	{
 		return transmit(p, size);
-	}
-
-	writeLog(
-		uint64_t recordCode,
-		void const* p,
-		size_t size
-		)
-	{
-		m_pluginHost.m_log.m_writer.write(recordCode, p, size);
-	}
-
-	writeLog(uint64_t recordCode)
-	{
-		m_pluginHost.m_log.m_writer.write(recordCode, null, 0);
-	}
-
-	writeLogString(
-		uint64_t recordCode,
-		char const* p
-		)
-	{
-		m_pluginHost.m_log.m_writer.write(recordCode, p, strlen(p));
-	}
-
-	writeLogError(
-		uint64_t recordCode,
-		std.Error const* error
-		)
-	{
-		m_pluginHost.m_log.m_writer.write(recordCode, error, error.m_size);
-	}
-
-	writeLogLastError(uint64_t recordCode)
-	{
-		writeLogError(recordCode, std.getLastError());
 	}
 
 	ui.Action* createAction(
