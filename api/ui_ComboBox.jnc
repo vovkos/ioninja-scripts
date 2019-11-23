@@ -25,6 +25,7 @@ opaque class ComboBox
 		bindable alias m_onPropChanged = m_onChanged;
 	}
 
+	char const* autoget property m_placeholderText;
 	char const* autoget property m_toolTipText;
 	uint_t autoget property m_backgroundColor;
 

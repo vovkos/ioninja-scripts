@@ -62,6 +62,7 @@ opaque class StringProperty: Property
 	construct(char const* name);
 
 	char const* bindable autoget property m_value;
+	char const* autoget property m_placeholderText;
 	bool autoget property m_isPassword;
 }
 
@@ -109,6 +110,7 @@ opaque class EnumProperty: Property
 opaque class ComboProperty: Property
 {
 	char const* bindable autoget property m_value;
+	char const* autoget property m_placeholderText;
 
 	construct(char const* name);
 	destruct();
