@@ -6,6 +6,7 @@
 import "io_devmon.jncx"
 import "io_FileIdMgr.jnc"
 import "ui_BufferPropertySet.jnc"
+import "doc_PluginHost.jnc"
 import "std_Buffer.jnc"
 
 namespace io {
