@@ -153,6 +153,7 @@ FileSession.createUi()
 	m_fileNameCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 	m_fileNameCombo.m_isEditable = true;
 	m_fileNameCombo.m_onEnter += onFileNameComboEnter;
+	m_fileNameCombo.m_placeholderText = "Enter a file or device name...";
 
 	m_accessCombo = m_pluginHost.m_toolBar.addComboBox("Access:", accessModeTable, countof(accessModeTable));
 
@@ -181,7 +182,8 @@ FileSession.createUi()
 	m_fileNameProp = m_pluginHost.m_propertyGrid.createStringProperty(
 		group,,
 		"File name",
-		"Specify the file name to open"
+		"Enter a file name...",
+		"Specify a file name to open"
 		);
 
 	m_accessProp = m_pluginHost.m_propertyGrid.createEnumProperty(

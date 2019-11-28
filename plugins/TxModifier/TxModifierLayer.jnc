@@ -119,6 +119,7 @@ TxModifierLayer.createUi()
 	m_prefixProp = m_pluginHost.m_propertyGrid.createStringProperty(
 		m_isPrefixEnabledProp,,
 		"Prefix data",
+		"Enter a prefix string...",
 		"Specify the prefix char sequence (C-escapes are supported)"
 		);
 
@@ -130,6 +131,7 @@ TxModifierLayer.createUi()
 	m_suffixProp = m_pluginHost.m_propertyGrid.createStringProperty(
 		m_isSuffixEnabledProp,,
 		"Suffix data",
+		"Enter a suffix string...",
 		"Specify the suffix char sequence (C-escapes are supported)"
 		);
 

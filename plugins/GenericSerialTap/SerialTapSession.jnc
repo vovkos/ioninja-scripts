@@ -204,10 +204,12 @@ SerialTapSession.createUi()
 	m_pluginHost.m_toolBar.addLabel("DTE:");
 	m_dtePortCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 	m_dtePortCombo.m_isEditable = true;
+	m_dtePortCombo.m_placeholderText = "Enter a serial port name...";
 
 	m_pluginHost.m_toolBar.addLabel("DCE:");
 	m_dcePortCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 	m_dcePortCombo.m_isEditable = true;
+	m_dtePortCombo.m_placeholderText = "Enter a serial port name...";
 
 	size_t portCount;
 	io.SerialPortDesc const* portList = io.createSerialPortDescList(&portCount);
@@ -237,12 +239,14 @@ SerialTapSession.createUi()
 	m_dtePortProp = m_pluginHost.m_propertyGrid.createComboProperty(
 		group,,
 		"DTE",
+		"Enter a serial port name...",
 		"Specify DTE serial port"
 		);
 
 	m_dcePortProp = m_pluginHost.m_propertyGrid.createComboProperty(
 		group,,
 		"DCE",
+		"Enter a serial port name...",
 		"Specify DCE serial port"
 		);
 

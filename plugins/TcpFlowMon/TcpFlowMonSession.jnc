@@ -230,6 +230,7 @@ TcpFlowMonSession.createUi()
 	m_filterCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 	m_filterCombo.m_isEditable = true;
 	m_filterCombo.m_onEnter += onSetFilter;
+	m_filterCombo.m_placeholderText = "Enter a filter andress...";
 
 	m_iconTable[IconId.Capture] = new ui.Icon("images/capture.png");
 	m_iconTable[IconId.StopCapture] = new ui.Icon("images/pause.png");
@@ -264,6 +265,7 @@ TcpFlowMonSession.createUi()
 	m_filterProp = m_pluginHost.m_propertyGrid.createStringProperty(
 		group,,
 		"Address filter",
+		"Enter a filter address...",
 		"Specify the address to monitor"
 		);
 

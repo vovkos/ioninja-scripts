@@ -135,6 +135,7 @@ SerialMiDumpViewSession.createUi()
 	m_fileNameCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 	m_fileNameCombo.m_isEditable = true;
 	m_fileNameCombo.m_onEnter += onComboEnter;
+	m_fileNameCombo.m_placeholderText = "Enter a MI dump file name...";
 
 	m_iconTable[IconId.Open] = new ui.Icon("images/capture.png");
 	m_iconTable[IconId.Close] = new ui.Icon("images/pause.png");
@@ -149,6 +150,7 @@ SerialMiDumpViewSession.createUi()
 
 	m_fileNameProp = m_pluginHost.m_propertyGrid.createStringProperty(
 		"File name",
+		"Enter a MI dump file name...",
 		"Device Monitor MI dump file"
 		);
 

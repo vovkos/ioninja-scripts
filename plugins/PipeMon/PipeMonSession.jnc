@@ -130,6 +130,7 @@ PipeMonSession.createUi()
 	m_nameCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 	m_nameCombo.m_isEditable = true;
 	m_nameCombo.m_onEnter += onNameComboEnter;
+	m_nameCombo.m_placeholderText = "Enter a pipe name wildcard...";
 
 	m_iconTable[IconId.Capture] = new ui.Icon("images/capture.png");
 	m_iconTable[IconId.StopCapture] = new ui.Icon("images/pause.png");
@@ -150,7 +151,8 @@ PipeMonSession.createUi()
 
 	m_nameProp = m_pluginHost.m_propertyGrid.createStringProperty(
 		group,,
-		"Name filter",
+		"Capture name filter",
+		"Enter a pipe name...",
 		"Specify name wildcard filter (supported masks: * and ?; leave empty for no filter)"
 		);
 

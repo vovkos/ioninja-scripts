@@ -226,6 +226,7 @@ TcpProxySession.createUi()
 	m_clientAddressCombo.m_isEditable = true;
 	m_clientAddressCombo.m_editText = "127.0.0.1:1002";
 	m_clientAddressCombo.m_onChanged += onTargetAddressChanged;
+	m_clientAddressCombo.m_placeholderText = "Enter a remote IP or hostname...";
 
 	m_iconTable[IconId.Listen] = new ui.Icon("images/listen.png");
 	m_iconTable[IconId.StopListen] = new ui.Icon("images/pause.png");

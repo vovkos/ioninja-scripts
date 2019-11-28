@@ -278,6 +278,7 @@ UsbControlEndpointSession.createUi()
 	m_reqCodeProp = m_pluginHost.m_propertyGrid.createComboProperty(
 		group,,
 		"Request",
+		"Enter a request code...",
 		"Code of the USB control request",
 		reqIdTable,
 		countof(reqIdTable)
@@ -286,12 +287,14 @@ UsbControlEndpointSession.createUi()
 	m_reqValueProp = m_pluginHost.m_propertyGrid.createStringProperty(
 		group,,
 		"Value",
+		"Enter a request value...",
 		"The 1st ('value') parameter of the USB control request"
 		);
 
 	m_reqIndexProp = m_pluginHost.m_propertyGrid.createStringProperty(
 		group,,
 		"Index",
+		"Enter a request index...",
 		"The 2nd ('index') parameter of the USB control request"
 		);
 

@@ -178,6 +178,7 @@ UdpSession.createUi()
 	m_remoteAddressCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 	m_remoteAddressCombo.m_isEditable = true;
 	m_remoteAddressCombo.m_onChanged += onRemoteAddressChanged;
+	m_remoteAddressCombo.m_placeholderText = "Enter a remote IP or hostname...";
 
 	m_actionTable[ActionId.AutoRemoteAddress] = createAction("Auto-switch remote address", m_iconTable [IconId.Compass]);
 	m_actionTable[ActionId.AutoRemoteAddress].m_isCheckable = true;

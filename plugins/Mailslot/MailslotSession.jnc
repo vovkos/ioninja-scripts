@@ -131,6 +131,7 @@ MailslotSession.createUi()
 	m_nameCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 	m_nameCombo.m_isEditable = true;
 	m_nameCombo.m_onEnter += onNameComboEnter;
+	m_nameCombo.m_placeholderText = "Enter a mailslot name...";
 
 	m_iconTable[IconId.Open] = new ui.Icon("images/open.png");
 	m_iconTable[IconId.Close] = new ui.Icon("images/close.png");
@@ -152,6 +153,7 @@ MailslotSession.createUi()
 	m_nameProp = m_pluginHost.m_propertyGrid.createStringProperty(
 		group,,
 		"Mailslot name",
+		"Enter a mailslot name...",
 		"Specify the mailslot to open"
 		);
 

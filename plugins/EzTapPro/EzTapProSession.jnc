@@ -242,6 +242,7 @@ EzTapProSession.createUi()
 	m_portCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 	m_portCombo.m_isEditable = true;
 	m_portCombo.m_onEnter += onPortComboEnter;
+	m_portCombo.m_placeholderText = "Enter a serial port name...";
 
 	m_actionTable[ActionId.Refresh] = createAction("Refresh port list", "images/refresh.png");
 	m_actionTable[ActionId.Refresh].m_onTriggered += enumeratePorts;
@@ -257,7 +258,8 @@ EzTapProSession.createUi()
 	m_portProp = m_pluginHost.m_propertyGrid.createComboProperty(
 		group,,
 		"Port",
-		"Specify serial port to use"
+		"Enter a serial port name...",
+		"Specify a serial port name to use"
 		);
 
 	m_serialSettingUi.create(

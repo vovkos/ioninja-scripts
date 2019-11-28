@@ -55,6 +55,7 @@ RegexPattern.construct(
 	m_regexProp = propertyGrid.createStringProperty(
 		m_groupProp,,
 		"Regular expression",
+		"Enter a regular expression...",
 		"Write a regular expression describing this pattern"
 		);
 

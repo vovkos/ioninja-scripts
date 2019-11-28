@@ -128,6 +128,7 @@ MailslotMonSession.createUi()
 	m_nameCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 	m_nameCombo.m_isEditable = true;
 	m_nameCombo.m_onEnter += onNameComboEnter;
+	m_nameCombo.m_placeholderText = "Enter a mailslot name...";
 
 	m_iconTable[IconId.Capture] = new ui.Icon("images/capture.png");
 	m_iconTable[IconId.StopCapture] = new ui.Icon("images/pause.png");
@@ -149,7 +150,8 @@ MailslotMonSession.createUi()
 	m_nameProp = m_pluginHost.m_propertyGrid.createStringProperty(
 		group,,
 		"Name filter",
-		"Specify name wildcard filter"
+		"Enter a mailslot name...",
+		"Specify a mailslot name wildcard filter"
 		);
 
 	m_useLanmanMonitorProp = m_pluginHost.m_propertyGrid.createBoolProperty(

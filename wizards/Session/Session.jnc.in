@@ -116,6 +116,7 @@ $(sessionClass).createUi ()
 	m_addressCombo = m_pluginHost.m_toolBar.addComboBox (-1);
 	m_addressCombo.m_isEditable = true;
 	m_addressCombo.m_onEnter += onAddressComboEnter;
+	m_addressCombo.m_placeholderText = "Enter a remote address..."
 
 	m_iconTable [IconId.Connect] = new ui.Icon ("images/connect.png");
 	m_iconTable [IconId.Disconnect] = new ui.Icon ("images/disconnect.png");
@@ -133,6 +134,7 @@ $(sessionClass).createUi ()
 
 	m_addressProp = m_pluginHost.m_propertyGrid.createStringProperty (
 		"Remote address",
+		"Enter a remote address...",
 		"Remote address to connect to"
 		);
 

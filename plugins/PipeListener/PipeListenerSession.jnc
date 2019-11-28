@@ -161,6 +161,7 @@ PipeListenerSession.createUi()
 	m_pipeNameCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 	m_pipeNameCombo.m_isEditable = true;
 	m_pipeNameCombo.m_onEnter += onPipeNameComboEnter;
+	m_pipeNameCombo.m_placeholderText = "Enter a pipe name...";
 
 	m_iconTable[IconId.Listen] = new ui.Icon("images/listen.png");
 	m_iconTable[IconId.StopListen] = new ui.Icon("images/pause.png");
@@ -187,6 +188,7 @@ PipeListenerSession.createUi()
 	m_pipeNameProp = m_pluginHost.m_propertyGrid.createStringProperty(
 		group,,
 		"Pipe name",
+		"Enter a pipe name...",
 		"Specify pipe name to listen on"
 		);
 

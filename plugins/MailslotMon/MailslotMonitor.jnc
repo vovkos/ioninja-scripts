@@ -48,7 +48,7 @@ MailslotMonitor.setFileId(
 	if (fileId != lastFileId)
 	{
 		uint32_t ids[] = { fileId, processId }
-		m_session.m_logWriter.write(timestamp, MailslotMonLogRecordCode.FileIdChanged, ids, sizeof(ids));
+		m_logWriter.write(timestamp, MailslotMonLogRecordCode.FileIdChanged, ids, sizeof(ids));
 	}
 }
 
@@ -86,7 +86,7 @@ MailslotMonitor.processNotification(io.DeviceMonitorNotifyHdr const* notifyHdr)
 		name.copy((utf16_t const*) (params + 1));
 		logParams.append(name.m_sz, name.m_length + 1);
 
-		m_session.m_logWriter.write(
+		m_logWriter.write(
 			notifyHdr.m_timestamp,
 			recordCode,
 			logParams.m_p,
@@ -125,7 +125,7 @@ MailslotMonitor.processNotification(io.DeviceMonitorNotifyHdr const* notifyHdr)
 		name.copy((utf16_t const*) (params + 1));
 		logParams.append(name.m_sz, name.m_length + 1);
 
-		m_session.m_logWriter.write(
+		m_logWriter.write(
 			notifyHdr.m_timestamp,
 			recordCode,
 			logParams.m_p,
@@ -138,7 +138,7 @@ MailslotMonitor.processNotification(io.DeviceMonitorNotifyHdr const* notifyHdr)
 		io.win.DeviceMonitorCloseNotifyParams const* params = (io.win.DeviceMonitorCloseNotifyParams const*) (notifyHdr + 1);
 		setFileId(notifyHdr.m_timestamp, params.m_fileId, notifyHdr.m_processId);
 		m_fileIdMgr.removeLowFileId(params.m_fileId);
-		m_session.m_logWriter.write(notifyHdr.m_timestamp, MailslotMonLogRecordCode.FileClosed);
+		m_logWriter.write(notifyHdr.m_timestamp, MailslotMonLogRecordCode.FileClosed);
 		break;
 
 	case io.win.DeviceMonitorNotifyCode.Read:
@@ -149,7 +149,7 @@ MailslotMonitor.processNotification(io.DeviceMonitorNotifyHdr const* notifyHdr)
 
 		setFileId(notifyHdr.m_timestamp, params.m_fileId, notifyHdr.m_processId);
 
-		m_session.m_logWriter.write(
+		m_logWriter.write(
 			notifyHdr.m_timestamp,
 			log.StdRecordCode.Rx,
 			params + 1,
@@ -161,7 +161,7 @@ MailslotMonitor.processNotification(io.DeviceMonitorNotifyHdr const* notifyHdr)
 
 MailslotMonitor.processError(std.Error const* error)
 {
-	m_session.m_logWriter.write(log.StdRecordCode.Error, error, error.m_size);
+	m_logWriter.write(log.StdRecordCode.Error, error, error.m_size);
 	m_session.close();
 }
 

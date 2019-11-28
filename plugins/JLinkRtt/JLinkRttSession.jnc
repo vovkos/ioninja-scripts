@@ -258,10 +258,12 @@ JLinkRttSession.createUi()
 	m_pluginHost.m_toolBar.addLabel("Address:");
 	m_addressCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 	m_addressCombo.m_isEditable = true;
+	m_addressCombo.m_placeholderText = "Enter RTT address...";
 
 	m_pluginHost.m_toolBar.addLabel("Device:");
 	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 	m_deviceCombo.m_isEditable = true;
+	m_deviceCombo.m_placeholderText = "Specify target device type...";
 
 	m_iconTable[IconId.Open] = new ui.Icon("images/open.png");
 	m_iconTable[IconId.Close] = new ui.Icon("images/close.png");
@@ -317,13 +319,15 @@ JLinkRttSession.createUi()
 	m_addressProp = m_pluginHost.m_propertyGrid.createStringProperty(
 		group,,
 		"TCP/IP server",
-		"Specify the address of mailslot to open"
+		"Enter a remote IP/hostname...",
+		"Specify the address of a remote TCP/IP server"
 		);
 
 	m_deviceProp = m_pluginHost.m_propertyGrid.createComboProperty(
 		group,,
 		"Device type",
-		"Specify the target device type"
+		"Enter a target device type...",
+		"Specify the type of a target device"
 		);
 
 	m_interfaceProp = m_pluginHost.m_propertyGrid.createEnumProperty(
@@ -354,6 +358,7 @@ JLinkRttSession.createUi()
 	m_rttAddressProp = m_pluginHost.m_propertyGrid.createStringProperty(
 		group,,
 		"RTT address",
+		"Enter an RTT address...",
 		"Specify the address of RTT control block"
 		);
 
