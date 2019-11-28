@@ -27,6 +27,14 @@ protected:
 	bool m_notifyReadBufferFull;
 	uint_t m_syncId;
 
+	property m_logWriter
+	{
+		log.Writer* get()
+		{
+			return m_pluginHost.m_log.m_writer;
+		}
+	}
+
 public:
 	construct(doc.PluginHost* pluginHost)
 	{
