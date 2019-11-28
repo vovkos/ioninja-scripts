@@ -242,8 +242,8 @@ size_t representPacketMeta(
 			$"    Channel number: \e^!0x%x,%7,%8\e[34m%9\n"
 			$"    Size (full):    \e^!0x%x,%11,%12\e[34m%13\n"
 			$"    Size (no CRC):  %14\n"
-			$"    CRC (hardware): \e^!0x%x,%16,%17\e[34m0x%04X\e[m [%19]\n"
-			$"    CRC (software): 0x%04X\e[m [%21]"(
+			$"    CRC (hardware): \e^!0x%x,%16,%17\e[34m0x%08X\e[m [%19]\n"
+			$"    CRC (software): 0x%08X\e[m [%21]"(
 			ProtoFoldFlag.MetaLayer,
 
 			NetSnifferLogPartCode.RawPacket,

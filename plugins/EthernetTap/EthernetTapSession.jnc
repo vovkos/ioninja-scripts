@@ -6,6 +6,7 @@
 import "doc_Session.jnc"
 import "io_usb.jncx"
 import "io_FpgaUploader.jnc"
+import "io_LogToPcap.jnc"
 import "ui_BufferPropertySet.jnc"
 import "ui_StdSessionInfoSet.jnc"
 import "ui_History.jnc"
@@ -55,6 +56,7 @@ protected:
 		ApplyFilter,
 		Refresh,
 		Capture,
+		ExportPcap,
 		_Count,
 	}
 
@@ -73,11 +75,11 @@ protected:
 
 	enum Usb
 	{
-		VendorId      = 0x16d0,
-		ProductId     = 0x0e27,
-		OutEndpoint   = 0x02,
-		InEndpoint    = 0x86,
-		PacketSize    = 512,
+		VendorId    = 0x326f,
+		ProductId   = 0x0003,
+		OutEndpoint = 0x02,
+		InEndpoint  = 0x86,
+		PacketSize  = 512,
 	}
 
 	static char const m_firmwareFileName[] = __DIR__ "/firmware/eth.rpd";
@@ -107,6 +109,7 @@ protected:
 	ui.StatusPane* m_statusPaneTable[StatusPaneId._Count];
 	ui.ComboBox* m_deviceCombo;
 	ui.ComboBox* m_filterCombo;
+	ui.FileDlg* m_fileDlg;
 
 	// property grid
 
@@ -142,25 +145,27 @@ public:
 	override void restoreDefaultProperties();
 
 protected:
-	onCapture();
+	void onCapture();
+	void onExportPcap();
+	void onFileDlgCompleted(ui.StdDlgButton button);
 
-	onSetFilter()
+	void onSetFilter()
 	{
 		try applyFilter(true);
 	}
 
-	onInEndpointEvent(
+	void onInEndpointEvent(
 		uint_t syncId,
 		io.UsbEndpointEvents triggeredEvents
 		);
 
-	onUpdateCompleted(bool result);
+	void onUpdateCompleted(bool result);
 
-	createUi();
-	enumerateDevices();
-	waitInEndpointEvents();
+	void createUi();
+	void enumerateDevices();
+	void waitInEndpointEvents();
 
-	parse(
+	void parse(
 		uint32_t const* p,
 		size_t size
 		);
@@ -196,6 +201,10 @@ EthernetTapSession.createUi()
 	m_filterCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 	m_filterCombo.m_isEditable = true;
 	m_filterCombo.m_onEnter += onSetFilter;
+	m_filterCombo.m_placeholderText = "Enter a pcap-filter...";
+	m_filterCombo.m_toolTipText =
+		"View only packets which pass this filter\n"
+		"For a complete syntax reference, google 'pcap-filter'";
 
 	m_actionTable[ActionId.ApplyFilter]  = createAction("Apply filter", "images/apply.png");
 	m_actionTable[ActionId.ApplyFilter].m_onTriggered += onSetFilter;
@@ -208,6 +217,12 @@ EthernetTapSession.createUi()
 
 	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable[IconId.Capture]);
 	m_actionTable[ActionId.Capture].m_onTriggered += onCapture;
+
+	m_pluginHost.m_menu.addSeparator();
+	m_pluginHost.m_toolBar.addSeparator();
+
+	m_actionTable[ActionId.ExportPcap] = createAction("Export Pcap file (*.pcap)", "images/save-pcap.png");
+	m_actionTable[ActionId.ExportPcap].m_onTriggered += onExportPcap;
 
 	// status bar
 
@@ -230,7 +245,9 @@ EthernetTapSession.createUi()
 	m_filterProp = m_pluginHost.m_propertyGrid.createStringProperty(
 		group,,
 		"Filter",
-		"View only the packets which have passed this filter"
+		"Enter a pcap-filter...",
+		"View only packets which pass this filter\n"
+		"For a complete syntax reference, google 'pcap-filter'"
 		);
 
 	m_rawDataProp = m_pluginHost.m_propertyGrid.createBoolProperty(
@@ -280,12 +297,74 @@ EthernetTapSession.onCapture()
 		try capture();
 }
 
+EthernetTapSession.onExportPcap()
+{
+	if (!m_fileDlg)
+	{
+		m_fileDlg = new ui.FileDlg;
+		m_fileDlg.m_onCompleted += onFileDlgCompleted;
+	}
+
+	m_fileDlg.m_kind = ui.FileDlgKind.Save;
+	m_fileDlg.m_title = "Export Pcap File...";
+	m_fileDlg.m_filter = "Pcap files (*.pcap; *.cap);; All files (*.*)";
+	m_fileDlg.show();
+}
+
 EthernetTapSession.onUpdateCompleted(bool result)
 {
 	if (result)
 		try startCapture();
 	else
 		stopCapture();
+}
+
+size_t exportLogRecordToPcap(
+	log.Record const* record,
+	io.MappedFile* pcapFile,
+	uint64_t pcapOffset
+	)
+{
+	void const* p;
+	size_t size;
+
+	switch (record.m_code)
+	{
+	case EthernetTapLogRecordCode.Packet_ch1:
+	case EthernetTapLogRecordCode.Packet_ch2:
+		printf("record.m_code: %llx\n", record.m_code);
+
+		uint32_t const* idx = (uint32_t const*)(record + 1);
+		PacketHdr const* hdr = (PacketHdr const*)(idx + 1);
+		p = hdr + 1;
+		size = hdr.m_size;
+
+		printf("idx: %d\n", *idx);
+		printf("size: %d\n", size);
+		break;
+
+	default:
+		return 0;
+	}
+
+	return io.writePcapPacket(pcapFile, pcapOffset, record.m_timestamp, p, size);
+}
+
+EthernetTapSession.onFileDlgCompleted(ui.StdDlgButton button)
+{
+	if (button != ui.StdDlgButton.Ok)
+		return;
+
+	bool result = try io.exportLogToPcap(
+		m_pluginHost.m_log.m_recordFileName,
+		m_fileDlg.m_filePath,
+		io.PcapLinkType.Ethernet,
+		2 * 1024, // enough for ethernet
+		exportLogRecordToPcap
+		);
+
+	if (!result)
+		m_logWriter.writeLastError(log.StdRecordCode.Error);
 }
 
 EthernetTapSession.enumerateDevices()
