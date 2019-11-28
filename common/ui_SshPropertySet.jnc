@@ -86,6 +86,7 @@ SshPropertySet.createProperties(
 		m_userNameProp = propertyGrid.createStringProperty(
 			group,,
 			"User name",
+			"Enter a user name...",
 			"User name for SSH authentification"
 			);
 
@@ -121,6 +122,7 @@ SshPropertySet.createProperties(
 		m_channelTypeProp = propertyGrid.createStringProperty(
 			group,,
 			"SSH channel",
+			"Enter a channel type...",
 			"Type of requested SSH channel"
 			);
 
@@ -128,6 +130,7 @@ SshPropertySet.createProperties(
 		m_processTypeProp = propertyGrid.createStringProperty(
 			group,,
 			"SSH process",
+			"Enter a process type...",
 			"Type of requested SSH process"
 			);
 
@@ -135,6 +138,7 @@ SshPropertySet.createProperties(
 		m_execProp = propertyGrid.createStringProperty(
 			group,,
 			"SSH exec",
+			"Enter an executable name...",
 			"Process to exec on remote server"
 			);
 
@@ -142,6 +146,7 @@ SshPropertySet.createProperties(
 		m_ptyTypeProp = propertyGrid.createStringProperty(
 			group,,
 			"Pseudoterminal",
+			"Enter a PTY type...",
 			"Type of requested pseudoterminal (PTY)"
 			);
 }

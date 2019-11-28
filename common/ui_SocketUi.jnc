@@ -242,7 +242,8 @@ SocketPropertySet.createProperties(
 			group,
 			insertBefore,
 			"Remote address",
-			"Remote address to connect to (IP-address or host-name followed by ':' port)"
+			"Enter a remote IP or hostname...",
+			"Remote address to connect to (IP-address or hostname followed by ':' port)"
 			);
 
 	if (mask & PropertyId.RemotePort)

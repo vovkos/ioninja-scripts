@@ -242,7 +242,8 @@ SerialSettingUi.create(
 		m_baudRateProp = propertyGrid.createComboProperty(
 			groupProp,,
 			"Baud rate",
-			"Serial baud rate",
+			"Enter a baud rate...",
+			"Specify a serial baud rate",
 			baudRateTable,
 			countof(baudRateTable)
 			);

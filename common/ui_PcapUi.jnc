@@ -4,6 +4,7 @@
 //
 
 import "ui_ComboBox.jnc"
+import "ui_ToolBar.jnc"
 import "ui_PropertyGrid.jnc"
 import "io_pcap.jncx"
 
