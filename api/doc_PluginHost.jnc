@@ -42,3 +42,4 @@ opaque class PluginHost
 } // namespace doc
 
 trace(char const* p);
+sendKeepAlive();

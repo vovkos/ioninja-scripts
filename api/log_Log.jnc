@@ -26,6 +26,7 @@ opaque class Log
 
 	Writer* readonly m_writer;
 	uint64_t autoget property m_baseTimestamp;
+	char const* const property m_recordFileName;
 
 	destruct();
 
