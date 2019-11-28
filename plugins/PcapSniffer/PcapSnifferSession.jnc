@@ -6,6 +6,7 @@
 import "doc_Session.jnc"
 import "io_base.jncx"
 import "io_pcap.jncx"
+import "io_LogToPcap.jnc"
 import "io_IpDefragmenter.jnc"
 import "ui_Dialog.jnc"
 import "ui_History.jnc"
@@ -40,6 +41,8 @@ protected:
 	{
 		ApplyFilter,
 		Capture,
+		OpenPcap,
+		ExportPcap,
 		_Count,
 	}
 
@@ -106,7 +109,7 @@ public:
 		char const* filterString
 		);
 
-	bool errorcode openCapFile(
+	bool errorcode openPcapFile(
 		char const* fileName,
 		char const* filterString
 		);
@@ -129,6 +132,9 @@ protected:
 	{
 		try(m_state ? stopCapture() : capture());
 	}
+
+	onOpenPcap();
+	onExportPcap();
 
 	onSetViewFilter()
 	{
@@ -156,6 +162,7 @@ protected:
 		size_t size
 		);
 
+	ensureFileDlg();
 	waitPcapEvents();
 	createUi();
 }
@@ -180,12 +187,16 @@ PcapSnifferSession.createUi()
 	m_viewFilterCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 	m_viewFilterCombo.m_isEditable = true;
 	m_viewFilterCombo.m_onEnter += onSetViewFilter;
+	m_viewFilterCombo.m_placeholderText = "Enter a pcap-filter...";
+	m_viewFilterCombo.m_toolTipText =
+		"View only packets which pass this filter\n"
+		"For a complete syntax reference, google 'pcap-filter'";
 
 	m_actionTable[ActionId.ApplyFilter]  = createAction("Apply filter", "images/apply.png");
 	m_actionTable[ActionId.ApplyFilter].m_onTriggered += onSetViewFilter;
 
 	m_pluginHost.m_toolBar.addLabel("Device:");
-	m_deviceCombo = ui.createPcapDeviceComboBox(m_pluginHost.m_toolBar);
+	m_deviceCombo = ui.createPcapDeviceComboBox(m_pluginHost.m_toolBar, false);
 	m_deviceCombo.m_onEnter += onDeviceComboEnter;
 
 	m_iconTable[IconId.Capture] = new ui.Icon("images/capture.png");
@@ -193,6 +204,14 @@ PcapSnifferSession.createUi()
 
 	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable [IconId.Capture]);
 	m_actionTable[ActionId.Capture].m_onTriggered += onCapture;
+
+	m_pluginHost.m_menu.addSeparator();
+	m_pluginHost.m_toolBar.addSeparator();
+
+	m_actionTable[ActionId.OpenPcap] = createAction("Open Pcap file (*.pcap)", "images/open-pcap.png");
+	m_actionTable[ActionId.OpenPcap].m_onTriggered += onOpenPcap;
+	m_actionTable[ActionId.ExportPcap] = createAction("Export Pcap file (*.pcap)", "images/save-pcap.png");
+	m_actionTable[ActionId.ExportPcap].m_onTriggered += onExportPcap;
 
 	// status bar
 
@@ -207,7 +226,8 @@ PcapSnifferSession.createUi()
 
 	m_deviceProp = ui.createPcapDeviceProperty(
 		m_pluginHost.m_propertyGrid,
-		group,,,
+		group,,
+		false,
 		"Device",
 		"Specify the device to capture on"
 		);
@@ -221,13 +241,17 @@ PcapSnifferSession.createUi()
 	m_captureFilterProp = m_pluginHost.m_propertyGrid.createStringProperty(
 		group,,
 		"Capture filter",
-		"Capture only the packets which have passed this filter"
+		"Enter a pcap-filter...",
+		"Capture only packets which pass this filter\n"
+		"For a complete syntax reference, google 'pcap-filter'"
 		);
 
 	m_viewFilterProp = m_pluginHost.m_propertyGrid.createStringProperty(
 		group,,
 		"View filter",
-		"View only the packets which have passed this filter"
+		"Enter a pcap-filter...",
+		"View only packets which pass this filter\n"
+		"For a complete syntax reference, google 'pcap-filter'"
 		);
 
 	group = m_pluginHost.m_propertyGrid.createGroupProperty(
@@ -269,7 +293,7 @@ PcapSnifferSession.createUi()
 
 	// information grid
 
-	ui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("Network sniffer");
+	ui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("Pcap sniffer");
 
 	m_stdSessionInfoSet.createInformationValues(
 		m_pluginHost.m_informationGrid,
@@ -286,36 +310,99 @@ PcapSnifferSession.createUi()
 	m_uiReactor.start();
 }
 
+PcapSnifferSession.onOpenPcap()
+{
+	ensureFileDlg();
+
+	m_fileDlg.m_kind = ui.FileDlgKind.Open;
+	m_fileDlg.m_title = "Open Pcap File...";
+	m_fileDlg.m_filter = "Pcap files (*.pcap; *.cap);; All files (*.*)";
+	m_fileDlg.show();
+}
+
+PcapSnifferSession.onExportPcap()
+{
+	ensureFileDlg();
+
+	m_fileDlg.m_kind = ui.FileDlgKind.Save;
+	m_fileDlg.m_title = "Export Pcap File...";
+	m_fileDlg.m_filter = "Pcap files (*.pcap; *.cap);; All files (*.*)";
+	m_fileDlg.show();
+}
+
+size_t exportLogRecordToPcap(
+	log.Record const* record,
+	io.MappedFile* pcapFile,
+	uint64_t pcapOffset
+	)
+{
+	void const* p;
+	size_t size;
+
+	switch (record.m_code)
+	{
+	case NetSnifferLogRecordCode.EthernetPacket:
+	case NetSnifferLogRecordCode.InjectedEthernetPacket:
+		p = record + 1;
+		size = record.m_dataSize;
+		break;
+
+	case NetSnifferLogRecordCode.Packet:
+	case NetSnifferLogRecordCode.InjectedPacket:
+		p = record + 1;
+		p += sizeof(io.PcapLinkType);
+		size = record.m_dataSize - sizeof(io.PcapLinkType);
+		break;
+
+	default:
+		return 0;
+	}
+
+	return io.writePcapPacket(pcapFile, pcapOffset, record.m_timestamp, p, size);
+}
+
 PcapSnifferSession.onFileDlgCompleted(ui.StdDlgButton button)
 {
-	if (button == ui.StdDlgButton.Ok)
-		try openCapFile(m_fileDlg.m_filePath, m_captureFilterProp.m_value);
+	if (button != ui.StdDlgButton.Ok)
+		return;
+
+	switch (m_fileDlg.m_kind)
+	{
+	case ui.FileDlgKind.Open:
+		try openPcapFile(m_fileDlg.m_filePath, m_captureFilterProp.m_value);
+		break;
+
+	case ui.FileDlgKind.Save:
+		bool result = try io.exportLogToPcap(
+			m_pluginHost.m_log.m_recordFileName,
+			m_fileDlg.m_filePath,
+			io.PcapLinkType.Ethernet,
+			m_snapshotSizeProp.m_value,
+			exportLogRecordToPcap
+			);
+
+		if (!result)
+			m_logWriter.writeLastError(log.StdRecordCode.Error);
+
+		break;
+	}
+}
+
+PcapSnifferSession.ensureFileDlg()
+{
+	if (!m_fileDlg)
+	{
+		m_fileDlg = new ui.FileDlg;
+		m_fileDlg.m_onCompleted += onFileDlgCompleted;
+	}
 }
 
 bool errorcode PcapSnifferSession.capture()
 {
 	stopCapture();
 
-	if (m_deviceCombo.m_currentIndex == -1)
-		return false;
-
 	io.PcapDeviceDesc const* device = m_deviceCombo.m_currentData;
-	if (device)
-		return try capture(device, m_captureFilterProp.m_value);
-
-	// special "no device" entry -- open a .pcap file
-
-	if (!m_fileDlg)
-	{
-		m_fileDlg = new ui.FileDlg;
-		m_fileDlg.m_onCompleted += onFileDlgCompleted;
-	}
-
-	m_fileDlg.m_kind = ui.FileDlgKind.Open;
-	m_fileDlg.m_title = "Open Wireshark File (*.cap; *.pcap)...";
-	m_fileDlg.m_filter = "Wireshark .cap files (*.cap; *.pcap);; All files (*.*)";
-	m_fileDlg.show();
-	return true;
+	return device ? try capture(device, m_captureFilterProp.m_value) : false;
 }
 
 bool errorcode PcapSnifferSession.capture(
@@ -352,7 +439,7 @@ bool errorcode PcapSnifferSession.capture(
 	return true;
 }
 
-bool errorcode PcapSnifferSession.openCapFile(
+bool errorcode PcapSnifferSession.openPcapFile(
 	char const* fileName,
 	char const* filterString
 	)
