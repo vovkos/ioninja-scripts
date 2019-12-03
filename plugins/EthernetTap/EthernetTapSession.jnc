@@ -212,7 +212,7 @@ EthernetTapSession.createUi()
 	m_pluginHost.m_toolBar.addLabel("Tap:");
 	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 
-	m_actionTable[ActionId.Refresh]  = createAction("Re-enumerate sniffers", "images/refresh.png");
+	m_actionTable[ActionId.Refresh] = createAction("Re-enumerate sniffers", "images/refresh.png");
 	m_actionTable[ActionId.Refresh].m_onTriggered += enumerateDevices;
 
 	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable[IconId.Capture]);

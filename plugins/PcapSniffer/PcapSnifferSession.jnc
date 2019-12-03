@@ -192,7 +192,7 @@ PcapSnifferSession.createUi()
 		"View only packets which pass this filter\n"
 		"For a complete syntax reference, google 'pcap-filter'";
 
-	m_actionTable[ActionId.ApplyFilter]  = createAction("Apply filter", "images/apply.png");
+	m_actionTable[ActionId.ApplyFilter] = createAction("Apply filter", "images/apply.png");
 	m_actionTable[ActionId.ApplyFilter].m_onTriggered += onSetViewFilter;
 
 	m_pluginHost.m_toolBar.addLabel("Device:");

@@ -5,6 +5,8 @@
 
 import "ui_PropertyGrid.jnc"
 import "ui_ComboBox.jnc"
+import "ui_ToolBar.jnc"
+import "doc_Storage.jnc"
 import "io_base.jncx"
 import "io_Serial.jnc"
 
