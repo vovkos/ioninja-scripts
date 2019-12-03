@@ -23,7 +23,7 @@ protected:
 	DeviceMonitor m_monitor;
 	std.Buffer m_notifyBuffer;
 	std.Buffer m_readBuffer;
-	FileIdMgr m_fileIdMgr;
+	uint64_t m_lastFileId;
 	bool m_notifyReadBufferFull;
 	uint_t m_syncId;
 
@@ -96,7 +96,7 @@ bool errorcode Monitor.capture(
 
 	m_monitor.m_isEnabled = true;
 	m_notifyBuffer.clear();
-	m_fileIdMgr.reset();
+	m_lastFileId = 0;
 	waitMonitorEvents();
 	return true;
 }
