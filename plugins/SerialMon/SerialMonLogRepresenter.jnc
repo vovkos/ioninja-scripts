@@ -18,17 +18,50 @@ bool representSerialMonLog  (
 {
 	switch (recordCode)
 	{
-	case SerialMonLogRecordCode.DeviceOpened_old:
+	case SerialMonLogRecordCode.DeviceOpened_0:
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Connect;
 		representation.addHyperText("Port opened");
 		break;
 
-	case SerialMonLogRecordCode.DeviceOpened:
+	case SerialMonLogRecordCode.DeviceOpened_1:
 		uint32_t pid = *(uint32_t const*) p;
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Connect;
 		representation.addHyperText($"PID \e[34m#$pid\e[m: Port opened");
+		break;
+
+	case SerialMonLogRecordCode.DeviceOpened:
+		uint32_t pid = *(uint32_t const*)p;
+		char const* processName = (char const*)(p + sizeof(pid));
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Connect;
+
+		representation.addHyperText(
+			$"Port opened\n"
+			$"\e[90mProcess:\t\e[34m%1\n"
+			$"\e[90mPID:\t\e[34m%2"(
+			processName,
+			pid
+			));
+		break;
+
+	case SerialMonLogRecordCode.DeviceOpenError:
+		uint32_t pid = *(uint32_t const*)p;
+		std.Error const* error = (std.Error const*)(p + sizeof(pid));
+		char const* processName = (char const*)(error + 1);
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Error;
+
+		representation.addHyperText(
+			$"Cannot open port\n"
+			$"\e[90mProcess:\t\e[34m%1\n"
+			$"\e[90mPID:\t\e[34m%2\n"
+			$"\e[90mError:\t%3"(
+			processName,
+			pid,
+			error.m_description
+			));
 		break;
 
 	case SerialMonLogRecordCode.DeviceClosed:
