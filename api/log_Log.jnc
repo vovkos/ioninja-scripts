@@ -37,8 +37,16 @@ opaque class Log
 	addConverter(
 		Converter* converter,
 		std.Guid const* auxClassGuidArray,
-		size_t auxClassCount = 1
+		size_t auxClassCount
 		);
+
+	addConverter(
+		Converter* converter,
+		std.Guid const* auxClassGuid
+		)
+	{
+		addConverter(converter, auxClassGuid, 1);
+	}
 
 	addConverter(Converter* converter)
 	{
