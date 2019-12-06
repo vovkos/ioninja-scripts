@@ -44,7 +44,7 @@ MailslotMonitor.setFileId(
 		return;
 
 	m_lastFileId = fileId;
-	m_logWriter.write(timestamp, MailslotMonLogRecordCode.FileIdChanged_2, &m_lastFileId, sizeof(m_lastFileId));
+	m_logWriter.write(timestamp, MailslotMonLogRecordCode.FileIdChanged, &m_lastFileId, sizeof(m_lastFileId));
 }
 
 MailslotMonitor.processNotification(io.DeviceMonitorNotifyHdr const* notifyHdr)
@@ -59,13 +59,13 @@ MailslotMonitor.processNotification(io.DeviceMonitorNotifyHdr const* notifyHdr)
 
 		if (notifyHdr.m_ntStatus == 0)
 		{
-			recordCode = MailslotMonLogRecordCode.ClientFileOpened_2;
+			recordCode = MailslotMonLogRecordCode.ClientFileOpened;
 			logParams.append(&params.m_fileId64, sizeof(params.m_fileId64));
 			logParams.append(&notifyHdr.m_processId, sizeof(notifyHdr.m_processId));
 		}
 		else
 		{
-			recordCode = MailslotMonLogRecordCode.ClientFileOpenError_2;
+			recordCode = MailslotMonLogRecordCode.ClientFileOpenError;
 
 			std.Error error;
 			error.m_size = sizeof(error);
@@ -98,13 +98,13 @@ MailslotMonitor.processNotification(io.DeviceMonitorNotifyHdr const* notifyHdr)
 
 		if (notifyHdr.m_ntStatus == 0)
 		{
-			recordCode = MailslotMonLogRecordCode.ServerFileOpened_2;
+			recordCode = MailslotMonLogRecordCode.ServerFileOpened;
 			logParams.append(&params.m_fileId64, sizeof(params.m_fileId64));
 			logParams.append(&notifyHdr.m_processId, sizeof(notifyHdr.m_processId));
 		}
 		else
 		{
-			recordCode = MailslotMonLogRecordCode.ServerFileOpenError_2;
+			recordCode = MailslotMonLogRecordCode.ServerFileOpenError;
 
 			std.Error error;
 			error.m_size = sizeof(error);
