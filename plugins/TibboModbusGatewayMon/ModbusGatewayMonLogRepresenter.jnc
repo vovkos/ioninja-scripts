@@ -7,6 +7,7 @@ import "log_Representation.jnc"
 import "io_Modbus.jnc"
 import "crc16.jnc"
 import "ModbusGatewayMonLogRecordCode.jnc"
+import "SocketLog/SocketLogRecordCode.jnc"
 
 //..............................................................................
 
@@ -41,7 +42,7 @@ bool representModbusGatewayMonLog(
 			representation.m_lineAttr.m_textColor = log.StdLogColor.Tx;
 		}
 
-		char *_type;
+		char const* _type;
 		char _id;
         bool _inDir = false;
         if (((*(char const*)p) & 0x80) != 0)
