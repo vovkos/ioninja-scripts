@@ -423,8 +423,6 @@ size_t errorcode getModbusRtuAduSize(
 
 //..............................................................................
 
-alignment(default);
-
 //! @}
 
 } // namespace io
