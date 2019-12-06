@@ -31,10 +31,10 @@ char* formatFileSize(uint64_t size)
 	};
 
 	return
-		size >= GB ? $"$((double) size / GB; .2f) GB" :
-		size >= MB ? $"$((double) size / MB; .2f) MB" :
+		size >= GB ? $"$((double)size / GB; .2f) GB" :
+		size >= MB ? $"$((double)size / MB; .2f) MB" :
 		size > 9999 ? $"$(size / KB) KB" :
-		$"$(formatIntegerWithThousandSep (size)) B";
+		$"$(formatIntegerWithThousandSep(size)) B";
 }
 
 //..............................................................................

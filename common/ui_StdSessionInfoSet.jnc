@@ -338,22 +338,22 @@ StdSessionInfoSet.update(uint64_t timestamp)
 		m_sessionTimeInfo.m_value = sys.formatTimestamp(timestamp - m_sessionTimestamp, 0, "%h:%m:%s");
 
 	if (m_txTotalSizeInfo)
-		m_txTotalSizeInfo.m_value = $"$(formatIntegerWithThousandSep (txTotalSize))";
+		m_txTotalSizeInfo.m_value = $"$(formatIntegerWithThousandSep(txTotalSize))";
 
 	if (m_txThroughputInfo)
-		m_txThroughputInfo.m_value = $"$(formatIntegerWithThousandSep (txThroughput))";
+		m_txThroughputInfo.m_value = $"$(formatIntegerWithThousandSep(txThroughput))";
 
 	if (m_rxTotalSizeInfo)
-		m_rxTotalSizeInfo.m_value = $"$(formatIntegerWithThousandSep (rxTotalSize))";
+		m_rxTotalSizeInfo.m_value = $"$(formatIntegerWithThousandSep(rxTotalSize))";
 
 	if (m_rxThroughputInfo)
-		m_rxThroughputInfo.m_value = $"$(formatIntegerWithThousandSep (rxThroughput))";
+		m_rxThroughputInfo.m_value = $"$(formatIntegerWithThousandSep(rxThroughput))";
 
 	if (m_totalSizeInfo)
-		m_totalSizeInfo.m_value = $"$(formatIntegerWithThousandSep (txTotalSize + rxTotalSize))";
+		m_totalSizeInfo.m_value = $"$(formatIntegerWithThousandSep(txTotalSize + rxTotalSize))";
 
 	if (m_totalThroughputInfo)
-		m_totalThroughputInfo.m_value = $"$(formatIntegerWithThousandSep (txThroughput + rxThroughput))";
+		m_totalThroughputInfo.m_value = $"$(formatIntegerWithThousandSep(txThroughput + rxThroughput))";
 }
 
 //..............................................................................
