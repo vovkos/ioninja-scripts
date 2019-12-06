@@ -46,6 +46,26 @@ opaque class InformationValue: InformationItem
 
 //..............................................................................
 
+// when calculating misc stats, we want to delay update of UI as to avoid
+// the unnecessary load on the CPU
+
+opaque class InformationStatValue: InformationValue
+{
+	typedef char const* FormatFunc(uint64_t value);
+
+	FormatFunc* m_formatFunc;
+	char const* m_formatSpec;
+
+	uint64_t autoget property m_value; // shadows InformationValue.m_value
+
+	construct(char const* name);
+	destruct();
+
+	void forceUpdate();
+}
+
+//..............................................................................
+
 opaque class InformationGrid
 {
 	addItem(
@@ -86,7 +106,32 @@ opaque class InformationGrid
 		return createValue(,,, name, toolTipText);
 	}
 
+	InformationStatValue* createStatValue(
+		InformationItem* parentItem = null,
+		InformationItem* beforeItem = null,
+		bool isSelectionDependent = false,
+		char const* name,
+		char const* toolTipText = null
+		);
+
+	 InformationStatValue* createStatValue(
+		char const* name,
+		char const* toolTipText = null
+		)
+	{
+		return createStatValue(,,, name, toolTipText);
+	}
+
 	resizeNameColumnToContents();
+
+protected:
+	addValueImpl(
+		InformationValue* item,
+		InformationItem* parentItem,
+		InformationItem* beforeItem,
+		bool isSelectionDependent,
+		char const* toolTipText
+		);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -99,7 +144,6 @@ InformationGroup* InformationGrid.createGroup(
 	)
 {
 	InformationGroup* item = new InformationGroup(name);
-	item.m_toolTipText = toolTipText;
 
 	parentItem ?
 		parentItem.addChildItem(item, beforeItem) :
@@ -117,14 +161,37 @@ InformationValue* InformationGrid.createValue(
 	)
 {
 	InformationValue* item = new InformationValue(name);
+	addValueImpl(item, parentItem, beforeItem, isSelectionDependent, toolTipText);
+	return item;
+}
+
+InformationStatValue* InformationGrid.createStatValue(
+	InformationItem* parentItem,
+	InformationItem* beforeItem,
+	bool isSelectionDependent,
+	char const* name,
+	char const* toolTipText
+	)
+{
+	InformationStatValue* item = new InformationStatValue(name);
+	addValueImpl(item, parentItem, beforeItem, isSelectionDependent, toolTipText);
+	return item;
+}
+
+InformationGrid.addValueImpl(
+	InformationValue* item,
+	InformationItem* parentItem,
+	InformationItem* beforeItem,
+	bool isSelectionDependent,
+	char const* toolTipText
+	)
+{
 	item.m_toolTipText = toolTipText;
 	item.m_isSelectionDependent = isSelectionDependent;
 
 	parentItem ?
 		parentItem.addChildItem(item, beforeItem) :
 		addItem(item, beforeItem);
-
-	return item;
 }
 
 //..............................................................................
