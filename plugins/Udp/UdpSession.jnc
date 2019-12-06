@@ -45,7 +45,6 @@ protected:
 
 	enum ActionId
 	{
-		AutoRemoteAddress,
 		Open,
 		_Count,
 	}
@@ -180,13 +179,10 @@ UdpSession.createUi()
 	m_remoteAddressCombo.m_onChanged += onRemoteAddressChanged;
 	m_remoteAddressCombo.m_placeholderText = "Enter a remote IP or hostname...";
 
-	m_actionTable[ActionId.AutoRemoteAddress] = createAction("Auto-switch remote address", m_iconTable [IconId.Compass]);
-	m_actionTable[ActionId.AutoRemoteAddress].m_isCheckable = true;
-
 	m_pluginHost.m_toolBar.addLabel("Adapter:");
 	m_adapterCombo = ui.createNetworkAdapterComboBox(m_pluginHost.m_toolBar, ui.NetworkAdapterUsage.Listener);
 
-	m_pluginHost.m_toolBar.addLabel("Port:");
+	m_pluginHost.m_toolBar.addLabel("Local port:");
 	m_localPortCombo = m_pluginHost.m_toolBar.addComboBox();
 	m_localPortCombo.m_isEditable = true;
 	m_localPortCombo.m_onEnter += openSocket;
@@ -318,7 +314,7 @@ UdpSession.load(doc.Storage* storage)
 	m_localPortCombo.loadHistory(storage, "localPortHistory");
 
 	m_remoteAddressCombo.m_editText = storage.readString("remoteAddress", DefaultRemoteAddress);
-	m_actionTable[ActionId.AutoRemoteAddress].m_isChecked = storage.readInt("autoRemoteAddress");
+	m_autoRemoteAddressProp.m_value = storage.readBool("autoRemoteAddress");
 	m_adapterCombo.m_currentIndex = storage.readInt("adapterIdx");
 	m_localPortCombo.m_editText = storage.readString("localPort");
 
@@ -336,14 +332,13 @@ UdpSession.save(doc.Storage* storage)
 	m_localPortCombo.saveHistory(storage, "localPortHistory");
 
 	storage.writeString("remoteAddress", m_remoteAddressCombo.m_editText);
-	storage.writeInt("autoRemoteAddress", m_actionTable [ActionId.AutoRemoteAddress].m_isChecked);
+	storage.writeInt("autoRemoteAddress", m_autoRemoteAddressProp.m_value);
 	storage.writeInt("adapterIdx", (int) m_adapterCombo.m_currentIndex);
 	storage.writeString("localPort", m_localPortCombo.m_editText);
 }
 
 UdpSession.updateProperties()
 {
-	m_autoRemoteAddressProp.m_value = m_actionTable[ActionId.AutoRemoteAddress].m_isChecked;
 	m_socketPropertySet.m_remoteAddressProp.m_value = m_remoteAddressCombo.m_editText;
 	m_socketPropertySet.m_adapterProp.m_currentIndex = m_adapterCombo.m_currentIndex;
 	m_socketPropertySet.m_localPortProp.m_value = atoi(m_localPortCombo.m_editText);
@@ -351,7 +346,6 @@ UdpSession.updateProperties()
 
 bool errorcode UdpSession.applyProperties()
 {
-	m_actionTable[ActionId.AutoRemoteAddress].m_isChecked = m_autoRemoteAddressProp.m_value;
 	m_remoteAddressCombo.m_editText = m_socketPropertySet.m_remoteAddressProp.m_value;
 	m_adapterCombo.m_currentIndex = m_socketPropertySet.m_adapterProp.m_currentIndex;
 	m_localPortCombo.m_editText = $"$(m_socketPropertySet.m_localPortProp.m_value)";
@@ -493,7 +487,7 @@ UdpSession.onSocketEvent(
 		io.SocketAddress remoteAddress;
 		size_t result = m_socket.readDatagram(m_readBuffer.m_p, m_readBuffer.m_size, &remoteAddress);
 
-		if (m_actionTable[ActionId.AutoRemoteAddress].m_isChecked)
+		if (m_autoRemoteAddressProp.m_value)
 			m_remoteAddressCombo.m_editText = remoteAddress.getString();
 
 		m_logWriter.write(
@@ -554,10 +548,13 @@ reactor UdpSession.m_uiReactor
 {
 	m_title = $"UDP @ $(m_localPortCombo.m_editText) -> $(m_remoteAddressCombo.m_editText)";
 	m_isTransmitEnabled = m_state == State.Opened;
-	m_remoteAddressCombo.m_isEnabled = !m_actionTable[ActionId.AutoRemoteAddress].m_isChecked;
 	m_actionTable[ActionId.Open].m_text = m_state ? "Close Socket" : "Open Socket";
 	m_actionTable[ActionId.Open].m_icon = m_iconTable[m_state ? IconId.Close : IconId.Open];
 	m_statusPaneTable[StatusPaneId.State].m_text = m_state ? "Opened" : "Closed";
+	m_remoteAddressCombo.m_backgroundColor = m_autoRemoteAddressProp.m_value ? ui.StdColor.PastelGreen : ui.StdColor.White;
+	m_remoteAddressCombo.m_toolTipText = m_autoRemoteAddressProp.m_value ?
+		"This address will automatically switch to the address of the last inbound datagram" :
+		null;
 }
 
 //..............................................................................
