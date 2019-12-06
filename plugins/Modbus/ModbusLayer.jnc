@@ -7,7 +7,6 @@ import "doc_Layer.jnc"
 import "io_Modbus.jnc"
 import "std_Buffer.jnc"
 import "crc16.jnc"
-
 import "io_base.jncx"
 import "io_Serial.jnc"
 import "Serial/SerialLogRecordCode.jnc"
@@ -51,12 +50,16 @@ protected:
 	bool autoget property m_rts;
 	bool autoget property m_cts;
 
+	ui.ComboBox* m_protocolCombo;
 	ui.ComboBox* m_streamRolesCombo;
+	ui.Action* m_applyAction;
 
 	ui.EnumProperty* m_protocolProp;
 	ui.EnumProperty* m_streamRolesProp;
 	ui.EnumProperty* m_halfDuplexModeProp;
 	ui.IntProperty* m_halfDuplexTimeoutProp;
+
+	ModbusInfoSet m_modbusInfoSet;
 
 	reactor m_uiReactor;
 
@@ -82,12 +85,12 @@ public:
 protected:
 	createUi();
 
-	onStreamRolesComboChanged()
-	{
-		configureParsers(m_streamRolesCombo.m_currentData);
-	}
+	onProtocolChanged();
+	onStreamRolesComboChanged();
+	onApplyRebuildLog();
 
 	ModbusParserBase* getHalfDuplexParser(StreamRoles roles);
+	createParsers(io.ModbusProtocol protocol);
 	configureParsers(StreamRoles roles);
 }
 
@@ -97,14 +100,11 @@ ModbusLayer.construct(doc.PluginHost* pluginHost)
 {
 	basetype1.construct(pluginHost);
 
-	m_txParser = new ModbusRtuParser;
-	m_rxParser = new ModbusRtuParser;
-	m_txParser.m_mode = ModbusParserMode.Master;
-	m_rxParser.m_mode = ModbusParserMode.Slave;
+	createUi();
+	createParsers((io.ModbusProtocol)Def.Protocol);
+	configureParsers((StreamRoles)Def.StreamRoles);
 
 	pluginHost.m_log.addConverter(this, &m_logGuid);
-
-	createUi();
 }
 
 ModbusLayer.createUi()
@@ -133,13 +133,24 @@ ModbusLayer.createUi()
 		{ "CTS ON - Slave, else Master", HalfDuplexMode.CtsSlave },
 	}
 
+	m_protocolCombo = m_pluginHost.m_toolBar.addComboBox(
+		"Modbus:",
+		protocolTable,
+		countof(protocolTable)
+		);
+
+	m_protocolCombo.m_onChanged += onProtocolChanged;
+
 	m_streamRolesCombo = m_pluginHost.m_toolBar.addComboBox(
-		"Modbus roles:",
+		"Roles:",
 		streamRolesTable,
 		countof(streamRolesTable)
 		);
 
 	m_streamRolesCombo.m_onChanged += onStreamRolesComboChanged;
+
+	m_applyAction = createAction("Apply & rebuild log", "images/apply.png");
+	m_applyAction.m_onTriggered += onApplyRebuildLog;
 
 	m_protocolProp = m_pluginHost.m_propertyGrid.createEnumProperty(
 		"Protocol",
@@ -167,6 +178,8 @@ ModbusLayer.createUi()
 		"Reset the current Modbus role to 'master' after this delay"
 		);
 
+	m_modbusInfoSet.create(m_pluginHost.m_informationGrid);
+
 	m_uiReactor.start();
 }
 
@@ -177,6 +190,24 @@ reactor ModbusLayer.m_uiReactor
 	m_halfDuplexTimeoutProp.m_isEnabled =
 		m_streamRolesProp.m_value >= StreamRoles.TxHalfDuplex &&
 		m_halfDuplexModeProp.m_value == HalfDuplexMode.Alternate;
+}
+
+ModbusLayer.onProtocolChanged()
+{
+	createParsers(m_protocolCombo.m_currentData);
+	configureParsers(m_streamRolesCombo.m_currentData);
+}
+
+ModbusLayer.onStreamRolesComboChanged()
+{
+	configureParsers(m_streamRolesCombo.m_currentData);
+}
+
+ModbusLayer.onApplyRebuildLog()
+{
+	createParsers(m_protocolCombo.m_currentData);
+	configureParsers(m_streamRolesCombo.m_currentData);
+	m_pluginHost.m_log.rebuild();
 }
 
 void ModbusLayer.load(doc.Storage* storage)
@@ -199,6 +230,7 @@ void ModbusLayer.save(doc.Storage* storage)
 
 void ModbusLayer.updateProperties()
 {
+	m_protocolProp.m_value = m_protocolCombo.m_currentData;
 	m_streamRolesProp.m_value = m_streamRolesCombo.m_currentData;
 }
 
@@ -206,24 +238,9 @@ bool errorcode ModbusLayer.applyProperties()
 {
 	m_pluginHost.m_log.suspend();
 
-	if (m_protocolProp.m_value != m_txParser.m_protocol)
-		switch (m_protocolProp.m_value)
-		{
-		case io.ModbusProtocol.Rtu:
-			m_txParser = new ModbusRtuParser;
-			m_rxParser = new ModbusRtuParser;
-			break;
-
-		case io.ModbusProtocol.Ascii:
-			m_txParser = new ModbusAsciiParser;
-			m_rxParser = new ModbusAsciiParser;
-			break;
-
-		case io.ModbusProtocol.Tcp:
-			m_txParser = new ModbusTcpParser;
-			m_rxParser = new ModbusTcpParser;
-			break;
-		}
+	io.ModbusProtocol protocol = m_protocolProp.m_value;
+	m_protocolCombo.m_currentData = protocol;
+	createParsers(protocol);
 
 	StreamRoles roles = m_streamRolesProp.m_value;
 	m_streamRolesCombo.m_currentData = roles;
@@ -254,6 +271,7 @@ bool ModbusLayer.convert(
 	switch (recordCode)
 	{
 	case log.StdRecordCode.SessionStarted:
+		m_modbusInfoSet.reset();
 		m_txParser.reset();
 		m_rxParser.reset();
 		break;
@@ -358,6 +376,30 @@ ModbusParserBase* ModbusLayer.getHalfDuplexParser(StreamRoles roles)
 
 	default:
 		return null;
+	}
+}
+
+void ModbusLayer.createParsers(io.ModbusProtocol protocol)
+{
+	if (m_txParser && protocol == m_txParser.m_protocol)
+		return;
+
+	switch (protocol)
+	{
+	case io.ModbusProtocol.Rtu:
+		m_txParser = new ModbusRtuParser(m_modbusInfoSet);
+		m_rxParser = new ModbusRtuParser(m_modbusInfoSet);
+		break;
+
+	case io.ModbusProtocol.Ascii:
+		m_txParser = new ModbusAsciiParser(m_modbusInfoSet);
+		m_rxParser = new ModbusAsciiParser(m_modbusInfoSet);
+		break;
+
+	case io.ModbusProtocol.Tcp:
+		m_txParser = new ModbusTcpParser(m_modbusInfoSet);
+		m_rxParser = new ModbusTcpParser(m_modbusInfoSet);
+		break;
 	}
 }
 

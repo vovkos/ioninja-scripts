@@ -22,3 +22,4 @@ ModbusParserBase.jnc
 ModbusRtuParser.jnc
 ModbusAsciiParser.jnc
 ModbusTcpParser.jnc
+ModbusInfoSet.jnc

@@ -20,9 +20,9 @@ protected:
 	size_t m_expectedSize;
 
 public:
-	construct()
+	construct(ModbusInfoSet* infoSet)
 	{
-		m_protocol = io.ModbusProtocol.Rtu;
+		basetype.construct(io.ModbusProtocol.Rtu, infoSet);
 	}
 
 	override parse(
@@ -63,6 +63,7 @@ ModbusRtuParser.parse(
 			));
 
 		writer.writeLastError(timestamp, ModbusLogRecordCode.ParseError);
+		m_infoSet.addError();
 		reset();
 	}
 
@@ -103,6 +104,7 @@ ModbusRtuParser.parse(
 		// ADU completed
 
 		writer.write(timestamp, recordCode, m_dataBuffer.m_p, m_dataBuffer.m_size);
+		m_infoSet.addAdu(m_modbusRole);
 
 		if (m_mode == ModbusParserMode.Alternate)
 		{
@@ -119,6 +121,7 @@ ModbusRtuParser.parse(
 
 catch:
 	writer.writeLastError(timestamp, ModbusLogRecordCode.ParseError);
+	m_infoSet.addError();
 	reset();
 }
 

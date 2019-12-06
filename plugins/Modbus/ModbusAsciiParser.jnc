@@ -17,9 +17,9 @@ protected:
 	State m_state;
 
 public:
-	construct()
+	construct(ModbusInfoSet* infoSet)
 	{
-		m_protocol = io.ModbusProtocol.Ascii;
+		basetype.construct(io.ModbusProtocol.Ascii, infoSet);
 	}
 
 	override parse(
@@ -90,6 +90,7 @@ ModbusAsciiParser.parse(
 			{
 				std.setError("Missing '\\n' in Modbus ASCII frame");
 				writer.writeLastError(timestamp, ModbusLogRecordCode.ParseError);
+				m_infoSet.addError();
 				reset();
 				break;
 			}
@@ -98,9 +99,8 @@ ModbusAsciiParser.parse(
 
 			m_dataBuffer.append(adu, p - adu + 1);
 			writer.write(timestamp, recordCode, m_dataBuffer.m_p, m_dataBuffer.m_size);
+			m_infoSet.addAdu(m_modbusRole);
 			p++;
-
-			m_state = State.Idle;
 
 			if (m_mode == ModbusParserMode.Alternate)
 			{
@@ -119,6 +119,7 @@ ModbusAsciiParser.parse(
 		{
 			std.setError("Modbus ASCII frame is too big and still incomplete");
 			writer.writeLastError(timestamp, ModbusLogRecordCode.ParseError);
+			m_infoSet.addError();
 			reset();
 		}
 	}
