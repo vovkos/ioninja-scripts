@@ -46,8 +46,8 @@ bool PipeMonLogFilter.filter(
 		result = match(fileName, null, pid, true);
 		break;
 
-	case PipeMonLogRecordCode.ServerFileOpened_2:
-	case PipeMonLogRecordCode.ClientFileOpened_2:
+	case PipeMonLogRecordCode.ServerFileOpened:
+	case PipeMonLogRecordCode.ClientFileOpened:
 		m_fileId = *(uint64_t const*)p;
 		uint_t pid = *(uint32_t const*)(p + sizeof(uint64_t));
 		char const* fileName = (char const*)(p + sizeof(uint64_t) + sizeof(uint32_t));
@@ -70,8 +70,8 @@ bool PipeMonLogFilter.filter(
 		result = match(fileName, null, pid, false);
 		break;
 
-	case PipeMonLogRecordCode.ServerFileOpenError_2:
-	case PipeMonLogRecordCode.ClientFileOpenError_2:
+	case PipeMonLogRecordCode.ServerFileOpenError:
+	case PipeMonLogRecordCode.ClientFileOpenError:
 		uint_t pid = *(uint32_t const*)p;
 		std.Error const* error = (std.Error const*)(p + sizeof(uint32_t));
 		char const* fileName = (char const*)(error + 1);
@@ -91,7 +91,7 @@ bool PipeMonLogFilter.filter(
 
 		break;
 
-	case PipeMonLogRecordCode.FileIdChanged_2:
+	case PipeMonLogRecordCode.FileIdChanged:
 		m_fileId = *(uint64_t const*)p;
 		if (m_fileId == m_lastVisibleFileId)
 			return false; // no need to show extra file-id-changed message
