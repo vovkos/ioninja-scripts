@@ -25,8 +25,9 @@ protected:
 
 	enum Defaults
 	{
-		ReplayTx = true,
-		ReplayRx = false,
+		ReplayTx         = true,
+		ReplayRx         = false,
+		ReplayCustomCode = false,
 	}
 
 	enum ActionId
@@ -43,6 +44,7 @@ protected:
 	uint64_t m_prevRecordOffset;
 	uint64_t m_firstRecordTimestamp;
 	uint64_t m_baseTimestamp;
+	uint64_t m_customRecordCode;
 	sys.Timer m_progressTimer;
 	sys.Timer m_transmitTimer;
 	uint_t m_syncId;
@@ -52,6 +54,8 @@ protected:
 	ui.FileProperty* m_fileNameProp;
 	ui.BoolProperty* m_replayTxProp;
 	ui.BoolProperty* m_replayRxProp;
+	ui.BoolProperty* m_replayCustomCodeProp;
+	ui.StringProperty* m_customCodeProp;
 	ui.FileDlg m_fileDlg;
 	ui.ProgressDlg m_progressDlg;
 	reactor m_uiReactor;
@@ -103,6 +107,9 @@ void ReplayLogLayer.load(doc.Storage* storage)
 	m_fileNameCombo.m_editText = storage.readString("fileName");
 	m_replayTxProp.m_value = storage.readBool("replayTx", Defaults.ReplayTx);
 	m_replayRxProp.m_value = storage.readBool("replayRx", Defaults.ReplayRx);
+	m_replayCustomCodeProp.m_value = storage.readBool("replayCustomCode", Defaults.ReplayCustomCode);
+	m_customCodeProp.m_value = storage.readString("customCode", m_customCodeProp.m_value);
+	m_customRecordCode = strtoul(m_customCodeProp.m_value, null, 0);
 }
 
 void ReplayLogLayer.save(doc.Storage* storage)
@@ -111,6 +118,8 @@ void ReplayLogLayer.save(doc.Storage* storage)
 	storage.writeString("fileName", m_fileNameCombo.m_editText);
 	storage.writeBool("replayTx", m_replayTxProp.m_value);
 	storage.writeBool("replayRx", m_replayRxProp.m_value);
+	storage.writeBool("replayCustomCode", m_replayCustomCodeProp.m_value);
+	storage.writeString("customCode", m_customCodeProp.m_value);
 }
 
 void ReplayLogLayer.updateProperties()
@@ -121,6 +130,7 @@ void ReplayLogLayer.updateProperties()
 bool errorcode ReplayLogLayer.applyProperties()
 {
 	m_fileNameCombo.m_editText = m_fileNameProp.m_value;
+	m_customRecordCode = strtoul(m_customCodeProp.m_value, null, 0);
 	return true;
 }
 
@@ -128,6 +138,7 @@ void ReplayLogLayer.restoreDefaultProperties()
 {
 	m_replayTxProp.m_value = Defaults.ReplayTx;
 	m_replayRxProp.m_value = Defaults.ReplayRx;
+	m_replayCustomCodeProp.m_value = Defaults.ReplayCustomCode;
 }
 
 ReplayLogLayer.createUi()
@@ -148,6 +159,20 @@ ReplayLogLayer.createUi()
 	m_fileNameProp = m_pluginHost.m_propertyGrid.createFileProperty("File name", "Path to a *.njlog file");
 	m_replayTxProp = m_pluginHost.m_propertyGrid.createBoolProperty("Replay TX", "Replay TX records");
 	m_replayRxProp = m_pluginHost.m_propertyGrid.createBoolProperty("Replay RX", "Replay RX records");
+
+	m_replayCustomCodeProp = m_pluginHost.m_propertyGrid.createBoolProperty(
+		"Replay custom code",
+		"Replay log records with the specificed record code value"
+		);
+
+	m_customCodeProp = m_pluginHost.m_propertyGrid.createStringProperty(
+		m_replayCustomCodeProp,,
+		"Custom code",
+		"Enter a log record code...",
+		"Specify a custom log record code to replay"
+		);
+
+	m_customCodeProp.m_value = "0x0000000000000000";
 
 	m_uiReactor.start();
 }
@@ -207,6 +232,13 @@ bool errorcode ReplayLogLayer.readLoop()
 		case log.StdRecordCode.Rx:
 			isReplayed = m_replayRxProp.m_value;
 			break;
+		}
+
+		if (m_replayCustomCodeProp.m_value)
+		{
+			printf("%llx vs %llx\n", record.m_code, m_customRecordCode);
+			if (record.m_code == m_customRecordCode)
+				isReplayed = true;
 		}
 
 		if (!isReplayed)
@@ -335,6 +367,7 @@ ReplayLogLayer.onProgressTimer(uint_t syncId)
 reactor ReplayLogLayer.m_uiReactor
 {
 	m_actionTable[ActionId.Play].m_isEnabled = m_isTransmitEnabled && strlen(m_fileNameCombo.m_editText);
+	m_customCodeProp.m_isEnabled = m_replayCustomCodeProp.m_value;
 }
 
 //..............................................................................
