@@ -7,7 +7,7 @@ import "io_Ip.jnc"
 
 namespace io {
 
-//! \addtogroup protocols
+//! \addtogroup proto-net
 //! @{
 
 //..............................................................................
