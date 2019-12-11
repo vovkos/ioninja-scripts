@@ -5,7 +5,7 @@
 
 namespace io {
 
-//! \addtogroup proto-app
+//! \addtogroup proto-modbus
 //! @{
 
 alignment(1);

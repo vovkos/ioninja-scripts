@@ -5,7 +5,7 @@
 
 namespace io {
 
-//! \addtogroup proto-link
+//! \addtogroup proto-loopback
 //! @{
 
 //..............................................................................

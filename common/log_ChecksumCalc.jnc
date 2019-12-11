@@ -144,7 +144,15 @@ ChecksumCalcRangeProcessor.processEndOfRange()
 		m_infoSet.m_sum16Info_be.m_value = $"$(m_sum16_be; 04X)";
 }
 
-// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+//..............................................................................
+
+//! @}
+
+} // namespace log
+
+
+//! \addtogroup common-crc
+//! @{
 
 // simple helper
 
@@ -163,8 +171,4 @@ uint64_t sum8(
 	return sum;
 }
 
-//..............................................................................
-
 //! @}
-
-} // namespace log

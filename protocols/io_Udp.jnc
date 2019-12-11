@@ -5,7 +5,7 @@
 
 namespace io {
 
-//! \addtogroup proto-transport
+//! \addtogroup proto-udp
 //! @{
 
 //..............................................................................

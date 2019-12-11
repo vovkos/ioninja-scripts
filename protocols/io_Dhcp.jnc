@@ -7,7 +7,7 @@ import "std_String.jnc"
 
 namespace io {
 
-//! \addtogroup proto-app
+//! \addtogroup proto-dhcp
 //! @{
 
 alignment(1);
