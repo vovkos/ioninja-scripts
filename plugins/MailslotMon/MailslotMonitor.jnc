@@ -150,6 +150,22 @@ MailslotMonitor.processNotification(io.DeviceMonitorNotifyHdr const* notifyHdr)
 			params.m_dataSize
 			);
 		break;
+
+	case io.win.DeviceMonitorNotifyCode.Write:
+	case io.win.DeviceMonitorNotifyCode.FastIoWrite:
+		io.win.DeviceMonitorReadWriteNotifyParams const* params = (io.win.DeviceMonitorReadWriteNotifyParams const*)(notifyHdr + 1);
+		if (!params.m_dataSize)
+			break;
+
+		setFileId(notifyHdr.m_timestamp, params.m_fileId);
+
+		m_logWriter.write(
+			notifyHdr.m_timestamp,
+			log.StdRecordCode.Tx,
+			params + 1,
+			params.m_dataSize
+			);
+		break;
 	}
 }
 
