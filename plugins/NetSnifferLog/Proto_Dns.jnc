@@ -74,7 +74,6 @@ protected:
 	void const* representQuestionRrTableDigest(
 		log.Representation* representation,
 		std.StringBuilder* string,
-		size_t baseIdx,
 		size_t count,
 		void const* p,
 		void const* end,
@@ -84,8 +83,8 @@ protected:
 	void const* representAnswerRrTableDigest(
 		log.Representation* representation,
 		std.StringBuilder* string,
-		size_t baseIdx,
-		size_t count,
+		size_t questionCount,
+		size_t answerCount,
 		void const* p,
 		void const* end,
 		void const* base
@@ -186,7 +185,6 @@ void DnsProtoParser.representDigest(
 		p = representQuestionRrTableDigest(
 			representation,
 			string,
-			0,
 			hdr.m_questionRrCount,
 			p,
 			end,
@@ -406,20 +404,22 @@ void const* scanDnsAnswerRr(
 void const* DnsProtoParser.representQuestionRrTableDigest(
 	log.Representation* representation,
 	std.StringBuilder* string,
-	size_t baseIdx,
 	size_t count,
 	void const* p,
 	void const* end,
 	void const* base
 	)
 {
-	size_t endIdx = baseIdx + count;
-	if (endIdx > PreviewLineCount)
-		endIdx = PreviewLineCount;
-
-	for (size_t i = baseIdx; p < end && i < endIdx; i++)
+	size_t previewLineIdx = -1;
+	if (count > PreviewLineCount)
 	{
-		if (i == PreviewLineCount - 1)
+		count = PreviewLineCount;
+		previewLineIdx = PreviewLineCount - 1;
+	}
+
+	for (size_t i = 0; p < end && i < count; i++)
+	{
+		if (i == previewLineIdx)
 			representation.m_lineAttr.m_flags |= log.LineAttrFlags.Preview;
 
 		p = representQuestionRrDigest(representation, string, p, end, base);
@@ -431,20 +431,25 @@ void const* DnsProtoParser.representQuestionRrTableDigest(
 void const* DnsProtoParser.representAnswerRrTableDigest(
 	log.Representation* representation,
 	std.StringBuilder* string,
-	size_t baseIdx,
-	size_t count,
+	size_t questionCount,
+	size_t answerCount,
 	void const* p,
 	void const* end,
 	void const* base
 	)
 {
-	size_t endIdx = baseIdx + count;
-	if (endIdx > PreviewLineCount)
-		endIdx = PreviewLineCount;
+	size_t endIdx = questionCount + answerCount;
+	size_t previewLineIdx = -1;
 
-	for (size_t i = baseIdx; p < end && i < endIdx; i++)
+	if (endIdx > PreviewLineCount)
 	{
-		if (i == PreviewLineCount - 1)
+		endIdx = PreviewLineCount;
+		previewLineIdx = PreviewLineCount - 1;
+	}
+
+	for (size_t i = questionCount; p < end && i < endIdx; i++)
+	{
+		if (i == previewLineIdx)
 			representation.m_lineAttr.m_flags |= log.LineAttrFlags.Preview;
 
 		p = representAnswerRrDigest(representation, string, p, end, base);
