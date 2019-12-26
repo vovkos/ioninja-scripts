@@ -33,7 +33,8 @@ protected:
 	enum
 	{
 		CypressBufferSize         = 4 * 1024, // 4K (2K built-in in Cypress + 512 FPGA FIFO)
-		CypressClearBufferTimeout = 200,      // 0.2sec
+		GracefulStopWriteTimeout  = 1000,     // 1 sec
+		CypressClearBufferTimeout = 200,      // 0.2 sec
 		FpgaUploadBaseIndex       = 0x2000,
 	}
 
@@ -130,7 +131,7 @@ public:
 	construct(doc.PluginHost* pluginHost);
 
 	bool errorcode capture();
-	void stopCapture();
+	void stopCapture(bool isGraceful = true);
 
 	override size_t errorcode transmit(
 		void const* p,
@@ -457,7 +458,17 @@ bool errorcode EthernetTapSession.gracefulStop()
 {
 	static char stopCode = 0xaa;
 	m_outEndpoint.write(&stopCode, sizeof(stopCode));
-	m_outEndpoint.blockingWait(io.UsbEndpointEvents.WriteCompleted);
+
+	io.UsbEndpointEvents events = m_outEndpoint.blockingWait(
+		io.UsbEndpointEvents.WriteCompleted | io.UsbEndpointEvents.IoError,
+		GracefulStopWriteTimeout
+		);
+
+	if (events & io.UsbEndpointEvents.IoError)
+	{
+		std.setError("Stop capture request failed");
+		return false;
+	}
 
 	io.UsbEndpoint* ep = m_iface.openEndpoint(Usb.InEndpoint, true);
 	ep.m_readParallelism = 1;
@@ -483,11 +494,13 @@ bool errorcode EthernetTapSession.gracefulStop()
 	return true;
 }
 
-EthernetTapSession.stopCapture()
+EthernetTapSession.stopCapture(bool isGraceful)
 {
 	if (m_outEndpoint)
 	{
-		try gracefulStop();
+		if (isGraceful)
+			try gracefulStop();
+
 		m_outEndpoint.close();
 		m_outEndpoint = null;
 	}
@@ -566,7 +579,7 @@ EthernetTapSession.onInEndpointEvent(
 	if (triggeredEvents & io.UsbEndpointEvents.IoError)
 	{
 		m_logWriter.write(log.StdRecordCode.Error, m_inEndpoint.m_ioError);
-		stopCapture();
+		stopCapture(false);
 		return;
 	}
 
