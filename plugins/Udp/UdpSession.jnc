@@ -160,8 +160,8 @@ UdpSession.construct(doc.PluginHost* pluginHost)
 
 	createUi();
 
-	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
-	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
 	m_stdSessionInfoSet.addLogListener(pluginHost.m_log);
 }
 
@@ -305,7 +305,7 @@ UdpSession.waitSocketEvents()
 	if (!m_isTransmitEnabled)
 		eventMask |= io.SocketEvents.WriteBufferReady;
 
-	m_socket.wait(eventMask, onSocketEvent ~(++m_socketSyncId) @ m_pluginHost.m_mainThreadScheduler);
+	m_socket.wait(eventMask, onSocketEvent~(++m_socketSyncId) @ m_pluginHost.m_mainThreadScheduler);
 }
 
 UdpSession.load(doc.Storage* storage)
@@ -410,7 +410,7 @@ size_t errorcode UdpSession.transmit(
 			if (adapterAddress)
 				addressFamily = adapterAddress.m_family;
 
-			m_resolver.resolve(addressString, addressFamily, onResolveCompleted ~(++m_resolverSyncId) @ m_pluginHost.m_mainThreadScheduler);
+			m_resolver.resolve(addressString, addressFamily, onResolveCompleted~(++m_resolverSyncId) @ m_pluginHost.m_mainThreadScheduler);
 			m_resolveState = ResolveState.Resolving;
 		}
 	}

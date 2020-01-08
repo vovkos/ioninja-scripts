@@ -123,8 +123,8 @@ PipeMonSession.construct(doc.PluginHost* pluginHost)
 
 	createUi();
 
-	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
-	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
 	pluginHost.m_log.addFilter(m_filter);
 	m_stdSessionInfoSet.addLogListener(pluginHost.m_log);
 }

@@ -174,8 +174,8 @@ SshSerialMonSession.construct(doc.PluginHost* pluginHost)
 
 	createUi();
 
-	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
-	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
 	m_stdSessionInfoSet.addLogListener(pluginHost.m_log);
 }
 
@@ -283,7 +283,7 @@ bool errorcode SshSerialMonSession.connect()
 			addressFamily = adapterAddress.m_family;
 	}
 
-	m_resolver.resolve(addressString, addressFamily, onResolveCompleted ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
+	m_resolver.resolve(addressString, addressFamily, onResolveCompleted~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
 	return true;
 
 catch:
@@ -414,7 +414,7 @@ SshSerialMonSession.waitSshEvents()
 		break;
 	}
 
-	m_ssh.wait(eventMask, onSshEvent ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
+	m_ssh.wait(eventMask, onSshEvent~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
 }
 
 SshSerialMonSession.handleConnectError(std.Error const* error)

@@ -196,8 +196,8 @@ I2cSpiSnifferSession.construct(doc.PluginHost* pluginHost)
 	createUi();
 
 	pluginHost.m_log.m_cacheUpdateScrollRateLimit = Defaults.LogCacheUpdateScrollRateLimit;
-	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
-	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
 	m_stdSessionInfoSet.addLogListener(pluginHost.m_log);
 }
 
@@ -564,7 +564,7 @@ I2cSpiSnifferSession.waitInEndpointEvents()
 		io.UsbEndpointEvents.ReadBufferFull |
 		io.UsbEndpointEvents.IncomingData;
 
-	m_inEndpoint.wait(eventMask, onInEndpointEvent ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
+	m_inEndpoint.wait(eventMask, onInEndpointEvent~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
 }
 
 I2cSpiSnifferSession.onInEndpointEvent(

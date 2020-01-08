@@ -180,8 +180,8 @@ UdpFlowMonSession.construct(doc.PluginHost* pluginHost)
 
 	createUi();
 
-	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
-	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
 	m_stdSessionInfoSet.addLogListener(pluginHost.m_log);
 }
 
@@ -421,7 +421,7 @@ bool errorcode UdpFlowMonSession.resolve(char const* addressString)
 
 	bool result = try m_resolver.resolve(
 		addressString,
-		onResolveCompleted ~(++m_resolverSyncId) @ m_pluginHost.m_mainThreadScheduler
+		onResolveCompleted~(++m_resolverSyncId) @ m_pluginHost.m_mainThreadScheduler
 		);
 
 	if (!result)
@@ -451,7 +451,7 @@ bool errorcode UdpFlowMonSession.applyFilter()
 
 	bool result = try m_resolver.resolve(
 		filterString,
-		onResolveCompleted ~(++m_resolverSyncId) @ m_pluginHost.m_mainThreadScheduler
+		onResolveCompleted~(++m_resolverSyncId) @ m_pluginHost.m_mainThreadScheduler
 		);
 
 	if (!result)
@@ -505,7 +505,7 @@ UdpFlowMonSession.waitPcapEvents()
 		io.PcapEvents.IncomingData |
 		io.PcapEvents.Eof;
 
-	m_pcap.wait(eventMask, onPcapEvent ~(++m_pcapSyncId) @ m_pluginHost.m_mainThreadScheduler);
+	m_pcap.wait(eventMask, onPcapEvent~(++m_pcapSyncId) @ m_pluginHost.m_mainThreadScheduler);
 }
 
 void UdpFlowMonSession.load(doc.Storage* storage)

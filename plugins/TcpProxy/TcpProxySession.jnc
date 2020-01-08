@@ -204,8 +204,8 @@ TcpProxySession.construct(doc.PluginHost* pluginHost)
 
 	createUi();
 
-	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
-	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
 	m_stdSessionInfoSet.addLogListener(pluginHost.m_log);
 }
 
@@ -338,7 +338,7 @@ bool errorcode TcpProxySession.listen()
 			strlen(targetAddressString)
 			);
 
-		m_resolver.resolve(targetAddressString, onResolveCompleted ~(++m_resolverSyncId) @ m_pluginHost.m_mainThreadScheduler);
+		m_resolver.resolve(targetAddressString, onResolveCompleted~(++m_resolverSyncId) @ m_pluginHost.m_mainThreadScheduler);
 
 		m_listenerState = ListenerState.Resolving;
 		m_isTargetAddressResolved = false;
@@ -793,7 +793,7 @@ TcpProxySession.waitListenerSocketEvents()
 	m_listenerSocket.wait(
 		io.SocketEvents.IoError |
 		io.SocketEvents.IncomingConnection,
-		onListenerSocketEvent ~(++m_listenerSyncId) @ m_pluginHost.m_mainThreadScheduler
+		onListenerSocketEvent~(++m_listenerSyncId) @ m_pluginHost.m_mainThreadScheduler
 		);
 }
 
@@ -804,7 +804,7 @@ TcpProxySession.waitServerConnectionSocketEvents()
 		io.SocketEvents.IncomingData |
 		io.SocketEvents.Disconnected |
 		io.SocketEvents.Reset,
-		onServerConnectionSocketEvent ~(++m_serverConnectionSyncId) @ m_pluginHost.m_mainThreadScheduler
+		onServerConnectionSocketEvent~(++m_serverConnectionSyncId) @ m_pluginHost.m_mainThreadScheduler
 		);
 }
 
@@ -822,7 +822,7 @@ TcpProxySession.waitClientConnectionSocketEvents()
 
 	m_clientConnectionSocket.wait(
 		eventMask,
-		onClientConnectionSocketEvent ~(++m_clientConnectionSyncId) @ m_pluginHost.m_mainThreadScheduler
+		onClientConnectionSocketEvent~(++m_clientConnectionSyncId) @ m_pluginHost.m_mainThreadScheduler
 		);
 }
 

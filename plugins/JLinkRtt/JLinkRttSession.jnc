@@ -174,7 +174,7 @@ protected:
 	startSocketReconnectTimer()
 	{
 		m_socketReconnectTimer.startSingleShotTimer(
-			onSocketReconnectTimer ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler,
+			onSocketReconnectTimer~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler,
 			Defaults.ReconnectDelay
 			);
 	}
@@ -208,8 +208,8 @@ JLinkRttSession.construct(doc.PluginHost* pluginHost)
 
 	createUi();
 
-	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
-	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
 	m_stdSessionInfoSet.addLogListener(pluginHost.m_log);
 
 	m_socketRemoteAddress.m_family = io.AddressFamily.Ip4;
@@ -684,7 +684,7 @@ JLinkRttSession.waitSocketEvents()
 		break;
 	}
 
-	m_socket.wait(eventMask, onSocketEvent ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
+	m_socket.wait(eventMask, onSocketEvent~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
 }
 
 JLinkRttSession.handleSocketError(std.Error const* error)

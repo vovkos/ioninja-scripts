@@ -310,7 +310,7 @@ FpgaUploader.sendNextBlock(bool isCheckRequired)
 		m_baseIndex + atomIdx,
 		m_block.m_p,
 		size,,
-		onTransferCompleted ~(m_syncId) @ m_mainThreadScheduler
+		onTransferCompleted~(m_syncId) @ m_mainThreadScheduler
 		);
 
 	m_progressDlg.m_progress = m_fileOffset * 100 / m_fileSize;
@@ -367,7 +367,7 @@ bool FpgaUploader.checkStatus()
 	m_statusCheckIdx = 0;
 
 	m_timer.startPeriodicTimer(
-		onTimer ~(++m_syncId) @ m_mainThreadScheduler,
+		onTimer~(++m_syncId) @ m_mainThreadScheduler,
 		TimerInterval
 		);
 

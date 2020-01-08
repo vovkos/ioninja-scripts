@@ -118,8 +118,8 @@ MailslotSession.construct(doc.PluginHost* pluginHost)
 
 	createUi();
 
-	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
-	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
 	m_stdSessionInfoSet.addLogListener(pluginHost.m_log);
 }
 
@@ -246,7 +246,7 @@ MailslotSession.waitMailslotEvents()
 		io.MailslotEvents.ReadBufferFull |
 		io.MailslotEvents.IncomingData;
 
-	m_mailslot.wait(eventMask, onMailslotEvent ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
+	m_mailslot.wait(eventMask, onMailslotEvent~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
 }
 
 void MailslotSession.load(doc.Storage* storage)

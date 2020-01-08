@@ -310,8 +310,8 @@ SerialTapSession.construct(doc.PluginHost* pluginHost)
 
 	createUi();
 
-	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
-	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
 	m_stdSessionInfoSet.addLogListener(pluginHost.m_log);
 }
 
@@ -578,7 +578,7 @@ SerialTapSession.waitBulkEndpointEvents(SerialIface* iface)
 		io.UsbEndpointEvents.IoError |
 		io.UsbEndpointEvents.ReadBufferFull |
 		io.UsbEndpointEvents.IncomingData,
-		onBulkEndpointEvent ~(
+		onBulkEndpointEvent~(
 			iface,
 			++iface.m_bulkSyncId
 			) @ m_pluginHost.m_mainThreadScheduler
@@ -590,7 +590,7 @@ SerialTapSession.waitInterruptEndpointEvents(SerialIface* iface)
 	iface.m_interruptEndpoint.wait(
 		io.UsbEndpointEvents.IoError |
 		io.UsbEndpointEvents.IncomingData,
-		onInterruptEndpointEvent ~(
+		onInterruptEndpointEvent~(
 			iface,
 			++iface.m_interruptSyncId
 			) @ m_pluginHost.m_mainThreadScheduler

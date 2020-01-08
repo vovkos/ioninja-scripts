@@ -148,8 +148,8 @@ PipeListenerSession.construct(doc.PluginHost* pluginHost)
 
 	createUi();
 
-	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
-	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
 	m_stdSessionInfoSet.addLogListener(pluginHost.m_log);
 }
 
@@ -313,7 +313,7 @@ PipeListenerSession.waitListenerPipeEvents()
 		io.NamedPipeEvents.IoError |
 		io.NamedPipeEvents.IncomingConnection;
 
-	m_listenerPipe.wait(eventMask, onListenerPipeEvent ~(++m_listenerSyncId) @ m_pluginHost.m_mainThreadScheduler);
+	m_listenerPipe.wait(eventMask, onListenerPipeEvent~(++m_listenerSyncId) @ m_pluginHost.m_mainThreadScheduler);
 }
 
 PipeListenerSession.waitConnectionPipeEvents()
@@ -327,7 +327,7 @@ PipeListenerSession.waitConnectionPipeEvents()
 	if (!m_isTransmitEnabled)
 		eventMask |= io.FileStreamEvents.WriteBufferReady;
 
-	m_connectionPipe.wait(eventMask, onConnectionPipeEvent ~(++m_connectionSyncId) @ m_pluginHost.m_mainThreadScheduler);
+	m_connectionPipe.wait(eventMask, onConnectionPipeEvent~(++m_connectionSyncId) @ m_pluginHost.m_mainThreadScheduler);
 }
 
 void PipeListenerSession.load(doc.Storage* storage)

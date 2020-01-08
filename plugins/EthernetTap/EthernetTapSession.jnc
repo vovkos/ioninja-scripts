@@ -186,7 +186,7 @@ EthernetTapSession.construct(doc.PluginHost* pluginHost)
 	createUi();
 
 	pluginHost.m_log.m_cacheUpdateScrollRateLimit = Defaults.LogCacheUpdateScrollRateLimit;
-	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
 	pluginHost.m_log.addFilter(m_filter);
 }
 
@@ -565,7 +565,7 @@ EthernetTapSession.waitInEndpointEvents()
 		io.UsbEndpointEvents.ReadBufferFull |
 		io.UsbEndpointEvents.IncomingData;
 
-	m_inEndpoint.wait(eventMask, onInEndpointEvent ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
+	m_inEndpoint.wait(eventMask, onInEndpointEvent~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
 }
 
 EthernetTapSession.onInEndpointEvent(

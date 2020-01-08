@@ -152,8 +152,8 @@ TcpListenerSession.construct(doc.PluginHost* pluginHost)
 
 	createUi();
 
-	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
-	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
 	m_stdSessionInfoSet.addLogListener(pluginHost.m_log);
 }
 
@@ -377,7 +377,7 @@ TcpListenerSession.waitListenerSocketEvents()
 	m_listenerSocket.wait(
 		io.SocketEvents.IoError |
 		io.SocketEvents.IncomingConnection,
-		onListenerSocketEvent ~(++m_listenerSyncId) @ m_pluginHost.m_mainThreadScheduler
+		onListenerSocketEvent~(++m_listenerSyncId) @ m_pluginHost.m_mainThreadScheduler
 		);
 }
 
@@ -388,7 +388,7 @@ TcpListenerSession.waitConnectionSocketEvents()
 		io.SocketEvents.IncomingData |
 		io.SocketEvents.Disconnected |
 		io.SocketEvents.Reset,
-		onConnectionSocketEvent ~(++m_connectionSyncId) @ m_pluginHost.m_mainThreadScheduler
+		onConnectionSocketEvent~(++m_connectionSyncId) @ m_pluginHost.m_mainThreadScheduler
 		);
 }
 

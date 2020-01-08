@@ -162,8 +162,8 @@ TcpConnectionSession.construct(doc.PluginHost* pluginHost)
 
 	createUi();
 
-	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
-	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
 	m_stdSessionInfoSet.addLogListener(pluginHost.m_log);
 }
 
@@ -257,7 +257,7 @@ bool errorcode TcpConnectionSession.connect()
 			addressFamily = adapterAddress.m_family;
 	}
 
-	m_resolver.resolve(addressString, addressFamily, onResolveCompleted ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
+	m_resolver.resolve(addressString, addressFamily, onResolveCompleted~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
 	return true;
 
 catch:
@@ -341,7 +341,7 @@ TcpConnectionSession.waitSocketEvents()
 		break;
 	}
 
-	m_socket.wait(eventMask, onSocketEvent ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
+	m_socket.wait(eventMask, onSocketEvent~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
 }
 
 TcpConnectionSession.handleSocketError(std.Error const* error)
@@ -477,7 +477,7 @@ TcpConnectionSession.startReconnectTimer(bool isForced)
 	m_logWriter.write(SocketLogRecordCode.ReconnectDelay);
 
 	m_reconnectTimer.startDueTimer(
-		onReconnectTimer ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler,
+		onReconnectTimer~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler,
 		dueTime
 		);
 }

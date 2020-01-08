@@ -227,7 +227,7 @@ StdSessionInfoSet.startSession(jnc.Scheduler* mainThreadScheduler)
 	m_rxPrevTotalSize = 0;
 
 	m_syncId++;
-	m_timer.startPeriodicTimer(onTimer ~(m_syncId) @ mainThreadScheduler, 500);
+	m_timer.startPeriodicTimer(onTimer~(m_syncId) @ mainThreadScheduler, 500);
 
 	initialUpdate();
 }

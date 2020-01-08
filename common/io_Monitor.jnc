@@ -128,7 +128,7 @@ Monitor.waitMonitorEvents()
 		DeviceMonitorEvents.ReadBufferFull |
 		DeviceMonitorEvents.IncomingData;
 
-	m_monitor.wait(eventMask, onMonitorEvent ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
+	m_monitor.wait(eventMask, onMonitorEvent~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
 }
 
 Monitor.onMonitorEvent(

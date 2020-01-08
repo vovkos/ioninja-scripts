@@ -155,8 +155,8 @@ HwSerialMonSession.construct(doc.PluginHost* pluginHost)
 
 	createUi();
 
-	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
-	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
 	m_stdSessionInfoSet.addLogListener(pluginHost.m_log);
 }
 
@@ -397,7 +397,7 @@ bool errorcode HwSerialMonSession.capture()
 	m_usbPrevTotalSize = 0;
 	m_usbTotalSizeInfo.m_isEnabled = true;
 	m_usbThroughputInfo.m_isEnabled = true;
-	m_usbThroughputTimer.startPeriodicTimer(onUsbThroughputTimer ~(++m_usbThroughputTimerSyncId) @ m_pluginHost.m_mainThreadScheduler, 1000);
+	m_usbThroughputTimer.startPeriodicTimer(onUsbThroughputTimer~(++m_usbThroughputTimerSyncId) @ m_pluginHost.m_mainThreadScheduler, 1000);
 	m_usbThroughputTimestamp = sys.getTimestamp();
 	updateUsbThroughput(m_usbThroughputTimestamp);
 	return true;
@@ -429,7 +429,7 @@ HwSerialMonSession.waitInEndpointEvents  ()
 		io.UsbEndpointEvents.ReadBufferFull |
 		io.UsbEndpointEvents.IncomingData;
 
-	m_inEndpoint.wait(eventMask, onInEndpointEvent ~(++m_inEndpointSyncId) @ m_pluginHost.m_mainThreadScheduler);
+	m_inEndpoint.wait(eventMask, onInEndpointEvent~(++m_inEndpointSyncId) @ m_pluginHost.m_mainThreadScheduler);
 }
 
 HwSerialMonSession.load(doc.Storage* storage)

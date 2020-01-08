@@ -522,7 +522,7 @@ PcapSnifferSession.waitPcapEvents()
 		io.PcapEvents.IncomingData |
 		io.PcapEvents.Eof;
 
-	m_pcap.wait(eventMask, onPcapEvent ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
+	m_pcap.wait(eventMask, onPcapEvent~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
 }
 
 void PcapSnifferSession.load(doc.Storage* storage)

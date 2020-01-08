@@ -163,7 +163,7 @@ protected:
 	startReopenTimer()
 	{
 		m_reopenTimer.startSingleShotTimer(
-			onReopenTimer ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler,
+			onReopenTimer~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler,
 			m_reopenTimeoutProp.m_value
 			);
 	}
@@ -193,8 +193,8 @@ SerialSession.construct(doc.PluginHost* pluginHost)
 
 	createUi();
 
-	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
-	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
 	m_stdSessionInfoSet.addLogListener(pluginHost.m_log);
 }
 
@@ -691,7 +691,7 @@ SerialSession.waitSerialEvents()
 		io.SerialEvents.DsrOff :
 		io.SerialEvents.DsrOn;
 
-	m_serial.wait(eventMask, onSerialEvent ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
+	m_serial.wait(eventMask, onSerialEvent~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
 }
 
 SerialSession.onSerialEvent(

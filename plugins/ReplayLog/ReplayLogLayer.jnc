@@ -252,7 +252,7 @@ bool errorcode ReplayLogLayer.readLoop()
 		if (m_baseTimestamp)
 		{
 			m_transmitTimer.startDueTimer(
-				onTransmitTimer ~(m_syncId) @ m_pluginHost.m_mainThreadScheduler,
+				onTransmitTimer~(m_syncId) @ m_pluginHost.m_mainThreadScheduler,
 				m_baseTimestamp + record.m_timestamp - m_firstRecordTimestamp
 				);
 
@@ -264,7 +264,7 @@ bool errorcode ReplayLogLayer.readLoop()
 		sendNextRecord();
 
 		m_progressTimer.startPeriodicTimer(
-			onProgressTimer ~(m_syncId) @ m_pluginHost.m_mainThreadScheduler,
+			onProgressTimer~(m_syncId) @ m_pluginHost.m_mainThreadScheduler,
 			UpdateProgressPeriod
 			);
 	}

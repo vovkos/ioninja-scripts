@@ -159,8 +159,8 @@ UsbDataEndpointSession.construct(doc.PluginHost* pluginHost)
 
 	createUi();
 
-	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
-	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
 	m_stdSessionInfoSet.addLogListener(pluginHost.m_log);
 }
 
@@ -512,7 +512,7 @@ UsbDataEndpointSession.waitOutEndpointEvents  ()
 	if (!m_isTransmitEnabled)
 		eventMask |= io.UsbEndpointEvents.WriteBufferReady;
 
-	m_outEndpoint.wait(eventMask, onOutEndpointEvent ~(++m_outSyncId) @ m_pluginHost.m_mainThreadScheduler);
+	m_outEndpoint.wait(eventMask, onOutEndpointEvent~(++m_outSyncId) @ m_pluginHost.m_mainThreadScheduler);
 }
 
 UsbDataEndpointSession.waitInEndpointEvents  ()
@@ -522,7 +522,7 @@ UsbDataEndpointSession.waitInEndpointEvents  ()
 		io.UsbEndpointEvents.ReadBufferFull |
 		io.UsbEndpointEvents.IncomingData;
 
-	m_inEndpoint.wait(eventMask, onInEndpointEvent ~(++m_inSyncId) @ m_pluginHost.m_mainThreadScheduler);
+	m_inEndpoint.wait(eventMask, onInEndpointEvent~(++m_inSyncId) @ m_pluginHost.m_mainThreadScheduler);
 }
 
 UsbDataEndpointSession.load(doc.Storage* storage)

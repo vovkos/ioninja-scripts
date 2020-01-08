@@ -202,8 +202,8 @@ EzTapProSession.construct(doc.PluginHost* pluginHost)
 
 	createUi();
 
-	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
-	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
 	m_stdSessionInfoSet.addLogListener(pluginHost.m_log);
 }
 
@@ -860,7 +860,7 @@ EzTapProSession.waitSerialEvents()
 		io.SerialEvents.ReadBufferFull |
 		io.SerialEvents.IncomingData;
 
-	m_serial.wait(eventMask, onSerialEvent ~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
+	m_serial.wait(eventMask, onSerialEvent~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
 }
 
 EzTapProSession.onSerialEvent(

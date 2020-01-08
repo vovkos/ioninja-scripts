@@ -206,8 +206,8 @@ CypressUploaderSession.construct(doc.PluginHost* pluginHost)
 	m_fileDlg.m_onCompleted += onFileDlgCompleted;
 	m_progressDlg.m_onButtonClicked += onProgressDlgButtonClicked;
 
-	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory ~(m_throughputInfoSet));
-	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory ~(m_checksumInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
+	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
 	m_stdSessionInfoSet.addLogListener(pluginHost.m_log);
 }
 
@@ -659,7 +659,7 @@ bool errorcode CypressUploaderSession.nextBlock()
 		index,
 		m_block.m_p,
 		size,,
-		onTransferCompleted ~(
+		onTransferCompleted~(
 			m_syncId,
 			type,
 			code,
