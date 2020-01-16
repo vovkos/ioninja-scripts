@@ -320,8 +320,8 @@ bool errorcode TcpProxySession.listen()
 	{
 		if (isDirectAddress)
 		{
-			if (!targetAddress.m_ip4.m_port) // IPv4 & IPv6 share the same port location
-				targetAddress.m_ip4.m_port = m_connectionSocketPropertySet.m_remotePortProp.m_value;
+			if (!targetAddress.m_port)
+				targetAddress.m_port = m_connectionSocketPropertySet.m_remotePortProp.m_value;
 
 			m_clientRemoteAddress = targetAddress;
 		}
@@ -357,8 +357,8 @@ catch:
 
 TcpProxySession.listenImpl()
 {
-	io.SocketAddress address = *(io.SocketAddress const*) m_adapterCombo.m_currentData;
-	address.m_ip4.m_port = (uint16_t)atoi(m_serverPortCombo.m_editText); // same for IPv4/IPv6
+	io.SocketAddress address = *(io.SocketAddress const*)m_adapterCombo.m_currentData;
+	address.m_port = (uint16_t)atoi(m_serverPortCombo.m_editText);
 
 	m_listenerSocket.open(io.Protocol.Tcp, &address);
 	m_listenerSocket.listen();
@@ -721,8 +721,8 @@ TcpProxySession.onResolverEvent(
 		);
 
 	m_clientRemoteAddress = m_resolver.m_addressTable[0];
-	if (!m_clientRemoteAddress.m_ip4.m_port) // IPv4 & IPv6 share the same port location
-		m_clientRemoteAddress.m_ip4.m_port = m_connectionSocketPropertySet.m_remotePortProp.m_value;
+	if (!m_clientRemoteAddress.m_port)
+		m_clientRemoteAddress.m_port = m_connectionSocketPropertySet.m_remotePortProp.m_value;
 
 	if (!m_wasTargetAddressChangedWhileResolving)
 		m_isTargetAddressResolved = true;

@@ -256,7 +256,7 @@ nestedscope:
 	m_localPortCombo.addEditTextToHistory();
 
 	address = *(io.SocketAddress const*) m_adapterCombo.m_currentData;
-	address.m_ip4.m_port = (uint16_t)atoi(portString); // same for IPv4/IPv6
+	address.m_port = (uint16_t)atoi(portString);
 
 	m_socket.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
 	m_socket.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
@@ -386,8 +386,8 @@ size_t errorcode UdpSession.transmit(
 		else
 			remoteAddress = m_remoteAddress; // resolved address
 
-		if (!remoteAddress.m_ip4.m_port) // IPv4 & IPv6 share the same port location
-			remoteAddress.m_ip4.m_port = m_socketPropertySet.m_remotePortProp.m_value;
+		if (!remoteAddress.m_port)
+			remoteAddress.m_port = m_socketPropertySet.m_remotePortProp.m_value;
 
 		size = writeDatagram(p, size, &remoteAddress);
 	}

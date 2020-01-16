@@ -485,14 +485,14 @@ bool errorcode UdpFlowMonSession.setFilter(io.SocketAddress const* filterAddress
 char const* UdpFlowMonSession.createFilterString(io.SocketAddress const* filterAddress)
 {
 	char const* filterString =
-		filterAddress.m_family == io.AddressFamily.Ip6 ? $"udp and host $(filterAddress.m_ip6.m_address.getString ())" :
-		filterAddress.m_ip4.m_address.m_i32 ? $"udp and host $(filterAddress.m_ip4.m_address.getString ())" :
+		filterAddress.m_family == io.AddressFamily.Ip6 ? $"udp and host $(filterAddress.m_ip6.m_address.getString())" :
+		filterAddress.m_ip4.m_address.m_i32 ? $"udp and host $(filterAddress.m_ip4.m_address.getString())" :
 		"udp";
 
 	// fragmented datagrams will not satisfy port filter
 
-	// if (filterAddress.m_ip4.m_port)
-	//	filterString = $"$filterString and port $(filterAddress.m_ip4.m_port)";
+	// if (filterAddress.m_port)
+	//	filterString = $"$filterString and port $(filterAddress.m_port)";
 
 	return filterString;
 }
@@ -714,8 +714,8 @@ bool UdpFlowMonSession.decodePacket(
 	p += sizeof(io.UdpHdr);
 	size = udpHdr.m_length - sizeof(io.UdpHdr);
 
-	params.m_srcAddress.m_ip4.m_port = udpHdr.m_srcPort;
-	params.m_dstAddress.m_ip4.m_port = udpHdr.m_dstPort;
+	params.m_srcAddress.m_port = udpHdr.m_srcPort;
+	params.m_dstAddress.m_port = udpHdr.m_dstPort;
 	params.m_size = size;
 
 	if (params.m_srcAddress.isMatch(m_filterAddress))

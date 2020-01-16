@@ -225,8 +225,8 @@ bool errorcode ModbusGatewayMonSession.connect()
 	bool isDirectAddress = try address.parse(addressString);
 	if (isDirectAddress)
 	{
-		if (address.m_ip4.m_port == 0)
-			address.m_ip4.m_port = m_socketPropertySet.m_remotePortProp.m_value;
+		if (address.m_port == 0)
+			address.m_port = m_socketPropertySet.m_remotePortProp.m_value;
 
 		return try connect(&address);
 	}
@@ -287,7 +287,7 @@ nestedscope:
 		else
 			localAddress.m_family = remoteAddress.m_family;
 
-		localAddress.m_ip4.m_port = (uint16_t)m_socketPropertySet.m_localPortProp.m_value; // same for IPv4/IPv6
+		localAddress.m_port = (uint16_t)m_socketPropertySet.m_localPortProp.m_value;
 
 		m_socket.open(io.Protocol.Tcp, &localAddress);
 	}
@@ -580,8 +580,8 @@ ModbusGatewayMonSession.onResolverEvent(
 	m_state = State.Closed;
 
 	io.SocketAddress address = m_resolver.m_addressTable[0];
-	if (!address.m_ip4.m_port) // IPv4 & IPv6 share the same port location
-		address.m_ip4.m_port = m_socketPropertySet.m_remotePortProp.m_value;
+	if (!address.m_port)
+		address.m_port = m_socketPropertySet.m_remotePortProp.m_value;
 
 	connect(address);
 }
