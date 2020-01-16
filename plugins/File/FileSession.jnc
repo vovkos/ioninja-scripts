@@ -418,7 +418,7 @@ reactor FileSession.m_uiReactor
 	m_accessProp.m_isEnabled = !m_state;
 	m_actionTable[ActionId.Open].m_text = m_state ? "Close" : "Open";
 	m_actionTable[ActionId.Open].m_icon = m_iconTable[m_state ? IconId.Close : IconId.Open];
-	m_actionTable[ActionId.Clear].m_isEnabled = m_state && m_file.m_kind == io.FileStreamKind.Disk;
+	m_actionTable[ActionId.Clear].m_isEnabled = m_state && m_file.m_kind == io.FileKind.Disk;
 	m_statusPaneTable[StatusPaneId.State].m_text = m_state ? "Opened" : "Closed";
 }
 

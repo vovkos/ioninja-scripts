@@ -6,7 +6,7 @@
 import "doc_Session.jnc"
 import "io_base.jncx"
 import "io_Socket.jnc"
-import "io_SocketAddressResolver.jnc"
+import "io_HostNameResolver.jnc"
 import "ui_History.jnc"
 import "ui_SocketUi.jnc"
 import "ui_BufferPropertySet.jnc"
@@ -72,7 +72,7 @@ protected:
 
 	State bindable m_state;
 	io.Socket m_socket;
-	io.SocketAddressResolver m_resolver;
+	io.HostNameResolver m_resolver;
 	io.SocketAddress m_localAddress;
 	io.SocketAddress m_remoteAddress;
 	std.Buffer m_readBuffer;
@@ -135,11 +135,9 @@ protected:
 		try connect();
 	}
 
-	onResolveCompleted(
+	onResolverEvent(
 		uint_t syncId,
-		io.SocketAddress const* addressTable,
-		size_t addressCount,
-		std.Error const* error
+		io.HostNameResolverEvents triggeredEvents
 		);
 
 	onSocketEvent(
@@ -257,7 +255,13 @@ bool errorcode TcpConnectionSession.connect()
 			addressFamily = adapterAddress.m_family;
 	}
 
-	m_resolver.resolve(addressString, addressFamily, onResolveCompleted~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
+	m_resolver.resolve(addressString, addressFamily);
+
+	m_resolver.wait(
+		io.HostNameResolverEvents.Resolved | io.HostNameResolverEvents.Error,
+		onResolverEvent~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler
+		);
+
 	return true;
 
 catch:
@@ -555,31 +559,29 @@ TcpConnectionSession.onSocketEvent(
 	waitSocketEvents();
 }
 
-TcpConnectionSession.onResolveCompleted(
+TcpConnectionSession.onResolverEvent(
 	uint_t syncId,
-	io.SocketAddress const* addressTable,
-	size_t addressCount,
-	std.Error const* error
+	io.HostNameResolverEvents triggeredEvents
 	)
 {
 	if (syncId != m_syncId)
 		return;
 
-	if (error)
+	if (triggeredEvents & io.HostNameResolverEvents.Error)
 	{
-		handleSocketError(error);
+		handleSocketError(m_resolver.m_error);
 		return;
 	}
 
 	m_logWriter.write(
 		SocketLogRecordCode.ResolveCompleted,
-		addressTable,
+		m_resolver.m_addressTable,
 		sizeof(io.SocketAddress)
 		);
 
 	m_state = State.Closed;
 
-	io.SocketAddress address = addressTable[0];
+	io.SocketAddress address = m_resolver.m_addressTable[0];
 	if (!address.m_ip4.m_port) // IPv4 & IPv6 share the same port location
 		address.m_ip4.m_port = m_socketPropertySet.m_remotePortProp.m_value;
 

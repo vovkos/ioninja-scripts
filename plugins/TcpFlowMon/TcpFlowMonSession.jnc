@@ -8,7 +8,7 @@ import "io_base.jncx"
 import "io_pcap.jncx"
 import "io_TcpIp.jnc"
 import "io_SocketAddress.jnc"
-import "io_SocketAddressResolver.jnc"
+import "io_HostNameResolver.jnc"
 import "io_IpDefragmenter.jnc"
 import "io_TcpSequencer.jnc"
 import "ui_Dialog.jnc"
@@ -79,7 +79,7 @@ protected:
 
 	io.Pcap m_pcap;
 	io.IpDefragmenter m_ipDefragmenter;
-	io.SocketAddressResolver m_resolver;
+	io.HostNameResolver m_resolver;
 	io.SocketAddress m_filterAddress;
 	TcpPeer m_tcpPeer1;
 	TcpPeer m_tcpPeer2;
@@ -158,11 +158,9 @@ protected:
 
 	onFileDlgCompleted(ui.StdDlgButton button);
 
-	onResolveCompleted(
+	onResolverEvent(
 		uint_t syncId,
-		io.SocketAddress const* addressTable,
-		size_t addressCount,
-		std.Error const* error
+		io.HostNameResolverEvents triggeredEvents
 		);
 
 	onPcapEvent(
@@ -465,16 +463,17 @@ bool errorcode TcpFlowMonSession.resolve(char const* addressString)
 {
 	m_logWriter.write(SocketLogRecordCode.Resolving, addressString);
 
-	bool result = try m_resolver.resolve(
-		addressString,
-		onResolveCompleted~(++m_resolverSyncId) @ m_pluginHost.m_mainThreadScheduler
-		);
-
+	bool result = try m_resolver.resolve(addressString);
 	if (!result)
 	{
 		m_logWriter.writeLastError(SocketLogRecordCode.ResolveError);
 		return false;
 	}
+
+	m_resolver.wait(
+		io.HostNameResolverEvents.Resolved | io.HostNameResolverEvents.Error,
+		onResolverEvent~(++m_resolverSyncId) @ m_pluginHost.m_mainThreadScheduler
+		);
 
 	m_state = State.Resolving;
 	return true;
@@ -495,16 +494,17 @@ bool errorcode TcpFlowMonSession.applyFilter()
 
 	m_logWriter.write(SocketLogRecordCode.Resolving, filterString);
 
-	bool result = try m_resolver.resolve(
-		filterString,
-		onResolveCompleted~(++m_resolverSyncId) @ m_pluginHost.m_mainThreadScheduler
-		);
-
+	bool result = try m_resolver.resolve(filterString);
 	if (!result)
 	{
 		m_logWriter.writeLastError(SocketLogRecordCode.ResolveError);
 		return false;
 	}
+
+	m_resolver.wait(
+		io.HostNameResolverEvents.Resolved | io.HostNameResolverEvents.Error,
+		onResolverEvent~(++m_resolverSyncId) @ m_pluginHost.m_mainThreadScheduler
+		);
 
 	m_state |= State.Resolving;
 	return true;
@@ -618,11 +618,9 @@ void TcpFlowMonSession.restoreDefaultProperties()
 	m_bufferPropertySet.restoreDefaults();
 }
 
-TcpFlowMonSession.onResolveCompleted(
+TcpFlowMonSession.onResolverEvent(
 	uint_t syncId,
-	io.SocketAddress const* addressTable,
-	size_t addressCount,
-	std.Error const* error
+	io.HostNameResolverEvents triggeredEvents
 	)
 {
 	if (syncId != m_resolverSyncId)
@@ -630,24 +628,24 @@ TcpFlowMonSession.onResolveCompleted(
 
 	m_state &= ~State.Resolving;
 
-	if (error)
+	if (triggeredEvents & io.HostNameResolverEvents.Error)
 	{
-		m_logWriter.write(SocketLogRecordCode.ResolveError, error);
+		m_logWriter.write(SocketLogRecordCode.ResolveError, m_resolver.m_error);
 		return;
 	}
 
 	m_logWriter.write(
 		SocketLogRecordCode.ResolveCompleted,
-		addressTable,
+		m_resolver.m_addressTable,
 		sizeof(io.SocketAddress)
 		);
 
 	if (m_state & State.Capturing)
-		try setFilter(addressTable);
+		try setFilter(m_resolver.m_addressTable);
 	else if (m_pendingDevice)
-		try capture(m_pendingDevice, addressTable);
+		try capture(m_pendingDevice, m_resolver.m_addressTable);
 	else if (m_pendingFileName)
-		try openCapFile(m_pendingFileName, addressTable);
+		try openCapFile(m_pendingFileName, m_resolver.m_addressTable);
 }
 
 TcpFlowMonSession.onPcapEvent(

@@ -8,7 +8,7 @@ import "io_base.jncx"
 import "io_ssh.jncx"
 import "io_File.jnc"
 import "io_Socket.jnc"
-import "io_SocketAddressResolver.jnc"
+import "io_HostNameResolver.jnc"
 import "ui_Dialog.jnc"
 import "ui_History.jnc"
 import "ui_SocketUi.jnc"
@@ -84,7 +84,7 @@ protected:
 
 	State bindable m_state;
 	io.SshChannel m_ssh;
-	io.SocketAddressResolver m_resolver;
+	io.HostNameResolver m_resolver;
 	io.SocketAddress m_remoteAddress;
 	std.Buffer m_readBuffer;
 	uint_t m_syncId;
@@ -142,15 +142,13 @@ protected:
 		try connect();
 	}
 
-	onResolveCompleted(
-		uint_t syncId,
-		io.SocketAddress const* addressTable,
-		size_t addressCount,
-		std.Error const* error
-		);
-
 	onLoginDlgCompleted(ui.StdDlgButton button);
 	onConsoleSizeChanged();
+
+	onResolverEvent(
+		uint_t syncId,
+		io.HostNameResolverEvents triggeredEvents
+		);
 
 	onSshEvent(
 		uint_t syncId,
@@ -270,7 +268,13 @@ bool errorcode SshChannelSession.connect()
 			addressFamily = adapterAddress.m_family;
 	}
 
-	m_resolver.resolve(addressString, addressFamily, onResolveCompleted~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
+	m_resolver.resolve(addressString, addressFamily);
+
+	m_resolver.wait(
+		io.HostNameResolverEvents.Resolved | io.HostNameResolverEvents.Error,
+		onResolverEvent~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler
+		);
+
 	return true;
 
 catch:
@@ -704,31 +708,29 @@ SshChannelSession.onSshEvent(
 	waitSshEvents();
 }
 
-SshChannelSession.onResolveCompleted(
+SshChannelSession.onResolverEvent(
 	uint_t syncId,
-	io.SocketAddress const* addressTable,
-	size_t addressCount,
-	std.Error const* error
+	io.HostNameResolverEvents triggeredEvents
 	)
 {
 	if (syncId != m_syncId)
 		return;
 
-	if (error)
+	if (triggeredEvents & io.HostNameResolverEvents.Error)
 	{
-		handleConnectError(error);
+		handleConnectError(m_resolver.m_error);
 		return;
 	}
 
 	m_logWriter.write(
 		SocketLogRecordCode.ResolveCompleted,
-		addressTable,
+		m_resolver.m_addressTable,
 		sizeof(io.SocketAddress)
 		);
 
 	m_state = State.Closed;
 
-	io.SocketAddress address = addressTable[0];
+	io.SocketAddress address = m_resolver.m_addressTable[0];
 	if (!address.m_ip4.m_port) // IPv4 & IPv6 share the same port location
 		address.m_ip4.m_port = m_socketPropertySet.m_remotePortProp.m_value;
 

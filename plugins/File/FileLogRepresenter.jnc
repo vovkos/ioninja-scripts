@@ -21,7 +21,7 @@ bool representFileLog(
 	switch (recordCode)
 	{
 	case FileLogRecordCode.Opened:
-		io.FileStreamKind const* kind = (io.FileStreamKind const*) p;
+		io.FileKind const* kind = (io.FileKind const*) p;
 		char const* fileName = (char const*) (kind + 1);
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Connect;

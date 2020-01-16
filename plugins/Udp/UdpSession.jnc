@@ -6,7 +6,7 @@
 import "doc_Session.jnc"
 import "io_base.jncx"
 import "io_Socket.jnc"
-import "io_SocketAddressResolver.jnc"
+import "io_HostNameResolver.jnc"
 import "ui_History.jnc"
 import "ui_SocketUi.jnc"
 import "ui_BufferPropertySet.jnc"
@@ -68,7 +68,7 @@ protected:
 
 	State bindable m_state;
 	io.Socket m_socket;
-	io.SocketAddressResolver m_resolver;
+	io.HostNameResolver m_resolver;
 	ResolveState m_resolveState;
 	io.SocketAddress m_remoteAddress;
 	bool m_remoteAddressChanged;
@@ -130,11 +130,9 @@ protected:
 	onOpen();
 	onRemoteAddressChanged();
 
-	onResolveCompleted(
+	onResolverEvent(
 		uint_t syncId,
-		io.SocketAddress const* addressTable,
-		size_t addressCount,
-		std.Error const* error
+		io.HostNameResolverEvents triggeredEvents
 		);
 
 	onSocketEvent(
@@ -410,7 +408,13 @@ size_t errorcode UdpSession.transmit(
 			if (adapterAddress)
 				addressFamily = adapterAddress.m_family;
 
-			m_resolver.resolve(addressString, addressFamily, onResolveCompleted~(++m_resolverSyncId) @ m_pluginHost.m_mainThreadScheduler);
+			m_resolver.resolve(addressString, addressFamily);
+
+			m_resolver.wait(
+				io.HostNameResolverEvents.Resolved | io.HostNameResolverEvents.Error,
+				onResolverEvent~(++m_resolverSyncId) @ m_pluginHost.m_mainThreadScheduler
+				);
+
 			m_resolveState = ResolveState.Resolving;
 		}
 	}
@@ -508,30 +512,28 @@ UdpSession.onSocketEvent(
 	waitSocketEvents();
 }
 
-UdpSession.onResolveCompleted(
+UdpSession.onResolverEvent(
 	uint_t syncId,
-	io.SocketAddress const* addressTable,
-	size_t addressCount,
-	std.Error const* error
+	io.HostNameResolverEvents triggeredEvents
 	)
 {
 	if (syncId != m_resolverSyncId)
 		return;
 
-	if (error)
+	if (triggeredEvents & io.HostNameResolverEvents.Error)
 	{
-		m_logWriter.write(SocketLogRecordCode.ResolveError, error, error.m_size);
+		m_logWriter.write(SocketLogRecordCode.ResolveError, m_resolver.m_error, m_resolver.m_error.m_size);
 		m_resolveState = ResolveState.Unresolved;
 		return;
 	}
 
 	m_logWriter.write(
 		SocketLogRecordCode.ResolveCompleted,
-		addressTable,
+		m_resolver.m_addressTable,
 		sizeof(io.SocketAddress)
 		);
 
-	m_remoteAddress = addressTable[0];
+	m_remoteAddress = m_resolver.m_addressTable[0];
 
 	m_resolveState = m_resolveState == ResolveState.ChangeWhileResolving ?
 		ResolveState.Unresolved :
@@ -540,7 +542,7 @@ UdpSession.onResolveCompleted(
 	writeDatagram(m_pendingDatagram.m_p, m_pendingDatagram.m_size, &m_remoteAddress);
 
 catch:
-	error = std.getLastError();
+	std.Error const* error = std.getLastError();
 	m_logWriter.write(log.StdRecordCode.Error, error, error.m_size);
 }
 

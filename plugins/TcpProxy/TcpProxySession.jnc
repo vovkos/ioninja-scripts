@@ -6,7 +6,7 @@
 import "doc_Session.jnc"
 import "io_base.jncx"
 import "io_Socket.jnc"
-import "io_SocketAddressResolver.jnc"
+import "io_HostNameResolver.jnc"
 import "ui_History.jnc"
 import "ui_SocketUi.jnc"
 import "ui_BufferPropertySet.jnc"
@@ -112,7 +112,7 @@ protected:
 
 	// resolver
 
-	io.SocketAddressResolver m_resolver;
+	io.HostNameResolver m_resolver;
 	uint_t m_resolverSyncId;
 	bool m_isTargetAddressResolved;
 	bool m_wasTargetAddressChangedWhileResolving;
@@ -163,6 +163,11 @@ protected:
 	onListen();
 	onTargetAddressChanged();
 
+	onResolverEvent(
+		uint_t syncId,
+		io.HostNameResolverEvents triggeredEvents
+		);
+
 	onListenerSocketEvent(
 		uint_t syncId,
 		io.SocketEvents triggeredEvents
@@ -176,13 +181,6 @@ protected:
 	onClientConnectionSocketEvent(
 		uint_t syncId,
 		io.SocketEvents triggeredEvents
-		);
-
-	onResolveCompleted(
-		uint_t syncId,
-		io.SocketAddress const* addressTable,
-		size_t addressCount,
-		std.Error const* error
 		);
 
 	createUi();
@@ -338,7 +336,12 @@ bool errorcode TcpProxySession.listen()
 			strlen(targetAddressString)
 			);
 
-		m_resolver.resolve(targetAddressString, onResolveCompleted~(++m_resolverSyncId) @ m_pluginHost.m_mainThreadScheduler);
+		m_resolver.resolve(targetAddressString);
+
+		m_resolver.wait(
+			io.HostNameResolverEvents.Resolved | io.HostNameResolverEvents.Error,
+			onResolverEvent~(++m_resolverSyncId) @ m_pluginHost.m_mainThreadScheduler
+			);
 
 		m_listenerState = ListenerState.Resolving;
 		m_isTargetAddressResolved = false;
@@ -696,30 +699,28 @@ TcpProxySession.onClientConnectionSocketEvent(
 	waitClientConnectionSocketEvents();
 }
 
-TcpProxySession.onResolveCompleted(
+TcpProxySession.onResolverEvent(
 	uint_t syncId,
-	io.SocketAddress const* addressTable,
-	size_t addressCount,
-	std.Error const* error
+	io.HostNameResolverEvents triggeredEvents
 	)
 {
 	if (syncId != m_resolverSyncId)
 		return;
 
-	if (error)
+	if (triggeredEvents & io.HostNameResolverEvents.Error)
 	{
-		m_logWriter.write(SocketLogRecordCode.ResolveError, error, error.m_size);
+		m_logWriter.write(SocketLogRecordCode.ResolveError, m_resolver.m_error, m_resolver.m_error.m_size);
 		m_listenerState = ListenerState.Closed;
 		return;
 	}
 
 	m_logWriter.write(
 		SocketLogRecordCode.ResolveCompleted,
-		addressTable,
+		m_resolver.m_addressTable,
 		sizeof(io.SocketAddress)
 		);
 
-	m_clientRemoteAddress = addressTable[0];
+	m_clientRemoteAddress = m_resolver.m_addressTable[0];
 	if (!m_clientRemoteAddress.m_ip4.m_port) // IPv4 & IPv6 share the same port location
 		m_clientRemoteAddress.m_ip4.m_port = m_connectionSocketPropertySet.m_remotePortProp.m_value;
 
