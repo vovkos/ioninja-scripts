@@ -1,0 +1,47 @@
+//..............................................................................
+//
+// SSH log representer
+//
+
+import "log_Representation.jnc"
+import "SslLogRecordCode.jnc"
+import "SocketLog/SocketLogRecordCode.jnc"
+
+//..............................................................................
+
+bool representSslLog(
+	log.Representation* representation,
+	uint64_t recordCode,
+	void const* p,
+	size_t size,
+	uint_t foldFlags
+	)
+{
+	switch (recordCode)
+	{
+	case SslLogRecordCode.TcpConnectCompleted:
+		representation.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		representation.addHyperText(SocketLogPartCode.ConnectCompleted, "ok");
+		representation.addHyperText(SocketLogPartCode.Connecting, "Performing SSL handshake...");
+		break;
+
+	case SslLogRecordCode.SslHandshakeCompleted:
+		representation.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		representation.addHyperText(SocketLogPartCode.ConnectCompleted, "ok");
+		representation.m_lineAttr.m_iconIdx  = log.StdLogIcon.Connect;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Connect;
+		representation.addHyperText("SSL connection established");
+		break;
+
+	default:
+		return false;
+	}
+
+	return true;
+}
+
+//..............................................................................
