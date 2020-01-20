@@ -142,7 +142,7 @@ protected:
 		io.HostNameResolverEvents triggeredEvents
 		);
 
-	onSslSocketEvent(
+	onSocketEvent(
 		uint_t syncId,
 		io.SslSocketEvents triggeredEvents
 		);
@@ -151,7 +151,7 @@ protected:
 
 	createUi();
 	startReconnectTimer(bool canConnectNow);
-	waitSslSocketEvents();
+	waitSocketEvents();
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -311,7 +311,7 @@ bool errorcode SslConnectionSession.connect(io.SocketAddress const* remoteAddres
 	char const* p = $"$(*remoteAddress; B)$(m_localAddress; B)";
 	m_logWriter.write(SocketLogRecordCode.ConnectingFrom, p, dynamic sizeof(p));
 
-	waitSslSocketEvents();
+	waitSocketEvents();
 	return true;
 
 catch:
@@ -329,7 +329,7 @@ catch:
 	return false;
 }
 
-SslConnectionSession.waitSslSocketEvents()
+SslConnectionSession.waitSocketEvents()
 {
 	io.SslSocketEvents eventMask = io.SslSocketEvents.IoError;
 
@@ -358,7 +358,7 @@ SslConnectionSession.waitSslSocketEvents()
 		break;
 	}
 
-	m_socket.wait(eventMask, onSslSocketEvent~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
+	m_socket.wait(eventMask, onSocketEvent~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
 }
 
 SslConnectionSession.handleSocketError(std.Error const* error)
@@ -473,7 +473,7 @@ size_t errorcode SslConnectionSession.transmit(
 	if (result < size)
 	{
 		m_isTransmitEnabled = false;
-		waitSslSocketEvents();
+		waitSocketEvents();
 	}
 
 	return result;
@@ -499,7 +499,7 @@ SslConnectionSession.startReconnectTimer(bool isForced)
 		);
 }
 
-SslConnectionSession.onSslSocketEvent(
+SslConnectionSession.onSocketEvent(
 	uint_t syncId,
 	io.SslSocketEvents triggeredEvents
 	)
@@ -515,7 +515,8 @@ SslConnectionSession.onSslSocketEvent(
 
 	if (triggeredEvents & io.SslSocketEvents.TcpConnected)
 	{
-		m_logWriter.write(SslLogRecordCode.TcpConnectCompleted);
+		m_logWriter.write(SocketLogRecordCode.ConnectCompleted);
+		m_logWriter.write(SslLogRecordCode.SslHandshaking);
 		m_state = State.SslHandshaking;
 	}
 
@@ -585,7 +586,7 @@ SslConnectionSession.onSslSocketEvent(
 	if (io.SslSocketEvents.WriteBufferReady)
 		m_isTransmitEnabled = true;
 
-	waitSslSocketEvents();
+	waitSocketEvents();
 }
 
 SslConnectionSession.onResolverEvent(

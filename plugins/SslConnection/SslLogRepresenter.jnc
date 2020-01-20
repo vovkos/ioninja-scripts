@@ -72,11 +72,9 @@ bool representSslLog(
 {
 	switch (recordCode)
 	{
-	case SslLogRecordCode.TcpConnectCompleted:
-		representation.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
+	case SslLogRecordCode.SslHandshaking:
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		representation.addHyperText(SocketLogPartCode.ConnectCompleted, "ok");
 		representation.addHyperText(SocketLogPartCode.Connecting, "Performing SSL handshake...");
 		break;
 
