@@ -1,20 +1,21 @@
 #...............................................................................
 #
-#  TCP Connection session plugin
+#  SSL Connection session plugin
 #
 
 [plugin]
 
-name        = TCP Connection Socket
-description = "Establishes connection over TCP socket"
-id          = tcp
+name        = "SSL Connection Socket"
+description = "Establishes connection over SSL socket"
+id          = ssl
 group       = net
+log-guid    = 7940a0d5-a84b-4509-bae4-b5928511472d  # ssl
 log-guid    = db8c8923-a699-46cc-be7c-f0bcd523082b  # socket
-icon        = images/tcp.png
-small-icon  = images/tcp-16x16.png
+icon        = images/ssl.png
+small-icon  = images/ssl-16x16.png
 
-session-class = TcpConnectionSession
+session-class = SslConnectionSession
 
 [scripts]
 
-TcpConnectionSession.jnc
+SslConnectionSession.jnc

@@ -1,11 +1,11 @@
 //..............................................................................
 //
-// TCP Connection session
+// SSL Connection session
 //
 
 import "doc_Session.jnc"
 import "io_base.jncx"
-import "io_Socket.jnc"
+import "io_ssl.jncx"
 import "io_HostNameResolver.jnc"
 import "ui_History.jnc"
 import "ui_SocketUi.jnc"
@@ -19,7 +19,7 @@ using extension ui.ComboBoxHistory;
 
 //..............................................................................
 
-class TcpConnectionSession: doc.Session
+class SslConnectionSession: doc.Session
 {
 protected:
 	enum State
@@ -27,7 +27,8 @@ protected:
 		Closed,
 		Resolving,
 		ReconnectDelay,
-		Connecting,
+		TcpConnecting,
+		SslHandshaking,
 		Connected,
 	}
 
@@ -37,6 +38,7 @@ protected:
 		"Resolving...",
 		"Waiting...",
 		"Connecting...",
+		"Handshaking...",
 		"Connected",
 	}
 
@@ -68,10 +70,10 @@ protected:
 	}
 
 protected:
-	// socket
+	// SSL socket
 
 	State bindable m_state;
-	io.Socket m_socket;
+	io.SslSocket m_socket;
 	io.HostNameResolver m_resolver;
 	io.SocketAddress m_localAddress;
 	io.SocketAddress m_remoteAddress;
@@ -140,21 +142,21 @@ protected:
 		io.HostNameResolverEvents triggeredEvents
 		);
 
-	onSocketEvent(
+	onSslSocketEvent(
 		uint_t syncId,
-		io.SocketEvents triggeredEvents
+		io.SslSocketEvents triggeredEvents
 		);
 
 	onReconnectTimer(uint_t syncId);
 
 	createUi();
 	startReconnectTimer(bool canConnectNow);
-	waitSocketEvents();
+	waitSslSocketEvents();
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-TcpConnectionSession.construct(doc.PluginHost* pluginHost)
+SslConnectionSession.construct(doc.PluginHost* pluginHost)
 {
 	basetype.construct(pluginHost);
 
@@ -165,7 +167,7 @@ TcpConnectionSession.construct(doc.PluginHost* pluginHost)
 	m_stdSessionInfoSet.addLogListener(pluginHost.m_log);
 }
 
-TcpConnectionSession.createUi()
+SslConnectionSession.createUi()
 {
 	// toolbar
 
@@ -191,7 +193,7 @@ TcpConnectionSession.createUi()
 
 	ui.GroupProperty* propGroup = m_pluginHost.m_propertyGrid.createGroupProperty(
 		"Connection",
-		"TCP-specific connection settings"
+		"SSL-specific connection settings"
 		);
 
 	m_socketPropertySet.createProperties(
@@ -202,11 +204,16 @@ TcpConnectionSession.createUi()
 		ui.SocketPropertySet.PropertyId.ReconnectTimeout
 		);
 
-	m_bufferPropertySet.createPropertiesGrouped(m_pluginHost.m_propertyGrid);
+	m_socketPropertySet.m_defaultRemotePort = 443;
+
+	m_bufferPropertySet.createPropertiesGrouped(
+		m_pluginHost.m_propertyGrid,,,
+		ui.BufferPropertySet.PropertyId.All & ~ui.BufferPropertySet.PropertyId.ReadParallelism
+		);
 
 	// information grid
 
-	ui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("TCP Connection");
+	ui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("SSL Connection");
 	m_infoTable[InfoId.LocalAddress] = m_pluginHost.m_informationGrid.createValue(infoGroup,,, "Local address");
 	m_infoTable[InfoId.RemoteAddress] = m_pluginHost.m_informationGrid.createValue(infoGroup,,, "Remote address");
 
@@ -220,7 +227,7 @@ TcpConnectionSession.createUi()
 	m_uiReactor.start();
 }
 
-bool errorcode TcpConnectionSession.connect()
+bool errorcode SslConnectionSession.connect()
 {
 	disconnect();
 
@@ -269,11 +276,10 @@ catch:
 	return false;
 }
 
-bool errorcode TcpConnectionSession.connect(io.SocketAddress const* remoteAddress)
+bool errorcode SslConnectionSession.connect(io.SocketAddress const* remoteAddress)
 {
 	disconnect();
 
-	m_socket.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
 	m_socket.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
 	m_socket.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 	m_socket.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
@@ -281,7 +287,7 @@ bool errorcode TcpConnectionSession.connect(io.SocketAddress const* remoteAddres
 
 	if (!m_socketPropertySet.m_useLocalAddressProp.m_value)
 	{
-		m_socket.open(remoteAddress.m_family, io.Protocol.Tcp);
+		m_socket.open(remoteAddress.m_family);
 	}
 	else
 	{
@@ -293,10 +299,10 @@ bool errorcode TcpConnectionSession.connect(io.SocketAddress const* remoteAddres
 
 		m_localAddress.m_port = (uint16_t)m_socketPropertySet.m_localPortProp.m_value;
 
-		m_socket.open(io.Protocol.Tcp, &m_localAddress);
+		m_socket.open(&m_localAddress);
 	}
 
-	m_state = State.Connecting;
+	m_state = State.TcpConnecting;
 	m_remoteAddress = *remoteAddress;
 
 	m_socket.connect(remoteAddress);
@@ -305,7 +311,7 @@ bool errorcode TcpConnectionSession.connect(io.SocketAddress const* remoteAddres
 	char const* p = $"$(*remoteAddress; B)$(m_localAddress; B)";
 	m_logWriter.write(SocketLogRecordCode.ConnectingFrom, p, dynamic sizeof(p));
 
-	waitSocketEvents();
+	waitSslSocketEvents();
 	return true;
 
 catch:
@@ -323,32 +329,39 @@ catch:
 	return false;
 }
 
-TcpConnectionSession.waitSocketEvents()
+SslConnectionSession.waitSslSocketEvents()
 {
-	io.SocketEvents eventMask = io.SocketEvents.IoError;
+	io.SslSocketEvents eventMask = io.SslSocketEvents.IoError;
 
 	switch (m_state)
 	{
-	case State.Connecting:
-		eventMask |= io.SocketEvents.Connected;
+	case State.TcpConnecting:
+		eventMask |= io.SslSocketEvents.TcpConnected;
+		break;
+
+	case State.SslHandshaking:
+		eventMask |=
+			io.SslSocketEvents.TcpDisconnected |
+			io.SslSocketEvents.TcpReset |
+			io.SslSocketEvents.SslHandshakeCompleted;
 		break;
 
 	case State.Connected:
 		eventMask |=
-			io.SocketEvents.IncomingData |
-			io.SocketEvents.Disconnected |
-			io.SocketEvents.Reset;
+			io.SslSocketEvents.IncomingData |
+			io.SslSocketEvents.TcpDisconnected |
+			io.SslSocketEvents.TcpReset;
 
 		if (!m_isTransmitEnabled)
-			eventMask |= io.SocketEvents.WriteBufferReady;
+			eventMask |= io.SslSocketEvents.WriteBufferReady;
 
 		break;
 	}
 
-	m_socket.wait(eventMask, onSocketEvent~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
+	m_socket.wait(eventMask, onSslSocketEvent~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
 }
 
-TcpConnectionSession.handleSocketError(std.Error const* error)
+SslConnectionSession.handleSocketError(std.Error const* error)
 {
 	uint64_t recordCode = m_state < State.Connected ?
 		SocketLogRecordCode.ConnectError :
@@ -358,7 +371,7 @@ TcpConnectionSession.handleSocketError(std.Error const* error)
 	close();
 }
 
-TcpConnectionSession.close()
+SslConnectionSession.close()
 {
 	m_stdSessionInfoSet.endSession();
 	m_isTransmitEnabled = false;
@@ -367,7 +380,7 @@ TcpConnectionSession.close()
 	m_syncId++;
 }
 
-TcpConnectionSession.disconnect()
+SslConnectionSession.disconnect()
 {
 	switch (m_state)
 	{
@@ -375,7 +388,8 @@ TcpConnectionSession.disconnect()
 		return;
 
 	case State.Resolving:
-	case State.Connecting:
+	case State.TcpConnecting:
+	case State.SslHandshaking:
 		m_logWriter.write(SocketLogRecordCode.ConnectCancelled);
 		break;
 
@@ -399,7 +413,7 @@ TcpConnectionSession.disconnect()
 	close();
 }
 
-void TcpConnectionSession.load(doc.Storage* storage)
+void SslConnectionSession.load(doc.Storage* storage)
 {
 	m_addressCombo.loadHistory(storage, "addressHistory");
 	m_addressCombo.m_editText = storage.readString("address");
@@ -409,7 +423,7 @@ void TcpConnectionSession.load(doc.Storage* storage)
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
 }
 
-void TcpConnectionSession.save(doc.Storage* storage)
+void SslConnectionSession.save(doc.Storage* storage)
 {
 	m_socketPropertySet.save(storage);
 	m_bufferPropertySet.save(storage);
@@ -418,12 +432,12 @@ void TcpConnectionSession.save(doc.Storage* storage)
 	storage.writeString("address", m_addressCombo.m_editText); // overwrite
 }
 
-void TcpConnectionSession.updateProperties()
+void SslConnectionSession.updateProperties()
 {
 	m_socketPropertySet.m_remoteAddressProp.m_value = m_addressCombo.m_editText;
 }
 
-bool errorcode TcpConnectionSession.applyProperties()
+bool errorcode SslConnectionSession.applyProperties()
 {
 	m_addressCombo.m_editText = m_socketPropertySet.m_remoteAddressProp.m_value;
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
@@ -431,7 +445,6 @@ bool errorcode TcpConnectionSession.applyProperties()
 	if (!m_socket.m_isOpen)
 		return true;
 
-	m_socket.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
 	m_socket.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
 	m_socket.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 	m_socket.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
@@ -439,13 +452,13 @@ bool errorcode TcpConnectionSession.applyProperties()
 	return true;
 }
 
-void TcpConnectionSession.restoreDefaultProperties()
+void SslConnectionSession.restoreDefaultProperties()
 {
 	m_socketPropertySet.restoreDefaults();
 	m_bufferPropertySet.restoreDefaults();
 }
 
-size_t errorcode TcpConnectionSession.transmit(
+size_t errorcode SslConnectionSession.transmit(
 	void const* p,
 	size_t size
 	)
@@ -460,13 +473,13 @@ size_t errorcode TcpConnectionSession.transmit(
 	if (result < size)
 	{
 		m_isTransmitEnabled = false;
-		waitSocketEvents();
+		waitSslSocketEvents();
 	}
 
 	return result;
 }
 
-TcpConnectionSession.startReconnectTimer(bool isForced)
+SslConnectionSession.startReconnectTimer(bool isForced)
 {
 	uint64_t delay = m_socketPropertySet.m_reconnectTimeoutProp.m_value;
 	uint64_t dueTime = m_lastReconnectTime + delay * 10000;
@@ -486,23 +499,29 @@ TcpConnectionSession.startReconnectTimer(bool isForced)
 		);
 }
 
-TcpConnectionSession.onSocketEvent(
+SslConnectionSession.onSslSocketEvent(
 	uint_t syncId,
-	io.SocketEvents triggeredEvents
+	io.SslSocketEvents triggeredEvents
 	)
 {
 	if (syncId != m_syncId)
 		return;
 
-	if (triggeredEvents & io.SocketEvents.IoError)
+	if (triggeredEvents & io.SslSocketEvents.IoError)
 	{
 		handleSocketError(m_socket.m_ioError);
 		return;
 	}
 
-	if (triggeredEvents & io.SocketEvents.Connected)
+	if (triggeredEvents & io.SslSocketEvents.TcpConnected)
 	{
-		m_logWriter.write(SocketLogRecordCode.ConnectCompleted);
+		m_logWriter.write(SslLogRecordCode.TcpConnectCompleted);
+		m_state = State.SslHandshaking;
+	}
+
+	if (triggeredEvents & io.SslSocketEvents.SslHandshakeCompleted)
+	{
+		m_logWriter.write(SslLogRecordCode.SslHandshakeCompleted);
 		m_infoTable[InfoId.LocalAddress].m_value = m_localAddress.getString();
 		m_infoTable[InfoId.RemoteAddress].m_value = m_remoteAddress.getString();
 		m_state = State.Connected;
@@ -510,7 +529,7 @@ TcpConnectionSession.onSocketEvent(
 		m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
 	}
 
-	if (triggeredEvents & io.SocketEvents.Disconnected)
+	if (triggeredEvents & io.SslSocketEvents.TcpDisconnected)
 	{
 		for (;;) // read all the buffered data
 		{
@@ -525,7 +544,7 @@ TcpConnectionSession.onSocketEvent(
 		recordParams.m_address = m_remoteAddress;
 		recordParams.m_flags = TcpDisconnectLogRecordFlags.Remote;
 
-		if (triggeredEvents & io.SocketEvents.Reset)
+		if (triggeredEvents & io.SslSocketEvents.TcpReset)
 			recordParams.m_flags |= TcpDisconnectLogRecordFlags.Reset;
 
 		m_logWriter.write(
@@ -542,24 +561,24 @@ TcpConnectionSession.onSocketEvent(
 		return;
 	}
 
-	if ((triggeredEvents & io.SocketEvents.ReadBufferFull) &&
+	if ((triggeredEvents & io.SslSocketEvents.ReadBufferFull) &&
 		m_bufferPropertySet.m_notifyReadBufferFullProp.m_value)
 		m_logWriter.write(log.StdRecordCode.RxBufferFull);
 
-	if (triggeredEvents & io.SocketEvents.IncomingData)
+	if (triggeredEvents & io.SslSocketEvents.IncomingData)
 	{
 		size_t result = m_socket.read(m_readBuffer.m_p, m_readBuffer.m_size);
 		if (result)
 			m_logWriter.write(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 	}
 
-	if (io.SocketEvents.WriteBufferReady)
+	if (io.SslSocketEvents.WriteBufferReady)
 		m_isTransmitEnabled = true;
 
-	waitSocketEvents();
+	waitSslSocketEvents();
 }
 
-TcpConnectionSession.onResolverEvent(
+SslConnectionSession.onResolverEvent(
 	uint_t syncId,
 	io.HostNameResolverEvents triggeredEvents
 	)
@@ -588,7 +607,7 @@ TcpConnectionSession.onResolverEvent(
 	connect(address);
 }
 
-TcpConnectionSession.onReconnectTimer(uint_t syncId)
+SslConnectionSession.onReconnectTimer(uint_t syncId)
 {
 	if (syncId != m_syncId)
 		return;
@@ -600,9 +619,9 @@ TcpConnectionSession.onReconnectTimer(uint_t syncId)
 		startReconnectTimer(false);
 }
 
-reactor TcpConnectionSession.m_uiReactor
+reactor SslConnectionSession.m_uiReactor
 {
-	m_title = $"TCP $(m_addressCombo.m_editText)";
+	m_title = $"SSL $(m_addressCombo.m_editText)";
 	m_socketPropertySet.m_reconnectTimeoutProp.m_isEnabled = m_socketPropertySet.m_useReconnectProp.m_value;
 	m_socketPropertySet.m_adapterProp.m_isEnabled = m_socketPropertySet.m_useLocalAddressProp.m_value;
 	m_socketPropertySet.m_localPortProp.m_isEnabled = m_socketPropertySet.m_useLocalAddressProp.m_value;
