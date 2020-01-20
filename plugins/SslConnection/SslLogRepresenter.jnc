@@ -3,11 +3,64 @@
 // SSH log representer
 //
 
+import "io_ssl.jncx"
 import "log_Representation.jnc"
 import "SslLogRecordCode.jnc"
 import "SocketLog/SocketLogRecordCode.jnc"
 
 //..............................................................................
+
+void representSslCertName(
+	log.Representation* representation,
+	io.SslCertName const* name
+	)
+{
+	size_t count = name.m_entryCount;
+	for (int i = 0; i < count; i++)
+	{
+		io.SslCertNameEntry const* entry = name.m_entryTable[i];
+		representation.addHyperText(
+			$"    %1:\t%2"(
+			entry.m_name,
+			entry.m_value
+			));
+	}
+}
+
+void representSslCertificate(
+	log.Representation* representation,
+	io.SslCertificate const* cert,
+	uint_t foldFlags
+	)
+{
+	representation.addHyperText("Subject:\t");
+	representSslCertName(representation, cert.m_subject);
+
+	representation.addHyperText("Issued by:\t");
+	representSslCertName(representation, cert.m_issuer);
+
+	representation.addHyperText(
+		$"Valid from:\t%1\n"
+		$"Valid to:\t%2"(
+		sys.formatTimestamp(cert.m_validFromDate, "%Y-%M-%D"),
+		sys.formatTimestamp(cert.m_validToDate, "%Y-%M-%D")
+		));
+
+	if (!(foldFlags & 1))
+	{
+		representation.addHyperText($"[\e^+1\e[34m+\e[m] PEM");
+	}
+	else
+	{
+		representation.addHyperText($"[\e^-1\e[34m-\e[m] PEM");
+
+		std.Buffer buffer;
+		cert.save(io.SslCertFormat.Pem, buffer);
+		representation.addBin(buffer.m_p, buffer.m_size);
+	}
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 bool representSslLog(
 	log.Representation* representation,
@@ -32,6 +85,19 @@ bool representSslLog(
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		representation.addHyperText(SocketLogPartCode.ConnectCompleted, "ok");
+		break;
+
+	case SslLogRecordCode.SslCertificate:
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		representation.m_lineAttr.m_backColor = ui.StdColor.PastelGray;
+		representation.addHyperText("SSL certificate:");
+
+		io.SslCertificate cert;
+		cert.load(io.SslCertFormat.Der, p, size);
+		representSslCertificate(representation, cert, foldFlags);
+		break;
+
+	case SslLogRecordCode.SslConnectionCompleted:
 		representation.m_lineAttr.m_iconIdx  = log.StdLogIcon.Connect;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Connect;
 		representation.addHyperText("SSL connection established");

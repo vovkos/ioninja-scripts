@@ -521,7 +521,17 @@ SslConnectionSession.onSslSocketEvent(
 
 	if (triggeredEvents & io.SslSocketEvents.SslHandshakeCompleted)
 	{
-		m_logWriter.write(SslLogRecordCode.SslHandshakeCompleted);
+		// write all certificates
+
+		std.Buffer buffer;
+		size_t count = m_socket.m_peerCertificateChainLength;
+		for (size_t i = 0; i < count; i++)
+		{
+			m_socket.m_peerCertificateChainEntry[i].save(io.SslCertFormat.Der, buffer);
+			m_logWriter.write(SslLogRecordCode.SslCertificate, buffer.m_p, buffer.m_size);
+		}
+
+		m_logWriter.write(SslLogRecordCode.SslConnectionCompleted);
 		m_infoTable[InfoId.LocalAddress].m_value = m_localAddress.getString();
 		m_infoTable[InfoId.RemoteAddress].m_value = m_remoteAddress.getString();
 		m_state = State.Connected;
