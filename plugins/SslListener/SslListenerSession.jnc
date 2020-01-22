@@ -491,7 +491,7 @@ SslListenerSession.onConnectionSocketEvent(
 		size_t count = m_connectionSocket.m_peerCertificateChainLength;
 		for (size_t i = 0; i < count; i++)
 		{
-			m_connectionSocket.m_peerCertificateChainEntry[i].save(io.SslCertFormat.Der, buffer);
+			m_connectionSocket.m_peerCertificateChainEntry[i].encode(buffer, io.SslCertFormat.Der);
 			m_logWriter.write(SslLogRecordCode.SslCertificate, buffer.m_p, buffer.m_size);
 		}
 

@@ -55,7 +55,7 @@ void representSslCertificate(
 		representation.addHyperText($"[\e^-1\e[34m-\e[m] PEM");
 
 		std.Buffer buffer;
-		cert.save(io.SslCertFormat.Pem, buffer);
+		cert.encode(buffer, io.SslCertFormat.Pem);
 		representation.addBin(buffer.m_p, buffer.m_size);
 	}
 }
@@ -91,7 +91,7 @@ bool representSslLog(
 		representation.addHyperText("SSL certificate:");
 
 		io.SslCertificate cert;
-		cert.load(io.SslCertFormat.Der, p, size);
+		cert.decode(p, size, io.SslCertFormat.Der);
 		representSslCertificate(representation, cert, foldFlags);
 		break;
 
