@@ -522,7 +522,9 @@ SslConnectionSession.onSocketEvent(
 
 	if (triggeredEvents & io.SslSocketEvents.SslHandshakeCompleted)
 	{
-		// write all certificates
+		// write current cipher & all certificates
+
+		m_logWriter.write(SslLogRecordCode.SslCipher, m_socket.m_cipherName);
 
 		std.Buffer buffer;
 		size_t count = m_socket.m_peerCertificateChainLength;
