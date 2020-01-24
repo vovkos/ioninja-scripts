@@ -441,6 +441,7 @@ SslListenerSession.onListenerSocketEvent(
 		{
 			socket.close();
 			m_logWriter.write(SocketLogRecordCode.ClientRejected, &address, sizeof(address));
+			waitListenerSocketEvents();
 			return;
 		}
 
