@@ -87,8 +87,10 @@ protected:
 
 	// property grid
 
-	ui.BoolProperty* m_overrideOldConnectionProp;
 	ui.SocketPropertySet m_socketPropertySet;
+	ui.BoolProperty* m_overrideOldConnectionProp;
+	ui.FileProperty* m_certificateFileNameProp;
+	ui.FileProperty* m_privateKeyFileNameProp;
 	ui.BufferPropertySet m_bufferPropertySet;
 
 	// information grid
@@ -209,6 +211,18 @@ SslListenerSession.createUi()
 		"Accept incoming connection even if already connected"
 		);
 
+	m_certificateFileNameProp = m_pluginHost.m_propertyGrid.createFileProperty(
+		group,,
+		"Certificate",
+		"Specifify a certificate for your SSL server"
+		);
+
+	m_privateKeyFileNameProp = m_pluginHost.m_propertyGrid.createFileProperty(
+		group,,
+		"Private key",
+		"Specifify a private key for your SSL server"
+		);
+
 	m_bufferPropertySet.createPropertiesGrouped(
 		m_pluginHost.m_propertyGrid,,,
 		ui.BufferPropertySet.PropertyId.All & ~ui.BufferPropertySet.PropertyId.ReadParallelism
@@ -311,6 +325,8 @@ void SslListenerSession.load(doc.Storage* storage)
 	m_adapterCombo.m_currentIndex  = storage.readInt("adapterIdx");
 	m_portCombo.m_editText = storage.readString("port");
 	m_overrideOldConnectionProp.m_value = storage.readBool("overrideOldConnection");
+	m_certificateFileNameProp.m_value = storage.readString("certificate");
+	m_privateKeyFileNameProp.m_value = storage.readString("privateKey");
 
 	m_socketPropertySet.load(storage);
 	m_bufferPropertySet.load(storage);
@@ -326,6 +342,8 @@ void SslListenerSession.save(doc.Storage* storage)
 	storage.writeInt("adapterIdx", (int) m_adapterCombo.m_currentIndex);
 	storage.writeString("port", m_portCombo.m_editText);
 	storage.writeBool("overrideOldConnection", m_overrideOldConnectionProp.m_value);
+	storage.writeString("certificate", m_certificateFileNameProp.m_value);
+	storage.writeString("privateKey", m_privateKeyFileNameProp.m_value);
 }
 
 void SslListenerSession.updateProperties()
@@ -449,6 +467,8 @@ SslListenerSession.onListenerSocketEvent(
 		socket.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 		socket.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
 		socket.m_options = ui.getSocketOptions(m_socketPropertySet, m_bufferPropertySet);
+		socket.loadCertificate(m_certificateFileNameProp.m_value);
+		socket.loadPrivateKey(m_privateKeyFileNameProp.m_value);
 		socket.unsuspend();
 
 		disconnect();
@@ -461,6 +481,9 @@ SslListenerSession.onListenerSocketEvent(
 		m_connectionState = ConnectionState.SslHandshaking;
 
 		waitConnectionSocketEvents();
+
+	catch:
+		m_logWriter.writeLastError(log.StdRecordCode.Error);
 	}
 
 	waitListenerSocketEvents();
