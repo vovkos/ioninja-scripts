@@ -95,6 +95,12 @@ bool representSslLog(
 		representSslCertificate(representation, cert, foldFlags);
 		break;
 
+	case SslLogRecordCode.SslCipher:
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		representation.m_lineAttr.m_backColor = ui.StdColor.PastelGray;
+		representation.addHyperText($"SSL cipher: $((char const*)p)");
+		break;
+
 	case SslLogRecordCode.SslConnectionCompleted:
 		representation.m_lineAttr.m_iconIdx  = log.StdLogIcon.Connect;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Connect;

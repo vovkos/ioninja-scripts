@@ -24,4 +24,5 @@ SslLogRepresenter.jnc
 01d5cdeded08f700  # SslHandshaking
 01d5cdeded08f701  # SslHandshakeCompleted
 81d5cdeded08f702  # SslCertificate
-01d5cdeded08f703  # SslConnectCompleted
+01d5cdeded08f703  # SslCipher
+01d5cdeded08f704  # SslConnectCompleted
