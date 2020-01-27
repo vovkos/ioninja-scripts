@@ -1,0 +1,29 @@
+#...............................................................................
+#
+#  Process log plugin
+#
+
+[plugin]
+
+name        = "Process Log"
+description = "Process log representer"
+group       = fs
+guid        = 1dfd5eb0-9560-11e3-a5e2-0800200c9a66
+icon        = images/process.png
+small-icon  = images/process-16x16.png
+
+log-representer-func = representProcessLog
+
+[scripts]
+
+ProcessLogRecordCode.jnc
+ProcessLogRepresenter.jnc
+
+[records]
+
+01d5d363496d4700  # Opened
+01d5d363496d4701  # OpenError
+01d5d363496d4702  # Closed
+01d5d363496d4703  # Eof
+01d5d363496d4704  # Cleared
+01d5d363496d4705  # ProcessOpened

@@ -1,0 +1,70 @@
+//..............................................................................
+//
+// Process log representer
+//
+
+import "log_Representation.jnc"
+import "io_base.jncx"
+import "io_ProcessStream.jnc"
+import "ProcessLogRecordCode.jnc"
+
+//..............................................................................
+
+bool representProcessLog(
+	log.Representation* representation,
+	uint64_t recordCode,
+	void const* p,
+	size_t size,
+	uint_t foldFlags
+	)
+{
+	switch (recordCode)
+	{
+	case ProcessLogRecordCode.Opened:
+		io.ProcessKind const* kind = (io.ProcessKind const*) p;
+		char const* fileName = (char const*) (kind + 1);
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Connect;
+		representation.addHyperText($"Opened file \e[34m$fileName\e[m ($(io.getProcessStreamKindString (*kind)))");
+		break;
+
+	case ProcessLogRecordCode.ProcessOpened:
+		char const* fileName = (char const*) p;
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Connect;
+		representation.addHyperText($"Opened file \e[34m$fileName");
+		break;
+
+	case ProcessLogRecordCode.OpenError:
+		std.Error const* error = (std.Error const*) p;
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Error;
+		representation.addHyperText($"Cannot open file: $(error.m_description)");
+		break;
+
+	case ProcessLogRecordCode.Closed:
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
+		representation.addHyperText($"Process closed");
+		break;
+
+	case ProcessLogRecordCode.Eof:
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		representation.addHyperText("End-of-file reached");
+		break;
+
+	case ProcessLogRecordCode.Cleared:
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		representation.addHyperText($"Process cleared");
+		break;
+
+	default:
+		return false;
+	}
+
+	return true;
+}
+
+//..............................................................................
