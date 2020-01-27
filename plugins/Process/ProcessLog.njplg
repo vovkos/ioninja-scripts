@@ -8,7 +8,7 @@
 name        = "Process Log"
 description = "Process log representer"
 group       = fs
-guid        = 1dfd5eb0-9560-11e3-a5e2-0800200c9a66
+guid        = 680a931c-9f3d-46b4-9aad-600a453c61e7
 icon        = images/process.png
 small-icon  = images/process-16x16.png
 

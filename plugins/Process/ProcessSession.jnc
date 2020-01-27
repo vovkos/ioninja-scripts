@@ -5,7 +5,7 @@
 
 import "doc_Session.jnc"
 import "io_base.jncx"
-import "io_ProcessStream.jnc"
+import "io_ChildProcess.jnc"
 import "ui_History.jnc"
 import "ui_BufferPropertySet.jnc"
 import "ui_StdSessionInfoSet.jnc"
@@ -22,8 +22,8 @@ class ProcessSession: doc.Session
 protected:
 	enum State
 	{
-		Closed,
-		Opened,
+		Idle,
+		Running,
 	}
 
 	enum Access
@@ -35,16 +35,16 @@ protected:
 
 	enum ActionId
 	{
-		Open,
-		Clear,
+		Start,
+		Terminate,
 		_Count,
 	}
 
 	enum IconId
 	{
-		Open,
-		Close,
-		Clear,
+		Start,
+		Detach,
+		Terminate,
 		_Count,
 	}
 
@@ -58,7 +58,7 @@ protected:
 	// file
 
 	State bindable m_state;
-	io.ProcessStream m_file;
+	io.ChildProcess m_process;
 	std.Buffer m_readBuffer;
 	uint_t m_syncId;
 
@@ -67,13 +67,11 @@ protected:
 	ui.Action* m_actionTable[ActionId._Count];
 	ui.Icon* m_iconTable[IconId._Count];
 	ui.StatusPane* m_statusPaneTable[StatusPaneId._Count];
-	ui.ComboBox* m_fileNameCombo;
-	ui.ComboBox* m_accessCombo;
+	ui.ComboBox* m_commandLineCombo;
 
 	// property grid
 
-	ui.StringProperty* m_fileNameProp;
-	ui.EnumProperty* m_accessProp;
+	ui.StringProperty* m_commandLineProp;
 	ui.BufferPropertySet m_bufferPropertySet;
 
 	// information grid
@@ -89,9 +87,9 @@ protected:
 public:
 	construct(doc.PluginHost* pluginHost);
 
-	bool errorcode open();
+	bool errorcode start();
 	close();
-	clear();
+	terminate();
 
 	override void load(doc.Storage* storage);
 	override void save(doc.Storage* storage);
@@ -105,23 +103,23 @@ public:
 		);
 
 protected:
-	onOpen()
+	onStart()
 	{
-		m_state ? close() : try open();
+		m_state ? close() : try start();
 	}
 
 	onProcessNameComboEnter()
 	{
-		try open();
+		try start();
 	}
 
-	onProcessStreamEvent(
+	onChildProcessEvent(
 		uint_t syncId,
-		io.ProcessStreamEvents triggeredEvents
+		io.ChildProcessEvents triggeredEvents
 		);
 
-	io.ProcessStreamOptions getProcessStreamOptions();
-	waitProcessStreamEvents();
+	io.ChildProcessOptions getChildProcessOptions();
+	waitChildProcessEvents();
 	createUi();
 }
 
@@ -149,24 +147,22 @@ ProcessSession.createUi()
 
 	// toolbar
 
-	m_pluginHost.m_toolBar.addLabel("Process:");
-	m_fileNameCombo = m_pluginHost.m_toolBar.addComboBox(-1);
-	m_fileNameCombo.m_isEditable = true;
-	m_fileNameCombo.m_onEnter += onProcessNameComboEnter;
-	m_fileNameCombo.m_placeholderText = "Enter a file or device name...";
+	m_pluginHost.m_toolBar.addLabel("Command line:");
+	m_commandLineCombo = m_pluginHost.m_toolBar.addComboBox(-1);
+	m_commandLineCombo.m_isEditable = true;
+	m_commandLineCombo.m_onEnter += onProcessNameComboEnter;
+	m_commandLineCombo.m_placeholderText = "Enter a command line...";
 
-	m_accessCombo = m_pluginHost.m_toolBar.addComboBox("Access:", accessModeTable, countof(accessModeTable));
+	m_iconTable[IconId.Start] = new ui.Icon("images/start.png");
+	m_iconTable[IconId.Detach] = new ui.Icon("images/detach.png");
+	m_iconTable[IconId.Terminate] = new ui.Icon("images/terminate.png");
 
-	m_iconTable[IconId.Open] = new ui.Icon("images/open.png");
-	m_iconTable[IconId.Close] = new ui.Icon("images/close.png");
-	m_iconTable[IconId.Clear] = new ui.Icon("images/clear.png");
+	m_actionTable[ActionId.Start] = createAction("Open", m_iconTable[IconId.Start]);
+	m_actionTable[ActionId.Start].m_onTriggered += onStart;
 
-	m_actionTable[ActionId.Open] = createAction("Open", m_iconTable[IconId.Open]);
-	m_actionTable[ActionId.Open].m_onTriggered += onOpen;
-
-	m_actionTable[ActionId.Clear] = createAction("Clear", m_iconTable[IconId.Clear]);
-	m_actionTable[ActionId.Clear].m_onTriggered += clear;
-	m_actionTable[ActionId.Clear].m_isEnabled = false;
+	m_actionTable[ActionId.Terminate] = createAction("Terminate", m_iconTable[IconId.Terminate]);
+	m_actionTable[ActionId.Terminate].m_onTriggered += terminate;
+	m_actionTable[ActionId.Terminate].m_isEnabled = false;
 
 	// status bar
 
@@ -179,19 +175,11 @@ ProcessSession.createUi()
 		"Process stream-specific connection settings"
 		);
 
-	m_fileNameProp = m_pluginHost.m_propertyGrid.createStringProperty(
+	m_commandLineProp = m_pluginHost.m_propertyGrid.createStringProperty(
 		group,,
 		"Process name",
 		"Enter a file name...",
 		"Specify a file name to open"
-		);
-
-	m_accessProp = m_pluginHost.m_propertyGrid.createEnumProperty(
-		group,,
-		"Access mode",
-		"Access mode for the file",
-		accessModeTable,
-		countof(accessModeTable)
 		);
 
 	m_bufferPropertySet.createPropertiesGrouped(m_pluginHost.m_propertyGrid);
@@ -209,101 +197,94 @@ ProcessSession.createUi()
 	m_uiReactor.start();
 }
 
-bool errorcode ProcessSession.open()
+bool errorcode ProcessSession.start()
 {
 	close();
 	startSession();
 
-	m_fileNameCombo.addEditTextToHistory();
+	m_commandLineCombo.addEditTextToHistory();
 
-	char const* fileName = m_fileNameCombo.m_editText;
+	char const* commandLine = m_commandLineCombo.m_editText;
 
-	Access access = m_accessCombo.m_currentData;
+	m_process.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
+	m_process.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
+	m_process.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
+	m_process.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
+	m_process.m_options = getChildProcessOptions();
+	m_process.start(commandLine);
 
-	io.ProcessOpenFlags openFlags =
-		access == Access.ReadOnly ? io.ProcessOpenFlags.ReadOnly :
-		access == Access.WriteOnly ? io.ProcessOpenFlags.WriteOnly : 0;
+	m_logWriter.write(ProcessLogRecordCode.ProcessStarted, commandLine);
+	m_state = State.Running;
 
-	m_file.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
-	m_file.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
-	m_file.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
-	m_file.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
-	m_file.m_options = getProcessStreamOptions();
-	m_file.open(fileName, openFlags);
-
-	char const* p = $"$(m_file.m_kind; B)$fileName";
-	m_logWriter.write(ProcessLogRecordCode.Opened, p, dynamic sizeof(p));
-	m_state = State.Opened;
-
-	waitProcessStreamEvents();
+	waitChildProcessEvents();
 	m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
 	return true;
 
 catch:
 	std.Error const* error = std.getLastError();
 	m_logWriter.write(
-		ProcessLogRecordCode.OpenError,
+		ProcessLogRecordCode.ProcessStartError,
 		error,
 		error.m_size
 		);
 
-	m_file.close();
+	m_process.close();
 	return false;
 }
 
 ProcessSession.close()
 {
-	if (m_state != State.Opened)
+	if (m_state != State.Running)
 		return;
 
-	m_logWriter.write(ProcessLogRecordCode.Closed);
-	m_file.close();
-	m_state = State.Closed;
+	m_logWriter.write(ProcessLogRecordCode.Detached);
+	m_process.close();
+	m_state = State.Idle;
 	m_syncId++;
 	m_stdSessionInfoSet.endSession();
 }
 
-ProcessSession.clear()
+ProcessSession.terminate()
 {
-	if (m_state != State.Opened)
+	if (m_state != State.Running)
 		return;
 
-	try m_file.clear();
-	m_logWriter.write(ProcessLogRecordCode.Cleared);
+	try m_process.terminate();
+	m_logWriter.write(ProcessLogRecordCode.ProcessTerminated);
 }
 
-io.ProcessStreamOptions ProcessSession.getProcessStreamOptions()
+io.ChildProcessOptions ProcessSession.getChildProcessOptions()
 {
-	io.ProcessStreamOptions options;
+	io.ChildProcessOptions options;
 
 	if (m_bufferPropertySet.m_keepReadBlockSizeProp.m_value)
-		options |= io.ProcessStreamOptions.KeepReadBlockSize;
+		options |= io.ChildProcessOptions.KeepReadBlockSize;
 
 	if (m_bufferPropertySet.m_keepWriteBlockSizeProp.m_value)
-		options |= io.ProcessStreamOptions.KeepWriteBlockSize;
+		options |= io.ChildProcessOptions.KeepWriteBlockSize;
 
 	return options;
 }
 
-ProcessSession.waitProcessStreamEvents()
+ProcessSession.waitChildProcessEvents()
 {
-	io.ProcessStreamEvents eventMask =
-		io.ProcessStreamEvents.IoError |
-		io.ProcessStreamEvents.ReadBufferFull |
-		io.ProcessStreamEvents.IncomingData |
-		io.ProcessStreamEvents.Eof;
+	io.ChildProcessEvents eventMask =
+		io.ChildProcessEvents.IoError |
+		io.ChildProcessEvents.ReadBufferFull |
+		io.ChildProcessEvents.IncomingData |
+		io.ChildProcessEvents.ProcessFinished |
+		io.ChildProcessEvents.ProcessCrashed;
 
 	if (!m_isTransmitEnabled)
-		eventMask |= io.ProcessStreamEvents.WriteBufferReady;
+		eventMask |= io.ChildProcessEvents.WriteBufferReady;
 
-	m_file.wait(eventMask, onProcessStreamEvent~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
+	m_process.wait(eventMask, onChildProcessEvent~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
 }
 
 void ProcessSession.load(doc.Storage* storage)
 {
-	m_fileNameCombo.loadHistory(storage, "fileNameHistory");
-	m_fileNameCombo.m_editText = storage.readString("fileName");
-	m_accessCombo.m_currentData = storage.readInt("access");
+	m_commandLineCombo.loadHistory(storage, "commandLineHistory");
+	m_commandLineCombo.m_editText = storage.readString("commandLine");
 
 	m_bufferPropertySet.load(storage);
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
@@ -313,37 +294,33 @@ void ProcessSession.save(doc.Storage* storage)
 {
 	m_bufferPropertySet.save(storage);
 
-	m_fileNameCombo.saveHistory(storage, "fileNameHistory");
-	storage.writeString("fileName", m_fileNameCombo.m_editText);
-	storage.writeInt("access", m_accessCombo.m_currentData);
+	m_commandLineCombo.saveHistory(storage, "commandLineHistory");
+	storage.writeString("commandLine", m_commandLineCombo.m_editText);
 }
 
 void ProcessSession.updateProperties()
 {
-	m_fileNameProp.m_value = m_fileNameCombo.m_editText;
-	m_accessProp.m_value = m_accessCombo.m_currentData;
+	m_commandLineProp.m_value = m_commandLineCombo.m_editText;
 }
 
 bool errorcode ProcessSession.applyProperties()
 {
-	m_fileNameCombo.m_editText = m_fileNameProp.m_value;
-	m_accessCombo.m_currentData = m_accessProp.m_value;
+	m_commandLineCombo.m_editText = m_commandLineProp.m_value;
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
 
-	if (!m_file.m_isOpen)
+	if (!m_process.m_isOpen)
 		return true;
 
-	m_file.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
-	m_file.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
-	m_file.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
-	m_file.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
-	m_file.m_options = getProcessStreamOptions();
+	m_process.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
+	m_process.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
+	m_process.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
+	m_process.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
+	m_process.m_options = getChildProcessOptions();
 	return true;
 }
 
 void ProcessSession.restoreDefaultProperties()
 {
-	m_accessProp.m_value = Access.ReadWrite;
 	m_bufferPropertySet.restoreDefaults();
 }
 
@@ -352,74 +329,72 @@ size_t errorcode ProcessSession.transmit(
 	size_t size
 	)
 {
-	if (m_state != State.Opened)
+	if (m_state != State.Running)
 		return -1;
 
-	size_t result = m_file.write(p, size);
+	size_t result = m_process.write(p, size);
 	if (result)
 		m_logWriter.write(log.StdRecordCode.Tx, p, result);
 
 	return result;
 }
 
-ProcessSession.onProcessStreamEvent(
+ProcessSession.onChildProcessEvent(
 	uint_t syncId,
-	io.ProcessStreamEvents triggeredEvents
+	io.ChildProcessEvents triggeredEvents
 	)
 {
 	if (syncId != m_syncId)
 		return;
 
-	if (triggeredEvents & io.ProcessStreamEvents.IoError)
+	if (triggeredEvents & io.ChildProcessEvents.IoError)
 	{
-		m_logWriter.write(log.StdRecordCode.Error, m_file.m_ioError, m_file.m_ioError.m_size);
+		m_logWriter.write(log.StdRecordCode.Error, m_process.m_ioError, m_process.m_ioError.m_size);
 		close();
 		return;
 	}
 
-	if ((triggeredEvents & io.ProcessStreamEvents.ReadBufferFull) &&
+	if ((triggeredEvents & io.ChildProcessEvents.ReadBufferFull) &&
 		m_bufferPropertySet.m_notifyReadBufferFullProp.m_value)
 		m_logWriter.write(log.StdRecordCode.RxBufferFull);
 
-	if (triggeredEvents & io.ProcessStreamEvents.IncomingData)
+	if (triggeredEvents & io.ChildProcessEvents.IncomingData)
 	{
-		size_t result = m_file.read(m_readBuffer.m_p, m_readBuffer.m_size);
+		size_t result = m_process.read(m_readBuffer.m_p, m_readBuffer.m_size);
 		if (result)
 			m_logWriter.write(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 	}
 
-	if (triggeredEvents & io.ProcessStreamEvents.Eof)
+	if (triggeredEvents & io.ChildProcessEvents.ProcessFinished)
 	{
 		for (;;) // read all the buffered data
 		{
-			size_t result = m_file.read(m_readBuffer.m_p, m_readBuffer.m_size);
+			size_t result = m_process.read(m_readBuffer.m_p, m_readBuffer.m_size);
 			if (!result)
 				break;
 
 			m_logWriter.write(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 		}
 
-		m_logWriter.write(ProcessLogRecordCode.Eof);
+		m_logWriter.write(ProcessLogRecordCode.ProcessFinished);
 		close();
 		return;
 	}
 
-	if (io.ProcessStreamEvents.WriteBufferReady)
+	if (io.ChildProcessEvents.WriteBufferReady)
 		m_isTransmitEnabled = true;
 
-	waitProcessStreamEvents();
+	waitChildProcessEvents();
 }
 
 reactor ProcessSession.m_uiReactor
 {
-	m_title = $"Process $(m_fileNameCombo.m_editText)";
-	m_isTransmitEnabled = m_state == State.Opened;
-	m_accessCombo.m_isEnabled = !m_state;
-	m_accessProp.m_isEnabled = !m_state;
-	m_actionTable[ActionId.Open].m_text = m_state ? "Close" : "Open";
-	m_actionTable[ActionId.Open].m_icon = m_iconTable[m_state ? IconId.Close : IconId.Open];
-	m_actionTable[ActionId.Clear].m_isEnabled = m_state && m_file.m_kind == io.ProcessKind.Disk;
-	m_statusPaneTable[StatusPaneId.State].m_text = m_state ? "Opened" : "Closed";
+	m_title = $"Process $(m_commandLineCombo.m_editText)";
+	m_isTransmitEnabled = m_state;
+	m_actionTable[ActionId.Start].m_text = m_state ? "Detach" : "Start";
+	m_actionTable[ActionId.Start].m_icon = m_iconTable[m_state ? IconId.Detach : IconId.Start];
+	m_actionTable[ActionId.Terminate].m_isEnabled = m_state;
+	m_statusPaneTable[StatusPaneId.State].m_text = m_state ? "Running" : "Idle";
 }
 
 //..............................................................................

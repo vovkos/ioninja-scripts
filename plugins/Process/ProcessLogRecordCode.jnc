@@ -9,12 +9,12 @@ import "log_RecordCode.jnc"
 
 enum ProcessLogRecordCode: uint64_t
 {
-	Opened        = 0x01d5d363496d4700,
-	OpenError     = 0x01d5d363496d4701,
-	Closed        = 0x01d5d363496d4702,
-	Eof           = 0x01d5d363496d4703,
-	Cleared       = 0x01d5d363496d4704,
-	ProcessOpened = 0x01d5d363496d4705,
+	ProcessStarted    = 0x01d5d363496d4700,
+	ProcessStartError = 0x01d5d363496d4701,
+	ProcessFinished   = 0x01d5d363496d4702,
+	ProcessCrashed    = 0x01d5d363496d4703,
+	ProcessTerminated = 0x01d5d363496d4704,
+	Detached          = 0x01d5d363496d4705,
 }
 
 //..............................................................................

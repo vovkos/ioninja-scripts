@@ -5,7 +5,6 @@
 
 import "log_Representation.jnc"
 import "io_base.jncx"
-import "io_ProcessStream.jnc"
 import "ProcessLogRecordCode.jnc"
 
 //..............................................................................
@@ -20,44 +19,42 @@ bool representProcessLog(
 {
 	switch (recordCode)
 	{
-	case ProcessLogRecordCode.Opened:
-		io.ProcessKind const* kind = (io.ProcessKind const*) p;
-		char const* fileName = (char const*) (kind + 1);
-		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
-		representation.m_lineAttr.m_backColor = log.StdLogColor.Connect;
-		representation.addHyperText($"Opened file \e[34m$fileName\e[m ($(io.getProcessStreamKindString (*kind)))");
-		break;
-
-	case ProcessLogRecordCode.ProcessOpened:
+	case ProcessLogRecordCode.ProcessStarted:
 		char const* fileName = (char const*) p;
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Connect;
-		representation.addHyperText($"Opened file \e[34m$fileName");
+		representation.addHyperText($"Started process: \e[34m$fileName");
 		break;
 
-	case ProcessLogRecordCode.OpenError:
+	case ProcessLogRecordCode.ProcessStartError:
 		std.Error const* error = (std.Error const*) p;
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Error;
 		representation.addHyperText($"Cannot open file: $(error.m_description)");
 		break;
 
-	case ProcessLogRecordCode.Closed:
+	case ProcessLogRecordCode.ProcessFinished:
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
-		representation.addHyperText($"Process closed");
+		representation.addHyperText($"Process finished");
 		break;
 
-	case ProcessLogRecordCode.Eof:
-		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		representation.addHyperText("End-of-file reached");
+	case ProcessLogRecordCode.ProcessCrashed:
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
+		representation.addHyperText($"Process crashed");
 		break;
 
-	case ProcessLogRecordCode.Cleared:
+	case ProcessLogRecordCode.ProcessTerminated:
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		representation.addHyperText($"Process cleared");
+		representation.addHyperText("Process terminated");
+		break;
+
+	case ProcessLogRecordCode.Detached:
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
+		representation.addHyperText($"Detached from the running process");
 		break;
 
 	default:
