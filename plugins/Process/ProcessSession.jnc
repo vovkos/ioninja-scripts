@@ -20,10 +20,16 @@ using extension ui.ComboBoxHistory;
 class ProcessSession: doc.Session
 {
 protected:
+	enum Defaults
+	{
+		SeparateStderr = true
+	}
+
 	enum State
 	{
 		Idle,
 		Running,
+		Terminating,
 	}
 
 	enum Access
@@ -36,7 +42,7 @@ protected:
 	enum ActionId
 	{
 		Start,
-		Terminate,
+		Detach,
 		_Count,
 	}
 
@@ -54,6 +60,13 @@ protected:
 		_Count,
 	}
 
+	static char const* m_stateName[] =
+	{
+		"Idle",
+		"Running",
+		"Terminating...",
+	}
+
 protected:
 	// file
 
@@ -61,6 +74,7 @@ protected:
 	io.ChildProcess m_process;
 	std.Buffer m_readBuffer;
 	uint_t m_syncId;
+	uint_t m_stderrSyncId;
 
 	// toolbar, status bar & menu
 
@@ -72,6 +86,7 @@ protected:
 	// property grid
 
 	ui.StringProperty* m_commandLineProp;
+	ui.BoolProperty* m_separateStderrProp;
 	ui.BufferPropertySet m_bufferPropertySet;
 
 	// information grid
@@ -89,7 +104,7 @@ public:
 
 	bool errorcode start();
 	close();
-	terminate();
+	detach();
 
 	override void load(doc.Storage* storage);
 	override void save(doc.Storage* storage);
@@ -118,9 +133,23 @@ protected:
 		io.ChildProcessEvents triggeredEvents
 		);
 
+	onStderrEvent(
+		uint_t syncId,
+		io.FileStreamEvents triggeredEvents
+		);
+
+	onLogRecord(
+		uint64_t timestamp,
+		uint64_t recordCode,
+		void const* p,
+		size_t size
+		);
+
 	io.ChildProcessOptions getChildProcessOptions();
 	waitChildProcessEvents();
+	waitStderrEvents();
 	createUi();
+	closeImpl();
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -133,6 +162,7 @@ ProcessSession.construct(doc.PluginHost* pluginHost)
 
 	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
+	pluginHost.m_log.addListener(onLogRecord);
 	m_stdSessionInfoSet.addLogListener(pluginHost.m_log);
 }
 
@@ -147,7 +177,7 @@ ProcessSession.createUi()
 
 	// toolbar
 
-	m_pluginHost.m_toolBar.addLabel("Command line:");
+	m_pluginHost.m_toolBar.addLabel("Command:");
 	m_commandLineCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 	m_commandLineCombo.m_isEditable = true;
 	m_commandLineCombo.m_onEnter += onProcessNameComboEnter;
@@ -160,9 +190,9 @@ ProcessSession.createUi()
 	m_actionTable[ActionId.Start] = createAction("Open", m_iconTable[IconId.Start]);
 	m_actionTable[ActionId.Start].m_onTriggered += onStart;
 
-	m_actionTable[ActionId.Terminate] = createAction("Terminate", m_iconTable[IconId.Terminate]);
-	m_actionTable[ActionId.Terminate].m_onTriggered += terminate;
-	m_actionTable[ActionId.Terminate].m_isEnabled = false;
+	m_actionTable[ActionId.Detach] = createAction("Detach", m_iconTable[IconId.Detach]);
+	m_actionTable[ActionId.Detach].m_onTriggered += detach;
+	m_actionTable[ActionId.Detach].m_isEnabled = false;
 
 	// status bar
 
@@ -180,6 +210,12 @@ ProcessSession.createUi()
 		"Process name",
 		"Enter a file name...",
 		"Specify a file name to open"
+		);
+
+	m_separateStderrProp = m_pluginHost.m_propertyGrid.createBoolProperty(
+		group,,
+		"Separate stdout & stderr",
+		"Read and display stdout & stderr separately"
 		);
 
 	m_bufferPropertySet.createPropertiesGrouped(m_pluginHost.m_propertyGrid);
@@ -211,12 +247,29 @@ bool errorcode ProcessSession.start()
 	m_process.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 	m_process.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
 	m_process.m_options = getChildProcessOptions();
-	m_process.start(commandLine);
 
-	m_logWriter.write(ProcessLogRecordCode.ProcessStarted, commandLine);
+	m_process.start(
+		commandLine,
+		m_separateStderrProp.m_value ? io.ChildProcessStartFlags.SeparateStderr :	0
+		);
+
+	uint_t pid = m_process.m_pid;
+
+	m_logWriter.write(
+		ProcessLogRecordCode.ProcessStarted,
+		&pid,
+		sizeof(pid),
+		commandLine,
+		strlen(commandLine) + 1
+		);
+
 	m_state = State.Running;
 
 	waitChildProcessEvents();
+
+	if (m_separateStderrProp.m_value)
+		waitStderrEvents();
+
 	m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
 	return true;
 
@@ -237,20 +290,27 @@ ProcessSession.close()
 	if (m_state != State.Running)
 		return;
 
-	m_logWriter.write(ProcessLogRecordCode.Detached);
-	m_process.close();
-	m_state = State.Idle;
-	m_syncId++;
-	m_stdSessionInfoSet.endSession();
+	try m_process.terminate();
+	m_logWriter.write(ProcessLogRecordCode.ProcessTerminating);
+	m_state = State.Terminating;
 }
 
-ProcessSession.terminate()
+ProcessSession.detach()
 {
 	if (m_state != State.Running)
 		return;
 
-	try m_process.terminate();
-	m_logWriter.write(ProcessLogRecordCode.ProcessTerminated);
+	m_logWriter.write(ProcessLogRecordCode.Detached);
+	closeImpl();
+}
+
+ProcessSession.closeImpl()
+{
+	m_process.close();
+	m_state = State.Idle;
+	m_syncId++;
+	m_stderrSyncId++;
+	m_stdSessionInfoSet.endSession();
 }
 
 io.ChildProcessOptions ProcessSession.getChildProcessOptions()
@@ -281,10 +341,21 @@ ProcessSession.waitChildProcessEvents()
 	m_process.wait(eventMask, onChildProcessEvent~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
 }
 
+ProcessSession.waitStderrEvents()
+{
+	io.FileStreamEvents eventMask =
+		io.FileStreamEvents.IoError |
+		io.FileStreamEvents.ReadBufferFull |
+		io.FileStreamEvents.IncomingData;
+
+	m_process.m_stderr.wait(eventMask, onStderrEvent~(++m_stderrSyncId) @ m_pluginHost.m_mainThreadScheduler);
+}
+
 void ProcessSession.load(doc.Storage* storage)
 {
 	m_commandLineCombo.loadHistory(storage, "commandLineHistory");
 	m_commandLineCombo.m_editText = storage.readString("commandLine");
+	m_separateStderrProp.m_value = storage.readBool("separateStderr", Defaults.SeparateStderr);
 
 	m_bufferPropertySet.load(storage);
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
@@ -296,6 +367,7 @@ void ProcessSession.save(doc.Storage* storage)
 
 	m_commandLineCombo.saveHistory(storage, "commandLineHistory");
 	storage.writeString("commandLine", m_commandLineCombo.m_editText);
+	storage.writeBool("separateStderr", m_separateStderrProp.m_value);
 }
 
 void ProcessSession.updateProperties()
@@ -322,6 +394,7 @@ bool errorcode ProcessSession.applyProperties()
 void ProcessSession.restoreDefaultProperties()
 {
 	m_bufferPropertySet.restoreDefaults();
+	m_separateStderrProp.m_value = Defaults.SeparateStderr;
 }
 
 size_t errorcode ProcessSession.transmit(
@@ -350,7 +423,7 @@ ProcessSession.onChildProcessEvent(
 	if (triggeredEvents & io.ChildProcessEvents.IoError)
 	{
 		m_logWriter.write(log.StdRecordCode.Error, m_process.m_ioError, m_process.m_ioError.m_size);
-		close();
+		closeImpl();
 		return;
 	}
 
@@ -376,8 +449,21 @@ ProcessSession.onChildProcessEvent(
 			m_logWriter.write(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 		}
 
-		m_logWriter.write(ProcessLogRecordCode.ProcessFinished);
-		close();
+		if (triggeredEvents & io.ChildProcessEvents.ProcessCrashed)
+		{
+			std.Error error;
+			error.m_size = sizeof(std.Error);
+			error.m_guid = sys.g_systemInfo.m_osKind == sys.OsKind.Windows ? std.g_ntStatusGuid : std.g_errnoGuid;
+			error.m_code = m_process.m_exitCode;
+			m_logWriter.write(ProcessLogRecordCode.ProcessCrashed, &error, sizeof(error));
+		}
+		else
+		{
+			int exitCode = m_process.m_exitCode;
+			m_logWriter.write(ProcessLogRecordCode.ProcessFinished, &exitCode, sizeof(exitCode));
+		}
+
+		closeImpl();
 		return;
 	}
 
@@ -387,14 +473,59 @@ ProcessSession.onChildProcessEvent(
 	waitChildProcessEvents();
 }
 
+ProcessSession.onStderrEvent(
+	uint_t syncId,
+	io.FileStreamEvents triggeredEvents
+	)
+{
+	if (syncId != m_stderrSyncId)
+		return;
+
+	if (triggeredEvents & io.FileStreamEvents.IoError)
+	{
+		m_logWriter.write(log.StdRecordCode.Error, m_process.m_ioError, m_process.m_ioError.m_size);
+		closeImpl();
+		return;
+	}
+
+	if ((triggeredEvents & io.FileStreamEvents.ReadBufferFull) &&
+		m_bufferPropertySet.m_notifyReadBufferFullProp.m_value)
+		m_logWriter.write(log.StdRecordCode.RxBufferFull);
+
+	if (triggeredEvents & io.FileStreamEvents.IncomingData)
+	{
+		size_t result = m_process.m_stderr.read(m_readBuffer.m_p, m_readBuffer.m_size);
+		if (result)
+			m_logWriter.write(ProcessLogRecordCode.Stderr, m_readBuffer.m_p, result);
+	}
+
+	waitStderrEvents();
+}
+
+ProcessSession.onLogRecord(
+	uint64_t timestamp,
+	uint64_t recordCode,
+	void const* p,
+	size_t size
+	)
+{
+	if (recordCode == ProcessLogRecordCode.Stderr)
+	{
+		m_stdSessionInfoSet.addRxData(size);
+		m_pluginHost.m_terminal.write(p, size);
+	}
+}
+
 reactor ProcessSession.m_uiReactor
 {
 	m_title = $"Process $(m_commandLineCombo.m_editText)";
 	m_isTransmitEnabled = m_state;
-	m_actionTable[ActionId.Start].m_text = m_state ? "Detach" : "Start";
-	m_actionTable[ActionId.Start].m_icon = m_iconTable[m_state ? IconId.Detach : IconId.Start];
-	m_actionTable[ActionId.Terminate].m_isEnabled = m_state;
-	m_statusPaneTable[StatusPaneId.State].m_text = m_state ? "Running" : "Idle";
+	m_actionTable[ActionId.Start].m_text = m_state ? "Terminate" : "Start";
+	m_actionTable[ActionId.Start].m_icon = m_iconTable[m_state ? IconId.Terminate : IconId.Start];
+	m_actionTable[ActionId.Start].m_isEnabled = m_state != State.Terminating;
+	m_actionTable[ActionId.Detach].m_isEnabled = m_state;
+	m_statusPaneTable[StatusPaneId.State].m_text = m_stateName[m_state];
+	m_separateStderrProp.m_isEnabled = m_state == State.Idle;
 }
 
 //..............................................................................
