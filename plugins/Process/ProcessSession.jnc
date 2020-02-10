@@ -22,6 +22,7 @@ class ProcessSession: doc.Session
 protected:
 	enum Defaults
 	{
+		Pty            = true,
 		SeparateStderr = true
 	}
 
@@ -86,6 +87,7 @@ protected:
 	// property grid
 
 	ui.StringProperty* m_commandLineProp;
+	ui.BoolProperty* m_ptyProp;
 	ui.BoolProperty* m_separateStderrProp;
 	ui.BufferPropertySet m_bufferPropertySet;
 
@@ -145,6 +147,8 @@ protected:
 		size_t size
 		);
 
+	onConsoleSizeChanged();
+
 	io.ChildProcessOptions getChildProcessOptions();
 	waitChildProcessEvents();
 	waitStderrEvents();
@@ -160,6 +164,7 @@ ProcessSession.construct(doc.PluginHost* pluginHost)
 
 	createUi();
 
+	pluginHost.m_terminal.m_onConsoleSizeChanged += onConsoleSizeChanged;
 	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
 	pluginHost.m_log.addListener(onLogRecord);
@@ -207,9 +212,15 @@ ProcessSession.createUi()
 
 	m_commandLineProp = m_pluginHost.m_propertyGrid.createStringProperty(
 		group,,
-		"Process name",
-		"Enter a file name...",
-		"Specify a file name to open"
+		"Command",
+		"Enter a command line...",
+		"Specify a command line to create a new process"
+		);
+
+	m_ptyProp = m_pluginHost.m_propertyGrid.createBoolProperty(
+		group,,
+		"Create PTY",
+		"Create a new pseudoterminal for the new process"
 		);
 
 	m_separateStderrProp = m_pluginHost.m_propertyGrid.createBoolProperty(
@@ -248,10 +259,12 @@ bool errorcode ProcessSession.start()
 	m_process.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
 	m_process.m_options = getChildProcessOptions();
 
-	m_process.start(
-		commandLine,
-		m_separateStderrProp.m_value ? io.ChildProcessStartFlags.SeparateStderr :	0
-		);
+	io.ChildProcessStartFlags flags =
+		m_ptyProp.m_value ? io.ChildProcessStartFlags.Pty :
+		m_separateStderrProp.m_value ? io.ChildProcessStartFlags.SeparateStderr :
+		0;
+
+	m_process.start(commandLine,, flags);
 
 	uint_t pid = m_process.m_pid;
 
@@ -355,6 +368,7 @@ void ProcessSession.load(doc.Storage* storage)
 {
 	m_commandLineCombo.loadHistory(storage, "commandLineHistory");
 	m_commandLineCombo.m_editText = storage.readString("commandLine");
+	m_ptyProp.m_value = storage.readBool("pty", Defaults.Pty);
 	m_separateStderrProp.m_value = storage.readBool("separateStderr", Defaults.SeparateStderr);
 
 	m_bufferPropertySet.load(storage);
@@ -367,6 +381,7 @@ void ProcessSession.save(doc.Storage* storage)
 
 	m_commandLineCombo.saveHistory(storage, "commandLineHistory");
 	storage.writeString("commandLine", m_commandLineCombo.m_editText);
+	storage.writeBool("pty", m_ptyProp.m_value);
 	storage.writeBool("separateStderr", m_separateStderrProp.m_value);
 }
 
@@ -394,6 +409,7 @@ bool errorcode ProcessSession.applyProperties()
 void ProcessSession.restoreDefaultProperties()
 {
 	m_bufferPropertySet.restoreDefaults();
+	m_ptyProp.m_value = Defaults.Pty;
 	m_separateStderrProp.m_value = Defaults.SeparateStderr;
 }
 
@@ -410,6 +426,14 @@ size_t errorcode ProcessSession.transmit(
 		m_logWriter.write(log.StdRecordCode.Tx, p, result);
 
 	return result;
+}
+
+ProcessSession.onConsoleSizeChanged()
+{
+	io.PtySize size;
+	size.m_colCount = m_pluginHost.m_terminal.m_consoleWidth;
+	size.m_rowCount = m_pluginHost.m_terminal.m_consoleHeight;
+	m_process.m_ptySize = size;
 }
 
 ProcessSession.onChildProcessEvent(
@@ -525,7 +549,8 @@ reactor ProcessSession.m_uiReactor
 	m_actionTable[ActionId.Start].m_isEnabled = m_state != State.Terminating;
 	m_actionTable[ActionId.Detach].m_isEnabled = m_state;
 	m_statusPaneTable[StatusPaneId.State].m_text = m_stateName[m_state];
-	m_separateStderrProp.m_isEnabled = m_state == State.Idle;
+	m_ptyProp.m_isEnabled = m_state == State.Idle;
+	m_separateStderrProp.m_isEnabled = m_state == State.Idle && !m_ptyProp.m_value;
 }
 
 //..............................................................................
