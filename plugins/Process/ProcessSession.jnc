@@ -22,8 +22,9 @@ class ProcessSession: doc.Session
 protected:
 	enum Defaults
 	{
-		Pty            = true,
-		SeparateStderr = true
+		Pty                = true,
+		SeparateStderr     = true,
+		IoErrorWaitTimeout = 1000,
 	}
 
 	enum State
@@ -152,6 +153,7 @@ protected:
 	io.ChildProcessOptions getChildProcessOptions();
 	waitChildProcessEvents();
 	waitStderrEvents();
+	readAllBufferedData();
 	createUi();
 	closeImpl();
 }
@@ -220,13 +222,13 @@ ProcessSession.createUi()
 	m_ptyProp = m_pluginHost.m_propertyGrid.createBoolProperty(
 		group,,
 		"Create PTY",
-		"Create a new pseudoterminal for the new process"
+		"Create a pseudoterminal for the process"
 		);
 
 	m_separateStderrProp = m_pluginHost.m_propertyGrid.createBoolProperty(
 		group,,
-		"Separate stdout & stderr",
-		"Read and display stdout & stderr separately"
+		"Separate STDERR",
+		"Read and display STDOUT & STDERR separately"
 		);
 
 	m_bufferPropertySet.createPropertiesGrouped(m_pluginHost.m_propertyGrid);
@@ -280,7 +282,7 @@ bool errorcode ProcessSession.start()
 
 	waitChildProcessEvents();
 
-	if (m_separateStderrProp.m_value)
+	if (flags & io.ChildProcessStartFlags.SeparateStderr)
 		waitStderrEvents();
 
 	m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
@@ -364,6 +366,18 @@ ProcessSession.waitStderrEvents()
 	m_process.m_stderr.wait(eventMask, onStderrEvent~(++m_stderrSyncId) @ m_pluginHost.m_mainThreadScheduler);
 }
 
+ProcessSession.readAllBufferedData()
+{
+	for (;;)
+	{
+		size_t result = m_process.read(m_readBuffer.m_p, m_readBuffer.m_size);
+		if (!result)
+			break;
+
+		m_logWriter.write(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
+	}
+}
+
 void ProcessSession.load(doc.Storage* storage)
 {
 	m_commandLineCombo.loadHistory(storage, "commandLineHistory");
@@ -444,13 +458,6 @@ ProcessSession.onChildProcessEvent(
 	if (syncId != m_syncId)
 		return;
 
-	if (triggeredEvents & io.ChildProcessEvents.IoError)
-	{
-		m_logWriter.write(log.StdRecordCode.Error, m_process.m_ioError, m_process.m_ioError.m_size);
-		closeImpl();
-		return;
-	}
-
 	if ((triggeredEvents & io.ChildProcessEvents.ReadBufferFull) &&
 		m_bufferPropertySet.m_notifyReadBufferFullProp.m_value)
 		m_logWriter.write(log.StdRecordCode.RxBufferFull);
@@ -462,16 +469,28 @@ ProcessSession.onChildProcessEvent(
 			m_logWriter.write(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 	}
 
+	if (triggeredEvents & io.ChildProcessEvents.IoError) // PTYs fire IoError rather than Eof
+	{
+		readAllBufferedData();
+		m_logWriter.write(log.StdRecordCode.Error, m_process.m_ioError, m_process.m_ioError.m_size);
+
+		io.ChildProcessEvents processFinishedEvents = m_process.blockingWait(
+			io.ChildProcessEvents.ProcessFinished | io.ChildProcessEvents.ProcessCrashed,
+			Defaults.IoErrorWaitTimeout
+			);
+
+		if (!processFinishedEvents)
+		{
+			closeImpl();
+			return;
+		}
+
+		triggeredEvents |= processFinishedEvents;
+	}
+
 	if (triggeredEvents & io.ChildProcessEvents.ProcessFinished)
 	{
-		for (;;) // read all the buffered data
-		{
-			size_t result = m_process.read(m_readBuffer.m_p, m_readBuffer.m_size);
-			if (!result)
-				break;
-
-			m_logWriter.write(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
-		}
+		readAllBufferedData();
 
 		if (triggeredEvents & io.ChildProcessEvents.ProcessCrashed)
 		{
