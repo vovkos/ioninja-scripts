@@ -219,11 +219,12 @@ ProcessSession.createUi()
 		"Specify a command line to create a new process"
 		);
 
-	m_ptyProp = m_pluginHost.m_propertyGrid.createBoolProperty(
-		group,,
-		"Create PTY",
-		"Create a pseudoterminal for the process"
-		);
+	if (sys.g_systemInfo.m_osKind != sys.OsKind.Windows)
+		m_ptyProp = m_pluginHost.m_propertyGrid.createBoolProperty(
+			group,,
+			"Create PTY",
+			"Create a pseudoterminal for the process"
+			);
 
 	m_separateStderrProp = m_pluginHost.m_propertyGrid.createBoolProperty(
 		group,,
@@ -262,7 +263,7 @@ bool errorcode ProcessSession.start()
 	m_process.m_options = getChildProcessOptions();
 
 	io.ChildProcessStartFlags flags =
-		m_ptyProp.m_value ? io.ChildProcessStartFlags.Pty :
+		m_ptyProp && m_ptyProp.m_value ? io.ChildProcessStartFlags.Pty :
 		m_separateStderrProp.m_value ? io.ChildProcessStartFlags.SeparateStderr :
 		0;
 
@@ -382,8 +383,10 @@ void ProcessSession.load(doc.Storage* storage)
 {
 	m_commandLineCombo.loadHistory(storage, "commandLineHistory");
 	m_commandLineCombo.m_editText = storage.readString("commandLine");
-	m_ptyProp.m_value = storage.readBool("pty", Defaults.Pty);
 	m_separateStderrProp.m_value = storage.readBool("separateStderr", Defaults.SeparateStderr);
+
+	if (m_ptyProp)
+		m_ptyProp.m_value = storage.readBool("pty", Defaults.Pty);
 
 	m_bufferPropertySet.load(storage);
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
@@ -395,8 +398,10 @@ void ProcessSession.save(doc.Storage* storage)
 
 	m_commandLineCombo.saveHistory(storage, "commandLineHistory");
 	storage.writeString("commandLine", m_commandLineCombo.m_editText);
-	storage.writeBool("pty", m_ptyProp.m_value);
 	storage.writeBool("separateStderr", m_separateStderrProp.m_value);
+
+	if (m_ptyProp)
+		storage.writeBool("pty", m_ptyProp.m_value);
 }
 
 void ProcessSession.updateProperties()
@@ -423,8 +428,10 @@ bool errorcode ProcessSession.applyProperties()
 void ProcessSession.restoreDefaultProperties()
 {
 	m_bufferPropertySet.restoreDefaults();
-	m_ptyProp.m_value = Defaults.Pty;
 	m_separateStderrProp.m_value = Defaults.SeparateStderr;
+
+	if (m_ptyProp)
+		m_ptyProp.m_value = Defaults.Pty;
 }
 
 size_t errorcode ProcessSession.transmit(
@@ -568,8 +575,8 @@ reactor ProcessSession.m_uiReactor
 	m_actionTable[ActionId.Start].m_isEnabled = m_state != State.Terminating;
 	m_actionTable[ActionId.Detach].m_isEnabled = m_state;
 	m_statusPaneTable[StatusPaneId.State].m_text = m_stateName[m_state];
-	m_ptyProp.m_isEnabled = m_state == State.Idle;
-	m_separateStderrProp.m_isEnabled = m_state == State.Idle && !m_ptyProp.m_value;
+	m_ptyProp ? m_ptyProp.m_isEnabled = m_state == State.Idle : 0;
+	m_separateStderrProp.m_isEnabled = m_state == State.Idle && (!m_ptyProp || !m_ptyProp.m_value);
 }
 
 //..............................................................................
