@@ -680,6 +680,15 @@ SshSerialMonSession.onSshEvent(
 			m_monitor.write(m_readBuffer.m_p, size);
 		}
 
+		if (!m_monitor.m_msgCount)
+		{
+			if (m_monitor.m_buffer.m_size)
+				m_logWriter.write(log.StdRecordCode.Bin, m_monitor.m_buffer.m_p, m_monitor.m_buffer.m_size);
+
+			std.setError("invalid or missing tdevmon on the target machine");
+			m_logWriter.writeLastError(log.StdRecordCode.Error);
+		}
+
 		TcpDisconnectLogRecordParams params;
 		params.m_address = m_remoteAddress;
 		params.m_flags = TcpDisconnectLogRecordFlags.Remote;
