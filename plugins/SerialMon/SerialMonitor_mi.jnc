@@ -107,7 +107,7 @@ bool errorcode SerialMonitor_mi.processMsg(io.DeviceMonitorMiMsgHdr const* hdr)
 		if (hdr.m_paramSize < sizeof(std.Error) ||
 			hdr.m_paramSize < error.m_size)
 		{
-			std.setError("machine interface error: ERROR message too small");
+			std.setError("tdevmon MI error: ERROR message too small");
 			return false;
 		}
 
@@ -117,7 +117,7 @@ bool errorcode SerialMonitor_mi.processMsg(io.DeviceMonitorMiMsgHdr const* hdr)
 	case io.DeviceMonitorMiMsgCode.Start:
 		if (hdr.m_paramSize < sizeof(io.DeviceMonitorMiStartParams))
 		{
-			std.setError("machine interface error: START message too small");
+			std.setError("tdevmon MI error: START message too small");
 			return false;
 		}
 
@@ -137,7 +137,7 @@ bool errorcode SerialMonitor_mi.processMsg(io.DeviceMonitorMiMsgHdr const* hdr)
 	case io.DeviceMonitorMiMsgCode.Notification:
 		if (!m_processor)
 		{
-			std.setError("machine interface error: NOTIFY before START");
+			std.setError("tdevmon MI error: NOTIFY before START");
 			return false;
 		}
 
@@ -145,7 +145,7 @@ bool errorcode SerialMonitor_mi.processMsg(io.DeviceMonitorMiMsgHdr const* hdr)
 		if (hdr.m_paramSize < sizeof(io.DeviceMonitorNotifyHdr) ||
 			hdr.m_paramSize < sizeof(io.DeviceMonitorNotifyHdr) + notifyHdr.m_paramSize)
 		{
-			std.setError("machine interface error: NOTIFY message too small");
+			std.setError("tdevmon MI error: NOTIFY message too small");
 			return false;
 		}
 
@@ -172,7 +172,7 @@ void SerialMonitor_mi.handleUndefinedMessageCode(
 	if (size)
 		m_logWriter.write(log.StdRecordCode.Bin, p, size);
 
-	std.setError("machine interface error: invalid message");
+	std.setError("tdevmon MI error: invalid message");
 }
 
 //..............................................................................
