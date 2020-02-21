@@ -107,7 +107,7 @@ SshPropertySet.createProperties(
 			"Private key file (PEM) for SSH authentification"
 			);
 
-		m_privateKeyFileProp.m_fileDialogCaption = "Select Private Key File";
+		m_privateKeyFileProp.m_fileDialogTitle = "Select Private Key File";
 		m_privateKeyFileProp.m_filter = "SSH identity files (id_dsa id_rsa);;PEM files (*.pem);;All files (*.*)";
 	}
 
