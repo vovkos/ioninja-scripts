@@ -24,6 +24,7 @@ protected:
 	{
 		Pty                = true,
 		SeparateStderr     = true,
+		CleanEnvironment   = false,
 		IoErrorWaitTimeout = 1000,
 	}
 
@@ -90,6 +91,8 @@ protected:
 	ui.StringProperty* m_commandLineProp;
 	ui.BoolProperty* m_ptyProp;
 	ui.BoolProperty* m_separateStderrProp;
+	ui.BoolProperty* m_cleanEnvironmentProp;
+	ui.DictionaryProperty* m_environmentProp;
 	ui.BufferPropertySet m_bufferPropertySet;
 
 	// information grid
@@ -232,6 +235,27 @@ ProcessSession.createUi()
 		"Read and display STDOUT & STDERR separately"
 		);
 
+	m_cleanEnvironmentProp = m_pluginHost.m_propertyGrid.createBoolProperty(
+		group,,
+		"Clean environment",
+		"Start with a clean environment (don't inherit parent environment variables)"
+		);
+
+	m_environmentProp = m_pluginHost.m_propertyGrid.createDictionaryProperty(
+		group,,
+		"Environment variables",
+		"Custom environment variable values for the process"
+		);
+
+	std.HashTable environment;
+	environment["TERM"] = "xterm";
+
+	m_environmentProp.m_editDialogTitle = "Edit Environment Variables";
+	m_environmentProp.m_keyLabel = "Variable";
+	m_environmentProp.m_newKey = "NEW_VARIABLE";
+	m_environmentProp.m_newValue = "NEW_VARIABLE_VALUE";
+	m_environmentProp.m_value = environment;
+
 	m_bufferPropertySet.createPropertiesGrouped(m_pluginHost.m_propertyGrid);
 
 	// information grid
@@ -267,7 +291,10 @@ bool errorcode ProcessSession.start()
 		m_separateStderrProp.m_value ? io.ChildProcessStartFlags.SeparateStderr :
 		0;
 
-	m_process.start(commandLine,, flags);
+	if (m_cleanEnvironmentProp.m_value)
+		flags |= io.ChildProcessStartFlags.CleanEnvironment;
+
+	m_process.start(commandLine, m_environmentProp.m_value, flags);
 
 	uint_t pid = m_process.m_pid;
 
@@ -429,6 +456,7 @@ void ProcessSession.restoreDefaultProperties()
 {
 	m_bufferPropertySet.restoreDefaults();
 	m_separateStderrProp.m_value = Defaults.SeparateStderr;
+	m_cleanEnvironmentProp.m_value = Defaults.CleanEnvironment;
 
 	if (m_ptyProp)
 		m_ptyProp.m_value = Defaults.Pty;
@@ -575,8 +603,7 @@ reactor ProcessSession.m_uiReactor
 	m_actionTable[ActionId.Start].m_isEnabled = m_state != State.Terminating;
 	m_actionTable[ActionId.Detach].m_isEnabled = m_state;
 	m_statusPaneTable[StatusPaneId.State].m_text = m_stateName[m_state];
-	m_ptyProp ? m_ptyProp.m_isEnabled = m_state == State.Idle : 0;
-	m_separateStderrProp.m_isEnabled = m_state == State.Idle && (!m_ptyProp || !m_ptyProp.m_value);
+	m_separateStderrProp.m_isEnabled = !m_ptyProp || !m_ptyProp.m_value;
 }
 
 //..............................................................................
