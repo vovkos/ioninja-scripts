@@ -4,6 +4,7 @@
 //
 
 import "ui_ComboItem.jnc"
+import "std_HashTable.jnc"
 
 namespace ui {
 
@@ -174,6 +175,22 @@ opaque class FileProperty: Property
 	char const* autoget property m_fileDialogTitle;
 	char const* autoget property m_initialDirectory;
 	char const* autoget property m_filter;
+}
+
+//..............................................................................
+
+opaque class DictionaryProperty: Property
+{
+	construct(char const* name);
+
+	std.HashTable* bindable autoget property m_value; // onChanged is also fired when contents changes
+
+	char const* autoget property m_propertyDisplayName;
+	char const* autoget property m_editDialogTitle;
+	char const* autoget property m_keyLabel;
+	char const* autoget property m_valueLabel;
+	char const* autoget property m_newKey;
+	char const* autoget property m_newValue;
 }
 
 //..............................................................................
@@ -351,6 +368,21 @@ opaque class PropertyGrid
 		)
 	{
 		return createFileProperty(,, name, toolTipText);
+	}
+
+	DictionaryProperty* createDictionaryProperty(
+		Property* parentProp = null,
+		Property* beforeProp = null,
+		char const* name,
+		char const* toolTipText
+		);
+
+	DictionaryProperty* createDictionaryProperty(
+		char const* name,
+		char const* toolTipText
+		)
+	{
+		return createDictionaryProperty(,, name, toolTipText);
 	}
 }
 
@@ -532,6 +564,23 @@ FileProperty* PropertyGrid.createFileProperty(
 	)
 {
 	FileProperty* prop = new FileProperty(name);
+	prop.m_toolTipText = toolTipText;
+
+	parentProp ?
+		parentProp.addChildProperty(prop, beforeProp) :
+		addProperty(prop, beforeProp);
+
+	return prop;
+}
+
+DictionaryProperty* PropertyGrid.createDictionaryProperty(
+	Property* parentProp,
+	Property* beforeProp,
+	char const* name,
+	char const* toolTipText
+	)
+{
+	DictionaryProperty* prop = new DictionaryProperty(name);
 	prop.m_toolTipText = toolTipText;
 
 	parentProp ?
