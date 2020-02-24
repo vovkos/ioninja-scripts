@@ -247,14 +247,10 @@ ProcessSession.createUi()
 		"Custom environment variable values for the process"
 		);
 
-	std.HashTable environment;
-	environment["TERM"] = "xterm";
-
 	m_environmentProp.m_editDialogTitle = "Edit Environment Variables";
 	m_environmentProp.m_keyLabel = "Variable";
 	m_environmentProp.m_newKey = "NEW_VARIABLE";
 	m_environmentProp.m_newValue = "NEW_VARIABLE_VALUE";
-	m_environmentProp.m_value = environment;
 
 	m_bufferPropertySet.createPropertiesGrouped(m_pluginHost.m_propertyGrid);
 
@@ -415,6 +411,23 @@ void ProcessSession.load(doc.Storage* storage)
 	if (m_ptyProp)
 		m_ptyProp.m_value = storage.readBool("pty", Defaults.Pty);
 
+	std.HashTable environment;
+
+	size_t i = 0;
+	for (;; i++)
+	{
+		char const* s = storage.readString($"env-$i");
+		char const* p = strchr(s, '=');
+		if (!p)
+			break;
+
+		char const* key = strdup(s, p - s);
+		char const* value = strdup(p + 1);
+		environment[key] = value;
+	}
+
+	m_environmentProp.m_value = environment;
+
 	m_bufferPropertySet.load(storage);
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
 }
@@ -426,6 +439,13 @@ void ProcessSession.save(doc.Storage* storage)
 	m_commandLineCombo.saveHistory(storage, "commandLineHistory");
 	storage.writeString("commandLine", m_commandLineCombo.m_editText);
 	storage.writeBool("separateStderr", m_separateStderrProp.m_value);
+
+	size_t i = 0;
+	std.MapEntry const* entry = m_environmentProp.m_value.m_head;
+	for (; entry; entry = entry.m_next, i++)
+		storage.writeString($"env-$i", $"$(entry.m_key)=$(entry.m_value)");
+
+	storage.writeString($"env-$i", null);
 
 	if (m_ptyProp)
 		storage.writeBool("pty", m_ptyProp.m_value);
