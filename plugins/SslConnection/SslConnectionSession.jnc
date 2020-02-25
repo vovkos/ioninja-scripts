@@ -69,6 +69,8 @@ protected:
 		_Count,
 	}
 
+	static char const DefaultEnabledCiphers[] = "ALL:!EXPORT:!LOW:!aNULL:!eNULL:!SSLv2";
+
 protected:
 	// SSL socket
 
@@ -92,6 +94,7 @@ protected:
 	// property grid
 
 	ui.SocketPropertySet m_socketPropertySet;
+	ui.ComboProperty* m_enabledCipherProp;
 	ui.BufferPropertySet m_bufferPropertySet;
 
 	// information grid
@@ -194,6 +197,20 @@ SslConnectionSession.createUi()
 	ui.GroupProperty* propGroup = m_pluginHost.m_propertyGrid.createGroupProperty(
 		"Connection",
 		"SSL-specific connection settings"
+		);
+
+	ui.EnumPropertyOption enabledCipherTable[] =
+	{
+		{ "Default",        "ALL:!EXPORT:!LOW:!aNULL:!eNULL:!SSLv2" },
+		{ "Any encryption", "ALL" },
+		{ "All",            "ALL:eNULL" },
+	}
+
+	m_enabledCipherProp = m_pluginHost.m_propertyGrid.createComboProperty(
+		"Enabled ciphers",
+		"Fine-tune the OpenSSL cipher suite",
+		enabledCipherTable,
+		countof(enabledCipherTable)
 		);
 
 	m_socketPropertySet.createProperties(
@@ -417,6 +434,7 @@ void SslConnectionSession.load(doc.Storage* storage)
 {
 	m_addressCombo.loadHistory(storage, "addressHistory");
 	m_addressCombo.m_editText = storage.readString("address");
+	m_enabledCipherProp.m_value = storage.readString("enabledCiphers", DefaultEnabledCiphers);
 
 	m_socketPropertySet.load(storage);
 	m_bufferPropertySet.load(storage);
@@ -430,6 +448,7 @@ void SslConnectionSession.save(doc.Storage* storage)
 
 	m_addressCombo.saveHistory(storage, "addressHistory");
 	storage.writeString("address", m_addressCombo.m_editText); // overwrite
+	storage.writeString("enabledCiphers", m_enabledCipherProp.m_value);
 }
 
 void SslConnectionSession.updateProperties()
@@ -524,13 +543,13 @@ SslConnectionSession.onSocketEvent(
 	{
 		// write current cipher & all certificates
 
-		m_logWriter.write(SslLogRecordCode.SslCipher, m_socket.m_cipherName);
+		m_logWriter.write(SslLogRecordCode.SslCipher, m_socket.m_currentCipher.m_name);
 
 		std.Buffer buffer;
 		size_t count = m_socket.m_peerCertificateChainLength;
 		for (size_t i = 0; i < count; i++)
 		{
-			m_socket.m_peerCertificateChainEntry[i].encode(buffer, io.SslCertFormat.Der);
+			m_socket.m_peerCertificateChain[i].encode(buffer, io.SslCertFormat.Der);
 			m_logWriter.write(SslLogRecordCode.SslCertificate, buffer.m_p, buffer.m_size);
 		}
 

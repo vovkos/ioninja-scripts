@@ -455,6 +455,7 @@ SslListenerSession.onListenerSocketEvent(
 		io.SocketAddress address;
 		io.SslSocket* socket = m_listenerSocket.accept(&address, true);
 
+	nestedscope:
 		if (m_connectionState == ConnectionState.Connected && !m_overrideOldConnectionProp.m_value)
 		{
 			socket.close();
@@ -463,18 +464,23 @@ SslListenerSession.onListenerSocketEvent(
 			return;
 		}
 
-		socket.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
-		socket.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
-		socket.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
-		socket.m_options = ui.getSocketOptions(m_socketPropertySet, m_bufferPropertySet);
-		socket.loadCertificate(m_certificateFileNameProp.m_value);
-		socket.loadPrivateKey(m_privateKeyFileNameProp.m_value);
-		socket.unsuspend();
-
 		disconnect();
 
 		m_logWriter.write(SocketLogRecordCode.ClientConnected, &address, sizeof(address));
 		m_logWriter.write(SslLogRecordCode.SslHandshaking);
+
+		socket.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
+		socket.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
+		socket.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
+		socket.m_options = ui.getSocketOptions(m_socketPropertySet, m_bufferPropertySet);
+
+		if (m_certificateFileNameProp.m_value)
+			socket.loadCertificate(m_certificateFileNameProp.m_value);
+
+		if (m_privateKeyFileNameProp.m_value)
+			socket.loadPrivateKey(m_privateKeyFileNameProp.m_value);
+
+		socket.unsuspend();
 
 		m_remoteAddress = address;
 		m_connectionSocket = socket;
@@ -483,7 +489,8 @@ SslListenerSession.onListenerSocketEvent(
 		waitConnectionSocketEvents();
 
 	catch:
-		m_logWriter.writeLastError(log.StdRecordCode.Error);
+		m_logWriter.writeLastError(SocketLogRecordCode.ConnectError);
+		socket.close();
 	}
 
 	waitListenerSocketEvents();
@@ -511,13 +518,13 @@ SslListenerSession.onConnectionSocketEvent(
 	{
 		// write current cipher & all certificates
 
-		m_logWriter.write(SslLogRecordCode.SslCipher, m_connectionSocket.m_cipherName);
+		m_logWriter.write(SslLogRecordCode.SslCipher, m_connectionSocket.m_currentCipher.m_name);
 
 		std.Buffer buffer;
 		size_t count = m_connectionSocket.m_peerCertificateChainLength;
 		for (size_t i = 0; i < count; i++)
 		{
-			m_connectionSocket.m_peerCertificateChainEntry[i].encode(buffer, io.SslCertFormat.Der);
+			m_connectionSocket.m_peerCertificateChain[i].encode(buffer, io.SslCertFormat.Der);
 			m_logWriter.write(SslLogRecordCode.SslCertificate, buffer.m_p, buffer.m_size);
 		}
 
