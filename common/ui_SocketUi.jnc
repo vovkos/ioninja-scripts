@@ -197,7 +197,7 @@ class SocketPropertySet
 		UdpBroadcast     = true,
 	}
 
-	static char DefaultRemoteAddress[] = "ioninja.com";
+	static char const DefaultRemoteAddress[] = "ioninja.com";
 
 	StringProperty* m_remoteAddressProp;
 	IntProperty* m_remotePortProp;
