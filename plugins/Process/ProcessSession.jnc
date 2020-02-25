@@ -407,6 +407,7 @@ void ProcessSession.load(doc.Storage* storage)
 	m_commandLineCombo.loadHistory(storage, "commandLineHistory");
 	m_commandLineCombo.m_editText = storage.readString("commandLine");
 	m_separateStderrProp.m_value = storage.readBool("separateStderr", Defaults.SeparateStderr);
+	m_cleanEnvironmentProp.m_value = storage.writeBool("cleanEnvironment", Defaults.CleanEnvironment);
 
 	if (m_ptyProp)
 		m_ptyProp.m_value = storage.readBool("pty", Defaults.Pty);
@@ -439,6 +440,7 @@ void ProcessSession.save(doc.Storage* storage)
 	m_commandLineCombo.saveHistory(storage, "commandLineHistory");
 	storage.writeString("commandLine", m_commandLineCombo.m_editText);
 	storage.writeBool("separateStderr", m_separateStderrProp.m_value);
+	storage.writeBool("cleanEnvironment", m_cleanEnvironmentProp.m_value);
 
 	size_t i = 0;
 	std.MapEntry const* entry = m_environmentProp.m_value.m_head;
