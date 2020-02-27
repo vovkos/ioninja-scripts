@@ -199,26 +199,29 @@ SslConnectionSession.createUi()
 		"SSL-specific connection settings"
 		);
 
-	ui.EnumPropertyOption enabledCipherTable[] =
-	{
-		{ "Default",        "ALL:!EXPORT:!LOW:!aNULL:!eNULL:!SSLv2" },
-		{ "Any encryption", "ALL" },
-		{ "All",            "ALL:eNULL" },
-	}
-
-	m_enabledCipherProp = m_pluginHost.m_propertyGrid.createComboProperty(
-		"Enabled ciphers",
-		"Fine-tune the OpenSSL cipher suite",
-		enabledCipherTable,
-		countof(enabledCipherTable)
-		);
-
 	m_socketPropertySet.createProperties(
 		m_pluginHost.m_propertyGrid,
 		propGroup,,
 		ui.SocketPropertySet.PropertyId.AllTcpClient |
 		ui.SocketPropertySet.PropertyId.UseReconnect |
 		ui.SocketPropertySet.PropertyId.ReconnectTimeout
+		);
+
+	ui.EnumPropertyOption enabledCipherTable[] =
+	{
+		{ "Default", "ALL:!EXPORT:!LOW:!aNULL:!eNULL:!SSLv2" },
+		{ "Encrypted & authenticated", "ALL:!aNULL" },
+		{ "Encrypted", "ALL" },
+		{ "All", "ALL:eNULL" },
+	}
+
+	m_enabledCipherProp = m_pluginHost.m_propertyGrid.createComboProperty(
+		propGroup,,
+		"Enabled ciphers",
+		"Enter OpenSSL cipher-string",
+		"Fine-tune the OpenSSL cipher suite",
+		enabledCipherTable,
+		countof(enabledCipherTable)
 		);
 
 	m_socketPropertySet.m_defaultRemotePort = 443;
@@ -322,6 +325,7 @@ bool errorcode SslConnectionSession.connect(io.SocketAddress const* remoteAddres
 	m_state = State.TcpConnecting;
 	m_remoteAddress = *remoteAddress;
 
+	m_socket.enableCiphers(m_enabledCipherProp.m_value);
 	m_socket.connect(remoteAddress);
 
 	m_localAddress = m_socket.m_address;
