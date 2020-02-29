@@ -82,7 +82,7 @@ protected:
 
 	ui.StringProperty* m_pipeNameProp;
 	ui.BoolProperty* m_messageModeProp;
-	ui.BoolProperty* m_overrideOldConnectionProp;
+	ui.BoolProperty* m_overrideConnectionProp;
 	ui.BufferPropertySet m_bufferPropertySet;
 
 	// information grid
@@ -198,7 +198,7 @@ PipeListenerSession.createUi()
 		"Read and write using the named pipe message mode"
 		);
 
-	m_overrideOldConnectionProp = m_pluginHost.m_propertyGrid.createBoolProperty(
+	m_overrideConnectionProp = m_pluginHost.m_propertyGrid.createBoolProperty(
 		group,,
 		"Override connections",
 		"Accept incoming connection even if already connected"
@@ -335,7 +335,7 @@ void PipeListenerSession.load(doc.Storage* storage)
 	m_pipeNameCombo.loadHistory(storage, "pipeNameHistory");
 	m_pipeNameCombo.m_editText = storage.readString("pipeName");
 	m_messageModeProp.m_value = storage.readBool("messageMode", Defaults.MessageMode);
-	m_overrideOldConnectionProp.m_value = storage.readBool("overrideOldConnection", Defaults.OverrideConnection);
+	m_overrideConnectionProp.m_value = storage.readBool("overrideOldConnection", Defaults.OverrideConnection);
 
 	m_bufferPropertySet.load(storage);
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
@@ -348,7 +348,7 @@ void PipeListenerSession.save(doc.Storage* storage)
 	m_pipeNameCombo.saveHistory(storage, "pipeNameHistory");
 	storage.writeString("pipeName", m_pipeNameCombo.m_editText);
 	storage.writeBool("messageMode", m_messageModeProp.m_value);
-	storage.writeBool("overrideOldConnection", m_overrideOldConnectionProp.m_value);
+	storage.writeBool("overrideOldConnection", m_overrideConnectionProp.m_value);
 }
 
 void PipeListenerSession.updateProperties()
@@ -386,7 +386,7 @@ bool errorcode PipeListenerSession.applyProperties()
 
 void PipeListenerSession.restoreDefaultProperties()
 {
-	m_overrideOldConnectionProp.m_value = Defaults.OverrideConnection;
+	m_overrideConnectionProp.m_value = Defaults.OverrideConnection;
 	m_bufferPropertySet.restoreDefaults();
 }
 
@@ -424,7 +424,7 @@ PipeListenerSession.onListenerPipeEvent(
 	{
 		io.FileStream* pipe = m_listenerPipe.accept();
 
-		if (m_connectionState == State.Opened && !m_overrideOldConnectionProp.m_value)
+		if (m_connectionState == State.Opened && !m_overrideConnectionProp.m_value)
 		{
 			pipe.close();
 			m_logWriter.write(PipeListenerLogRecordCode.ClientRejected);
