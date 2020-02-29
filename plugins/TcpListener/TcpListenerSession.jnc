@@ -86,7 +86,6 @@ protected:
 
 	// property grid
 
-	ui.BoolProperty* m_overrideOldConnectionProp;
 	ui.SocketPropertySet m_socketPropertySet;
 	ui.BufferPropertySet m_bufferPropertySet;
 
@@ -202,12 +201,6 @@ TcpListenerSession.createUi()
 
 	m_socketPropertySet.m_defaultLocalPort = Defaults.LocalPort;
 
-	m_overrideOldConnectionProp = m_pluginHost.m_propertyGrid.createBoolProperty(
-		group,,
-		"Override connections",
-		"Accept incoming connection even if already connected"
-		);
-
 	m_bufferPropertySet.createPropertiesGrouped(m_pluginHost.m_propertyGrid);
 
 	// information grid
@@ -306,7 +299,6 @@ void TcpListenerSession.load(doc.Storage* storage)
 	m_portCombo.loadHistory(storage, "portHistory");
 	m_adapterCombo.m_currentIndex  = storage.readInt("adapterIdx");
 	m_portCombo.m_editText = storage.readString("port");
-	m_overrideOldConnectionProp.m_value = storage.readBool("overrideOldConnection");
 
 	m_socketPropertySet.load(storage);
 	m_bufferPropertySet.load(storage);
@@ -321,7 +313,6 @@ void TcpListenerSession.save(doc.Storage* storage)
 	m_portCombo.saveHistory(storage, "portHistory");
 	storage.writeInt("adapterIdx", (int) m_adapterCombo.m_currentIndex);
 	storage.writeString("port", m_portCombo.m_editText);
-	storage.writeBool("overrideOldConnection", m_overrideOldConnectionProp.m_value);
 }
 
 void TcpListenerSession.updateProperties()
@@ -351,7 +342,6 @@ void TcpListenerSession.restoreDefaultProperties()
 {
 	m_socketPropertySet.restoreDefaults();
 	m_bufferPropertySet.restoreDefaults();
-	m_overrideOldConnectionProp.m_value = true;
 }
 
 size_t errorcode TcpListenerSession.transmit(
@@ -414,7 +404,7 @@ TcpListenerSession.onListenerSocketEvent(
 		io.SocketAddress address;
 		io.Socket* socket = m_listenerSocket.accept(&address, true);
 
-		if (m_connectionState == ConnectionState.Connected && !m_overrideOldConnectionProp.m_value)
+		if (m_connectionState == ConnectionState.Connected && !m_socketPropertySet.m_overrideConnectionProp.m_value)
 		{
 			socket.close();
 			m_logWriter.write(SocketLogRecordCode.ClientRejected, &address, sizeof(address));
