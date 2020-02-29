@@ -8,6 +8,7 @@ import "io_base.jncx"
 import "io_ssl.jncx"
 import "ui_History.jnc"
 import "ui_SocketUi.jnc"
+import "ui_SslPropertySet.jnc"
 import "ui_BufferPropertySet.jnc"
 import "ui_StdSessionInfoSet.jnc"
 import "log_ThroughputCalc.jnc"
@@ -88,9 +89,7 @@ protected:
 	// property grid
 
 	ui.SocketPropertySet m_socketPropertySet;
-	ui.BoolProperty* m_overrideOldConnectionProp;
-	ui.FileProperty* m_certificateFileNameProp;
-	ui.FileProperty* m_privateKeyFileNameProp;
+	ui.SslPropertySet m_sslPropertySet;
 	ui.BufferPropertySet m_bufferPropertySet;
 
 	// information grid
@@ -205,22 +204,10 @@ SslListenerSession.createUi()
 
 	m_socketPropertySet.m_defaultLocalPort = Defaults.LocalPort;
 
-	m_overrideOldConnectionProp = m_pluginHost.m_propertyGrid.createBoolProperty(
+	m_sslPropertySet.createProperties(
+		m_pluginHost.m_propertyGrid,
 		group,,
-		"Override connections",
-		"Accept incoming connection even if already connected"
-		);
-
-	m_certificateFileNameProp = m_pluginHost.m_propertyGrid.createFileProperty(
-		group,,
-		"Certificate",
-		"Specifify a certificate for your SSL server"
-		);
-
-	m_privateKeyFileNameProp = m_pluginHost.m_propertyGrid.createFileProperty(
-		group,,
-		"Private key",
-		"Specifify a private key for your SSL server"
+		ui.SslPropertySet.PropertyId.AllServer
 		);
 
 	m_bufferPropertySet.createPropertiesGrouped(
@@ -324,11 +311,9 @@ void SslListenerSession.load(doc.Storage* storage)
 	m_portCombo.loadHistory(storage, "portHistory");
 	m_adapterCombo.m_currentIndex  = storage.readInt("adapterIdx");
 	m_portCombo.m_editText = storage.readString("port");
-	m_overrideOldConnectionProp.m_value = storage.readBool("overrideOldConnection");
-	m_certificateFileNameProp.m_value = storage.readString("certificate");
-	m_privateKeyFileNameProp.m_value = storage.readString("privateKey");
 
 	m_socketPropertySet.load(storage);
+	m_sslPropertySet.load(storage);
 	m_bufferPropertySet.load(storage);
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
 }
@@ -336,14 +321,12 @@ void SslListenerSession.load(doc.Storage* storage)
 void SslListenerSession.save(doc.Storage* storage)
 {
 	m_socketPropertySet.save(storage);
+	m_sslPropertySet.save(storage);
 	m_bufferPropertySet.save(storage);
 
 	m_portCombo.saveHistory(storage, "portHistory");
 	storage.writeInt("adapterIdx", (int) m_adapterCombo.m_currentIndex);
 	storage.writeString("port", m_portCombo.m_editText);
-	storage.writeBool("overrideOldConnection", m_overrideOldConnectionProp.m_value);
-	storage.writeString("certificate", m_certificateFileNameProp.m_value);
-	storage.writeString("privateKey", m_privateKeyFileNameProp.m_value);
 }
 
 void SslListenerSession.updateProperties()
@@ -371,8 +354,8 @@ bool errorcode SslListenerSession.applyProperties()
 void SslListenerSession.restoreDefaultProperties()
 {
 	m_socketPropertySet.restoreDefaults();
+	m_sslPropertySet.restoreDefaults();
 	m_bufferPropertySet.restoreDefaults();
-	m_overrideOldConnectionProp.m_value = true;
 }
 
 size_t errorcode SslListenerSession.transmit(
@@ -456,7 +439,7 @@ SslListenerSession.onListenerSocketEvent(
 		io.SslSocket* socket = m_listenerSocket.accept(&address, true);
 
 	nestedscope:
-		if (m_connectionState == ConnectionState.Connected && !m_overrideOldConnectionProp.m_value)
+		if (m_connectionState == ConnectionState.Connected && !m_socketPropertySet.m_overrideConnectionProp.m_value)
 		{
 			socket.close();
 			m_logWriter.write(SocketLogRecordCode.ClientRejected, &address, sizeof(address));
@@ -474,11 +457,15 @@ SslListenerSession.onListenerSocketEvent(
 		socket.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
 		socket.m_options = ui.getSocketOptions(m_socketPropertySet, m_bufferPropertySet);
 
-		if (m_certificateFileNameProp.m_value)
-			socket.loadCertificate(m_certificateFileNameProp.m_value);
+		socket.enableCiphers(m_sslPropertySet.m_cipherSetProp.m_value);
+		socket.setEphemeralDhStdParams(m_sslPropertySet.m_ephemeralDhStdParamsProp.m_value);
+		socket.setEphemeralEcdhCurve(m_sslPropertySet.m_ephemeralEcdhCurveProp.m_value);
 
-		if (m_privateKeyFileNameProp.m_value)
-			socket.loadPrivateKey(m_privateKeyFileNameProp.m_value);
+		if (m_sslPropertySet.m_certificateFileProp.m_value)
+			socket.loadCertificate(m_sslPropertySet.m_certificateFileProp.m_value);
+
+		if (m_sslPropertySet.m_privateKeyFileProp.m_value)
+			socket.loadPrivateKey(m_sslPropertySet.m_privateKeyFileProp.m_value);
 
 		socket.unsuspend();
 

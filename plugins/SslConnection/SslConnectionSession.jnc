@@ -9,6 +9,7 @@ import "io_ssl.jncx"
 import "io_HostNameResolver.jnc"
 import "ui_History.jnc"
 import "ui_SocketUi.jnc"
+import "ui_SslPropertySet.jnc"
 import "ui_BufferPropertySet.jnc"
 import "ui_StdSessionInfoSet.jnc"
 import "log_ThroughputCalc.jnc"
@@ -69,8 +70,6 @@ protected:
 		_Count,
 	}
 
-	static char const DefaultEnabledCiphers[] = "ALL:!EXPORT:!LOW:!aNULL:!eNULL:!SSLv2";
-
 protected:
 	// SSL socket
 
@@ -94,7 +93,7 @@ protected:
 	// property grid
 
 	ui.SocketPropertySet m_socketPropertySet;
-	ui.ComboProperty* m_enabledCipherProp;
+	ui.SslPropertySet m_sslPropertySet;
 	ui.BufferPropertySet m_bufferPropertySet;
 
 	// information grid
@@ -207,24 +206,13 @@ SslConnectionSession.createUi()
 		ui.SocketPropertySet.PropertyId.ReconnectTimeout
 		);
 
-	ui.EnumPropertyOption enabledCipherTable[] =
-	{
-		{ "Default", "ALL:!EXPORT:!LOW:!aNULL:!eNULL:!SSLv2" },
-		{ "Encrypted & authenticated", "ALL:!aNULL" },
-		{ "Encrypted", "ALL" },
-		{ "All", "ALL:eNULL" },
-	}
-
-	m_enabledCipherProp = m_pluginHost.m_propertyGrid.createComboProperty(
-		propGroup,,
-		"Enabled ciphers",
-		"Enter OpenSSL cipher-string",
-		"Fine-tune the OpenSSL cipher suite",
-		enabledCipherTable,
-		countof(enabledCipherTable)
-		);
-
 	m_socketPropertySet.m_defaultRemotePort = 443;
+
+	m_sslPropertySet.createProperties(
+		m_pluginHost.m_propertyGrid,
+		propGroup,,
+		ui.SslPropertySet.PropertyId.AllClient
+		);
 
 	m_bufferPropertySet.createPropertiesGrouped(
 		m_pluginHost.m_propertyGrid,,,
@@ -325,7 +313,14 @@ bool errorcode SslConnectionSession.connect(io.SocketAddress const* remoteAddres
 	m_state = State.TcpConnecting;
 	m_remoteAddress = *remoteAddress;
 
-	m_socket.enableCiphers(m_enabledCipherProp.m_value);
+	m_socket.enableCiphers(m_sslPropertySet.m_cipherSetProp.m_value);
+
+	if (m_sslPropertySet.m_certificateFileProp.m_value)
+		m_socket.loadCertificate(m_sslPropertySet.m_certificateFileProp.m_value);
+
+	if (m_sslPropertySet.m_privateKeyFileProp.m_value)
+		m_socket.loadPrivateKey(m_sslPropertySet.m_privateKeyFileProp.m_value);
+
 	m_socket.connect(remoteAddress);
 
 	m_localAddress = m_socket.m_address;
@@ -438,9 +433,9 @@ void SslConnectionSession.load(doc.Storage* storage)
 {
 	m_addressCombo.loadHistory(storage, "addressHistory");
 	m_addressCombo.m_editText = storage.readString("address");
-	m_enabledCipherProp.m_value = storage.readString("enabledCiphers", DefaultEnabledCiphers);
 
 	m_socketPropertySet.load(storage);
+	m_sslPropertySet.load(storage);
 	m_bufferPropertySet.load(storage);
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
 }
@@ -448,11 +443,11 @@ void SslConnectionSession.load(doc.Storage* storage)
 void SslConnectionSession.save(doc.Storage* storage)
 {
 	m_socketPropertySet.save(storage);
+	m_sslPropertySet.save(storage);
 	m_bufferPropertySet.save(storage);
 
 	m_addressCombo.saveHistory(storage, "addressHistory");
 	storage.writeString("address", m_addressCombo.m_editText); // overwrite
-	storage.writeString("enabledCiphers", m_enabledCipherProp.m_value);
 }
 
 void SslConnectionSession.updateProperties()
