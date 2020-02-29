@@ -1,0 +1,225 @@
+//..............................................................................
+//
+// SSL user interface
+//
+
+import "ui_ToolBar.jnc"
+import "ui_PropertyGrid.jnc"
+import "io_ssl.jncx"
+import "io_SslSocket.jnc"
+
+namespace ui {
+
+//! \addtogroup common-ui
+//! @{
+
+//..............................................................................
+
+class SslPropertySet
+{
+	bitflag enum PropertyId
+	{
+		CipherSet,
+		CertificateFile,
+		PrivateKeyFile,
+		EphemeralDhStdParams,
+		EphemeralEcdhCurve,
+
+		AllClient =
+			CipherSet |
+			CertificateFile |
+			PrivateKeyFile,
+
+		AllServer =
+			CipherSet |
+			CertificateFile |
+			PrivateKeyFile |
+			EphemeralDhStdParams |
+			EphemeralEcdhCurve,
+	}
+
+	enum Defaults
+	{
+		TcpPort              = 443,
+		EphemeralDhStdParams = io.SslStdDh.Dh1024x160,
+	}
+
+	static char const DefaultCipherSet[] = "ALL:!EXPORT:!LOW:!aNULL:!eNULL:!SSLv2";
+	static char const DefaultEphemeralEcdhCurve[] = "prime256v1"; // mostl commonly used one
+
+	ComboProperty* m_cipherSetProp;
+	FileProperty* m_certificateFileProp;
+	FileProperty* m_privateKeyFileProp;
+	EnumProperty* m_ephemeralDhStdParamsProp;
+	ComboProperty* m_ephemeralEcdhCurveProp;
+
+	createProperties(
+		PropertyGrid* propertyGrid,
+		GroupProperty* group = null,
+		Property* insertBefore = null,
+		PropertyId mask = PropertyId.AllClient
+		);
+
+	load(doc.Storage* storage);
+	save(doc.Storage* storage);
+	restoreDefaults();
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+SslPropertySet.createProperties(
+	PropertyGrid* propertyGrid,
+	GroupProperty* group,
+	Property* insertBefore,
+	PropertyId mask
+	)
+{
+	if (mask & PropertyId.CipherSet)
+	{
+		static ui.EnumPropertyOption enabledCipherTable[] =
+		{
+			{ "Default", DefaultCipherSet },
+			{ "Encrypted & authenticated", "ALL:!aNULL" },
+			{ "Encrypted", "ALL" },
+			{ "All", "ALL:eNULL" },
+		}
+
+		m_cipherSetProp = propertyGrid.createComboProperty(
+			group,
+			insertBefore,
+			"Enabled ciphers",
+			"Enter OpenSSL cipher-string",
+			"Fine-tune the OpenSSL cipher suite",
+			enabledCipherTable,
+			countof(enabledCipherTable)
+			);
+	}
+
+	if (mask & PropertyId.CertificateFile)
+		m_certificateFileProp = propertyGrid.createFileProperty(
+			group,
+			insertBefore,
+			"Certificate",
+			"Specifify a certificate for your SSL server"
+			);
+
+	if (mask & PropertyId.PrivateKeyFile)
+		m_privateKeyFileProp = propertyGrid.createFileProperty(
+			group,
+			insertBefore,
+			"Private key",
+			"Specifify a private key for your SSL server"
+		);
+
+	if (mask & PropertyId.EphemeralDhStdParams)
+	{
+		static ui.EnumPropertyOption stdDhTable[] =
+		{
+			{ "DH 1024-bit MODP (160-bit prime)", io.SslStdDh.Dh1024x160 },
+			{ "DH 2048-bit MODP (224-bit prime)", io.SslStdDh.Dh2048x224 },
+			{ "DH 2048-bit MODP (256-bit prime)", io.SslStdDh.Dh2048x256 },
+		}
+
+		m_ephemeralDhStdParamsProp = propertyGrid.createEnumProperty(
+			group,
+			insertBefore,
+			"Ephemeral DH",
+			"Parameters to use for the ephemeral DH key exchange",
+			stdDhTable,
+			countof(stdDhTable)
+			);
+	}
+
+	if (mask & PropertyId.EphemeralEcdhCurve)
+	{
+		static ui.EnumPropertyOption ecCurveTable[] =
+		{
+			{ "SECG/WTLS curve (112-bit prime)",       "secp112r1" },
+			{ "SECG curve (112-bit prime)",            "secp112r2" },
+			{ "SECG curve (128-bit prime)",            "secp128r1" },
+			{ "SECG curve (128-bit prime)",            "secp128r2" },
+			{ "SECG curve (160-bit prime)",            "secp160k1" },
+			{ "SECG curve (160-bit prime)",            "secp160r1" },
+			{ "SECG/WTLS curve (160-bit prime)",       "secp160r2" },
+			{ "SECG curve (192-bit prime)",            "secp192k1" },
+			{ "SECG curve (224-bit prime)",            "secp224k1" },
+			{ "NIST/SECG curve (224-bit prime)",       "secp224r1" },
+			{ "SECG curve (256-bit prime)",            "secp256k1" },
+			{ "NIST/SECG curve (384-bit prime)",       "secp384r1" },
+			{ "NIST/SECG curve (521-bit prime)",       "secp521r1" },
+			{ "NIST/X9.62/SECG curve (192-bit prime)", "prime192v1" },
+			{ "X9.62 curve (192-bit prime)",           "prime192v2" },
+			{ "X9.62 curve (192-bit prime)",           "prime192v3" },
+			{ "X9.62 curve (239-bit prime)",           "prime239v1" },
+			{ "X9.62 curve (239-bit prime)",           "prime239v2" },
+			{ "X9.62 curve (239-bit prime)",           "prime239v3" },
+			{ "X9.62/SECG curve (256-bit prime)",      "prime256v1" },
+
+			// can also specify any curve supported by openssl
+		}
+
+		m_ephemeralEcdhCurveProp = propertyGrid.createComboProperty(
+			group,
+			insertBefore,
+			"Ephemeral ECDH curve",
+			"Enter EC curve name",
+			"EC curve to use for the ephemeral ECDH key exchange",
+			ecCurveTable,
+			countof(ecCurveTable)
+			);
+	}
+}
+
+SslPropertySet.load(doc.Storage* storage)
+{
+	if (m_cipherSetProp)
+		m_cipherSetProp.m_value = storage.readString("cipherSet", DefaultCipherSet);
+
+	if (m_certificateFileProp)
+		m_certificateFileProp.m_value = storage.readString("certificateFile");
+
+	if (m_privateKeyFileProp)
+		m_privateKeyFileProp.m_value = storage.readString("privateKeyFile");
+
+	if (m_ephemeralDhStdParamsProp)
+		m_ephemeralDhStdParamsProp.m_value = storage.readInt("ephemeralDhStdParams", Defaults.EphemeralDhStdParams);
+
+	if (m_ephemeralEcdhCurveProp)
+		m_ephemeralEcdhCurveProp.m_value = storage.readString("ephemeralEcdhCurve", DefaultEphemeralEcdhCurve);
+}
+
+SslPropertySet.save(doc.Storage* storage)
+{
+	if (m_cipherSetProp)
+		storage.writeString("cipherSet", m_cipherSetProp.m_value);
+
+	if (m_certificateFileProp)
+		storage.writeString("certificateFile", m_certificateFileProp.m_value);
+
+	if (m_privateKeyFileProp)
+		storage.writeString("privateKeyFile", m_privateKeyFileProp.m_value);
+
+	if (m_ephemeralDhStdParamsProp)
+		storage.writeInt("ephemeralDhStdParams", m_ephemeralDhStdParamsProp.m_value);
+
+	if (m_ephemeralEcdhCurveProp)
+		storage.writeString("ephemeralEcdhCurveProp", m_ephemeralEcdhCurveProp.m_value);
+}
+
+SslPropertySet.restoreDefaults()
+{
+	if (m_cipherSetProp)
+		m_cipherSetProp.m_value = DefaultCipherSet;
+
+	if (m_ephemeralDhStdParamsProp)
+		m_ephemeralDhStdParamsProp.m_value = Defaults.EphemeralDhStdParams;
+
+	if (m_ephemeralEcdhCurveProp)
+		m_ephemeralEcdhCurveProp.m_value = DefaultEphemeralEcdhCurve;
+}
+
+//..............................................................................
+
+//! @}
+
+} // namespace ui
