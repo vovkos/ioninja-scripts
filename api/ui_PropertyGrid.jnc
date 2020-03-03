@@ -413,6 +413,14 @@ opaque class PropertyGrid
 	{
 		return createDictionaryProperty(,, name, toolTipText);
 	}
+
+protected:
+	void finalizeCreateProperty(
+		Property* prop,
+		Property* parentProp,
+		Property* beforeProp,
+		char const* toolTipText
+		);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -425,12 +433,7 @@ GroupProperty* PropertyGrid.createGroupProperty(
 	)
 {
 	GroupProperty* prop = new GroupProperty(name);
-	prop.m_toolTipText = toolTipText;
-
-	parentProp ?
-		parentProp.addChildProperty(prop, beforeProp) :
-		addProperty(prop, beforeProp);
-
+	finalizeCreateProperty(prop, parentProp, beforeProp, toolTipText);
 	return prop;
 }
 
@@ -442,12 +445,7 @@ BoolProperty* PropertyGrid.createBoolProperty(
 	)
 {
 	BoolProperty* prop = new BoolProperty(name);
-	prop.m_toolTipText = toolTipText;
-
-	parentProp ?
-		parentProp.addChildProperty(prop, beforeProp) :
-		addProperty(prop, beforeProp);
-
+	finalizeCreateProperty(prop, parentProp, beforeProp, toolTipText);
 	return prop;
 }
 
@@ -459,12 +457,7 @@ IntProperty* PropertyGrid.createIntProperty(
 	)
 {
 	IntProperty* prop = new IntProperty(name);
-	prop.m_toolTipText = toolTipText;
-
-	parentProp ?
-		parentProp.addChildProperty(prop, beforeProp) :
-		addProperty(prop, beforeProp);
-
+	finalizeCreateProperty(prop, parentProp, beforeProp, toolTipText);
 	return prop;
 }
 
@@ -478,12 +471,7 @@ StringProperty* PropertyGrid.createStringProperty(
 {
 	StringProperty* prop = new StringProperty(name);
 	prop.m_placeholderText = placeholderText;
-	prop.m_toolTipText = toolTipText;
-
-	parentProp ?
-		parentProp.addChildProperty(prop, beforeProp) :
-		addProperty(prop, beforeProp);
-
+	finalizeCreateProperty(prop, parentProp, beforeProp, toolTipText);
 	return prop;
 }
 
@@ -497,13 +485,8 @@ EnumProperty* PropertyGrid.createEnumProperty(
 	)
 {
 	EnumProperty* prop = new EnumProperty(name);
-	prop.m_toolTipText = toolTipText;
 	prop.setOptions(optionArray, count);
-
-	parentProp ?
-		parentProp.addChildProperty(prop, beforeProp) :
-		addProperty(prop, beforeProp);
-
+	finalizeCreateProperty(prop, parentProp, beforeProp, toolTipText);
 	return prop;
 }
 
@@ -519,15 +502,11 @@ ComboProperty* PropertyGrid.createComboProperty(
 {
 	ComboProperty* prop = new ComboProperty(name);
 	prop.m_placeholderText = placeholderText;
-	prop.m_toolTipText = toolTipText;
 
 	if (count)
 		prop.setOptions(optionArray, count);
 
-	parentProp ?
-		parentProp.addChildProperty(prop, beforeProp) :
-		addProperty(prop, beforeProp);
-
+	finalizeCreateProperty(prop, parentProp, beforeProp, toolTipText);
 	return prop;
 }
 
@@ -541,13 +520,8 @@ FlagProperty* PropertyGrid.createFlagProperty(
 	)
 {
 	FlagProperty* prop = new FlagProperty(name);
-	prop.m_toolTipText = toolTipText;
 	prop.setOptions(optionArray, count);
-
-	parentProp ?
-		parentProp.addChildProperty(prop, beforeProp) :
-		addProperty(prop, beforeProp);
-
+	finalizeCreateProperty(prop, parentProp, beforeProp, toolTipText);
 	return prop;
 }
 
@@ -559,12 +533,7 @@ ColorProperty* PropertyGrid.createColorProperty(
 	)
 {
 	ColorProperty* prop = new ColorProperty(name);
-	prop.m_toolTipText = toolTipText;
-
-	parentProp ?
-		parentProp.addChildProperty(prop, beforeProp) :
-		addProperty(prop, beforeProp);
-
+	finalizeCreateProperty(prop, parentProp, beforeProp, toolTipText);
 	return prop;
 }
 
@@ -576,12 +545,7 @@ ActionProperty* PropertyGrid.createActionProperty(
 	)
 {
 	ActionProperty* prop = new ActionProperty(name);
-	prop.m_toolTipText = toolTipText;
-
-	parentProp ?
-		parentProp.addChildProperty(prop, beforeProp) :
-		addProperty(prop, beforeProp);
-
+	finalizeCreateProperty(prop, parentProp, beforeProp, toolTipText);
 	return prop;
 }
 
@@ -593,12 +557,7 @@ FileProperty* PropertyGrid.createFileProperty(
 	)
 {
 	FileProperty* prop = new FileProperty(name);
-	prop.m_toolTipText = toolTipText;
-
-	parentProp ?
-		parentProp.addChildProperty(prop, beforeProp) :
-		addProperty(prop, beforeProp);
-
+	finalizeCreateProperty(prop, parentProp, beforeProp, toolTipText);
 	return prop;
 }
 
@@ -610,13 +569,22 @@ DictionaryProperty* PropertyGrid.createDictionaryProperty(
 	)
 {
 	DictionaryProperty* prop = new DictionaryProperty(name);
+	finalizeCreateProperty(prop, parentProp, beforeProp, toolTipText);
+	return prop;
+}
+
+void PropertyGrid.finalizeCreateProperty(
+	Property* prop,
+	Property* parentProp,
+	Property* beforeProp,
+	char const* toolTipText
+	)
+{
 	prop.m_toolTipText = toolTipText;
 
 	parentProp ?
 		parentProp.addChildProperty(prop, beforeProp) :
 		addProperty(prop, beforeProp);
-
-	return prop;
 }
 
 //..............................................................................
