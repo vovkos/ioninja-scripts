@@ -43,6 +43,7 @@ opaque class BoolProperty: Property
 	construct(char const* name);
 
 	bool bindable autoget property m_value;
+	bool autoget property m_isGroupEnabler;
 }
 
 //..............................................................................
