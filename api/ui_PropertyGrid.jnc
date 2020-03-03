@@ -15,6 +15,7 @@ namespace ui {
 
 opaque class Property
 {
+	Property* readonly m_parent;
 	char const* autoget property m_name;
 	char const* autoget property m_toolTipText;
 	char const* autoget property m_valueToolTipText;
