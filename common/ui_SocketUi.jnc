@@ -327,14 +327,6 @@ SocketPropertySet.createProperties(
 			"Detect connection loss with TCP keep-alive probes"
 			);
 
-	if (mask & PropertyId.TcpKeepAlive)
-		m_tcpKeepAliveProp = propertyGrid.createBoolProperty(
-			group,
-			insertBefore,
-			"TCP keep-alives",
-			"Detect connection loss with TCP keep-alive probes"
-			);
-
 	if (mask & PropertyId.TcpNagle)
 		m_tcpNagleProp = propertyGrid.createBoolProperty(
 			group,
