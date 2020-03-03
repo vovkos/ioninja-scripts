@@ -315,11 +315,22 @@ bool errorcode SslConnectionSession.connect(io.SocketAddress const* remoteAddres
 
 	m_socket.enableCiphers(m_sslPropertySet.m_cipherSetProp.m_value);
 
-	if (m_sslPropertySet.m_certificateFileProp.m_value)
+	if (m_sslPropertySet.m_useCertificateProp.m_value)
+	{
 		m_socket.loadCertificate(m_sslPropertySet.m_certificateFileProp.m_value);
-
-	if (m_sslPropertySet.m_privateKeyFileProp.m_value)
 		m_socket.loadPrivateKey(m_sslPropertySet.m_privateKeyFileProp.m_value);
+	}
+
+	if (m_sslPropertySet.m_verifyCertificateProp.m_value)
+	{
+		m_socket.m_verifyMode = io.SslVerifyMode.VerifyPeerCertificate;
+		m_socket.m_verifyDepth = m_sslPropertySet.m_verifyDepthProp.m_value;
+
+		m_socket.loadVerifyLocations(
+			m_sslPropertySet.m_verifyCaFileProp.m_value,
+			m_sslPropertySet.m_verifyCaDirProp.m_value
+			);
+	}
 
 	m_socket.connect(remoteAddress);
 
@@ -473,6 +484,7 @@ bool errorcode SslConnectionSession.applyProperties()
 void SslConnectionSession.restoreDefaultProperties()
 {
 	m_socketPropertySet.restoreDefaults();
+	m_sslPropertySet.restoreDefaults();
 	m_bufferPropertySet.restoreDefaults();
 }
 
@@ -540,9 +552,9 @@ SslConnectionSession.onSocketEvent(
 
 	if (triggeredEvents & io.SslSocketEvents.SslHandshakeCompleted)
 	{
-		// write current cipher & all certificates
+		m_logWriter.write(SslLogRecordCode.SslHandshakeCompleted);
 
-		m_logWriter.write(SslLogRecordCode.SslCipher, m_socket.m_currentCipher.m_name);
+		// write certificates
 
 		std.Buffer buffer;
 		size_t count = m_socket.m_peerCertificateChainLength;
@@ -551,6 +563,8 @@ SslConnectionSession.onSocketEvent(
 			m_socket.m_peerCertificateChain[i].encode(buffer, io.SslCertFormat.Der);
 			m_logWriter.write(SslLogRecordCode.SslCertificate, buffer.m_p, buffer.m_size);
 		}
+
+		m_logWriter.write(SslLogRecordCode.SslCipher, m_socket.m_currentCipher.m_name);
 
 		m_logWriter.write(SslLogRecordCode.SslConnectionCompleted);
 		m_infoTable[InfoId.LocalAddress].m_value = m_localAddress.getString();

@@ -456,16 +456,32 @@ SslListenerSession.onListenerSocketEvent(
 		socket.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 		socket.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
 		socket.m_options = ui.getSocketOptions(m_socketPropertySet, m_bufferPropertySet);
-
 		socket.enableCiphers(m_sslPropertySet.m_cipherSetProp.m_value);
-		socket.setEphemeralDhStdParams(m_sslPropertySet.m_ephemeralDhStdParamsProp.m_value);
-		socket.setEphemeralEcdhCurve(m_sslPropertySet.m_ephemeralEcdhCurveProp.m_value);
 
-		if (m_sslPropertySet.m_certificateFileProp.m_value)
+		if (m_sslPropertySet.m_useCertificateProp.m_value)
+		{
 			socket.loadCertificate(m_sslPropertySet.m_certificateFileProp.m_value);
-
-		if (m_sslPropertySet.m_privateKeyFileProp.m_value)
 			socket.loadPrivateKey(m_sslPropertySet.m_privateKeyFileProp.m_value);
+
+			if (m_sslPropertySet.m_verifyCertificateProp.m_value)
+			{
+				socket.m_verifyMode = io.SslVerifyMode.VerifyPeerCertificate;
+				socket.m_verifyDepth = m_sslPropertySet.m_verifyDepthProp.m_value;
+
+				socket.loadVerifyLocations(
+					m_sslPropertySet.m_verifyCaFileProp.m_value,
+					m_sslPropertySet.m_verifyCaDirProp.m_value
+					);
+			}
+		}
+		else
+		{
+			if (m_sslPropertySet.m_useEphemeralDhProp.m_value)
+				socket.setEphemeralDhStdParams(m_sslPropertySet.m_ephemeralDhStdParamsProp.m_value);
+
+			if (m_sslPropertySet.m_useEphemeralEcdhProp.m_value)
+				socket.setEphemeralEcdhCurve(m_sslPropertySet.m_ephemeralEcdhCurveProp.m_value);
+		}
 
 		socket.unsuspend();
 
@@ -503,9 +519,7 @@ SslListenerSession.onConnectionSocketEvent(
 
 	if (triggeredEvents & io.SslSocketEvents.SslHandshakeCompleted)
 	{
-		// write current cipher & all certificates
-
-		m_logWriter.write(SslLogRecordCode.SslCipher, m_connectionSocket.m_currentCipher.m_name);
+		m_logWriter.write(SslLogRecordCode.SslHandshakeCompleted);
 
 		std.Buffer buffer;
 		size_t count = m_connectionSocket.m_peerCertificateChainLength;
@@ -514,6 +528,15 @@ SslListenerSession.onConnectionSocketEvent(
 			m_connectionSocket.m_peerCertificateChain[i].encode(buffer, io.SslCertFormat.Der);
 			m_logWriter.write(SslLogRecordCode.SslCertificate, buffer.m_p, buffer.m_size);
 		}
+
+		io.SslCertificate const* cert = m_connectionSocket.m_peerCertificate;
+		if (cert)
+		{
+			cert.encode(buffer, io.SslCertFormat.Der);
+			m_logWriter.write(SslLogRecordCode.SslCertificate, buffer.m_p, buffer.m_size);
+		}
+
+		m_logWriter.write(SslLogRecordCode.SslCipher, m_connectionSocket.m_currentCipher.m_name);
 
 		m_logWriter.write(SslLogRecordCode.SslConnectionCompleted);
 		m_connectionState = ConnectionState.Connected;
