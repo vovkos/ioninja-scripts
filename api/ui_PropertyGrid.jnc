@@ -169,11 +169,38 @@ opaque class ActionProperty: Property
 
 //..............................................................................
 
+enum FilePropertyMode
+{
+	AnyFile,
+	ExistingFile,
+	Directory,
+	ExistingFiles,
+};
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+bitflag enum FilePropertyOptions
+{
+    ShowDirsOnly                = 0x00000001,
+    DontResolveSymlinks         = 0x00000002,
+    DontConfirmOverwrite        = 0x00000004,
+    DontUseSheet                = 0x00000008,
+    DontUseNativeDialog         = 0x00000010,
+    ReadOnly                    = 0x00000020,
+    HideNameFilterDetails       = 0x00000040,
+    DontUseCustomDirectoryIcons = 0x00000080,
+};
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
 opaque class FileProperty: Property
 {
 	construct(char const* name);
 
 	char const* bindable autoget property m_value;
+
+	FilePropertyMode autoget property m_mode;
+	FilePropertyOptions autoget property m_options;
 	char const* autoget property m_fileDialogTitle;
 	char const* autoget property m_initialDirectory;
 	char const* autoget property m_filter;
