@@ -229,6 +229,7 @@ SshChannelSession.createUi()
 	m_throughputInfoSet.createInformationValuesGrouped(m_pluginHost.m_informationGrid);
 	m_checksumInfoSet.createInformationValuesGrouped(m_pluginHost.m_informationGrid);
 
+	m_pluginHost.m_propertyGrid.resizeNameColumnToContents();
 	m_pluginHost.m_informationGrid.resizeNameColumnToContents();
 
 	m_uiReactor.start();
