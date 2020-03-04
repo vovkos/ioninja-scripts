@@ -195,7 +195,7 @@ UdpSession.createUi()
 	// property grid
 
 	ui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty(
-		"Connection",
+		"UDP",
 		"UDP-specific connection settings"
 		);
 
@@ -215,8 +215,7 @@ UdpSession.createUi()
 	m_socketPropertySet.m_defaultRemotePort = Defaults.RemotePort;
 
 	m_bufferPropertySet.createPropertiesGrouped(
-		m_pluginHost.m_propertyGrid,
-		group,,
+		m_pluginHost.m_propertyGrid,,,
 		ui.BufferPropertySet.PropertyId.All & ~(
 			ui.BufferPropertySet.PropertyId.KeepReadBlockSize |
 			ui.BufferPropertySet.PropertyId.KeepWriteBlockSize

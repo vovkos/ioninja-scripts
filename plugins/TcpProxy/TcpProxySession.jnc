@@ -251,9 +251,8 @@ TcpProxySession.createUi()
 	m_listenerSocketPropertySet.createProperties(
 		m_pluginHost.m_propertyGrid,
 		group,,
-		ui.SocketPropertySet.PropertyId.ServerAdapter |
-		ui.SocketPropertySet.PropertyId.LocalPort |
-		ui.SocketPropertySet.PropertyId.ReuseLocalAddress
+		ui.SocketPropertySet.PropertyId.AllTcpServer &
+		~ui.SocketPropertySet.PropertyId.TcpOptions
 		);
 
 	m_listenerSocketPropertySet.m_defaultLocalPort = Defaults.LocalPort;
@@ -268,9 +267,7 @@ TcpProxySession.createUi()
 		group,,
 		ui.SocketPropertySet.PropertyId.RemoteAddress |
 		ui.SocketPropertySet.PropertyId.RemotePort |
-		ui.SocketPropertySet.PropertyId.TcpKeepAlive |
-		ui.SocketPropertySet.PropertyId.TcpNagle |
-		ui.SocketPropertySet.PropertyId.TcpReset
+		ui.SocketPropertySet.PropertyId.TcpOptions
 		);
 
 	m_bufferPropertySet.createPropertiesGrouped(m_pluginHost.m_propertyGrid);
