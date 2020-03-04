@@ -414,6 +414,8 @@ opaque class PropertyGrid
 		return createDictionaryProperty(,, name, toolTipText);
 	}
 
+	resizeNameColumnToContents();
+
 protected:
 	void finalizeCreateProperty(
 		Property* prop,
