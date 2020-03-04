@@ -408,7 +408,7 @@ void ProcessSession.load(doc.Storage* storage)
 	m_commandLineCombo.loadHistory(storage, "commandLineHistory");
 	m_commandLineCombo.m_editText = storage.readString("commandLine");
 	m_separateStderrProp.m_value = storage.readBool("separateStderr", Defaults.SeparateStderr);
-	m_cleanEnvironmentProp.m_value = storage.writeBool("cleanEnvironment", Defaults.CleanEnvironment);
+	m_cleanEnvironmentProp.m_value = storage.readBool("cleanEnvironment", Defaults.CleanEnvironment);
 
 	if (m_ptyProp)
 		m_ptyProp.m_value = storage.readBool("pty", Defaults.Pty);
