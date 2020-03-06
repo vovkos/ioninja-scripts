@@ -436,10 +436,12 @@ SslListenerSession.onListenerSocketEvent(
 
 	if (triggeredEvents & io.SslSocketEvents.IncomingConnection)
 	{
-		io.SocketAddress address;
-		io.SslSocket* socket = m_listenerSocket.accept(&address, true);
+		io.SslSocket* socket;
 
 	nestedscope:
+		io.SocketAddress address;
+		socket = m_listenerSocket.accept(&address, true);
+
 		if (m_connectionState == ConnectionState.Connected && !m_socketPropertySet.m_overrideConnectionProp.m_value)
 		{
 			socket.close();
@@ -494,7 +496,9 @@ SslListenerSession.onListenerSocketEvent(
 
 	catch:
 		m_logWriter.writeLastError(SocketLogRecordCode.ConnectError);
-		socket.close();
+
+		if (socket)
+			socket.close();
 	}
 
 	waitListenerSocketEvents();
