@@ -285,7 +285,7 @@ SslListenerSession.stopListen()
 
 SslListenerSession.disconnect()
 {
-	if (m_connectionState != ConnectionState.Connected)
+	if (!m_connectionState)
 		return;
 
 	TcpDisconnectLogRecordParams params;
@@ -305,6 +305,7 @@ SslListenerSession.disconnect()
 	m_connectionSocket = null;
 	m_connectionState = ConnectionState.Closed;
 	m_connectionSyncId++;
+	m_isTransmitEnabled = false;
 }
 
 void SslListenerSession.load(doc.Storage* storage)
