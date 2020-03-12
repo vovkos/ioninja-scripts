@@ -31,7 +31,7 @@ main()
 	frame.m_ethernet.m_srcAddress = g_srcMac;
 	frame.m_ethernet.m_dstAddress = 0x"ff:ff:ff:ff:ff:ff";
 	frame.m_arp.m_hardwareType = io.ArpHardwareType.Ethernet;
-	frame.m_arp.m_protocolType = io.ArpProtocolType.Ip;
+	frame.m_arp.m_protocolType = io.EthernetType.Ip;
 	frame.m_arp.m_hardwareLength  = 6;
 	frame.m_arp.m_protocolLength  = 4;
 	frame.m_arp.m_opcode = io.ArpOpcode.Request;
