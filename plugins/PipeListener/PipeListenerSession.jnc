@@ -293,6 +293,7 @@ PipeListenerSession.disconnect()
 	m_connectionPipe = null;
 	m_connectionState = State.Closed;
 	m_connectionSyncId++;
+	m_isTransmitEnabled = false;
 }
 
 io.FileStreamOptions PipeListenerSession.getFileStreamOptions()
