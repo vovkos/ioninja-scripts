@@ -293,6 +293,7 @@ TcpListenerSession.disconnect()
 	m_connectionSocket = null;
 	m_connectionState = ConnectionState.Closed;
 	m_connectionSyncId++;
+	m_isTransmitEnabled = false;
 }
 
 void TcpListenerSession.load(doc.Storage* storage)
