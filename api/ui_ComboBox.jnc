@@ -41,11 +41,28 @@ opaque class ComboBox
 		return insertItem(-1, text, data);
 	}
 
+	size_t addItemSetCurrent(
+		char const* text,
+		variant data = null
+		)
+	{
+		return insertItemSetCurrent(-1, text, data);
+	}
+
 	size_t insertItem(
 		size_t index,
 		char const* text,
 		variant data = null
 		);
+
+	size_t insertItemSetCurrent(
+		size_t index,
+		char const* text,
+		variant data = null
+		)
+	{
+		return m_currentIndex = insertItem(index, text, data);
+	}
 
 	bool removeItem(size_t index);
 
