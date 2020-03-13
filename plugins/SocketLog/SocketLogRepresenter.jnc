@@ -160,6 +160,13 @@ bool representSocketLog(
 		representation.addHyperText($"Client \e[34m$addressString\e[m is rejected ");
 		break;
 
+	case SocketLogRecordCode.ClientChanged:
+		char const* addressString = ((io.SocketAddress const*) p).getString();
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		representation.addHyperText($"Client \e[34m$addressString\e[m:");
+		break;
+
 	default:
 		return false;
 	}

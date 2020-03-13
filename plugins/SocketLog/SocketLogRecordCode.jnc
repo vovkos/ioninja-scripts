@@ -32,6 +32,7 @@ enum SocketLogRecordCode: uint64_t
 	ClientConnected    = 0x01d483f3e69da20f,
 	ClientDisconnected = 0x01d483f3e69da210,
 	ClientRejected     = 0x01d483f3e69da211,
+	ClientChanged      = 0x01d483f3e69da213,
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
