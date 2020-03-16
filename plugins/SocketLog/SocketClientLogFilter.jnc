@@ -1,0 +1,68 @@
+//..............................................................................
+//
+// Socket client log filter (TCP Listener, TCP Proxy)
+//
+
+import "log_Filter.jnc"
+import "SocketLogRecordCode.jnc"
+
+//..............................................................................
+
+class SocketClientLogFilter: log.Filter
+{
+protected:
+	bool m_isVisible;
+
+public:
+	// suspend log engine before calling setFilter
+
+	io.SocketAddress m_address;
+
+protected:
+	override bool filter(
+		uint64_t timestamp,
+		uint64_t recordCode,
+		void const* p,
+		size_t size
+		);
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+bool SocketClientLogFilter.filter(
+	uint64_t timestamp,
+	uint64_t recordCode,
+	void const* p,
+	size_t size
+	)
+{
+	printf("SocketClientLogFilter.filter\n");
+	printf("  m_address.m_family: %d\n", m_address.m_family);
+
+	if (!m_address.m_family) // empty address means, filtering is off
+		return true;
+
+	switch (recordCode)
+	{
+	case SocketLogRecordCode.ClientConnected:
+	case SocketLogRecordCode.ClientChanged:
+		m_isVisible = ((io.SocketAddress const*)p).isMatch(m_address);
+		break;
+
+	case SocketLogRecordCode.ClientDisconnected:
+		bool result = ((io.SocketAddress const*)p).isMatch(m_address);
+		m_isVisible = false;
+		return result;
+
+	case log.StdRecordCode.Tx:
+	case log.StdRecordCode.Rx:
+		break;
+
+	default:
+		return true; // everything else is visible
+	}
+
+	return m_isVisible;
+}
+
+//..............................................................................
