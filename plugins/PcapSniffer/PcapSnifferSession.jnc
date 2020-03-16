@@ -66,9 +66,8 @@ protected:
 	io.Pcap m_pcap;
 	io.IpDefragmenter m_ipDefragmenter;
 	std.Buffer m_readBuffer;
-	uint_t m_syncId;
-
 	NetSnifferLogFilter m_filter;
+	uint_t m_syncId;
 
 	// toolbar, status bar & menu
 

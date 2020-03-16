@@ -18,3 +18,4 @@ session-class = TcpListenerSession
 [scripts]
 
 TcpListenerSession.jnc
+../SocketLog/SocketClientLogFilter.jnc
