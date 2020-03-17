@@ -149,7 +149,6 @@ class SocketPropertySet
 		ServerAdapter,
 		LocalPort,
 		ReuseLocalAddress,
-		OverrideConnection,
 		TcpOptions,
 		UdpBroadcast,
 		Reconnect,
@@ -175,7 +174,6 @@ class SocketPropertySet
 			ServerAdapter |
 			LocalPort |
 			ReuseLocalAddress |
-			OverrideConnection |
 			TcpOptions,
 	}
 
@@ -186,7 +184,6 @@ class SocketPropertySet
 		ReconnectTimeout   = 3000,
 		LocalPort          = 0,
 		ReuseLocalAddress  = false,
-		OverrideConnection = true,
 		TcpKeepAlive       = false,
 		TcpNagle           = false,
 		TcpReset           = false,
@@ -203,7 +200,6 @@ class SocketPropertySet
 	EnumProperty* m_adapterProp;
 	IntProperty* m_localPortProp;
 	BoolProperty* m_reuseLocalAddressProp;
-	BoolProperty* m_overrideConnectionProp;
 	BoolProperty* m_tcpKeepAliveProp;
 	BoolProperty* m_tcpNagleProp;
 	BoolProperty* m_tcpResetProp;
@@ -314,14 +310,6 @@ SocketPropertySet.createProperties(
 			"Allow multiple sockets to share the same local address"
 			);
 
-	if (mask & PropertyId.OverrideConnection)
-		m_overrideConnectionProp = propertyGrid.createBoolProperty(
-			group,
-			insertBefore,
-			"Override connections",
-			"Accept incoming connection even if already connected"
-			);
-
 	if (mask & PropertyId.TcpOptions)
 	{
 		ui.GroupProperty* tcpGroup = propertyGrid.createGroupProperty(
@@ -385,9 +373,6 @@ SocketPropertySet.load(doc.Storage* storage)
 	if (m_reuseLocalAddressProp)
 		m_reuseLocalAddressProp.m_value = storage.readBool("reuseLocalAddress", Defaults.ReuseLocalAddress);
 
-	if (m_overrideConnectionProp)
-		m_overrideConnectionProp.m_value = storage.readBool("overrideConnection", Defaults.OverrideConnection);
-
 	if (m_tcpKeepAliveProp)
 		m_tcpKeepAliveProp.m_value = storage.readBool("tcpKeepAlive", Defaults.TcpKeepAlive);
 
@@ -427,9 +412,6 @@ SocketPropertySet.save(doc.Storage* storage)
 	if (m_reuseLocalAddressProp)
 		storage.writeBool("reuseLocalAddress", m_reuseLocalAddressProp.m_value);
 
-	if (m_overrideConnectionProp)
-		storage.writeBool("overrideConnection", m_overrideConnectionProp.m_value);
-
 	if (m_tcpKeepAliveProp)
 		storage.writeBool("tcpKeepAlive", m_tcpKeepAliveProp.m_value);
 
@@ -465,9 +447,6 @@ SocketPropertySet.restoreDefaults()
 
 	if (m_localPortProp)
 		m_localPortProp.m_value = m_defaultLocalPort;
-
-	if (m_overrideConnectionProp)
-		m_overrideConnectionProp.m_value = Defaults.OverrideConnection;
 
 	if (m_reuseLocalAddressProp)
 		m_reuseLocalAddressProp.m_value = Defaults.ReuseLocalAddress;

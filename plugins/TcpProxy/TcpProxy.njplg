@@ -19,3 +19,4 @@ session-class = TcpProxySession
 [scripts]
 
 TcpProxySession.jnc
+../SocketLog/SocketClientLogFilter.jnc
