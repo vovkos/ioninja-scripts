@@ -56,12 +56,12 @@ protected:
 		_Count,
 	}
 
-	struct Client
+	class Client
 	{
 		std.ListEntry* m_entry;
+		bool bindable m_isTransmitEnabled;
 		io.Socket* m_socket;
 		io.SocketAddress m_address;
-		bool m_isTransmitEnabled;
 		uint_t m_syncId;
 	}
 
@@ -373,20 +373,8 @@ void TcpListenerSession.setCurrentClient(TcpListenerSession.Client* client)
 
 bool errorcode TcpListenerSession.applyClientFilter(bool rebuildLog)
 {
-	bool result;
-
 	m_pluginHost.m_log.suspend();
-
-	if (m_clientFilterCombo.m_editText)
-	{
-		result = try m_filter.m_address.parse(m_clientFilterCombo.m_editText);
-	}
-	else
-	{
-		m_filter.m_address = null;
-		result = true;
-	}
-
+	bool result = try m_filter.setFilter(m_clientFilterCombo.m_editText);
 	m_pluginHost.m_log.resume();
 
 	if (!result)
@@ -462,18 +450,18 @@ size_t errorcode TcpListenerSession.transmit(
 	size_t size
 	)
 {
-	Client* connection = m_clientCombo.m_currentData;
-	if (!connection)
+	Client* client = m_clientCombo.m_currentData;
+	if (!client)
 		return -1;
 
-	setCurrentClient(connection);
+	setCurrentClient(client);
 
-	size_t result = connection.m_socket.write(p, size);
+	size_t result = client.m_socket.write(p, size);
 	if (result)
 		m_logWriter.write(log.StdRecordCode.Tx, p, result);
 
 	if (result < size)
-		m_isTransmitEnabled = false;
+		client.m_isTransmitEnabled = false;
 
 	return result;
 }
@@ -489,11 +477,17 @@ TcpListenerSession.waitListenerSocketEvents()
 
 void TcpListenerSession.waitClientSocketEvents(TcpListenerSession.Client* client)
 {
-	client.m_socket.wait(
+	io.SocketEvents eventMask =
 		io.SocketEvents.IoError |
 		io.SocketEvents.IncomingData |
 		io.SocketEvents.Disconnected |
-		io.SocketEvents.Reset,
+		io.SocketEvents.Reset;
+
+	if (!client.m_isTransmitEnabled)
+		eventMask |= io.SocketEvents.WriteBufferReady;
+
+	client.m_socket.wait(
+		eventMask,
 		onClientSocketEvent~(client, ++client.m_syncId) @ m_pluginHost.m_mainThreadScheduler
 		);
 }
@@ -519,6 +513,8 @@ TcpListenerSession.onListenerSocketEvent(
 	{
 		io.SocketAddress address;
 		io.Socket* socket = m_listenerSocket.accept(&address, true);
+		socket.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
+
 		socket.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
 		socket.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
 		socket.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
@@ -526,12 +522,9 @@ TcpListenerSession.onListenerSocketEvent(
 		socket.m_options = ui.getSocketOptions(m_socketPropertySet, m_bufferPropertySet);
 		socket.unsuspend();
 
-		m_logWriter.write(SocketLogRecordCode.ClientConnected, &address, sizeof(address));
-
 		Client* client = new Client;
 		client.m_socket = socket;
 		client.m_address = address;
-		client.m_isTransmitEnabled = true;
 
 		addClient(client);
 		waitClientSocketEvents(client);
@@ -602,8 +595,8 @@ TcpListenerSession.onClientSocketEvent(
 			m_logWriter.write(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 	}
 
-	if (io.SocketEvents.WriteBufferReady)
-		m_isTransmitEnabled = true;
+	if (triggeredEvents & io.SocketEvents.WriteBufferReady)
+		client.m_isTransmitEnabled = true;
 
 	waitClientSocketEvents(client);
 }
@@ -617,6 +610,10 @@ reactor TcpListenerSession.m_uiReactor
 	m_actionTable[ActionId.DisconnectAll].m_isEnabled = m_clientCombo.m_currentData;
 	m_statusPaneTable[StatusPaneId.ListenerState].m_text = m_listenerState ? "Listening" : "Not listening";
 	m_statusPaneTable[StatusPaneId.ClientCount].m_text = $"$m_clientCount client(s)";
+
+	m_isTransmitEnabled =
+		m_clientCombo.m_currentData &&
+		((Client*)m_clientCombo.m_currentData).m_isTransmitEnabled;
 }
 
 //..............................................................................

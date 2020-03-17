@@ -12,13 +12,17 @@ class SocketClientLogFilter: log.Filter
 {
 protected:
 	bool m_isVisible;
+	io.SocketAddress m_filterAddress;
+	io.SocketAddress m_currentAddress;
 
 public:
 	// suspend log engine before calling setFilter
 
-	io.SocketAddress m_address;
+	bool errorcode setFilter(char const* filter);
 
 protected:
+	override void reset();
+
 	override bool filter(
 		uint64_t timestamp,
 		uint64_t recordCode,
@@ -29,6 +33,21 @@ protected:
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
+bool errorcode SocketClientLogFilter.setFilter(char const* filter)
+{
+	if (filter)
+		return m_filterAddress.parse(filter);
+
+	m_filterAddress = null;
+	return true;
+}
+
+void SocketClientLogFilter.reset()
+{
+	m_currentAddress = null;
+	m_isVisible = false;
+}
+
 bool SocketClientLogFilter.filter(
 	uint64_t timestamp,
 	uint64_t recordCode,
@@ -36,33 +55,38 @@ bool SocketClientLogFilter.filter(
 	size_t size
 	)
 {
-	printf("SocketClientLogFilter.filter\n");
-	printf("  m_address.m_family: %d\n", m_address.m_family);
-
-	if (!m_address.m_family) // empty address means, filtering is off
+	if (!m_filterAddress.m_family) // empty address means, filtering is off
 		return true;
 
 	switch (recordCode)
 	{
 	case SocketLogRecordCode.ClientConnected:
 	case SocketLogRecordCode.ClientChanged:
-		m_isVisible = ((io.SocketAddress const*)p).isMatch(m_address);
-		break;
+		io.SocketAddress const* address = (io.SocketAddress const*)p;
+		m_isVisible = address.isMatch(m_filterAddress);
+		if (!m_isVisible)
+			return false;
+
+		if (recordCode == SocketLogRecordCode.ClientChanged && m_currentAddress.isEqual(address))
+			return false; // don't show unnecessary client-changed messages
+
+		m_currentAddress = *address;
+		return true;
 
 	case SocketLogRecordCode.ClientDisconnected:
-		bool result = ((io.SocketAddress const*)p).isMatch(m_address);
+		bool result = ((io.SocketAddress const*)p).isMatch(m_filterAddress);
+		m_currentAddress = null;
 		m_isVisible = false;
 		return result;
 
+	case log.StdRecordCode.Error:
 	case log.StdRecordCode.Tx:
 	case log.StdRecordCode.Rx:
-		break;
+		return m_isVisible;
 
 	default:
 		return true; // everything else is visible
 	}
-
-	return m_isVisible;
 }
 
 //..............................................................................
