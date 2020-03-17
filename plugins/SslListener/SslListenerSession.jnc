@@ -13,6 +13,7 @@ import "ui_BufferPropertySet.jnc"
 import "ui_StdSessionInfoSet.jnc"
 import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
+import "std_List.jnc"
 import "std_Buffer.jnc"
 
 using extension ui.ComboBoxHistory;
@@ -44,6 +45,8 @@ protected:
 	{
 		Listen,
 		Disconnect,
+		DisconnectAll,
+		ApplyFilter,
 		_Count,
 	}
 
@@ -51,15 +54,24 @@ protected:
 	{
 		Listen,
 		StopListen,
-		Disconnect,
 		_Count,
 	}
 
 	enum StatusPaneId
 	{
-		RemoteAddress,
 		ListenerState,
+		ClientCount,
 		_Count,
+	}
+
+	class Client
+	{
+		std.ListEntry* m_entry;
+		ConnectionState bindable m_state;
+		bool bindable m_isTransmitEnabled;
+		io.SslSocket* m_socket;
+		io.SocketAddress m_address;
+		uint_t m_syncId;
 	}
 
 protected:
@@ -69,14 +81,11 @@ protected:
 	io.SslSocket m_listenerSocket;
 	io.SocketAddress m_localAddress;
 	uint_t m_listenerSyncId;
-
-	// connection socket
-
-	ConnectionState bindable m_connectionState;
-	io.SslSocket* m_connectionSocket;
-	io.SocketAddress m_remoteAddress;
+	std.List m_clientList;
+	size_t bindable m_clientCount;
+	io.SocketAddress m_currentClientAddress;
 	std.Buffer m_readBuffer;
-	uint_t m_connectionSyncId;
+	SslClientLogFilter m_filter;
 
 	// toolbar, status bar & menu
 
@@ -85,6 +94,8 @@ protected:
 	ui.StatusPane* m_statusPaneTable[StatusPaneId._Count];
 	ui.ComboBox* m_adapterCombo;
 	ui.ComboBox* m_portCombo;
+	ui.ComboBox* m_clientCombo;
+	ui.ComboBox* m_clientFilterCombo;
 
 	// property grid
 
@@ -108,6 +119,7 @@ public:
 	bool errorcode listen();
 	stopListen();
 	disconnect();
+	disconnectAll();
 
 	override void load(doc.Storage* storage);
 	override void save(doc.Storage* storage);
@@ -131,19 +143,31 @@ protected:
 		try listen();
 	}
 
+	onSetClientFilter()
+	{
+		try applyClientFilter(true);
+	}
+
 	onListenerSocketEvent(
 		uint_t syncId,
 		io.SslSocketEvents triggeredEvents
 		);
 
-	onConnectionSocketEvent  (
+	onClientSocketEvent(
+		Client* client,
 		uint_t syncId,
 		io.SslSocketEvents triggeredEvents
 		);
 
+	bool errorcode applyClientFilter(bool rebuildLog);
+
 	createUi();
 	waitListenerSocketEvents();
-	waitConnectionSocketEvents();
+	waitClientSocketEvents(Client* client);
+	disconnect(Client* client);
+	addClient(Client* client);
+	removeClient(Client* client);
+	setCurrentClient(Client* client);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -156,12 +180,31 @@ SslListenerSession.construct(doc.PluginHost* pluginHost)
 
 	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
+	pluginHost.m_log.addFilter(m_filter);
 	m_stdSessionInfoSet.addLogListener(pluginHost.m_log);
 }
 
 SslListenerSession.createUi()
 {
 	// toolbar
+
+	m_pluginHost.m_toolBar.addLabel("Filter:");
+	m_clientFilterCombo = m_pluginHost.m_toolBar.addComboBox(-1);
+	m_clientFilterCombo.m_isEditable = true;
+	m_clientFilterCombo.m_onEnter += onSetClientFilter;
+	m_clientFilterCombo.m_placeholderText = "Enter client address to filter...";
+	m_clientFilterCombo.m_toolTipText = "View only communications with the specified client";
+
+	m_actionTable[ActionId.ApplyFilter] = createAction("Apply filter", "images/apply.png");
+	m_actionTable[ActionId.ApplyFilter].m_onTriggered += onSetClientFilter;
+
+	m_pluginHost.m_toolBar.addLabel("Client:");
+	m_clientCombo = m_pluginHost.m_toolBar.addComboBox(-1);
+
+	m_actionTable[ActionId.Disconnect] = createAction("Disconnect", "images/disconnect.png");
+	m_actionTable[ActionId.Disconnect].m_onTriggered += disconnect;
+	m_actionTable[ActionId.DisconnectAll] = createAction("Disconnect All", "images/disconnect-all.png");
+	m_actionTable[ActionId.DisconnectAll].m_onTriggered += disconnectAll;
 
 	m_pluginHost.m_toolBar.addLabel("Adapter:");
 	m_adapterCombo = ui.createNetworkAdapterComboBox(m_pluginHost.m_toolBar, ui.NetworkAdapterUsage.Listener);
@@ -171,28 +214,20 @@ SslListenerSession.createUi()
 	m_portCombo.m_isEditable = true;
 	m_portCombo.m_onEnter += onPortComboEnter;
 
-	// status bar
-
-	m_statusPaneTable[StatusPaneId.RemoteAddress] = m_pluginHost.m_statusBar.addPane(, 100);
-	m_statusPaneTable[StatusPaneId.RemoteAddress].m_color = ui.StdColor.Blue;
-	m_statusPaneTable[StatusPaneId.ListenerState] = m_pluginHost.m_statusBar.addPane(, 80);
-
-	// action buttons
-
 	m_iconTable[IconId.Listen] = new ui.Icon("images/listen.png");
 	m_iconTable[IconId.StopListen] = new ui.Icon("images/pause.png");
-	m_iconTable[IconId.Disconnect] = new ui.Icon("images/disconnect.png");
-
 	m_actionTable[ActionId.Listen] = createAction("Listen", m_iconTable [IconId.Listen]);
 	m_actionTable[ActionId.Listen].m_onTriggered += onListen;
 
-	m_actionTable[ActionId.Disconnect] = createAction("Disconnect", m_iconTable [IconId.Disconnect]);
-	m_actionTable[ActionId.Disconnect].m_onTriggered += disconnect;
+	// status bar
+
+	m_statusPaneTable[StatusPaneId.ListenerState] = m_pluginHost.m_statusBar.addPane(, 80);
+	m_statusPaneTable[StatusPaneId.ClientCount] = m_pluginHost.m_statusBar.addPane(, 80);
 
 	// property grid
 
 	ui.GroupProperty* group = m_pluginHost.m_propertyGrid.createGroupProperty(
-		"Connection",
+		"SSL connection",
 		"SSL-specific connection settings"
 		);
 
@@ -285,11 +320,21 @@ SslListenerSession.stopListen()
 
 SslListenerSession.disconnect()
 {
-	if (!m_connectionState)
-		return;
+	Client* client = m_clientCombo.m_currentData;
+	if (client)
+		disconnect(client);
+}
 
+SslListenerSession.disconnectAll()
+{
+	while (m_clientList.m_count)
+		disconnect(m_clientList.m_head.m_data);
+}
+
+SslListenerSession.disconnect(SslListenerSession.Client* client)
+{
 	TcpDisconnectLogRecordParams params;
-	params.m_address = m_remoteAddress;
+	params.m_address = client.m_address;
 	params.m_flags = 0;
 
 	if (m_socketPropertySet.m_tcpResetProp.m_value)
@@ -301,11 +346,68 @@ SslListenerSession.disconnect()
 		sizeof(params)
 		);
 
-	m_connectionSocket.close();
-	m_connectionSocket = null;
-	m_connectionState = ConnectionState.Closed;
-	m_connectionSyncId++;
-	m_isTransmitEnabled = false;
+	removeClient(client);
+}
+
+void SslListenerSession.addClient(SslListenerSession.Client* client)
+{
+	client.m_entry = m_clientList.add(client);
+	m_clientCombo.addItemSetCurrent(client.m_address.getString(), client);
+	m_clientCount = m_clientList.m_count;
+	m_currentClientAddress = client.m_address;
+}
+
+void SslListenerSession.removeClient(SslListenerSession.Client* client)
+{
+	client.m_socket.close();
+	client.m_syncId++;
+
+	m_clientList.remove(client.m_entry);
+
+	for (size_t i = 0; i < m_clientCombo.m_itemCount; i++)
+		if (m_clientCombo.m_itemData[i] == client)
+		{
+			m_clientCombo.removeItem(i);
+			break;
+		}
+
+	m_clientCount = m_clientList.m_count;
+	m_currentClientAddress = null;
+}
+
+void SslListenerSession.setCurrentClient(SslListenerSession.Client* client)
+{
+	if (m_currentClientAddress.isEqual(client.m_address))
+		return;
+
+	m_logWriter.write(
+		SocketLogRecordCode.ClientChanged,
+		&client.m_address,
+		sizeof(client.m_address)
+		);
+
+	m_currentClientAddress = client.m_address;
+}
+
+bool errorcode SslListenerSession.applyClientFilter(bool rebuildLog)
+{
+	m_pluginHost.m_log.suspend();
+	bool result = try m_filter.setFilter(m_clientFilterCombo.m_editText);
+	m_pluginHost.m_log.resume();
+
+	if (!result)
+	{
+		m_clientFilterCombo.m_backgroundColor = ui.StdColor.PastelRed;
+		return false;
+	}
+
+	m_clientFilterCombo.addEditTextToHistory();
+	m_clientFilterCombo.m_backgroundColor = ui.ColorFlags.Transparent;
+
+	if (rebuildLog)
+		m_pluginHost.m_log.rebuild();
+
+	return true;
 }
 
 void SslListenerSession.load(doc.Storage* storage)
@@ -343,13 +445,16 @@ bool errorcode SslListenerSession.applyProperties()
 	m_adapterCombo.m_currentIndex = m_socketPropertySet.m_adapterProp.m_currentIndex;
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
 
-	if (!m_connectionSocket)
-		return true;
+	std.ListEntry* entry = m_clientList.m_head;
+	for (; entry; entry = entry.m_next)
+	{
+		Client* connection = entry.m_data;
+		connection.m_socket.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
+		connection.m_socket.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
+		connection.m_socket.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
+		connection.m_socket.m_options = ui.getSocketOptions(m_socketPropertySet, m_bufferPropertySet);
+	}
 
-	m_connectionSocket.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
-	m_connectionSocket.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
-	m_connectionSocket.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
-	m_connectionSocket.m_options = ui.getSocketOptions(m_socketPropertySet, m_bufferPropertySet);
 	return true;
 }
 
@@ -365,15 +470,18 @@ size_t errorcode SslListenerSession.transmit(
 	size_t size
 	)
 {
-	if (m_connectionState != ConnectionState.Connected)
+	Client* client = m_clientCombo.m_currentData;
+	if (!client)
 		return -1;
 
-	size_t result = m_connectionSocket.write(p, size);
+	setCurrentClient(client);
+
+	size_t result = client.m_socket.write(p, size);
 	if (result)
 		m_logWriter.write(log.StdRecordCode.Tx, p, result);
 
 	if (result < size)
-		m_isTransmitEnabled = false;
+		client.m_isTransmitEnabled = false;
 
 	return result;
 }
@@ -387,11 +495,11 @@ SslListenerSession.waitListenerSocketEvents()
 		);
 }
 
-SslListenerSession.waitConnectionSocketEvents()
+SslListenerSession.waitClientSocketEvents(SslListenerSession.Client* client)
 {
 	io.SslSocketEvents eventMask = io.SslSocketEvents.IoError;
 
-	switch (m_connectionState)
+	switch (client.m_state)
 	{
 	case ConnectionState.SslHandshaking:
 		eventMask |=
@@ -406,15 +514,15 @@ SslListenerSession.waitConnectionSocketEvents()
 			io.SslSocketEvents.TcpDisconnected |
 			io.SslSocketEvents.TcpReset;
 
-		if (!m_isTransmitEnabled)
+		if (!client.m_isTransmitEnabled)
 			eventMask |= io.SslSocketEvents.WriteBufferReady;
 
 		break;
 	}
 
-	m_connectionSocket.wait(
+	client.m_socket.wait(
 		eventMask,
-		onConnectionSocketEvent~(++m_connectionSyncId) @ m_pluginHost.m_mainThreadScheduler
+		onClientSocketEvent~(client, ++client.m_syncId) @ m_pluginHost.m_mainThreadScheduler
 		);
 }
 
@@ -442,17 +550,6 @@ SslListenerSession.onListenerSocketEvent(
 	nestedscope:
 		io.SocketAddress address;
 		socket = m_listenerSocket.accept(&address, true);
-
-		if (m_connectionState == ConnectionState.Connected && !m_socketPropertySet.m_overrideConnectionProp.m_value)
-		{
-			socket.close();
-			m_logWriter.write(SocketLogRecordCode.ClientRejected, &address, sizeof(address));
-			waitListenerSocketEvents();
-			return;
-		}
-
-		disconnect();
-
 		m_logWriter.write(SocketLogRecordCode.ClientConnected, &address, sizeof(address));
 		m_logWriter.write(SslLogRecordCode.SslHandshaking);
 
@@ -489,11 +586,13 @@ SslListenerSession.onListenerSocketEvent(
 
 		socket.unsuspend();
 
-		m_remoteAddress = address;
-		m_connectionSocket = socket;
-		m_connectionState = ConnectionState.SslHandshaking;
+		Client* client = new Client;
+		client.m_state = ConnectionState.SslHandshaking;
+		client.m_socket = socket;
+		client.m_address = address;
 
-		waitConnectionSocketEvents();
+		addClient(client);
+		waitClientSocketEvents(client);
 
 	catch:
 		m_logWriter.writeLastError(SocketLogRecordCode.ConnectError);
@@ -505,21 +604,26 @@ SslListenerSession.onListenerSocketEvent(
 	waitListenerSocketEvents();
 }
 
-SslListenerSession.onConnectionSocketEvent(
+SslListenerSession.onClientSocketEvent(
+	SslListenerSession.Client* client,
 	uint_t syncId,
 	io.SslSocketEvents triggeredEvents
 	)
 {
-	if (syncId != m_connectionSyncId)
+	if (syncId != client.m_syncId)
 		return;
 
 	if (triggeredEvents & io.SslSocketEvents.IoError)
 	{
-		m_logWriter.write(log.StdRecordCode.Error, m_connectionSocket.m_ioError, m_connectionSocket.m_ioError.m_size);
-		m_connectionSocket.close();
-		m_connectionSocket = null;
-		m_connectionState = ConnectionState.Closed;
-		m_isTransmitEnabled = false;
+		setCurrentClient(client);
+
+		m_logWriter.write(
+			log.StdRecordCode.Error,
+			client.m_socket.m_ioError,
+			client.m_socket.m_ioError.m_size
+			);
+
+		removeClient(client);
 		return;
 	}
 
@@ -528,25 +632,25 @@ SslListenerSession.onConnectionSocketEvent(
 		m_logWriter.write(SslLogRecordCode.SslHandshakeCompleted);
 
 		std.Buffer buffer;
-		size_t count = m_connectionSocket.m_peerCertificateChainLength;
+		size_t count = client.m_socket.m_peerCertificateChainLength;
 		for (size_t i = 0; i < count; i++)
 		{
-			m_connectionSocket.m_peerCertificateChain[i].encode(buffer, io.SslCertFormat.Der);
+			client.m_socket.m_peerCertificateChain[i].encode(buffer, io.SslCertFormat.Der);
 			m_logWriter.write(SslLogRecordCode.SslCertificate, buffer.m_p, buffer.m_size);
 		}
 
-		io.SslCertificate const* cert = m_connectionSocket.m_peerCertificate;
+		io.SslCertificate const* cert = client.m_socket.m_peerCertificate;
 		if (cert)
 		{
 			cert.encode(buffer, io.SslCertFormat.Der);
 			m_logWriter.write(SslLogRecordCode.SslCertificate, buffer.m_p, buffer.m_size);
 		}
 
-		m_logWriter.write(SslLogRecordCode.SslCipher, m_connectionSocket.m_currentCipher.m_name);
+		m_logWriter.write(SslLogRecordCode.SslCipher, client.m_socket.m_currentCipher.m_name);
 
 		m_logWriter.write(SslLogRecordCode.SslConnectionCompleted);
-		m_connectionState = ConnectionState.Connected;
-		m_isTransmitEnabled = true;
+		client.m_state = ConnectionState.Connected;
+		client.m_isTransmitEnabled = true;
 		m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
 	}
 
@@ -554,15 +658,16 @@ SslListenerSession.onConnectionSocketEvent(
 	{
 		for (;;) // read all the buffered data
 		{
-			size_t result = m_connectionSocket.read(m_readBuffer.m_p, m_readBuffer.m_size);
+			size_t result = client.m_socket.read(m_readBuffer.m_p, m_readBuffer.m_size);
 			if (!result)
 				break;
 
+			setCurrentClient(client);
 			m_logWriter.write(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 		}
 
 		TcpDisconnectLogRecordParams recordParams;
-		recordParams.m_address = m_remoteAddress;
+		recordParams.m_address = client.m_address;
 		recordParams.m_flags = TcpDisconnectLogRecordFlags.Remote;
 
 		if (triggeredEvents & io.SslSocketEvents.TcpReset)
@@ -574,24 +679,24 @@ SslListenerSession.onConnectionSocketEvent(
 			sizeof(recordParams)
 			);
 
-		m_connectionSocket.close();
-		m_connectionSocket = null;
-		m_connectionState = ConnectionState.Closed;
-		m_isTransmitEnabled = false;
+		removeClient(client);
 		return;
 	}
 
 	if (triggeredEvents & io.SslSocketEvents.IncomingData)
 	{
-		size_t result = m_connectionSocket.read(m_readBuffer.m_p, m_readBuffer.m_size);
+		setCurrentClient(client);
+		m_clientCombo.m_currentData = client;
+
+		size_t result = client.m_socket.read(m_readBuffer.m_p, m_readBuffer.m_size);
 		if (result)
 			m_logWriter.write(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 	}
 
-	if (io.SslSocketEvents.WriteBufferReady)
-		m_isTransmitEnabled = true;
+	if (triggeredEvents & io.SocketEvents.WriteBufferReady)
+		client.m_isTransmitEnabled = true;
 
-	waitConnectionSocketEvents();
+	waitClientSocketEvents(client);
 }
 
 reactor SslListenerSession.m_uiReactor
@@ -599,10 +704,14 @@ reactor SslListenerSession.m_uiReactor
 	m_title = $"SSL @ $(m_portCombo.m_editText)";
 	m_actionTable[ActionId.Listen].m_text = m_listenerState ? "Stop Listening" : "Listen";
 	m_actionTable[ActionId.Listen].m_icon = m_iconTable[m_listenerState ? IconId.StopListen : IconId.Listen];
-	m_actionTable[ActionId.Disconnect].m_isEnabled = m_connectionState != ConnectionState.Closed;
+	m_actionTable[ActionId.Disconnect].m_isEnabled =
+	m_actionTable[ActionId.DisconnectAll].m_isEnabled = m_clientCombo.m_currentData;
 	m_statusPaneTable[StatusPaneId.ListenerState].m_text = m_listenerState ? "Listening" : "Not listening";
-	m_statusPaneTable[StatusPaneId.RemoteAddress].m_text = m_connectionState ? m_remoteAddress.getString() : "<peer>";
-	m_statusPaneTable[StatusPaneId.RemoteAddress].m_isVisible = m_connectionState != ConnectionState.Closed;
+	m_statusPaneTable[StatusPaneId.ClientCount].m_text = $"$m_clientCount client(s)";
+
+	m_isTransmitEnabled =
+		m_clientCombo.m_currentData &&
+		((Client*)m_clientCombo.m_currentData).m_isTransmitEnabled;
 }
 
 //..............................................................................
