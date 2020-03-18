@@ -568,12 +568,7 @@ bool errorcode JLinkRttSession.connectJlink()
 	return true;
 
 catch:
-	std.Error const* error = std.getLastError();
-	m_logWriter.write(
-		JLinkRttLogRecordCode.ConnectError,
-		error,
-		error.m_size
-		);
+	m_logWriter.writeLastError(JLinkRttLogRecordCode.ConnectError);
 
 	if (m_jlinkLib.m_isOpen && m_jlinkLib.lib.JLINK_IsOpen())
 		m_jlinkLib.lib.JLINK_Close();
@@ -694,7 +689,7 @@ JLinkRttSession.handleSocketError(std.Error const* error)
 		SocketLogRecordCode.ConnectError :
 		log.StdRecordCode.Error;
 
-	m_logWriter.write(recordCode, error, error.m_size);
+	m_logWriter.write(recordCode, error);
 	m_socket.close();
 	startSocketReconnectTimer();
 }

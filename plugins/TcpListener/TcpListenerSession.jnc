@@ -259,13 +259,7 @@ bool errorcode TcpListenerSession.listen()
 	m_listenerSocket.listen();
 
 	address = m_listenerSocket.m_address;
-
-	m_logWriter.write(
-		SocketLogRecordCode.Listening,
-		&address,
-		sizeof(address)
-		);
-
+	m_logWriter.write(SocketLogRecordCode.Listening, &address, sizeof(address));
 	m_localAddress = address;
 	m_listenerState = ListenerState.Listening;
 	waitListenerSocketEvents();
@@ -273,14 +267,11 @@ bool errorcode TcpListenerSession.listen()
 	return true;
 
 catch:
-	std.Error const* error = std.getLastError();
-	m_logWriter.write(
-		SocketLogRecordCode.ListenError,
-		error,
-		error.m_size
-		);
-
+	m_logWriter.writeLastError(SocketLogRecordCode.ListenError);
 	m_listenerSocket.close();
+	m_listenerState = ListenerState.Closed;
+	m_listenerSyncId++;
+	m_stdSessionInfoSet.endSession();
 	return false;
 }
 
@@ -289,11 +280,7 @@ TcpListenerSession.stopListen()
 	if (m_listenerState != ListenerState.Listening)
 		return;
 
-	m_logWriter.write(
-		SocketLogRecordCode.ListenStopped,
-		&m_localAddress,
-		sizeof(m_localAddress)
-		);
+	m_logWriter.write(SocketLogRecordCode.ListenStopped, &m_localAddress, sizeof(m_localAddress));
 	m_listenerSocket.close();
 	m_listenerState = ListenerState.Closed;
 	m_listenerSyncId++;
@@ -322,12 +309,7 @@ TcpListenerSession.disconnect(TcpListenerSession.Client* client)
 	if (m_socketPropertySet.m_tcpResetProp.m_value)
 		params.m_flags |= TcpDisconnectLogRecordFlags.Reset;
 
-	m_logWriter.write(
-		SocketLogRecordCode.ClientDisconnected,
-		&params,
-		sizeof(params)
-		);
-
+	m_logWriter.write(SocketLogRecordCode.ClientDisconnected, &params, sizeof(params));
 	removeClient(client);
 }
 
@@ -502,7 +484,7 @@ TcpListenerSession.onListenerSocketEvent(
 
 	if (triggeredEvents & io.SocketEvents.IoError)
 	{
-		m_logWriter.write(log.StdRecordCode.Error, m_listenerSocket.m_ioError, m_listenerSocket.m_ioError.m_size);
+		m_logWriter.write(log.StdRecordCode.Error, m_listenerSocket.m_ioError);
 		m_listenerSocket.close();
 		m_listenerState = ListenerState.Closed;
 		m_stdSessionInfoSet.endSession();
@@ -545,13 +527,7 @@ TcpListenerSession.onClientSocketEvent(
 	if (triggeredEvents & io.SocketEvents.IoError)
 	{
 		setCurrentClient(client);
-
-		m_logWriter.write(
-			log.StdRecordCode.Error,
-			client.m_socket.m_ioError,
-			client.m_socket.m_ioError.m_size
-			);
-
+		m_logWriter.write(log.StdRecordCode.Error, client.m_socket.m_ioError);
 		removeClient(client);
 		return;
 	}

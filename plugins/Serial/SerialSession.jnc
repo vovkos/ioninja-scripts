@@ -437,14 +437,7 @@ bool errorcode SerialSession.open()
 	return true;
 
 catch:
-	std.Error const* error = std.getLastError();
-
-	m_logWriter.write(
-		SerialLogRecordCode.PortOpenError,
-		error,
-		error.m_size
-		);
-
+	m_logWriter.writeLastError(SerialLogRecordCode.PortOpenError);
 	m_serial.close();
 	return false;
 }
@@ -707,7 +700,7 @@ SerialSession.onSerialEvent(
 
 	if (triggeredEvents & io.SerialEvents.IoError)
 	{
-		m_logWriter.write(log.StdRecordCode.Error, m_serial.m_ioError, m_serial.m_ioError.m_size);
+		m_logWriter.write(log.StdRecordCode.Error, m_serial.m_ioError);
 		close();
 
 		if (m_reopenTimeoutProp.m_value)

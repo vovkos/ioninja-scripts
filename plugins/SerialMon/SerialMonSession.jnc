@@ -237,14 +237,8 @@ bool errorcode SerialMonSession.capture()
 	return true;
 
 catch:
+	m_logWriter.writeLastError(DeviceMonLogRecordCode.CaptureError);
 	m_monitor.close();
-
-	std.Error const* error = std.getLastError();
-	m_logWriter.write(
-		DeviceMonLogRecordCode.CaptureError,
-		error,
-		error.m_size
-		);
 	return false;
 }
 

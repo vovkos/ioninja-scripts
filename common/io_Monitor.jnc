@@ -217,7 +217,7 @@ bool Monitor.addNotificationData(
 
 Monitor.processError(std.Error const* error)
 {
-	m_pluginHost.m_log.m_writer.write(log.StdRecordCode.Error, error, error.m_size);
+	m_pluginHost.m_log.m_writer.write(log.StdRecordCode.Error, error);
 	close();
 }
 

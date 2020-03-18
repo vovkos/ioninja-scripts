@@ -314,13 +314,7 @@ bool errorcode ProcessSession.start()
 	return true;
 
 catch:
-	std.Error const* error = std.getLastError();
-	m_logWriter.write(
-		ProcessLogRecordCode.ProcessStartError,
-		error,
-		error.m_size
-		);
-
+	m_logWriter.writeLastError(ProcessLogRecordCode.ProcessStartError);
 	m_process.close();
 	return false;
 }
@@ -530,7 +524,7 @@ ProcessSession.onChildProcessEvent(
 	if (triggeredEvents & io.ChildProcessEvents.IoError) // PTYs fire IoError rather than Eof
 	{
 		readAllBufferedData();
-		m_logWriter.write(log.StdRecordCode.Error, m_process.m_ioError, m_process.m_ioError.m_size);
+		m_logWriter.write(log.StdRecordCode.Error, m_process.m_ioError);
 
 		io.ChildProcessEvents processFinishedEvents = m_process.blockingWait(
 			io.ChildProcessEvents.ProcessFinished | io.ChildProcessEvents.ProcessCrashed,
@@ -584,7 +578,7 @@ ProcessSession.onStderrEvent(
 
 	if (triggeredEvents & io.FileStreamEvents.IoError)
 	{
-		m_logWriter.write(log.StdRecordCode.Error, m_process.m_ioError, m_process.m_ioError.m_size);
+		m_logWriter.write(log.StdRecordCode.Error, m_process.m_ioError);
 		closeImpl();
 		return;
 	}

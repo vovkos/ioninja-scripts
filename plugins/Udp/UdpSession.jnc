@@ -474,7 +474,7 @@ UdpSession.onSocketEvent(
 
 	if (triggeredEvents & io.SocketEvents.IoError)
 	{
-		m_logWriter.write(log.StdRecordCode.Error, m_socket.m_ioError, m_socket.m_ioError.m_size);
+		m_logWriter.write(log.StdRecordCode.Error, m_socket.m_ioError);
 		m_socket.close();
 		m_state = State.Closed;
 		m_isTransmitEnabled = false;
@@ -522,7 +522,7 @@ UdpSession.onResolverEvent(
 
 	if (triggeredEvents & io.HostNameResolverEvents.Error)
 	{
-		m_logWriter.write(SocketLogRecordCode.ResolveError, m_resolver.m_error, m_resolver.m_error.m_size);
+		m_logWriter.write(SocketLogRecordCode.ResolveError, m_resolver.m_error);
 		m_resolveState = ResolveState.Unresolved;
 		return;
 	}
@@ -542,8 +542,7 @@ UdpSession.onResolverEvent(
 	writeDatagram(m_pendingDatagram.m_p, m_pendingDatagram.m_size, &m_remoteAddress);
 
 catch:
-	std.Error const* error = std.getLastError();
-	m_logWriter.write(log.StdRecordCode.Error, error, error.m_size);
+	m_logWriter.writeLastError(log.StdRecordCode.Error);
 }
 
 reactor UdpSession.m_uiReactor

@@ -269,15 +269,9 @@ bool errorcode MailslotMonSession.capture()
 	return true;
 
 catch:
+	m_logWriter.writeLastError(DeviceMonLogRecordCode.CaptureError);
 	m_msfsMonitor.close();
 	m_lanmanMonitor.close();
-
-	std.Error const* error = std.getLastError();
-	m_logWriter.write(
-		DeviceMonLogRecordCode.CaptureError,
-		error,
-		error.m_size
-		);
 	return false;
 }
 

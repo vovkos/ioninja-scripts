@@ -321,12 +321,7 @@ catch:
 
 ModbusGatewayMonSession.handleConnectError(std.Error const* error)
 {
-	m_logWriter.write(
-		SocketLogRecordCode.ConnectError,
-		error,
-		error.m_size
-		);
-
+	m_logWriter.write(SocketLogRecordCode.ConnectError, error);
 	m_socket.close();
 	m_state = State.Closed;
 }

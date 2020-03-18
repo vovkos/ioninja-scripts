@@ -354,7 +354,7 @@ TcpConnectionSession.handleSocketError(std.Error const* error)
 		SocketLogRecordCode.ConnectError :
 		log.StdRecordCode.Error;
 
-	m_logWriter.write(recordCode, error, error.m_size);
+	m_logWriter.write(recordCode, error);
 	close();
 }
 

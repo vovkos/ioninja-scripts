@@ -241,13 +241,7 @@ bool errorcode FileSession.open()
 	return true;
 
 catch:
-	std.Error const* error = std.getLastError();
-	m_logWriter.write(
-		FileLogRecordCode.OpenError,
-		error,
-		error.m_size
-		);
-
+	m_logWriter.writeLastError(FileLogRecordCode.OpenError);
 	m_file.close();
 	return false;
 }
@@ -373,7 +367,7 @@ FileSession.onFileStreamEvent(
 
 	if (triggeredEvents & io.FileStreamEvents.IoError)
 	{
-		m_logWriter.write(log.StdRecordCode.Error, m_file.m_ioError, m_file.m_ioError.m_size);
+		m_logWriter.write(log.StdRecordCode.Error, m_file.m_ioError);
 		close();
 		return;
 	}

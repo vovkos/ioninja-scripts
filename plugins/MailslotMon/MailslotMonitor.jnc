@@ -171,7 +171,7 @@ MailslotMonitor.processNotification(io.DeviceMonitorNotifyHdr const* notifyHdr)
 
 MailslotMonitor.processError(std.Error const* error)
 {
-	m_logWriter.write(log.StdRecordCode.Error, error, error.m_size);
+	m_logWriter.write(log.StdRecordCode.Error, error);
 	m_session.close();
 }
 

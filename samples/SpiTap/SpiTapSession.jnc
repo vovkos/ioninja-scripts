@@ -550,14 +550,7 @@ bool errorcode SpiTapSession.capture()
 	return true;
 
 catch:
-	std.Error const* error = std.getLastError();
-
-	m_logWriter.write(
-		SpiTapLogRecordCode.TapOpenError,
-		error,
-		error.m_size
-		);
-
+	m_logWriter.writeLastError(SpiTapLogRecordCode.TapOpenError);
 	m_ifaceA.release();
 	m_ifaceB.release();
 
@@ -685,7 +678,7 @@ SpiTapSession.onEndpointEvent(
 
 	if (triggeredEvents & io.UsbEndpointEvents.IoError)
 	{
-		m_logWriter.write(log.StdRecordCode.Error, iface.m_endpoint.m_ioError, iface.m_endpoint.m_ioError.m_size);
+		m_logWriter.write(log.StdRecordCode.Error, iface.m_endpoint.m_ioError);
 		stopCapture();
 		return;
 	}

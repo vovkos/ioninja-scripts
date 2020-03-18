@@ -608,7 +608,7 @@ UdpFlowMonSession.onPcapEvent(
 
 	if (triggeredEvents & io.PcapEvents.IoError)
 	{
-		m_logWriter.write(log.StdRecordCode.Error, m_pcap.m_ioError, m_pcap.m_ioError.m_size);
+		m_logWriter.write(log.StdRecordCode.Error, m_pcap.m_ioError);
 		stopCapture();
 		return;
 	}

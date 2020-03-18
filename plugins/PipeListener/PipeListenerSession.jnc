@@ -255,13 +255,7 @@ bool errorcode PipeListenerSession.listen()
 	return true;
 
 catch:
-	std.Error const* error = std.getLastError();
-	m_logWriter.write(
-		PipeListenerLogRecordCode.ListenError,
-		error,
-		error.m_size
-		);
-
+	m_logWriter.writeLastError(PipeListenerLogRecordCode.ListenError);
 	m_listenerPipe.close();
 	return false;
 }
@@ -417,7 +411,7 @@ PipeListenerSession.onListenerPipeEvent(
 
 	if (triggeredEvents & io.NamedPipeEvents.IoError)
 	{
-		m_logWriter.write(log.StdRecordCode.Error, m_listenerPipe.m_ioError, m_listenerPipe.m_ioError.m_size);
+		m_logWriter.write(log.StdRecordCode.Error, m_listenerPipe.m_ioError);
 		stopListen();
 		return;
 	}
@@ -456,7 +450,7 @@ PipeListenerSession.onConnectionPipeEvent(
 
 	if (triggeredEvents & io.FileStreamEvents.IoError)
 	{
-		m_logWriter.write(log.StdRecordCode.Error, m_connectionPipe.m_ioError, m_connectionPipe.m_ioError.m_size);
+		m_logWriter.write(log.StdRecordCode.Error, m_connectionPipe.m_ioError);
 		disconnect();
 		return;
 	}

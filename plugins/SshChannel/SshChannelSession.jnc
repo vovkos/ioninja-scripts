@@ -403,23 +403,14 @@ SshChannelSession.waitSshEvents()
 
 SshChannelSession.handleConnectError(std.Error const* error)
 {
-	m_logWriter.write(
-		SocketLogRecordCode.ConnectError,
-		error,
-		error.m_size
-		);
-
+	m_logWriter.write(SocketLogRecordCode.ConnectError, error);
 	m_ssh.close();
 	m_state = State.Closed;
 }
 
 SshChannelSession.handleSshAuthenticateError(std.Error const* error)
 {
-	m_logWriter.write(
-		SocketLogRecordCode.ConnectError,
-		error,
-		error.m_size
-		);
+	m_logWriter.write(SocketLogRecordCode.ConnectError, error);
 
 	if (!m_loginDlg)
 	{
