@@ -5,6 +5,7 @@
 
 import "io_base.jncx"
 import "io_HostNameResolver.jnc"
+import "ui_StatusBar.jnc"
 
 namespace iox {
 
@@ -40,8 +41,9 @@ protected:
 
 public:
 	State bindable readonly m_state;
-	io.SocketAddress readonly m_address;
-	uint_t m_defaultPort; // freely adjustible
+	io.SocketAddress m_address;
+	uint_t m_defaultPort;
+	event m_onCompleted();
 
 public:
 	construct(doc.PluginHost* pluginHost)
@@ -49,8 +51,13 @@ public:
 		m_pluginHost = pluginHost;
 	}
 
-	bool errorcode resolve(char const* addressString);
+	bool errorcode resolve(
+		char const* addressString,
+		io.AddressFamily addressFamily = io.AddressFamily.Undefined
+		);
+
 	void cancel();
+	void updateStatusPane(ui.StatusPane* pane);
 
 protected:
 	void handleResolveError(std.Error const* error);
@@ -63,7 +70,10 @@ protected:
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-bool errorcode HostNameResolver.resolve(char const* addressString)
+bool errorcode HostNameResolver.resolve(
+	char const* addressString,
+	io.AddressFamily addressFamily
+	)
 {
 	cancel();
 
@@ -82,7 +92,7 @@ bool errorcode HostNameResolver.resolve(char const* addressString)
 	m_syncId++;
 	m_logWriter.write(SocketLogRecordCode.Resolving, addressString);
 	m_logWriter.sync(m_syncId);
-	m_resolver.resolve(addressString);
+	m_resolver.resolve(addressString, addressFamily);
 	m_addressString = addressString;
 
 	m_resolver.wait(
@@ -106,10 +116,39 @@ void HostNameResolver.cancel()
 		return;
 	}
 
+	if (m_syncId != m_pluginHost.m_log.m_syncId)
+		m_logWriter.write(SocketLogRecordCode.ResolveCompletedPrefix, m_addressString);
+
 	m_logWriter.write(SocketLogRecordCode.ResolveCancelled);
 	m_resolver.cancel();
 	m_syncId++;
 	m_state = State.Idle;
+	m_onCompleted();
+}
+
+void HostNameResolver.updateStatusPane(ui.StatusPane* pane)
+{
+	switch (m_state)
+	{
+	case State.Resolving:
+		pane.m_text = "Resolving...";
+		pane.m_color = ui.StdColor.Black;
+		break;
+
+	case State.Resolved:
+		pane.m_text = m_address.getString();
+		pane.m_color = ui.StdColor.Blue;
+		break;
+
+	case State.Error:
+		pane.m_text = "Resolve error";
+		pane.m_color = ui.StdColor.Red;
+		break;
+
+	default:
+		pane.m_text = null;
+		pane.m_color = ui.StdColor.Black;
+	}
 }
 
 HostNameResolver.handleResolveError(std.Error const* error)
@@ -133,6 +172,7 @@ HostNameResolver.onResolverEvent(
 	if (triggeredEvents & io.HostNameResolverEvents.Error)
 	{
 		handleResolveError(m_resolver.m_error);
+		m_onCompleted();
 		return;
 	}
 
@@ -147,10 +187,11 @@ HostNameResolver.onResolverEvent(
 		m_address.m_port = m_defaultPort;
 
 	m_state = State.Resolved;
+	m_onCompleted();
 }
 
 //..............................................................................
 
 //! @}
 
-} // namespace iol
+} // namespace iox
