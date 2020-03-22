@@ -19,5 +19,4 @@ session-class = SslListenerSession
 [scripts]
 
 SslListenerSession.jnc
-../SslLog/SslClientLogFilter.jnc
 ../SocketLog/SocketClientLogFilter.jnc

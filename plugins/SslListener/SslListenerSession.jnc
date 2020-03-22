@@ -85,7 +85,7 @@ protected:
 	size_t bindable m_clientCount;
 	io.SocketAddress m_currentClientAddress;
 	std.Buffer m_readBuffer;
-	SslClientLogFilter m_filter;
+	SocketClientLogFilter m_filter;
 
 	// toolbar, status bar & menu
 
@@ -684,6 +684,7 @@ reactor SslListenerSession.m_uiReactor
 	m_actionTable[ActionId.DisconnectAll].m_isEnabled = m_clientCombo.m_currentData;
 	m_statusPaneTable[StatusPaneId.ListenerState].m_text = m_listenerState ? "Listening" : "Not listening";
 	m_statusPaneTable[StatusPaneId.ClientCount].m_text = $"$m_clientCount client(s)";
+	m_clientCombo.m_isEnabled = m_clientCount;
 
 	m_isTransmitEnabled =
 		m_clientCombo.m_currentData &&
