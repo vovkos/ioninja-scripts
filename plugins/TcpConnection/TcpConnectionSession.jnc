@@ -611,7 +611,7 @@ reactor TcpConnectionSession.m_uiReactor
 	m_infoTable[InfoId.LocalAddress].m_isEnabled = m_state == State.Connected;
 	m_infoTable[InfoId.RemoteAddress].m_isEnabled = m_state == State.Connected;
 
-	onevent m_addressCombo.m_onChanged()
+	onevent bindingof(m_addressCombo.m_editText)()
 	{
 		m_reconnectTimer.stop();
 	}

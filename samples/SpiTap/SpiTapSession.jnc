@@ -314,7 +314,7 @@ SpiTapSession.createUi()
 		m_modeCombo.addItem(modeTable[i].m_text, modeTable[i].m_value);
 
 	m_modeCombo.adjustSizeToContents();
-	m_modeCombo.m_onChanged += onModeChanged;
+	bindingof(m_modeCombo.m_currentIndex) += onModeChanged;
 
 	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable [IconId.Capture]);
 	m_actionTable[ActionId.Capture].m_onTriggered += onCapture;
