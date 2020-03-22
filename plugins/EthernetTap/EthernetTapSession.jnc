@@ -326,15 +326,10 @@ size_t exportLogRecordToPcap(
 	{
 	case EthernetTapLogRecordCode.Packet_ch1:
 	case EthernetTapLogRecordCode.Packet_ch2:
-		printf("record.m_code: %llx\n", record.m_code);
-
 		uint32_t const* idx = (uint32_t const*)(record + 1);
 		PacketHdr const* hdr = (PacketHdr const*)(idx + 1);
 		p = hdr + 1;
 		size = hdr.m_size;
-
-		printf("idx: %d\n", *idx);
-		printf("size: %d\n", size);
 		break;
 
 	default:

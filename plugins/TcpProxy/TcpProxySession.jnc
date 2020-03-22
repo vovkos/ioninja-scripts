@@ -793,9 +793,6 @@ TcpProxySession.onConnectionSocketEvent(
 
 	if (triggeredEvents & io.SocketEvents.WriteBufferReady)
 	{
-		if (connection.m_state != ConnectionState.Connected)
-			printf("WTF? canTransmit in non-connected state (%d)\n", connection.m_state);
-
 		connection.m_canTransmit = true;
 		forwardData(proxy, connection, peer);
 		waitConnectionSocketEvents(proxy, peer, true);
@@ -870,9 +867,6 @@ TcpProxySession.forwardData(
 	size_t forwardSize = dst.m_canTransmit ? dst.m_socket.write(p, size) : 0;
 	if (forwardSize)
 	{
-		if (dst.m_state != ConnectionState.Connected)
-			printf("*** WTF? sending to non-connected socket (state: %d, canTransmit: %d)?\n", dst.m_state, dst.m_canTransmit);
-
 		setCurrentProxy(proxy);
 		uint64_t recordCode = src == proxy.m_client ? log.StdRecordCode.Tx : log.StdRecordCode.Rx;
 		m_logWriter.write(recordCode, p, forwardSize);
