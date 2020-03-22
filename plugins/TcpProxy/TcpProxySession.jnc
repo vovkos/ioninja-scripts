@@ -6,7 +6,7 @@
 import "doc_Session.jnc"
 import "io_base.jncx"
 import "io_Socket.jnc"
-import "io_HostNameResolver.jnc"
+import "iox_HostNameResolver.jnc"
 import "ui_History.jnc"
 import "ui_SocketUi.jnc"
 import "ui_BufferPropertySet.jnc"
@@ -40,14 +40,6 @@ protected:
 	{
 		"Not listening",
 		"Listening",
-	}
-
-	enum ResolverState
-	{
-		Idle,
-		Error,
-		Resolving,
-		Resolved,
 	}
 
 	enum ConnectionState
@@ -115,18 +107,11 @@ protected:
 
 	std.List m_proxyList;
 	size_t bindable m_proxyCount;
+	iox.HostNameResolver m_resolver;
+	std.List m_resolverWaitList;
 	io.SocketAddress m_currentClientAddress;
 	std.Buffer m_readBuffer;
 	SocketClientLogFilter m_filter;
-
-	// resolver
-
-	ResolverState bindable m_resolverState;
-	io.HostNameResolver m_resolver;
-	char const* m_resolverAddressString;
-	uint_t m_resolverSyncId;
-	std.List m_resolverWaitList;
-	io.SocketAddress m_targetAddress;
 
 	// toolbar, status bar & menu
 
@@ -169,7 +154,11 @@ public:
 
 protected:
 	onListen();
-	onTargetAddressChanged();
+
+	onTargetAddressChanged()
+	{
+		m_resolver.cancel();
+	}
 
 	onTargetAddressEnter()
 	{
@@ -186,10 +175,7 @@ protected:
 		try applyClientFilter(true);
 	}
 
-	onResolverEvent(
-		uint_t syncId,
-		io.HostNameResolverEvents triggeredEvents
-		);
+	onResolveCompleted();
 
 	onListenerSocketEvent(
 		uint_t syncId,
@@ -213,7 +199,6 @@ protected:
 		);
 
 	handleListenError(std.Error const* error);
-	handleResolveError(std.Error const* error);
 	waitListenerSocketEvents();
 
 	waitConnectionSocketEvents(
@@ -222,11 +207,9 @@ protected:
 		bool peerCanTransmit
 		);
 
+	connect(Proxy* proxy);
 	disconnect(Proxy* proxy);
 	bool errorcode resolve();
-	cancelResolve();
-	disconnectResolveWaitList();
-	connectTarget(Proxy* proxy);
 	addProxy(Proxy* proxy);
 	removeProxy(Proxy* proxy);
 	setCurrentProxy(Proxy* proxy);
@@ -244,6 +227,7 @@ protected:
 TcpProxySession.construct(doc.PluginHost* pluginHost)
 {
 	basetype.construct(pluginHost);
+	m_resolver.construct(pluginHost);
 
 	createUi();
 
@@ -251,6 +235,7 @@ TcpProxySession.construct(doc.PluginHost* pluginHost)
 	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
 	pluginHost.m_log.addFilter(m_filter);
 	m_stdSessionInfoSet.addLogListener(pluginHost.m_log);
+	m_resolver.m_onCompleted += onResolveCompleted;
 }
 
 TcpProxySession.createUi()
@@ -349,11 +334,6 @@ TcpProxySession.onListen()
 		try listen();
 }
 
-TcpProxySession.onTargetAddressChanged()
-{
-	cancelResolve();
-	m_resolverState = ResolverState.Idle;
-}
 
 bool errorcode TcpProxySession.listen()
 {
@@ -383,62 +363,11 @@ catch:
 
 bool errorcode TcpProxySession.resolve()
 {
-	cancelResolve();
-
+	m_resolver.cancel();
 	m_targetAddressCombo.addEditTextToHistory();
 	char const* addressString = m_targetAddressCombo.m_editText;
-
-	io.SocketAddress address;
-	bool isDirectAddress = try address.parse(addressString);
-	if (isDirectAddress)
-	{
-		if (!address.m_port)
-			address.m_port = m_connectionSocketPropertySet.m_remotePortProp.m_value;
-
-		m_targetAddress = address;
-		m_resolverState = ResolverState.Resolved;
-		return true;
-	}
-
-	m_resolverSyncId = ++m_logSyncId;
-	m_logWriter.write(SocketLogRecordCode.Resolving, addressString);
-	m_logWriter.sync(m_resolverSyncId);
-	m_resolver.resolve(addressString);
-	m_resolverAddressString = addressString;
-
-	m_resolver.wait(
-		io.HostNameResolverEvents.Resolved | io.HostNameResolverEvents.Error,
-		onResolverEvent~(m_resolverSyncId) @ m_pluginHost.m_mainThreadScheduler
-		);
-
-	m_resolverState = ResolverState.Resolving;
-	return true;
-
-catch:
-	handleResolveError(std.getLastError());
-	return false;
-}
-
-void TcpProxySession.disconnectResolveWaitList()
-{
-	while (m_resolverWaitList.m_count)
-	{
-		Proxy* proxy = m_resolverWaitList.removeHead();
-		proxy.m_resolverWaitListEntry = null;
-		disconnect(proxy);
-	}
-}
-
-void TcpProxySession.cancelResolve()
-{
-	if (m_resolverState != ResolverState.Resolving)
-		return;
-
-	m_logWriter.write(SocketLogRecordCode.ResolveCancelled);
-	disconnectResolveWaitList();
-	m_resolver.cancel();
-	m_resolverSyncId++;
-	m_resolverState = ResolverState.Idle;
+	m_resolver.m_defaultPort = m_connectionSocketPropertySet.m_remotePortProp.m_value;
+	return m_resolver.resolve(addressString);
 }
 
 TcpProxySession.stopListen()
@@ -575,17 +504,18 @@ bool errorcode TcpProxySession.applyClientFilter(bool rebuildLog)
 	return true;
 }
 
-void TcpProxySession.connectTarget(TcpProxySession.Proxy* proxy)
+void TcpProxySession.connect(TcpProxySession.Proxy* proxy)
 {
-	if (m_resolverState == ResolverState.Idle || m_resolverState == ResolverState.Error)
+	if (m_resolver.m_state == iox.HostNameResolver.State.Idle ||
+		m_resolver.m_state == iox.HostNameResolver.State.Error)
 		resolve(); // and then inspect resolver state again
 
-	switch (m_resolverState)
+	switch (m_resolver.m_state)
 	{
-	case ResolverState.Resolved:
+	case iox.HostNameResolver.State.Resolved:
 		break;
 
-	case ResolverState.Resolving:
+	case iox.HostNameResolver.State.Resolving:
 		proxy.m_target.m_state = ConnectionState.Resolving;
 		proxy.m_resolverWaitListEntry = m_resolverWaitList.add(proxy);
 		return;
@@ -595,12 +525,12 @@ void TcpProxySession.connectTarget(TcpProxySession.Proxy* proxy)
 	}
 
 	proxy.m_connectSyncId = ++m_logSyncId;
-	m_logWriter.write(SocketLogRecordCode.Connecting, &m_targetAddress, sizeof(m_targetAddress));
+	m_logWriter.write(SocketLogRecordCode.Connecting, &m_resolver.m_address, sizeof(m_resolver.m_address));
 	m_logWriter.sync(proxy.m_connectSyncId);
 
-	proxy.m_target.m_socket.open(m_targetAddress.m_family, io.Protocol.Tcp);
-	proxy.m_target.m_socket.connect(&m_targetAddress);
-	proxy.m_target.m_address = m_targetAddress;
+	proxy.m_target.m_socket.open(m_resolver.m_address.m_family, io.Protocol.Tcp);
+	proxy.m_target.m_socket.connect(&m_resolver.m_address);
+	proxy.m_target.m_address = m_resolver.m_address;
 	proxy.m_target.m_state = ConnectionState.Connecting;
 	waitConnectionSocketEvents(proxy, proxy.m_target, proxy.m_client.m_canTransmit);
 
@@ -697,7 +627,7 @@ TcpProxySession.onListenerSocketEvent(
 
 		addProxy(proxy);
 		waitConnectionSocketEvents(proxy, proxy.m_client, false);
-		connectTarget(proxy);
+		connect(proxy);
 	}
 
 	waitListenerSocketEvents();
@@ -804,40 +734,15 @@ TcpProxySession.onConnectionSocketEvent(
 		waitConnectionSocketEvents(proxy, connection, peer.m_canTransmit);
 }
 
-TcpProxySession.onResolverEvent(
-	uint_t syncId,
-	io.HostNameResolverEvents triggeredEvents
-	)
+TcpProxySession.onResolveCompleted()
 {
-	if (syncId != m_resolverSyncId)
-		return;
-
-	if (syncId != m_pluginHost.m_log.m_syncId)
-		m_logWriter.write(SocketLogRecordCode.ResolveCompletedPrefix, m_resolverAddressString);
-
-	if (triggeredEvents & io.HostNameResolverEvents.Error)
-	{
-		handleResolveError(m_resolver.m_error);
-		return;
-	}
-
-	m_logWriter.write(
-		SocketLogRecordCode.ResolveCompleted,
-		m_resolver.m_addressTable,
-		sizeof(io.SocketAddress)
-		);
-
-	m_targetAddress = m_resolver.m_addressTable[0];
-	if (!m_targetAddress.m_port)
-		m_targetAddress.m_port = m_connectionSocketPropertySet.m_remotePortProp.m_value;
-
-	m_resolverState = ResolverState.Resolved;
-
 	while (m_resolverWaitList.m_count)
 	{
 		Proxy* proxy = m_resolverWaitList.removeHead();
 		proxy.m_resolverWaitListEntry = null;
-		connectTarget(proxy);
+		m_resolver.m_state == iox.HostNameResolver.State.Resolved ?
+			connect(proxy) :
+			disconnect(proxy);
 	}
 }
 
@@ -898,14 +803,6 @@ TcpProxySession.handleListenError(std.Error const* error)
 	m_listenerState = ListenerState.Closed;
 	m_listenerSyncId++;
 	m_stdSessionInfoSet.endSession();
-}
-
-TcpProxySession.handleResolveError(std.Error const* error)
-{
-	m_logWriter.write(SocketLogRecordCode.ResolveError, error);
-	m_resolver.cancel();
-	m_resolverState = ResolverState.Error;
-	disconnectResolveWaitList();
 }
 
 TcpProxySession.handleConnectError(
@@ -973,16 +870,10 @@ reactor TcpProxySession.m_uiReactor
 	m_statusPaneTable[StatusPaneId.ListenerState].m_text = m_listenerStateStringTable[m_listenerState];
 	m_statusPaneTable[StatusPaneId.ClientCount].m_text = $"$m_proxyCount client(s)";
 
-	m_statusPaneTable[StatusPaneId.TargetAddress].m_text =
-		m_resolverState == ResolverState.Resolving ? "Resolving..." :
-		m_resolverState == ResolverState.Error ? "Resolve error" :
-		m_resolverState == ResolverState.Resolved ? m_targetAddress.getString() :
-		null;
-
-	m_statusPaneTable[StatusPaneId.TargetAddress].m_color =
-		m_resolverState == ResolverState.Error ? ui.StdColor.Red :
-		m_resolverState == ResolverState.Resolved ? ui.StdColor.Blue :
-		ui.StdColor.Black;
+	onevent bindingof(m_resolver.m_state)()
+	{
+		m_resolver.updateStatusPane(m_statusPaneTable[StatusPaneId.TargetAddress]);
+	}
 }
 
 //..............................................................................

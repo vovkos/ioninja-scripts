@@ -19,4 +19,5 @@ session-class = TcpProxySession
 [scripts]
 
 TcpProxySession.jnc
+iox_HostNameResolver.jnc
 ../SocketLog/SocketClientLogFilter.jnc
