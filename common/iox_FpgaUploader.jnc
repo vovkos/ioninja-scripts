@@ -15,7 +15,7 @@ import "std_Buffer.jnc"
 import "parseVersion.jnc"
 import "FpgaUploaderLog/FpgaUploaderLogRecordCode.jnc"
 
-namespace io {
+namespace iox {
 
 //! \addtogroup common-io
 //! @{
@@ -321,14 +321,6 @@ FpgaUploader.finalizeLoad()
 {
 	RpdVersion version = getVersion();
 
-	printf(
-		"finalizeLoad: (%d, %d) vs (%d, %d)\n",
-		version.m_firmwareType,
-		version.m_firmwareVersion,
-		m_fileVersion.m_firmwareType,
-		m_fileVersion.m_firmwareVersion
-		);
-
 	if (version.m_firmwareType == m_fileVersion.m_firmwareType &&
 		version.m_firmwareVersion == m_fileVersion.m_firmwareVersion)
 	{
@@ -452,4 +444,4 @@ catch:
 
 //! @}
 
-} // namespace io
+} // namespace iox

@@ -9,7 +9,7 @@ import "ui_BufferPropertySet.jnc"
 import "doc_PluginHost.jnc"
 import "std_Buffer.jnc"
 
-namespace io {
+namespace iox {
 
 //! \addtogroup common-io
 //! @{
@@ -145,7 +145,7 @@ Monitor.onMonitorEvent(
 	}
 
 	if ((triggeredEvents & DeviceMonitorEvents.ReadBufferFull) && m_notifyReadBufferFull)
-		m_pluginHost.m_log.m_writer.write(log.StdRecordCode.RxBufferFull);
+		m_logWriter.write(log.StdRecordCode.RxBufferFull);
 
 	if (triggeredEvents & DeviceMonitorEvents.IncomingData)
 	{
@@ -191,7 +191,7 @@ bool Monitor.addNotificationData(
 		}
 
 		if (notifyHdr.m_flags & io.DeviceMonitorNotifyFlags.DataDropped)
-			m_pluginHost.m_log.m_writer.write(log.StdRecordCode.RxBufferFullLossy);
+			m_logWriter.write(log.StdRecordCode.RxBufferFullLossy);
 
 		size_t notifySize = sizeof(DeviceMonitorNotifyHdr) + notifyHdr.m_paramSize;
 		size_t leftoverSize = notifySize - m_notifyBuffer.m_size;
@@ -216,7 +216,7 @@ bool Monitor.addNotificationData(
 
 Monitor.processError(std.Error const* error)
 {
-	m_pluginHost.m_log.m_writer.write(log.StdRecordCode.Error, error);
+	m_logWriter.write(log.StdRecordCode.Error, error);
 	close();
 }
 
@@ -224,4 +224,4 @@ Monitor.processError(std.Error const* error)
 
 //! @}
 
-} // namespace io
+} // namespace iox
