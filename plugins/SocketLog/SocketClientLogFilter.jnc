@@ -13,7 +13,7 @@ class SocketClientLogFilter: log.Filter
 protected:
 	bool m_isVisible;
 	io.SocketAddress m_filterAddress;
-	io.SocketAddress m_currentAddress;
+	io.SocketAddress m_lastVisibleAddress;
 
 public:
 	// suspend log engine before calling setFilter
@@ -44,8 +44,8 @@ bool errorcode SocketClientLogFilter.setFilter(char const* filter)
 
 void SocketClientLogFilter.reset()
 {
-	m_currentAddress = null;
 	m_isVisible = false;
+	m_lastVisibleAddress = null;
 }
 
 bool SocketClientLogFilter.filter(
@@ -67,25 +67,33 @@ bool SocketClientLogFilter.filter(
 		if (!m_isVisible)
 			return false;
 
-		if (recordCode == SocketLogRecordCode.ClientChanged && m_currentAddress.isEqual(address))
+		if (recordCode == SocketLogRecordCode.ClientChanged && m_lastVisibleAddress.isEqual(address))
 			return false; // don't show unnecessary client-changed messages
 
-		m_currentAddress = *address;
+		m_lastVisibleAddress = *address;
 		return true;
 
 	case SocketLogRecordCode.ClientDisconnected:
-		bool result = ((io.SocketAddress const*)p).isMatch(m_filterAddress);
-		m_currentAddress = null;
+		TcpDisconnectLogRecordParams const* params = (TcpDisconnectLogRecordParams const*)p;
+		bool result = params.m_address.isMatch(m_filterAddress);
+		if (params.m_flags & TcpDisconnectLogRecordFlags.KeepClient)
+			return result;
+
+		if (result)
+			m_lastVisibleAddress = null;
+
 		m_isVisible = false;
 		return result;
 
-	case log.StdRecordCode.Error:
-	case log.StdRecordCode.Tx:
-	case log.StdRecordCode.Rx:
-		return m_isVisible;
+	case SocketLogRecordCode.ClientRemoved:
+		if (m_isVisible)
+			m_lastVisibleAddress = null;
+
+		m_isVisible = false;
+		return true;
 
 	default:
-		return true; // everything else is visible
+		return m_isVisible;
 	}
 }
 
