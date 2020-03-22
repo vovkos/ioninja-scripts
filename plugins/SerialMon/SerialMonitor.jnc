@@ -23,7 +23,7 @@ public:
 protected:
 	override processNotification(io.DeviceMonitorNotifyHdr const* notifyHdr)
 	{
-		m_processor->processNotification(notifyHdr);
+		m_processor.processNotification(notifyHdr);
 	}
 
 	override processError(std.Error const* error);
