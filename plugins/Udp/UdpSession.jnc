@@ -6,7 +6,7 @@
 import "doc_Session.jnc"
 import "io_base.jncx"
 import "io_Socket.jnc"
-import "io_HostNameResolver.jnc"
+import "iox_HostNameResolver.jnc"
 import "ui_History.jnc"
 import "ui_SocketUi.jnc"
 import "ui_BufferPropertySet.jnc"
@@ -35,14 +35,6 @@ protected:
 		Opened,
 	}
 
-	enum ResolverState
-	{
-		Idle,
-		Error,
-		Resolving,
-		Resolved,
-	}
-
 	enum ActionId
 	{
 		Open,
@@ -69,16 +61,11 @@ protected:
 
 	State bindable m_state;
 	io.Socket m_socket;
+	iox.HostNameResolver m_resolver;
 	std.Buffer m_readBuffer;
 	std.Buffer m_pendingDatagram;
 	bool m_hasPendingDatagram;
 	uint_t m_socketSyncId;
-
-	ResolverState bindable m_resolverState;
-	io.HostNameResolver m_resolver;
-	io.SocketAddress m_remoteAddress;
-	char const* m_resolverAddressString;
-	uint_t m_resolverSyncId;
 
 	// toolbar, status bar & menu
 
@@ -124,17 +111,18 @@ public:
 
 protected:
 	onOpen();
-	onRemoteAddressChanged();
+
+	onRemoteAddressChanged()
+	{
+		m_resolver.cancel();
+	}
 
 	onRemoteAddressEnter()
 	{
 		try resolve();
 	}
 
-	onResolverEvent(
-		uint_t syncId,
-		io.HostNameResolverEvents triggeredEvents
-		);
+	onResolveCompleted();
 
 	onSocketEvent(
 		uint_t syncId,
@@ -142,10 +130,8 @@ protected:
 		);
 
 	createUi();
-	waitSocketEvents();
 	bool errorcode resolve();
-	cancelResolve();
-	handleResolveError(std.Error const* error);
+	waitSocketEvents();
 
 	size_t writeDatagram(
 		void const* p,
@@ -159,12 +145,14 @@ protected:
 UdpSession.construct(doc.PluginHost* pluginHost)
 {
 	basetype.construct(pluginHost);
+	m_resolver.construct(pluginHost);
 
 	createUi();
 
 	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
 	m_stdSessionInfoSet.addLogListener(pluginHost.m_log);
+	m_resolver.m_onCompleted += onResolveCompleted;
 }
 
 UdpSession.createUi()
@@ -250,12 +238,6 @@ UdpSession.onOpen()
 		openSocket();
 }
 
-UdpSession.onRemoteAddressChanged()
-{
-	cancelResolve();
-	m_resolverState = ResolverState.Idle;
-}
-
 UdpSession.openSocket()
 {
 	io.SocketAddress address;
@@ -285,8 +267,7 @@ nestedscope:
 
 catch:
 	std.Error const* error = std.getLastError();
-	void const* p = memcat(&address, sizeof(address), error, error.m_size);
-	m_logWriter.write(SocketLogRecordCode.OpenError, p, dynamic sizeof(p));
+	m_logWriter.write(SocketLogRecordCode.OpenError, address, sizeof(address), error, error.m_size);
 }
 
 UdpSession.closeSocket()
@@ -296,12 +277,10 @@ UdpSession.closeSocket()
 
 	io.SocketAddress address = m_socket.m_address;
 	m_socket.close();
-
+	m_resolver.cancel();
 	m_logWriter.write(SocketLogRecordCode.Close, &address, sizeof(address));
-
 	m_state = State.Closed;
 	m_socketSyncId++;
-	m_resolverSyncId++;
 	m_stdSessionInfoSet.endSession();
 }
 
@@ -378,25 +357,6 @@ UdpSession.restoreDefaultProperties()
 	m_autoRemoteAddressProp.m_value = false;
 }
 
-void UdpSession.cancelResolve()
-{
-	if (m_resolverState != ResolverState.Resolving)
-		return;
-
-	m_logWriter.write(SocketLogRecordCode.ResolveCancelled);
-	m_resolver.cancel();
-	m_resolverSyncId++;
-	m_resolverState = ResolverState.Idle;
-	m_hasPendingDatagram = false;
-}
-
-UdpSession.handleResolveError(std.Error const* error)
-{
-	m_logWriter.write(SocketLogRecordCode.ResolveError, error);
-	m_resolver.cancel();
-	m_resolverState = ResolverState.Error;
-}
-
 size_t errorcode UdpSession.transmit(
 	void const* p,
 	size_t size
@@ -405,15 +365,16 @@ size_t errorcode UdpSession.transmit(
 	if (m_state == State.Closed)
 		return -1;
 
-	if (m_resolverState == ResolverState.Idle || m_resolverState == ResolverState.Error)
+	if (m_resolver.m_state == iox.HostNameResolver.State.Idle ||
+		m_resolver.m_state == iox.HostNameResolver.State.Error)
 		resolve(); // and then inspect resolver state again
 
-	switch (m_resolverState)
+	switch (m_resolver.m_state)
 	{
-	case ResolverState.Resolved:
+	case iox.HostNameResolver.State.Resolved:
 		break;
 
-	case ResolverState.Resolving:
+	case iox.HostNameResolver.State.Resolving:
 		m_pendingDatagram.copy(p, size);
 		m_hasPendingDatagram = true;
 		return size;
@@ -422,45 +383,16 @@ size_t errorcode UdpSession.transmit(
 		assert(false);
 	}
 
-	return writeDatagram(p, size, &m_remoteAddress);
+	return writeDatagram(p, size, &m_resolver.m_address);
 }
 
 bool errorcode UdpSession.resolve()
 {
-	cancelResolve();
-
+	m_resolver.cancel();
 	m_remoteAddressCombo.addEditTextToHistory();
 	char const* addressString = m_remoteAddressCombo.m_editText;
-
-	io.SocketAddress address;
-	bool isDirectAddress = try address.parse(addressString);
-	if (isDirectAddress)
-	{
-		if (!address.m_port)
-			address.m_port = m_socketPropertySet.m_remotePortProp.m_value;
-
-		m_remoteAddress = address;
-		m_resolverState = ResolverState.Resolved;
-		return true;
-	}
-
-	m_resolverSyncId++;
-	m_logWriter.write(SocketLogRecordCode.Resolving, addressString);
-	m_logWriter.sync(m_resolverSyncId);
-	m_resolver.resolve(addressString);
-	m_resolverAddressString = addressString;
-
-	m_resolver.wait(
-		io.HostNameResolverEvents.Resolved | io.HostNameResolverEvents.Error,
-		onResolverEvent~(m_resolverSyncId) @ m_pluginHost.m_mainThreadScheduler
-		);
-
-	m_resolverState = ResolverState.Resolving;
-	return true;
-
-catch:
-	handleResolveError(std.getLastError());
-	return false;
+	m_resolver.m_defaultPort = m_socketPropertySet.m_remotePortProp.m_value;
+	return m_resolver.resolve(addressString);
 }
 
 size_t UdpSession.writeDatagram(
@@ -533,40 +465,12 @@ UdpSession.onSocketEvent(
 	waitSocketEvents();
 }
 
-UdpSession.onResolverEvent(
-	uint_t syncId,
-	io.HostNameResolverEvents triggeredEvents
-	)
+UdpSession.onResolveCompleted()
 {
-	if (syncId != m_resolverSyncId)
-		return;
+	if (m_resolver.m_state == iox.HostNameResolver.State.Resolved && m_hasPendingDatagram)
+		writeDatagram(m_pendingDatagram.m_p, m_pendingDatagram.m_size, &m_resolver.m_address);
 
-	if (syncId != m_pluginHost.m_log.m_syncId)
-		m_logWriter.write(SocketLogRecordCode.ResolveCompletedPrefix, m_resolverAddressString);
-
-	if (triggeredEvents & io.HostNameResolverEvents.Error)
-	{
-		handleResolveError(m_resolver.m_error);
-		return;
-	}
-
-	m_logWriter.write(
-		SocketLogRecordCode.ResolveCompleted,
-		m_resolver.m_addressTable,
-		sizeof(io.SocketAddress)
-		);
-
-	m_remoteAddress = m_resolver.m_addressTable[0];
-	if (!m_remoteAddress.m_port)
-		m_remoteAddress.m_port = m_socketPropertySet.m_remotePortProp.m_value;
-
-	m_resolverState = ResolverState.Resolved;
-
-	if (m_hasPendingDatagram)
-	{
-		writeDatagram(m_pendingDatagram.m_p, m_pendingDatagram.m_size, &m_remoteAddress);
-		m_hasPendingDatagram = false;
-	}
+	m_hasPendingDatagram = false;
 }
 
 reactor UdpSession.m_uiReactor
@@ -581,16 +485,10 @@ reactor UdpSession.m_uiReactor
 		"This address will automatically switch to the address of the last inbound datagram" :
 		null;
 
-	m_statusPaneTable[StatusPaneId.RemoteAddress].m_text =
-		m_resolverState == ResolverState.Resolving ? "Resolving..." :
-		m_resolverState == ResolverState.Error ? "Resolve error" :
-		m_resolverState == ResolverState.Resolved ? m_remoteAddress.getString() :
-		null;
-
-	m_statusPaneTable[StatusPaneId.RemoteAddress].m_color =
-		m_resolverState == ResolverState.Error ? ui.StdColor.Red :
-		m_resolverState == ResolverState.Resolved ? ui.StdColor.Blue :
-		ui.StdColor.Black;
+	onevent bindingof(m_resolver.m_state)()
+	{
+		m_resolver.updateStatusPane(m_statusPaneTable[StatusPaneId.RemoteAddress]);
+	}
 }
 
 //..............................................................................
