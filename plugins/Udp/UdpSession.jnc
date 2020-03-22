@@ -35,12 +35,12 @@ protected:
 		Opened,
 	}
 
-	enum ResolveState
+	enum ResolverState
 	{
-		Unresolved,
+		Idle,
+		Error,
 		Resolving,
 		Resolved,
-		ChangeWhileResolving, // address changed while currently resolving
 	}
 
 	enum ActionId
@@ -60,6 +60,7 @@ protected:
 	enum StatusPaneId
 	{
 		State,
+		RemoteAddress,
 		_Count,
 	}
 
@@ -68,13 +69,15 @@ protected:
 
 	State bindable m_state;
 	io.Socket m_socket;
-	io.HostNameResolver m_resolver;
-	ResolveState m_resolveState;
-	io.SocketAddress m_remoteAddress;
-	bool m_remoteAddressChanged;
 	std.Buffer m_readBuffer;
 	std.Buffer m_pendingDatagram;
+	bool m_hasPendingDatagram;
 	uint_t m_socketSyncId;
+
+	ResolverState bindable m_resolverState;
+	io.HostNameResolver m_resolver;
+	io.SocketAddress m_remoteAddress;
+	char const* m_resolverAddressString;
 	uint_t m_resolverSyncId;
 
 	// toolbar, status bar & menu
@@ -119,16 +122,14 @@ public:
 		size_t size
 		);
 
-	override size_t errorcode transmitTo(
-		void const* p,
-		size_t size,
-		void const* address,
-		size_t addressSize
-		);
-
 protected:
 	onOpen();
 	onRemoteAddressChanged();
+
+	onRemoteAddressEnter()
+	{
+		try resolve();
+	}
 
 	onResolverEvent(
 		uint_t syncId,
@@ -142,6 +143,9 @@ protected:
 
 	createUi();
 	waitSocketEvents();
+	bool errorcode resolve();
+	cancelResolve();
+	handleResolveError(std.Error const* error);
 
 	size_t writeDatagram(
 		void const* p,
@@ -174,7 +178,8 @@ UdpSession.createUi()
 	m_pluginHost.m_toolBar.addLabel("Remote:");
 	m_remoteAddressCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 	m_remoteAddressCombo.m_isEditable = true;
-	m_remoteAddressCombo.m_onChanged += onRemoteAddressChanged;
+	m_remoteAddressCombo.m_onEnter += onRemoteAddressEnter;
+	bindingof(m_remoteAddressCombo.m_editText) += onRemoteAddressChanged;
 	m_remoteAddressCombo.m_placeholderText = "Enter a remote IP or hostname...";
 
 	m_pluginHost.m_toolBar.addLabel("Adapter:");
@@ -190,6 +195,7 @@ UdpSession.createUi()
 
 	// status bar
 
+	m_statusPaneTable[StatusPaneId.RemoteAddress] = m_pluginHost.m_statusBar.addPane(, 80);
 	m_statusPaneTable[StatusPaneId.State] = m_pluginHost.m_statusBar.addPane(, 80);
 
 	// property grid
@@ -242,6 +248,12 @@ UdpSession.onOpen()
 		closeSocket();
 	else
 		openSocket();
+}
+
+UdpSession.onRemoteAddressChanged()
+{
+	cancelResolve();
+	m_resolverState = ResolverState.Idle;
 }
 
 UdpSession.openSocket()
@@ -366,6 +378,25 @@ UdpSession.restoreDefaultProperties()
 	m_autoRemoteAddressProp.m_value = false;
 }
 
+void UdpSession.cancelResolve()
+{
+	if (m_resolverState != ResolverState.Resolving)
+		return;
+
+	m_logWriter.write(SocketLogRecordCode.ResolveCancelled);
+	m_resolver.cancel();
+	m_resolverSyncId++;
+	m_resolverState = ResolverState.Idle;
+	m_hasPendingDatagram = false;
+}
+
+UdpSession.handleResolveError(std.Error const* error)
+{
+	m_logWriter.write(SocketLogRecordCode.ResolveError, error);
+	m_resolver.cancel();
+	m_resolverState = ResolverState.Error;
+}
+
 size_t errorcode UdpSession.transmit(
 	void const* p,
 	size_t size
@@ -374,65 +405,62 @@ size_t errorcode UdpSession.transmit(
 	if (m_state == State.Closed)
 		return -1;
 
-	char const* addressString = m_remoteAddressCombo.m_editText;
-	m_remoteAddressCombo.addEditTextToHistory();
+	if (m_resolverState == ResolverState.Idle || m_resolverState == ResolverState.Error)
+		resolve(); // and then inspect resolver state again
 
-	io.SocketAddress remoteAddress;
-	bool isDirectAddress = try remoteAddress.parse(addressString);
-	if (isDirectAddress || m_resolveState == ResolveState.Resolved)
+	switch (m_resolverState)
 	{
-		if (isDirectAddress)
-			m_remoteAddress = remoteAddress;
-		else
-			remoteAddress = m_remoteAddress; // resolved address
+	case ResolverState.Resolved:
+		break;
 
-		if (!remoteAddress.m_port)
-			remoteAddress.m_port = m_socketPropertySet.m_remotePortProp.m_value;
-
-		size = writeDatagram(p, size, &remoteAddress);
-	}
-	else
-	{
+	case ResolverState.Resolving:
 		m_pendingDatagram.copy(p, size);
+		m_hasPendingDatagram = true;
+		return size;
 
-		if (m_resolveState == ResolveState.Unresolved)
-		{
-			m_logWriter.write(
-				SocketLogRecordCode.Resolving,
-				addressString,
-				strlen(addressString)
-				);
-
-			io.AddressFamily addressFamily = io.AddressFamily.Undefined;
-			io.SocketAddress const* adapterAddress = m_adapterCombo.m_currentData;
-			if (adapterAddress)
-				addressFamily = adapterAddress.m_family;
-
-			m_resolver.resolve(addressString, addressFamily);
-
-			m_resolver.wait(
-				io.HostNameResolverEvents.Resolved | io.HostNameResolverEvents.Error,
-				onResolverEvent~(++m_resolverSyncId) @ m_pluginHost.m_mainThreadScheduler
-				);
-
-			m_resolveState = ResolveState.Resolving;
-		}
+	default:
+		assert(false);
 	}
 
-	return size;
+	return writeDatagram(p, size, &m_remoteAddress);
 }
 
-size_t errorcode UdpSession.transmitTo(
-	void const* p,
-	size_t size,
-	void const* address,
-	size_t addressSize
-	)
+bool errorcode UdpSession.resolve()
 {
-	if (m_state == State.Closed || addressSize < sizeof(io.SocketAddress))
-		return -1;
+	cancelResolve();
 
-	return writeDatagram(p, size, (io.SocketAddress const*) address);
+	m_remoteAddressCombo.addEditTextToHistory();
+	char const* addressString = m_remoteAddressCombo.m_editText;
+
+	io.SocketAddress address;
+	bool isDirectAddress = try address.parse(addressString);
+	if (isDirectAddress)
+	{
+		if (!address.m_port)
+			address.m_port = m_socketPropertySet.m_remotePortProp.m_value;
+
+		m_remoteAddress = address;
+		m_resolverState = ResolverState.Resolved;
+		return true;
+	}
+
+	m_resolverSyncId++;
+	m_logWriter.write(SocketLogRecordCode.Resolving, addressString);
+	m_logWriter.sync(m_resolverSyncId);
+	m_resolver.resolve(addressString);
+	m_resolverAddressString = addressString;
+
+	m_resolver.wait(
+		io.HostNameResolverEvents.Resolved | io.HostNameResolverEvents.Error,
+		onResolverEvent~(m_resolverSyncId) @ m_pluginHost.m_mainThreadScheduler
+		);
+
+	m_resolverState = ResolverState.Resolving;
+	return true;
+
+catch:
+	handleResolveError(std.getLastError());
+	return false;
 }
 
 size_t UdpSession.writeDatagram(
@@ -455,13 +483,6 @@ size_t UdpSession.writeDatagram(
 		m_logWriter.write(log.StdRecordCode.Tx, p, result);
 
 	return result;
-}
-
-UdpSession.onRemoteAddressChanged()
-{
-	m_resolveState = m_resolveState == ResolveState.Resolving ?
-		ResolveState.ChangeWhileResolving :
-		ResolveState.Unresolved;
 }
 
 UdpSession.onSocketEvent(
@@ -520,10 +541,12 @@ UdpSession.onResolverEvent(
 	if (syncId != m_resolverSyncId)
 		return;
 
+	if (syncId != m_pluginHost.m_log.m_syncId)
+		m_logWriter.write(SocketLogRecordCode.ResolveCompletedPrefix, m_resolverAddressString);
+
 	if (triggeredEvents & io.HostNameResolverEvents.Error)
 	{
-		m_logWriter.write(SocketLogRecordCode.ResolveError, m_resolver.m_error);
-		m_resolveState = ResolveState.Unresolved;
+		handleResolveError(m_resolver.m_error);
 		return;
 	}
 
@@ -534,20 +557,21 @@ UdpSession.onResolverEvent(
 		);
 
 	m_remoteAddress = m_resolver.m_addressTable[0];
+	if (!m_remoteAddress.m_port)
+		m_remoteAddress.m_port = m_socketPropertySet.m_remotePortProp.m_value;
 
-	m_resolveState = m_resolveState == ResolveState.ChangeWhileResolving ?
-		ResolveState.Unresolved :
-		ResolveState.Resolved;
+	m_resolverState = ResolverState.Resolved;
 
-	writeDatagram(m_pendingDatagram.m_p, m_pendingDatagram.m_size, &m_remoteAddress);
-
-catch:
-	m_logWriter.writeLastError(log.StdRecordCode.Error);
+	if (m_hasPendingDatagram)
+	{
+		writeDatagram(m_pendingDatagram.m_p, m_pendingDatagram.m_size, &m_remoteAddress);
+		m_hasPendingDatagram = false;
+	}
 }
 
 reactor UdpSession.m_uiReactor
 {
-	m_title = $"UDP @ $(m_localPortCombo.m_editText) -> $(m_remoteAddressCombo.m_editText)";
+	m_title = $"UDP @ $(m_localPortCombo.m_editText) \u2192 $(m_remoteAddressCombo.m_editText)";
 	m_isTransmitEnabled = m_state == State.Opened;
 	m_actionTable[ActionId.Open].m_text = m_state ? "Close Socket" : "Open Socket";
 	m_actionTable[ActionId.Open].m_icon = m_iconTable[m_state ? IconId.Close : IconId.Open];
@@ -556,6 +580,17 @@ reactor UdpSession.m_uiReactor
 	m_remoteAddressCombo.m_toolTipText = m_autoRemoteAddressProp.m_value ?
 		"This address will automatically switch to the address of the last inbound datagram" :
 		null;
+
+	m_statusPaneTable[StatusPaneId.RemoteAddress].m_text =
+		m_resolverState == ResolverState.Resolving ? "Resolving..." :
+		m_resolverState == ResolverState.Error ? "Resolve error" :
+		m_resolverState == ResolverState.Resolved ? m_remoteAddress.getString() :
+		null;
+
+	m_statusPaneTable[StatusPaneId.RemoteAddress].m_color =
+		m_resolverState == ResolverState.Error ? ui.StdColor.Red :
+		m_resolverState == ResolverState.Resolved ? ui.StdColor.Blue :
+		ui.StdColor.Black;
 }
 
 //..............................................................................
