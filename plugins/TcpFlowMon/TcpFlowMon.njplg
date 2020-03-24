@@ -20,3 +20,6 @@ session-class = TcpFlowMonSession
 [scripts]
 
 TcpFlowMonSession.jnc
+TcpFlowMonLogFilter.jnc
+TcpDecoder.jnc
+TcpSequencer.jnc

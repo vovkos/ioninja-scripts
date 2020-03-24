@@ -5,18 +5,13 @@
 
 import "std_List.jnc"
 
-namespace io {
-
-//! \addtogroup common-tcpip
-//! @{
-
 //..............................................................................
 
 class TcpSequencer
 {
-	enum
+	enum Defaults
 	{
-		DefOutOfSeqLimit = 8
+		OutOfSeqLimit = 8
 	}
 
 protected:
@@ -28,21 +23,16 @@ protected:
 		size_t m_size;
 	}
 
+	log.Writer*	m_logWriter;
 	std.List m_outOfSeqList;
 
 public:
 	size_t m_outOfSeqLimit;
-	uint32_t readonly m_seqNumber;
-
-	function* m_onData(
-		void const* p,
-		size_t size
-		);
-
-	function* m_onDataDrop();
+	uint32_t m_seqNumber;
+	uint64_t m_logRecordCode;
 
 public:
-	reset(uint32_t seqNumber);
+	construct(doc.PluginHost* pluginHost);
 
 	write(
 		uint32_t seqNumber,
@@ -68,10 +58,10 @@ protected:
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-TcpSequencer.reset(uint32_t seqNumber)
+TcpSequencer.construct(doc.PluginHost* pluginHost)
 {
-	m_outOfSeqLimit = DefOutOfSeqLimit;
-	m_seqNumber = seqNumber;
+	m_logWriter = pluginHost.m_log.m_writer;
+	m_outOfSeqLimit = Defaults.OutOfSeqLimit;
 }
 
 TcpSequencer.write(
@@ -115,7 +105,7 @@ TcpSequencer.addOutOfSeqSegment(
 			return;
 		}
 
-		if (seqNumber < segment.m_seqNumber)
+		if ((int32_t)(seqNumber - segment.m_seqNumber) <= 0)
 			break;
 	}
 
@@ -129,8 +119,7 @@ TcpSequencer.addOutOfSeqSegment(
 	if (m_outOfSeqList.m_count < m_outOfSeqLimit)
 		return;
 
-	if (m_onDataDrop)
-		m_onDataDrop();
+	m_logWriter.write(TcpFlowMonLogRecordCode.OutOfOrderDataDropped);
 
 	// maintain out-of-seq limit
 
@@ -149,7 +138,7 @@ TcpSequencer.writeInSeqSegment(
 	size_t size
 	)
 {
-	if ((intptr_t)(m_seqNumber - seqNumber) > 0) // retransmission
+	if ((int32_t)(seqNumber - m_seqNumber) < 0) // retransmission
 	{
 		size_t skip = m_seqNumber - seqNumber;
 		if (skip >= size)
@@ -159,10 +148,8 @@ TcpSequencer.writeInSeqSegment(
 		size -= skip;
 	}
 
-	if (m_onData)
-		m_onData(p, size);
-
-	m_seqNumber = seqNumber + (uint32_t)size;
+	m_logWriter.write(m_logRecordCode, p, size);
+	m_seqNumber += size;
 }
 
 TcpSequencer.writeAlignedOutOfSeqSegments()
@@ -170,7 +157,7 @@ TcpSequencer.writeAlignedOutOfSeqSegments()
 	while (m_outOfSeqList.m_count)
 	{
 		OutOfSeqSegment* segment = m_outOfSeqList.m_head.m_data;
-		if (segment.m_seqNumber > m_seqNumber)
+		if ((int32_t)(segment.m_seqNumber - m_seqNumber) > 0)
 			break;
 
 		m_outOfSeqList.removeHead();
@@ -179,7 +166,3 @@ TcpSequencer.writeAlignedOutOfSeqSegments()
 }
 
 //..............................................................................
-
-//! @}
-
-} // namespace io

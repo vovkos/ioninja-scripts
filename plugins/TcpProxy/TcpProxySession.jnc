@@ -153,7 +153,10 @@ public:
 	override void restoreDefaultProperties();
 
 protected:
-	onListen();
+	onListen()
+	{
+		m_listenerState ? stopListen() : try listen();
+	}
 
 	onTargetAddressChanged()
 	{
@@ -325,15 +328,6 @@ TcpProxySession.createUi()
 
 	m_uiReactor.start();
 }
-
-TcpProxySession.onListen()
-{
-	if (m_listenerState)
-		stopListen();
-	else
-		try listen();
-}
-
 
 bool errorcode TcpProxySession.listen()
 {

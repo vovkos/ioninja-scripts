@@ -1,0 +1,64 @@
+//..............................................................................
+//
+// TCP flow monitor address log filter
+//
+
+import "log_Filter.jnc"
+import "TcpFlowMonLogRecordCode.jnc"
+
+//..............................................................................
+
+class TcpFlowMonLogFilter: log.Filter
+{
+protected:
+	io.SocketAddress m_filterAddress;
+	bool m_isMatch;
+
+public:
+	// suspend log engine before calling setFilter
+
+	bool errorcode setFilter(char const* filter);
+
+protected:
+	override void reset()
+	{
+		m_isMatch = false;
+	}
+
+	override bool filter(
+		uint64_t timestamp,
+		uint64_t recordCode,
+		void const* p,
+		size_t size
+		);
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+bool errorcode TcpFlowMonLogFilter.setFilter(char const* filter)
+{
+	if (filter)
+		return m_filterAddress.parse(filter);
+
+	m_filterAddress = null;
+	return true;
+}
+
+bool TcpFlowMonLogFilter.filter(
+	uint64_t timestamp,
+	uint64_t recordCode,
+	void const* p,
+	size_t size
+	)
+{
+	if (!m_filterAddress.m_family) // empty address means, filtering is off
+		return true;
+
+	switch (recordCode)
+	{
+	default:
+		return true;
+	}
+}
+
+//..............................................................................
