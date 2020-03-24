@@ -1,0 +1,149 @@
+//..............................................................................
+//
+// UDP packet decoder
+//
+
+import "doc_PluginHost.jnc"
+import "io_IpDefragmenter.jnc"
+
+//..............................................................................
+
+class UdpDecoder
+{
+protected:
+	log.Writer*	m_logWriter;
+	io.IpDefragmenter m_ipDefragmenter;
+
+public:
+	io.SocketAddress m_captureFilterAddress; // freely adjustible
+
+public:
+	construct(doc.PluginHost* pluginHost)
+	{
+		m_logWriter = pluginHost.m_log.m_writer;
+	}
+
+	void setupIpDefragmenter(
+		size_t framentLimit,
+		uint_t timeout
+		);
+
+	bool decode(
+		void const* p,
+		size_t size
+		);
+
+	void reset()
+	{
+		m_ipDefragmenter.reset();
+	}
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+void UdpDecoder.setupIpDefragmenter(
+	size_t fragmentLimit,
+	uint_t timeout
+	)
+{
+	m_ipDefragmenter.m_fragmentLimit = fragmentLimit;
+	m_ipDefragmenter.m_timeout = timeout;
+}
+
+bool UdpDecoder.decode(
+	void const* p,
+	size_t size
+	)
+{
+	if (size < sizeof(io.EthernetHdr))
+		return false;
+
+	io.EthernetHdr const* ethernetHdr = (io.EthernetHdr const*) p;
+	p += sizeof(io.EthernetHdr);
+	size -= sizeof(io.EthernetHdr);
+
+	UdpFlowMonPacketParams params;
+	switch (ethernetHdr.m_type)
+	{
+	case io.EthernetType.Ip:
+		if (size < sizeof(io.IpHdr))
+			return false;
+
+		io.IpHdr const* ipHdr = (io.IpHdr const*) p;
+		size_t ipHdrSize = ipHdr.m_headerLength * 4;
+
+		if (ipHdr.m_protocol != io.Protocol.Udp ||
+			ipHdrSize < sizeof(io.IpHdr) ||
+			ipHdrSize > ipHdr.m_totalLength ||
+			ipHdr.m_totalLength > size)
+			return false;
+
+		if ((ipHdr.m_flags & io.IpFlags.Mf) || ipHdr.m_fragmentOffset) // fragmented ip
+		{
+			ipHdr = m_ipDefragmenter.defragment(ipHdr, size);
+			if (!ipHdr)
+				return false;
+
+			p = ipHdr + 1;
+			size = dynamic sizeof(p);
+		}
+		else
+		{
+			p += ipHdrSize;
+			size = ipHdr.m_totalLength - ipHdrSize;
+		}
+
+		params.m_srcAddress.m_family = io.AddressFamily.Ip4;
+		params.m_srcAddress.m_ip4.m_address.m_i32 = ipHdr.m_srcAddress;
+		params.m_dstAddress.m_family = io.AddressFamily.Ip4;
+		params.m_dstAddress.m_ip4.m_address.m_i32 = ipHdr.m_dstAddress;
+		break;
+
+	case io.EthernetType.Ip6:
+		if (size < sizeof(io.Ip6Hdr))
+			return false;
+
+		io.Ip6Hdr const* ip6Hdr = (io.Ip6Hdr const*) p;
+
+		if (ip6Hdr.m_nextHeader != io.Protocol.Udp ||
+			ip6Hdr.m_payloadLength + sizeof(io.Ip6Hdr) > size)
+			return false;
+
+		p += sizeof(io.Ip6Hdr);
+		size = ip6Hdr.m_payloadLength;
+
+		params.m_srcAddress.m_family = io.AddressFamily.Ip6;
+		params.m_srcAddress.m_ip6.m_address = *(io.Address_ip6 const*) ip6Hdr.m_srcAddress;
+		params.m_dstAddress.m_family = io.AddressFamily.Ip6;
+		params.m_dstAddress.m_ip6.m_address = *(io.Address_ip6 const*) ip6Hdr.m_dstAddress;
+		break;
+
+	default:
+		return false;
+	}
+
+	if (size < sizeof(io.UdpHdr))
+		return false;
+
+	io.UdpHdr const* udpHdr = (io.UdpHdr const*) p;
+	if (udpHdr.m_length < sizeof(io.UdpHdr) || udpHdr.m_length > size)
+		return false;
+
+	p += sizeof(io.UdpHdr);
+	size = udpHdr.m_length - sizeof(io.UdpHdr);
+
+	params.m_srcAddress.m_port = udpHdr.m_srcPort;
+	params.m_dstAddress.m_port = udpHdr.m_dstPort;
+	params.m_size = size;
+
+	if (m_captureFilterAddress.m_family &&
+		!params.m_srcAddress.isMatch(m_captureFilterAddress) &&
+		!params.m_dstAddress.isMatch(m_captureFilterAddress))
+		return false;
+
+	m_logWriter.write(UdpFlowMonLogRecordCode.Packet, &params, sizeof(params));
+	m_logWriter.write(log.StdRecordCode.Rx, p, size);
+	return true;
+}
+
+//..............................................................................
