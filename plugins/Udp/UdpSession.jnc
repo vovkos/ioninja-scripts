@@ -110,7 +110,10 @@ public:
 		);
 
 protected:
-	onOpen();
+	onOpen()
+	{
+		m_state ? closeSocket() : openSocket();
+	}
 
 	onRemoteAddressChanged()
 	{
@@ -228,14 +231,6 @@ UdpSession.createUi()
 	m_pluginHost.m_informationGrid.resizeNameColumnToContents();
 
 	m_uiReactor.start();
-}
-
-UdpSession.onOpen()
-{
-	if (m_state)
-		closeSocket();
-	else
-		openSocket();
 }
 
 UdpSession.openSocket()
