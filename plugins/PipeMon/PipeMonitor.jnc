@@ -32,7 +32,7 @@ enum
 
 } // namespace wdk
 
-class PipeMonitor: io.Monitor
+class PipeMonitor: iox.Monitor
 {
 protected:
 	PipeMonSession* m_session;

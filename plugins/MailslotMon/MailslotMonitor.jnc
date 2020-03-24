@@ -9,7 +9,7 @@ import "std_String.jnc"
 
 //..............................................................................
 
-class MailslotMonitor: io.Monitor
+class MailslotMonitor: iox.Monitor
 {
 protected:
 	MailslotMonSession* m_session;
