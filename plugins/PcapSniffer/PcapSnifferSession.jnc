@@ -64,6 +64,7 @@ protected:
 
 	State bindable m_state;
 	io.Pcap m_pcap;
+	char const* m_captureFilterString;
 	io.IpDefragmenter m_ipDefragmenter;
 	std.Buffer m_readBuffer;
 	NetSnifferLogFilter m_filter;
@@ -431,6 +432,7 @@ bool errorcode PcapSnifferSession.capture(
 		return false;
 	}
 
+	m_captureFilterString = filterString;
 	m_state = State.Capturing;
 	m_logWriter.write(PcapLogRecordCode.CaptureStarted);
 	waitPcapEvents();
@@ -459,7 +461,9 @@ bool errorcode PcapSnifferSession.openPcapFile(
 		return false;
 	}
 
+	m_captureFilterString = filterString;
 	m_state = State.Capturing;
+
 	m_logWriter.write(PcapLogRecordCode.CaptureStarted);
 	waitPcapEvents();
 	m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
@@ -481,6 +485,9 @@ PcapSnifferSession.stopCapture()
 bool errorcode PcapSnifferSession.applyCaptureFilter()
 {
 	char const* filter = m_captureFilterProp.m_value;
+	if (strcmp(filter, m_captureFilterString) == 0)
+		return true;
+
 	m_logWriter.write(PcapLogRecordCode.ChangingCaptureFilter, filter);
 	bool result = try m_pcap.setFilter(filter);
 	if (!result)
@@ -490,6 +497,7 @@ bool errorcode PcapSnifferSession.applyCaptureFilter()
 	}
 
 	m_logWriter.write(PcapLogRecordCode.CaptureFilterChanged);
+	m_captureFilterString = filter;
 	return true;
 }
 
