@@ -52,7 +52,10 @@ public:
 public:
 	construct();
 
-	reset();
+	reset()
+	{
+		m_chainHashTable.clear();
+	}
 
 	io.IpHdr const* defragment(
 		io.IpHdr const* ipHdr,
@@ -68,11 +71,6 @@ IpDefragmenter.construct()
 {
 	m_fragmentLimit = Defaults.FragmentLimit;
 	m_timeout = Defaults.FragmentTimeout; // 3 sec
-}
-
-IpDefragmenter.reset()
-{
-	m_chainHashTable.clear();
 }
 
 io.IpHdr const* IpDefragmenter.defragment(
