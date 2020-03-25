@@ -26,9 +26,10 @@ class UdpFlowMonSession: doc.Session
 protected:
 	enum Defaults
 	{
-		Promiscious  = false,
-		SnapshotSize = 8 * 1024,
-		ReadTimeout  = 200,
+		Promiscious      = false,
+		SnapshotSize     = 64 * 1024,
+		KernelBufferSise = 0,
+		BufferSise       = 1 * 1024 * 1024,
 	}
 
 	enum State
@@ -87,6 +88,7 @@ protected:
 	ui.IntProperty* m_ipFragmentLimitProp;
 	ui.IntProperty* m_ipFragmentTimeoutProp;
 	ui.IntProperty* m_snapshotSizeProp;
+	ui.IntProperty* m_kernelBufferSizeProp;
 	ui.BufferPropertySet m_bufferPropertySet;
 
 	// information grid
@@ -249,11 +251,20 @@ UdpFlowMonSession.createUi()
 
 	m_snapshotSizeProp.m_spinBoxStep = 1024;
 
+	m_kernelBufferSizeProp = m_pluginHost.m_propertyGrid.createIntProperty(
+		group,,
+		"Kernel buffer size",
+		"Specify the Pcap kernel buffer size (0 = default)"
+		);
+
+	m_kernelBufferSizeProp.m_spinBoxStep = 1024;
+
 	ui.BufferPropertySet.PropertyId mask =
 		ui.BufferPropertySet.PropertyId.ReadBufferSize |
 		ui.BufferPropertySet.PropertyId.NotifyReadBufferFull;
 
 	m_bufferPropertySet.createProperties(m_pluginHost.m_propertyGrid, group,, mask);
+	m_bufferPropertySet.m_defaultReadBufferSize = Defaults.BufferSise;
 
 	// information grid
 
@@ -303,16 +314,14 @@ bool errorcode UdpFlowMonSession.capture()
 	char const* filterString = createCaptureFilterString(filterAddress);
 	m_logWriter.write(PcapLogRecordCode.StartingCapture, filterString);
 
+	m_pcap.openDevice(device.m_name);
+	m_pcap.m_isPromiscious = m_promisciousProp.m_value;
+	m_pcap.m_snapshotSize = m_snapshotSizeProp.m_value;
+	m_pcap.m_kernelBufferSize = m_kernelBufferSizeProp.m_value;
 	m_pcap.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
+	m_pcap.activate(filterString);
 
-	m_pcap.openDevice(
-		device.m_name,
-		filterString,
-		m_snapshotSizeProp.m_value,
-		m_promisciousProp.m_value
-		);
-
-	m_decoder.m_captureFilterAddress = filterAddress;
+	m_decoder.m_filterAddress = filterAddress;
 	m_captureFilterString = filterString;
 	m_state = State.Capturing;
 	m_logWriter.write(PcapLogRecordCode.CaptureStarted);
@@ -341,9 +350,9 @@ bool errorcode UdpFlowMonSession.openPcapFile(char const* fileName)
 	char const* filterString = createCaptureFilterString(filterAddress);
 	m_logWriter.write(PcapLogRecordCode.StartingCapture, filterString);
 
-	m_pcap.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 	m_pcap.openFile(fileName, filterString);
-	m_decoder.m_captureFilterAddress = filterAddress;
+	m_pcap.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
+	m_decoder.m_filterAddress = filterAddress;
 	m_captureFilterString = filterString;
 	m_state = State.Capturing;
 	m_logWriter.write(PcapLogRecordCode.CaptureStarted);
@@ -393,9 +402,9 @@ bool errorcode UdpFlowMonSession.applyCaptureFilter()
 		m_logWriter.write(PcapLogRecordCode.SetCaptureFilter, filterString);
 	}
 
-	if (!filterAddress.isEqual(&m_decoder.m_captureFilterAddress))
+	if (!filterAddress.isEqual(&m_decoder.m_filterAddress))
 	{
-		m_decoder.m_captureFilterAddress = filterAddress;
+		m_decoder.m_filterAddress = filterAddress;
 		m_logWriter.write(PcapLogRecordCode.SetAddressFilter, filterAddress, sizeof(filterAddress));
 	}
 
@@ -461,9 +470,10 @@ void UdpFlowMonSession.load(doc.Storage* storage)
 	m_promisciousProp.m_value = storage.readBool("promiscious");
 	m_captureFilterProp.m_value = storage.readString("captureFilter");
 	m_viewFilterCombo.m_editText = storage.readString("viewFilter");
-	m_ipFragmentLimitProp.m_value = storage.readInt("ipFragmentLimit", io.IpDefragmenter.DefIpFragmentLimit);
-	m_ipFragmentTimeoutProp.m_value = storage.readInt("ipFragmentTimeout", io.IpDefragmenter.DefIpFragmentTimeout);
+	m_ipFragmentLimitProp.m_value = storage.readInt("ipFragmentLimit", io.IpDefragmenter.Defaults.FragmentLimit);
+	m_ipFragmentTimeoutProp.m_value = storage.readInt("ipFragmentTimeout", io.IpDefragmenter.Defaults.FragmentTimeout);
 	m_snapshotSizeProp.m_value = storage.readInt("snapshotSize", Defaults.SnapshotSize);
+	m_kernelBufferSizeProp.m_value = storage.readInt("kernelBufferSize", Defaults.KernelBufferSise);
 
 	m_bufferPropertySet.load(storage);
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
@@ -480,6 +490,7 @@ void UdpFlowMonSession.save(doc.Storage* storage)
 	storage.writeInt("ipFragmentLimit", m_ipFragmentLimitProp.m_value);
 	storage.writeInt("ipFragmentTimeout", m_ipFragmentTimeoutProp.m_value);
 	storage.writeInt("snapshotSize", m_snapshotSizeProp.m_value);
+	storage.writeInt("kernelBufferSize", m_kernelBufferSizeProp.m_value);
 }
 
 void UdpFlowMonSession.updateProperties()
@@ -492,7 +503,7 @@ bool errorcode UdpFlowMonSession.applyProperties()
 {
 	m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
 	m_viewFilterCombo.m_editText = m_viewFilterProp.m_value;
-	m_decoder.setupIpDefragmenter(m_ipFragmentLimitProp.m_value, m_ipFragmentTimeoutProp.m_value);
+	m_decoder.setupDefragmenter(m_ipFragmentLimitProp.m_value, m_ipFragmentTimeoutProp.m_value);
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
 
 	applyViewFilter();
@@ -507,12 +518,11 @@ bool errorcode UdpFlowMonSession.applyProperties()
 
 void UdpFlowMonSession.restoreDefaultProperties()
 {
-	m_deviceProp.m_currentIndex = 0;
 	m_promisciousProp.m_value = Defaults.Promiscious;
+	m_ipFragmentLimitProp.m_value = io.IpDefragmenter.Defaults.FragmentLimit;
+	m_ipFragmentTimeoutProp.m_value = io.IpDefragmenter.Defaults.FragmentTimeout;
 	m_snapshotSizeProp.m_value = Defaults.SnapshotSize;
-	m_ipFragmentLimitProp.m_value = io.IpDefragmenter.DefIpFragmentLimit;
-	m_ipFragmentTimeoutProp.m_value = io.IpDefragmenter.DefIpFragmentTimeout;
-	m_snapshotSizeProp.m_value = Defaults.SnapshotSize;
+	m_kernelBufferSizeProp.m_value = Defaults.KernelBufferSise;
 	m_bufferPropertySet.restoreDefaults();
 }
 
@@ -539,7 +549,7 @@ UdpFlowMonSession.onPcapEvent(
 	{
 		size_t result = m_pcap.read(m_readBuffer.m_p, m_readBuffer.m_size);
 		if (result)
-			m_decoder.decode(m_readBuffer.m_p, result);
+			m_decoder.decodeLinkHdr(m_pcap.m_linkType, m_readBuffer.m_p, result);
 	}
 
 	if (triggeredEvents & io.PcapEvents.Eof)
