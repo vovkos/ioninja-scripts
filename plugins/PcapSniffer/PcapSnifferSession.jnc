@@ -657,15 +657,35 @@ PcapSnifferSession.processPacket(
 
 	// defragment IPv4
 
-	if (size < sizeof(io.EthernetHdr) + sizeof(io.IpHdr))
-		return;
+	switch (linkType)
+	{
+	case io.PcapLinkType.Loopback:
+		if (size < sizeof(io.LoopbackHdr))
+			return;
 
-	io.EthernetHdr const* ethernetHdr = (io.EthernetHdr const*) p;
-	if (ethernetHdr.m_type != io.EthernetType.Ip)
-		return;
+		io.LoopbackHdr const* loopbackHdr = (io.LoopbackHdr const*)p;
+		if (loopbackHdr.m_protocolFamily != io.LoopbackProtocolFamily.Ip)
+			return;
 
-	p += sizeof(io.EthernetHdr);
-	size -= sizeof(io.EthernetHdr);
+		p += sizeof(io.LoopbackHdr);
+		size -= sizeof(io.LoopbackHdr);
+		break;
+
+	case io.PcapLinkType.Ethernet:
+		if (size < sizeof(io.EthernetHdr))
+			return;
+
+		io.EthernetHdr const* ethernetHdr = (io.EthernetHdr const*)p;
+		if (ethernetHdr.m_type != io.EthernetType.Ip)
+			return;
+
+		p += sizeof(io.EthernetHdr);
+		size -= sizeof(io.EthernetHdr);
+		break;
+	}
+
+	if (size < sizeof(io.IpHdr))
+		return;
 
 	io.IpHdr const* ipHdr = (io.IpHdr const*) p;
 	if ((ipHdr.m_flags & io.IpFlags.Mf) || ipHdr.m_fragmentOffset)
