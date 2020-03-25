@@ -25,9 +25,10 @@ class TcpFlowMonSession: doc.Session
 protected:
 	enum Defaults
 	{
-		Promiscious  = false,
-		SnapshotSize = 8 * 1024,
-		ReadTimeout  = 200,
+		Promiscious      = false,
+		SnapshotSize     = 64 * 1024,
+		KernelBufferSise = 0,
+		BufferSise       = 1 * 1024 * 1024,
 	}
 
 	enum State
@@ -64,7 +65,6 @@ protected:
 	io.Pcap m_pcap;
 	TcpDecoder m_decoder;
 	char const* m_captureFilterString;
-	io.SocketAddress m_captureFilterAddress;
 	std.Buffer m_readBuffer;
 	TcpFlowMonLogFilter m_filter;
 	uint_t m_syncId;
@@ -88,6 +88,7 @@ protected:
 	ui.IntProperty* m_ipFragmentLimitProp;
 	ui.IntProperty* m_ipFragmentTimeoutProp;
 	ui.IntProperty* m_snapshotSizeProp;
+	ui.IntProperty* m_kernelBufferSizeProp;
 	ui.BufferPropertySet m_bufferPropertySet;
 
 	// information grid
@@ -263,11 +264,20 @@ TcpFlowMonSession.createUi()
 
 	m_snapshotSizeProp.m_spinBoxStep = 1024;
 
+	m_kernelBufferSizeProp = m_pluginHost.m_propertyGrid.createIntProperty(
+		group,,
+		"Kernel buffer size",
+		"Specify the Pcap kernel buffer size (0 = default)"
+		);
+
+	m_kernelBufferSizeProp.m_spinBoxStep = 1024;
+
 	ui.BufferPropertySet.PropertyId mask =
 		ui.BufferPropertySet.PropertyId.ReadBufferSize |
 		ui.BufferPropertySet.PropertyId.NotifyReadBufferFull;
 
 	m_bufferPropertySet.createProperties(m_pluginHost.m_propertyGrid, group,, mask);
+	m_bufferPropertySet.m_defaultReadBufferSize = Defaults.BufferSise;
 
 	// information grid
 
@@ -317,18 +327,16 @@ bool errorcode TcpFlowMonSession.capture()
 	char const* filterString = createCaptureFilterString(filterAddress);
 	m_logWriter.write(PcapLogRecordCode.StartingCapture, filterString);
 
+	m_pcap.openDevice(device.m_name);
+	m_pcap.m_isPromiscious = m_promisciousProp.m_value;
+	m_pcap.m_snapshotSize = m_snapshotSizeProp.m_value;
+	m_pcap.m_kernelBufferSize = m_kernelBufferSizeProp.m_value;
 	m_pcap.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
+	m_pcap.activate(filterString);
 
-	m_pcap.openDevice(
-		device.m_name,
-		filterString,
-		m_snapshotSizeProp.m_value,
-		m_promisciousProp.m_value
-		);
-
-	m_state = State.Capturing;
-	m_captureFilterAddress = filterAddress;
+	m_decoder.m_filterAddress = filterAddress;
 	m_captureFilterString = filterString;
+	m_state = State.Capturing;
 	m_logWriter.write(PcapLogRecordCode.CaptureStarted);
 
 	if (filterAddress.m_family)
@@ -355,11 +363,12 @@ bool errorcode TcpFlowMonSession.openPcapFile(char const* fileName)
 	char const* filterString = createCaptureFilterString(filterAddress);
 	m_logWriter.write(PcapLogRecordCode.StartingCapture, filterString);
 
-	m_pcap.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 	m_pcap.openFile(fileName, filterString);
-	m_state = State.Capturing;
-	m_captureFilterAddress = filterAddress;
+	m_pcap.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
+	m_decoder.m_filterAddress = filterAddress;
 	m_captureFilterString = filterString;
+	m_state = State.Capturing;
+
 	m_logWriter.write(PcapLogRecordCode.CaptureStarted);
 
 	if (filterAddress.m_family)
@@ -407,9 +416,9 @@ bool errorcode TcpFlowMonSession.applyCaptureFilter()
 		m_logWriter.write(PcapLogRecordCode.SetCaptureFilter, filterString);
 	}
 
-	if (!filterAddress.isEqual(&m_captureFilterAddress))
+	if (!filterAddress.isEqual(&m_decoder.m_filterAddress))
 	{
-		m_captureFilterAddress = filterAddress;
+		m_decoder.m_filterAddress = filterAddress;
 		m_logWriter.write(PcapLogRecordCode.SetAddressFilter, filterAddress, sizeof(filterAddress));
 	}
 
@@ -479,6 +488,7 @@ void TcpFlowMonSession.load(doc.Storage* storage)
 	m_ipFragmentTimeoutProp.m_value = storage.readInt("ipFragmentTimeout", io.IpDefragmenter.Defaults.FragmentTimeout);
 	m_tcpOutOfSeqLimitProp.m_value = storage.readInt("tcpOutOfSeqLimit", TcpSequencer.Defaults.OutOfSeqLimit);
 	m_snapshotSizeProp.m_value = storage.readInt("snapshotSize", Defaults.SnapshotSize);
+	m_kernelBufferSizeProp.m_value = storage.readInt("kernelBufferSize", Defaults.KernelBufferSise);
 
 	m_bufferPropertySet.load(storage);
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
@@ -496,6 +506,7 @@ void TcpFlowMonSession.save(doc.Storage* storage)
 	storage.writeInt("ipFragmentTimeout", m_ipFragmentTimeoutProp.m_value);
 	storage.writeInt("tcpOutOfSeqLimit", m_tcpOutOfSeqLimitProp.m_value);
 	storage.writeInt("snapshotSize", m_snapshotSizeProp.m_value);
+	storage.writeInt("kernelBufferSize", m_kernelBufferSizeProp.m_value);
 }
 
 void TcpFlowMonSession.updateProperties()
@@ -530,13 +541,12 @@ bool errorcode TcpFlowMonSession.applyProperties()
 
 void TcpFlowMonSession.restoreDefaultProperties()
 {
-	m_deviceProp.m_currentIndex = 0;
 	m_promisciousProp.m_value = Defaults.Promiscious;
-	m_snapshotSizeProp.m_value = Defaults.SnapshotSize;
 	m_ipFragmentLimitProp.m_value = io.IpDefragmenter.Defaults.FragmentLimit;
 	m_ipFragmentTimeoutProp.m_value = io.IpDefragmenter.Defaults.FragmentTimeout;
 	m_tcpOutOfSeqLimitProp.m_value = TcpSequencer.Defaults.OutOfSeqLimit;
 	m_snapshotSizeProp.m_value = Defaults.SnapshotSize;
+	m_kernelBufferSizeProp.m_value = Defaults.KernelBufferSise;
 	m_bufferPropertySet.restoreDefaults();
 }
 
@@ -563,7 +573,7 @@ TcpFlowMonSession.onPcapEvent(
 	{
 		size_t result = m_pcap.read(m_readBuffer.m_p, m_readBuffer.m_size);
 		if (result)
-			m_decoder.decode(m_readBuffer.m_p, result);
+			m_decoder.decodeLinkHdr(m_pcap.m_linkType, m_readBuffer.m_p, result);
 	}
 
 	if (triggeredEvents & io.PcapEvents.Eof)

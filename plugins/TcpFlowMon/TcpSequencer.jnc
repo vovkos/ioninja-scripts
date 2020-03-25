@@ -24,9 +24,10 @@ protected:
 	}
 
 	log.Writer*	m_logWriter;
-	std.List m_outOfSeqList;
 
 public:
+	std.List readonly m_outOfSeqList;
+	size_t readonly m_totalLostSize;
 	size_t m_outOfSeqLimit;
 	uint32_t m_seqNumber;
 	uint64_t m_logRecordCode;
@@ -40,19 +41,27 @@ public:
 		size_t size
 		);
 
-protected:
-	addOutOfSeqSegment(
-		uint32_t seqNumber,
-		void const* p,
-		size_t size
-		);
+	flush()
+	{
+		flushOutOfSeqSegments(0);
+	}
 
+	finalize(uint32_t seqNumber);
+
+protected:
 	writeInSeqSegment(
 		uint32_t seqNumber,
 		void const* p,
 		size_t size
 		);
 
+	addOutOfSeqSegment(
+		uint32_t seqNumber,
+		void const* p,
+		size_t size
+		);
+
+	flushOutOfSeqSegments(size_t limit);
 	writeAlignedOutOfSeqSegments();
 }
 
@@ -70,7 +79,7 @@ TcpSequencer.write(
 	size_t size
 	)
 {
-	if ((intptr_t)(seqNumber - m_seqNumber) > 0)
+	if ((int32_t)(seqNumber - m_seqNumber) > 0)
 	{
 		addOutOfSeqSegment(seqNumber, p, size);
 	}
@@ -81,55 +90,16 @@ TcpSequencer.write(
 	}
 }
 
-TcpSequencer.addOutOfSeqSegment(
-	uint32_t seqNumber,
-	void const* p,
-	size_t size
-	)
+TcpSequencer.finalize(uint32_t seqNumber)
 {
-	// find location to insert it
+	flushOutOfSeqSegments(0);
 
-	std.ListEntry* it = m_outOfSeqList.m_head;
-	for (; it; it = it.m_next)
+	if (seqNumber > m_seqNumber)
 	{
-		OutOfSeqSegment* segment = it.m_data;
-		if (segment.m_seqNumber == seqNumber)
-		{
-			if (size > segment.m_size)
-			{
-				segment.m_p = new char[size];
-				segment.m_size = size;
-				memcpy(segment.m_p, p, size);
-			}
-
-			return;
-		}
-
-		if ((int32_t)(seqNumber - segment.m_seqNumber) <= 0)
-			break;
+		size_t lostSize = seqNumber - m_seqNumber;
+		m_logWriter.write(TcpFlowMonLogRecordCode.DataLost, &lostSize, sizeof(lostSize));
+		m_totalLostSize += lostSize;
 	}
-
-	OutOfSeqSegment* segment = new OutOfSeqSegment;
-	segment.m_seqNumber = seqNumber;
-	segment.m_p = new char[size];
-	segment.m_size = size;
-	memcpy(segment.m_p, p, size);
-
-	m_outOfSeqList.insertBefore(segment, it);
-	if (m_outOfSeqList.m_count < m_outOfSeqLimit)
-		return;
-
-	m_logWriter.write(TcpFlowMonLogRecordCode.OutOfOrderDataDropped);
-
-	// maintain out-of-seq limit
-
-	while (m_outOfSeqList.m_count > m_outOfSeqLimit)
-	{
-		OutOfSeqSegment* segment = m_outOfSeqList.removeHead();
-		writeInSeqSegment(segment.m_seqNumber, segment.m_p, segment.m_size);
-	}
-
-	writeAlignedOutOfSeqSegments();
 }
 
 TcpSequencer.writeInSeqSegment(
@@ -138,18 +108,60 @@ TcpSequencer.writeInSeqSegment(
 	size_t size
 	)
 {
-	if ((int32_t)(seqNumber - m_seqNumber) < 0) // retransmission
+	uint32_t newSeqNumber = seqNumber + size;
+	if ((int32_t)(newSeqNumber - m_seqNumber) <= 0) // retransmission
+		return;
+
+	if ((int32_t)(seqNumber - m_seqNumber) < 0) // partial retransmission
 	{
 		size_t skip = m_seqNumber - seqNumber;
-		if (skip >= size)
-			return;
-
 		p += skip;
 		size -= skip;
 	}
 
 	m_logWriter.write(m_logRecordCode, p, size);
-	m_seqNumber += size;
+	m_seqNumber = newSeqNumber;
+}
+
+TcpSequencer.addOutOfSeqSegment(
+	uint32_t seqNumber,
+	void const* p,
+	size_t size
+	)
+{
+	// find location to insert it
+
+	std.ListEntry* it = m_outOfSeqList.m_tail;
+	for (; it; it = it.m_prev)
+	{
+		OutOfSeqSegment* segment = it.m_data;
+		if ((int32_t)(seqNumber - segment.m_seqNumber) >= 0)
+			break;
+	}
+
+	OutOfSeqSegment* segment = new OutOfSeqSegment;
+	segment.m_seqNumber = seqNumber;
+	segment.m_p = new char[size];
+	segment.m_size = size;
+	memcpy(segment.m_p, p, size);
+	m_outOfSeqList.insertAfter(segment, it);
+
+	// maintain out-of-seq limit
+
+	flushOutOfSeqSegments(m_outOfSeqLimit);
+}
+
+TcpSequencer.flushOutOfSeqSegments(size_t limit)
+{
+	while (m_outOfSeqList.m_count > limit)
+	{
+		OutOfSeqSegment* segment = m_outOfSeqList.removeHead();
+		uint32_t lostSize = segment.m_seqNumber - m_seqNumber;
+		m_totalLostSize += lostSize;
+		m_logWriter.write(TcpFlowMonLogRecordCode.DataLost, &lostSize, sizeof(lostSize));
+		writeInSeqSegment(segment.m_seqNumber, segment.m_p, segment.m_size);
+		writeAlignedOutOfSeqSegments();
+	}
 }
 
 TcpSequencer.writeAlignedOutOfSeqSegments()

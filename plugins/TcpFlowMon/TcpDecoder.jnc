@@ -4,16 +4,16 @@
 //
 
 import "doc_PluginHost.jnc"
-import "io_IpDefragmenter.jnc"
+import "io_IpDecoder.jnc"
 import "std_HashTable.jnc"
 
 //..............................................................................
 
-class TcpDecoder
+class TcpDecoder: io.IpDecoder
 {
 	enum Defaults
 	{
-		ConnectionTimeout = 60000, // drop SynSent, FinWait or TimeWait connections
+		ConnectionTimeout = 60000, // drop Syn/Fin/Wait connections
 	}
 
 protected:
@@ -68,11 +68,12 @@ protected:
 	io.IpDefragmenter m_ipDefragmenter;
 	std.HashTable m_connectionMap;
 	std.List m_connectionList;
+	Connection* m_currentConnection;
 	uint_t m_connectionTimeout;
 
 public:
 	size_t bindable readonly m_connectionCount;
-	io.SocketAddress m_captureFilterAddress; // freely adjustible
+	io.SocketAddress m_filterAddress; // freely adjustible
 
 public:
 	construct(doc.PluginHost* pluginHost);
@@ -86,16 +87,27 @@ public:
 
 	void reset();
 
-	bool decode(
+protected:
+	override bool decodeTransportHdr(
+		io.SocketAddress* srcAddress,
+		io.SocketAddress* dstAddress,
+		io.IpProtocol protocol,
 		void const* p,
 		size_t size
 		);
 
-protected:
 	Connection* createConnection(
 		io.SocketAddress const* srcAddress,
 		io.SocketAddress const* dstAddress,
 		io.TcpHdr const* tcpHdr
+		);
+
+	void setCurrentConnection(Connection* connection);
+
+	void finalizeConnection(
+		Connection* connection,
+		io.TcpHdr const* tcpHdr,
+		bool isClient
 		);
 
 	void removeConnection(Connection* connection);
@@ -135,119 +147,49 @@ void TcpDecoder.reset()
 	m_ipDefragmenter.reset();
 	m_connectionList.clear();
 	m_connectionMap.clear();
+	m_currentConnection = null;
 }
 
-bool TcpDecoder.decode(
+bool TcpDecoder.decodeTransportHdr(
+	io.SocketAddress* srcAddress,
+	io.SocketAddress* dstAddress,
+	io.IpProtocol protocol,
 	void const* p,
 	size_t size
 	)
 {
-	if (size < sizeof(io.EthernetHdr))
-		return false;
-
-	io.EthernetHdr const* ethernetHdr = (io.EthernetHdr const*) p;
-	p += sizeof(io.EthernetHdr);
-	size -= sizeof(io.EthernetHdr);
-
-	io.SocketAddress srcAddress;
-	io.SocketAddress dstAddress;
-
-	switch (ethernetHdr.m_type)
-	{
-	case io.EthernetType.Ip:
-		if (size < sizeof(io.IpHdr))
-			return false;
-
-		io.IpHdr const* ipHdr = (io.IpHdr const*) p;
-		size_t ipHdrSize = ipHdr.m_headerLength * 4;
-
-		if (ipHdr.m_protocol != io.Protocol.Tcp ||
-			ipHdrSize < sizeof(io.IpHdr) ||
-			ipHdrSize > ipHdr.m_totalLength ||
-			ipHdr.m_totalLength > size)
-			return false;
-
-		if ((ipHdr.m_flags & io.IpFlags.Mf) || ipHdr.m_fragmentOffset) // fragmented ip
-		{
-			ipHdr = m_ipDefragmenter.defragment(ipHdr, size);
-			if (!ipHdr)
-				return false;
-
-			p = ipHdr + 1;
-			size = dynamic sizeof(p);
-		}
-		else
-		{
-			p += ipHdrSize;
-			size = ipHdr.m_totalLength - ipHdrSize;
-		}
-
-		srcAddress.m_family = io.AddressFamily.Ip4;
-		srcAddress.m_ip4.m_address.m_i32 = ipHdr.m_srcAddress;
-		dstAddress.m_family = io.AddressFamily.Ip4;
-		dstAddress.m_ip4.m_address.m_i32 = ipHdr.m_dstAddress;
-		break;
-
-	case io.EthernetType.Ip6:
-		if (size < sizeof(io.Ip6Hdr))
-			return false;
-
-		io.Ip6Hdr const* ip6Hdr = (io.Ip6Hdr const*) p;
-
-		if (ip6Hdr.m_nextHeader != io.Protocol.Tcp ||
-			ip6Hdr.m_payloadLength + sizeof(io.Ip6Hdr) > size)
-			return false;
-
-		p += sizeof(io.Ip6Hdr);
-		size = ip6Hdr.m_payloadLength;
-
-		srcAddress.m_family = io.AddressFamily.Ip6;
-		srcAddress.m_ip6.m_address = *(io.Address_ip6 const*) ip6Hdr.m_srcAddress;
-		dstAddress.m_family = io.AddressFamily.Ip6;
-		dstAddress.m_ip6.m_address = *(io.Address_ip6 const*) ip6Hdr.m_dstAddress;
-		break;
-
-	default:
-		return false;
-	}
-
-	if (srcAddress.isEqual(dstAddress) || size < sizeof(io.TcpHdr)) // invalid packet
+	if (protocol != io.IpProtocol.Tcp || size < sizeof(io.TcpHdr))
 		return false;
 
 	io.TcpHdr const* tcpHdr = (io.TcpHdr const*) p;
 	size_t tcpHdrSize = tcpHdr.m_dataOffset * 4;
-	if (tcpHdrSize < sizeof(io.TcpHdr) || tcpHdrSize > size) // invalid packet
+	if (tcpHdrSize < sizeof(io.TcpHdr) || tcpHdrSize > size)
 		return false;
-
-	p += tcpHdrSize;
-	size -= tcpHdrSize;
 
 	srcAddress.m_port = tcpHdr.m_srcPort;
 	dstAddress.m_port = tcpHdr.m_dstPort;
 
+	p += tcpHdrSize;
+	size -= tcpHdrSize;
+
 	Connection* connection;
-	TcpPeer* peer;
-	ConnectionKey key = { srcAddress, dstAddress };
+	ConnectionKey key = { *srcAddress, *dstAddress };
 	std.MapEntry* entry = m_connectionMap.visit(key);
 	if (entry.m_value)
 	{
 		connection = entry.m_value;
 		if (connection.m_state == ConnectionState.TimeWait)
 			return true; // discard
-
-		peer = connection.m_clientPeer.m_address.isEqual(srcAddress) ?
-			&connection.m_clientPeer :
-			&connection.m_serverPeer;
 	}
 	else
 	{
 		if (!size && !(tcpHdr.m_flags & io.TcpFlags.Syn) || (tcpHdr.m_flags & io.TcpFlags.Fin))
 			return false; // don't pick up empty segments
 
-		if (m_captureFilterAddress.m_family &&
-			!m_captureFilterAddress.isMatch(srcAddress) &&
-			!m_captureFilterAddress.isMatch(dstAddress))
-			return false; // didn't pass capture filter
+		if (m_filterAddress.m_family &&
+			!srcAddress.isMatch(m_filterAddress) &&
+			!dstAddress.isMatch(m_filterAddress))
+			return false;
 
 		connection = createConnection(srcAddress, dstAddress, tcpHdr);
 		m_connectionList.add(connection);
@@ -255,21 +197,26 @@ bool TcpDecoder.decode(
 		// add to map (also, with the inversed key)
 
 		entry.m_value = connection;
-		key = { dstAddress, srcAddress };
+		key = { *dstAddress, *srcAddress };
 		m_connectionMap[key] = connection;
 	}
 
-	// for now, handle graceful disconnect just by dropping connection
+	bool isClient = connection.m_clientPeer.m_address.isEqual(srcAddress);
+	TcpPeer* peer = isClient ? &connection.m_clientPeer : &connection.m_serverPeer;
+
+	// for now, handle graceful disconnect simply by dropping connection
 
 	if (tcpHdr.m_flags & (io.TcpFlags.Rst | io.TcpFlags.Fin))
 	{
+		finalizeConnection(connection, tcpHdr, isClient);
+
 		m_logWriter.write(
 			(tcpHdr.m_flags & io.TcpFlags.Rst) ?
 				TcpFlowMonLogRecordCode.Reset :
 				TcpFlowMonLogRecordCode.Disconnected,
-			&dstAddress,
+			dstAddress,
 			sizeof(io.SocketAddress),
-			&srcAddress,
+			srcAddress,
 			sizeof(io.SocketAddress)
 			);
 
@@ -287,7 +234,7 @@ bool TcpDecoder.decode(
 			return false;
 
 		connection.m_state = ConnectionState.SynReceived;
-		connection.m_serverPeer.m_sequencer.m_seqNumber++; // syn pseudo-byte
+		connection.m_serverPeer.m_sequencer.m_seqNumber = tcpHdr.m_seqNumber + 1; // syn pseudo-byte
 		break;
 
 	case ConnectionState.SynReceived:
@@ -295,6 +242,19 @@ bool TcpDecoder.decode(
 			!(tcpHdr.m_flags & io.TcpFlags.Ack) ||
 			tcpHdr.m_ackNumber != connection.m_serverPeer.m_sequencer.m_seqNumber)
 			return false;
+
+		if (connection != m_currentConnection)
+		{
+			m_logWriter.write(
+				SocketLogRecordCode.ConnectingFrom,
+				connection.m_serverPeer.m_address,
+				sizeof(io.SocketAddress),
+				connection.m_clientPeer.m_address,
+				sizeof(io.SocketAddress)
+				);
+
+			m_currentConnection = connection;
+		}
 
 		connection.m_state = ConnectionState.Established;
 		m_logWriter.write(SocketLogRecordCode.ConnectCompleted);
@@ -310,7 +270,10 @@ bool TcpDecoder.decode(
 	}
 
 	if (size)
+	{
+		setCurrentConnection(connection);
 		peer.m_sequencer.write(tcpHdr.m_seqNumber, p, size);
+	}
 
 	connection.m_timestamp = sys.getTimestamp();
 	m_connectionList.moveToHead(connection.m_listEntry);
@@ -329,7 +292,7 @@ TcpDecoder.Connection* TcpDecoder.createConnection(
 
 	uint64_t recordCode;
 
-	if (!(tcpHdr.m_flags & io.TcpFlags.Syn)) // picking up existing connection
+	if (!(tcpHdr.m_flags & io.TcpFlags.Syn)) // pick up existing connection
 	{
 		connection.m_state = ConnectionState.Established;
 		connection.m_clientPeer.m_address = *srcAddress;
@@ -353,15 +316,15 @@ TcpDecoder.Connection* TcpDecoder.createConnection(
 		connection.m_clientPeer.m_address = *srcAddress;
 		connection.m_clientPeer.m_sequencer.m_seqNumber = tcpHdr.m_seqNumber + 1; // syn pseudo-byte
 		connection.m_serverPeer.m_address = *dstAddress;
-		connection.m_serverPeer.m_sequencer.m_seqNumber = tcpHdr.m_ackNumber;
+		connection.m_serverPeer.m_sequencer.m_seqNumber = 0;
 		recordCode = SocketLogRecordCode.ConnectingFrom;
 	}
 
 	m_logWriter.write(
 		recordCode,
-		connection.m_clientPeer.m_address,
-		sizeof(io.SocketAddress),
 		connection.m_serverPeer.m_address,
+		sizeof(io.SocketAddress),
+		connection.m_clientPeer.m_address,
 		sizeof(io.SocketAddress)
 		);
 
@@ -371,9 +334,66 @@ TcpDecoder.Connection* TcpDecoder.createConnection(
 		m_logWriter.sync(connection.m_logSyncId);
 	}
 
-	m_connectionList.add(connection);
+	connection.m_listEntry = m_connectionList.add(connection);
 	m_connectionCount = m_connectionList.m_count;
+	m_currentConnection = connection;
 	return connection;
+}
+
+void TcpDecoder.setCurrentConnection(TcpDecoder.Connection* connection)
+{
+	if (connection == m_currentConnection)
+		return;
+
+	m_currentConnection = connection;
+
+	m_logWriter.write(
+		TcpFlowMonLogRecordCode.ConnectionChanged,
+		connection.m_serverPeer.m_address,
+		sizeof(io.SocketAddress),
+		connection.m_clientPeer.m_address,
+		sizeof(io.SocketAddress)
+		);
+}
+
+void TcpDecoder.finalizeConnection(
+	TcpDecoder.Connection* connection,
+	io.TcpHdr const* tcpHdr,
+	bool isClient
+	)
+{
+	TcpSequencer* srcSequencer = isClient ?
+		&connection.m_clientPeer.m_sequencer :
+		&connection.m_serverPeer.m_sequencer;
+
+	TcpSequencer* dstSequencer = isClient ?
+		&connection.m_serverPeer.m_sequencer :
+		&connection.m_clientPeer.m_sequencer;
+
+	if (srcSequencer.m_outOfSeqList.m_count || dstSequencer.m_outOfSeqList.m_count)
+	{
+		setCurrentConnection(connection);
+		srcSequencer.flush();
+		dstSequencer.flush();
+	}
+
+	if (srcSequencer.m_totalLostSize ||
+		dstSequencer.m_totalLostSize ||
+		srcSequencer.m_seqNumber != tcpHdr.m_seqNumber ||
+		dstSequencer.m_seqNumber != tcpHdr.m_ackNumber)
+	{
+		setCurrentConnection(connection);
+		srcSequencer.finalize(tcpHdr.m_seqNumber);
+		dstSequencer.finalize(tcpHdr.m_ackNumber);
+
+		m_logWriter.write(
+			TcpFlowMonLogRecordCode.TotalDataLost,
+			&connection.m_clientPeer.m_sequencer.m_totalLostSize,
+			sizeof(uint32_t),
+			&connection.m_serverPeer.m_sequencer.m_totalLostSize,
+			sizeof(uint32_t)
+			);
+	}
 }
 
 void TcpDecoder.removeConnection(TcpDecoder.Connection* connection)
