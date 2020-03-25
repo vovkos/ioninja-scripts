@@ -74,7 +74,7 @@ protected:
 	uint_t m_listenerSyncId;
 	std.List m_clientList;
 	size_t bindable m_clientCount;
-	io.SocketAddress m_currentClientAddress;
+	Client* m_currentClient;
 	std.Buffer m_readBuffer;
 	SocketClientLogFilter m_filter;
 
@@ -156,7 +156,6 @@ protected:
 	waitListenerSocketEvents();
 	waitClientSocketEvents(Client* client);
 	disconnect(Client* client);
-	addClient(Client* client);
 	removeClient(Client* client);
 	setCurrentClient(Client* client);
 }
@@ -188,6 +187,7 @@ TcpListenerSession.createUi()
 
 	m_actionTable[ActionId.ApplyFilter] = createAction("Apply filter", "images/apply.png");
 	m_actionTable[ActionId.ApplyFilter].m_onTriggered += onSetClientFilter;
+	m_pluginHost.m_toolBar.addSeparator();
 
 	m_pluginHost.m_toolBar.addLabel("Client:");
 	m_clientCombo = m_pluginHost.m_toolBar.addComboBox(-1);
@@ -196,6 +196,7 @@ TcpListenerSession.createUi()
 	m_actionTable[ActionId.Disconnect].m_onTriggered += disconnect;
 	m_actionTable[ActionId.DisconnectAll] = createAction("Disconnect All", "images/disconnect-all.png");
 	m_actionTable[ActionId.DisconnectAll].m_onTriggered += disconnectAll;
+	m_pluginHost.m_toolBar.addSeparator();
 
 	m_pluginHost.m_toolBar.addLabel("Adapter:");
 	m_adapterCombo = ui.createNetworkAdapterComboBox(m_pluginHost.m_toolBar, ui.NetworkAdapterUsage.Listener);
@@ -313,14 +314,6 @@ TcpListenerSession.disconnect(TcpListenerSession.Client* client)
 	removeClient(client);
 }
 
-void TcpListenerSession.addClient(TcpListenerSession.Client* client)
-{
-	client.m_entry = m_clientList.add(client);
-	m_clientCombo.addItemSetCurrent(client.m_address.getString(), client);
-	m_clientCount = m_clientList.m_count;
-	m_currentClientAddress = client.m_address;
-}
-
 void TcpListenerSession.removeClient(TcpListenerSession.Client* client)
 {
 	client.m_socket.close();
@@ -336,12 +329,14 @@ void TcpListenerSession.removeClient(TcpListenerSession.Client* client)
 		}
 
 	m_clientCount = m_clientList.m_count;
-	m_currentClientAddress = null;
+
+	if (m_currentClient == client)
+		m_currentClient = null;
 }
 
 void TcpListenerSession.setCurrentClient(TcpListenerSession.Client* client)
 {
-	if (m_currentClientAddress.isEqual(client.m_address))
+	if (client == m_currentClient)
 		return;
 
 	m_logWriter.write(
@@ -350,7 +345,7 @@ void TcpListenerSession.setCurrentClient(TcpListenerSession.Client* client)
 		sizeof(client.m_address)
 		);
 
-	m_currentClientAddress = client.m_address;
+	m_currentClient = client;
 }
 
 bool errorcode TcpListenerSession.applyClientFilter(bool rebuildLog)
@@ -507,8 +502,11 @@ TcpListenerSession.onListenerSocketEvent(
 		Client* client = new Client;
 		client.m_socket = socket;
 		client.m_address = address;
+		client.m_entry = m_clientList.add(client);
+		m_clientCombo.addItemSetCurrent(client.m_address.getString(), client);
+		m_clientCount = m_clientList.m_count;
+		m_currentClient = client;
 
-		addClient(client);
 		waitClientSocketEvents(client);
 	}
 
