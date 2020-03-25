@@ -89,7 +89,7 @@ bool errorcode HostNameResolver.resolve(
 		return true;
 	}
 
-	m_syncId++;
+	m_syncId = sys.getTimestamp();
 	m_logWriter.write(SocketLogRecordCode.Resolving, addressString);
 	m_logWriter.sync(m_syncId);
 	m_resolver.resolve(addressString, addressFamily);
