@@ -329,9 +329,7 @@ void TcpListenerSession.removeClient(TcpListenerSession.Client* client)
 		}
 
 	m_clientCount = m_clientList.m_count;
-
-	if (m_currentClient == client)
-		m_currentClient = null;
+	m_currentClient = null;
 }
 
 void TcpListenerSession.setCurrentClient(TcpListenerSession.Client* client)
