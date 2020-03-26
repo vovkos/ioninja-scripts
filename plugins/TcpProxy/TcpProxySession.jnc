@@ -435,9 +435,7 @@ void TcpProxySession.removeProxy(TcpProxySession.Proxy* proxy)
 
 	m_proxyList.remove(proxy.m_proxyListEntry);
 	m_proxyCount = m_proxyList.m_count;
-
-	if (m_currentProxy == proxy)
-		m_currentProxy = null;
+	m_currentProxy = null;
 }
 
 void TcpProxySession.setCurrentProxy(TcpProxySession.Proxy* proxy)
