@@ -27,7 +27,7 @@ protected:
 		LocalPort = 8080,
 	}
 
-	enum ListenerState
+	enum State
 	{
 		Closed,
 		Listening,
@@ -68,7 +68,7 @@ protected:
 protected:
 	// listener socket & list of clients
 
-	ListenerState bindable m_listenerState;
+	State bindable m_state;
 	io.Socket m_listenerSocket;
 	io.SocketAddress m_localAddress;
 	uint_t m_listenerSyncId;
@@ -126,7 +126,7 @@ public:
 protected:
 	onListen()
 	{
-		m_listenerState ? stopListen() : try listen();
+		m_state ? stopListen() : try listen();
 	}
 
 	onPortComboEnter()
@@ -262,7 +262,7 @@ bool errorcode TcpListenerSession.listen()
 	address = m_listenerSocket.m_address;
 	m_logWriter.write(SocketLogRecordCode.Listening, &address, sizeof(address));
 	m_localAddress = address;
-	m_listenerState = ListenerState.Listening;
+	m_state = State.Listening;
 	waitListenerSocketEvents();
 	m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
 	return true;
@@ -270,7 +270,7 @@ bool errorcode TcpListenerSession.listen()
 catch:
 	m_logWriter.writeLastError(SocketLogRecordCode.ListenError);
 	m_listenerSocket.close();
-	m_listenerState = ListenerState.Closed;
+	m_state = State.Closed;
 	m_listenerSyncId++;
 	m_stdSessionInfoSet.endSession();
 	return false;
@@ -278,12 +278,12 @@ catch:
 
 TcpListenerSession.stopListen()
 {
-	if (m_listenerState != ListenerState.Listening)
+	if (m_state != State.Listening)
 		return;
 
 	m_logWriter.write(SocketLogRecordCode.ListenStopped, &m_localAddress, sizeof(m_localAddress));
 	m_listenerSocket.close();
-	m_listenerState = ListenerState.Closed;
+	m_state = State.Closed;
 	m_listenerSyncId++;
 	m_stdSessionInfoSet.endSession();
 }
@@ -403,12 +403,12 @@ bool errorcode TcpListenerSession.applyProperties()
 	std.ListEntry* entry = m_clientList.m_head;
 	for (; entry; entry = entry.m_next)
 	{
-		Client* connection = entry.m_data;
-		connection.m_socket.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
-		connection.m_socket.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
-		connection.m_socket.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
-		connection.m_socket.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
-		connection.m_socket.m_options = ui.getSocketOptions(m_socketPropertySet, m_bufferPropertySet);
+		Client* client = entry.m_data;
+		client.m_socket.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
+		client.m_socket.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
+		client.m_socket.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
+		client.m_socket.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
+		client.m_socket.m_options = ui.getSocketOptions(m_socketPropertySet, m_bufferPropertySet);
 	}
 
 	return true;
@@ -479,7 +479,7 @@ TcpListenerSession.onListenerSocketEvent(
 	{
 		m_logWriter.write(log.StdRecordCode.Error, m_listenerSocket.m_ioError);
 		m_listenerSocket.close();
-		m_listenerState = ListenerState.Closed;
+		m_state = State.Closed;
 		m_stdSessionInfoSet.endSession();
 		return;
 	}
@@ -576,11 +576,11 @@ TcpListenerSession.onClientSocketEvent(
 reactor TcpListenerSession.m_uiReactor
 {
 	m_title = $"TCP @ $(m_portCombo.m_editText)";
-	m_actionTable[ActionId.Listen].m_text = m_listenerState ? "Stop Listening" : "Listen";
-	m_actionTable[ActionId.Listen].m_icon = m_iconTable[m_listenerState ? IconId.StopListen : IconId.Listen];
+	m_actionTable[ActionId.Listen].m_text = m_state ? "Stop Listening" : "Listen";
+	m_actionTable[ActionId.Listen].m_icon = m_iconTable[m_state ? IconId.StopListen : IconId.Listen];
 	m_actionTable[ActionId.Disconnect].m_isEnabled =
 	m_actionTable[ActionId.DisconnectAll].m_isEnabled = m_clientCombo.m_currentData;
-	m_statusPaneTable[StatusPaneId.ListenerState].m_text = m_listenerState ? "Listening" : "Not listening";
+	m_statusPaneTable[StatusPaneId.ListenerState].m_text = m_state ? "Listening" : "Not listening";
 	m_statusPaneTable[StatusPaneId.ClientCount].m_text = $"$m_clientCount client(s)";
 	m_clientCombo.m_isEnabled = m_clientCount;
 
