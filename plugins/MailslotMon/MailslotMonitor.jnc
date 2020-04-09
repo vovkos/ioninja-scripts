@@ -3,8 +3,7 @@
 // Mailslot Monitor
 //
 
-import "io_Monitor.jnc"
-import "io_FileIdMgr.jnc"
+import "iox_Monitor.jnc"
 import "std_String.jnc"
 
 //..............................................................................
