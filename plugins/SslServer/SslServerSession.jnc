@@ -20,7 +20,7 @@ using extension ui.ComboBoxHistory;
 
 //..............................................................................
 
-class SslListenerSession: doc.Session
+class SslServerSession: doc.Session
 {
 protected:
 	enum Defaults
@@ -172,7 +172,7 @@ protected:
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-SslListenerSession.construct(doc.PluginHost* pluginHost)
+SslServerSession.construct(doc.PluginHost* pluginHost)
 {
 	basetype.construct(pluginHost);
 
@@ -184,7 +184,7 @@ SslListenerSession.construct(doc.PluginHost* pluginHost)
 	m_stdSessionInfoSet.addLogListener(pluginHost.m_log);
 }
 
-SslListenerSession.createUi()
+SslServerSession.createUi()
 {
 	// toolbar
 
@@ -264,7 +264,7 @@ SslListenerSession.createUi()
 	m_uiReactor.start();
 }
 
-bool errorcode SslListenerSession.listen()
+bool errorcode SslServerSession.listen()
 {
 	stopListen();
 	startSession();
@@ -293,7 +293,7 @@ catch:
 	return false;
 }
 
-SslListenerSession.stopListen()
+SslServerSession.stopListen()
 {
 	if (m_listenerState != ListenerState.Listening)
 		return;
@@ -305,20 +305,20 @@ SslListenerSession.stopListen()
 	m_stdSessionInfoSet.endSession();
 }
 
-SslListenerSession.disconnect()
+SslServerSession.disconnect()
 {
 	Client* client = m_clientCombo.m_currentData;
 	if (client)
 		disconnect(client);
 }
 
-SslListenerSession.disconnectAll()
+SslServerSession.disconnectAll()
 {
 	while (m_clientList.m_count)
 		disconnect(m_clientList.m_head.m_data);
 }
 
-SslListenerSession.disconnect(SslListenerSession.Client* client)
+SslServerSession.disconnect(SslServerSession.Client* client)
 {
 	TcpDisconnectLogRecordParams params;
 	params.m_address = client.m_address;
@@ -331,7 +331,7 @@ SslListenerSession.disconnect(SslListenerSession.Client* client)
 	removeClient(client);
 }
 
-void SslListenerSession.addClient(SslListenerSession.Client* client)
+void SslServerSession.addClient(SslServerSession.Client* client)
 {
 	client.m_entry = m_clientList.add(client);
 	m_clientCombo.addItemSetCurrent(client.m_address.getString(), client);
@@ -339,7 +339,7 @@ void SslListenerSession.addClient(SslListenerSession.Client* client)
 	m_currentClientAddress = client.m_address;
 }
 
-void SslListenerSession.removeClient(SslListenerSession.Client* client)
+void SslServerSession.removeClient(SslServerSession.Client* client)
 {
 	client.m_socket.close();
 	client.m_syncId++;
@@ -357,7 +357,7 @@ void SslListenerSession.removeClient(SslListenerSession.Client* client)
 	m_currentClientAddress = null;
 }
 
-void SslListenerSession.setCurrentClient(SslListenerSession.Client* client)
+void SslServerSession.setCurrentClient(SslServerSession.Client* client)
 {
 	if (m_currentClientAddress.isEqual(client.m_address))
 		return;
@@ -371,7 +371,7 @@ void SslListenerSession.setCurrentClient(SslListenerSession.Client* client)
 	m_currentClientAddress = client.m_address;
 }
 
-bool errorcode SslListenerSession.applyClientFilter(bool rebuildLog)
+bool errorcode SslServerSession.applyClientFilter(bool rebuildLog)
 {
 	m_pluginHost.m_log.suspend();
 	bool result = try m_filter.setFilter(m_clientFilterCombo.m_editText);
@@ -392,7 +392,7 @@ bool errorcode SslListenerSession.applyClientFilter(bool rebuildLog)
 	return true;
 }
 
-void SslListenerSession.load(doc.Storage* storage)
+void SslServerSession.load(doc.Storage* storage)
 {
 	m_portCombo.loadHistory(storage, "portHistory");
 	m_adapterCombo.m_currentIndex  = storage.readInt("adapterIdx");
@@ -404,7 +404,7 @@ void SslListenerSession.load(doc.Storage* storage)
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
 }
 
-void SslListenerSession.save(doc.Storage* storage)
+void SslServerSession.save(doc.Storage* storage)
 {
 	m_socketPropertySet.save(storage);
 	m_sslPropertySet.save(storage);
@@ -415,13 +415,13 @@ void SslListenerSession.save(doc.Storage* storage)
 	storage.writeString("port", m_portCombo.m_editText);
 }
 
-void SslListenerSession.updateProperties()
+void SslServerSession.updateProperties()
 {
 	m_socketPropertySet.m_localPortProp.m_value = atoi(m_portCombo.m_editText);
 	m_socketPropertySet.m_adapterProp.m_currentIndex = m_adapterCombo.m_currentIndex;
 }
 
-bool errorcode SslListenerSession.applyProperties()
+bool errorcode SslServerSession.applyProperties()
 {
 	m_portCombo.m_editText = $"$(m_socketPropertySet.m_localPortProp.m_value)";
 	m_adapterCombo.m_currentIndex = m_socketPropertySet.m_adapterProp.m_currentIndex;
@@ -440,14 +440,14 @@ bool errorcode SslListenerSession.applyProperties()
 	return true;
 }
 
-void SslListenerSession.restoreDefaultProperties()
+void SslServerSession.restoreDefaultProperties()
 {
 	m_socketPropertySet.restoreDefaults();
 	m_sslPropertySet.restoreDefaults();
 	m_bufferPropertySet.restoreDefaults();
 }
 
-size_t errorcode SslListenerSession.transmit(
+size_t errorcode SslServerSession.transmit(
 	void const* p,
 	size_t size
 	)
@@ -468,7 +468,7 @@ size_t errorcode SslListenerSession.transmit(
 	return result;
 }
 
-SslListenerSession.waitListenerSocketEvents()
+SslServerSession.waitListenerSocketEvents()
 {
 	m_listenerSocket.wait(
 		io.SslSocketEvents.IoError |
@@ -477,7 +477,7 @@ SslListenerSession.waitListenerSocketEvents()
 		);
 }
 
-SslListenerSession.waitClientSocketEvents(SslListenerSession.Client* client)
+SslServerSession.waitClientSocketEvents(SslServerSession.Client* client)
 {
 	io.SslSocketEvents eventMask = io.SslSocketEvents.IoError;
 
@@ -508,7 +508,7 @@ SslListenerSession.waitClientSocketEvents(SslListenerSession.Client* client)
 		);
 }
 
-SslListenerSession.onListenerSocketEvent(
+SslServerSession.onListenerSocketEvent(
 	uint_t syncId,
 	io.SslSocketEvents triggeredEvents
 	)
@@ -586,8 +586,8 @@ SslListenerSession.onListenerSocketEvent(
 	waitListenerSocketEvents();
 }
 
-SslListenerSession.onClientSocketEvent(
-	SslListenerSession.Client* client,
+SslServerSession.onClientSocketEvent(
+	SslServerSession.Client* client,
 	uint_t syncId,
 	io.SslSocketEvents triggeredEvents
 	)
@@ -675,7 +675,7 @@ SslListenerSession.onClientSocketEvent(
 	waitClientSocketEvents(client);
 }
 
-reactor SslListenerSession.m_uiReactor
+reactor SslServerSession.m_uiReactor
 {
 	m_title = $"SSL @ $(m_portCombo.m_editText)";
 	m_actionTable[ActionId.Listen].m_text = m_listenerState ? "Stop Listening" : "Listen";
