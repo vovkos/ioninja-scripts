@@ -529,6 +529,7 @@ PipeServerSession.onListenerPipeEvent(
 		Client* client = new Client;
 		client.m_pipe = pipe;
 		client.m_entry = m_clientList.add(client);
+		client.m_isTransmitEnabled = true;
 		m_clientCombo.addItemSetCurrent($"Client ID 0x%llX"(id), client);
 		m_clientCount = m_clientList.m_count;
 		m_currentClient = client;
