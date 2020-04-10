@@ -500,6 +500,7 @@ TcpServerSession.onListenerSocketEvent(
 		Client* client = new Client;
 		client.m_socket = socket;
 		client.m_address = address;
+		client.m_isTransmitEnabled = true;
 		client.m_entry = m_clientList.add(client);
 		m_clientCombo.addItemSetCurrent(client.m_address.getString(), client);
 		m_clientCount = m_clientList.m_count;
