@@ -727,7 +727,7 @@ SshChannelSession.onResolverEvent(
 	if (!address.m_port)
 		address.m_port = m_socketPropertySet.m_remotePortProp.m_value;
 
-	connect(&address);
+	try connect(address);
 }
 
 reactor SshChannelSession.m_uiReactor

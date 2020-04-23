@@ -279,7 +279,6 @@ nestedscope:
 		m_socket.open(remoteAddress.m_family, io.Protocol.Tcp);
 	}
 	else
-
 	{
 		io.SocketAddress const* adapterAddress = m_socketPropertySet.m_adapterProp.m_value;
 		if (adapterAddress)
@@ -578,7 +577,7 @@ ModbusGatewayMonSession.onResolverEvent(
 	if (!address.m_port)
 		address.m_port = m_socketPropertySet.m_remotePortProp.m_value;
 
-	connect(address);
+	try connect(address);
 }
 
 reactor ModbusGatewayMonSession.m_uiReactor

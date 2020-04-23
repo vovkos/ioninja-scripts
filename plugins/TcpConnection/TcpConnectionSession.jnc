@@ -585,7 +585,7 @@ TcpConnectionSession.onResolverEvent(
 	if (!address.m_port)
 		address.m_port = m_socketPropertySet.m_remotePortProp.m_value;
 
-	connect(address);
+	try connect(address);
 }
 
 TcpConnectionSession.onReconnectTimer(uint_t syncId)
