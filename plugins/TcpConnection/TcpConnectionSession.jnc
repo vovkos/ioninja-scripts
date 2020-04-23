@@ -289,7 +289,10 @@ bool errorcode TcpConnectionSession.connect(io.SocketAddress const* remoteAddres
 		if (adapterAddress)
 			m_localAddress = *adapterAddress;
 		else
+		{
+			m_localAddress = null;
 			m_localAddress.m_family = remoteAddress.m_family;
+		}
 
 		m_localAddress.m_port = (uint16_t)m_socketPropertySet.m_localPortProp.m_value;
 
