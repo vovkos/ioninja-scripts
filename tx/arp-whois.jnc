@@ -24,7 +24,7 @@ struct ArpRequestFrame
 static uchar_t const g_srcMac[6] = 0x"00:e0:4c:68:01:12";
 static uchar_t const g_srcIp[4] = 0d"192.168.1.114";
 
-main()
+void main()
 {
 	ArpRequestFrame frame;
 	frame.m_ethernet.m_type = io.EthernetType.Arp;
