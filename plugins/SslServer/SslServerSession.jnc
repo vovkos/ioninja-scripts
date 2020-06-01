@@ -117,9 +117,9 @@ public:
 	construct(doc.PluginHost* pluginHost);
 
 	bool errorcode listen();
-	stopListen();
-	disconnect();
-	disconnectAll();
+	void stopListen();
+	void disconnect();
+	void disconnectAll();
 
 	override void load(doc.Storage* storage);
 	override void save(doc.Storage* storage);
@@ -133,27 +133,27 @@ public:
 		);
 
 protected:
-	onListen()
+	void onListen()
 	{
 		m_listenerState ? stopListen() : try listen();
 	}
 
-	onPortComboEnter()
+	void onPortComboEnter()
 	{
 		try listen();
 	}
 
-	onSetClientFilter()
+	void onSetClientFilter()
 	{
 		try applyClientFilter(true);
 	}
 
-	onListenerSocketEvent(
+	void onListenerSocketEvent(
 		uint_t syncId,
 		io.SslSocketEvents triggeredEvents
 		);
 
-	onClientSocketEvent(
+	void onClientSocketEvent(
 		Client* client,
 		uint_t syncId,
 		io.SslSocketEvents triggeredEvents
@@ -161,13 +161,13 @@ protected:
 
 	bool errorcode applyClientFilter(bool rebuildLog);
 
-	createUi();
-	waitListenerSocketEvents();
-	waitClientSocketEvents(Client* client);
-	disconnect(Client* client);
-	addClient(Client* client);
-	removeClient(Client* client);
-	setCurrentClient(Client* client);
+	void createUi();
+	void waitListenerSocketEvents();
+	void waitClientSocketEvents(Client* client);
+	void disconnect(Client* client);
+	void addClient(Client* client);
+	void removeClient(Client* client);
+	void setCurrentClient(Client* client);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -184,7 +184,7 @@ SslServerSession.construct(doc.PluginHost* pluginHost)
 	m_stdSessionInfoSet.addLogListener(pluginHost.m_log);
 }
 
-SslServerSession.createUi()
+void SslServerSession.createUi()
 {
 	// toolbar
 
@@ -293,7 +293,7 @@ catch:
 	return false;
 }
 
-SslServerSession.stopListen()
+void SslServerSession.stopListen()
 {
 	if (m_listenerState != ListenerState.Listening)
 		return;
@@ -305,20 +305,20 @@ SslServerSession.stopListen()
 	m_stdSessionInfoSet.endSession();
 }
 
-SslServerSession.disconnect()
+void SslServerSession.disconnect()
 {
 	Client* client = m_clientCombo.m_currentData;
 	if (client)
 		disconnect(client);
 }
 
-SslServerSession.disconnectAll()
+void SslServerSession.disconnectAll()
 {
 	while (m_clientList.m_count)
 		disconnect(m_clientList.m_head.m_data);
 }
 
-SslServerSession.disconnect(SslServerSession.Client* client)
+void SslServerSession.disconnect(SslServerSession.Client* client)
 {
 	TcpDisconnectLogRecordParams params;
 	params.m_address = client.m_address;
@@ -468,7 +468,7 @@ size_t errorcode SslServerSession.transmit(
 	return result;
 }
 
-SslServerSession.waitListenerSocketEvents()
+void SslServerSession.waitListenerSocketEvents()
 {
 	m_listenerSocket.wait(
 		io.SslSocketEvents.IoError |
@@ -477,7 +477,7 @@ SslServerSession.waitListenerSocketEvents()
 		);
 }
 
-SslServerSession.waitClientSocketEvents(SslServerSession.Client* client)
+void SslServerSession.waitClientSocketEvents(SslServerSession.Client* client)
 {
 	io.SslSocketEvents eventMask = io.SslSocketEvents.IoError;
 
@@ -508,7 +508,7 @@ SslServerSession.waitClientSocketEvents(SslServerSession.Client* client)
 		);
 }
 
-SslServerSession.onListenerSocketEvent(
+void SslServerSession.onListenerSocketEvent(
 	uint_t syncId,
 	io.SslSocketEvents triggeredEvents
 	)
@@ -586,7 +586,7 @@ SslServerSession.onListenerSocketEvent(
 	waitListenerSocketEvents();
 }
 
-SslServerSession.onClientSocketEvent(
+void SslServerSession.onClientSocketEvent(
 	SslServerSession.Client* client,
 	uint_t syncId,
 	io.SslSocketEvents triggeredEvents

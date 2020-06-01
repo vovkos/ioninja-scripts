@@ -108,9 +108,9 @@ public:
 	construct(doc.PluginHost* pluginHost);
 
 	bool errorcode listen();
-	stopListen();
-	disconnect();
-	disconnectAll();
+	void stopListen();
+	void disconnect();
+	void disconnectAll();
 
 	override void load(doc.Storage* storage);
 	override void save(doc.Storage* storage);
@@ -124,27 +124,27 @@ public:
 		);
 
 protected:
-	onListen()
+	void onListen()
 	{
 		m_state ? stopListen() : try listen();
 	}
 
-	onPortComboEnter()
+	void onPortComboEnter()
 	{
 		try listen();
 	}
 
-	onSetClientFilter()
+	void onSetClientFilter()
 	{
 		try applyClientFilter(true);
 	}
 
-	onListenerSocketEvent(
+	void onListenerSocketEvent(
 		uint_t syncId,
 		io.SocketEvents triggeredEvents
 		);
 
-	onClientSocketEvent(
+	void onClientSocketEvent(
 		Client* client,
 		uint_t syncId,
 		io.SocketEvents triggeredEvents
@@ -152,12 +152,12 @@ protected:
 
 	bool errorcode applyClientFilter(bool rebuildLog);
 
-	createUi();
-	waitListenerSocketEvents();
-	waitClientSocketEvents(Client* client);
-	disconnect(Client* client);
-	removeClient(Client* client);
-	setCurrentClient(Client* client);
+	void createUi();
+	void waitListenerSocketEvents();
+	void waitClientSocketEvents(Client* client);
+	void disconnect(Client* client);
+	void removeClient(Client* client);
+	void setCurrentClient(Client* client);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -174,7 +174,7 @@ TcpServerSession.construct(doc.PluginHost* pluginHost)
 	m_stdSessionInfoSet.addLogListener(pluginHost.m_log);
 }
 
-TcpServerSession.createUi()
+void TcpServerSession.createUi()
 {
 	// toolbar
 
@@ -276,7 +276,7 @@ catch:
 	return false;
 }
 
-TcpServerSession.stopListen()
+void TcpServerSession.stopListen()
 {
 	if (m_state != State.Listening)
 		return;
@@ -288,20 +288,20 @@ TcpServerSession.stopListen()
 	m_stdSessionInfoSet.endSession();
 }
 
-TcpServerSession.disconnect()
+void TcpServerSession.disconnect()
 {
 	Client* client = m_clientCombo.m_currentData;
 	if (client)
 		disconnect(client);
 }
 
-TcpServerSession.disconnectAll()
+void TcpServerSession.disconnectAll()
 {
 	while (m_clientList.m_count)
 		disconnect(m_clientList.m_head.m_data);
 }
 
-TcpServerSession.disconnect(TcpServerSession.Client* client)
+void TcpServerSession.disconnect(TcpServerSession.Client* client)
 {
 	TcpDisconnectLogRecordParams params;
 	params.m_address = client.m_address;
@@ -441,7 +441,7 @@ size_t errorcode TcpServerSession.transmit(
 	return result;
 }
 
-TcpServerSession.waitListenerSocketEvents()
+void TcpServerSession.waitListenerSocketEvents()
 {
 	m_listenerSocket.wait(
 		io.SocketEvents.IoError |
@@ -467,7 +467,7 @@ void TcpServerSession.waitClientSocketEvents(TcpServerSession.Client* client)
 		);
 }
 
-TcpServerSession.onListenerSocketEvent(
+void TcpServerSession.onListenerSocketEvent(
 	uint_t syncId,
 	io.SocketEvents triggeredEvents
 	)
@@ -512,7 +512,7 @@ TcpServerSession.onListenerSocketEvent(
 	waitListenerSocketEvents();
 }
 
-TcpServerSession.onClientSocketEvent(
+void TcpServerSession.onClientSocketEvent(
 	TcpServerSession.Client* client,
 	uint_t syncId,
 	io.SocketEvents triggeredEvents

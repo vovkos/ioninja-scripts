@@ -108,9 +108,9 @@ public:
 	construct(doc.PluginHost* pluginHost);
 
 	bool errorcode listen();
-	stopListen();
-	disconnect();
-	disconnectAll();
+	void stopListen();
+	void disconnect();
+	void disconnectAll();
 
 	override void load(doc.Storage* storage);
 	override void save(doc.Storage* storage);
@@ -124,40 +124,40 @@ public:
 		);
 
 protected:
-	onListen()
+	void onListen()
 	{
 		m_state ? stopListen() : try listen();
 	}
 
-	onSetClientFilter()
+	void onSetClientFilter()
 	{
 		try applyClientFilter(true);
 	}
 
-	onPipeNameComboEnter()
+	void onPipeNameComboEnter()
 	{
 		try listen();
 	}
 
-	onListenerPipeEvent(
+	void onListenerPipeEvent(
 		uint_t syncId,
 		io.NamedPipeEvents triggeredEvents
 		);
 
-	onClientPipeEvent(
+	void onClientPipeEvent(
 		Client* client,
 		uint_t syncId,
 		io.FileStreamEvents triggeredEvents
 		);
 
-	createUi();
+	void createUi();
 	bool errorcode applyClientFilter(bool rebuildLog);
 	io.FileStreamOptions getFileStreamOptions();
-	waitListenerPipeEvents();
-	waitClientPipeEvents(Client* client);
-	disconnect(Client* client);
-	removeClient(Client* client);
-	setCurrentClient(Client* client);
+	void waitListenerPipeEvents();
+	void waitClientPipeEvents(Client* client);
+	void disconnect(Client* client);
+	void removeClient(Client* client);
+	void setCurrentClient(Client* client);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -174,7 +174,7 @@ PipeServerSession.construct(doc.PluginHost* pluginHost)
 	m_stdSessionInfoSet.addLogListener(pluginHost.m_log);
 }
 
-PipeServerSession.createUi()
+void PipeServerSession.createUi()
 {
 	// toolbar
 
@@ -292,7 +292,7 @@ catch:
 	return false;
 }
 
-PipeServerSession.stopListen()
+void PipeServerSession.stopListen()
 {
 	if (m_state != State.Listening)
 		return;
@@ -309,20 +309,20 @@ PipeServerSession.stopListen()
 	m_stdSessionInfoSet.endSession();
 }
 
-PipeServerSession.disconnect()
+void PipeServerSession.disconnect()
 {
 	Client* client = m_clientCombo.m_currentData;
 	if (client)
 		disconnect(client);
 }
 
-PipeServerSession.disconnectAll()
+void PipeServerSession.disconnectAll()
 {
 	while (m_clientList.m_count)
 		disconnect(m_clientList.m_head.m_data);
 }
 
-PipeServerSession.disconnect(PipeServerSession.Client* client)
+void PipeServerSession.disconnect(PipeServerSession.Client* client)
 {
 	PipeDisconnectLogRecordParams params;
 	params.m_id = client.m_pipe.m_osHandle;
@@ -392,7 +392,7 @@ io.FileStreamOptions PipeServerSession.getFileStreamOptions()
 	return options;
 }
 
-PipeServerSession.waitListenerPipeEvents()
+void PipeServerSession.waitListenerPipeEvents()
 {
 	io.NamedPipeEvents eventMask =
 		io.NamedPipeEvents.IoError |
@@ -401,7 +401,7 @@ PipeServerSession.waitListenerPipeEvents()
 	m_listenerPipe.wait(eventMask, onListenerPipeEvent~(++m_listenerSyncId) @ m_pluginHost.m_mainThreadScheduler);
 }
 
-PipeServerSession.waitClientPipeEvents(PipeServerSession.Client* client)
+void PipeServerSession.waitClientPipeEvents(PipeServerSession.Client* client)
 {
 	io.FileStreamEvents eventMask =
 		io.FileStreamEvents.IoError |
@@ -498,7 +498,7 @@ size_t errorcode PipeServerSession.transmit(
 	return result;
 }
 
-PipeServerSession.onListenerPipeEvent(
+void PipeServerSession.onListenerPipeEvent(
 	uint_t syncId,
 	io.NamedPipeEvents triggeredEvents
 	)
@@ -540,7 +540,7 @@ PipeServerSession.onListenerPipeEvent(
 	waitListenerPipeEvents();
 }
 
-PipeServerSession.onClientPipeEvent(
+void PipeServerSession.onClientPipeEvent(
 	PipeServerSession.Client* client,
 	uint_t syncId,
 	io.FileStreamEvents triggeredEvents

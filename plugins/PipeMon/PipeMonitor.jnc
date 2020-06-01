@@ -43,12 +43,12 @@ protected:
 	override processNotification(io.DeviceMonitorNotifyHdr const* notifyHdr);
 	override processError(std.Error const* error);
 
-	setFileId(
+	void setFileId(
 		uint64_t timestamp,
 		uint64_t fileId
 		);
 
-	processFsctlNotification(
+	void processFsctlNotification(
 		int ntStatus,
 		uint64_t timestamp,
 		uint64_t loFileId,
@@ -69,7 +69,7 @@ PipeMonitor.construct(PipeMonSession* session)
 	m_session = session;
 }
 
-PipeMonitor.setFileId(
+void PipeMonitor.setFileId(
 	uint64_t timestamp,
 	uint64_t fileId
 	)
@@ -81,7 +81,7 @@ PipeMonitor.setFileId(
 	m_logWriter.write(timestamp, PipeMonLogRecordCode.FileIdChanged, &m_lastFileId, sizeof(m_lastFileId));
 }
 
-PipeMonitor.processNotification(io.DeviceMonitorNotifyHdr const* notifyHdr)
+void PipeMonitor.processNotification(io.DeviceMonitorNotifyHdr const* notifyHdr)
 {
 	switch (notifyHdr.m_code)
 	{
@@ -224,7 +224,7 @@ PipeMonitor.processNotification(io.DeviceMonitorNotifyHdr const* notifyHdr)
 	}
 }
 
-PipeMonitor.processFsctlNotification(
+void PipeMonitor.processFsctlNotification(
 	int ntStatus,
 	uint64_t timestamp,
 	uint64_t fileId,
@@ -288,7 +288,7 @@ PipeMonitor.processFsctlNotification(
 	}
 }
 
-PipeMonitor.processError(std.Error const* error)
+void PipeMonitor.processError(std.Error const* error)
 {
 	m_logWriter.write(log.StdRecordCode.Error, error);
 	m_session.close();
