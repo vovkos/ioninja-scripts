@@ -6,11 +6,11 @@
 import "log_Representation.jnc"
 import "io_base.jncx"
 import "io_SocketAddress.jnc"
-import "TcpFlowMonLogRecordCode.jnc"
+import "TcpFlowLogRecordCode.jnc"
 
 //..............................................................................
 
-bool representTcpFlowMonLog(
+bool representTcpFlowLog(
 	log.Representation* representation,
 	uint64_t recordCode,
 	void const* p,
@@ -20,21 +20,21 @@ bool representTcpFlowMonLog(
 {
 	switch (recordCode)
 	{
-	case TcpFlowMonLogRecordCode.Connecting:
+	case TcpFlowLogRecordCode.Connecting:
 		char const* srcAddressString = ((io.SocketAddress const*) p).getString();
 		char const* dstAddressString = ((io.SocketAddress const*) p + 1).getString();
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		representation.addHyperText(TcpFlowMonLogPartCode.Connecting, $"Connecting to \e[34m$dstAddressString\e[m from \e[34m$srcAddressString\e[m...");
+		representation.addHyperText(TcpFlowLogPartCode.Connecting, $"Connecting to \e[34m$dstAddressString\e[m from \e[34m$srcAddressString\e[m...");
 		break;
 
-	case TcpFlowMonLogRecordCode.ConnectCompleted:
+	case TcpFlowLogRecordCode.ConnectCompleted:
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Connect;
-		representation.addHyperText(TcpFlowMonLogPartCode.ConnectCompleted, "ok");
+		representation.addHyperText(TcpFlowLogPartCode.ConnectCompleted, "ok");
 		break;
 
-	case TcpFlowMonLogRecordCode.ConnectionPickedUp:
+	case TcpFlowLogRecordCode.ConnectionPickedUp:
 		io.SocketAddress const* serverAddress = (io.SocketAddress const*)p;
 		io.SocketAddress const* clientAddress = serverAddress + 1;
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
@@ -46,14 +46,14 @@ bool representTcpFlowMonLog(
 			);
 		break;
 
-	case TcpFlowMonLogRecordCode.Disconnected_old:
+	case TcpFlowLogRecordCode.Disconnected_old:
 		char const* addressString = ((io.SocketAddress const*) p).getString();
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
 		representation.addHyperText($"Disconnected by \e[34m$addressString");
 		break;
 
-	case TcpFlowMonLogRecordCode.ConnectionChanged:
+	case TcpFlowLogRecordCode.ConnectionChanged:
 		io.SocketAddress const* serverAddress = (io.SocketAddress const*)p;
 		io.SocketAddress const* clientAddress = serverAddress + 1;
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
@@ -65,11 +65,11 @@ bool representTcpFlowMonLog(
 			);
 		break;
 
-	case TcpFlowMonLogRecordCode.Disconnected:
-	case TcpFlowMonLogRecordCode.Reset:
+	case TcpFlowLogRecordCode.Disconnected:
+	case TcpFlowLogRecordCode.Reset:
 		io.SocketAddress const* remoteAddress = (io.SocketAddress const*)p;
 		io.SocketAddress const* localAddress = remoteAddress + 1;
-		char const* closeKindString = recordCode == TcpFlowMonLogRecordCode.Reset ? "reset" : "closed";
+		char const* closeKindString = recordCode == TcpFlowLogRecordCode.Reset ? "reset" : "closed";
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
 
@@ -79,20 +79,20 @@ bool representTcpFlowMonLog(
 			);
 		break;
 
-	case TcpFlowMonLogRecordCode.OutOfOrderDataDropped:
+	case TcpFlowLogRecordCode.OutOfOrderDataDropped:
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Error;
 		representation.addHyperText($"Out-of-order segment(s), data dropped\e");
 		break;
 
-	case TcpFlowMonLogRecordCode.DataLost:
+	case TcpFlowLogRecordCode.DataLost:
 		uint32_t lostSize = *(uint32_t const*)p;
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Error;
 		representation.addHyperText($"Missing TCP segment(s), data lost ($lostSize bytes)\e");
 		break;
 
-	case TcpFlowMonLogRecordCode.TotalDataLost:
+	case TcpFlowLogRecordCode.TotalDataLost:
 		uint32_t txLostSize = *(uint32_t const*)p;
 		uint32_t rxLostSize = *((uint32_t const*)p + 1);
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;

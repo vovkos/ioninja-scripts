@@ -4,6 +4,7 @@
 //
 
 import "std_List.jnc"
+import "log_Writer.jnc"
 
 //..............................................................................
 
@@ -33,7 +34,7 @@ public:
 	uint64_t m_logRecordCode;
 
 public:
-	construct(doc.PluginHost* pluginHost);
+	construct(log.Writer* logWriter);
 
 	void write(
 		uint32_t seqNumber,
@@ -67,9 +68,9 @@ protected:
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-TcpSequencer.construct(doc.PluginHost* pluginHost)
+TcpSequencer.construct(log.Writer* logWriter)
 {
-	m_logWriter = pluginHost.m_log.m_writer;
+	m_logWriter = logWriter;
 	m_outOfSeqLimit = Defaults.OutOfSeqLimit;
 }
 
@@ -97,7 +98,7 @@ void TcpSequencer.finalize(uint32_t seqNumber)
 	if (seqNumber > m_seqNumber)
 	{
 		size_t lostSize = seqNumber - m_seqNumber;
-		m_logWriter.write(TcpFlowMonLogRecordCode.DataLost, &lostSize, sizeof(lostSize));
+		m_logWriter.write(TcpFlowLogRecordCode.DataLost, &lostSize, sizeof(lostSize));
 		m_totalLostSize += lostSize;
 	}
 }
@@ -158,7 +159,7 @@ void TcpSequencer.flushOutOfSeqSegments(size_t limit)
 		OutOfSeqSegment* segment = m_outOfSeqList.removeHead();
 		uint32_t lostSize = segment.m_seqNumber - m_seqNumber;
 		m_totalLostSize += lostSize;
-		m_logWriter.write(TcpFlowMonLogRecordCode.DataLost, &lostSize, sizeof(lostSize));
+		m_logWriter.write(TcpFlowLogRecordCode.DataLost, &lostSize, sizeof(lostSize));
 		writeInSeqSegment(segment.m_seqNumber, segment.m_p, segment.m_size);
 		writeAlignedOutOfSeqSegments();
 	}

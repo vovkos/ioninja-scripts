@@ -4,11 +4,11 @@
 //
 
 import "log_Filter.jnc"
-import "TcpFlowMonLogRecordCode.jnc"
+import "TcpFlowLogRecordCode.jnc"
 
 //..............................................................................
 
-class TcpFlowMonLogFilter: log.Filter
+class TcpFlowLogFilter: log.Filter
 {
 protected:
 	io.SocketAddress m_filterAddress;
@@ -34,7 +34,7 @@ protected:
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-bool errorcode TcpFlowMonLogFilter.setFilter(char const* filter)
+bool errorcode TcpFlowLogFilter.setFilter(char const* filter)
 {
 	if (filter)
 		return m_filterAddress.parse(filter);
@@ -43,14 +43,14 @@ bool errorcode TcpFlowMonLogFilter.setFilter(char const* filter)
 	return true;
 }
 
-void TcpFlowMonLogFilter.reset()
+void TcpFlowLogFilter.reset()
 {
 	m_isVisible = false;
 	m_lastVisibleClientAddress = null;
 	m_lastVisibleServerAddress = null;
 }
 
-bool TcpFlowMonLogFilter.filter(
+bool TcpFlowLogFilter.filter(
 	uint64_t timestamp,
 	uint64_t recordCode,
 	void const* p,
@@ -63,8 +63,8 @@ bool TcpFlowMonLogFilter.filter(
 	switch (recordCode)
 	{
 	case SocketLogRecordCode.ConnectingFrom:
-	case TcpFlowMonLogRecordCode.ConnectionPickedUp:
-	case TcpFlowMonLogRecordCode.ConnectionChanged:
+	case TcpFlowLogRecordCode.ConnectionPickedUp:
+	case TcpFlowLogRecordCode.ConnectionChanged:
 		io.SocketAddress const* serverAddress = (io.SocketAddress const*)p;
 		io.SocketAddress const* clientAddress = serverAddress + 1;
 
@@ -75,7 +75,7 @@ bool TcpFlowMonLogFilter.filter(
 		if (!m_isVisible)
 			return false;
 
-		if (recordCode == TcpFlowMonLogRecordCode.ConnectionChanged &&
+		if (recordCode == TcpFlowLogRecordCode.ConnectionChanged &&
 			m_lastVisibleClientAddress.isEqual(clientAddress) &&
 			m_lastVisibleServerAddress.isEqual(serverAddress))
 			return false; // don't show unnecessary connection-changed messages
@@ -84,8 +84,8 @@ bool TcpFlowMonLogFilter.filter(
 		m_lastVisibleServerAddress = *serverAddress;
 		return true;
 
-	case TcpFlowMonLogRecordCode.Disconnected:
-	case TcpFlowMonLogRecordCode.Reset:
+	case TcpFlowLogRecordCode.Disconnected:
+	case TcpFlowLogRecordCode.Reset:
 		io.SocketAddress const* remoteAddress = (io.SocketAddress const*)p;
 		io.SocketAddress const* localAddress = remoteAddress + 1;
 

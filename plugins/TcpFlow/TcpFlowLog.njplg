@@ -1,23 +1,23 @@
 #...............................................................................
 #
-# TCP Flow Monitor log representer plugin
+# TCP Flow log representer plugin
 #
 
 [plugin]
 
-name        = "TCP Flow Monitor Log"
-description = "TCP Flow Monitor log representer"
+name        = "TCP Flow Log"
+description = "TCP Flow log representer"
 group       = net
 guid        = 5a6cc363-3ace-4db8-9224-3d972d16b30d
 icon        = images/tcpmon.png
 small-icon  = images/tcpmon-16x16.png
 
-log-representer-func = representTcpFlowMonLog
+log-representer-func = representTcpFlowLog
 
 [scripts]
 
-TcpFlowMonLogRecordCode.jnc
-TcpFlowMonLogRepresenter.jnc
+TcpFlowLogRecordCode.jnc
+TcpFlowLogRepresenter.jnc
 
 [records]
 

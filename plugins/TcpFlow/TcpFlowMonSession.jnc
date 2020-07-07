@@ -1,6 +1,6 @@
 //..............................................................................
 //
-// TCP Monitor session
+// TCP Flow Monitor session
 //
 
 import "doc_Session.jnc"
@@ -66,7 +66,7 @@ protected:
 	TcpDecoder m_decoder;
 	char const* m_captureFilterString;
 	std.Buffer m_readBuffer;
-	TcpFlowMonLogFilter m_filter;
+	TcpFlowLogFilter m_filter;
 	uint_t m_syncId;
 
 	// toolbar, status bar & menu
@@ -151,7 +151,7 @@ protected:
 TcpFlowMonSession.construct(doc.PluginHost* pluginHost)
 {
 	basetype.construct(pluginHost);
-	m_decoder.construct(pluginHost);
+	m_decoder.construct(pluginHost.m_log.m_writer);
 
 	createUi();
 

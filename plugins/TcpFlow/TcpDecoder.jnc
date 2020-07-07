@@ -3,8 +3,8 @@
 // TCP packet decoder
 //
 
-import "doc_PluginHost.jnc"
 import "io_IpDecoder.jnc"
+import "log_Writer.jnc"
 import "std_HashTable.jnc"
 
 //..............................................................................
@@ -22,9 +22,9 @@ protected:
 		io.SocketAddress m_address;
 		TcpSequencer m_sequencer;
 
-		construct(doc.PluginHost* pluginHost)
+		construct(log.Writer* logWriter)
 		{
-			m_sequencer.construct(pluginHost);
+			m_sequencer.construct(logWriter);
 		}
 	}
 
@@ -55,15 +55,14 @@ protected:
 		TcpPeer m_clientPeer;
 		TcpPeer m_serverPeer;
 
-		construct(doc.PluginHost* pluginHost)
+		construct(log.Writer* logWriter)
 		{
-			m_clientPeer.construct(pluginHost);
-			m_serverPeer.construct(pluginHost);
+			m_clientPeer.construct(logWriter);
+			m_serverPeer.construct(logWriter);
 		}
 	}
 
 protected:
-	doc.PluginHost* m_pluginHost;
 	log.Writer*	m_logWriter;
 	io.IpDefragmenter m_ipDefragmenter;
 	std.HashTable m_connectionMap;
@@ -76,7 +75,7 @@ public:
 	io.SocketAddress m_filterAddress; // freely adjustible
 
 public:
-	construct(doc.PluginHost* pluginHost);
+	construct(log.Writer* logWriter);
 
 	void setup(
 		size_t ipFramentLimit,
@@ -115,10 +114,9 @@ protected:
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-TcpDecoder.construct(doc.PluginHost* pluginHost)
+TcpDecoder.construct(log.Writer* logWriter)
 {
-	m_pluginHost = pluginHost;
-	m_logWriter = pluginHost.m_log.m_writer;
+	m_logWriter = logWriter;
 	m_connectionTimeout = Defaults.ConnectionTimeout;
 }
 
@@ -212,8 +210,8 @@ bool TcpDecoder.decodeTransportHdr(
 
 		m_logWriter.write(
 			(tcpHdr.m_flags & io.TcpFlags.Rst) ?
-				TcpFlowMonLogRecordCode.Reset :
-				TcpFlowMonLogRecordCode.Disconnected,
+				TcpFlowLogRecordCode.Reset :
+				TcpFlowLogRecordCode.Disconnected,
 			dstAddress,
 			sizeof(io.SocketAddress),
 			srcAddress,
@@ -286,7 +284,7 @@ TcpDecoder.Connection* TcpDecoder.createConnection(
 	io.TcpHdr const* tcpHdr
 	)
 {
-	Connection* connection = new Connection(m_pluginHost);
+	Connection* connection = new Connection(m_logWriter);
 	connection.m_clientPeer.m_sequencer.m_logRecordCode = log.StdRecordCode.Tx;
 	connection.m_serverPeer.m_sequencer.m_logRecordCode = log.StdRecordCode.Rx;
 
@@ -299,7 +297,7 @@ TcpDecoder.Connection* TcpDecoder.createConnection(
 		connection.m_clientPeer.m_sequencer.m_seqNumber = tcpHdr.m_seqNumber;
 		connection.m_serverPeer.m_address = *dstAddress;
 		connection.m_serverPeer.m_sequencer.m_seqNumber = tcpHdr.m_ackNumber;
-		recordCode = TcpFlowMonLogRecordCode.ConnectionPickedUp;
+		recordCode = TcpFlowLogRecordCode.ConnectionPickedUp;
 	}
 	else if (tcpHdr.m_flags & io.TcpFlags.Ack) // syn-ack from server
 	{
@@ -348,7 +346,7 @@ void TcpDecoder.setCurrentConnection(TcpDecoder.Connection* connection)
 	m_currentConnection = connection;
 
 	m_logWriter.write(
-		TcpFlowMonLogRecordCode.ConnectionChanged,
+		TcpFlowLogRecordCode.ConnectionChanged,
 		connection.m_serverPeer.m_address,
 		sizeof(io.SocketAddress),
 		connection.m_clientPeer.m_address,
@@ -387,7 +385,7 @@ void TcpDecoder.finalizeConnection(
 		dstSequencer.finalize(tcpHdr.m_ackNumber);
 
 		m_logWriter.write(
-			TcpFlowMonLogRecordCode.TotalDataLost,
+			TcpFlowLogRecordCode.TotalDataLost,
 			&connection.m_clientPeer.m_sequencer.m_totalLostSize,
 			sizeof(uint32_t),
 			&connection.m_serverPeer.m_sequencer.m_totalLostSize,
