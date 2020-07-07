@@ -67,7 +67,7 @@ protected:
 	UdpDecoder m_decoder;
 	char const* m_captureFilterString;
 	std.Buffer m_readBuffer;
-	UdpFlowMonLogFilter m_filter;
+	UdpFlowLogFilter m_filter;
 	uint_t m_syncId;
 
 	// toolbar, status bar & menu
@@ -151,7 +151,7 @@ protected:
 UdpFlowMonSession.construct(doc.PluginHost* pluginHost)
 {
 	basetype.construct(pluginHost);
-	m_decoder.construct(pluginHost);
+	m_decoder.construct(pluginHost.m_log.m_writer);
 
 	createUi();
 

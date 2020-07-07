@@ -6,11 +6,11 @@
 import "log_Representation.jnc"
 import "io_base.jncx"
 import "io_SocketAddress.jnc"
-import "UdpFlowMonLogRecordCode.jnc"
+import "UdpFlowLogRecordCode.jnc"
 
 //..............................................................................
 
-bool representUdpFlowMonLog(
+bool representUdpFlowLog(
 	log.Representation* representation,
 	uint64_t recordCode,
 	void const* p,
@@ -20,8 +20,8 @@ bool representUdpFlowMonLog(
 {
 	switch (recordCode)
 	{
-	case UdpFlowMonLogRecordCode.Packet:
-		UdpFlowMonPacketParams const* params = (UdpFlowMonPacketParams const*) p;
+	case UdpFlowLogRecordCode.Packet:
+		UdpFlowPacketParams const* params = (UdpFlowPacketParams const*) p;
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Packet;
 		representation.m_lineAttr.m_backColor = ui.StdColor.PastelGray;
 

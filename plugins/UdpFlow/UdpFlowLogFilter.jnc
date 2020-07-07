@@ -4,11 +4,11 @@
 //
 
 import "log_Filter.jnc"
-import "UdpFlowMonLogRecordCode.jnc"
+import "UdpFlowLogRecordCode.jnc"
 
 //..............................................................................
 
-class UdpFlowMonLogFilter: log.Filter
+class UdpFlowLogFilter: log.Filter
 {
 protected:
 	io.SocketAddress m_filterAddress;
@@ -35,7 +35,7 @@ protected:
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-bool errorcode UdpFlowMonLogFilter.setFilter(char const* filter)
+bool errorcode UdpFlowLogFilter.setFilter(char const* filter)
 {
 	if (filter)
 		return m_filterAddress.parse(filter);
@@ -44,7 +44,7 @@ bool errorcode UdpFlowMonLogFilter.setFilter(char const* filter)
 	return true;
 }
 
-bool UdpFlowMonLogFilter.filter(
+bool UdpFlowLogFilter.filter(
 	uint64_t timestamp,
 	uint64_t recordCode,
 	void const* p,
@@ -56,8 +56,8 @@ bool UdpFlowMonLogFilter.filter(
 
 	switch (recordCode)
 	{
-	case UdpFlowMonLogRecordCode.Packet:
-		UdpFlowMonPacketParams const* params = (UdpFlowMonPacketParams const*)p;
+	case UdpFlowLogRecordCode.Packet:
+		UdpFlowPacketParams const* params = (UdpFlowPacketParams const*)p;
 
 		m_isMatch =
 			params.m_srcAddress.isMatch(m_filterAddress) ||
