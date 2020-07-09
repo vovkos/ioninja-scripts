@@ -13,8 +13,8 @@ monitor     = true
 log-guid    = 275d0959-ad5b-4f9c-9439-25993ac35b93  # udp flow
 log-guid    = 074c3414-2622-418a-885d-edfeca2b79e7  # pcap
 log-guid    = db8c8923-a699-46cc-be7c-f0bcd523082b  # socket
-icon        = images/udpmon.png
-small-icon  = images/udpmon-16x16.png
+icon        = images/udp-flow-mon.png
+small-icon  = images/udp-flow-mon-16x16.png
 
 session-class = UdpFlowMonSession
 
