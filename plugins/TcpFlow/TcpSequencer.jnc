@@ -24,18 +24,14 @@ protected:
 		size_t m_size;
 	}
 
-	log.Writer*	m_logWriter;
-
 public:
 	std.List readonly m_outOfSeqList;
 	size_t readonly m_totalLostSize;
-	size_t m_outOfSeqLimit;
+	size_t m_outOfSeqLimit = Defaults.OutOfSeqLimit;
 	uint32_t m_seqNumber;
 	uint64_t m_logRecordCode;
 
 public:
-	construct(log.Writer* logWriter);
-
 	void write(
 		uint32_t seqNumber,
 		void const* p,
@@ -68,12 +64,6 @@ protected:
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-TcpSequencer.construct(log.Writer* logWriter)
-{
-	m_logWriter = logWriter;
-	m_outOfSeqLimit = Defaults.OutOfSeqLimit;
-}
-
 void TcpSequencer.write(
 	uint32_t seqNumber,
 	void const* p,
@@ -98,7 +88,7 @@ void TcpSequencer.finalize(uint32_t seqNumber)
 	if (seqNumber > m_seqNumber)
 	{
 		size_t lostSize = seqNumber - m_seqNumber;
-		m_logWriter.write(TcpFlowLogRecordCode.DataLost, &lostSize, sizeof(lostSize));
+		g_logWriter.write(g_logTimestamp, TcpFlowLogRecordCode.DataLost, &lostSize, sizeof(lostSize));
 		m_totalLostSize += lostSize;
 	}
 }
@@ -120,7 +110,7 @@ void TcpSequencer.writeInSeqSegment(
 		size -= skip;
 	}
 
-	m_logWriter.write(m_logRecordCode, p, size);
+	g_logWriter.write(g_logTimestamp, m_logRecordCode, p, size);
 	m_seqNumber = newSeqNumber;
 }
 
@@ -159,7 +149,7 @@ void TcpSequencer.flushOutOfSeqSegments(size_t limit)
 		OutOfSeqSegment* segment = m_outOfSeqList.removeHead();
 		uint32_t lostSize = segment.m_seqNumber - m_seqNumber;
 		m_totalLostSize += lostSize;
-		m_logWriter.write(TcpFlowLogRecordCode.DataLost, &lostSize, sizeof(lostSize));
+		g_logWriter.write(g_logTimestamp, TcpFlowLogRecordCode.DataLost, &lostSize, sizeof(lostSize));
 		writeInSeqSegment(segment.m_seqNumber, segment.m_p, segment.m_size);
 		writeAlignedOutOfSeqSegments();
 	}

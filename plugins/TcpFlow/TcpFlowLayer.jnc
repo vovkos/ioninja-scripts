@@ -4,7 +4,6 @@
 //
 
 import "doc_Layer.jnc"
-import "log_Writer.jnc"
 import "ui_History.jnc"
 import "../NetSnifferLog/NetSnifferLogRecordCode.jnc"
 import "../EthernetTap/EthernetTapLogRecordCode.jnc"
@@ -20,7 +19,6 @@ class TcpFlowLayer:
 protected:
 	// tcp decoding
 
-	log.ProxyWriter m_logProxyWriter;
 	TcpDecoder m_decoder;
 	char const* m_captureFilterString;
 	TcpFlowLogFilter m_filter;
@@ -73,7 +71,6 @@ protected:
 TcpFlowLayer.construct(doc.PluginHost* pluginHost)
 {
 	basetype.construct(pluginHost);
-	m_decoder.construct(m_logProxyWriter);
 
 	createUi();
 	pluginHost.m_log.addConverter(this);
@@ -192,7 +189,8 @@ bool TcpFlowLayer.convert(
 	size_t size
 	)
 {
-	m_logProxyWriter.m_target = writer;
+	g_logWriter = writer;
+	g_logTimestamp = timestamp;
 
 	bool result = true;
 
@@ -229,7 +227,7 @@ bool TcpFlowLayer.convert(
 		result = false;
 	}
 
-	m_logProxyWriter.m_target = null; // release target writer
+	g_logWriter = null; // don't retain the conversion writer
 	return result;
 }
 

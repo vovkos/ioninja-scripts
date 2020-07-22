@@ -151,7 +151,6 @@ protected:
 TcpFlowMonSession.construct(doc.PluginHost* pluginHost)
 {
 	basetype.construct(pluginHost);
-	m_decoder.construct(pluginHost.m_log.m_writer);
 
 	createUi();
 
@@ -159,6 +158,8 @@ TcpFlowMonSession.construct(doc.PluginHost* pluginHost)
 	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
 	pluginHost.m_log.addFilter(m_filter);
 	m_stdSessionInfoSet.addLogListener(pluginHost.m_log);
+
+	g_logWriter = pluginHost.m_log.m_writer;
 }
 
 void TcpFlowMonSession.createUi()
@@ -571,9 +572,13 @@ void TcpFlowMonSession.onPcapEvent(
 
 	if (triggeredEvents & io.PcapEvents.IncomingData)
 	{
-		size_t result = m_pcap.read(m_readBuffer.m_p, m_readBuffer.m_size);
+		uint64_t timestamp;
+		size_t result = m_pcap.read(m_readBuffer.m_p, m_readBuffer.m_size, &timestamp);
 		if (result)
+		{
+			g_logTimestamp = timestamp;
 			m_decoder.decodeLinkHdr(m_pcap.m_linkType, m_readBuffer.m_p, result);
+		}
 	}
 
 	if (triggeredEvents & io.PcapEvents.Eof)
