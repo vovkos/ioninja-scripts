@@ -4,7 +4,6 @@
 //
 
 import "doc_Layer.jnc"
-import "log_Writer.jnc"
 import "ui_History.jnc"
 import "../NetSnifferLog/NetSnifferLogRecordCode.jnc"
 import "../EthernetTap/EthernetTapLogRecordCode.jnc"
@@ -20,7 +19,6 @@ class UdpFlowLayer:
 protected:
 	// udp decoding
 
-	log.ProxyWriter m_logProxyWriter;
 	UdpDecoder m_decoder;
 	UdpFlowLogFilter m_filter;
 
@@ -71,7 +69,6 @@ protected:
 UdpFlowLayer.construct(doc.PluginHost* pluginHost)
 {
 	basetype.construct(pluginHost);
-	m_decoder.construct(m_logProxyWriter);
 
 	createUi();
 
@@ -176,7 +173,8 @@ bool UdpFlowLayer.convert(
 	size_t size
 	)
 {
-	m_logProxyWriter.m_target = writer;
+	g_logWriter = writer;
+	g_logTimestamp = timestamp;
 
 	bool result = true;
 
@@ -213,7 +211,7 @@ bool UdpFlowLayer.convert(
 		result = false;
 	}
 
-	m_logProxyWriter.m_target = null; // release target writer
+	g_logWriter = null; // don't retain the conversion writer
 	return result;
 }
 
