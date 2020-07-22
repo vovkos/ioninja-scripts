@@ -158,8 +158,6 @@ UdpFlowMonSession.construct(doc.PluginHost* pluginHost)
 	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
 	pluginHost.m_log.addFilter(m_filter);
 	m_stdSessionInfoSet.addLogListener(pluginHost.m_log);
-
-	g_logWriter = pluginHost.m_log.m_writer;
 }
 
 void UdpFlowMonSession.createUi()
@@ -552,6 +550,7 @@ void UdpFlowMonSession.onPcapEvent(
 		size_t result = m_pcap.read(m_readBuffer.m_p, m_readBuffer.m_size, &timestamp);
 		if (result)
 		{
+			g_logWriter = m_pluginHost.m_log.m_writer;
 			g_logTimestamp = timestamp;
 			m_decoder.decodeLinkHdr(m_pcap.m_linkType, m_readBuffer.m_p, result);
 		}
