@@ -136,6 +136,9 @@ void UdpFlowLayer.load(doc.Storage* storage)
 	m_viewFilterCombo.m_editText = storage.readString("viewFilter");
 	m_ipFragmentLimitProp.m_value = storage.readInt("ipFragmentLimit", io.IpDefragmenter.Defaults.FragmentLimit);
 	m_ipFragmentTimeoutProp.m_value = storage.readInt("ipFragmentTimeout", io.IpDefragmenter.Defaults.FragmentTimeout);
+
+	m_decoder.setupDefragmenter(m_ipFragmentLimitProp.m_value, m_ipFragmentTimeoutProp.m_value);
+	try applyViewFilter();
 }
 
 void UdpFlowLayer.save(doc.Storage* storage)
