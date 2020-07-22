@@ -143,6 +143,15 @@ void TcpFlowLayer.load(doc.Storage* storage)
 	m_ipFragmentLimitProp.m_value = storage.readInt("ipFragmentLimit", io.IpDefragmenter.Defaults.FragmentLimit);
 	m_ipFragmentTimeoutProp.m_value = storage.readInt("ipFragmentTimeout", io.IpDefragmenter.Defaults.FragmentTimeout);
 	m_tcpOutOfSeqLimitProp.m_value = storage.readInt("tcpOutOfSeqLimit", TcpSequencer.Defaults.OutOfSeqLimit);
+
+	m_decoder.setup(
+		m_ipFragmentLimitProp.m_value,
+		m_ipFragmentTimeoutProp.m_value,
+		m_tcpOutOfSeqLimitProp.m_value,
+		TcpDecoder.Defaults.ConnectionTimeout
+		);
+
+	try applyViewFilter();
 }
 
 void TcpFlowLayer.save(doc.Storage* storage)
