@@ -79,7 +79,7 @@ bool representPcapLog(
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		representation.addHyperText(
-			size & *filter ?
+			size && *filter ?
 				$"Set capture filter \e[34m$filter" :
 				"Cleared capture filter"
 			);
