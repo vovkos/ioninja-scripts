@@ -123,6 +123,11 @@ public:
 		size_t size
 		);
 
+	override void disconnectSession()
+	{
+		disconnectAll();
+	}
+
 protected:
 	void onListen()
 	{
@@ -587,7 +592,11 @@ reactor TcpServerSession.m_uiReactor
 
 	m_isTransmitEnabled =
 		m_clientCombo.m_currentData &&
-		((Client*)m_clientCombo.m_currentData).m_isTransmitEnabled;
+		((Client*)m_clientCombo.m_currentData).m_isTransmitEnabled;;
+
+	m_sessionConnectionState = m_clientCombo.m_currentData ?
+		SessionConnectionState.Connected :
+		SessionConnectionState.Disconnected;
 }
 
 //..............................................................................
