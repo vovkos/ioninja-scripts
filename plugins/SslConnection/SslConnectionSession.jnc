@@ -666,7 +666,6 @@ void SslConnectionSession.onResolverEvent(
 		);
 
 	m_state = State.Closed;
-	m_sessionConnectionState = SessionConnectionState.Disconnected;
 
 	io.SocketAddress address = m_resolver.m_addressTable[0];
 	if (!address.m_port)
