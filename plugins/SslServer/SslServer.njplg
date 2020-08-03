@@ -7,7 +7,7 @@
 
 name        = SSL Server
 description = "Listens for connection over SSL socket"
-id          = ssl-listener
+id          = ssl-server
 group       = net
 log-guid    = 7940a0d5-a84b-4509-bae4-b5928511472d  # ssl
 log-guid    = db8c8923-a699-46cc-be7c-f0bcd523082b  # socket

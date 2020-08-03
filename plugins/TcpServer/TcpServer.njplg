@@ -7,7 +7,7 @@
 
 name        = TCP Server
 description = "Listens for and accepts TCP connections"
-id          = tcp-listener
+id          = tcp-server
 group       = net
 log-guid    = db8c8923-a699-46cc-be7c-f0bcd523082b  # socket
 icon        = images/listener.png
