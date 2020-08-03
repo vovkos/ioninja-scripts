@@ -595,7 +595,7 @@ void PipeServerSession.onClientPipeEvent(
 		return;
 	}
 
-	if (io.FileStreamEvents.WriteBufferReady)
+	if (triggeredEvents & io.FileStreamEvents.WriteBufferReady)
 		client.m_isTransmitEnabled = true;
 
 	waitClientPipeEvents(client);

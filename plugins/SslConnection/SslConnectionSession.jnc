@@ -639,7 +639,7 @@ void SslConnectionSession.onSocketEvent(
 			m_logWriter.write(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 	}
 
-	if (io.SslSocketEvents.WriteBufferReady)
+	if (triggeredEvents & io.SslSocketEvents.WriteBufferReady)
 		m_isTransmitEnabled = true;
 
 	waitSocketEvents();

@@ -475,7 +475,7 @@ void UdpSession.onSocketEvent(
 			m_logWriter.write(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 	}
 
-	if (io.SocketEvents.WriteBufferReady)
+	if (triggeredEvents & io.SocketEvents.WriteBufferReady)
 		m_isTransmitEnabled = true;
 
 	waitSocketEvents();

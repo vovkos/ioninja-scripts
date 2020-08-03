@@ -423,7 +423,7 @@ void FileSession.onFileStreamEvent(
 		return;
 	}
 
-	if (io.FileStreamEvents.WriteBufferReady)
+	if (triggeredEvents & io.FileStreamEvents.WriteBufferReady)
 		m_isTransmitEnabled = true;
 
 	waitFileStreamEvents();
