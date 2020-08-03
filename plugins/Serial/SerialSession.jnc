@@ -134,7 +134,7 @@ public:
 
 	override bool errorcode connectSession()
 	{
-		return m_state != State.Opened ? open() : true;
+		return m_sessionConnectionState ? true : open();
 	}
 
 	override void disconnectSession()
