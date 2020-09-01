@@ -1,0 +1,31 @@
+//..............................................................................
+//
+// DF1 record codes
+//
+
+import "log_RecordCode.jnc"
+
+//..............................................................................
+
+enum Df1LogRecordCode: uint64_t
+{
+	Eot       = 0x81d67c31be5b71a0,
+	Ack       = 0x81d67c31be5b71a1,
+	Nak       = 0x81d67c31be5b71a2,
+	Enq       = 0x81d67c31be5b71a3,
+	EnqStn    = 0x81d67c31be5b71a4,
+	SohBcc    = 0x81d67c31be5b71a5,
+	SohCrc    = 0x81d67c31be5b71a6,
+	StxBcc    = 0x81d67c31be5b71a7,
+	StxCrc    = 0x81d67c31be5b71a8,
+
+	UnexpectedChar = 0x01d67c31be5b71a9,
+}
+
+enum Df1LogPartCode: uint64_t
+{
+	RawDataLinkData = 1,
+	Payload         = 2,
+}
+
+//..............................................................................
