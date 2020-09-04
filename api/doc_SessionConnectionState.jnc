@@ -1,0 +1,24 @@
+//..............................................................................
+//
+// Ninja document model - declaration of session connection state
+//
+
+namespace doc {
+
+//! \addtogroup api-doc
+//! @{
+
+//..............................................................................
+
+enum SessionConnectionState
+{
+	Disconnected,
+	Connecting,
+	Connected,
+}
+
+//..............................................................................
+
+//! @}
+
+} // namespace doc

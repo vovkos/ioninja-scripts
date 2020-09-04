@@ -4,6 +4,7 @@
 //
 
 import "doc_Plugin.jnc"
+import "doc_SessionConnectionState.jnc"
 
 namespace doc {
 
@@ -14,12 +15,7 @@ namespace doc {
 
 class Session: Plugin
 {
-	enum SessionConnectionState
-	{
-		Disconnected,
-		Connecting,
-		Connected,
-	}
+	typedef doc.SessionConnectionState SessionConnectionState;
 
 	char const* autoget property m_title;
 	SessionConnectionState autoget property m_sessionConnectionState;
