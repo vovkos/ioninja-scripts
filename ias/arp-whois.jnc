@@ -26,6 +26,8 @@ static uchar_t const g_srcIp[4] = 0d"192.168.1.114";
 
 void main()
 {
+	connect();
+	
 	ArpRequestFrame frame;
 	frame.m_ethernet.m_type = io.EthernetType.Arp;
 	frame.m_ethernet.m_srcAddress = g_srcMac;

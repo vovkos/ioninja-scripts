@@ -6,7 +6,6 @@
 import "log_Writer.jnc"
 import "log_Listener.jnc"
 import "log_RecordCode.jnc"
-import "doc_SessionConnectionState.jnc"
 
 //! \addtogroup api-ias
 //! @{
