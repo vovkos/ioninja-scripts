@@ -15,6 +15,7 @@ icon        = images/tcp-flow.png
 small-icon  = images/tcp-flow-16x16.png
 
 layer-class = TcpFlowLayer
+pure-layer  = true
 
 [scripts]
 
