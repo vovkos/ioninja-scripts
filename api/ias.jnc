@@ -17,6 +17,9 @@ import "log_RecordCode.jnc"
 // remove them all during clean up)
 
 log.Writer* const g_logWriter;
+void clearLog();
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 bool errorcode connect();
 void disconnect();
