@@ -1,0 +1,52 @@
+//..............................................................................
+//
+//  IO Ninja IDE Wizard -- Send ToolBar layer
+//
+
+[wizard]
+name        = "Send ToolBar"
+description = "Generates a plugin which adds 'send' commands to the tool bar"
+icon        = images/plugin-16x16.png
+
+[variable]
+id          = pluginName
+name        = "Layer Name"
+value       = "My Send ToolBar"
+
+[variable]
+id          = pluginDescription
+name        = "Layer Description"
+value       = "Wizard-generated layer (adds 'send' commands to the tool bar)"
+
+[variable]
+id          = pluginId
+name        = "Layer ID"
+value       = my-send-toolbar
+
+[variable]
+id          = layerClass
+name        = "Layer Class"
+value       = MySendToolBarLayer
+
+[variable]
+id          = layerFile
+name        = "Layer File"
+readOnly    = true
+value       = $(layerClass).jnc
+rebuildOn   = layerClass
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+[file]
+source = Layer.njplg.in
+target = $(projectName).njplg
+interpolate = true
+
+[file]
+source = Layer.jnc.in
+target = $(layerFile)
+interpolate = true
+
+[file]
+source = images
+target = images

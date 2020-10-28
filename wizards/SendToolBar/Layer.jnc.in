@@ -1,0 +1,52 @@
+//..............................................................................
+//
+// $(pluginName) layer
+//
+
+import "doc_Layer.jnc"
+
+//..............................................................................
+
+class $(layerClass): doc.Layer
+{
+public:
+	construct(doc.PluginHost* pluginHost);
+
+protected:
+	void addButton(
+		char const* name,
+		void const* p,
+		size_t size = -1
+		);
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+$(layerClass).construct(doc.PluginHost* pluginHost)
+{
+	basetype.construct(pluginHost);
+
+	m_pluginHost.m_toolBar.addLabel("Send:");
+
+	addButton("Cmd1", "command-1");
+	addButton("Cmd2", 0x"00 01 02", 3);
+	addButton("Cmd3", "this\nis\na\multi-line\ncommand\n");
+
+	// TODO: add more buttons as needed
+}
+
+void $(layerClass).addButton(
+	char const* title,
+	void const* p,
+	size_t size
+	)
+{
+	if (size == -1)
+		size = strlen(p);
+
+	ui.Action* action = new ui.Action(title);
+	action.m_onTriggered += transmit~(p, size);
+	m_pluginHost.m_toolBar.addAction(action);
+}
+
+//..............................................................................

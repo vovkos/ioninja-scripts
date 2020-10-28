@@ -1,0 +1,18 @@
+//..............................................................................
+//
+// $(pluginName) layer plugin
+//
+
+[plugin]
+
+name        = $(pluginName)
+description = $(pluginDescription)
+id          = $(pluginId)
+icon        = images/plugin.png
+small-icon  = images/plugin-16x16.png
+
+layer-class = $(layerClass)
+
+[scripts]
+
+$(layerFile)
