@@ -13,10 +13,10 @@ protected:
 	jnc.RegexState m_rxScannerState;
 
 public:
-	construct (doc.PluginHost* pluginHost);
+	construct(doc.PluginHost* pluginHost);
 
 protected:
-	onLogRecord (
+	void onLogRecord(
 		uint64_t timestamp,
 		uint64_t recordCode,
 		void const* p,
@@ -24,30 +24,30 @@ protected:
 		)
 	{
 		if (recordCode == log.StdRecordCode.Rx)
-			scanRx (p, size);
+			scanRx(p, size);
 	}
 
-	scanRx (
+	void scanRx(
 		char const* p,
 		size_t length
 		);
 
-	size_t transmitString (char const* s)
+	size_t transmitString(char const* s)
 	{
-		return transmitNext (s, strlen (s));
+		return transmitNext(s, strlen(s));
 	}
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-$(layerClass).construct (doc.PluginHost* pluginHost)
+$(layerClass).construct(doc.PluginHost* pluginHost)
 {
-	basetype.construct (pluginHost);
-	pluginHost.m_log.addListener (onLogRecord @ pluginHost.m_mainThreadScheduler);
+	basetype.construct(pluginHost);
+	pluginHost.m_log.addListener(onLogRecord @ pluginHost.m_mainThreadScheduler);
 	m_rxScannerState.m_isIncremental = true;
 }
 
-$(layerClass).scanRx (
+void $(layerClass).scanRx(
 	char const* p,
 	size_t length
 	)
@@ -58,15 +58,15 @@ $(layerClass).scanRx (
 		reswitch (m_rxScannerState, p, end - p)
 		{
 		case r"about[\r\n]":
-			transmitString ("IO Ninja - $(pluginName)\r\n");
+			transmitString("IO Ninja - $(pluginName)\r\n");
 			break;
 
 		case r"version[\r\n]":
-			transmitString ("Version 1.0.0\r\n");
+			transmitString("Version 1.0.0\r\n");
 			break;
 
 		case r"help[\r\n]":
-			transmitString ("This plugin is a starting point for writing your test utility\r\n");
+			transmitString("This plugin is a starting point for writing your test utility\r\n");
 			break;
 
 		case ".":

@@ -14,9 +14,9 @@ class $(layerClass):
 	ui.BoolProperty* m_txProp;
 	ui.BoolProperty* m_rxProp;
 
-	construct (doc.PluginHost* pluginHost);
+	construct(doc.PluginHost* pluginHost);
 
-	override bool filter (
+	override bool filter(
 		uint64_t timestamp,
 		uint64_t recordCode,
 		void const* p,
@@ -26,19 +26,19 @@ class $(layerClass):
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-$(layerClass).construct (doc.PluginHost* pluginHost)
+$(layerClass).construct(doc.PluginHost* pluginHost)
 {
-	basetype.construct (pluginHost);
+	basetype.construct(pluginHost);
 
-	m_txProp = m_pluginHost.m_propertyGrid.createBoolProperty ("TX", "Show TX records in the log");
-	m_rxProp = m_pluginHost.m_propertyGrid.createBoolProperty ("RX", "Show RX records in the log");
+	m_txProp = m_pluginHost.m_propertyGrid.createBoolProperty("TX", "Show TX records in the log");
+	m_rxProp = m_pluginHost.m_propertyGrid.createBoolProperty("RX", "Show RX records in the log");
 	m_txProp.m_value = true;
 	m_rxProp.m_value = true;
 
-	pluginHost.m_log.addFilter (this);
+	pluginHost.m_log.addFilter(this);
 }
 
-bool $(layerClass).filter (
+bool $(layerClass).filter(
 	uint64_t timestamp,
 	uint64_t recordCode,
 	void const* p,

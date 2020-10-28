@@ -40,25 +40,25 @@ protected:
 	uint_t m_stickyColor;
 
 public:
-	write (
+	void write(
 		log.Writer* writer,
 		void const* p,
 		size_t size
 		);
 
-	finalize (log.Writer* writer);
+	void finalize(log.Writer* writer);
 
 protected:
-	enterStickyMode (
+	void enterStickyMode(
 		StickyMode mode,
 		uint_t color
 		);
 
-	leaveStickyMode ();
+	void leaveStickyMode();
 
-	stickyColorize ();
+	void stickyColorize();
 
-	scan (
+	void scan(
 		char const* p,
 		size_t length
 		);
@@ -66,7 +66,7 @@ protected:
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-$(highlighterClass).write (
+void $(highlighterClass).write(
 	log.Writer* writer,
 	void const* p,
 	size_t size
@@ -75,25 +75,25 @@ $(highlighterClass).write (
 	m_writer = writer;
 	m_stickyOffset = -size;
 	m_scannerState.m_currentOffset = -size;
-	scan (p, size);
+	scan(p, size);
 
 	if (m_stickyMode)
-		stickyColorize ();
+		stickyColorize();
 }
 
-$(highlighterClass).finalize (log.Writer* writer)
+void $(highlighterClass).finalize(log.Writer* writer)
 {
 	m_writer = writer;
-	scan (null, 0); // process eof
+	scan(null, 0); // process eof
 	m_stickyMode = StickyMode.None;
 }
 
-$(highlighterClass).enterStickyMode (
+void $(highlighterClass).enterStickyMode(
 	StickyMode mode,
 	uint_t color
 	)
 {
-	m_writer.retroColorize (
+	m_writer.retroColorize(
 		m_scannerState.m_match.m_offset,
 		m_scannerState.m_match.m_length,
 		color
@@ -104,21 +104,21 @@ $(highlighterClass).enterStickyMode (
 	m_stickyColor = color;
 }
 
-$(highlighterClass).leaveStickyMode ()
+void $(highlighterClass).leaveStickyMode()
 {
-	stickyColorize ();
+	stickyColorize();
 	m_stickyMode = StickyMode.None;
 }
 
-$(highlighterClass).stickyColorize ()
+void $(highlighterClass).stickyColorize()
 {
 	size_t length = m_scannerState.m_currentOffset - m_stickyOffset;
 
 	if (length)
-		m_writer.retroColorize (m_stickyOffset, length, m_stickyColor);
+		m_writer.retroColorize(m_stickyOffset, length, m_stickyColor);
 }
 
-$(highlighterClass).scan (
+void $(highlighterClass).scan(
 	char const* p,
 	size_t length
 	)
@@ -138,7 +138,7 @@ $(highlighterClass).scan (
 				"register|return|short|signed|sizeof|static|struct|"
 				"switch|typedef|union|unsigned|void|volatile|while":
 
-				m_writer.retroColorize (
+				m_writer.retroColorize(
 					m_scannerState.m_match.m_offset,
 					m_scannerState.m_match.m_length,
 					TokenColor.Keyword
@@ -150,7 +150,7 @@ $(highlighterClass).scan (
 				break;
 
 			case "0[0-7]+":
-				m_writer.retroColorize (
+				m_writer.retroColorize(
 					m_scannerState.m_match.m_offset,
 					m_scannerState.m_match.m_length,
 					TokenColor.OctNumber
@@ -158,7 +158,7 @@ $(highlighterClass).scan (
 				break;
 
 			case "[0-9]+":
-				m_writer.retroColorize (
+				m_writer.retroColorize(
 					m_scannerState.m_match.m_offset,
 					m_scannerState.m_match.m_length,
 					TokenColor.DecNumber
@@ -166,7 +166,7 @@ $(highlighterClass).scan (
 				break;
 
 			case "0[xX][0-9a-fA-F]+":
-				m_writer.retroColorize (
+				m_writer.retroColorize(
 					m_scannerState.m_match.m_offset,
 					m_scannerState.m_match.m_length,
 					TokenColor.HexNumber
@@ -174,19 +174,19 @@ $(highlighterClass).scan (
 				break;
 
 			case "//":
-				enterStickyMode (StickyMode.SlComment, TokenColor.SlComment);
+				enterStickyMode(StickyMode.SlComment, TokenColor.SlComment);
 				break;
 
 			case r"/\*":
-				enterStickyMode (StickyMode.MlComment, TokenColor.MlComment);
+				enterStickyMode(StickyMode.MlComment, TokenColor.MlComment);
 				break;
 
 			case "\'":
-				enterStickyMode (StickyMode.SqLiteral, TokenColor.SqLiteral);
+				enterStickyMode(StickyMode.SqLiteral, TokenColor.SqLiteral);
 				break;
 
 			case "\"":
-				enterStickyMode (StickyMode.DqLiteral, TokenColor.DqLiteral);
+				enterStickyMode(StickyMode.DqLiteral, TokenColor.DqLiteral);
 				break;
 
 			case ".":
@@ -199,7 +199,7 @@ $(highlighterClass).scan (
 			reswitch (m_scannerState, p, end - p)
 			{
 			case "\n":
-				leaveStickyMode ();
+				leaveStickyMode();
 				break;
 
 			case ".":
@@ -212,7 +212,7 @@ $(highlighterClass).scan (
 			reswitch (m_scannerState, p, end - p)
 			{
 			case r"\*/":
-				leaveStickyMode ();
+				leaveStickyMode();
 				break;
 
 			case ".":
@@ -225,7 +225,7 @@ $(highlighterClass).scan (
 			reswitch (m_scannerState, p, end - p)
 			{
 			case "'":
-				leaveStickyMode ();
+				leaveStickyMode();
 				break;
 
 			case "\\\'":
@@ -242,7 +242,7 @@ $(highlighterClass).scan (
 			reswitch (m_scannerState, p, end - p)
 			{
 			case "\"":
-				leaveStickyMode ();
+				leaveStickyMode();
 				break;
 
 			case "\\\"":
@@ -256,7 +256,7 @@ $(highlighterClass).scan (
 			break;
 
 		default:
-			assert (false);
+			assert(false);
 		}
 
 		p += m_scannerState.m_consumedLength;

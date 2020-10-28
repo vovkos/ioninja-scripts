@@ -16,9 +16,9 @@ protected:
 	$(highlighterClass) m_rxHighlighter;
 
 public:
-	construct (doc.PluginHost* pluginHost);
+	construct(doc.PluginHost* pluginHost);
 
-	override bool convert (
+	override bool convert(
 		log.Writer* writer,
 		uint64_t timestamp,
 		uint64_t recordCode,
@@ -29,13 +29,13 @@ public:
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-$(layerClass).construct (doc.PluginHost* pluginHost)
+$(layerClass).construct(doc.PluginHost* pluginHost)
 {
-	basetype1.construct (pluginHost);
-	pluginHost.m_log.addConverter (this);
+	basetype1.construct(pluginHost);
+	pluginHost.m_log.addConverter(this);
 }
 
-bool $(layerClass).convert (
+bool $(layerClass).convert(
 	log.Writer* writer,
 	uint64_t timestamp,
 	uint64_t recordCode,
@@ -46,21 +46,21 @@ bool $(layerClass).convert (
 	switch (recordCode)
 	{
 	case log.StdRecordCode.Tx:
-		m_rxHighlighter.finalize (writer);
-		writer.write (timestamp, recordCode, p, size);
-		m_txHighlighter.write (writer, p, size);
+		m_rxHighlighter.finalize(writer);
+		writer.write(timestamp, recordCode, p, size);
+		m_txHighlighter.write(writer, p, size);
 		break;
 
 	case log.StdRecordCode.Rx:
-		m_txHighlighter.finalize (writer);
-		writer.write (timestamp, recordCode, p, size);
-		m_rxHighlighter.write (writer, p, size);
+		m_txHighlighter.finalize(writer);
+		writer.write(timestamp, recordCode, p, size);
+		m_rxHighlighter.write(writer, p, size);
 		break;
 
 	default:
-		m_txHighlighter.finalize (writer);
-		m_rxHighlighter.finalize (writer);
-		writer.write (timestamp, recordCode, p, size);
+		m_txHighlighter.finalize(writer);
+		m_rxHighlighter.finalize(writer);
+		writer.write(timestamp, recordCode, p, size);
 	}
 
 	return true;

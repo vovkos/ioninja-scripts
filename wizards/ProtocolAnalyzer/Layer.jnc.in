@@ -24,9 +24,9 @@ protected:
 	size_t m_offset;
 
 public:
-	construct (doc.PluginHost* pluginHost);
+	construct(doc.PluginHost* pluginHost);
 
-	override bool convert (
+	override bool convert(
 		log.Writer* writer,
 		uint64_t timestamp,
 		uint64_t recordCode,
@@ -35,27 +35,27 @@ public:
 		);
 
 protected:
-	scanStream (
+	void scanStream(
 		jnc.RegexState* state,
 		char const* p,
 		size_t length
 		);
 
-	writeOriginalData (jnc.RegexState* state);
+	void writeOriginalData(jnc.RegexState* state);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-$(layerClass).construct (doc.PluginHost* pluginHost)
+$(layerClass).construct(doc.PluginHost* pluginHost)
 {
-	basetype1.construct (pluginHost);
-	pluginHost.m_log.addConverter (this, &m_guid);
+	basetype1.construct(pluginHost);
+	pluginHost.m_log.addConverter(this, &m_guid);
 
 	m_txScannerState.m_isIncremental = true;
 	m_rxScannerState.m_isIncremental = true;
 }
 
-bool $(layerClass).convert (
+bool $(layerClass).convert(
 	log.Writer* writer,
 	uint64_t timestamp,
 	uint64_t recordCode,
@@ -89,22 +89,22 @@ bool $(layerClass).convert (
 
 	// scan
 
-	scanStream (state, p, size);
+	scanStream(state, p, size);
 	return true;
 }
 
-$(layerClass).writeOriginalData (jnc.RegexState* state)
+void $(layerClass).writeOriginalData(jnc.RegexState* state)
 {
 	if (state.m_currentOffset <= m_offset)
 		return;
 
 	size_t chunkLength = state.m_currentOffset - m_offset;
-	m_writer.write (m_timestamp, m_recordCode, m_p, chunkLength);
+	m_writer.write(m_timestamp, m_recordCode, m_p, chunkLength);
 	m_p += chunkLength;
 	m_offset += chunkLength;
 }
 
-$(layerClass).scanStream (
+void $(layerClass).scanStream(
 	jnc.RegexState* state,
 	char const* p,
 	size_t length
@@ -118,15 +118,15 @@ $(layerClass).scanStream (
 		case "<([^>]*)>":
 			// write original data first...
 
-			writeOriginalData (state);
+			writeOriginalData(state);
 
 			// ...and then the decoded in-band command
 
-			m_writer.write (
+			m_writer.write(
 				m_timestamp,
 				$(logRecordCodeEnum).InBandCommand,
-				state.m_subMatchArray [0].m_text,
-				state.m_subMatchArray [0].m_length
+				state.m_subMatchArray[0].m_text,
+				state.m_subMatchArray[0].m_length
 				);
 
 			break;
@@ -141,7 +141,7 @@ $(layerClass).scanStream (
 
 	// write the rest of original data
 
-	writeOriginalData (state);
+	writeOriginalData(state);
 }
 
 //..............................................................................

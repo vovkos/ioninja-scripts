@@ -7,7 +7,7 @@ import "log_Representation.jnc"
 
 //..............................................................................
 
-bool $(logRepresenterFunc) (
+bool $(logRepresenterFunc)(
 	log.Representation* representation,
 	uint64_t recordCode,
 	void const* p,
@@ -20,7 +20,7 @@ bool $(logRepresenterFunc) (
 	case $(logRecordCodeEnum).InBandCommand:
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		representation.addHyperText ($"In-band command: $((char const*) p)");
+		representation.addHyperText($"In-band command: $((char const*) p)");
 		break;
 
 	default:

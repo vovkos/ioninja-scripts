@@ -19,7 +19,7 @@ protected:
 		Connected,
 	}
 
-	static char const* m_stateStringTable [] =
+	static char const* m_stateStringTable[] =
 	{
 		"Closed",
 		"Connected",
@@ -54,9 +54,9 @@ protected:
 
 	// toolbar, status bar & menu
 
-	ui.Action* m_actionTable [ActionId._Count];
-	ui.Icon* m_iconTable [IconId._Count];
-	ui.StatusPane* m_statusPaneTable [StatusPaneId._Count];
+	ui.Action* m_actionTable[ActionId._Count];
+	ui.Icon* m_iconTable[IconId._Count];
+	ui.StatusPane* m_statusPaneTable[StatusPaneId._Count];
 	ui.ComboBox* m_addressCombo;
 
 	// property grid
@@ -68,136 +68,136 @@ protected:
 	reactor m_uiReactor;
 
 public:
-	construct (doc.PluginHost* pluginHost);
+	construct(doc.PluginHost* pluginHost);
 
-	bool errorcode connect ();
-	disconnect ();
+	bool errorcode connect();
+	void disconnect();
 
-	override void load (doc.Storage* storage);
-	override void save (doc.Storage* storage);
-	override void updateProperties ();
-	override bool errorcode applyProperties ();
-	override void restoreDefaultProperties ();
+	override void load(doc.Storage* storage);
+	override void save(doc.Storage* storage);
+	override void updateProperties();
+	override bool errorcode applyProperties();
+	override void restoreDefaultProperties();
 
-	override size_t errorcode transmit (
+	override size_t errorcode transmit(
 		void const* p,
 		size_t size
 		);
 
 protected:
-	onConnect ()
+	void onConnect()
 	{
-		m_state ? disconnect () : try connect ();
+		m_state ? disconnect() : try connect();
 	}
 
-	onAddressComboEnter ()
+	void onAddressComboEnter()
 	{
-		try connect ();
+		try connect();
 	}
 
-	createUi ();
+	void createUi();
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-$(sessionClass).construct (doc.PluginHost* pluginHost)
+$(sessionClass).construct(doc.PluginHost* pluginHost)
 {
-	basetype.construct (pluginHost);
+	basetype.construct(pluginHost);
 
 	m_state = State.Closed;
-	createUi ();
+	createUi();
 }
 
-$(sessionClass).createUi ()
+void $(sessionClass).createUi()
 {
 	// toolbar
 
-	m_pluginHost.m_toolBar.addLabel ("Address:");
-	m_addressCombo = m_pluginHost.m_toolBar.addComboBox (-1);
+	m_pluginHost.m_toolBar.addLabel("Address:");
+	m_addressCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 	m_addressCombo.m_isEditable = true;
 	m_addressCombo.m_onEnter += onAddressComboEnter;
-	m_addressCombo.m_placeholderText = "Enter a remote address..."
+	m_addressCombo.m_placeholderText = "Enter a remote address...";
 
-	m_iconTable [IconId.Connect] = new ui.Icon ("images/connect.png");
-	m_iconTable [IconId.Disconnect] = new ui.Icon ("images/disconnect.png");
+	m_iconTable[IconId.Connect] = new ui.Icon("images/connect.png");
+	m_iconTable[IconId.Disconnect] = new ui.Icon("images/disconnect.png");
 
-	m_actionTable [ActionId.Connect] = createAction ("Connect", m_iconTable [IconId.Connect]);
-	m_actionTable [ActionId.Connect].m_onTriggered += onConnect;
+	m_actionTable[ActionId.Connect] = createAction("Connect", m_iconTable[IconId.Connect]);
+	m_actionTable[ActionId.Connect].m_onTriggered += onConnect;
 
 	// status bar
 
-	m_statusPaneTable [StatusPaneId.Address] = m_pluginHost.m_statusBar.addPane (, 100);
-	m_statusPaneTable [StatusPaneId.Address].m_color = ui.StdColor.Blue;
-	m_statusPaneTable [StatusPaneId.State] = m_pluginHost.m_statusBar.addPane (, 80);
+	m_statusPaneTable[StatusPaneId.Address] = m_pluginHost.m_statusBar.addPane(, 100);
+	m_statusPaneTable[StatusPaneId.Address].m_color = ui.StdColor.Blue;
+	m_statusPaneTable[StatusPaneId.State] = m_pluginHost.m_statusBar.addPane(, 80);
 
 	// property grid
 
-	m_addressProp = m_pluginHost.m_propertyGrid.createStringProperty (
+	m_addressProp = m_pluginHost.m_propertyGrid.createStringProperty(
 		"Remote address",
 		"Enter a remote address...",
 		"Remote address to connect to"
 		);
 
-	m_uiReactor.start ();
+	m_uiReactor.start();
 }
 
-bool errorcode $(sessionClass).connect ()
+bool errorcode $(sessionClass).connect()
 {
-	disconnect ();
+	disconnect();
 
 	char const* address = m_addressCombo.m_editText;
-	m_addressCombo.addEditTextToHistory ();
+	m_addressCombo.addEditTextToHistory();
 
-	startSession ();
+	startSession();
 
 	// connection implementation...
 
-	writeLog ($(logRecordCodeEnum).Connected, address, strlen (address));
-	m_address = strdup (address);
+	m_logWriter.write($(logRecordCodeEnum).Connected, address, strlen(address));
+	m_address = strdup(address);
 	m_state = State.Connected;
 	return true;
 }
 
-$(sessionClass).disconnect ()
+void $(sessionClass).disconnect()
 {
 	if (!m_state)
 		return;
 
 	// disconnection implementation...
 
-	writeLog ($(logRecordCodeEnum).Disconnected, m_address, strlen (m_address));
+	m_logWriter.write($(logRecordCodeEnum).Disconnected, m_address, strlen(m_address));
 	m_state = State.Closed;
 }
 
-void $(sessionClass).load (doc.Storage* storage)
+void $(sessionClass).load(doc.Storage* storage)
 {
-	m_addressCombo.loadHistory (storage, "addressHistory");
-	m_addressCombo.m_editText = storage.readString ("address");
+	m_addressCombo.loadHistory(storage, "addressHistory");
+	m_addressCombo.m_editText = storage.readString("address");
 }
 
-void $(sessionClass).save (doc.Storage* storage)
+void $(sessionClass).save(doc.Storage* storage)
 {
-	m_addressCombo.saveHistory (storage, "addressHistory");
-	storage.writeString ("address", m_addressCombo.m_editText);
+	m_addressCombo.saveHistory(storage, "addressHistory");
+	storage.writeString("address", m_addressCombo.m_editText);
 }
 
-void $(sessionClass).updateProperties ()
+void $(sessionClass).updateProperties()
 {
 	m_addressProp.m_value = m_addressCombo.m_editText;
 }
 
-bool errorcode $(sessionClass).applyProperties ()
+bool errorcode $(sessionClass).applyProperties()
 {
 	m_addressCombo.m_editText = m_addressProp.m_value;
 	return true;
 }
 
-void $(sessionClass).restoreDefaultProperties ()
+void $(sessionClass).restoreDefaultProperties()
 {
 	m_addressProp.m_value = "remote-address";
 }
 
-size_t errorcode $(sessionClass).transmit (
+size_t errorcode $(sessionClass).transmit(
 	void const* p,
 	size_t size
 	)
@@ -207,7 +207,7 @@ size_t errorcode $(sessionClass).transmit (
 
 	// transmission implementation...
 
-	writeLog (log.StdRecordCode.Tx, p, size);
+	m_logWriter.write(log.StdRecordCode.Tx, p, size);
 	return size;
 }
 
@@ -215,11 +215,11 @@ reactor $(sessionClass).m_uiReactor
 {
 	m_title = $"$(pluginName) $(m_addressCombo.m_editText)";
 	m_isTransmitEnabled = m_state == State.Connected;
-	m_actionTable [ActionId.Connect].m_text = m_state ? "Disconnect" : "Connect";
-	m_actionTable [ActionId.Connect].m_icon = m_iconTable [m_state ? IconId.Disconnect : IconId.Connect];
-	m_statusPaneTable [StatusPaneId.State].m_text = m_stateStringTable [m_state];
-	m_statusPaneTable [StatusPaneId.Address].m_text = m_state == State.Connected ? m_address : null;
-	m_statusPaneTable [StatusPaneId.Address].m_isVisible = m_state == State.Connected;
+	m_actionTable[ActionId.Connect].m_text = m_state ? "Disconnect" : "Connect";
+	m_actionTable[ActionId.Connect].m_icon = m_iconTable[m_state ? IconId.Disconnect : IconId.Connect];
+	m_statusPaneTable[StatusPaneId.State].m_text = m_stateStringTable[m_state];
+	m_statusPaneTable[StatusPaneId.Address].m_text = m_state == State.Connected ? m_address : null;
+	m_statusPaneTable[StatusPaneId.Address].m_isVisible = m_state == State.Connected;
 }
 
 //..............................................................................

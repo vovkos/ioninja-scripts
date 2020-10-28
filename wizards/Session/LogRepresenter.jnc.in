@@ -7,7 +7,7 @@ import "log_Representation.jnc"
 
 //..............................................................................
 
-bool $(logRepresenterFunc) (
+bool $(logRepresenterFunc)(
 	log.Representation* representation,
 	uint64_t recordCode,
 	void const* p,
@@ -20,13 +20,13 @@ bool $(logRepresenterFunc) (
 	case $(logRecordCodeEnum).Connected:
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Connect;
-		representation.addHyperText ($"Connected to \e[34m$((char const*) p)");
+		representation.addHyperText($"Connected to \e[34m$((char const*) p)");
 		break;
 
 	case $(logRecordCodeEnum).Disconnected:
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
-		representation.addHyperText ($"Disconnected from \e[34m$((char const*) p)");
+		representation.addHyperText($"Disconnected from \e[34m$((char const*) p)");
 		break;
 
 	default:

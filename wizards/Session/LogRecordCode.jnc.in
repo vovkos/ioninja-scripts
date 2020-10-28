@@ -8,8 +8,8 @@ import "log_RecordCode.jnc"
 
 enum $(logRecordCodeEnum): uint64_t
 {
-	Connected    = 0x$(getLogRecordCode (0)),
-	Disconnected = 0x$(getLogRecordCode (1)),
+	Connected    = 0x$(getLogRecordCode(0)),
+	Disconnected = 0x$(getLogRecordCode(1)),
 }
 
 //..............................................................................
