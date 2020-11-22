@@ -29,3 +29,33 @@ enum Df1LogPartCode: uint64_t
 }
 
 //..............................................................................
+
+bitflag enum Df1FoldFlag: uint8_t
+{
+	Master        = 0x01,
+	DataLinkLayer = 0x02,
+	AppMsgLayer   = 0x04,
+	FuncLayer     = 0x08,
+	Payload       = 0x10,
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+enum Df1Color
+{
+	DataLinkLayer = ui.StdColor.PastelBlue,
+	AppMsgLayer   = ui.StdColor.PastelPurple,
+	FuncLayer     = ui.StdColor.PastelOrange,
+	Payload       = ui.StdColor.PastelYellow,
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+struct Df1ColorRange
+{
+	size_t m_offset;
+	size_t m_size;
+	uint_t m_color;
+}
+
+//..............................................................................

@@ -6,6 +6,11 @@
 import "ui_Color.jnc"
 import "std_Array.jnc"
 
+namespace io {
+
+//! \addtogroup proto-df1
+//! @{
+
 //..............................................................................
 
 enum Df1Char: char
@@ -36,7 +41,7 @@ enum Df1ChecksumKind: uchar_t
 	Crc,
 }
 
-char const* getChecksumKindString(Df1ChecksumKind kind)
+char const* getDf1ChecksumKindString(Df1ChecksumKind kind)
 {
 	static char const* stringTable[] =
 	{
@@ -45,23 +50,6 @@ char const* getChecksumKindString(Df1ChecksumKind kind)
 	}
 
 	return stringTable[kind & 1]; // ensure we never run out-of-bounds
-}
-
-// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-uchar_t bcc(
-	void const* p0,
-	size_t size
-	)
-{
-	uchar_t sum = 0;
-	uchar_t const* p = p0;
-	uchar_t const* end = p + size;
-
-	for (; p < end; p++)
-		sum += *p;
-
-	return ~sum + 1; // two's complement
 }
 
 //..............................................................................
@@ -162,7 +150,7 @@ enum Df1CmdFnc: uint16_t
 	[ structType = typeof(Df1ProtectedTypedLogicalReadWrite) ]
 	ProtectedTypedLogicalRead   = 0x0fa2,
 
-	[ representFunc = representProtectedTypedLogicalWrite ]
+	[ structType = typeof(Df1ProtectedTypedLogicalReadWrite) ]
 	ProtectedTypedLogicalWrite  = 0x0faa,
 
 	[ structType = typeof(Df1PhysicalRead) ]
@@ -509,32 +497,6 @@ struct Df1SetVariables
 
 //..............................................................................
 
-bitflag enum Df1FoldFlag: uint8_t
-{
-	Master        = 0x01,
-	DataLinkLayer = 0x02,
-	AppMsgLayer   = 0x04,
-	FuncLayer     = 0x08,
-	Payload       = 0x10,
-}
+//! @}
 
-// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-enum Df1Color
-{
-	DataLinkLayer = ui.StdColor.PastelBlue,
-	AppMsgLayer   = ui.StdColor.PastelPurple,
-	FuncLayer     = ui.StdColor.PastelOrange,
-	Payload       = ui.StdColor.PastelYellow,
-}
-
-// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-struct Df1ColorRange
-{
-	size_t m_offset;
-	size_t m_size;
-	uint_t m_color;
-}
-
-//..............................................................................
+} // namespace io

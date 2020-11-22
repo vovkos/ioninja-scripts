@@ -17,7 +17,6 @@ log-representer-func = representDf1Log
 
 Df1LogRecordCode.jnc
 Df1LogRepresenter.jnc
-Df1.jnc
 
 [records]
 

@@ -4,6 +4,7 @@
 //
 
 import "doc_Layer.jnc"
+import "io_Df1.jnc"
 
 //..............................................................................
 
@@ -13,8 +14,8 @@ class Df1Layer:
 {
 	enum Defaults
 	{
-		Mode         = Df1Mode.FullDuplex,
-		ChecksumKind = Df1ChecksumKind.Crc,
+		Mode         = io.Df1Mode.FullDuplex,
+		ChecksumKind = io.Df1ChecksumKind.Crc,
 	}
 
 protected:
@@ -68,14 +69,14 @@ void Df1Layer.createUi()
 {
 	static ui.EnumPropertyOption modeTable[] =
 	{
-		{ "Full-duplex", Df1Mode.FullDuplex },
-		{ "Half-duplex", Df1Mode.HalfDuplex },
+		{ "Full-duplex", io.Df1Mode.FullDuplex },
+		{ "Half-duplex", io.Df1Mode.HalfDuplex },
 	}
 
 	static ui.EnumPropertyOption checksumKindTable[] =
 	{
-		{ "BCC", Df1ChecksumKind.Bcc },
-		{ "CRC", Df1ChecksumKind.Crc },
+		{ "BCC", io.Df1ChecksumKind.Bcc },
+		{ "CRC", io.Df1ChecksumKind.Crc },
 	}
 
 	m_modeCombo = m_pluginHost.m_toolBar.addComboBox(
