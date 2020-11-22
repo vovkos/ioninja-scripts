@@ -514,7 +514,9 @@ void representAppMsg(
 		}
 
 		jnc.EnumConst* enumConst = typeof(io.Df1CmdPrefix).findConst(hdr.m_command);
-		representCmdFnc(representation, rangeArray, enumConst, p, size, baseOffset, foldFlags);
+		jnc.StructType* structType = enumConst.findAttributeValue("structType");
+		if (structType)
+			representStruct(representation, rangeArray, structType, p, size, baseOffset, foldFlags);
 		break;
 
 	case io.Df1CmdPrefix.Command06:
@@ -559,15 +561,32 @@ void representAppMsg(
 
 		addColorRange(rangeArray, baseOffset, 1, Df1Color.FuncLayer);
 
-		jnc.EnumConst* enumConst = type.findConst(fnc);
-		if (!enumConst)
-			break;
-
 		p += 1;
 		size -= 1;
 		baseOffset += 1;
 
-		representCmdFnc(representation, rangeArray, enumConst, p, size, baseOffset, foldFlags);
+		if (fnc == io.Df1CmdFnc.ProtectedTypedLogicalWrite) // special case
+		{
+			representProtectedTypedLogicalWrite(
+				representation,
+				rangeArray,
+				p,
+				size,
+				baseOffset,
+				foldFlags
+				);
+
+			break;
+		}
+
+		jnc.EnumConst* enumConst = type.findConst(fnc);
+		if (enumConst)
+		{
+			jnc.StructType* structType = enumConst.findAttributeValue("structType");
+			if (structType)
+				representStruct(representation, rangeArray, structType, p, size, baseOffset, foldFlags);
+		}
+
 		break;
 	}
 }
@@ -643,35 +662,6 @@ void representStruct(
 	baseOffset += type.m_size;
 
 	representPayload(representation, rangeArray,, p, size, baseOffset, foldFlags);
-}
-
-void representCmdFnc(
-	log.Representation* representation,
-	std.Array* rangeArray,
-	jnc.EnumConst* enumConst,
-	uchar_t const* p,
-	size_t size,
-	size_t baseOffset,
-	uint_t foldFlags
-	)
-{
-	if (enumConst.m_value == io.Df1CmdFnc.ProtectedTypedLogicalWrite) // special case
-	{
-		representProtectedTypedLogicalWrite(
-			representation,
-			rangeArray,
-			p,
-			size,
-			baseOffset,
-			foldFlags
-			);
-	}
-	else
-	{
-		jnc.StructType* structType = enumConst.findAttributeValue("structType");
-		if (structType)
-			representStruct(representation, rangeArray, structType, p, size, baseOffset, foldFlags);
-	}
 }
 
 void representProtectedTypedLogicalWrite(
