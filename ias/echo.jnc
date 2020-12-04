@@ -1,23 +1,11 @@
 //..............................................................................
 //
-// Use this script to define logic for packet transmission in Jancy language.
-//
-// If you are not familar with Jancy, no worries -- on the surface, you can
-// think of it simply as a safe scripting dialect of C -- most of C declarations
-// and control-flow statements will compile just fine.
-//
 // The example below works as a simple echo-server. Whatever is received, is 
 // sent back immediately. Here we use 'onLogRecord' as a way to get notified 
 // about session events, and we handle 'log.StdRecordCode.Rx' to transmit every
 // RX packet back.
 //
 //..............................................................................
-
-void main()
-{
-	for (;;)
-		sys.sleep(1000); // don't eat CPU in the loop
-}
 
 void onLogRecord(
 	uint64_t timestamp,

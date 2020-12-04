@@ -1,11 +1,5 @@
 //..............................................................................
 //
-// Use this script to define logic for packet transmission in Jancy language.
-//
-// If you are not familar with Jancy, no worries -- on the surface, you can
-// think of it simply as a safe scripting dialect of C -- most of C declarations
-// and control-flow statements will compile just fine.
-//
 // The example extracts sections of the incomiong data stream (RX) between 
 // characters STX (0x02) and CR (0x0A) and saves those in a file called 
 // 'ioninja-stx-cr.bin' in the users's home directory.
@@ -14,12 +8,6 @@
 
 import "io_base.jncx"
 import "io_File.jnc"
-
-void main()
-{
-	for (;;)
-		sys.sleep(1000); // don't eat CPU in the loop
-}
 
 void onLogRecord(
 	uint64_t timestamp,
