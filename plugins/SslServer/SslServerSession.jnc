@@ -546,6 +546,12 @@ void SslServerSession.onListenerSocketEvent(
 		socket.m_options = ui.getSocketOptions(m_socketPropertySet, m_bufferPropertySet);
 		socket.enableCiphers(m_sslPropertySet.m_cipherSetProp.m_value);
 
+		if (m_sslPropertySet.m_useEphemeralDhProp.m_value)
+			socket.setEphemeralDhStdParams(m_sslPropertySet.m_ephemeralDhStdParamsProp.m_value);
+
+		if (m_sslPropertySet.m_useEphemeralEcdhProp.m_value)
+			socket.setEphemeralEcdhCurve(m_sslPropertySet.m_ephemeralEcdhCurveProp.m_value);
+
 		if (m_sslPropertySet.m_useCertificateProp.m_value)
 		{
 			socket.loadCertificate(m_sslPropertySet.m_certificateFileProp.m_value);
@@ -561,14 +567,6 @@ void SslServerSession.onListenerSocketEvent(
 					m_sslPropertySet.m_verifyCaDirProp.m_value
 					);
 			}
-		}
-		else
-		{
-			if (m_sslPropertySet.m_useEphemeralDhProp.m_value)
-				socket.setEphemeralDhStdParams(m_sslPropertySet.m_ephemeralDhStdParamsProp.m_value);
-
-			if (m_sslPropertySet.m_useEphemeralEcdhProp.m_value)
-				socket.setEphemeralEcdhCurve(m_sslPropertySet.m_ephemeralEcdhCurveProp.m_value);
 		}
 
 		socket.unsuspend();
