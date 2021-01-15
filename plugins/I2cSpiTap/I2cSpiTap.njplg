@@ -17,6 +17,10 @@ small-icon  = images/sniffer-16x16.png
 
 session-class = I2cSpiTapSession
 
+[prerequisites]
+
+com.ioninja.io.i2c-spi-tap
+
 [scripts]
 
 Decoder.jnc

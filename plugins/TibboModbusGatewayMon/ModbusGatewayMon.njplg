@@ -16,6 +16,11 @@ small-icon  = images/modbus-16x16.png
 
 session-class = ModbusGatewayMonSession
 
+[prerequisites]
+
+org.jancy.io.net
+org.jancy.io.tcp
+
 [scripts]
 
 ModbusGatewayMonSession.jnc

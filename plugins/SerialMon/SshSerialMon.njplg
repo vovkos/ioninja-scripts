@@ -19,6 +19,12 @@ small-icon  = images/serialmon-16x16.png
 
 session-class = SshSerialMonSession
 
+[prerequisites]
+
+org.jancy.io.file
+org.jancy.io.net
+org.jancy.io.ssh
+
 [scripts]
 
 SshSerialMonSession.jnc

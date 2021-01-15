@@ -15,6 +15,11 @@ small-icon  = images/pipe-16x16.png
 
 session-class = PipeServerSession
 
+[prerequisites]
+
+org.jancy.io.win.named-pipe
+org.jancy.io.file-stream
+
 [scripts]
 
 PipeServerSession.jnc

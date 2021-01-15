@@ -18,6 +18,10 @@ small-icon  = images/tcp-flow-mon-16x16.png
 
 session-class = TcpFlowMonSession
 
+[prerequisites]
+
+org.jancy.io.pcap
+
 [scripts]
 
 TcpFlowMonSession.jnc

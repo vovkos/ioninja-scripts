@@ -15,7 +15,9 @@ small-icon  = images/usb-16x16.png
 
 session-class = UsbDataEndpointSession
 
-#. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+[prerequisites]
+
+org.jancy.io.usb
 
 [scripts]
 

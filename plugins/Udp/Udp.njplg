@@ -16,6 +16,11 @@ small-icon  = images/udp-16x16.png
 
 session-class = UdpSession
 
+[prerequisites]
+
+org.jancy.io.net
+org.jancy.io.udp
+
 [scripts]
 
 UdpSession.jnc

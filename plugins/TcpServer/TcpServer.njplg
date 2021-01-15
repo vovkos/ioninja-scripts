@@ -15,6 +15,12 @@ small-icon  = images/listener-16x16.png
 
 session-class = TcpServerSession
 
+[prerequisites]
+
+org.jancy.io.net
+org.jancy.io.tcp
+org.jancy.io.server
+
 [scripts]
 
 TcpServerSession.jnc

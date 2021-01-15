@@ -14,6 +14,10 @@ small-icon  = images/process-16x16.png
 
 session-class = ProcessSession
 
+[prerequisites]
+
+org.jancy.io.child-process
+
 [scripts]
 
 ProcessSession.jnc

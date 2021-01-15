@@ -15,6 +15,11 @@ small-icon  = images/tcp-16x16.png
 
 session-class = TcpConnectionSession
 
+[prerequisites]
+
+org.jancy.io.net
+org.jancy.io.tcp
+
 [scripts]
 
 TcpConnectionSession.jnc

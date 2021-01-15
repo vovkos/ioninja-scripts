@@ -16,6 +16,12 @@ small-icon  = images/listener-16x16.png
 
 session-class = SslServerSession
 
+[prerequisites]
+
+org.jancy.io.net
+org.jancy.io.ssl
+org.jancy.io.server
+
 [scripts]
 
 SslServerSession.jnc

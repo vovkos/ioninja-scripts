@@ -16,6 +16,10 @@ small-icon  = images/serialmon-16x16.png
 
 session-class = SerialTapSession
 
+[prerequisites]
+
+com.ioninja.io.serial-tap
+
 [scripts]
 
 SerialTapSession.jnc

@@ -16,6 +16,12 @@ small-icon  = images/proxy-16x16.png
 
 session-class = TcpProxySession
 
+[prerequisites]
+
+org.jancy.io.net
+org.jancy.io.tcp
+org.jancy.io.server
+
 [scripts]
 
 TcpProxySession.jnc

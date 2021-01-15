@@ -17,6 +17,10 @@ small-icon  = images/sniffer-16x16.png
 
 session-class = EthernetTapSession
 
+[prerequisites]
+
+com.ioninja.io.ethernet-tap
+
 [scripts]
 
 EthernetTapSession.jnc

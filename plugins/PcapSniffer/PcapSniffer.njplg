@@ -18,7 +18,9 @@ detail-pane = true
 
 session-class = PcapSnifferSession
 
-#. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+[prerequisites]
+
+org.jancy.io.pcap
 
 [scripts]
 
