@@ -18,8 +18,9 @@ small-icon  = images/udp-flow-mon-16x16.png
 
 session-class = UdpFlowMonSession
 
-[prerequisites]
+[required-capabilities]
 
+org.jancy.io.net
 org.jancy.io.pcap
 
 [scripts]

@@ -16,11 +16,16 @@ small-icon  = images/ssh-16x16.png
 
 session-class = SshChannelSession
 
-[prerequisites]
+[required-capabilities]
 
-org.jancy.io.file
 org.jancy.io.net
 org.jancy.io.ssh
+
+[optional-capabilities]
+
+org.jancy.io.ip4
+org.jancy.io.ip6
+org.jancy.io.file
 
 [scripts]
 

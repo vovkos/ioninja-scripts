@@ -17,6 +17,10 @@ small-icon  = images/udp-flow-16x16.png
 layer-class = UdpFlowLayer
 pure-layer  = true
 
+[required-capabilities]
+
+org.jancy.io.net
+
 [scripts]
 
 UdpFlowLayer.jnc

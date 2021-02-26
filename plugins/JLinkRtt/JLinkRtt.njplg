@@ -15,10 +15,12 @@ small-icon  = images/jlink-16x16.png
 
 session-class = JLinkRttSession
 
-[prerequisites]
+[optional-capabilities]
 
 org.jancy.io.net
 org.jancy.io.tcp
+org.jancy.io.ip4
+org.jancy.io.ip6
 
 [scripts]
 

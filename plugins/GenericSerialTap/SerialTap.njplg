@@ -16,7 +16,7 @@ small-icon  = images/serialmon-16x16.png
 
 session-class = SerialTapSession
 
-[prerequisites]
+[required-capabilities]
 
 org.jancy.io.serial
 

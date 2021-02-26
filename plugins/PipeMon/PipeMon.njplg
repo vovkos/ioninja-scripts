@@ -17,7 +17,7 @@ small-icon  = images/pipemon-16x16.png
 
 session-class = PipeMonSession
 
-[prerequisites]
+[required-capabilities]
 
 org.jancy.io.devmon
 

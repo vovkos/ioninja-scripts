@@ -15,7 +15,7 @@ small-icon  = images/serial-16x16.png
 
 session-class = SerialSession
 
-[prerequisites]
+[required-capabilities]
 
 org.jancy.io.serial
 

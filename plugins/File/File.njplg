@@ -15,7 +15,7 @@ small-icon  = images/file-16x16.png
 
 session-class = FileSession
 
-[prerequisites]
+[required-capabilities]
 
 org.jancy.io.file-stream
 
