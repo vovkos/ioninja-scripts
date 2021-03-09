@@ -176,7 +176,7 @@ void TcpFlowMonSession.createUi()
 	m_pluginHost.m_toolBar.addSeparator();
 
 	m_pluginHost.m_toolBar.addLabel("Device:");
-	m_deviceCombo = ui.createPcapDeviceComboBox(m_pluginHost.m_toolBar, false);
+	m_deviceCombo = ui.createPcapDeviceComboBox(m_pluginHost.m_toolBar);
 	m_deviceCombo.m_onEnter += onDeviceComboEnter;
 
 	m_iconTable[IconId.Capture] = new ui.Icon("images/capture.png");
@@ -202,7 +202,7 @@ void TcpFlowMonSession.createUi()
 
 	m_deviceProp = ui.createPcapDeviceProperty(
 		m_pluginHost.m_propertyGrid,
-		group,,,
+		group,,
 		"Device",
 		"Specify the device to capture on"
 		);
