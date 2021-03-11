@@ -19,7 +19,7 @@ session-class = SerialTapSession
 [required-capabilities]
 
 com.ioninja.io.serial-tap
-com.ioninja.io.file
+org.jancy.io.file
 
 [scripts]
 

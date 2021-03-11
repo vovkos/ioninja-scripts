@@ -20,7 +20,7 @@ session-class = I2cSpiTapSession
 [required-capabilities]
 
 com.ioninja.io.i2c-spi-tap
-com.ioninja.io.file
+org.jancy.io.file
 
 [scripts]
 

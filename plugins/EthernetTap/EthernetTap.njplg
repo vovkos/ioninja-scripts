@@ -20,7 +20,7 @@ session-class = EthernetTapSession
 [required-capabilities]
 
 com.ioninja.io.ethernet-tap
-com.ioninja.io.file
+org.jancy.io.file
 
 [scripts]
 
