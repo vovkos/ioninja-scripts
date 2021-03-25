@@ -430,8 +430,13 @@ bool errorcode SerialSession.open()
 	params.m_options = m_serial.m_options;
 	params.m_osKind = sys.g_systemInfo.m_osKind;
 
-	char const* p = $"$(params; B)$portName";
-	m_logWriter.write(SerialLogRecordCode.PortOpened, p, dynamic sizeof(p));
+	m_logWriter.write(
+		SerialLogRecordCode.PortOpened,
+		&params,
+		sizeof(params),
+		portName,
+		strlen(portName)
+		);
 
 	m_portName = portName;
 	m_serialBaudRate = m_serial.m_baudRate;
@@ -458,7 +463,7 @@ void SerialSession.close()
 	if (m_state != State.Opened)
 		return;
 
-	m_logWriter.write(SerialLogRecordCode.PortClosed, m_portName);
+	m_logWriter.write(SerialLogRecordCode.PortClosed);
 	m_stdSessionInfoSet.endSession();
 	m_serial.close();
 	m_isTransmitEnabled = false;
