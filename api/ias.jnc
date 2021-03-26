@@ -16,7 +16,7 @@ import "log_RecordCode.jnc"
 // kind of expensive (have to memorize all added converters/filters/etc and
 // remove them all during clean up)
 
-log.Writer* const g_logWriter;
+log.Writer* const g_logWriter; // mapped
 void clearLog();
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
