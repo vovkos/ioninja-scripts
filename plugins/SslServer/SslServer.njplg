@@ -1,12 +1,12 @@
 #...............................................................................
 #
-#  SSL Listener Socket session plugin
+#  SSL Server session plugin
 #
 
 [plugin]
 
 name        = SSL Server
-description = "Listens for connection over SSL socket"
+description = "Listens for and accepts SSL connections"
 id          = ssl-server
 group       = net
 log-guid    = 7940a0d5-a84b-4509-bae4-b5928511472d  # ssl
@@ -19,6 +19,7 @@ session-class = SslServerSession
 [required-capabilities]
 
 org.jancy.io.net
+org.jancy.io.tcp
 org.jancy.io.ssl
 org.jancy.io.server
 
