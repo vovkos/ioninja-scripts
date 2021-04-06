@@ -463,8 +463,8 @@ void TcpServerSession.waitClientSocketEvents(TcpServerSession.Client* client)
 	io.SocketEvents eventMask =
 		io.SocketEvents.IoError |
 		io.SocketEvents.IncomingData |
-		io.SocketEvents.Disconnected |
-		io.SocketEvents.Reset;
+		io.SocketEvents.TcpDisconnected |
+		io.SocketEvents.TcpReset;
 
 	if (!client.m_isTransmitEnabled)
 		eventMask |= io.SocketEvents.WriteBufferReady;
@@ -537,7 +537,7 @@ void TcpServerSession.onClientSocketEvent(
 		return;
 	}
 
-	if (triggeredEvents & io.SocketEvents.Disconnected)
+	if (triggeredEvents & io.SocketEvents.TcpDisconnected)
 	{
 		for (;;) // read all the buffered data
 		{
@@ -553,7 +553,7 @@ void TcpServerSession.onClientSocketEvent(
 		recordParams.m_address = client.m_address;
 		recordParams.m_flags = TcpDisconnectLogRecordFlags.Remote;
 
-		if (triggeredEvents & io.SocketEvents.Reset)
+		if (triggeredEvents & io.SocketEvents.TcpReset)
 			recordParams.m_flags |= TcpDisconnectLogRecordFlags.Reset;
 
 		m_logWriter.write(
