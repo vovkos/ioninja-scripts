@@ -9,12 +9,31 @@ import "log_RecordCode.jnc"
 
 enum WebSocketLogRecordCode: uint64_t
 {
-	WebSocketHandshaking        = 0x01d72934a7ab9200,
-	WebSocketHandshakeCompleted = 0x01d72934a7ab9201,
+	WebSocketHandshakeRequest   = 0x01d72934a7ab9200 | log.RecordCodeFlags.Foldable,
+	WebSocketHandshakeResponse  = 0x01d72934a7ab9201 | log.RecordCodeFlags.Foldable,
 	WebSocketConnectCompleted   = 0x01d72934a7ab9202,
-	Ping                        = 0x01d72934a7ab9203,
-	Pong                        = 0x01d72934a7ab9204,
-	Close                       = 0x01d72934a7ab9205,
+	TxPing                      = 0x01d72934a7ab9203,
+	RxPing                      = 0x01d72934a7ab9204,
+	TxPong                      = 0x01d72934a7ab9205,
+	RxPong                      = 0x01d72934a7ab9206,
+	Close                       = 0x01d72934a7ab9207,
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+struct WebSocketHandshakeRequestParams
+{
+	uint32_t m_httpVersion;
+	// followed by null-terminated resource
+	// followed by HTTP headers
+}
+
+struct WebSocketHandshakeResponseParams
+{
+	uint32_t m_httpVersion;
+	uint32_t m_statusCode;
+	// followed by null-terminated reason phrase
+	// followed by HTTP headers
 }
 
 //..............................................................................

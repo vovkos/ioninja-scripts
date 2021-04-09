@@ -1,0 +1,62 @@
+//..............................................................................
+//
+// WebSocket utilities
+//
+
+import "io_websocket.jncx"
+import "io_WebSocket.jnc"
+import "log_Writer.jnc"
+import "WebSocketLog/WebSocketLogRecordCode.jnc"
+
+namespace iox {
+
+//! \addtogroup common-io
+//! @{
+
+//..............................................................................
+
+bool processWebSocketIncomingData(
+	io.WebSocket* socket,
+	log.Writer* logWriter,
+	void* readBuffer,
+	size_t readBufferSize
+	)
+{
+	io.WebSocketFrameOpcode opcode;
+	size_t result = socket.read(&opcode, readBuffer, readBufferSize);
+
+	switch (opcode)
+	{
+	case io.WebSocketFrameOpcode.Text:
+	case io.WebSocketFrameOpcode.Binary:
+		if (!result)
+			return false;
+
+		logWriter.write(log.StdRecordCode.Rx, readBuffer, result);
+		break;
+
+	case io.WebSocketFrameOpcode.Ping:
+		logWriter.write(WebSocketLogRecordCode.RxPing, readBuffer, result);
+		logWriter.write(WebSocketLogRecordCode.TxPong, readBuffer, result);
+		break;
+
+	case io.WebSocketFrameOpcode.Pong:
+		logWriter.write(WebSocketLogRecordCode.RxPong, readBuffer, result);
+		break;
+
+	case io.WebSocketFrameOpcode.Close:
+		logWriter.write(WebSocketLogRecordCode.Close, readBuffer, result);
+		break;
+
+	default:
+		return false;
+	};
+
+	return true;
+}
+
+//..............................................................................
+
+//! @}
+
+} // namespace iox
