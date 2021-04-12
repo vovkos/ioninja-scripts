@@ -40,6 +40,7 @@ protected:
 		SslHandshaking,
 		WebSocketHandshaking,
 		Connected,
+		Closing,
 	}
 
 	enum ActionId
@@ -48,6 +49,7 @@ protected:
 		Disconnect,
 		DisconnectAll,
 		ApplyFilter,
+		Ping,
 		_Count,
 	}
 
@@ -125,6 +127,7 @@ public:
 	void stopListen();
 	void disconnect();
 	void disconnectAll();
+	void ping();
 
 	override void load(doc.Storage* storage);
 	override void save(doc.Storage* storage);
@@ -179,6 +182,11 @@ protected:
 	void removeClient(Client* client);
 	void setCurrentClient(Client* client);
 	void configureSsl(io.SslState* sslState);
+
+	void addDisconnectLogRecord(
+		Client* client,
+		uint_t flags
+		);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -217,6 +225,12 @@ void WebSocketServerSession.createUi()
 	m_actionTable[ActionId.DisconnectAll] = createAction("Disconnect All", "images/disconnect-all.png");
 	m_actionTable[ActionId.DisconnectAll].m_onTriggered += disconnectAll;
 
+	m_pluginHost.m_toolBar.addSeparator();
+	m_webSocketUi.createCombos(m_pluginHost.m_toolBar);
+	m_actionTable[ActionId.Ping] = createAction("Ping", "images/ping.png");
+	m_actionTable[ActionId.Ping].m_onTriggered += ping;
+
+	m_pluginHost.m_toolBar.addSeparator();
 	m_pluginHost.m_toolBar.addLabel("Adapter:");
 	m_adapterCombo = ui.createNetworkAdapterComboBox(m_pluginHost.m_toolBar, ui.NetworkAdapterUsage.Listener);
 
@@ -266,17 +280,7 @@ void WebSocketServerSession.createUi()
 		"WebSocket-specific connection settings"
 		);
 
-	m_webSocketUi.create(
-		m_pluginHost.m_toolBar,
-		m_pluginHost.m_propertyGrid,
-		propGroup,,
-		ui.WebSocketUi.SettingId.All
-		);
-
-	propGroup = m_pluginHost.m_propertyGrid.createGroupProperty(
-		"WebSocket",
-		"WebSocket-specific connection settings"
-		);
+	m_webSocketUi.createProperties(m_pluginHost.m_propertyGrid, propGroup);
 
 	m_bufferPropertySet.createPropertiesGrouped(
 		m_pluginHost.m_propertyGrid,,,
@@ -345,6 +349,17 @@ void WebSocketServerSession.disconnect()
 		disconnect(client);
 }
 
+void WebSocketServerSession.ping()
+{
+	Client* client = m_clientCombo.m_currentData;
+	if (!client)
+		return;
+
+	setCurrentClient(client);
+	client.m_socket.writePing();
+	m_logWriter.write(WebSocketLogRecordCode.TxPing);
+}
+
 void WebSocketServerSession.disconnectAll()
 {
 	while (m_clientList.m_count)
@@ -353,15 +368,30 @@ void WebSocketServerSession.disconnectAll()
 
 void WebSocketServerSession.disconnect(WebSocketServerSession.Client* client)
 {
+	addDisconnectLogRecord(
+		client,
+		(client.m_socket.m_options & io.SocketOptions.TcpReset) ?
+			TcpDisconnectLogRecordFlags.Reset :
+			0
+		);
+
+	removeClient(client);
+}
+
+void WebSocketServerSession.addDisconnectLogRecord(
+	Client* client,
+	uint_t flags
+	)
+{
 	TcpDisconnectLogRecordParams params;
 	params.m_address = client.m_address;
-	params.m_flags = 0;
+	params.m_flags = flags;
 
-	if (m_socketPropertySet.m_tcpResetProp.m_value)
-		params.m_flags |= TcpDisconnectLogRecordFlags.Reset;
-
-	m_logWriter.write(SocketLogRecordCode.ClientDisconnected, &params, sizeof(params));
-	removeClient(client);
+	m_logWriter.write(
+		SocketLogRecordCode.Disconnected,
+		&params,
+		sizeof(params)
+		);
 }
 
 void WebSocketServerSession.addClient(WebSocketServerSession.Client* client)
@@ -467,7 +497,11 @@ bool errorcode WebSocketServerSession.applyProperties()
 		connection.m_socket.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
 		connection.m_socket.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 		connection.m_socket.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
-		connection.m_socket.m_options = ui.getSocketOptions(m_socketPropertySet, m_bufferPropertySet);
+		connection.m_socket.m_options =
+			ui.getSocketOptions(m_socketPropertySet, m_bufferPropertySet) |
+			io.WebSocketOptions.IncludeControlFrames |
+			io.WebSocketOptions.DisableCloseResponse |
+			io.WebSocketOptions.DisablePongResponse;
 	}
 
 	return true;
@@ -537,6 +571,12 @@ void WebSocketServerSession.waitClientSocketEvents(WebSocketServerSession.Client
 			eventMask |= io.WebSocketEvents.WriteBufferReady;
 
 		break;
+
+	case ConnectionState.Closing:
+		eventMask |=
+			io.WebSocketEvents.IncomingData |
+			io.WebSocketEvents.WebSocketCloseCompleted;
+		break;
 	}
 
 	client.m_socket.wait(
@@ -602,7 +642,11 @@ void WebSocketServerSession.onListenerSocketEvent(
 		socket.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
 		socket.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 		socket.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
-		socket.m_options = ui.getSocketOptions(m_socketPropertySet, m_bufferPropertySet);
+		socket.m_options =
+			ui.getSocketOptions(m_socketPropertySet, m_bufferPropertySet) |
+			io.WebSocketOptions.IncludeControlFrames |
+			io.WebSocketOptions.DisableCloseResponse |
+			io.WebSocketOptions.DisablePongResponse;
 
 		Client* client = new Client;
 		client.m_socket = socket;
@@ -693,29 +737,46 @@ void WebSocketServerSession.onClientSocketEvent(
 		m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
 	}
 
+	if (triggeredEvents & io.WebSocketEvents.WebSocketCloseCompleted)
+	{
+		setCurrentClient(client);
+
+		while ( // read all the buffered data
+			iox.processWebSocketIncomingData(
+				client.m_socket,
+				m_logWriter,
+				m_readBuffer.m_p,
+				m_readBuffer.m_size
+				));
+
+		addDisconnectLogRecord(
+			client,
+			(client.m_socket.m_options & io.SocketOptions.TcpReset) ?
+				TcpDisconnectLogRecordFlags.Reset :
+				0
+			);
+
+		removeClient(client);
+		return;
+	}
+
 	if (triggeredEvents & io.WebSocketEvents.TcpDisconnected)
 	{
-		for (;;) // read all the buffered data
-		{
-			size_t result = client.m_socket.read(m_readBuffer.m_p, m_readBuffer.m_size);
-			if (!result)
-				break;
+		setCurrentClient(client);
 
-			setCurrentClient(client);
-			m_logWriter.write(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
-		}
+		while ( // read all the buffered data
+			iox.processWebSocketIncomingData(
+				client.m_socket,
+				m_logWriter,
+				m_readBuffer.m_p,
+				m_readBuffer.m_size
+				));
 
-		TcpDisconnectLogRecordParams recordParams;
-		recordParams.m_address = client.m_address;
-		recordParams.m_flags = TcpDisconnectLogRecordFlags.Remote;
-
-		if (triggeredEvents & io.WebSocketEvents.TcpReset)
-			recordParams.m_flags |= TcpDisconnectLogRecordFlags.Reset;
-
-		m_logWriter.write(
-			SocketLogRecordCode.ClientDisconnected,
-			&recordParams,
-			sizeof(recordParams)
+		addDisconnectLogRecord(
+			client,
+			(triggeredEvents & io.WebSocketEvents.TcpReset) ?
+				TcpDisconnectLogRecordFlags.Reset :
+				0
 			);
 
 		removeClient(client);
@@ -740,6 +801,7 @@ reactor WebSocketServerSession.m_uiReactor
 	m_title = $"WebSocket @ $(m_portCombo.m_editText)";
 	m_actionTable[ActionId.Listen].m_text = m_listenerState ? "Stop Listening" : "Listen";
 	m_actionTable[ActionId.Listen].m_icon = m_iconTable[m_listenerState ? IconId.StopListen : IconId.Listen];
+	m_actionTable[ActionId.Ping].m_isEnabled =
 	m_actionTable[ActionId.Disconnect].m_isEnabled =
 	m_actionTable[ActionId.DisconnectAll].m_isEnabled = m_clientCombo.m_currentData;
 	m_statusPaneTable[StatusPaneId.ListenerState].m_text = m_listenerState ? "Listening" : "Not listening";

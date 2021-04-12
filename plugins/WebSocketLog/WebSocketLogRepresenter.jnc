@@ -135,7 +135,7 @@ void representWebSocketPingPong(
 	)
 {
 	representation.m_lineAttr.m_iconIdx = icon;
-	representation.m_lineAttr.m_backColor = ui.StdColor.PastelGray;
+	representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
 
 	if (!size)
 	{
@@ -181,21 +181,13 @@ bool representWebSocketLog(
 		break;
 
 	case WebSocketLogRecordCode.TxPing:
-		representWebSocketPingPong(
-			representation,
-			"WebSocket ping",
-			log.StdLogIcon.TxPacket,
-			p,
-			size,
-			foldFlags
-			);
-		break;
-
 	case WebSocketLogRecordCode.RxPing:
 		representWebSocketPingPong(
 			representation,
 			"WebSocket ping",
-			log.StdLogIcon.RxPacket,
+			recordCode == WebSocketLogRecordCode.TxPing ?
+				log.StdLogIcon.TxPacket :
+				log.StdLogIcon.RxPacket,
 			p,
 			size,
 			foldFlags
@@ -203,29 +195,24 @@ bool representWebSocketLog(
 		break;
 
 	case WebSocketLogRecordCode.TxPong:
-		representWebSocketPingPong(
-			representation,
-			"WebSocket pong",
-			log.StdLogIcon.TxPacket,
-			p,
-			size,
-			foldFlags
-			);
-		break;
-
 	case WebSocketLogRecordCode.RxPong:
 		representWebSocketPingPong(
 			representation,
 			"WebSocket pong",
-			log.StdLogIcon.RxPacket,
+			recordCode == WebSocketLogRecordCode.TxPong ?
+				log.StdLogIcon.TxPacket :
+				log.StdLogIcon.RxPacket,
 			p,
 			size,
 			foldFlags
 			);
 		break;
 
-	case WebSocketLogRecordCode.Close:
-		representation.m_lineAttr.m_iconIdx  = log.StdLogIcon.Info;
+	case WebSocketLogRecordCode.TxClose:
+	case WebSocketLogRecordCode.RxClose:
+		representation.m_lineAttr.m_iconIdx = recordCode == WebSocketLogRecordCode.TxClose ?
+			log.StdLogIcon.TxPacket :
+			log.StdLogIcon.RxPacket;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		representation.addHyperText("WebSocket close");
 		break;

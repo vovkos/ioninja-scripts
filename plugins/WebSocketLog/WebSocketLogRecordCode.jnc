@@ -16,24 +16,9 @@ enum WebSocketLogRecordCode: uint64_t
 	RxPing                      = 0x01d72934a7ab9204,
 	TxPong                      = 0x01d72934a7ab9205,
 	RxPong                      = 0x01d72934a7ab9206,
-	Close                       = 0x01d72934a7ab9207,
-}
-
-// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-struct WebSocketHandshakeRequestParams
-{
-	uint32_t m_httpVersion;
-	// followed by null-terminated resource
-	// followed by HTTP headers
-}
-
-struct WebSocketHandshakeResponseParams
-{
-	uint32_t m_httpVersion;
-	uint32_t m_statusCode;
-	// followed by null-terminated reason phrase
-	// followed by HTTP headers
+	TxClose                     = 0x01d72934a7ab9207,
+	RxClose                     = 0x01d72934a7ab9208,
+	CloseTimeout                = 0x01d72934a7ab9209,
 }
 
 //..............................................................................
