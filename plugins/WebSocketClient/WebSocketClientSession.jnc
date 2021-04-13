@@ -236,6 +236,19 @@ void WebSocketClientSession.createUi()
 	// property grid
 
 	ui.GroupProperty* propGroup = m_pluginHost.m_propertyGrid.createGroupProperty(
+		"WebSocket",
+		"WebSocket-specific connection settings"
+		);
+
+	m_pluginHost.m_toolBar.addSeparator();
+
+	m_webSocketUi.createCombos(m_pluginHost.m_toolBar);
+	m_webSocketUi.createProperties(m_pluginHost.m_propertyGrid, propGroup);
+
+	m_actionTable[ActionId.Ping] = createAction("Ping", "images/ping.png");
+	m_actionTable[ActionId.Ping].m_onTriggered += ping;
+
+	propGroup = m_pluginHost.m_propertyGrid.createGroupProperty(
 		"TCP",
 		"TCP-specific connection settings"
 		);
@@ -259,19 +272,6 @@ void WebSocketClientSession.createUi()
 		propGroup,,
 		ui.SslPropertySet.PropertyId.AllClient
 		);
-
-	propGroup = m_pluginHost.m_propertyGrid.createGroupProperty(
-		"WebSocket",
-		"WebSocket-specific connection settings"
-		);
-
-	m_pluginHost.m_toolBar.addSeparator();
-
-	m_webSocketUi.createCombos(m_pluginHost.m_toolBar);
-	m_webSocketUi.createProperties(m_pluginHost.m_propertyGrid, propGroup);
-
-	m_actionTable[ActionId.Ping] = createAction("Ping", "images/ping.png");
-	m_actionTable[ActionId.Ping].m_onTriggered += ping;
 
 	m_bufferPropertySet.createPropertiesGrouped(
 		m_pluginHost.m_propertyGrid,,,
@@ -578,18 +578,18 @@ void WebSocketClientSession.load(doc.Storage* storage)
 	m_addressCombo.loadHistory(storage, "addressHistory");
 	m_addressCombo.m_editText = storage.readString("address");
 
+	m_webSocketUi.load(storage);
 	m_socketPropertySet.load(storage);
 	m_sslPropertySet.load(storage);
-	m_webSocketUi.load(storage);
 	m_bufferPropertySet.load(storage);
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
 }
 
 void WebSocketClientSession.save(doc.Storage* storage)
 {
+	m_webSocketUi.save(storage);
 	m_socketPropertySet.save(storage);
 	m_sslPropertySet.save(storage);
-	m_webSocketUi.save(storage);
 	m_bufferPropertySet.save(storage);
 
 	m_addressCombo.saveHistory(storage, "addressHistory");
@@ -598,8 +598,8 @@ void WebSocketClientSession.save(doc.Storage* storage)
 
 void WebSocketClientSession.updateProperties()
 {
-	m_socketPropertySet.m_remoteAddressProp.m_value = m_addressCombo.m_editText;
 	m_webSocketUi.updateProperties();
+	m_socketPropertySet.m_remoteAddressProp.m_value = m_addressCombo.m_editText;
 }
 
 bool errorcode WebSocketClientSession.applyProperties()
@@ -625,9 +625,9 @@ bool errorcode WebSocketClientSession.applyProperties()
 
 void WebSocketClientSession.restoreDefaultProperties()
 {
+	m_webSocketUi.restoreDefaults();
 	m_socketPropertySet.restoreDefaults();
 	m_sslPropertySet.restoreDefaults();
-	m_webSocketUi.restoreDefaults();
 	m_bufferPropertySet.restoreDefaults();
 }
 
