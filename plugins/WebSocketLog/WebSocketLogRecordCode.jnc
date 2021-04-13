@@ -19,6 +19,7 @@ enum WebSocketLogRecordCode: uint64_t
 	TxClose                     = 0x01d72934a7ab9207,
 	RxClose                     = 0x01d72934a7ab9208,
 	CloseTimeout                = 0x01d72934a7ab9209,
+	SecureListening             = 0x01d72934a7ab920a
 }
 
 //..............................................................................

@@ -119,7 +119,6 @@ void representWebSocketHandshake(
 	else
 	{
 		representation.addHyperText("[\e^-2\e[34m-\e[m] Raw data");
-		representation.m_lineAttr.m_textColor = ui.StdColor.Gray;
 		representation.m_lineAttr.m_backColor = ui.StdColor.White;
 		representation.addBin(p, size);
 	}
@@ -215,6 +214,13 @@ bool representWebSocketLog(
 			log.StdLogIcon.RxPacket;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		representation.addHyperText("WebSocket close");
+		break;
+
+	case WebSocketLogRecordCode.SecureListening:
+		char const* addressString = ((io.SocketAddress const*)p).getString();
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Listen;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		representation.addHyperText($"SSL server listening on \e[34m$addressString");
 		break;
 
 	default:

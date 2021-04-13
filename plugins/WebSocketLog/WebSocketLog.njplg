@@ -30,7 +30,8 @@ WebSocketLogRepresenter.jnc
 01d72934a7ab9206  # RxPong
 01d72934a7ab9207  # TxClose
 01d72934a7ab9208  # RxClose
-01d72934a7ab9209  # RxClose
+01d72934a7ab9209  # CloseTimeout
+01d72934a7ab920a  # SecureListening
 
 [filter]
 
