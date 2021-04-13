@@ -45,6 +45,7 @@ protected:
 
 	enum ActionId
 	{
+		UseSsl,
 		Listen,
 		Disconnect,
 		DisconnectAll,
@@ -106,6 +107,7 @@ protected:
 
 	// property grid
 
+	ui.BoolProperty* m_useSslProp;
 	ui.SocketPropertySet m_socketPropertySet;
 	ui.SslPropertySet m_sslPropertySet;
 	ui.BufferPropertySet m_bufferPropertySet;
@@ -241,7 +243,9 @@ void WebSocketServerSession.createUi()
 
 	m_iconTable[IconId.Listen] = new ui.Icon("images/listen.png");
 	m_iconTable[IconId.StopListen] = new ui.Icon("images/pause.png");
-	m_actionTable[ActionId.Listen] = createAction("Listen", m_iconTable [IconId.Listen]);
+	m_actionTable[ActionId.UseSsl] = createAction("Secure WebWockets (wss://)", "images/ssl.png");
+	m_actionTable[ActionId.UseSsl].m_isCheckable = true;
+	m_actionTable[ActionId.Listen] = createAction("Listen", m_iconTable[IconId.Listen]);
 	m_actionTable[ActionId.Listen].m_onTriggered += onListen;
 
 	// status bar
@@ -252,6 +256,13 @@ void WebSocketServerSession.createUi()
 	// property grid
 
 	ui.GroupProperty* propGroup = m_pluginHost.m_propertyGrid.createGroupProperty(
+		"WebSocket",
+		"WebSocket-specific connection settings"
+		);
+
+	m_webSocketUi.createProperties(m_pluginHost.m_propertyGrid, propGroup);
+
+	propGroup = m_pluginHost.m_propertyGrid.createGroupProperty(
 		"TCP",
 		"TCP-specific connection settings"
 		);
@@ -264,23 +275,18 @@ void WebSocketServerSession.createUi()
 
 	m_socketPropertySet.m_defaultLocalPort = Defaults.LocalPort;
 
-	propGroup = m_pluginHost.m_propertyGrid.createGroupProperty(
+	m_useSslProp = m_pluginHost.m_propertyGrid.createBoolProperty(
 		"SSL",
-		"SSL-specific connection settings"
+		"Use secure WebSockets (wss://) over SSL"
 		);
+
+	m_useSslProp.m_isGroupEnabler = true;
 
 	m_sslPropertySet.createProperties(
 		m_pluginHost.m_propertyGrid,
-		propGroup,,
+		m_useSslProp,,
 		ui.SslPropertySet.PropertyId.AllServer
 		);
-
-	propGroup = m_pluginHost.m_propertyGrid.createGroupProperty(
-		"WebSocket",
-		"WebSocket-specific connection settings"
-		);
-
-	m_webSocketUi.createProperties(m_pluginHost.m_propertyGrid, propGroup);
 
 	m_bufferPropertySet.createPropertiesGrouped(
 		m_pluginHost.m_propertyGrid,,,
@@ -307,14 +313,19 @@ bool errorcode WebSocketServerSession.listen()
 	startSession();
 
 	m_portCombo.addEditTextToHistory();
-	io.SocketAddress address = *(io.SocketAddress const*) m_adapterCombo.m_currentData;
+	io.SocketAddress address = *(io.SocketAddress const*)m_adapterCombo.m_currentData;
 	address.m_port = (uint16_t)atoi(m_portCombo.m_editText);
 
-	m_listenerSocket.open(&address);
+	bool isSecure = m_actionTable[ActionId.UseSsl].m_isChecked;
+	m_listenerSocket.open(&address, isSecure);
 	m_listenerSocket.listen();
 
+	uint64_t recordCode = isSecure ?
+		WebSocketLogRecordCode.SecureListening :
+		SocketLogRecordCode.Listening;
+
 	address = m_listenerSocket.m_address;
-	m_logWriter.write(SocketLogRecordCode.Listening, &address, sizeof(address));
+	m_logWriter.write(recordCode, &address, sizeof(address));
 	m_localAddress = address;
 	m_listenerState = ListenerState.Listening;
 	waitListenerSocketEvents();
@@ -368,6 +379,15 @@ void WebSocketServerSession.disconnectAll()
 
 void WebSocketServerSession.disconnect(WebSocketServerSession.Client* client)
 {
+	if (m_webSocketUi.m_closeModeProp.m_value == ui.WebSocketCloseMode.Graceful)
+	{
+		client.m_socket.writeClose();
+		m_logWriter.write(WebSocketLogRecordCode.TxClose);
+		client.m_state = ConnectionState.Closing;
+		client.m_isTransmitEnabled = false;
+		return;
+	}
+
 	addDisconnectLogRecord(
 		client,
 		(client.m_socket.m_options & io.SocketOptions.TcpReset) ?
@@ -460,7 +480,9 @@ void WebSocketServerSession.load(doc.Storage* storage)
 	m_portCombo.loadHistory(storage, "portHistory");
 	m_adapterCombo.m_currentIndex  = storage.readInt("adapterIdx");
 	m_portCombo.m_editText = storage.readString("port");
+	m_actionTable[ActionId.UseSsl].m_isChecked = storage.readBool("isSecure");
 
+	m_webSocketUi.load(storage);
 	m_socketPropertySet.load(storage);
 	m_sslPropertySet.load(storage);
 	m_bufferPropertySet.load(storage);
@@ -469,6 +491,7 @@ void WebSocketServerSession.load(doc.Storage* storage)
 
 void WebSocketServerSession.save(doc.Storage* storage)
 {
+	m_webSocketUi.save(storage);
 	m_socketPropertySet.save(storage);
 	m_sslPropertySet.save(storage);
 	m_bufferPropertySet.save(storage);
@@ -476,19 +499,24 @@ void WebSocketServerSession.save(doc.Storage* storage)
 	m_portCombo.saveHistory(storage, "portHistory");
 	storage.writeInt("adapterIdx", (int) m_adapterCombo.m_currentIndex);
 	storage.writeString("port", m_portCombo.m_editText);
+	storage.writeBool("isSecure", m_actionTable[ActionId.UseSsl].m_isChecked);
 }
 
 void WebSocketServerSession.updateProperties()
 {
+	m_webSocketUi.updateProperties();
 	m_socketPropertySet.m_localPortProp.m_value = atoi(m_portCombo.m_editText);
 	m_socketPropertySet.m_adapterProp.m_currentIndex = m_adapterCombo.m_currentIndex;
+	m_useSslProp.m_value = m_actionTable[ActionId.UseSsl].m_isChecked;
 }
 
 bool errorcode WebSocketServerSession.applyProperties()
 {
 	m_portCombo.m_editText = $"$(m_socketPropertySet.m_localPortProp.m_value)";
 	m_adapterCombo.m_currentIndex = m_socketPropertySet.m_adapterProp.m_currentIndex;
+	m_actionTable[ActionId.UseSsl].m_isChecked = m_useSslProp.m_value;
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
+	m_webSocketUi.applyProperties();
 
 	std.ListEntry* entry = m_clientList.m_head;
 	for (; entry; entry = entry.m_next)
@@ -509,9 +537,11 @@ bool errorcode WebSocketServerSession.applyProperties()
 
 void WebSocketServerSession.restoreDefaultProperties()
 {
+	m_webSocketUi.restoreDefaults();
 	m_socketPropertySet.restoreDefaults();
 	m_sslPropertySet.restoreDefaults();
 	m_bufferPropertySet.restoreDefaults();
+	m_useSslProp.m_value = false;
 }
 
 size_t errorcode WebSocketServerSession.transmit(
@@ -715,6 +745,8 @@ void WebSocketServerSession.onClientSocketEvent(
 		}
 
 		m_logWriter.write(SslLogRecordCode.SslCipher, client.m_socket.m_sslState.m_currentCipher.m_name);
+
+		client.m_state = ConnectionState.WebSocketHandshaking;
 	}
 
 	if (triggeredEvents & io.WebSocketEvents.WebSocketHandshakeCompleted)
@@ -775,8 +807,8 @@ void WebSocketServerSession.onClientSocketEvent(
 		addDisconnectLogRecord(
 			client,
 			(triggeredEvents & io.WebSocketEvents.TcpReset) ?
-				TcpDisconnectLogRecordFlags.Reset :
-				0
+				TcpDisconnectLogRecordFlags.Remote | TcpDisconnectLogRecordFlags.Reset :
+				TcpDisconnectLogRecordFlags.Remote
 			);
 
 		removeClient(client);
@@ -799,6 +831,8 @@ void WebSocketServerSession.onClientSocketEvent(
 reactor WebSocketServerSession.m_uiReactor
 {
 	m_title = $"WebSocket @ $(m_portCombo.m_editText)";
+	m_useSslProp.m_isEnabled =
+	m_actionTable[ActionId.UseSsl].m_isEnabled = !m_listenerState;
 	m_actionTable[ActionId.Listen].m_text = m_listenerState ? "Stop Listening" : "Listen";
 	m_actionTable[ActionId.Listen].m_icon = m_iconTable[m_listenerState ? IconId.StopListen : IconId.Listen];
 	m_actionTable[ActionId.Ping].m_isEnabled =
