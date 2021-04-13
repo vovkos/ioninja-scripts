@@ -356,7 +356,7 @@ bool errorcode WebSocketClientSession.connect()
 			addressFamily = adapterAddress.m_family;
 	}
 
-	m_resolver.resolve(addressString, addressFamily);
+	m_resolver.resolve(host, addressFamily);
 
 	m_resolver.wait(
 		io.HostNameResolverEvents.Resolved | io.HostNameResolverEvents.Error,
