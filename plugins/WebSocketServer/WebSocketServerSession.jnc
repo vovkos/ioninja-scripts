@@ -669,6 +669,7 @@ void WebSocketServerSession.onListenerSocketEvent(
 		socket = m_listenerSocket.accept(&address, true);
 		m_logWriter.write(SocketLogRecordCode.ClientConnected, &address, sizeof(address));
 
+		socket.m_extraHeaders = iox.buildWebSocketExtraHeaders(m_webSocketUi.m_extraHeadersProp.m_value);
 		socket.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
 		socket.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 		socket.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;

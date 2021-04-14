@@ -44,11 +44,13 @@ class WebSocketUi
 {
 	bitflag enum SettingId
 	{
+		ExtraHeaders,
 		TransmitMode,
 		CloseMode,
 		CloseTimeout,
 
 		All =
+			ExtraHeaders |
 			TransmitMode |
 			CloseMode |
 			CloseTimeout
@@ -65,6 +67,7 @@ class WebSocketUi
 	ui.EnumProperty* m_transmitModeProp;
 	ui.EnumProperty* m_closeModeProp;
 	ui.IntProperty* m_closeTimeoutProp;
+	ui.DictionaryProperty* m_extraHeadersProp;
 
 	void createCombos(
 		ui.ToolBar* toolBar,
@@ -73,8 +76,8 @@ class WebSocketUi
 
 	void createProperties(
 		ui.PropertyGrid* propertyGrid,
-		ui.GroupProperty* groupProp = null,
-		ui.Property* insertBeforeProp = null,
+		ui.Property* parentProp = null,
+		ui.Property* beforeProp = null,
 		SettingId settingMask = SettingId.All
 		);
 
@@ -84,7 +87,6 @@ class WebSocketUi
 	void applyProperties();
 	void restoreDefaults();
 
-protected:
 	void onCloseModeChanged()
 	{
 		m_closeTimeoutProp.m_isEnabled = m_closeModeProp.m_value == WebSocketCloseMode.Graceful;
@@ -108,14 +110,30 @@ void WebSocketUi.createCombos(
 
 void WebSocketUi.createProperties(
 	ui.PropertyGrid* propertyGrid,
-	ui.GroupProperty* groupProp,
-	ui.Property* insertBeforeProp,
+	ui.Property* parentProp,
+	ui.Property* beforeProp,
 	SettingId settingMask
 	)
 {
+	if (settingMask & SettingId.ExtraHeaders)
+	{
+		m_extraHeadersProp = propertyGrid.createDictionaryProperty(
+			parentProp,
+			beforeProp,
+			"Extra headers",
+			"Extra HTTP headers for WebSocket handshake"
+			);
+
+		m_extraHeadersProp.m_editDialogTitle = "Edit Extra Headers";
+		m_extraHeadersProp.m_keyLabel = "Header";
+		m_extraHeadersProp.m_newKey = "New-Header";
+		m_extraHeadersProp.m_newValue = "VALUE";
+	}
+
 	if (settingMask & SettingId.TransmitMode)
 		m_transmitModeProp = propertyGrid.createEnumProperty(
-			groupProp,,
+			parentProp,
+			beforeProp,
 			"Transmit mode",
 			"Specify the WebSocket transmission mode",
 			TransmitModeOptionTable,
@@ -125,7 +143,8 @@ void WebSocketUi.createProperties(
 	if (settingMask & SettingId.CloseMode)
 	{
 		m_closeModeProp = propertyGrid.createEnumProperty(
-			groupProp,,
+			parentProp,
+			beforeProp,
 			"Close mode",
 			"Specify the WebSocket close mode",
 			CloseModeOptionTable,
@@ -135,7 +154,8 @@ void WebSocketUi.createProperties(
 		if (settingMask & SettingId.CloseTimeout)
 		{
 			m_closeTimeoutProp = propertyGrid.createIntProperty(
-				groupProp,,
+				parentProp,
+				beforeProp,
 				"Close timeout",
 				"Specify the WebSocket close timeout"
 				);
@@ -147,6 +167,21 @@ void WebSocketUi.createProperties(
 
 void WebSocketUi.load(doc.Storage* storage)
 {
+	if (m_extraHeadersProp)
+	{
+		m_extraHeadersProp.m_value.clear();
+
+		for (size_t i = 0;; i++)
+		{
+			char const* header = storage.readString($"webSocketExtraHeader$i");
+			char const* value = storage.readString($"webSocketExtraHeaderValue$i");
+			if (!header)
+				break;
+
+			m_extraHeadersProp.m_value.add(header, value);
+		}
+	}
+
 	if (m_transmitModeCombo)
 		m_transmitModeCombo.m_currentData = storage.readInt("webSocketTransmitMode", Defaults.TransmitMode);
 
@@ -159,6 +194,19 @@ void WebSocketUi.load(doc.Storage* storage)
 
 void WebSocketUi.save(doc.Storage* storage)
 {
+	if (m_extraHeadersProp)
+	{
+		size_t i = 0;
+		std.MapEntry const* entry = m_extraHeadersProp.m_value.m_head;
+		for (; entry; entry = entry.m_next, i++)
+		{
+			storage.writeString($"webSocketExtraHeader$i", entry.m_key);
+			storage.writeString($"webSocketExtraHeaderValue$i", entry.m_value);
+		}
+
+		storage.writeString($"webSocketExtraHeader$i", null);
+	}
+
 	if (m_transmitModeCombo)
 		storage.writeInt("webSocketTransmitMode", m_transmitModeCombo.m_currentData);
 
@@ -183,6 +231,9 @@ void WebSocketUi.applyProperties()
 
 void WebSocketUi.restoreDefaults()
 {
+	if (m_extraHeadersProp)
+		m_extraHeadersProp.m_value.clear();
+
 	if (m_transmitModeProp)
 		m_transmitModeProp.m_value = Defaults.TransmitMode;
 

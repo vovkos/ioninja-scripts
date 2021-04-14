@@ -341,12 +341,7 @@ bool errorcode WebSocketClientSession.connect()
 
 	m_state = State.Resolving;
 	m_sessionConnectionState = SessionConnectionState.Connecting;
-
-	m_logWriter.write(
-		SocketLogRecordCode.Resolving,
-		addressString,
-		strlen(addressString)
-		);
+	m_logWriter.write(SocketLogRecordCode.Resolving, host);
 
 	io.AddressFamily addressFamily = io.AddressFamily.Undefined;
 	if (m_socketPropertySet.m_useLocalAddressProp.m_value)
@@ -379,6 +374,7 @@ bool errorcode WebSocketClientSession.connect(
 {
 	disconnect();
 
+	m_socket.m_extraHeaders = iox.buildWebSocketExtraHeaders(m_webSocketUi.m_extraHeadersProp.m_value);
 	m_socket.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
 	m_socket.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 	m_socket.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
