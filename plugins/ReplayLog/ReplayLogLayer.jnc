@@ -25,11 +25,11 @@ protected:
 
 	enum Defaults
 	{
-		ReplayTx          = true,
-		ReplayRx          = false,
-		ReplayCustomCode  = false,
-		ReplayCount       = 1,
-		IntervalScale     = 100,
+		ReplayTx         = true,
+		ReplayRx         = false,
+		ReplayCustomCode = false,
+		ReplayCount      = 1,
+		IntervalScale    = 100,
 	}
 
 	enum ActionId
@@ -94,8 +94,10 @@ protected:
 
 	uint64_t calcInterval(uint64_t timestamp)
 	{
-		return (timestamp - m_firstRecordTimestamp) * m_intervalScaleProp.m_value / 100;
+		return (timestamp - m_firstRecordTimestamp) * (uint64_t)m_intervalScaleProp.m_value / 100;
 	}
+
+	void restart();
 
 	void onBrowse();
 	void onFileDlgCompleted(ui.StdDlgButton button);
@@ -253,8 +255,6 @@ bool errorcode ReplayLogLayer.readLoop()
 {
 	while (m_offset < m_hdr.m_totalRecordSize)
 	{
-		printf("readLoop view file at: %llx\n", m_hdr.m_recordOffset + m_offset);
-
 		log.Record const* record = (log.Record const*)m_file.view(
 			m_hdr.m_recordOffset + m_offset,
 			sizeof(log.Record)
@@ -262,7 +262,10 @@ bool errorcode ReplayLogLayer.readLoop()
 
 		if (record.m_signature != log.RecordSignature)
 		{
-			std.setError("Invalid log file format (bad file signature)");
+			if (m_offset)
+				break; // if it happens not on the first record, just stop here (broken log)
+
+			std.setError("Invalid log file format (bad file signature)"); // bad first record
 			return false;
 		}
 
@@ -312,16 +315,8 @@ bool errorcode ReplayLogLayer.readLoop()
 
 	if (++m_replayIdx < m_replayCountProp.m_value)
 	{
-		printf("restart!\n");
-
-		m_offset = 0;
-		m_prevRecordOffset = 0;
-		m_firstRecordTimestamp = 0;
-		m_baseTimestamp = 0;
-		updateProgressDlgTitle();
-
 		// reschedule to give a chance for UI event processing
-		(readLoop @ m_pluginHost.m_mainThreadScheduler)();
+		(restart @ m_pluginHost.m_mainThreadScheduler)();
 		return true;
 	}
 
@@ -335,8 +330,6 @@ bool errorcode ReplayLogLayer.readLoop()
 
 bool errorcode ReplayLogLayer.sendNextRecord()
 {
-	printf("sendNextRecord: %llx\n", m_offset);
-
 	void const* p = m_file.view(
 		m_hdr.m_recordOffset + m_offset + sizeof(log.Record),
 		m_nextRecord.m_dataSize
@@ -397,6 +390,19 @@ catch:
 	handleError();
 }
 
+void ReplayLogLayer.restart()
+{
+	m_offset = 0;
+	m_prevRecordOffset = 0;
+	m_firstRecordTimestamp = 0;
+	m_baseTimestamp = 0;
+	updateProgressDlgTitle();
+	readLoop();
+
+catch:
+	handleError();
+}
+
 void ReplayLogLayer.onTransmitTimer(uint_t syncId)
 {
 	if (syncId != m_syncId)
@@ -417,7 +423,7 @@ void ReplayLogLayer.onProgressTimer(uint_t syncId)
 	uint64_t timestamp = sys.getTimestamp();
 	uint64_t interval = calcInterval(m_nextRecord.m_timestamp) | 1; // prevent division by zero
 	double timeFraction = (double)(timestamp - m_baseTimestamp) / interval;
-	double offset = m_prevRecordOffset + (m_offset - m_prevRecordOffset) * timeFraction;
+	double offset = timeFraction < 1 ? m_offset * timeFraction : m_offset;
 
 	m_progressDlg.m_progress = (int)(offset / m_hdr.m_totalRecordSize * 100);
 }
