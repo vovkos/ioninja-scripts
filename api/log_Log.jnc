@@ -7,7 +7,7 @@ import "ui_Icon.jnc"
 import "log_Writer.jnc"
 import "log_Converter.jnc"
 import "log_Filter.jnc"
-import "log_Listener.jnc"
+import "log_Observer.jnc"
 import "log_RangeProcessor.jnc"
 
 namespace log {
@@ -62,11 +62,25 @@ opaque class Log
 	void addFoldingFilter(FoldingFilter* filter);
 	void removeAllFoldingFilters();
 
-	void addListener(ListenerFunc* listenerFunc);
-	void removeAllListeners();
+	void addObserver(ObserverFunc* observerFunc);
+	void removeAllObservers();
 
 	void addSelectionProcessor(RangeProcessorFactoryFunc* factoryFunc);
 	void removeAllSelectionProcessors();
+}
+
+//..............................................................................
+
+// the main log writer keeps track of log.StdRecordCode.Tx, .Rx, and .TxRx
+
+struct TxRxStats
+{
+	uint64_t readonly volatile m_txTotalSize;
+	uint64_t readonly volatile m_rxTotalSize;
+
+	void reset();
+	void addTx(size_t size);
+	void addRx(size_t size);
 }
 
 //..............................................................................

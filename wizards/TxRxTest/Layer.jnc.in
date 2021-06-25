@@ -69,7 +69,7 @@ $(layerClass).construct(doc.PluginHost* pluginHost)
 
 	createUi();
 
-	pluginHost.m_log.addListener(onLogRecord @ pluginHost.m_mainThreadScheduler);
+	pluginHost.m_log.addObserver(onLogRecord @ pluginHost.m_mainThreadScheduler);
 }
 
 void $(layerClass).createUi()

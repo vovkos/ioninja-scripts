@@ -306,7 +306,8 @@ void PcapSnifferSession.createUi()
 
 	ui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("Pcap sniffer");
 
-	m_stdSessionInfoSet.createInformationValues(
+	m_stdSessionInfoSet.create(
+		m_pluginHost.m_txRxStats,
 		m_pluginHost.m_informationGrid,
 		infoGroup,,
 		ui.StdSessionInfoSet.InfoId.SessionTime |

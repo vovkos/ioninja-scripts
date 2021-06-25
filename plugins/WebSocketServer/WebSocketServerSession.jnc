@@ -6,6 +6,7 @@
 import "doc_Session.jnc"
 import "io_websocket.jncx"
 import "io_WebSocket.jnc"
+import "iox_WebSocket.jnc"
 import "ui_History.jnc"
 import "ui_SocketUi.jnc"
 import "ui_SslPropertySet.jnc"
@@ -202,7 +203,6 @@ WebSocketServerSession.construct(doc.PluginHost* pluginHost)
 	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
 	pluginHost.m_log.addFilter(m_filter);
-	m_stdSessionInfoSet.addLogListener(pluginHost.m_log);
 }
 
 void WebSocketServerSession.createUi()
@@ -297,7 +297,7 @@ void WebSocketServerSession.createUi()
 
 	ui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("SSL listener");
 
-	m_stdSessionInfoSet.createInformationValues(m_pluginHost.m_informationGrid, infoGroup);
+	m_stdSessionInfoSet.create(m_pluginHost.m_txRxStats, m_pluginHost.m_informationGrid, infoGroup);
 	m_throughputInfoSet.createInformationValuesGrouped(m_pluginHost.m_informationGrid);
 	m_checksumInfoSet.createInformationValuesGrouped(m_pluginHost.m_informationGrid);
 
