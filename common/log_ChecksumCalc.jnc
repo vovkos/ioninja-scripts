@@ -4,6 +4,7 @@
 //
 
 import "ui_ChecksumInfoSet.jnc"
+import "crc8.jnc"
 import "crc16.jnc"
 import "crc32.jnc"
 
@@ -21,6 +22,7 @@ protected:
 	uint64_t m_sum8;
 	uint64_t m_sum16_le;
 	uint64_t m_sum16_be;
+	uint8_t m_crc8_ccitt;
 	uint16_t m_crc16_ansi;
 	uint16_t m_crc16_modbus;
 	uint16_t m_crc16_xmodem;
@@ -60,6 +62,7 @@ void ChecksumCalcRangeProcessor.processBin(
 {
 	m_sum8 = sum8(p, size, m_sum8);
 
+	m_crc8_ccitt = crc8_ccitt(p, size, m_crc8_ccitt);
 	m_crc16_ansi = crc16_ansi(p, size, m_crc16_ansi);
 	m_crc16_modbus = crc16_ansi(p, size, m_crc16_modbus);
 	m_crc16_xmodem = crc16_ccitt(p, size, m_crc16_xmodem);
@@ -117,6 +120,9 @@ void ChecksumCalcRangeProcessor.processBin(
 
 void ChecksumCalcRangeProcessor.processEndOfRange()
 {
+	if (m_infoSet.m_crc8Info_ccitt)
+		m_infoSet.m_crc8Info_ccitt.m_value = $"$(m_crc8_ccitt; 02X)";
+
 	if (m_infoSet.m_crc16Info_ansi)
 		m_infoSet.m_crc16Info_ansi.m_value = $"$(m_crc16_ansi; 04X)";
 

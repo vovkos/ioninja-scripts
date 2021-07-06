@@ -16,6 +16,7 @@ class ChecksumInfoSet
 {
 	bitflag enum InfoId
 	{
+		Crc8_ccitt,
 		Crc16_ansi,
 		Crc16_modbus,
 		Crc16_xmodem,
@@ -27,6 +28,7 @@ class ChecksumInfoSet
 		Ip4Checksum,
 
 		All =
+			Crc8_ccitt |
 			Crc16_ansi |
 			Crc16_modbus |
 			Crc16_xmodem |
@@ -38,6 +40,7 @@ class ChecksumInfoSet
 			Ip4Checksum,
 	}
 
+	ui.InformationValue* m_crc8Info_ccitt;
 	ui.InformationValue* m_crc16Info_ansi;
 	ui.InformationValue* m_crc16Info_modbus;
 	ui.InformationValue* m_crc16Info_xmodem;
@@ -70,6 +73,15 @@ void ChecksumInfoSet.createInformationValues(
 	InfoId mask
 	)
 {
+	if (mask & InfoId.Crc8_ccitt)
+		m_crc8Info_ccitt = informationGrid.createValue(
+			group,
+			insertBefore,
+			true,
+			"CRC-8",
+			"Also known as CRC8-CCITT and CRC8-ATM"
+			);
+
 	if (mask & InfoId.Crc16_ansi)
 		m_crc16Info_ansi = informationGrid.createValue(
 			group,
