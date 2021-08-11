@@ -1,0 +1,92 @@
+import "sys_Event.jnc"
+import "io_base.jncx"
+import "io_File.jnc"
+
+sys.Event g_httpGetEvent;
+char const* g_httpGetFileName;
+jnc.RegexState g_regexState construct(jnc.RegexStateFlags.Incremental | jnc.RegexStateFlags.Lexer);
+
+char const* g_rootDir = io.getHomeDir();
+
+void main()
+{
+	for (;;)
+	{
+		// wait until we receive GET <filename>
+		
+		for (;;) // don't completely block the main thread
+		{
+			if (g_httpGetEvent.wait(1000))
+				break;
+		}
+	
+		char const* fileName = $"%1/%2"(g_rootDir, g_httpGetFileName);
+	
+		g_logWriter.write($"Opening file: $fileName...");
+		g_logWriter.write(log.StdRecordCode.Break); // to ensure adjacent messages don't stick together
+	
+		io.File file;
+		file.open(fileName, io.FileOpenFlags.ReadOnly);
+
+		g_logWriter.write($"Transmitting file (%d bytes)..."(file.m_size));
+		g_logWriter.write(log.StdRecordCode.Break);
+
+		transmit(
+			"HTTP/1.1 200 OK\r\n"
+			"Content-Type: application/octet-stream\r\n"
+			$"Content-Length: %1\r\n\r\n"(file.m_size)
+			);		
+	
+		char buffer[4 * 1024];
+	
+		for (;;)
+		{
+			size_t size = file.read(buffer, sizeof(buffer));
+			if (!size) // all done
+				break;
+	
+			char* p = buffer;
+			char* end = p + size;
+	
+			while (p < end)
+			{
+				size_t sent = transmit(p, end - p);
+				p += sent;		
+
+				if (!sent) // SSL/TCP buffer is full, give some time to flush it
+					sys.sleep(100); 
+			}
+		}
+	
+		g_logWriter.write("File transmitted!");
+		g_logWriter.write(log.StdRecordCode.Break);
+	}
+}
+
+void onLogRecord(
+	uint64_t timestamp,
+	uint64_t recordCode,
+	void const* p,
+	size_t size
+	)
+{
+	if (recordCode != log.StdRecordCode.Rx)
+		return;
+
+	void const* end = p + size;
+	while (p < end)
+	{
+		reswitch (g_regexState, p, end - p)
+		{
+		case r"GET\s+([^\s]+)":
+			g_httpGetFileName = strdup(g_regexState.m_subMatchArray[0].m_text);
+			g_httpGetEvent.signal();
+			break;
+
+		case ".":
+			break;
+		}		
+
+		p += g_regexState.m_consumedLength;
+	}
+}
