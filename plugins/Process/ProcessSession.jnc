@@ -605,7 +605,7 @@ void ProcessSession.onLogRecord(
 {
 	if (recordCode == ProcessLogRecordCode.Stderr)
 	{
-		m_stdSessionInfoSet.addRxData(size);
+		m_pluginHost.m_txRxStats.addRx(size);
 		m_pluginHost.m_terminal.write(p, size);
 	}
 }

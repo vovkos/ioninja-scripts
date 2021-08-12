@@ -645,12 +645,12 @@ void EthernetTapSession.parse(
 		if (hdr.m_flags & PacketFlags.ChannelId)
 		{
 			recordCode = EthernetTapLogRecordCode.Packet_ch2;
-			m_stdSessionInfoSet.addRxData(m_packetBuffer.m_size);
+			m_pluginHost.m_txRxStats.addRx(m_packetBuffer.m_size);
 		}
 		else
 		{
 			recordCode = EthernetTapLogRecordCode.Packet_ch1;
-			m_stdSessionInfoSet.addTxData(m_packetBuffer.m_size);
+			m_pluginHost.m_txRxStats.addTx(m_packetBuffer.m_size);
 		}
 
 		m_logWriter.write(recordCode, m_packetBuffer.m_p, m_packetBuffer.m_size);

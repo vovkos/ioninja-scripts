@@ -611,7 +611,7 @@ size_t errorcode PcapSnifferSession.transmit(
 		io.PcapLinkType linkType = m_pcap.m_linkType;
 		void const* params = memcat(&linkType, sizeof(linkType), p, size);
 		m_logWriter.write(NetSnifferLogRecordCode.InjectedPacket, params, result + sizeof(linkType));
-		m_stdSessionInfoSet.addTxData(size);
+		m_pluginHost.m_txRxStats.addTx(size);
 	}
 
 	return result;
@@ -663,7 +663,7 @@ void PcapSnifferSession.processPacket(
 	void const* params = memcat(&linkType, sizeof(linkType), p, size);
 	m_logWriter.write(timestamp, NetSnifferLogRecordCode.Packet, params, size + sizeof(linkType));
 
-	m_stdSessionInfoSet.addRxData(size);
+	m_pluginHost.m_txRxStats.addRx(size);
 
 	// defragment IPv4
 

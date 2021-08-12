@@ -20,8 +20,6 @@ public:
 	{
 		basetype.construct(pluginHost);
 
-		printf("LogDocument.construct()\n");
-
 		m_throughputInfoSet.createInformationValuesGrouped(m_pluginHost.m_informationGrid);
 		m_checksumInfoSet.createInformationValuesGrouped(m_pluginHost.m_informationGrid);
 
