@@ -216,6 +216,7 @@ void SerialMonProcessor_lnx.processNotification(io.DeviceMonitorNotifyHdr const*
 		break;
 
 	case io.lnx.DeviceMonitorNotifyCode.Read:
+	case io.lnx.DeviceMonitorNotifyCode.ReadIter:
 		io.lnx.DeviceMonitorReadWriteNotifyParams const* params = (io.lnx.DeviceMonitorReadWriteNotifyParams const*) (notifyHdr + 1);
 
 		if (params.m_dataSize)
@@ -228,6 +229,7 @@ void SerialMonProcessor_lnx.processNotification(io.DeviceMonitorNotifyHdr const*
 		break;
 
 	case io.lnx.DeviceMonitorNotifyCode.Write:
+	case io.lnx.DeviceMonitorNotifyCode.WriteIter:
 		io.lnx.DeviceMonitorReadWriteNotifyParams const* params = (io.lnx.DeviceMonitorReadWriteNotifyParams const*) (notifyHdr + 1);
 
 		if (params.m_dataSize)
