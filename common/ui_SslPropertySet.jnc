@@ -127,7 +127,7 @@ void SslPropertySet.createProperties(
 			);
 
 		m_certificateFileProp.m_fileDialogTitle = "Select Certificate File";
-		m_certificateFileProp.m_filter = "Certificate files (*.cer;*.pem);;All files (*.*)";
+		m_certificateFileProp.m_filter = "Certificate files (*.cer; *.crt; *.pem);;All files (*.*)";
 
 		m_privateKeyFileProp = propertyGrid.createFileProperty(
 			m_useCertificateProp,,
