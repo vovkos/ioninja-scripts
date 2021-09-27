@@ -9,15 +9,13 @@ import "log_ChecksumCalc.jnc"
 
 //..............................................................................
 
-class LogDocument: doc.Plugin
-{
+class LogDocument: doc.Plugin {
 protected:
 	ui.ThroughputInfoSet m_throughputInfoSet;
 	ui.ChecksumInfoSet m_checksumInfoSet;
 
 public:
-	construct(doc.PluginHost* pluginHost)
-	{
+	construct(doc.PluginHost* pluginHost) {
 		basetype.construct(pluginHost);
 
 		m_throughputInfoSet.createInformationValuesGrouped(m_pluginHost.m_informationGrid);
@@ -30,8 +28,7 @@ public:
 	override size_t errorcode transmit(
 		void const* p,
 		size_t size
-		)
-	{
+	) {
 		std.setError("invalid request: LogDocument.transmit");
 		return -1;
 	}

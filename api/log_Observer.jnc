@@ -15,7 +15,7 @@ typedef void ObserverFunc(
 	uint64_t recordCode,
 	void const* p,
 	size_t size
-	);
+);
 
 //..............................................................................
 

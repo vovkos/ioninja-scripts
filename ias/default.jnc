@@ -7,13 +7,12 @@
 //
 //..............................................................................
 
-void main()
-{
+void main() {
 	// TODO: write the main action sequence here
 
 	// if we return from main now, the script terminates.
 	// wait in the inifinite loop and handle new log records
-	
+
 	for (;;)
 		sys.sleep(500); // don't eat CPU in the loop
 }
@@ -23,7 +22,6 @@ void onLogRecord(
 	uint64_t recordCode,
 	void const* p,
 	size_t size
-	)
-{
+) {
 	// TODO: write the new log record handling logic here
 }

@@ -12,16 +12,14 @@ namespace io {
 
 //..............................................................................
 
-enum ArpHardwareType: bigendian uint16_t
-{
+enum ArpHardwareType: bigendian uint16_t {
 	Reserved = 0,
 	Ethernet = 1,
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-enum ArpOpcode: bigendian uint16_t
-{
+enum ArpOpcode: bigendian uint16_t {
 	Request        = 1,
 	Reply          = 2,
 	RequestReverse = 3,
@@ -34,8 +32,7 @@ enum ArpOpcode: bigendian uint16_t
 	displayName = "ARP",
 	formatDigestFunc = formatArpDigest
 ]
-struct ArpHdr
-{
+struct ArpHdr {
 	[ displayName = "Hardware type" ]
 	ArpHardwareType m_hardwareType;
 
@@ -54,8 +51,7 @@ struct ArpHdr
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-char const* formatArpDigest(void const* p)
-{
+char const* formatArpDigest(void const* p) {
 	ArpHdr const* hdr = (ArpHdr const*)p;
 	return typeof(ArpOpcode).getValueString(&hdr.m_opcode);
 }

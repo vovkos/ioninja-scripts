@@ -8,23 +8,20 @@ jnc.RegexState g_regexState construct(jnc.RegexStateFlags.Incremental | jnc.Rege
 
 char const* g_rootDir = io.getHomeDir();
 
-void main()
-{
-	for (;;)
-	{
+void main() {
+	for (;;) {
 		// wait until we receive GET <filename>
-		
-		for (;;) // don't completely block the main thread
-		{
+
+		for (;;) { // don't completely block the main thread
 			if (g_httpGetEvent.wait(1000))
 				break;
 		}
-	
+
 		char const* fileName = $"%1/%2"(g_rootDir, g_httpGetFileName);
-	
+
 		g_logWriter.write($"Opening file: $fileName...");
 		g_logWriter.write(log.StdRecordCode.Break); // to ensure adjacent messages don't stick together
-	
+
 		io.File file;
 		file.open(fileName, io.FileOpenFlags.ReadOnly);
 
@@ -35,29 +32,27 @@ void main()
 			"HTTP/1.1 200 OK\r\n"
 			"Content-Type: application/octet-stream\r\n"
 			$"Content-Length: %1\r\n\r\n"(file.m_size)
-			);		
-	
+		);
+
 		char buffer[4 * 1024];
-	
-		for (;;)
-		{
+
+		for (;;) {
 			size_t size = file.read(buffer, sizeof(buffer));
 			if (!size) // all done
 				break;
-	
+
 			char* p = buffer;
 			char* end = p + size;
-	
-			while (p < end)
-			{
+
+			while (p < end) {
 				size_t sent = transmit(p, end - p);
-				p += sent;		
+				p += sent;
 
 				if (!sent) // SSL/TCP buffer is full, give some time to flush it
-					sys.sleep(100); 
+					sys.sleep(100);
 			}
 		}
-	
+
 		g_logWriter.write("File transmitted!");
 		g_logWriter.write(log.StdRecordCode.Break);
 	}
@@ -68,16 +63,13 @@ void onLogRecord(
 	uint64_t recordCode,
 	void const* p,
 	size_t size
-	)
-{
+) {
 	if (recordCode != log.StdRecordCode.Rx)
 		return;
 
 	void const* end = p + size;
-	while (p < end)
-	{
-		reswitch (g_regexState, p, end - p)
-		{
+	while (p < end) {
+		reswitch (g_regexState, p, end - p) {
 		case r"GET\s+([^\s]+)":
 			g_httpGetFileName = strdup(g_regexState.m_subMatchArray[0].m_text);
 			g_httpGetEvent.signal();
@@ -85,7 +77,7 @@ void onLogRecord(
 
 		case ".":
 			break;
-		}		
+		}
 
 		p += g_regexState.m_consumedLength;
 	}

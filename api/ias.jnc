@@ -26,12 +26,12 @@ void disconnect();
 size_t errorcode transmit(
 	void const* p,
 	size_t size = -1 // -1 -- use strlen
-	);
+);
 
 size_t errorcode receive(
 	void* p,
 	size_t size
-	);
+);
 
 //..............................................................................
 
@@ -44,7 +44,7 @@ void onLogRecord(
 	uint64_t recordCode,
 	void const* p,
 	size_t size
-	);
+);
 
 //..............................................................................
 

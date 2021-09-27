@@ -9,8 +9,7 @@
 
 import "io_TcpIp.jnc"
 
-struct ArpRequestFrame
-{
+struct ArpRequestFrame {
 	io.EthernetHdr m_ethernet;
 	io.ArpHdr m_arp;
 	uchar_t m_srcMac[6];
@@ -24,10 +23,9 @@ struct ArpRequestFrame
 static uchar_t const g_srcMac[6] = 0x"00:e0:4c:68:01:12";
 static uchar_t const g_srcIp[4] = 0d"192.168.1.114";
 
-void main()
-{
+void main() {
 	connect();
-	
+
 	ArpRequestFrame frame;
 	frame.m_ethernet.m_type = io.EthernetType.Arp;
 	frame.m_ethernet.m_srcAddress = g_srcMac;
@@ -41,8 +39,7 @@ void main()
 	frame.m_srcIp = g_srcIp;
 	frame.m_dstIp = g_srcIp; // the last octet will go 0..254
 
-	for (uint_t i = 0; i <= 254; i++)
-	{
+	for (uint_t i = 0; i <= 254; i++) {
 		frame.m_dstIp[3] = i;
 		transmit(&frame, sizeof(frame));
 		sys.sleep(200); // wait 1/5 second before the next entry
