@@ -588,8 +588,10 @@ size_t errorcode WebSocketClientSession.transmit(
 	void const* p,
 	size_t size
 ) {
-	if (m_state != State.Connected)
+	if (m_state != State.Connected) {
+		std.setError("not connected");
 		return -1;
+	}
 
 	size_t result = iox.transmitWebSocketData(
 		m_socket,

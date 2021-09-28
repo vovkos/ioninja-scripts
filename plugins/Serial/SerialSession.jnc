@@ -616,6 +616,11 @@ size_t errorcode SerialSession.transmit(
 	void const* p,
 	size_t size
 ) {
+	if (m_state != State.Opened) {
+		std.setError("serial port not opened");
+		return -1;
+	}
+
 	size_t result = m_serial.write(p, size);
 
 	if (result)

@@ -353,8 +353,10 @@ size_t errorcode UdpSession.transmit(
 	void const* p,
 	size_t size
 ) {
-	if (m_state == State.Closed)
+	if (m_state == State.Closed) {
+		std.setError("UDP socket not opened");
 		return -1;
+	}
 
 	if (m_resolver.m_state == iox.HostNameResolver.State.Idle ||
 		m_resolver.m_state == iox.HostNameResolver.State.Error)

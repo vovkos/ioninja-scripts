@@ -568,16 +568,17 @@ size_t errorcode PcapSnifferSession.transmit(
 	void const* p,
 	size_t size
 ) {
-	if (!m_pcap)
+	if (!m_pcap.m_isOpen) {
+		std.setError("no capture session");
 		return -1;
-
-	size_t result = try m_pcap.write(p, size);
-	if (result != -1) {
-		io.PcapLinkType linkType = m_pcap.m_linkType;
-		void const* params = memcat(&linkType, sizeof(linkType), p, size);
-		m_logWriter.write(NetSnifferLogRecordCode.InjectedPacket, params, result + sizeof(linkType));
-		m_pluginHost.m_txRxStats.addTx(size);
 	}
+
+	size_t result = m_pcap.write(p, size);
+
+	io.PcapLinkType linkType = m_pcap.m_linkType;
+	void const* params = memcat(&linkType, sizeof(linkType), p, size);
+	m_logWriter.write(NetSnifferLogRecordCode.InjectedPacket, params, result + sizeof(linkType));
+	m_pluginHost.m_txRxStats.addTx(size);
 
 	return result;
 }

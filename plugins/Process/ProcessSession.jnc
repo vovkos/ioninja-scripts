@@ -454,8 +454,10 @@ size_t errorcode ProcessSession.transmit(
 	void const* p,
 	size_t size
 ) {
-	if (m_state != State.Running)
+	if (m_state != State.Running) {
+		std.setError("no process running");
 		return -1;
+	}
 
 	size_t result = m_process.write(p, size);
 	if (result)

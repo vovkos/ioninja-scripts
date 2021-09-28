@@ -418,8 +418,10 @@ size_t errorcode UsbControlEndpointSession.transmit(
 	void const* p,
 	size_t size
 ) {
-	if (m_state != State.Opened)
+	if (m_state != State.Opened) {
+		std.setError("device not opened");
 		return -1;
+	}
 
 	uint_t direction = m_reqDirectionCombo.m_currentData;
 	uint_t recipient = m_reqRecipientCombo.m_currentData;
