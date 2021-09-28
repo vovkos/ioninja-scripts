@@ -20,6 +20,7 @@ class ChecksumInfoSet {
 		Crc16_xmodem,
 		Crc16_usb,
 		Crc32,
+		Xor8,
 		Sum8,
 		Sum16_le,
 		Sum16_be,
@@ -32,6 +33,7 @@ class ChecksumInfoSet {
 			Crc16_xmodem |
 			Crc16_usb |
 			Crc32 |
+			Xor8 |
 			Sum8 |
 			Sum16_le |
 			Sum16_be |
@@ -44,6 +46,7 @@ class ChecksumInfoSet {
 	ui.InformationValue* m_crc16Info_xmodem;
 	ui.InformationValue* m_crc16Info_usb;
 	ui.InformationValue* m_crc32Info;
+	ui.InformationValue* m_xor8Info;
 	ui.InformationValue* m_sum8Info;
 	ui.InformationValue* m_sum16Info_le;
 	ui.InformationValue* m_sum16Info_be;
@@ -131,6 +134,15 @@ void ChecksumInfoSet.createInformationValues(
 			"IPv4 checksum",
 			"IPv4, TCP, UDP\n"
 			"Calculated as the 16-bit one's complement of the one's complement sum of all 16-bit words"
+		);
+
+	if (mask & InfoId.Xor8)
+		m_xor8Info = informationGrid.createValue(
+			group,
+			insertBefore,
+			true,
+			"XOR-8",
+			"XOR of all bytes in range"
 		);
 
 	if (mask & InfoId.Sum8)
