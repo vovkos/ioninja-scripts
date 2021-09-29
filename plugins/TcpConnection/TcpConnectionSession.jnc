@@ -147,7 +147,7 @@ protected:
 	void onReconnectTimer(uint_t syncId);
 
 	void createUi();
-	void startReconnectTimer(bool canConnectNow);
+	void startReconnectTimer(uint64_t lastReconnectTime = -1);
 	void waitSocketEvents();
 }
 
@@ -351,6 +351,7 @@ void TcpConnectionSession.close() {
 	m_socket.close();
 	m_state = State.Closed;
 	m_sessionConnectionState = SessionConnectionState.Disconnected;
+	m_lastReconnectTime = 0;
 	m_syncId++;
 }
 
@@ -446,11 +447,11 @@ size_t errorcode TcpConnectionSession.transmit(
 	return result;
 }
 
-void TcpConnectionSession.startReconnectTimer(bool isForced) {
-	uint64_t delay = m_socketPropertySet.m_reconnectTimeoutProp.m_value;
-	uint64_t dueTime = m_lastReconnectTime + delay * 10000;
+void TcpConnectionSession.startReconnectTimer(uint64_t lastReconnectTime) {
+	uint64_t time = sys.getTimestamp();
+	uint64_t delay = (uint64_t)m_socketPropertySet.m_reconnectTimeoutProp.m_value * 10000;
 
-	if (!isForced && sys.getTimestamp() >= dueTime) { // immediate
+	if (time - delay > lastReconnectTime) { // don't spam reconnects if we're insta-rejected
 		onReconnectTimer(m_syncId);
 		return;
 	}
@@ -460,7 +461,7 @@ void TcpConnectionSession.startReconnectTimer(bool isForced) {
 
 	m_reconnectTimer.startDueTimer(
 		onReconnectTimer~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler,
-		dueTime
+		time + delay
 	);
 }
 
@@ -472,7 +473,12 @@ void TcpConnectionSession.onSocketEvent(
 		return;
 
 	if (triggeredEvents & io.SocketEvents.IoError) {
+		bool isReconnecting = m_lastReconnectTime != 0;
 		handleSocketError(m_socket.m_ioError);
+
+		if (isReconnecting && m_socketPropertySet.m_useReconnectProp.m_value)
+			startReconnectTimer();
+
 		return;
 	}
 
@@ -508,10 +514,11 @@ void TcpConnectionSession.onSocketEvent(
 			sizeof(recordParams)
 		);
 
+		uint64_t lastReconnectTime = m_lastReconnectTime;
 		close();
 
 		if (m_socketPropertySet.m_useReconnectProp.m_value)
-			startReconnectTimer(true);
+			startReconnectTimer(lastReconnectTime);
 
 		return;
 	}
@@ -563,11 +570,11 @@ void TcpConnectionSession.onReconnectTimer(uint_t syncId) {
 	if (syncId != m_syncId)
 		return;
 
-	m_lastReconnectTime = sys.getTimestamp();
-
 	bool result = try connect();
+	m_lastReconnectTime = sys.getTimestamp(); // after connect (connect calls close)
+
 	if (!result && m_socketPropertySet.m_useReconnectProp.m_value)
-		startReconnectTimer(false);
+		startReconnectTimer();
 }
 
 reactor TcpConnectionSession.m_uiReactor {
