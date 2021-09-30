@@ -186,7 +186,7 @@ void ModbusGatewayMonSession.createUi() {
 
 	// information grid
 
-	ui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("Modbus Gateway Connection");
+	ui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("Modbus gateway");
 	m_stdSessionInfoSet.create(m_pluginHost.m_txRxStats, m_pluginHost.m_informationGrid, infoGroup);
 
 	m_throughputInfoSet.createInformationValuesGrouped(m_pluginHost.m_informationGrid);

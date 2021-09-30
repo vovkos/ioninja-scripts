@@ -201,7 +201,7 @@ void TcpConnectionSession.createUi() {
 
 	// information grid
 
-	ui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("TCP Connection");
+	ui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("TCP connection");
 	m_infoTable[InfoId.LocalAddress] = m_pluginHost.m_informationGrid.createValue(infoGroup,,, "Local address");
 	m_infoTable[InfoId.RemoteAddress] = m_pluginHost.m_informationGrid.createValue(infoGroup,,, "Remote address");
 

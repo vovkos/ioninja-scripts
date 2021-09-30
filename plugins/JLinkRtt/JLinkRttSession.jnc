@@ -361,7 +361,7 @@ void JLinkRttSession.createUi() {
 
 	// information grid
 
-	ui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("JLinkRtt");
+	ui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("J-Link RTT");
 
 	m_stdSessionInfoSet.create(
 		m_pluginHost.m_txRxStats,

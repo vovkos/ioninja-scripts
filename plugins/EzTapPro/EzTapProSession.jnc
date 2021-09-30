@@ -335,7 +335,7 @@ void EzTapProSession.createUi() {
 
 	// information grid
 
-	ui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("Serial");
+	ui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("EZ-Tap Pro");
 
 	m_stdSessionInfoSet.create(m_pluginHost.m_txRxStats, m_pluginHost.m_informationGrid, infoGroup);
 
