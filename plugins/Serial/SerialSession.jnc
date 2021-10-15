@@ -819,6 +819,7 @@ reactor SerialSession.m_uiReactor {
 	updateLineInfoValue(InfoId.Rts, m_serialRts);
 	updateLineInfoValue(InfoId.Dsr, m_serialStatusLines & io.SerialStatusLines.Dsr);
 	updateLineInfoValue(InfoId.Cts, m_serialStatusLines & io.SerialStatusLines.Cts);
+	updateLineInfoValue(InfoId.BreakCondition, m_serialBreakCondition);
 
 	onevent bindingof(m_portCombo.m_editText)() {
 		m_reopenTimer.stop();
