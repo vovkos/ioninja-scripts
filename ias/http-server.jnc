@@ -4,7 +4,7 @@ import "io_File.jnc"
 
 sys.Event g_httpGetEvent;
 char const* g_httpGetFileName;
-jnc.RegexState g_regexState construct(jnc.RegexStateFlags.Incremental | jnc.RegexStateFlags.Lexer);
+jnc.RegexState g_regexState construct(jnc.RegexStateFlags.Incremental | jnc.RegexExecFlags.AnchorDataBegin);
 
 char const* g_rootDir = io.getHomeDir();
 
@@ -71,7 +71,7 @@ void onLogRecord(
 	while (p < end) {
 		reswitch (g_regexState, p, end - p) {
 		case r"GET\s+([^\s]+)":
-			g_httpGetFileName = strdup(g_regexState.m_subMatchArray[0].m_text);
+			g_httpGetFileName = strdup(g_regexState.m_captureArray[0].m_text);
 			g_httpGetEvent.signal();
 			break;
 
@@ -79,6 +79,6 @@ void onLogRecord(
 			break;
 		}
 
-		p += g_regexState.m_consumedLength;
+		p += g_regexState.m_match.m_length;
 	}
 }

@@ -125,8 +125,8 @@ void $(layerClass).scanStream(
 			m_writer.write(
 				m_timestamp,
 				$(logRecordCodeEnum).InBandCommand,
-				state.m_subMatchArray[0].m_text,
-				state.m_subMatchArray[0].m_length
+				state.m_captureArray[0].m_text,
+				state.m_captureArray[0].m_length
 				);
 
 			break;
@@ -136,7 +136,7 @@ void $(layerClass).scanStream(
 			break;
 		}
 
-		p += state.m_consumedLength;
+		p += state.m_match.m_length;
 	}
 
 	// write the rest of original data

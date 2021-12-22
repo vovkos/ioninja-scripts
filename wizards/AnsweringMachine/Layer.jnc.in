@@ -74,7 +74,7 @@ void $(layerClass).scanRx(
 			break;
 		}
 
-		p += m_rxScannerState.m_consumedLength;
+		p += m_rxScannerState.m_match.m_length;
 	}
 }
 
