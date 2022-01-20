@@ -13,8 +13,11 @@ pragma(Alignment, 1);
 
 //..............................................................................
 
-[ displayName = "Modbus RTU read" ]
-struct ModbusRtuReadPacket {
+[
+	displayName = "Modbus RTU read (request)",
+	fixedSize
+]
+struct ModbusRtuReadRequestPacket {
 	[ displayName = "ADU" ]
 	io.ModbusRtuAduHdr m_adu;
 
@@ -26,9 +29,33 @@ struct ModbusRtuReadPacket {
 
 	[ userAction = "Initialize with defaults" ]
 	void initialize() {
-		*this = null;
-		m_adu.m_deviceAddress = 1;
-		m_pdu.m_func = io.ModbusFunc.ReadHoldingRegisters;
+		initializeModbusRtuPacket(this, io.ModbusFunc.ReadHoldingRegisters);
+		m_pdu.m_count = 1;
+		updateChecksum();
+	}
+
+	[
+		userAction = "Update checksum",
+		autorun = "Auto-update checksum"
+	]
+	void updateChecksum() {
+		updateModbusRtuChecksum(this);
+	}
+}
+
+//..............................................................................
+
+[ displayName = "Modbus RTU read (reply)" ]
+struct ModbusRtuReadReplyPacket {
+	[ displayName = "ADU" ]
+	io.ModbusRtuAduHdr m_adu;
+
+	[ displayName = "PDU" ]
+	io.ModbusReadPdu m_pdu;
+
+	[ userAction = "Initialize with defaults" ]
+	void initialize() {
+		initializeModbusRtuPacket(this, io.ModbusFunc.ReadHoldingRegisters);
 		m_pdu.m_count = 1;
 		updateChecksum();
 	}
@@ -60,9 +87,7 @@ struct ModbusRtuWritePacket {
 
 	[ userAction = "Initialize with defaults" ]
 	void initialize() {
-		*this = null;
-		m_adu.m_deviceAddress = 1;
-		m_pdu.m_func = io.ModbusFunc.WriteRegister;
+		initializeModbusRtuPacket(this, io.ModbusFunc.WriteRegister);
 		updateChecksum();
 	}
 
@@ -87,9 +112,7 @@ struct ModbusRtuWriteMultiplePacket {
 
 	[ userAction = "Initialize with defaults" ]
 	void initialize() {
-		*this = null;
-		m_adu.m_deviceAddress = 1;
-		m_pdu.m_func = io.ModbusFunc.WriteMultipleRegisters;
+		initializeModbusRtuPacket(this, io.ModbusFunc.WriteMultipleRegisters);
 		updateSize();
 		updateChecksum();
 	}
@@ -125,9 +148,7 @@ struct ModbusRtuReadWriteMultiplePacket {
 
 	[ userAction = "Initialize with defaults" ]
 	void initialize() {
-		*this = null;
-		m_adu.m_deviceAddress = 1;
-		m_pdu.m_func = io.ModbusFunc.ReadWriteMultipleRegisters;
+		initializeModbusRtuPacket(this, io.ModbusFunc.ReadWriteMultipleRegisters);
 		m_pdu.m_readCount = 1;
 		updateSize();
 		updateChecksum();
@@ -153,6 +174,16 @@ struct ModbusRtuReadWriteMultiplePacket {
 }
 
 //..............................................................................
+
+void initializeModbusRtuPacket(
+	void* p,
+	io.ModbusFunc func
+) {
+	memset(p, 0, dynamic sizeof(p));
+	((char*)p)[0] = 1;
+	((char*)p)[1] = func;
+}
+
 
 void updateModbusRtuChecksum(void* p) {
 	size_t size = dynamic sizeof(p);
