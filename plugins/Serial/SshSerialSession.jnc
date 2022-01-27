@@ -203,6 +203,13 @@ protected:
 	void waitSshEvents();
 	void handleConnectError(std.Error const* error);
 	void handleSshAuthenticateError(std.Error const* error);
+	bool errorcode writeSerialConfigMsg();
+
+	bool errorcode writeLineChangeMsg(
+		io.HwcMsgCode code,
+		bool value
+	);
+
 
 	void updateLineInfoValue(
 		InfoId infoId,
@@ -359,10 +366,15 @@ void SshSerialSession.createUi() {
 void SshSerialSession.load(doc.Storage* storage) {
 	m_serialSettingUi.load(storage);
 
-	m_portCombo.m_editText = storage.readString("portName");
-	m_actionTable[ActionId.Dtr].m_isChecked = storage.readBool("dtr", Defaults.Dtr);
-	m_actionTable[ActionId.Rts].m_isChecked = storage.readBool("rts", Defaults.Rts);
+	m_addressCombo.loadHistory(storage, "addressHistory");
+	m_addressCombo.m_editText = storage.readString("address");
 
+	m_portCombo.loadHistory(storage, "portHistory");
+	m_portCombo.m_editText = storage.readString("port");
+
+	m_serialSettingUi.load(storage);
+	m_socketPropertySet.load(storage);
+	m_sshPropertySet.load(storage);
 	m_bufferPropertySet.load(storage);
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
 }
@@ -370,16 +382,19 @@ void SshSerialSession.load(doc.Storage* storage) {
 void SshSerialSession.save(doc.Storage* storage) {
 	m_serialSettingUi.save(storage);
 
-	storage.writeString("portName", m_portCombo.m_editText);
+	storage.writeString("port", m_portCombo.m_editText);
 	storage.writeBool("dtr", m_actionTable [ActionId.Dtr].m_isChecked);
 	storage.writeBool("rts", m_actionTable [ActionId.Rts].m_isChecked);
 
+	m_serialSettingUi.save(storage);
+	m_socketPropertySet.save(storage);
+	m_sshPropertySet.save(storage);
 	m_bufferPropertySet.save(storage);
 }
 
 void SshSerialSession.updateProperties() {
 	m_serialSettingUi.updateProperties();
-
+	m_socketPropertySet.m_remoteAddressProp.m_value = m_addressCombo.m_editText;
 	m_portProp.m_value = m_portCombo.m_editText;
 	m_dtrProp.m_value = m_actionTable[ActionId.Dtr].m_isChecked;
 	m_rtsProp.m_value = m_actionTable[ActionId.Rts].m_isChecked;
@@ -389,6 +404,7 @@ void SshSerialSession.updateProperties() {
 bool errorcode SshSerialSession.applyProperties() {
 	m_serialSettingUi.applyProperties();
 
+	m_addressCombo.m_editText = m_socketPropertySet.m_remoteAddressProp.m_value;
 	m_portCombo.m_editText = m_portProp.m_value;
 	m_actionTable[ActionId.Dtr].m_isChecked = m_dtrProp.m_value;
 	m_actionTable[ActionId.Rts].m_isChecked = m_rtsProp.m_value;
@@ -410,73 +426,60 @@ bool errorcode SshSerialSession.applyProperties() {
 	io.SerialParity parity = m_serialSettingUi.m_parity;
 	io.SerialFlowControl flowControl = m_serialSettingUi.m_flowControl;
 
+	bool isConfigChanged;
 	bool dtr = m_dtrProp.m_value;
 	bool rts = m_rtsProp.m_value;
 	bool breakCondition = m_breakConditionProp.m_value;
 
-/**	io.SerialOptions options = getSerialOptions();
-
-	// try to apply
-
-	m_serial.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
-	m_serial.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
-	m_serial.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
-	m_serial.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
-	m_serial.m_options = options;
-
-	m_serial.setupDevice(
-		baudRate,
-		dataBits,
-		stopBits,
-		parity,
-		flowControl,
-		readInterval,
-		m_dtrProp.m_value,
-		m_rtsProp.m_value
-	);
-
-	m_serial.m_breakCondition = m_breakConditionProp.m_value; */
-
-	// write changes to the log
-
 	if (baudRate != m_serialBaudRate) {
 		m_logWriter.write(SerialLogRecordCode.BaudRateChanged, &baudRate, sizeof(baudRate));
 		m_serialBaudRate = baudRate;
+		isConfigChanged = true;
 	}
 
 	if (dataBits != m_serialDataBits) {
 		m_logWriter.write(SerialLogRecordCode.DataBitsChanged, &dataBits, sizeof(dataBits));
 		m_serialDataBits = dataBits;
+		isConfigChanged = true;
 	}
 
 	if (stopBits != m_serialStopBits) {
 		m_logWriter.write(SerialLogRecordCode.StopBitsChanged, &stopBits, sizeof(stopBits));
 		m_serialStopBits = stopBits;
+		isConfigChanged = true;
 	}
 
 	if (parity != m_serialParity) {
 		m_logWriter.write(SerialLogRecordCode.ParityChanged, &parity, sizeof(parity));
 		m_serialParity = parity;
+		isConfigChanged = true;
 	}
 
 	if (flowControl != m_serialFlowControl) {
 		m_logWriter.write(SerialLogRecordCode.FlowControlChanged, &flowControl, sizeof(flowControl));
 		m_serialFlowControl = flowControl;
+		isConfigChanged = true;
 	}
+
+	if (isConfigChanged)
+		writeSerialConfigMsg();
 
 	if (dtr != m_serialDtr) {
 		m_logWriter.write(SerialLogRecordCode.DtrChanged, &dtr, sizeof(dtr));
 		m_serialDtr = dtr;
+		writeLineChangeMsg(io.HwcMsgCode.SerialSetDtr, dtr);
 	}
 
 	if (rts != m_serialRts) {
 		m_logWriter.write(SerialLogRecordCode.RtsChanged, &rts, sizeof(rts));
 		m_serialRts = rts;
+		writeLineChangeMsg(io.HwcMsgCode.SerialSetRts, rts);
 	}
 
 	if (breakCondition != m_serialBreakCondition) {
 		m_logWriter.write(SerialLogRecordCode.RtsChanged, &breakCondition, sizeof(breakCondition));
 		m_serialBreakCondition = breakCondition;
+		writeLineChangeMsg(io.HwcMsgCode.SerialSetDtr, breakCondition);
 	}
 
 	return true;
@@ -529,7 +532,13 @@ bool errorcode SshSerialSession.connect() {
 	char const* addressString = m_addressCombo.m_editText;
 	char const* portName = m_portCombo.m_currentText;
 
+	if (!addressString || !portName) {
+		std.setError("required parameters missing");
+		throw;
+	}
+
 	m_addressCombo.addEditTextToHistory();
+	m_portCombo.addEditTextToHistory();
 
 	m_portName = portName;
 	m_serialBaudRate = m_serialSettingUi.m_baudRate;
@@ -658,16 +667,18 @@ bool errorcode SshSerialSession.connect(io.SocketAddress const* remoteAddress) {
 		$"--ser-data %3 "
 		$"--ser-stop %4 "
 		$"--ser-parity %5 "
-		$"--ser-flow %6 "(
+		$"--ser-flow %6 "
+		$"--ser-dtr %7 "
+		$"--ser-rts %8 "(
 			m_portName,
 			m_serialBaudRate,
 			m_serialDataBits,
 			stopBitsStringTable[m_serialStopBits],
 			parityStringTable[m_serialParity],
-			flowControlStringTable[m_serialFlowControl]
+			flowControlStringTable[m_serialFlowControl],
+			m_serialDtr,
+			m_serialRts
 		);
-
-	printf("cmdline: %s\n", params.m_processExtra);
 
 	params.m_processExtraSize = strlen(params.m_processExtra);
 
@@ -934,9 +945,38 @@ void SshSerialSession.onMsg(io.HwcMsgHdr const* hdr) {
 		m_logWriter.write(log.StdRecordCode.Rx, hdr + 1, hdr.m_dataSize);
 		break;
 
-	case io.HwcMsgCode.SerialDsr:
-	case io.HwcMsgCode.SerialCts:
-	case io.HwcMsgCode.SerialBreak:
+	case io.HwcMsgCode.SerialLineError:
+		io.SerialLineErrors errors;
+		uchar_t hwcErrors = *(char const*)(hdr + 1);
+		if (hwcErrors & io.HwcSerialLineErrors.BreakError)
+			errors |= io.SerialLineErrors.BreakError;
+
+		if (hwcErrors & io.HwcSerialLineErrors.FramingError)
+			errors |= io.SerialLineErrors.FramingError;
+
+		if (hwcErrors & io.HwcSerialLineErrors.ParityError)
+			errors |= io.SerialLineErrors.ParityError;
+
+		m_logWriter.write(SerialLogRecordCode.LineError, &errors, sizeof(errors));
+		break;
+
+	case io.HwcMsgCode.SerialCtsDsr:
+		io.SerialStatusLines statusLines;
+
+		uchar_t hwcLines = *(char const*)(hdr + 1);
+		if (hwcLines & io.HwcSerialStatusLines.Cts)
+			statusLines |= io.SerialStatusLines.Cts;
+
+		if (hwcLines & io.HwcSerialStatusLines.Dsr)
+			statusLines |= io.SerialStatusLines.Dsr;
+
+		io.SerialStatusLines statusLineMask = statusLines ^ m_serialStatusLines;
+		if (statusLineMask) {
+			SerialStatusLineChangedParams params = { statusLines, statusLineMask }
+			m_logWriter.write(SerialLogRecordCode.StatusLineChanged, params, sizeof(params));
+			m_serialStatusLines = statusLines;
+		}
+
 		break;
 	}
 }
@@ -975,71 +1015,6 @@ void SshSerialSession.disconnect() {
 	m_stdSessionInfoSet.endSession();
 }
 
-/**
-void SshSerialSession.waitSerialEvents() {
-	io.SerialEvents eventMask =
-		io.SerialEvents.IoError |
-		io.SerialEvents.ReadBufferFull |
-		io.SerialEvents.IncomingData |
-		io.SerialEvents.LineError;
-
-	if (!m_isTransmitEnabled)
-		eventMask |= io.SerialEvents.WriteBufferReady;
-
-	eventMask |= (m_serialStatusLines & io.SerialStatusLines.Cts) ?
-		io.SerialEvents.CtsOff :
-		io.SerialEvents.CtsOn;
-
-	eventMask |= (m_serialStatusLines & io.SerialStatusLines.Dsr) ?
-		io.SerialEvents.DsrOff :
-		io.SerialEvents.DsrOn;
-
-	m_serial.wait(eventMask, onSerialEvent~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
-}
-
-void SshSerialSession.onSerialEvent(
-	uint_t syncId,
-	io.SerialEvents triggeredEvents
-) {
-	if (syncId != m_syncId)
-		return;
-
-	if (triggeredEvents & io.SerialEvents.IoError) {
-		m_logWriter.write(log.StdRecordCode.Error, m_serial.m_ioError);
-		close();
-		return;
-	}
-
-	if ((triggeredEvents & io.SerialEvents.ReadBufferFull) &&
-		m_bufferPropertySet.m_notifyReadBufferFullProp.m_value)
-		m_logWriter.write(log.StdRecordCode.RxBufferFullLossy);
-
-	if (triggeredEvents & io.SerialEvents.IncomingData) {
-		size_t result = m_serial.read(m_readBuffer.m_p, m_readBuffer.m_size);
-		if (result)
-			m_logWriter.write(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
-	}
-
-	if (triggeredEvents & io.SerialEvents.LineError) {
-		io.SerialLineErrors errors = m_serial.clearLineErrors();
-		m_logWriter.write(SerialLogRecordCode.LineError, &errors, sizeof(errors));
-	}
-
-	if (!m_isTransmitEnabled)
-		m_isTransmitEnabled = (triggeredEvents & io.SerialEvents.WriteBufferReady);
-
-	io.SerialStatusLines statusLines = m_serial.m_statusLines;
-	io.SerialStatusLines statusLineMask = statusLines ^ m_serialStatusLines;
-	if (statusLineMask) {
-		SerialStatusLineChangedParams params = { statusLines, statusLineMask }
-		m_logWriter.write(SerialLogRecordCode.StatusLineChanged, params, sizeof(params));
-		m_serialStatusLines = statusLines;
-	}
-
-	waitSerialEvents();
-}
-*/
-
 void SshSerialSession.onBaudRateChanged() {
 	if (m_state != State.Connected)
 		return;
@@ -1048,22 +1023,47 @@ void SshSerialSession.onBaudRateChanged() {
 	if (baudRate == m_serialBaudRate)
 		return;
 
-/**	m_serial.setupDevice(
-		baudRate,
-		m_serial.m_dataBits,
-		m_serial.m_stopBits,
-		m_serial.m_parity,
-		m_serial.m_flowControl,
-		m_serial.m_readInterval,
-		m_serial.m_dtr,
-		m_serial.m_rts
-	); */
-
 	m_logWriter.write(SerialLogRecordCode.BaudRateChanged, &baudRate, sizeof(baudRate));
 	m_serialBaudRate = baudRate;
+	writeSerialConfigMsg();
 
 catch:
 	m_logWriter.writeLastError(log.StdRecordCode.Error);
+}
+
+bool errorcode SshSerialSession.writeLineChangeMsg(
+	io.HwcMsgCode code,
+	bool value
+) {
+	struct Msg {
+		io.HwcMsgHdr m_hdr;
+		bool m_value;
+	};
+
+	Msg msg;
+	msg.m_hdr.m_code = code;
+	msg.m_hdr.m_dataSize = sizeof(msg.m_value);
+	msg.m_value = value;
+	m_ssh.write(&msg, sizeof(msg));
+	return true;
+}
+
+bool errorcode SshSerialSession.writeSerialConfigMsg() {
+	struct Msg {
+		io.HwcMsgHdr m_hdr;
+		io.HwcSerialConfig m_config;
+	};
+
+	Msg msg;
+	msg.m_hdr.m_code = io.HwcMsgCode.SerialSetConfig;
+	msg.m_hdr.m_dataSize = sizeof(msg.m_config);
+	msg.m_config.m_baudRate = m_serialBaudRate;
+	msg.m_config.m_dataBits = m_serialDataBits;
+	msg.m_config.m_stopBits = m_serialStopBits != io.SerialStopBits._1 ? 2 : 1;
+	msg.m_config.m_parity = m_serialParity;
+	msg.m_config.m_flowControl = m_serialFlowControl == io.SerialFlowControl.RtsCts;
+	m_ssh.write(&msg, sizeof(msg));
+	return true;
 }
 
 void SshSerialSession.onDtrChanged() {
@@ -1071,6 +1071,7 @@ void SshSerialSession.onDtrChanged() {
 		return;
 
 	bool value = m_actionTable[ActionId.Dtr].m_isChecked;
+	writeLineChangeMsg(io.HwcMsgCode.SerialSetDtr, value);
 	m_serialDtr = value;
 	m_logWriter.write(SerialLogRecordCode.DtrChanged, &value, sizeof(value));
 }
@@ -1080,6 +1081,7 @@ void SshSerialSession.onRtsChanged() {
 		return;
 
 	bool value = m_actionTable[ActionId.Rts].m_isChecked;
+	writeLineChangeMsg(io.HwcMsgCode.SerialSetRts, value);
 	m_serialRts = value;
 	m_logWriter.write(SerialLogRecordCode.RtsChanged, &value, sizeof(value));
 }
@@ -1089,6 +1091,7 @@ void SshSerialSession.onBreakConditionChanged() {
 		return;
 
 	bool value = m_actionTable[ActionId.BreakCondition].m_isChecked;
+	writeLineChangeMsg(io.HwcMsgCode.SerialSetBreak, value);
 	m_serialBreakCondition = value;
 	m_logWriter.write(SerialLogRecordCode.BreakConditionChanged, &value, sizeof(value));
 }
@@ -1103,8 +1106,8 @@ void SshSerialSession.updateLineInfoValue(
 
 reactor SshSerialSession.m_uiReactor {
 	m_title = m_state == State.Connected ?
-		$"Serial $(m_remoteAddress.getString()): $m_portName $m_serialBaudRate bps" :
-		$"Serial $(m_addressCombo.m_currentText): $(m_portCombo.m_currentText) $(m_serialSettingUi.m_baudRateCombo.m_editText)";
+		$"Serial $(m_remoteAddress.getString()) $m_portName $m_serialBaudRate bps" :
+		$"Serial $(m_addressCombo.m_currentText) $(m_portCombo.m_currentText) $(m_serialSettingUi.m_baudRateCombo.m_editText)";
 
 	m_actionTable[ActionId.Connect].m_text = m_state ? "Close" : "Open";
 	m_actionTable[ActionId.Connect].m_icon = m_iconTable[m_state ? IconId.Disconnect : IconId.Connect];
