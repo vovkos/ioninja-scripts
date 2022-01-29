@@ -5,14 +5,10 @@
 
 import "doc_Session.jnc"
 import "io_base.jncx"
-import "io_ssh.jncx"
+import "iox_SshChannel.jnc"
 import "io_Serial.jnc"
-import "io_HostNameResolver.jnc"
-import "ui_Dialog.jnc"
 import "ui_History.jnc"
-import "ui_SocketUi.jnc"
 import "ui_SerialSettingUi.jnc"
-import "ui_SshPropertySet.jnc"
 import "ui_BufferPropertySet.jnc"
 import "ui_StdSessionInfoSet.jnc"
 import "log_ThroughputCalc.jnc"
@@ -32,32 +28,6 @@ protected:
 		Dtr            = true,
 		Rts            = true,
 		BreakCondition = false,
-	}
-
-	enum State {
-		Closed,
-		Resolving,
-		TcpConnecting,
-		SshHandshaking,
-		SshAuthenticating,
-		WaitingLoginDlg,
-		SshOpeningChannel,
-		SshRequestingPty,
-		SshStartingProcess,
-		Connected,
-	}
-
-	static char const* m_stateStringTable[] = {
-		"Closed",
-		"Resolving...",
-		"Connecting...",
-		"Handhsaking...",
-		"Authenticating...",
-		"Authenticating...",
-		"Opening channel...",
-		"Requesting PTY...",
-		"Starting process...",
-		"Connected",
 	}
 
 	enum ActionId {
@@ -90,13 +60,23 @@ protected:
 		_Count,
 	}
 
+	static char const* m_stateStringTable[] = {
+		"Closed",
+		"Resolving...",
+		"Connecting...",
+		"Handhsaking...",
+		"Authenticating...",
+		"Authenticating...",
+		"Opening channel...",
+		"Requesting PTY...",
+		"Starting process...",
+		"Connected",
+	}
+
 protected:
 	// serial port
 
-	State bindable m_state;
-	io.SshChannel m_ssh;
-	io.HostNameResolver m_resolver;
-	io.SocketAddress m_remoteAddress;
+	iox.SshChannel m_ssh;
 	io.HwcProtoDecoder m_decoder;
 	char const* m_portName;
 	uint_t bindable m_serialBaudRate;
@@ -108,14 +88,11 @@ protected:
 	bool bindable m_serialDtr;
 	bool bindable m_serialRts;
 	bool bindable m_serialBreakCondition;
-	std.Buffer m_readBuffer;
-	uint_t m_syncId;
 
 	// common serial ui
 
 	// toolbar, status bar & menu
 
-	ui.ComboBox* m_addressCombo;
 	ui.ComboBox* m_portCombo;
 	ui.Action* m_actionTable[ActionId._Count];
 	ui.Icon* m_iconTable[IconId._Count];
@@ -124,6 +101,7 @@ protected:
 
 	// serial property grid
 
+	ui.ComboBox* m_addressCombo;
 	ui.SocketPropertySet m_socketPropertySet;
 	ui.SshPropertySet m_sshPropertySet;
 	ui.SerialSettingUi m_serialSettingUi;
@@ -172,7 +150,7 @@ public:
 
 protected:
 	void onConnect() {
-		m_state ? disconnect() : try connect();
+		m_ssh.m_state ? disconnect() : try connect();
 	}
 
 	void onComboEnter() {

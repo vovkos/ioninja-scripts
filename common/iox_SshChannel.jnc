@@ -1,0 +1,218 @@
+//..............................................................................
+//
+// SSH channel (shared between multiple SSH-based plugins)
+//
+
+import "io_ssh.jncx"
+import "io_HostNameResolver.jnc"
+import "ui_Dialog.jnc"
+import "ui_SocketUi.jnc"
+import "ui_SshPropertySet.jnc"
+import "ui_BufferPropertySet.jnc"
+import "doc_PluginHost.jnc"
+import "std_Buffer.jnc"
+
+namespace iox {
+
+//! \addtogroup common-io
+//! @{
+
+//..............................................................................
+
+class SshChannel {
+public:
+	enum State {
+		Closed,
+		Resolving,
+		TcpConnecting,
+		SshHandshaking,
+		SshAuthenticating,
+		WaitingLoginDlg,
+		SshOpeningChannel,
+		SshRequestingPty,
+		SshStartingProcess,
+		Connected,
+	}
+
+protected:
+	doc.PluginHost* m_pluginHost;
+	io.HostNameResolver m_resolver;
+	io.SshChannel m_ssh;
+	ui.LoginDlg* m_loginDlg;
+	std.Buffer m_readBuffer;
+	uint_t m_syncId;
+
+public:
+	io.SocketAddress readonly m_remoteAddress;
+	State bindable readonly m_state;
+
+	property m_logWriter {
+		log.Writer* get() {
+			return m_pluginHost.m_log.m_writer;
+		}
+	}
+
+public:
+	construct(doc.PluginHost* pluginHost) {
+		m_pluginHost = pluginHost;
+	}
+
+	bool errorcode connect(
+		char const* addressString,
+		io.SshConnectParams const* params
+	);
+
+	bool errorcode connect(
+		io.SocketAddress const* address,
+		io.SshConnectParams const* params
+	);
+
+	void disconnect();
+
+	void close();
+
+	bool errorcode setReadBufferSize(size_t size) {
+		return m_readBuffer.setSize(size);
+	}
+
+	bool errorcode applyProperties(
+		ui.SocketPropertySet const* socketPropertySet,
+		ui.SshPropertySet const* sshPropertySet,
+		ui.BufferPropertySet const* propSet
+	);
+
+protected:
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+bool errorcode SshChannel.capture(
+	char const* deviceName,
+	char const* fileNameFilter,
+	io.psx.DeviceMonitorIoctlDesc const* ioctlDescTable,
+	size_t ioctlDescCount
+) {
+	m_monitor.open();
+	m_monitor.connect(deviceName);
+	m_monitor.m_fileNameFilter = fileNameFilter;
+
+	if (sys.g_systemInfo.m_osFlags & sys.OsFlags.Posix)
+		m_monitor.setIoctlDescTable(ioctlDescTable, ioctlDescCount);
+
+	m_monitor.m_isEnabled = true;
+	m_notifyBuffer.clear();
+	waitMonitorEvents();
+	return true;
+}
+
+void SshChannel.close() {
+	m_monitor.close();
+	m_syncId++;
+}
+
+bool errorcode SshChannel.applyProperties(
+	ui.BufferPropertySet* bufferPropSet,
+	size_t pendingNotifySizeLimit
+) {
+	m_monitor.m_readParallelism = bufferPropSet.m_readParallelismProp.m_value;
+	m_monitor.m_readBlockSize = bufferPropSet.m_readBlockSizeProp.m_value;
+	m_monitor.m_readBufferSize = bufferPropSet.m_readBufferSizeProp.m_value;
+	m_monitor.m_pendingNotifySizeLimit = pendingNotifySizeLimit;
+	m_notifyReadBufferFull = bufferPropSet.m_notifyReadBufferFullProp.m_value;
+
+	return m_readBuffer.setSize(bufferPropSet.m_readBufferSizeProp.m_value);
+}
+
+void SshChannel.waitMonitorEvents() {
+	io.DeviceMonitorEvents eventMask =
+		io.DeviceMonitorEvents.IoError |
+		io.DeviceMonitorEvents.ReadBufferFull |
+		io.DeviceMonitorEvents.IncomingData;
+
+	m_monitor.wait(eventMask, onMonitorEvent~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
+}
+
+void SshChannel.onMonitorEvent(
+	uint_t syncId,
+	io.DeviceMonitorEvents triggeredEvents
+) {
+	if (syncId != m_syncId)
+		return;
+
+	if (triggeredEvents & io.DeviceMonitorEvents.IoError) {
+		processError(m_monitor.m_ioError);
+		return;
+	}
+
+	if ((triggeredEvents & io.DeviceMonitorEvents.ReadBufferFull) && m_notifyReadBufferFull)
+		m_logWriter.write(log.StdRecordCode.RxBufferFull);
+
+	if (triggeredEvents & io.DeviceMonitorEvents.IncomingData) {
+		size_t size = m_monitor.read(m_readBuffer.m_p, m_readBuffer.m_size);
+		if (size) {
+			bool result = addNotificationData(m_readBuffer.m_p, size);
+			if (!result)
+				return;
+		}
+	}
+
+	waitMonitorEvents();
+}
+
+bool SshChannel.addNotificationData(
+	void const* p,
+	size_t size
+) {
+	while (size) {
+		if (m_notifyBuffer.m_size < sizeof(io.DeviceMonitorNotifyHdr)) {
+			size_t leftoverSize = sizeof(io.DeviceMonitorNotifyHdr) - m_notifyBuffer.m_size;
+			if (size < leftoverSize) {
+				m_notifyBuffer.append(p, size);
+				break;
+			}
+
+			m_notifyBuffer.append(p, leftoverSize);
+			p += leftoverSize;
+			size -= leftoverSize;
+		}
+
+		io.DeviceMonitorNotifyHdr const* notifyHdr = (io.DeviceMonitorNotifyHdr const*) m_notifyBuffer.m_p;
+		if (notifyHdr.m_signature != io.DeviceMonitorNotifyHdrSignature) {
+			std.setError("invalid signature in notification header");
+			processError(std.getLastError());
+			return false;
+		}
+
+		if (notifyHdr.m_flags & io.DeviceMonitorNotifyFlags.DataDropped)
+			m_logWriter.write(log.StdRecordCode.RxBufferFullLossy);
+
+		size_t notifySize = sizeof(io.DeviceMonitorNotifyHdr) + notifyHdr.m_paramSize;
+		size_t leftoverSize = notifySize - m_notifyBuffer.m_size;
+
+		if (size < leftoverSize) {
+			m_notifyBuffer.append(p, size);
+			break;
+		}
+
+		m_notifyBuffer.append(p, leftoverSize);
+		p += leftoverSize;
+		size -= leftoverSize;
+
+		notifyHdr = (io.DeviceMonitorNotifyHdr const*) m_notifyBuffer.m_p;
+		processNotification(notifyHdr);
+		m_notifyBuffer.clear();
+	}
+
+	return true;
+}
+
+void SshChannel.processError(std.Error const* error) {
+	m_logWriter.write(log.StdRecordCode.Error, error);
+	close();
+}
+
+//..............................................................................
+
+//! @}
+
+} // namespace iox

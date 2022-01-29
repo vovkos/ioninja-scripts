@@ -31,3 +31,4 @@ org.jancy.io.file
 [scripts]
 
 SshSerialSession.jnc
+iox_SshChannel.jnc
