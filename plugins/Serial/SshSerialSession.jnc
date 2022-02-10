@@ -168,6 +168,13 @@ protected:
 
 	void onMsg(io.HwcMsgHdr const* hdr);
 
+	void onOobData(
+		void const* p,
+		size_t size
+	) {
+		m_logWriter.write(log.StdRecordCode.Bin, p, size);
+	}
+
 	void createUi();
 
 	iox.SshChannel.ConnectParams const* createConnectParams();
@@ -195,6 +202,7 @@ SshSerialSession.construct(doc.PluginHost* pluginHost) {
 	m_ssh.m_onDisconnected += onDisconnected;
 	m_ssh.m_onIncomingData += onIncomingData;
 	m_decoder.m_onMsg += onMsg;
+	m_decoder.m_onOobData += onOobData;
 
 	createUi();
 
@@ -553,6 +561,18 @@ void SshSerialSession.onDisconnected() {
 
 void SshSerialSession.onMsg(io.HwcMsgHdr const* hdr) {
 	switch (hdr.m_code) {
+	case io.HwcMsgCode.Error:
+		std.Error const* error = (std.Error const*)(hdr + 1);
+		m_logWriter.write(log.StdRecordCode.Error, error, error.m_size);
+		disconnect();
+		break;
+
+	case io.HwcMsgCode.ErrorString:
+		std.setError((char const*)(hdr + 1));
+		m_logWriter.writeLastError(log.StdRecordCode.Error);
+		disconnect();
+		break;
+
 	case io.HwcMsgCode.Rx:
 		m_logWriter.write(log.StdRecordCode.Rx, hdr + 1, hdr.m_dataSize);
 		break;

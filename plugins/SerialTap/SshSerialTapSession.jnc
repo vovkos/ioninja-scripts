@@ -141,6 +141,13 @@ protected:
 
 	void onMsg(io.HwcMsgHdr const* hdr);
 
+	void onOobData(
+		void const* p,
+		size_t size
+	) {
+		m_logWriter.write(log.StdRecordCode.Bin, p, size);
+	}
+
 	void onBaudRateChanged();
 
 	void createUi();
@@ -168,6 +175,7 @@ SshSerialTapSession.construct(doc.PluginHost* pluginHost) {
 	m_ssh.m_onDisconnected += onDisconnected;
 	m_ssh.m_onIncomingData += onIncomingData;
 	m_decoder.m_onMsg += onMsg;
+	m_decoder.m_onOobData += onOobData;
 
 	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
@@ -193,9 +201,6 @@ void SshSerialTapSession.createUi() {
 	m_statusPaneTable[StatusPaneId.RemoteAddress] = m_pluginHost.m_statusBar.addPane(, 100);
 	m_statusPaneTable[StatusPaneId.RemoteAddress].m_color = ui.StdColor.Blue;
 	m_statusPaneTable[StatusPaneId.State] = m_pluginHost.m_statusBar.addPane(, 80);
-
-	// serial settings
-
 
 	// property grid
 
@@ -432,9 +437,6 @@ void SshSerialTapSession.onLoginDlgCompleted(
 }
 
 void SshSerialTapSession.onDisconnected() {
-	if (m_decoder.m_buffer.m_size) // show buffered bytes
-		m_logWriter.write(log.StdRecordCode.Bin, m_decoder.m_buffer.m_p, m_decoder.m_buffer.m_size);
-
 	if (!m_decoder.m_msgCount) {
 		std.setError("'ioninja-hwc' on the target machine failed to initialize");
 		m_logWriter.writeLastError(log.StdRecordCode.Error);
@@ -444,8 +446,6 @@ void SshSerialTapSession.onDisconnected() {
 }
 
 void SshSerialTapSession.onMsg(io.HwcMsgHdr const* hdr) {
-	printf("SshSerialTapSession.onMsg(%d): %d bytes\n", hdr.m_code, hdr.m_dataSize);
-
 	static io.HwcMsgCode flippedCodeTable[] = {
 		io.HwcMsgCode.Success,         // Success     = 0,
 		io.HwcMsgCode.ErrorString,     // ErrorString = 1,
@@ -460,6 +460,18 @@ void SshSerialTapSession.onMsg(io.HwcMsgHdr const* hdr) {
 		hdr.m_code;
 
 	switch (code) {
+	case io.HwcMsgCode.Error:
+		std.Error const* error = (std.Error const*)(hdr + 1);
+		m_logWriter.write(log.StdRecordCode.Error, error, error.m_size);
+		// disconnect();
+		break;
+
+	case io.HwcMsgCode.ErrorString:
+		std.setError((char const*)(hdr + 1));
+		m_logWriter.writeLastError(log.StdRecordCode.Error);
+		// disconnect();
+		break;
+
 	case io.HwcMsgCode.Rx:
 		m_logWriter.write(log.StdRecordCode.Rx, hdr + 1, hdr.m_dataSize);
 		break;
@@ -591,8 +603,6 @@ iox.SshChannel.ConnectParams const* SshSerialTapSession.createConnectParams() {
 			parityStringTable[m_serialParity]
 		);
 
-	printf("process: %s\n", params.m_sshParams.m_processExtra);
-
 	params.m_sshParams.m_processExtraSize = strlen(params.m_sshParams.m_processExtra);
 	return params;
 }
@@ -605,7 +615,7 @@ bool errorcode SshSerialTapSession.writeSerialConfigMsg() {
 
 	Msg msg;
 	msg.m_hdr.m_stx = 0x02;
-	msg.m_hdr.m_code = io.HwcMsgCode.SerialSetConfig;
+	msg.m_hdr.m_code = io.HwcMsgCode.SerialTapSetConfig;
 	msg.m_hdr.m_dataSize = sizeof(msg.m_config);
 	msg.m_config.m_baudRate = m_serialBaudRate;
 	msg.m_config.m_dataBits = m_serialDataBits;

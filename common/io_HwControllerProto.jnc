@@ -176,6 +176,10 @@ class HwcProtoDecoder {
 	readonly std.Buffer m_buffer;
 	readonly size_t m_msgCount;
 	event m_onMsg(HwcMsgHdr const* hdr);
+	event m_onOobData(
+		void const* p,
+		size_t size
+	);
 
 	void reset();
 	void ensureZeroTerminatedBuffer();
@@ -208,15 +212,10 @@ void HwcProtoDecoder.write(
 		HwcMsgHdr const* hdr = (HwcMsgHdr const*)m_buffer.m_p;
 		if (hdr.m_stx != 0x02) {
 			char const* stx = memchr(m_buffer.m_p, 0x02, m_buffer.m_size);
-			if (!stx) {
-				m_buffer.clear();
-				break;
-			}
-
-			size_t skipSize = stx - m_buffer.m_p;
+			size_t skipSize = stx ? stx - m_buffer.m_p : m_buffer.m_size;
+			m_onOobData(m_buffer.m_p, skipSize);
 			m_buffer.remove(0, skipSize);
-			size -= skipSize;
-			if (size < sizeof(HwcMsgHdr))
+			if (m_buffer.m_size < sizeof(HwcMsgHdr))
 				break; // header not buffered yet
 		}
 
@@ -225,6 +224,7 @@ void HwcProtoDecoder.write(
 			break; // not fully buffered yet
 
 		m_onMsg(hdr);
+		m_msgCount++;
 		m_buffer.remove(0, msgSize);
 	}
 }

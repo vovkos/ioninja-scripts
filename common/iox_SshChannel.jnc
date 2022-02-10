@@ -505,7 +505,10 @@ void SshChannel.onSshEvent(
 			m_onIncomingData(m_readBuffer.m_p, size);
 	}
 
-	waitSshEvents();
+	// m_onIncomingData could have closed us, so check the state
+
+	if (m_state)
+		waitSshEvents();
 
 catch:
 	m_logWriter.writeLastError(log.StdRecordCode.Error);
