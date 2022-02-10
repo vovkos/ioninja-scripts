@@ -6,7 +6,7 @@ namespace io {
 
 // non-overlapping codes
 
-enum HwcMsgCode: uint16_t {
+enum HwcMsgCode: uint8_t {
 	// generic
 
 	Success     = 0,
@@ -101,6 +101,7 @@ pragma(Alignment, 1)
 // common header
 
 struct HwcMsgHdr {
+	char m_stx;
 	HwcMsgCode m_code;
 	uint16_t m_dataSize;
 
@@ -142,7 +143,7 @@ bitflag enum HwcSerialLineErrors {
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-	struct HwcSerialConfig {
+struct HwcSerialConfig {
 	uint32_t m_baudRate;
 	uint8_t m_dataBits;
 	uint8_t m_stopBits;
@@ -177,6 +178,7 @@ class HwcProtoDecoder {
 	event m_onMsg(HwcMsgHdr const* hdr);
 
 	void reset();
+	void ensureZeroTerminatedBuffer();
 
 	void write(
 		void const* p,
@@ -191,6 +193,11 @@ void HwcProtoDecoder.reset() {
 	m_msgCount = 0;
 }
 
+void HwcProtoDecoder.ensureZeroTerminatedBuffer() {
+	if (!m_buffer.m_size || m_buffer[m_buffer.m_size - 1])
+		m_buffer.append(0);
+}
+
 void HwcProtoDecoder.write(
 	void const* p,
 	size_t size
@@ -199,6 +206,20 @@ void HwcProtoDecoder.write(
 
 	while (m_buffer.m_size >= sizeof(HwcMsgHdr)) {
 		HwcMsgHdr const* hdr = (HwcMsgHdr const*)m_buffer.m_p;
+		if (hdr.m_stx != 0x02) {
+			char const* stx = memchr(m_buffer.m_p, 0x02, m_buffer.m_size);
+			if (!stx) {
+				m_buffer.clear();
+				break;
+			}
+
+			size_t skipSize = stx - m_buffer.m_p;
+			m_buffer.remove(0, skipSize);
+			size -= skipSize;
+			if (size < sizeof(HwcMsgHdr))
+				break; // header not buffered yet
+		}
+
 		size_t msgSize = sizeof(HwcMsgHdr) + hdr->m_dataSize;
 		if (m_buffer.m_size < msgSize)
 			break; // not fully buffered yet

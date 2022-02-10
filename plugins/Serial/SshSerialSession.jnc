@@ -5,8 +5,8 @@
 
 import "doc_Session.jnc"
 import "io_base.jncx"
-import "iox_SshChannel.jnc"
 import "io_Serial.jnc"
+import "iox_SshChannel.jnc"
 import "ui_History.jnc"
 import "ui_SerialSettingUi.jnc"
 import "ui_BufferPropertySet.jnc"
@@ -23,6 +23,8 @@ using extension ui.ComboBoxHistory;
 
 class SshSerialSession: doc.Session {
 protected:
+	alias State = iox.SshChannel.State;
+
 	enum Defaults {
 		ServerPort     = 22,
 		Dtr            = true,
@@ -60,19 +62,6 @@ protected:
 		_Count,
 	}
 
-	static char const* m_stateStringTable[] = {
-		"Closed",
-		"Resolving...",
-		"Connecting...",
-		"Handhsaking...",
-		"Authenticating...",
-		"Authenticating...",
-		"Opening channel...",
-		"Requesting PTY...",
-		"Starting process...",
-		"Connected",
-	}
-
 protected:
 	// serial port
 
@@ -89,19 +78,16 @@ protected:
 	bool bindable m_serialRts;
 	bool bindable m_serialBreakCondition;
 
-	// common serial ui
-
 	// toolbar, status bar & menu
 
+	ui.ComboBox* m_addressCombo;
 	ui.ComboBox* m_portCombo;
 	ui.Action* m_actionTable[ActionId._Count];
 	ui.Icon* m_iconTable[IconId._Count];
 	ui.StatusPane* m_statusPaneTable[StatusPaneId._Count];
-	ui.LoginDlg* m_loginDlg;
 
 	// serial property grid
 
-	ui.ComboBox* m_addressCombo;
 	ui.SocketPropertySet m_socketPropertySet;
 	ui.SshPropertySet m_sshPropertySet;
 	ui.SerialSettingUi m_serialSettingUi;
@@ -126,7 +112,6 @@ public:
 	construct(doc.PluginHost* pluginHost);
 
 	bool errorcode connect();
-	bool errorcode connect(io.SocketAddress const* address);
 	void disconnect();
 
 	override void load(doc.Storage* storage);
@@ -162,32 +147,36 @@ protected:
 	void onRtsChanged();
 	void onBreakConditionChanged();
 
-	void onLoginDlgCompleted(ui.StdDlgButton button);
-	void onConsoleSizeChanged();
+	void onConnected() {
+		m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
+	}
 
-	void onResolverEvent(
-		uint_t syncId,
-		io.HostNameResolverEvents triggeredEvents
-	);
+	void onDisconnected();
 
-	void onSshEvent(
-		uint_t syncId,
-		io.SshEvents triggeredEvents
+	void onIncomingData(
+		void const* p,
+		size_t size
+	) {
+		m_decoder.write(p, size);
+	}
+
+	void onLoginDlgCompleted(
+		char const* userName,
+		ui.AuthenticationMethod authenticationMethod,
+		char const* privateKeyFileName
 	);
 
 	void onMsg(io.HwcMsgHdr const* hdr);
 
 	void createUi();
-	void waitSshEvents();
-	void handleConnectError(std.Error const* error);
-	void handleSshAuthenticateError(std.Error const* error);
+
+	iox.SshChannel.ConnectParams const* createConnectParams();
 	bool errorcode writeSerialConfigMsg();
 
 	bool errorcode writeLineChangeMsg(
 		io.HwcMsgCode code,
 		bool value
 	);
-
 
 	void updateLineInfoValue(
 		InfoId infoId,
@@ -199,8 +188,12 @@ protected:
 
 SshSerialSession.construct(doc.PluginHost* pluginHost) {
 	basetype.construct(pluginHost);
+	m_ssh.construct(pluginHost);
 
-	m_readBuffer.setSize(ui.BufferPropertySet.Defaults.ReadBufferSize);
+	m_ssh.m_onLoginDlgCompleted += onLoginDlgCompleted;
+	m_ssh.m_onConnected += onConnected;
+	m_ssh.m_onDisconnected += onDisconnected;
+	m_ssh.m_onIncomingData += onIncomingData;
 	m_decoder.m_onMsg += onMsg;
 
 	createUi();
@@ -342,32 +335,31 @@ void SshSerialSession.createUi() {
 }
 
 void SshSerialSession.load(doc.Storage* storage) {
-	m_serialSettingUi.load(storage);
-
 	m_addressCombo.loadHistory(storage, "addressHistory");
 	m_addressCombo.m_editText = storage.readString("address");
-
 	m_portCombo.loadHistory(storage, "portHistory");
 	m_portCombo.m_editText = storage.readString("port");
 
 	m_serialSettingUi.load(storage);
+	m_serialSettingUi.load(storage);
 	m_socketPropertySet.load(storage);
 	m_sshPropertySet.load(storage);
 	m_bufferPropertySet.load(storage);
-	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
+	m_ssh.applyProperties(m_socketPropertySet, m_sshPropertySet, m_bufferPropertySet);
 }
 
 void SshSerialSession.save(doc.Storage* storage) {
 	m_serialSettingUi.save(storage);
-
-	storage.writeString("port", m_portCombo.m_editText);
-	storage.writeBool("dtr", m_actionTable [ActionId.Dtr].m_isChecked);
-	storage.writeBool("rts", m_actionTable [ActionId.Rts].m_isChecked);
-
-	m_serialSettingUi.save(storage);
 	m_socketPropertySet.save(storage);
 	m_sshPropertySet.save(storage);
 	m_bufferPropertySet.save(storage);
+
+	m_addressCombo.saveHistory(storage, "addressHistory");
+	storage.writeString("address", m_addressCombo.m_editText);
+	m_portCombo.saveHistory(storage, "portHistory");
+	storage.writeString("port", m_portCombo.m_editText);
+	storage.writeBool("dtr", m_actionTable [ActionId.Dtr].m_isChecked);
+	storage.writeBool("rts", m_actionTable [ActionId.Rts].m_isChecked);
 }
 
 void SshSerialSession.updateProperties() {
@@ -387,13 +379,13 @@ bool errorcode SshSerialSession.applyProperties() {
 	m_actionTable[ActionId.Dtr].m_isChecked = m_dtrProp.m_value;
 	m_actionTable[ActionId.Rts].m_isChecked = m_rtsProp.m_value;
 	m_actionTable[ActionId.BreakCondition].m_isChecked = m_breakConditionProp.m_value;
-	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
 
 	m_serialDtr = m_dtrProp.m_value;
 	m_serialRts = m_rtsProp.m_value;
 	m_serialBreakCondition = m_breakConditionProp.m_value;
+	m_ssh.applyProperties(m_socketPropertySet, m_sshPropertySet, m_bufferPropertySet);
 
-	if (m_state != State.Connected)
+	if (m_ssh.m_state != State.Connected)
 		return true;
 
 	// collect new values from ui
@@ -468,25 +460,27 @@ catch:
 }
 
 void SshSerialSession.restoreDefaultProperties() {
+	m_socketPropertySet.restoreDefaults();
+	m_sshPropertySet.restoreDefaults();
 	m_serialSettingUi.restoreDefaultProperties();
+	m_bufferPropertySet.restoreDefaults();
 
 	m_dtrProp.m_value = Defaults.Dtr;
 	m_rtsProp.m_value = Defaults.Rts;
 	m_breakConditionProp.m_value = Defaults.BreakCondition;
-
-	m_bufferPropertySet.restoreDefaults();
 }
 
 size_t errorcode SshSerialSession.transmit(
 	void const* p,
 	size_t size
 ) {
-	if (m_state != State.Connected) {
+	if (m_ssh.m_state != State.Connected) {
 		std.setError("serial port not opened");
 		return -1;
 	}
 
 	io.HwcMsgHdr hdr;
+	hdr.m_stx = 0x02;
 	hdr.m_code = io.HwcMsgCode.SerialTransmit;
 	hdr.m_dataSize = size;
 
@@ -494,11 +488,6 @@ size_t errorcode SshSerialSession.transmit(
 	size_t result = m_ssh.write(p, size);
 	if (result)
 		m_logWriter.write(log.StdRecordCode.Tx, p, result);
-
-	if (result < size && m_isTransmitEnabled) {
-		m_isTransmitEnabled = false;
-		waitSshEvents();
-	}
 
 	return result;
 }
@@ -512,7 +501,8 @@ bool errorcode SshSerialSession.connect() {
 
 	if (!addressString || !portName) {
 		std.setError("required parameters missing");
-		throw;
+		m_logWriter.writeLastError(log.StdRecordCode.Error);
+		return false;
 	}
 
 	m_addressCombo.addEditTextToHistory();
@@ -526,395 +516,39 @@ bool errorcode SshSerialSession.connect() {
 	m_serialFlowControl = m_serialSettingUi.m_flowControl;
 	m_serialDtr = m_actionTable[ActionId.Dtr].m_isChecked;
 	m_serialRts = m_actionTable[ActionId.Rts].m_isChecked;
-
-	io.SocketAddress address;
-	bool isDirectAddress = try address.parse(addressString);
-	if (isDirectAddress) {
-		if (!address.m_port)
-			address.m_port = m_socketPropertySet.m_remotePortProp.m_value;
-
-		return try connect(&address);
-	}
-
-	m_state = State.Resolving;
-
-	m_logWriter.write(
-		SocketLogRecordCode.Resolving,
-		addressString,
-		strlen(addressString)
-	);
-
-	io.AddressFamily addressFamily = io.AddressFamily.Undefined;
-	if (m_socketPropertySet.m_useLocalAddressProp.m_value) {
-		io.SocketAddress const* adapterAddress = m_socketPropertySet.m_adapterProp.m_value;
-		if (adapterAddress)
-			addressFamily = adapterAddress.m_family;
-	}
-
-	m_resolver.resolve(addressString, addressFamily);
-
-	m_resolver.wait(
-		io.HostNameResolverEvents.Resolved | io.HostNameResolverEvents.Error,
-		onResolverEvent~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler
-	);
-
-	return true;
-
-catch:
-	handleConnectError(std.getLastError());
-	return false;
-}
-
-bool errorcode SshSerialSession.connect(io.SocketAddress const* remoteAddress) {
-	disconnect();
 	m_decoder.reset();
 
-	m_ssh.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
-	m_ssh.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
-	m_ssh.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
-	m_ssh.m_options = ui.getSocketOptions(m_socketPropertySet, m_bufferPropertySet);
-
-	if (!m_socketPropertySet.m_useLocalAddressProp.m_value) {
-		m_ssh.open(remoteAddress.m_family); // any address
-	} else {
-		io.SocketAddress localAddress;
-		io.SocketAddress const* adapterAddress = m_socketPropertySet.m_adapterProp.m_value;
-		if (adapterAddress)
-			localAddress = *adapterAddress;
-		else
-			localAddress.m_family = remoteAddress.m_family;
-
-		localAddress.m_port = (uint16_t)m_socketPropertySet.m_localPortProp.m_value;
-
-		m_ssh.open(&localAddress);
-	}
-
-	m_state = State.TcpConnecting;
-	m_remoteAddress = *remoteAddress;
-
-	m_logWriter.write(
-		SocketLogRecordCode.Connecting,
-		remoteAddress,
-		sizeof(io.SocketAddress)
-	);
-
-	void const* privateKey;
-	char const* password;
-
-	if (m_sshPropertySet.m_authenticationMethodProp.m_value == ui.AuthenticationMethod.PrivateKey) {
-		privateKey = loadFile(m_sshPropertySet.m_privateKeyFileProp.m_value);
-		password = m_loginDlg && m_sshPropertySet.m_rememberLastPasswordProp.m_value ? m_loginDlg.m_privateKeyPassphrase : null;
-	} else {
-		privateKey = null;
-		password = m_loginDlg && m_sshPropertySet.m_rememberLastPasswordProp.m_value ? m_loginDlg.m_password : null;
-	}
-
-	io.SshConnectParams params;
-	params.m_address = *remoteAddress;
-	params.m_userName = m_sshPropertySet.m_userNameProp.m_value;
-	params.m_privateKey = privateKey;
-	params.m_privateKeySize = dynamic sizeof(privateKey);
-	params.m_password = password;
-	params.m_channelType = "session";
-	params.m_processType = "exec";
-
-	static char const* stopBitsStringTable[] = {
-		"1",
-		"1.5",
-		"2",
-	}
-
-	static char const* parityStringTable[] = {
-		"none",
-		"odd",
-		"even",
-		"mark",
-		"space",
-	}
-
-	static char const* flowControlStringTable[] = {
-		"0",
-		"1",
-		"0", // xon/xoff not supported
-	}
-
-	params.m_processExtra =
-		$"ioninja-hwc --stdin "
-		$"--serial=%1 "
-		$"--ser-baud %2 "
-		$"--ser-data %3 "
-		$"--ser-stop %4 "
-		$"--ser-parity %5 "
-		$"--ser-flow %6 "
-		$"--ser-dtr %7 "
-		$"--ser-rts %8 "(
-			m_portName,
-			m_serialBaudRate,
-			m_serialDataBits,
-			stopBitsStringTable[m_serialStopBits],
-			parityStringTable[m_serialParity],
-			flowControlStringTable[m_serialFlowControl],
-			m_serialDtr,
-			m_serialRts
-		);
-
-	params.m_processExtraSize = strlen(params.m_processExtra);
-
-	m_ssh.connect(&params);
-	waitSshEvents();
-	return true;
-
-catch:
-	handleConnectError(std.getLastError());
-	return false;
+	return m_ssh.connect(addressString, createConnectParams());
 }
 
-void SshSerialSession.waitSshEvents() {
-	io.SshEvents eventMask = io.SshEvents.IoError;
-
-	switch (m_state) {
-	case State.TcpConnecting:
-		eventMask |= io.SshEvents.TcpConnected;
-		break;
-
-	case State.SshHandshaking:
-		eventMask |= io.SshEvents.SshHandshakeCompleted;
-		break;
-
-	case State.SshAuthenticating:
-		eventMask |= io.SshEvents.SshAuthenticateCompleted | io.SshEvents.SshAuthenticateError;
-		break;
-
-	case State.SshOpeningChannel:
-		eventMask |= io.SshEvents.SshChannelOpened;
-		break;
-
-	case State.SshRequestingPty:
-		eventMask |= io.SshEvents.SshPtyRequestCompleted;
-		break;
-
-	case State.SshStartingProcess:
-		eventMask |= io.SshEvents.SshConnectCompleted;
-		break;
-
-	case State.Connected:
-		eventMask |=
-			io.SshEvents.TcpDisconnected |
-			io.SshEvents.IncomingData;
-
-		break;
-	}
-
-	m_ssh.wait(eventMask, onSshEvent~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
-}
-
-void SshSerialSession.handleConnectError(std.Error const* error) {
-	m_logWriter.write(SocketLogRecordCode.ConnectError, error);
-	m_ssh.close();
-	m_state = State.Closed;
-}
-
-void SshSerialSession.handleSshAuthenticateError(std.Error const* error) {
-	m_logWriter.write(SocketLogRecordCode.ConnectError, error);
-
-	if (!m_loginDlg) {
-		m_loginDlg = new ui.LoginDlg;
-		m_loginDlg.m_onCompleted += onLoginDlgCompleted;
-	}
-
-	m_loginDlg.m_userName = m_sshPropertySet.m_userNameProp.m_value;
-	m_loginDlg.m_authenticationMethod = m_sshPropertySet.m_authenticationMethodProp.m_value;
-	m_loginDlg.m_privateKeyFileName = m_sshPropertySet.m_privateKeyFileProp.m_value;
-
-	if (!m_sshPropertySet.m_rememberLastPasswordProp.m_value) {
-		m_loginDlg.m_password = null;
-		m_loginDlg.m_privateKeyPassphrase = null;
-	}
-
-	m_loginDlg.show();
-
-	m_state = State.WaitingLoginDlg;
-}
-
-void SshSerialSession.onLoginDlgCompleted(ui.StdDlgButton button) {
-	if (m_state != State.WaitingLoginDlg)
+void SshSerialSession.disconnect() {
+	if (!m_ssh.m_state)
 		return;
 
-	if (button != ui.StdDlgButton.Ok) {
-		m_ssh.close();
-		m_state = State.Closed;
-		return;
-	}
-
-	State nextState;
-
-	if (strcmp(m_loginDlg.m_userName, m_sshPropertySet.m_userNameProp.m_value) == 0) {
-		nextState = State.SshAuthenticating;
-		m_logWriter.write(SshLogRecordCode.SshAuthenticating);
-	} else {
-		nextState = State.TcpConnecting;
-		m_logWriter.write(SshLogRecordCode.Reconnecting);
-	}
-
-	switch (m_loginDlg.m_authenticationMethod) {
-	case ui.AuthenticationMethod.Password:
-		m_ssh.authenticate(m_loginDlg.m_userName, null, 0, m_loginDlg.m_password);
-		break;
-
-	case ui.AuthenticationMethod.PrivateKey:
-		void const* privateKey = loadFile(m_loginDlg.m_privateKeyFileName);
-
-		m_ssh.authenticate(
-			m_loginDlg.m_userName,
-			privateKey,
-			dynamic sizeof(privateKey),
-			m_loginDlg.m_privateKeyPassphrase
-		);
-		break;
-	}
-
-	m_sshPropertySet.m_userNameProp.m_value = m_loginDlg.m_userName;
-	m_sshPropertySet.m_authenticationMethodProp.m_value = m_loginDlg.m_authenticationMethod;
-	m_sshPropertySet.m_privateKeyFileProp.m_value = m_loginDlg.m_privateKeyFileName;
-	m_state = nextState;
-	waitSshEvents();
-
-catch:
-	m_ssh.close();
-	m_state = State.Closed;
+	m_ssh.disconnect();
+	m_stdSessionInfoSet.endSession();
 }
 
-void SshSerialSession.onSshEvent(
-	uint_t syncId,
-	io.SshEvents triggeredEvents
+void SshSerialSession.onLoginDlgCompleted(
+	char const* userName,
+	ui.AuthenticationMethod authenticationMethod,
+	char const* privateKeyFileName
 ) {
-	if (syncId != m_syncId)
-		return;
-
-	if (triggeredEvents & io.SshEvents.IoError) {
-		handleConnectError(m_ssh.m_ioError);
-		return;
-	}
-
-	if (triggeredEvents & io.SshEvents.SshAuthenticateError) {
-		handleSshAuthenticateError(m_ssh.m_ioError);
-		return;
-	}
-
-	if (triggeredEvents & io.SshEvents.TcpConnected) {
-		m_logWriter.write(SshLogRecordCode.TcpConnectCompleted);
-		m_state = State.SshHandshaking;
-	}
-
-	if (triggeredEvents & io.SshEvents.SshHandshakeCompleted) {
-		m_logWriter.write(SshLogRecordCode.SshHandshakeCompleted);
-		m_state = State.SshAuthenticating;
-	}
-
-	if (triggeredEvents & io.SshEvents.SshAuthenticateCompleted) {
-		m_logWriter.write(SshLogRecordCode.SshAuthCompleted);
-		m_state = State.SshOpeningChannel;
-	}
-
-	if (triggeredEvents & io.SshEvents.SshChannelOpened) {
-		m_logWriter.write(SshLogRecordCode.SshChannelOpened);
-		m_state = State.SshRequestingPty;
-	}
-
-	if (triggeredEvents & io.SshEvents.SshPtyRequestCompleted) {
-		m_logWriter.write(SshLogRecordCode.SshPtyRequested);
-		m_state = State.SshStartingProcess;
-	}
-
-	if (triggeredEvents & io.SshEvents.SshConnectCompleted) {
-		m_logWriter.write(SshLogRecordCode.SshProcessStarted);
-		m_logWriter.write(SshLogRecordCode.ConnectCompleted);
-		m_state = State.Connected;
-		m_isTransmitEnabled = true;
-		m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
-	}
-
-	if (triggeredEvents & io.SshEvents.TcpDisconnected) {
-		for (;;) { // read all the buffered data
-			size_t size = m_ssh.read(m_readBuffer.m_p, m_readBuffer.m_size);
-			if (!size)
-				break;
-
-			m_decoder.write(m_readBuffer.m_p, size);
-		}
-
-		if (!m_decoder.m_msgCount) {
-			if (m_decoder.m_buffer.m_size)
-				m_logWriter.write(log.StdRecordCode.Bin, m_decoder.m_buffer.m_p, m_decoder.m_buffer.m_size);
-
-			std.setError("invalid or missing ioninja-hwc on the target machine");
-			m_logWriter.writeLastError(log.StdRecordCode.Error);
-		}
-
-		TcpDisconnectLogRecordParams params;
-		params.m_address = m_remoteAddress;
-		params.m_flags = TcpDisconnectLogRecordFlags.Remote;
-
-		if (triggeredEvents & io.SshEvents.TcpReset)
-			params.m_flags |= TcpDisconnectLogRecordFlags.Reset;
-
-		m_logWriter.write(
-			SocketLogRecordCode.Disconnected,
-			&params,
-			sizeof(params)
-		);
-
-		m_ssh.close();
-		m_state = State.Closed;
-		m_stdSessionInfoSet.endSession();
-		return;
-	}
-
-	if (triggeredEvents & io.SshEvents.IncomingData) {
-		size_t size = m_ssh.read(m_readBuffer.m_p, m_readBuffer.m_size);
-		if (size)
-			m_decoder.write(m_readBuffer.m_p, size);
-	}
-
-	waitSshEvents();
-
-catch:
-	m_logWriter.writeLastError(log.StdRecordCode.Error);
-	disconnect();
+	m_sshPropertySet.m_userNameProp.m_value = userName;
+	m_sshPropertySet.m_authenticationMethodProp.m_value = authenticationMethod;
+	m_sshPropertySet.m_privateKeyFileProp.m_value = privateKeyFileName;
 }
 
-void SshSerialSession.onResolverEvent(
-	uint_t syncId,
-	io.HostNameResolverEvents triggeredEvents
-) {
-	if (syncId != m_syncId)
-		return;
+void SshSerialSession.onDisconnected() {
+	if (m_decoder.m_buffer.m_size) // show buffered bytes
+		m_logWriter.write(log.StdRecordCode.Bin, m_decoder.m_buffer.m_p, m_decoder.m_buffer.m_size);
 
-	if (triggeredEvents & io.HostNameResolverEvents.Error) {
-		handleConnectError(m_resolver.m_error);
-		return;
+	if (!m_decoder.m_msgCount) {
+		std.setError("'ioninja-hwc' on the target machine failed to initialize");
+		m_logWriter.writeLastError(log.StdRecordCode.Error);
 	}
 
-	m_logWriter.write(
-		SocketLogRecordCode.ResolveCompleted,
-		m_resolver.m_addressTable,
-		sizeof(io.SocketAddress)
-	);
-
-	m_state = State.Closed;
-
-	io.SocketAddress address = m_resolver.m_addressTable[0];
-	if (!address.m_port)
-		address.m_port = m_socketPropertySet.m_remotePortProp.m_value;
-
-	try connect(address);
-}
-
-void SshSerialSession.onConsoleSizeChanged() {
-	m_ssh.resizePty(
-		m_pluginHost.m_terminal.m_consoleWidth,
-		m_pluginHost.m_terminal.m_consoleHeight
-	);
+	m_stdSessionInfoSet.endSession();
 }
 
 void SshSerialSession.onMsg(io.HwcMsgHdr const* hdr) {
@@ -959,42 +593,8 @@ void SshSerialSession.onMsg(io.HwcMsgHdr const* hdr) {
 	}
 }
 
-void SshSerialSession.disconnect() {
-	switch (m_state) {
-	case State.Closed:
-		return;
-
-	case State.Resolving:
-	case State.TcpConnecting:
-	case State.SshHandshaking:
-	case State.SshAuthenticating:
-	case State.WaitingLoginDlg:
-	case State.SshOpeningChannel:
-	case State.SshRequestingPty:
-	case State.SshStartingProcess:
-		m_logWriter.write(SocketLogRecordCode.ConnectCancelled);
-		break;
-
-	case State.Connected:
-		TcpDisconnectLogRecordParams params;
-		params.m_address = m_remoteAddress;
-
-		m_logWriter.write(
-			SocketLogRecordCode.Disconnected,
-			&params,
-			sizeof(params)
-		);
-		break;
-	}
-
-	m_ssh.close();
-	m_state = State.Closed;
-	m_syncId++;
-	m_stdSessionInfoSet.endSession();
-}
-
 void SshSerialSession.onBaudRateChanged() {
-	if (m_state != State.Connected)
+	if (m_ssh.m_state != State.Connected)
 		return;
 
 	uint_t baudRate = m_serialSettingUi.m_baudRate;
@@ -1009,21 +609,84 @@ catch:
 	m_logWriter.writeLastError(log.StdRecordCode.Error);
 }
 
-bool errorcode SshSerialSession.writeLineChangeMsg(
-	io.HwcMsgCode code,
-	bool value
-) {
-	struct Msg {
-		io.HwcMsgHdr m_hdr;
-		bool m_value;
-	};
+iox.SshChannel.ConnectParams const* SshSerialSession.createConnectParams() {
+	void const* privateKey;
+	char const* password;
 
-	Msg msg;
-	msg.m_hdr.m_code = code;
-	msg.m_hdr.m_dataSize = sizeof(msg.m_value);
-	msg.m_value = value;
-	m_ssh.write(&msg, sizeof(msg));
-	return true;
+	if (m_sshPropertySet.m_authenticationMethodProp.m_value == ui.AuthenticationMethod.PrivateKey) {
+		privateKey = loadFile(m_sshPropertySet.m_privateKeyFileProp.m_value);
+		password = m_ssh.getLastPrivateKeyPassphrase();
+	} else {
+		privateKey = null;
+		password = m_ssh.getLastPassword();
+	}
+
+	iox.SshChannel.ConnectParams* params = new iox.SshChannel.ConnectParams;
+	params.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
+	params.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
+	params.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
+	params.m_socketOptions = ui.getSocketOptions(m_socketPropertySet, m_bufferPropertySet);
+	params.m_defaultPort = m_socketPropertySet.m_remotePortProp.m_value;
+
+	if (m_socketPropertySet.m_useLocalAddressProp.m_value) {
+		io.SocketAddress const* adapterAddress = m_socketPropertySet.m_adapterProp.m_value;
+		if (adapterAddress)
+			params.m_localAddress = *adapterAddress;
+
+		params.m_localAddress.m_port = (uint16_t)m_socketPropertySet.m_localPortProp.m_value;
+	}
+
+	params.m_privateKeyFileName = m_sshPropertySet.m_privateKeyFileProp.m_value;
+	params.m_rememberLastPassword = m_sshPropertySet.m_rememberLastPasswordProp.m_value;
+	params.m_sshParams.m_userName = m_sshPropertySet.m_userNameProp.m_value;
+	params.m_sshParams.m_privateKey = privateKey;
+	params.m_sshParams.m_privateKeySize = dynamic sizeof(privateKey);
+	params.m_sshParams.m_password = password;
+	params.m_sshParams.m_channelType = "session";
+	params.m_sshParams.m_processType = "exec";
+
+	static char const* stopBitsStringTable[] = {
+		"1",
+		"1.5",
+		"2",
+	}
+
+	static char const* parityStringTable[] = {
+		"none",
+		"odd",
+		"even",
+		"mark",
+		"space",
+	}
+
+	static char const* flowControlStringTable[] = {
+		"0",
+		"1",
+		"0", // xon/xoff not supported
+	}
+
+	params.m_sshParams.m_processExtra =
+		"ioninja-hwc --stdin "
+		$"--serial=%1 "
+		$"--ser-baud %2 "
+		$"--ser-data %3 "
+		$"--ser-stop %4 "
+		$"--ser-parity %5 "
+		$"--ser-flow %6 "
+		$"--ser-dtr %7 "
+		$"--ser-rts %8 "(
+			m_portName,
+			m_serialBaudRate,
+			m_serialDataBits,
+			stopBitsStringTable[m_serialStopBits],
+			parityStringTable[m_serialParity],
+			flowControlStringTable[m_serialFlowControl],
+			m_serialDtr,
+			m_serialRts
+		);
+
+	params.m_sshParams.m_processExtraSize = strlen(params.m_sshParams.m_processExtra);
+	return params;
 }
 
 bool errorcode SshSerialSession.writeSerialConfigMsg() {
@@ -1033,6 +696,7 @@ bool errorcode SshSerialSession.writeSerialConfigMsg() {
 	};
 
 	Msg msg;
+	msg.m_hdr.m_stx = 0x02;
 	msg.m_hdr.m_code = io.HwcMsgCode.SerialSetConfig;
 	msg.m_hdr.m_dataSize = sizeof(msg.m_config);
 	msg.m_config.m_baudRate = m_serialBaudRate;
@@ -1044,8 +708,26 @@ bool errorcode SshSerialSession.writeSerialConfigMsg() {
 	return true;
 }
 
+bool errorcode SshSerialSession.writeLineChangeMsg(
+	io.HwcMsgCode code,
+	bool value
+) {
+	struct Msg {
+		io.HwcMsgHdr m_hdr;
+		bool m_value;
+	};
+
+	Msg msg;
+	msg.m_hdr.m_stx = 0x02;
+	msg.m_hdr.m_code = code;
+	msg.m_hdr.m_dataSize = sizeof(msg.m_value);
+	msg.m_value = value;
+	m_ssh.write(&msg, sizeof(msg));
+	return true;
+}
+
 void SshSerialSession.onDtrChanged() {
-	if (m_state != State.Connected)
+	if (m_ssh.m_state != State.Connected)
 		return;
 
 	bool value = m_actionTable[ActionId.Dtr].m_isChecked;
@@ -1055,7 +737,7 @@ void SshSerialSession.onDtrChanged() {
 }
 
 void SshSerialSession.onRtsChanged() {
-	if (m_state != State.Connected)
+	if (m_ssh.m_state != State.Connected)
 		return;
 
 	bool value = m_actionTable[ActionId.Rts].m_isChecked;
@@ -1065,7 +747,7 @@ void SshSerialSession.onRtsChanged() {
 }
 
 void SshSerialSession.onBreakConditionChanged() {
-	if (m_state != State.Connected)
+	if (m_ssh.m_state != State.Connected)
 		return;
 
 	bool value = m_actionTable[ActionId.BreakCondition].m_isChecked;
@@ -1083,24 +765,30 @@ void SshSerialSession.updateLineInfoValue(
 }
 
 reactor SshSerialSession.m_uiReactor {
-	m_title = m_state == State.Connected ?
-		$"Serial $(m_remoteAddress.getString()) $m_portName $m_serialBaudRate bps" :
+	m_isTransmitEnabled = m_ssh.m_isTransmitEnabled;
+
+	m_title = m_ssh.m_state == State.Connected ?
+		$"Serial $(m_ssh.m_remoteAddress.getString()) $m_portName $m_serialBaudRate bps" :
 		$"Serial $(m_addressCombo.m_currentText) $(m_portCombo.m_currentText) $(m_serialSettingUi.m_baudRateCombo.m_editText)";
 
-	m_actionTable[ActionId.Connect].m_text = m_state ? "Close" : "Open";
-	m_actionTable[ActionId.Connect].m_icon = m_iconTable[m_state ? IconId.Disconnect : IconId.Connect];
+	m_actionTable[ActionId.Connect].m_text = m_ssh.m_state ? "Close" : "Open";
+	m_actionTable[ActionId.Connect].m_icon = m_iconTable[m_ssh.m_state ? IconId.Disconnect : IconId.Connect];
 	m_actionTable[ActionId.Rts].m_isEnabled = m_serialSettingUi.m_flowControlProp.m_value != io.SerialFlowControl.RtsCts;
 	m_rtsProp.m_isEnabled = m_serialSettingUi.m_flowControlProp.m_value != io.SerialFlowControl.RtsCts;
-	m_statusPaneTable[StatusPaneId.State].m_text = m_stateStringTable[m_state];
-	m_statusPaneTable[StatusPaneId.RemoteAddress].m_text = m_state > State.Resolving ? m_remoteAddress.getString() : "<peer-address>";
-	m_statusPaneTable[StatusPaneId.RemoteAddress].m_isVisible = m_state > State.Resolving;
-	m_statusPaneTable[StatusPaneId.PortName].m_text = m_state == State.Connected ? m_portName : "<port-name>";
-	m_statusPaneTable[StatusPaneId.PortName].m_isVisible = m_state == State.Connected;
-	m_infoTable[InfoId.Dsr].m_isEnabled = m_state;
-	m_infoTable[InfoId.Cts].m_isEnabled = m_state;
-	m_infoTable[InfoId.Dtr].m_isEnabled = m_state;
-	m_infoTable[InfoId.Rts].m_isEnabled = m_state;
-	m_infoTable[InfoId.BreakCondition].m_isEnabled = m_state;
+	m_statusPaneTable[StatusPaneId.State].m_text = m_ssh.m_stateStringTable[m_ssh.m_state];
+	m_statusPaneTable[StatusPaneId.RemoteAddress].m_text = m_ssh.m_state > State.Resolving ?
+		m_ssh.m_remoteAddress.getString() :
+		"<peer-address>";
+	m_statusPaneTable[StatusPaneId.RemoteAddress].m_isVisible = m_ssh.m_state > State.Resolving;
+	m_statusPaneTable[StatusPaneId.PortName].m_text = m_ssh.m_state == State.Connected ?
+		m_portName :
+		"<port-name>";
+	m_statusPaneTable[StatusPaneId.PortName].m_isVisible = m_ssh.m_state == State.Connected;
+	m_infoTable[InfoId.Dsr].m_isEnabled = m_ssh.m_state == State.Connected;
+	m_infoTable[InfoId.Cts].m_isEnabled = m_ssh.m_state == State.Connected;
+	m_infoTable[InfoId.Dtr].m_isEnabled = m_ssh.m_state == State.Connected;
+	m_infoTable[InfoId.Rts].m_isEnabled = m_ssh.m_state == State.Connected;
+	m_infoTable[InfoId.BreakCondition].m_isEnabled = m_ssh.m_state == State.Connected;
 
 	updateLineInfoValue(InfoId.Dtr, m_serialDtr);
 	updateLineInfoValue(InfoId.Rts, m_serialRts);
