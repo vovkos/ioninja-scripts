@@ -5,8 +5,10 @@
 
 import "doc_Session.jnc"
 import "io_base.jncx"
+import "io_Serial.jnc"
 import "io_ssh.jncx"
 import "iox_SshChannel.jnc"
+import "io_HwControllerProto.jnc"
 import "ui_History.jnc"
 import "ui_SocketUi.jnc"
 import "ui_SerialSettingUi.jnc"
@@ -15,7 +17,6 @@ import "ui_BufferPropertySet.jnc"
 import "ui_StdSessionInfoSet.jnc"
 import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
-import "io_HwControllerProto.jnc"
 import "std_Buffer.jnc"
 import "loadFile.jnc"
 
@@ -196,7 +197,7 @@ void SshSerialTapSession.createUi() {
 	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable [IconId.Capture]);
 	m_actionTable[ActionId.Capture].m_onTriggered += onCapture;
 
-	// status bar (only one pane)
+	// status bar
 
 	m_statusPaneTable[StatusPaneId.RemoteAddress] = m_pluginHost.m_statusBar.addPane(, 100);
 	m_statusPaneTable[StatusPaneId.RemoteAddress].m_color = ui.StdColor.Blue;
@@ -225,8 +226,6 @@ void SshSerialTapSession.createUi() {
 		ui.SshPropertySet.PropertyId.PrivateKeyFile |
 		ui.SshPropertySet.PropertyId.RememberLastPassword
 	);
-
-	// settings
 
 	group = m_pluginHost.m_propertyGrid.createGroupProperty(
 		"Serial port",
@@ -257,13 +256,6 @@ void SshSerialTapSession.createUi() {
 		group,,
 		"Flip DTE/DCE",
 		"Flip logical sides of the tap cable"
-	);
-
-	// property grid
-
-	group = m_pluginHost.m_propertyGrid.createGroupProperty(
-		"Buffering & compatibility",
-		"Advanced options controlling performance, throughtput and compatibility"
 	);
 
 	ui.BufferPropertySet.PropertyId mask = ui.BufferPropertySet.PropertyId.All;
@@ -463,13 +455,13 @@ void SshSerialTapSession.onMsg(io.HwcMsgHdr const* hdr) {
 	case io.HwcMsgCode.Error:
 		std.Error const* error = (std.Error const*)(hdr + 1);
 		m_logWriter.write(log.StdRecordCode.Error, error, error.m_size);
-		// disconnect();
+		disconnect();
 		break;
 
 	case io.HwcMsgCode.ErrorString:
 		std.setError((char const*)(hdr + 1));
 		m_logWriter.writeLastError(log.StdRecordCode.Error);
-		// disconnect();
+		disconnect();
 		break;
 
 	case io.HwcMsgCode.Rx:
