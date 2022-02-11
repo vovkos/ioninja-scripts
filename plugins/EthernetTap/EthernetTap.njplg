@@ -26,3 +26,4 @@ org.jancy.io.file
 
 EthernetTapSession.jnc
 EthernetTapLogFilter.jnc
+EthernetTapLogToPcap.jnc

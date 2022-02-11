@@ -3,6 +3,7 @@
 // SSH channel (shared between multiple SSH-based plugins)
 //
 
+import "io_base.jncx"
 import "io_ssh.jncx"
 import "io_HostNameResolver.jnc"
 import "ui_Dialog.jnc"
