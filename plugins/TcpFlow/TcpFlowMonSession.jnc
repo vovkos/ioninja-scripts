@@ -331,6 +331,7 @@ bool errorcode TcpFlowMonSession.capture() {
 
 catch:
 	m_logWriter.writeLastError(PcapLogRecordCode.CaptureError);
+	m_pcap.close();
 	return false;
 }
 

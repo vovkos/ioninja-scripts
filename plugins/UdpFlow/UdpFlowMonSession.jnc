@@ -318,6 +318,7 @@ bool errorcode UdpFlowMonSession.capture() {
 
 catch:
 	m_logWriter.writeLastError(PcapLogRecordCode.CaptureError);
+	m_pcap.close();
 	return false;
 }
 

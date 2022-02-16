@@ -424,6 +424,7 @@ bool errorcode PcapSnifferSession.capture(
 
 catch:
 	m_logWriter.writeLastError(PcapLogRecordCode.CaptureError);
+	m_pcap.close();
 	return false;
 }
 
@@ -547,7 +548,7 @@ bool errorcode PcapSnifferSession.applyProperties() {
 
 	applyViewFilter();
 
-	if (!m_pcap.m_isOpen)
+	if (!m_state)
 		return true;
 
 	m_pcap.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
