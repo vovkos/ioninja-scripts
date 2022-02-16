@@ -494,8 +494,7 @@ bool errorcode TcpFlowMonSession.applyProperties() {
 	m_decoder.setup(
 		m_ipFragmentLimitProp.m_value,
 		m_ipFragmentTimeoutProp.m_value,
-		m_tcpOutOfSeqLimitProp.m_value,
-		TcpDecoder.Defaults.ConnectionTimeout
+		m_tcpOutOfSeqLimitProp.m_value
 	);
 
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
@@ -542,12 +541,22 @@ void TcpFlowMonSession.onPcapEvent(
 		size_t result = m_pcap.read(m_readBuffer.m_p, m_readBuffer.m_size, &timestamp);
 		if (result) {
 			g_logWriter = m_pluginHost.m_log.m_writer;
-			g_logTimestamp = timestamp;
-			m_decoder.decodeLinkHdr(m_pcap.m_linkType, m_readBuffer.m_p, result);
+			m_decoder.decodeLinkHdr(m_pcap.m_linkType, timestamp, m_readBuffer.m_p, result);
 		}
 	}
 
 	if (triggeredEvents & io.PcapEvents.Eof) {
+		g_logWriter = m_pluginHost.m_log.m_writer;
+
+		for (;;) {
+			uint64_t timestamp;
+			size_t result = m_pcap.read(m_readBuffer.m_p, m_readBuffer.m_size, &timestamp);
+			if (!result)
+				break;
+
+			m_decoder.decodeLinkHdr(m_pcap.m_linkType, timestamp, m_readBuffer.m_p, result);
+		}
+
 		stopCapture();
 		return;
 	}

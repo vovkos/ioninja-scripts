@@ -543,7 +543,7 @@ bool errorcode PcapSnifferSession.applyProperties() {
 	m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
 	m_viewFilterCombo.m_editText = m_viewFilterProp.m_value;
 	m_ipDefragmenter.m_fragmentLimit = m_ipFragmentLimitProp.m_value;
-	m_ipDefragmenter.m_timeout = m_ipFragmentTimeoutProp.m_value;
+	m_ipDefragmenter.m_fragmentTimeout = m_ipFragmentTimeoutProp.m_value;
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
 
 	applyViewFilter();
@@ -609,6 +609,15 @@ void PcapSnifferSession.onPcapEvent(
 	}
 
 	if (triggeredEvents & io.PcapEvents.Eof) {
+		for (;;) {
+			uint64_t timestamp;
+			size_t result = m_pcap.read(m_readBuffer.m_p, m_readBuffer.m_size, &timestamp);
+			if (!result)
+				break;
+
+			processPacket(timestamp, m_readBuffer.m_p, result);
+		}
+
 		stopCapture();
 		return;
 	}
@@ -660,7 +669,7 @@ void PcapSnifferSession.processPacket(
 
 	io.IpHdr const* ipHdr = (io.IpHdr const*) p;
 	if ((ipHdr.m_flags & io.IpFlags.Mf) || ipHdr.m_fragmentOffset) {
-		ipHdr = m_ipDefragmenter.defragment(ipHdr, size);
+		ipHdr = m_ipDefragmenter.defragment(timestamp, ipHdr, size);
 		if (ipHdr) {
 			size = dynamic sizeof(ipHdr);
 			m_logWriter.write(NetSnifferLogRecordCode.DefragmentedIp, ipHdr, size);
