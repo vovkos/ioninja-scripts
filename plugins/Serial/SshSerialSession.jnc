@@ -631,14 +631,14 @@ catch:
 
 iox.SshChannel.ConnectParams const* SshSerialSession.createConnectParams() {
 	void const* privateKey;
-	char const* password;
+	char const* lastPassword;
 
 	if (m_sshPropertySet.m_authenticationMethodProp.m_value == ui.AuthenticationMethod.PrivateKey) {
 		privateKey = loadFile(m_sshPropertySet.m_privateKeyFileProp.m_value);
-		password = m_ssh.getLastPrivateKeyPassphrase();
+		lastPassword = m_ssh.getLastPrivateKeyPassphrase();
 	} else {
 		privateKey = null;
-		password = m_ssh.getLastPassword();
+		lastPassword = m_ssh.getLastPassword();
 	}
 
 	iox.SshChannel.ConnectParams* params = new iox.SshChannel.ConnectParams;
@@ -661,9 +661,11 @@ iox.SshChannel.ConnectParams const* SshSerialSession.createConnectParams() {
 	params.m_sshParams.m_userName = m_sshPropertySet.m_userNameProp.m_value;
 	params.m_sshParams.m_privateKey = privateKey;
 	params.m_sshParams.m_privateKeySize = dynamic sizeof(privateKey);
-	params.m_sshParams.m_password = password;
 	params.m_sshParams.m_channelType = "session";
 	params.m_sshParams.m_processType = "exec";
+
+	if (m_sshPropertySet.m_rememberLastPasswordProp.m_value)
+		params.m_sshParams.m_password = lastPassword;
 
 	static char const* stopBitsStringTable[] = {
 		"1",
