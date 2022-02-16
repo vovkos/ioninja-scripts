@@ -107,7 +107,6 @@ public:
 	);
 
 	void disconnect();
-	void close();
 
 	size_t errorcode read(
 		void* p,
@@ -264,10 +263,8 @@ void SshChannel.disconnect() {
 
 	m_ssh.close();
 	m_state = State.Closed;
+	m_isTransmitEnabled = false;
 	m_syncId++;
-}
-
-void SshChannel.close() {
 }
 
 size_t errorcode SshChannel.write(
@@ -418,8 +415,7 @@ void SshChannel.onLoginDlgCompleted(ui.StdDlgButton button) {
 	waitSshEvents();
 
 catch:
-	m_ssh.close();
-	m_state = State.Closed;
+	handleConnectError(std.getLastError());
 }
 
 void SshChannel.onSshEvent(
@@ -496,6 +492,7 @@ void SshChannel.onSshEvent(
 
 		m_ssh.close();
 		m_state = State.Closed;
+		m_isTransmitEnabled = false;
 		m_onDisconnected();
 		return;
 	}
