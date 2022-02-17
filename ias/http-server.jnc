@@ -1,61 +1,20 @@
-import "sys_Event.jnc"
+//..............................................................................
+//
+// The example shows how to properly process requests in a data stream.
+// First of all, we buffer HTTP requests all the way to a double CR-LF. After
+// an HTTP request is fully buffered, we use the Jancy `reswitch` to parse and
+// process GET requests (by returning files from the the users's home directory.
+//
+//..............................................................................
+
 import "io_base.jncx"
 import "io_File.jnc"
-
-sys.Event g_httpGetEvent;
-char const* g_httpGetFileName;
-jnc.RegexState g_regexState construct(jnc.RegexStateFlags.Incremental | jnc.RegexExecFlags.AnchorDataBegin);
-
-char const* g_rootDir = io.getHomeDir();
+import "sys_Thread.jnc"
+import "std_Buffer.jnc"
 
 void main() {
-	for (;;) {
-		// wait until we receive GET <filename>
-
-		for (;;) { // don't completely block the main thread
-			if (g_httpGetEvent.wait(1000))
-				break;
-		}
-
-		char const* fileName = $"%1/%2"(g_rootDir, g_httpGetFileName);
-
-		g_logWriter.write($"Opening file: $fileName...");
-		g_logWriter.write(log.StdRecordCode.Break); // to ensure adjacent messages don't stick together
-
-		io.File file;
-		file.open(fileName, io.FileOpenFlags.ReadOnly);
-
-		g_logWriter.write($"Transmitting file (%d bytes)..."(file.m_size));
-		g_logWriter.write(log.StdRecordCode.Break);
-
-		transmit(
-			"HTTP/1.1 200 OK\r\n"
-			"Content-Type: application/octet-stream\r\n"
-			$"Content-Length: %1\r\n\r\n"(file.m_size)
-		);
-
-		char buffer[4 * 1024];
-
-		for (;;) {
-			size_t size = file.read(buffer, sizeof(buffer));
-			if (!size) // all done
-				break;
-
-			char* p = buffer;
-			char* end = p + size;
-
-			while (p < end) {
-				size_t sent = transmit(p, end - p);
-				p += sent;
-
-				if (!sent) // SSL/TCP buffer is full, give some time to flush it
-					sys.sleep(100);
-			}
-		}
-
-		g_logWriter.write("File transmitted!");
-		g_logWriter.write(log.StdRecordCode.Break);
-	}
+	for (;;)
+		sys.sleep(500); // don't eat CPU in busy loop
 }
 
 void onLogRecord(
@@ -64,21 +23,145 @@ void onLogRecord(
 	void const* p,
 	size_t size
 ) {
-	if (recordCode != log.StdRecordCode.Rx)
-		return;
+	static HttpServer server;
+
+	if (recordCode == log.StdRecordCode.Rx)
+		server.write(p, size);
+}
+
+//..............................................................................
+
+// implementation
+
+class HttpServer {
+protected:
+	jnc.Regex m_regex;
+	jnc.RegexState m_regexState;
+	std.Buffer m_buffer;
+	char const* m_rootDir;
+
+public:
+	construct();
+
+	void write(
+		void const* p,
+		size_t size
+	);
+
+protected:
+	void processRequest(
+		void const* p,
+		size_t size
+	);
+
+	void transmitFile(char const* fileName);
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+HttpServer.construct() {
+	m_regex.compile(r"\r?\n\r?\n"); // request is terminated with a double LF
+	m_regexState.initialize(jnc.RegexExecFlags.Stream);
+	m_rootDir = io.getHomeDir();
+}
+
+void HttpServer.write(
+	void const* p,
+	size_t size
+) {
+	// buffer request until we see double LF
 
 	void const* end = p + size;
 	while (p < end) {
-		reswitch (g_regexState, p, end - p) {
-		case r"GET\s+([^\s]+)":
-			g_httpGetFileName = strdup(g_regexState.m_captureArray[0].m_text);
-			g_httpGetEvent.signal();
-			break;
-
-		case ".":
+		jnc.RegexExecResult result = m_regex.exec(m_regexState, p, end - p);
+		if (result == jnc.RegexExecResult.Continue) {
+			m_buffer.append(p, end - p);
 			break;
 		}
 
-		p += g_regexState.m_match.m_length;
+		assert(result > 0); // with this regex, we never need to go back
+
+		size_t chunkSize = m_regexState.m_match.m_endOffset - m_buffer.m_size;
+		assert(chunkSize <= end - p);
+
+		m_buffer.append(p, chunkSize);
+		processRequest(m_buffer.m_p, m_buffer.m_size);
+
+		// reset and keep buffering
+
+		m_regexState.reset();
+		m_buffer.clear();
+		p += chunkSize;
 	}
 }
+
+void HttpServer.processRequest(
+	void const* p,
+	size_t size
+) {
+	jnc.RegexState state;
+	reswitch (state, p, size) {
+	case r"GET[ \t]+([^\s]+)[^\n]+\n": // only care about the first line of GET
+		char const* fileName = state.m_captureArray[0].m_text;
+		sys.Thread thread;
+		thread.start(transmitFile~(fileName));
+		break;
+
+	// process other HTTP commands if necessary
+	}
+}
+
+void HttpServer.transmitFile(char const* fileName)  {
+	char const* filePath = $"%1/%2"(m_rootDir, fileName);
+
+	g_logWriter.write($"Opening file: $filePath...");
+	g_logWriter.write(log.StdRecordCode.Break); // to ensure adjacent messages don't stick together
+
+	io.File file;
+	file.open(filePath, io.FileOpenFlags.ReadOnly);
+
+	g_logWriter.write($"Transmitting file (%d bytes)..."(file.m_size));
+	g_logWriter.write(log.StdRecordCode.Break);
+
+	transmit(
+		"HTTP/1.1 200 OK\r\n"
+		"Content-Type: application/octet-stream\r\n"
+		$"Content-Length: %1\r\n\r\n"(file.m_size)
+	);
+
+	char buffer[4 * 1024];
+
+	for (;;) {
+		size_t size = file.read(buffer, sizeof(buffer));
+		if (!size) // all done
+			break;
+
+		char* p = buffer;
+		char* end = p + size;
+
+		while (p < end) {
+			size_t sent = transmit(p, end - p);
+			p += sent;
+
+			if (!sent) // SSL/TCP buffer is full, give some time to flush it
+				sys.sleep(100);
+		}
+	}
+
+	g_logWriter.write("File transmitted!");
+	g_logWriter.write(log.StdRecordCode.Break);
+
+catch:
+	char const* message = std.getLastErrorDescription();
+
+	transmit(
+		"HTTP/1.1 500 Internal Server Error\r\n"
+		"Content-Type: text/plain\r\n"
+		$"Content-Length: %1\r\n\r\n%2"(
+			strlen(message),
+			message
+		)
+	);
+}
+
+//..............................................................................

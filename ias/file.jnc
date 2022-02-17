@@ -1,8 +1,8 @@
 //..............................................................................
 //
 // The example extracts sections of the incomiong data stream (RX) between
-// characters STX (0x02) and CR (0x0A) and saves those in a file called
-// 'ioninja-stx-cr.bin' in the users's home directory.
+// characters STX (0x02) and CR (0x0D) and saves those in a file called
+// 'ioninja-stx-cr.bin' in the users's HOME directory.
 //
 //..............................................................................
 
