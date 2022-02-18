@@ -10,6 +10,7 @@ description = "Monitor Ethernet packets via an Ethernet Tap connected to a remot
 id          = ssh-ethernet-tap
 group       = hw
 monitor     = true
+terminal    = false
 log-guid    = ae3dc2da-6124-4c14-b05a-200df2fc580a  # ethernet tap
 log-guid    = 8ec96e77-89df-4dd8-bc14-b995b85de45d  # ssh
 log-guid    = db8c8923-a699-46cc-be7c-f0bcd523082b  # socket
