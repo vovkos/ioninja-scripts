@@ -321,11 +321,14 @@ bool errorcode SshChannelSession.connect(io.SocketAddress const* remoteAddress) 
 	params.m_password = password;
 	params.m_channelType = "session";
 	params.m_processType = m_sshPropertySet.m_processTypeProp.m_value;
-	params.m_processExtra = m_sshPropertySet.m_processParamProp.m_value;
-	params.m_processExtraSize = strlen(params.m_processExtra);
 	params.m_ptyType = m_sshPropertySet.m_ptyTypeProp.m_value;
 	params.m_ptyWidth = m_pluginHost.m_terminal.m_consoleWidth;
 	params.m_ptyHeight = m_pluginHost.m_terminal.m_consoleHeight;
+
+	if (strcmp(params.m_processType, "shell") != 0) {
+		params.m_processExtra = m_sshPropertySet.m_processParamProp.m_value;
+		params.m_processExtraSize = strlen(params.m_processExtra);
+	}
 
 	m_ssh.connect(&params);
 	waitSshEvents();
