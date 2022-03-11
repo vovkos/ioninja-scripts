@@ -5,7 +5,7 @@
 
 import "doc_Session.jnc"
 import "iox_SshChannel.jnc"
-import "io_HwControllerProto.jnc"
+import "io_HwcProto.jnc"
 import "iox_SshChannel.jnc"
 import "io_LogToPcap.jnc"
 import "ui_History.jnc"
