@@ -22,15 +22,15 @@ class EthernetTapSession: doc.Session {
 protected:
 	enum Defaults {
 		ReadParallelism = 4,
-		ReadBlockSize   = 64 * 1024,
+		ReadBlockSize   = 2 * 512, // 1 K
 		ReadBufferSize  = 1 * 1024 * 1024,
 	}
 
 	enum {
 		CypressBufferSize         = 4 * 1024, // 4K (2K built-in in Cypress + 512 FPGA FIFO)
 		GracefulStopWriteTimeout  = 1000,     // 1 sec
+		CypressClearBufferTimeout = 200,      // 0.2 sec
 		FpgaUploadBaseIndex       = 0x2000,
-		UsbTransferTimeout        = 200,      // 0.2 sec
 	}
 
 	enum State {
@@ -353,7 +353,6 @@ bool errorcode EthernetTapSession.startCapture() {
 	m_inEndpoint.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
 	m_inEndpoint.m_readBlockSize = readBlockSize;
 	m_inEndpoint.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
-	m_inEndpoint.m_transferTimeout = UsbTransferTimeout;
 	m_inEndpoint.m_options &= ~io.UsbEndpointOptions.KeepReadBlockSize;
 	m_inEndpoint.unsuspend();
 
@@ -397,7 +396,7 @@ bool errorcode EthernetTapSession.gracefulStop() {
 	ep.unsuspend();
 
 	for (;;) {
-		ep.blockingWait(io.UsbEndpointEvents.IncomingData, UsbTransferTimeout);
+		ep.blockingWait(io.UsbEndpointEvents.IncomingData, CypressClearBufferTimeout);
 
 		size_t size = ep.read(m_readBuffer.m_p, m_readBuffer.m_size);
 		if (!size)
