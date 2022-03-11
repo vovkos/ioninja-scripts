@@ -74,6 +74,7 @@ protected:
 	std.Buffer m_readBuffer;
 	sys.Timer m_reconnectTimer;
 	uint64_t m_lastReconnectTime;
+	char const* m_hostname;
 	uint_t m_syncId;
 
 	// toolbar, status bar & menu
@@ -243,6 +244,7 @@ bool errorcode SslConnectionSession.connect() {
 
 	char const* addressString = m_addressCombo.m_editText;
 	m_addressCombo.addEditTextToHistory();
+	m_hostname = null;
 
 	io.SocketAddress address;
 	bool isDirectAddress = try address.parse(addressString);
@@ -255,6 +257,14 @@ bool errorcode SslConnectionSession.connect() {
 
 	m_state = State.Resolving;
 	m_sessionConnectionState = SessionConnectionState.Connecting;
+
+	if (m_sslPropertySet.m_useHostnameProp.m_value) {
+		char const* portToken = strchr(addressString, ':');
+		m_hostname = strdup(
+			addressString,
+			portToken ? portToken - addressString : -1
+		);
+	}
 
 	m_logWriter.write(
 		SocketLogRecordCode.Resolving,
@@ -327,6 +337,9 @@ bool errorcode SslConnectionSession.connect(io.SocketAddress const* remoteAddres
 			m_sslPropertySet.m_verifyCaDirProp.m_value
 		);
 	}
+
+	if (m_hostname)
+		m_socket.m_hostname = m_hostname;
 
 	m_socket.connect(remoteAddress);
 
