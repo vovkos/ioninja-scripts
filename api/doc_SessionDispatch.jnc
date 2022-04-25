@@ -1,0 +1,23 @@
+//..............................................................................
+//
+// Ninja document model - dispatch interface
+//
+
+class SessionDispatch {
+	bool errorcode dispatch(
+		uint_t code,
+		variant in,
+		variant* out = null
+	);
+
+	variant dispatchGet(
+		uint_t code,
+		variant in = null
+	) {
+		variant result;
+		dispatch(code, in, &result);
+		return result;
+	}
+}
+
+//..............................................................................
