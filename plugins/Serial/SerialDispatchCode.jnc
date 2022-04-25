@@ -1,0 +1,32 @@
+//..............................................................................
+//
+// Serial session dispatch codes
+//
+
+//..............................................................................
+
+enum SerialDispatchCode {
+	GetPortName,
+	SetPortName,
+	GetBaudRate,
+	SetBaudRate,
+	GetDataBits,
+	SetDataBits,
+	GetStopBits,
+	SetStopBits,
+	GetParity,
+	SetParity,
+	GetFlowControl,
+	SetFlowControl,
+	GetStatusLines,
+	GetDTR,
+	SetDTR,
+	GetRTS,
+	SetRTS,
+	GetBreakCondition,
+	SetBreakCondition,
+	Open,
+	Close
+}
+
+//..............................................................................

@@ -133,6 +133,12 @@ public:
 		close();
 	}
 
+	override bool errorcode dispatch(
+		uint_t code,
+		variant in,
+		variant* out
+	);
+
 protected:
 	void onOpen() {
 		m_state ? close() : try open();
@@ -631,6 +637,130 @@ size_t errorcode SerialSession.transmit(
 	}
 
 	return result;
+}
+
+bool errorcode SerialSession.dispatch(
+	uint_t code,
+	variant in,
+	variant* out
+) {
+	switch (code) {
+	case SerialDispatchCode.GetPortName:
+		*out = m_portCombo.m_currentText;
+		break;
+
+	case SerialDispatchCode.SetPortName:
+		m_portCombo.m_editText = in;
+		break;
+
+	case SerialDispatchCode.GetBaudRate:
+		*out = m_serialSettingUi.m_baudRate;
+		break;
+
+	case SerialDispatchCode.SetBaudRate:
+		m_serialSettingUi.m_baudRate = in;
+		onBaudRateChanged();
+		break;
+
+	case SerialDispatchCode.GetDataBits:
+		*out = m_serialSettingUi.m_dataBits;
+		break;
+
+	case SerialDispatchCode.SetDataBits:
+		uint_t dataBits = in;
+		m_serialSettingUi.m_dataBits = dataBits;
+
+		if (m_state && m_serial.m_dataBits != dataBits) {
+			m_serial.m_dataBits = dataBits;
+			m_logWriter.write(SerialLogRecordCode.DataBitsChanged, &dataBits, sizeof(dataBits));
+		}
+		break;
+
+	case SerialDispatchCode.GetStopBits:
+		*out = m_serialSettingUi.m_stopBits;
+		break;
+
+	case SerialDispatchCode.SetStopBits:
+		io.SerialStopBits stopBits = in;
+		m_serialSettingUi.m_stopBits = stopBits;
+
+		if (m_state && m_serial.m_stopBits != stopBits) {
+			m_serial.m_stopBits = stopBits;
+			m_logWriter.write(SerialLogRecordCode.StopBitsChanged, &stopBits, sizeof(stopBits));
+		}
+		break;
+
+	case SerialDispatchCode.GetParity:
+		*out = m_serialSettingUi.m_parity;
+		break;
+
+	case SerialDispatchCode.SetParity:
+		io.SerialParity parity = in;
+		m_serialSettingUi.m_parity = parity;
+
+		if (m_state && m_serial.m_parity != parity) {
+			m_serial.m_parity = parity;
+			m_logWriter.write(SerialLogRecordCode.ParityChanged, &parity, sizeof(parity));
+		}
+		break;
+
+	case SerialDispatchCode.GetFlowControl:
+		*out = m_serialSettingUi.m_flowControl;
+		break;
+
+	case SerialDispatchCode.SetFlowControl:
+		io.SerialFlowControl flowControl = in;
+		m_serialSettingUi.m_flowControl = flowControl;
+
+		if (m_state && m_serial.m_flowControl != flowControl) {
+			m_serial.m_flowControl = flowControl;
+			m_logWriter.write(SerialLogRecordCode.FlowControlChanged, &flowControl, sizeof(flowControl));
+		}
+		break;
+
+	case SerialDispatchCode.GetStatusLines:
+		*out = m_serialStatusLines;
+		break;
+
+	case SerialDispatchCode.GetDTR:
+		*out = m_serialDtr;
+		break;
+
+	case SerialDispatchCode.SetDTR:
+		m_actionTable[ActionId.Dtr].m_isChecked = in;
+		onDtrChanged();
+		break;
+
+	case SerialDispatchCode.GetRTS:
+		*out = m_serialRts;
+		break;
+
+	case SerialDispatchCode.SetRTS:
+		m_actionTable[ActionId.Rts].m_isChecked = in;
+		onRtsChanged();
+		break;
+
+	case SerialDispatchCode.GetBreakCondition:
+		*out = m_serialBreakCondition;
+		break;
+
+	case SerialDispatchCode.SetBreakCondition:
+		m_actionTable[ActionId.BreakCondition].m_isChecked = in;
+		onBreakConditionChanged();
+		break;
+
+	case SerialDispatchCode.Open:
+		if (in)
+			m_portCombo.m_editText = in;
+
+		return open();
+
+	case SerialDispatchCode.Close:
+		close();
+		break;
+	}
+
+	return true;
 }
 
 void SerialSession.enumeratePorts() {
