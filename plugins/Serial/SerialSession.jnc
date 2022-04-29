@@ -722,20 +722,20 @@ bool errorcode SerialSession.dispatch(
 		*out = m_serialStatusLines;
 		break;
 
-	case SerialDispatchCode.GetDTR:
+	case SerialDispatchCode.GetDtr:
 		*out = m_serialDtr;
 		break;
 
-	case SerialDispatchCode.SetDTR:
+	case SerialDispatchCode.SetDtr:
 		m_actionTable[ActionId.Dtr].m_isChecked = in;
 		onDtrChanged();
 		break;
 
-	case SerialDispatchCode.GetRTS:
+	case SerialDispatchCode.GetRts:
 		*out = m_serialRts;
 		break;
 
-	case SerialDispatchCode.SetRTS:
+	case SerialDispatchCode.SetRts:
 		m_actionTable[ActionId.Rts].m_isChecked = in;
 		onRtsChanged();
 		break;
@@ -758,6 +758,10 @@ bool errorcode SerialSession.dispatch(
 	case SerialDispatchCode.Close:
 		close();
 		break;
+
+	default:
+		std.setError("unsupported dispatch code");
+		return false;
 	}
 
 	return true;

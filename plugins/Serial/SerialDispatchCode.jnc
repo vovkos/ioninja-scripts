@@ -1,6 +1,6 @@
 //..............................................................................
 //
-// Serial session dispatch codes
+// Serial session dispatch codes for IAS
 //
 
 //..............................................................................
@@ -19,10 +19,10 @@ enum SerialDispatchCode {
 	GetFlowControl,
 	SetFlowControl,
 	GetStatusLines,
-	GetDTR,
-	SetDTR,
-	GetRTS,
-	SetRTS,
+	GetDtr,
+	SetDtr,
+	GetRts,
+	SetRts,
 	GetBreakCondition,
 	SetBreakCondition,
 	Open,

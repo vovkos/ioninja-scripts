@@ -1,15 +1,15 @@
 //..............................................................................
 //
-// Serial session dispatch interface
+// Serial session dispatch interface for IAS
 //
 
-import "doc_SessionDispatch.jnc"
 import "io_base.jncx"
 import "io_Serial.jnc"
+import "ias.jnc"
 
 //..............................................................................
 
-class SerialDispatch: doc.SessionDispatch {
+class SerialDispatch: ias.Session {
 	property m_portName {
 		char const* get() {
 			return dispatchGet(SerialDispatchCode.GetPortName);
