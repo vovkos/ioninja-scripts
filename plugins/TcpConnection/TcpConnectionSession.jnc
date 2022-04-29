@@ -122,6 +122,12 @@ public:
 		disconnect();
 	}
 
+	override bool errorcode dispatch(
+		uint_t code,
+		variant in,
+		variant* out
+	);
+
 protected:
 	void close();
 	void handleSocketError(std.Error const* error);
@@ -445,6 +451,46 @@ size_t errorcode TcpConnectionSession.transmit(
 	}
 
 	return result;
+}
+
+bool errorcode TcpConnectionSession.dispatch(
+	uint_t code,
+	variant in,
+	variant* out
+) {
+	switch (code) {
+	case TcpConnectionDispatchCode.GetRemoteAddress:
+		*out = m_addressCombo.m_currentText;
+		break;
+
+	case TcpConnectionDispatchCode.SetRemoteAddress:
+		m_addressCombo.m_editText = in;
+		break;
+
+	case TcpConnectionDispatchCode.GetRemotePort:
+		*out = m_socketPropertySet.m_remotePortProp.m_value;
+		break;
+
+	case TcpConnectionDispatchCode.SetRemotePort:
+		m_socketPropertySet.m_remotePortProp.m_value = in;
+		break;
+
+	case TcpConnectionDispatchCode.Connect:
+		if (in)
+			m_addressCombo.m_editText = in;
+
+		return connect();
+
+	case TcpConnectionDispatchCode.Disconnect:
+		disconnect();
+		break;
+
+	default:
+		std.setError("unsupported dispatch code");
+		return false;
+	}
+
+	return true;
 }
 
 void TcpConnectionSession.startReconnectTimer(uint64_t lastReconnectTime) {
