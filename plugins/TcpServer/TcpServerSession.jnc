@@ -120,6 +120,12 @@ public:
 		disconnectAll();
 	}
 
+	override bool errorcode dispatch(
+		uint_t code,
+		variant in,
+		variant* out
+	);
+
 protected:
 	void onListen() {
 		m_state ? stopListen() : try listen();
@@ -417,6 +423,43 @@ size_t errorcode TcpServerSession.transmit(
 	}
 
 	return result;
+}
+
+bool errorcode TcpServerSession.dispatch(
+	uint_t code,
+	variant in,
+	variant* out
+) {
+	switch (code) {
+	case TcpServerDispatchCode.GetLocalPort:
+		*out = atoi(m_portCombo.m_editText);
+		break;
+
+	case TcpServerDispatchCode.SetLocalPort:
+		m_portCombo.m_editText = $"%d"((uint_t)in);
+		break;
+
+	case TcpServerDispatchCode.Listen:
+		return listen();
+
+	case TcpServerDispatchCode.StopListen:
+		stopListen();
+		break;
+
+	case TcpServerDispatchCode.Disconnect:
+		disconnect();
+		break;
+
+	case TcpServerDispatchCode.DisconnectAll:
+		disconnectAll();
+		break;
+
+	default:
+		std.setError("unsupported dispatch code");
+		return false;
+	}
+
+	return true;
 }
 
 void TcpServerSession.waitListenerSocketEvents() {
