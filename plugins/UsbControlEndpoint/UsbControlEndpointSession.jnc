@@ -179,7 +179,6 @@ void UsbControlEndpointSession.createUi() {
 	m_iconTable[IconId.Close] = new ui.Icon("images/close.png");
 	m_iconTable[IconId.Refresh] = new ui.Icon("images/refresh.png");
 
-	m_pluginHost.m_toolBar.addLabel("Device:");
 	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 
 	m_actionTable[ActionId.Refresh]  = createAction("Re-enumerate devices", m_iconTable [IconId.Refresh]);
@@ -195,13 +194,13 @@ void UsbControlEndpointSession.createUi() {
 	m_actionTable[ActionId.Claim].m_onTriggered += onClaimInterface;
 
 	m_reqDirectionCombo = m_pluginHost.m_toolBar.addComboBox(
-		"Direction:",
+		"Dir:",
 		reqDirectionTable,
 		countof(reqDirectionTable)
 	);
 
 	m_reqRecipientCombo = m_pluginHost.m_toolBar.addComboBox(
-		"Recipient:",
+		"Rcpt:",
 		reqRecipientTable,
 		countof(reqRecipientTable)
 	);
@@ -213,19 +212,19 @@ void UsbControlEndpointSession.createUi() {
 	);
 
 	m_reqCodeCombo = m_pluginHost.m_toolBar.addComboBox(
-		"Request:",
+		"Req:",
 		reqIdTable,
 		countof(reqIdTable)
 	);
 
 	m_reqCodeCombo.m_isEditable = true;
 
-	m_pluginHost.m_toolBar.addLabel("Value:");
-	m_reqValueCombo = m_pluginHost.m_toolBar.addComboBox();
+	m_pluginHost.m_toolBar.addLabel("Val:");
+	m_reqValueCombo = m_pluginHost.m_toolBar.addComboBox(100);
 	m_reqValueCombo.m_isEditable = true;
 
-	m_pluginHost.m_toolBar.addLabel("Index:");
-	m_reqIndexCombo = m_pluginHost.m_toolBar.addComboBox();
+	m_pluginHost.m_toolBar.addLabel("Idx:");
+	m_reqIndexCombo = m_pluginHost.m_toolBar.addComboBox(100);
 	m_reqIndexCombo.m_isEditable = true;
 
 	// status bar
@@ -503,12 +502,12 @@ bool errorcode UsbControlEndpointSession.applyProperties() {
 
 void UsbControlEndpointSession.restoreDefaultProperties() {
 	m_autoDetachKernelDriverProp.m_value = true;
-	m_reqDirectionCombo.m_currentIndex = 0;
-	m_reqRecipientCombo.m_currentIndex = 0;
-	m_reqTypeCombo.m_currentIndex = 0;
-	m_reqCodeCombo.m_editText = "0x00";
-	m_reqValueCombo.m_editText = "0x0000";
-	m_reqIndexCombo.m_editText = "0x0000";
+	m_reqDirectionProp.m_currentIndex = 0;
+	m_reqRecipientProp.m_currentIndex = 0;
+	m_reqTypeProp.m_currentIndex = 0;
+	m_reqCodeProp.m_value = "0x00";
+	m_reqValueProp.m_value = "0x0000";
+	m_reqIndexProp.m_value = "0x0000";
 }
 
 size_t errorcode UsbControlEndpointSession.transmit(
