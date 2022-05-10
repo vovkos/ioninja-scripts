@@ -6,14 +6,15 @@
 //..............................................................................
 
 enum UsbDataEndpointDispatchCode {
-	GetDeviceVidPid,
+	GetDeviceVid,
+	GetDevicePid,
 	SetDeviceVidPid,
-	GetInterface,
-	SetInterface,
-	GetOutEndpoint,
-	SetOutEndpoint,
-	GetInEndpoint,
-	SetInEndpoint,
+	GetInterfaceId,
+	SetInterfaceId,
+	GetOutEndpointId,
+	SetOutEndpointId,
+	GetInEndpointId,
+	SetInEndpointId,
 	OpenDevice,
 	OpenDeviceVidPid,
 	CloseDevice,
@@ -21,7 +22,7 @@ enum UsbDataEndpointDispatchCode {
 	ClaimInterfaceId,
 	ReleaseInterface,
 	StartReading,
-	StartReadingEp,
+	StartReadingEndpoint,
 	StopReading,
 }
 

@@ -107,7 +107,24 @@ public:
 		size_t size
 	);
 
+	override bool errorcode dispatch(
+		uint_t code,
+		variant in,
+		variant* out
+	);
+
 protected:
+	bool errorcode startTransfer(
+		uint_t direction,
+		uint_t recipient,
+		uint_t type,
+		uint_t code,
+		uint_t value,
+		uint_t index,
+		void const* p,
+		size_t size
+	);
+
 	void onEnumerateDevices() {
 		ui.refreshUsbDeviceListUi(m_deviceCombo, m_deviceProp);
 	}
@@ -160,7 +177,7 @@ void UsbControlEndpointSession.createUi() {
 		{ "Other",     0x03 },
 	}
 
-	static ui.EnumPropertyOption reqIdTable[] = {
+	static ui.EnumPropertyOption reqCodeTable[] = {
 		{ "Get Status",        "0x00" },
 		{ "Clear Feature",     "0x01" },
 		{ "Set Feature",       "0x03" },
@@ -213,8 +230,8 @@ void UsbControlEndpointSession.createUi() {
 
 	m_reqCodeCombo = m_pluginHost.m_toolBar.addComboBox(
 		"Req:",
-		reqIdTable,
-		countof(reqIdTable)
+		reqCodeTable,
+		countof(reqCodeTable)
 	);
 
 	m_reqCodeCombo.m_isEditable = true;
@@ -287,8 +304,8 @@ void UsbControlEndpointSession.createUi() {
 		"Request",
 		"Enter a request code...",
 		"Code of the USB control request",
-		reqIdTable,
-		countof(reqIdTable)
+		reqCodeTable,
+		countof(reqCodeTable)
 	);
 
 	m_reqValueProp = m_pluginHost.m_propertyGrid.createStringProperty(
@@ -521,17 +538,45 @@ size_t errorcode UsbControlEndpointSession.transmit(
 
 	uint_t direction = m_reqDirectionCombo.m_currentData;
 	uint_t recipient = m_reqRecipientCombo.m_currentData;
-	uint_t type = m_reqTypeCombo.m_currentData | direction | recipient;
+	uint_t type = m_reqTypeCombo.m_currentData;
 	uint_t code = parseInteger(m_reqCodeCombo.m_editText);;
 	uint_t value = parseInteger(m_reqValueCombo.m_editText);
 	uint_t index = parseInteger(m_reqIndexCombo.m_editText);
 
+	startTransfer(
+		direction,
+		recipient,
+		type,
+		code,
+		value,
+		index,
+		p,
+		size
+	);
+
+	return size;
+
+catch:
+	m_logWriter.writeLastError(log.StdRecordCode.Error);
+	return -1;
+}
+
+bool errorcode UsbControlEndpointSession.startTransfer(
+	uint_t direction,
+	uint_t recipient,
+	uint_t type,
+	uint_t code,
+	uint_t value,
+	uint_t index,
+	void const* p,
+	size_t size
+) {
 	char* buffer = new char[size];
 	if (!direction)
 		memcpy(buffer, p, size);
 
-	m_device.controlTransfer(
-		type,
+	return m_device.controlTransfer(
+		direction | recipient | type,
 		code,
 		value,
 		index,
@@ -547,12 +592,6 @@ size_t errorcode UsbControlEndpointSession.transmit(
 			buffer
 		) @ m_pluginHost.m_mainThreadScheduler
 	);
-
-	return size;
-
-catch:
-	m_logWriter.writeLastError(log.StdRecordCode.Error);
-	return -1;
 }
 
 void UsbControlEndpointSession.onTransferCompleted(
@@ -580,6 +619,143 @@ void UsbControlEndpointSession.onTransferCompleted(
 		m_logWriter.write(log.StdRecordCode.Error, error);
 	else
 		m_logWriter.write((type & 0x80) ? log.StdRecordCode.Rx : log.StdRecordCode.Tx, p, size);
+}
+
+bool errorcode UsbControlEndpointSession.dispatch(
+	uint_t code,
+	variant in,
+	variant* out
+) {
+	switch (code) {
+	case UsbControlEndpointDispatchCode.GetDeviceVid:
+		io.UsbDevice const* device = m_deviceCombo.m_currentData;
+		*out = device ? device.m_deviceDesc.m_vendorId : -1;
+		break;
+
+	case UsbControlEndpointDispatchCode.GetDevicePid:
+		io.UsbDevice const* device = m_deviceCombo.m_currentData;
+		*out = device ? device.m_deviceDesc.m_productId : -1;
+		break;
+
+	case UsbControlEndpointDispatchCode.SetDeviceVidPid:
+		uint_t vidPid = (uint_t)in;
+		size_t i = ui.findUsbDeviceComboIndex(m_deviceCombo, vidPid >> 16, vidPid & 0xffff);
+		if (i != -1)
+			m_deviceCombo.m_currentIndex = i;
+		break;
+
+	case UsbControlEndpointDispatchCode.GetInterfaceId:
+		io.UsbInterfaceDesc const* ifaceDesc = m_interfaceCombo.m_currentData;
+		*out = ifaceDesc ? ifaceDesc.m_interfaceId : -1;
+		break;
+
+	case UsbControlEndpointDispatchCode.SetInterfaceId:
+		size_t i = ui.findUsbInterfaceComboIndex(m_interfaceCombo, (uint_t)in);
+		if (i != -1)
+			m_interfaceCombo.m_currentIndex = i;
+		break;
+
+	case UsbControlEndpointDispatchCode.GetReqDirection:
+		*out = (UsbControlReqDirection)m_reqDirectionCombo.m_currentData;
+		break;
+
+	case UsbControlEndpointDispatchCode.SetReqDirection:
+		m_reqDirectionCombo.m_currentData = (UsbControlReqDirection)in;
+		break;
+
+	case UsbControlEndpointDispatchCode.GetReqRecipient:
+		*out = (UsbControlReqRecipient)m_reqRecipientCombo.m_currentData;
+		break;
+
+	case UsbControlEndpointDispatchCode.SetReqRecipient:
+		m_reqRecipientCombo.m_currentData = (UsbControlReqRecipient)in;
+		break;
+
+	case UsbControlEndpointDispatchCode.GetReqType:
+		*out = (UsbControlReqType)m_reqTypeCombo.m_currentData;
+		break;
+
+	case UsbControlEndpointDispatchCode.SetReqType:
+		m_reqTypeCombo.m_currentData = (UsbControlReqType)in;
+		break;
+
+	case UsbControlEndpointDispatchCode.GetReqCode:
+		*out = parseInteger(m_reqCodeCombo.m_editText);
+		break;
+
+	case UsbControlEndpointDispatchCode.SetReqCode:
+		m_reqCodeCombo.m_editText = $"0x%02x"((uint_t)in);
+		break;
+
+	case UsbControlEndpointDispatchCode.GetReqValue:
+		*out = parseInteger(m_reqValueCombo.m_editText);
+		break;
+
+	case UsbControlEndpointDispatchCode.SetReqValue:
+		m_reqValueCombo.m_editText = $"0x%04x"((uint_t)in);
+		break;
+
+	case UsbControlEndpointDispatchCode.GetReqIndex:
+		*out = parseInteger(m_reqIndexCombo.m_editText);
+		break;
+
+	case UsbControlEndpointDispatchCode.SetReqIndex:
+		m_reqIndexCombo.m_editText = $"0x%04x"((uint_t)in);
+		break;
+
+	case UsbControlEndpointDispatchCode.OpenDevice:
+		return openDevice();
+
+	case UsbControlEndpointDispatchCode.OpenDeviceVidPid:
+		uint_t vidPid = (uint_t)in;
+		size_t i = ui.findUsbDeviceComboIndex(m_deviceCombo, vidPid >> 16, vidPid & 0xffff);
+		if (i == -1) {
+			std.setError("device not found");
+			return false;
+		}
+
+		m_deviceCombo.m_currentIndex = i;
+		return openDevice();
+
+	case UsbControlEndpointDispatchCode.CloseDevice:
+		closeDevice();
+		break;
+
+	case UsbControlEndpointDispatchCode.ClaimInterface:
+		return claimInterface();
+
+	case UsbControlEndpointDispatchCode.ClaimInterfaceId:
+		size_t i = ui.findUsbInterfaceComboIndex(m_interfaceCombo, (uint_t)in);
+		if (i == -1) {
+			std.setError("interface not found");
+			return false;
+		}
+
+		m_interfaceCombo.m_currentIndex = i;
+		return claimInterface();
+
+	case UsbControlEndpointDispatchCode.ReleaseInterface:
+		releaseInterface();
+		break;
+
+	case UsbControlEndpointDispatchCode.StartInTransfer:
+		return startTransfer(
+			0x80,
+			m_reqRecipientCombo.m_currentData,
+			m_reqTypeCombo.m_currentData,
+			parseInteger(m_reqCodeCombo.m_editText),
+			parseInteger(m_reqValueCombo.m_editText),
+			parseInteger(m_reqIndexCombo.m_editText),
+			null,
+			(size_t)in
+		);
+
+	default:
+		std.setError("unsupported dispatch code");
+		return false;
+	}
+
+	return true;
 }
 
 reactor UsbControlEndpointSession.m_uiReactor {
