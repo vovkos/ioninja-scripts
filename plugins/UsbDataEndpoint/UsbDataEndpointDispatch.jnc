@@ -1,0 +1,121 @@
+//..............................................................................
+//
+// USB Data Endpoint session dispatch interface for IAS
+//
+
+import "io_usb.jncx"
+import "ias.jnc"
+
+//..............................................................................
+
+class UsbDataEndpointDispatch: ias.Session {
+	property m_portName {
+		char const* get() {
+			return dispatchGet(UsbDataEndpointDispatchCode.GetPortName);
+		}
+
+		void set(char const* value) {
+			dispatch(UsbDataEndpointDispatchCode.SetPortName, value);
+		}
+	}
+
+	property m_baudRate {
+		uint_t get() {
+			return dispatchGet(UsbDataEndpointDispatchCode.GetBaudRate);
+		}
+
+		void set(uint_t value) {
+			dispatch(UsbDataEndpointDispatchCode.SetBaudRate, value);
+		}
+	}
+
+	property m_dataBits {
+		uint_t get() {
+			return dispatchGet(UsbDataEndpointDispatchCode.GetDataBits);
+		}
+
+		void set(uint_t value) {
+			dispatch(UsbDataEndpointDispatchCode.SetDataBits, value);
+		}
+	}
+
+	property m_stopBits {
+		io.SerialStopBits get() {
+			return dispatchGet(UsbDataEndpointDispatchCode.GetStopBits);
+		}
+
+		void set(io.SerialStopBits value) {
+			dispatch(UsbDataEndpointDispatchCode.SetStopBits, value);
+		}
+	}
+
+	property m_parity {
+		io.SerialParity get() {
+			return dispatchGet(UsbDataEndpointDispatchCode.GetParity);
+		}
+
+		void set(io.SerialParity value) {
+			dispatch(UsbDataEndpointDispatchCode.SetParity, value);
+		}
+	}
+
+	property m_flowControl {
+		io.SerialFlowControl get() {
+			return dispatchGet(UsbDataEndpointDispatchCode.GetFlowControl);
+		}
+
+		void set(io.SerialFlowControl value) {
+			dispatch(UsbDataEndpointDispatchCode.SetFlowControl, value);
+		}
+	}
+
+	property m_statusLines {
+		io.SerialStatusLines get() {
+			return dispatchGet(UsbDataEndpointDispatchCode.GetStatusLines, value);
+		}
+
+		void set(io.SerialStatusLines value) {
+			dispatch(UsbDataEndpointDispatchCode.SetStatusLines, value);
+		}
+	}
+
+	property m_dtr {
+		bool get() {
+			return dispatchGet(UsbDataEndpointDispatchCode.GetDtr);
+		}
+
+		void set(bool value) {
+			dispatch(UsbDataEndpointDispatchCode.SetDtr, value);
+		}
+	}
+
+	property m_rts {
+		bool get() {
+			return dispatchGet(UsbDataEndpointDispatchCode.GetRts);
+		}
+
+		void set(bool value) {
+			dispatch(UsbDataEndpointDispatchCode.SetRts, value);
+		}
+	}
+
+	property m_breakCondition {
+		bool get() {
+			return dispatchGet(UsbDataEndpointDispatchCode.GetBreakCondition);
+		}
+
+		void set(bool value) {
+			dispatch(UsbDataEndpointDispatchCode.SetBreakCondition, value);
+		}
+	}
+
+	bool errorcode open(char const* portName = null) { // null = use m_portName
+		return dispatch(UsbDataEndpointDispatchCode.Open, portName);
+	}
+
+	void close() {
+		dispatch(UsbDataEndpointDispatchCode.Close);
+	}
+}
+
+//..............................................................................

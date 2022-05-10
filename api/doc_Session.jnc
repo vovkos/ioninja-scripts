@@ -52,7 +52,7 @@ class Session: Plugin {
 		variant in,
 		variant* out = null
 	) {
-		std.setError("this session doesn't support dispatch");
+		std.setError("this session doesn't support IAS dispatch");
 		return false;
 	}
 }

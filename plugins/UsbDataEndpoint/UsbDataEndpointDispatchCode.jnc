@@ -1,0 +1,28 @@
+//..............................................................................
+//
+// USB Data Endpoint session dispatch codes for IAS
+//
+
+//..............................................................................
+
+enum UsbDataEndpointDispatchCode {
+	GetDeviceVidPid,
+	SetDeviceVidPid,
+	GetInterface,
+	SetInterface,
+	GetOutEndpoint,
+	SetOutEndpoint,
+	GetInEndpoint,
+	SetInEndpoint,
+	OpenDevice,
+	OpenDeviceVidPid,
+	CloseDevice,
+	ClaimInterface,
+	ClaimInterfaceId,
+	ReleaseInterface,
+	StartReading,
+	StartReadingEp,
+	StopReading,
+}
+
+//..............................................................................

@@ -220,11 +220,11 @@ void UsbControlEndpointSession.createUi() {
 	m_reqCodeCombo.m_isEditable = true;
 
 	m_pluginHost.m_toolBar.addLabel("Val:");
-	m_reqValueCombo = m_pluginHost.m_toolBar.addComboBox(100);
+	m_reqValueCombo = m_pluginHost.m_toolBar.addComboBox();
 	m_reqValueCombo.m_isEditable = true;
 
 	m_pluginHost.m_toolBar.addLabel("Idx:");
-	m_reqIndexCombo = m_pluginHost.m_toolBar.addComboBox(100);
+	m_reqIndexCombo = m_pluginHost.m_toolBar.addComboBox();
 	m_reqIndexCombo.m_isEditable = true;
 
 	// status bar
