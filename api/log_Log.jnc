@@ -34,6 +34,9 @@ opaque class Log {
 	void resume();
 	void rebuild();
 
+	bool errorcode copyOriginalRecordFile(char const* fileName) const;
+	bool errorcode copyFinalRecordFile(char const* fileName) const;
+
 	void addConverter(
 		Converter* converter,
 		std.Guid const* auxClassGuidArray,
