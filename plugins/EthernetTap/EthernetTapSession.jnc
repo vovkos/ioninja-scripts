@@ -5,13 +5,13 @@
 
 import "doc_Session.jnc"
 import "io_usb.jncx"
-import "io_LogToPcap.jnc"
 import "iox_FpgaUploader.jnc"
 import "ui_BufferPropertySet.jnc"
 import "ui_StdSessionInfoSet.jnc"
 import "ui_History.jnc"
 import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
+import "log_exportToPcap.jnc"
 import "std_Buffer.jnc"
 
 using extension ui.ComboBoxHistory;
