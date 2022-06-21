@@ -12,31 +12,36 @@ import "log_Writer.jnc"
 import "ui_Dialog.jnc"
 import "doc_Plugin.jnc"
 
-namespace io {
+namespace log {
 
 //..............................................................................
 
-typedef size_t ExportLogRecordToPcapFunc(
-	log.Record const* record,
+typedef size_t ExportRecordToPcapFunc(
+	Record const* record,
 	io.MappedFile* pcapFile,
 	uint64_t pcapOffset
 );
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-bool errorcode exportLogToPcap(
-	char const* logFileName,
+bool errorcode exportToPcap(
+	Log const* log,
 	char const* pcapFileName,
 	io.PcapLinkType linkType,
 	size_t snapshotSize,
-	ExportLogRecordToPcapFunc* exportRecordFunc
+	ExportRecordToPcapFunc* exportRecordFunc
 ) {
-	disposable io.MappedFile logFile;
-	logFile.open(logFileName, io.FileOpenFlags.ReadOnly);
-	log.RecordFileHdr const* logHdr = (log.RecordFileHdr const*)logFile.view(0, sizeof(log.RecordFileHdr), true);
+	char const* tempFileName = io.createTempFile();
 
-	if (logHdr.m_signature != log.RecordFileSignature ||
-		logHdr.m_recordOffset < sizeof(log.RecordFileHdr)) {
+nestedscope:
+	log.copyOriginalRecordFile(tempFileName);
+
+	disposable io.MappedFile logFile;
+	logFile.open(tempFileName, io.FileOpenFlags.ReadOnly);
+	RecordFileHdr const* logHdr = (RecordFileHdr const*)logFile.view(0, sizeof(RecordFileHdr), true);
+
+	if (logHdr.m_signature != RecordFileSignature ||
+		logHdr.m_recordOffset < sizeof(RecordFileHdr)) {
 		std.setError($"invalid log record file %1: file signature mismatch"(logFileName));
 		throw;
 	}
@@ -66,15 +71,15 @@ bool errorcode exportLogToPcap(
 	uint64_t logEndOffset = logHdr.m_recordOffset + logHdr.m_totalRecordSize;
 
 	while (logOffset < logEndOffset) {
-		log.Record const* record = (log.Record const*)logFile.view(logOffset, sizeof(log.Record));
-		if (record.m_signature != log.RecordSignature) {
+		Record const* record = (Record const*)logFile.view(logOffset, sizeof(Record));
+		if (record.m_signature != RecordSignature) {
 			std.setError($"invalid log record file %1: record signature mismatch"(logFileName));
 			throw;
 		}
 
-		record = (log.Record const*)logFile.view(logOffset, sizeof(log.Record) + record.m_dataSize);
+		record = (Record const*)logFile.view(logOffset, sizeof(Record) + record.m_dataSize);
 		pcapOffset += exportRecordFunc(record, pcapFile, pcapOffset);
-		logOffset += sizeof(log.Record) + record.m_dataSize;
+		logOffset += sizeof(Record) + record.m_dataSize;
 		progressDlg.m_progress = logOffset * 100 / logEndOffset;
 
 		uint64_t timestamp = sys.getTimestamp();
@@ -87,6 +92,9 @@ bool errorcode exportLogToPcap(
 	pcapFile.unmapAllViews();
 	pcapFile.setSize(pcapOffset);
 	return true;
+
+finally:
+	io.deleteFile(tempFileName);
 }
 
 size_t errorcode writePcapPacket(
@@ -112,4 +120,4 @@ size_t errorcode writePcapPacket(
 
 //..............................................................................
 
-} // namespace io
+} // namespace log

@@ -40,8 +40,8 @@ void EthernetTapLogToPcap.onFileDlgCompleted(ui.StdDlgButton button) {
 	if (button != ui.StdDlgButton.Ok)
 		return;
 
-	bool result = try io.exportLogToPcap(
-		m_pluginHost.m_log.m_recordFileName,
+	bool result = try log.exportToPcap(
+		m_pluginHost.m_log,
 		m_fileDlg.m_filePath,
 		io.PcapLinkType.Ethernet,
 		2 * 1024, // enough for ethernet

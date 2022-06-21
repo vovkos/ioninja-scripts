@@ -369,8 +369,8 @@ void PcapSnifferSession.onFileDlgCompleted(ui.StdDlgButton button) {
 		break;
 
 	case ui.FileDlgKind.Save:
-		bool result = try io.exportLogToPcap(
-			m_pluginHost.m_log.m_recordFileName,
+		bool result = try log.exportToPcap(
+			m_pluginHost.m_log,
 			m_fileDlg.m_filePath,
 			io.PcapLinkType.Ethernet,
 			m_snapshotSizeProp.m_value,
