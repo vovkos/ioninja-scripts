@@ -56,8 +56,17 @@ struct ModbusRtuReadReplyPacket {
 	[ userAction = "Initialize with defaults" ]
 	void initialize() {
 		initializeModbusRtuPacket(this, io.ModbusFunc.ReadHoldingRegisters);
-		m_pdu.m_count = 1;
+		updateCount();
 		updateChecksum();
+	}
+
+	[
+		userAction = "Update count",
+		autorun = "Auto-update count"
+	]
+	void updateCount() {
+		size_t extra = dynamic sizeof(this) - sizeof(ModbusRtuReadReplyPacket);
+		m_pdu.m_count = extra > sizeof(uint16_t) ? (extra - sizeof(uint16_t)) / sizeof(uint16_t) : 0;
 	}
 
 	[
