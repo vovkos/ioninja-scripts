@@ -300,7 +300,7 @@ bool errorcode WebSocketClientSession.connect() {
 		isSecure = regexState.m_captureArray[0].m_length == 3;
 		host = regexState.m_captureArray[1].m_text;
 
-		jnc.RegexMatch const* resourceSubMatch = &regexState.m_captureArray[2];
+		jnc.RegexMatch const* resourceSubMatch = regexState.m_captureArray[2];
 		resource = resourceSubMatch.m_length && resourceSubMatch.m_text[0] == '/' ?
 			resourceSubMatch.m_text :
 			strcat("/", resourceSubMatch.m_text);
