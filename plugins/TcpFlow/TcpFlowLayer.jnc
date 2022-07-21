@@ -80,7 +80,7 @@ void TcpFlowLayer.createUi() {
 	m_viewFilterCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 	m_viewFilterCombo.m_isEditable = true;
 	m_viewFilterCombo.m_onEnter += onSetViewFilter;
-	m_viewFilterCombo.m_placeholderText = "Enter a filter andress...";
+	m_viewFilterCombo.m_placeholderText = "Enter a filter address...";
 	m_viewFilterCombo.m_toolTipText = "Only show connections matching this address";
 
 	ui.Action* action = createAction("Apply filter", "images/apply.png");
