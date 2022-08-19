@@ -13,6 +13,7 @@ import "ui_StdSessionInfoSet.jnc"
 import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
 import "std_Buffer.jnc"
+import "std_String.jnc"
 import "sys_Timer.jnc"
 
 //..............................................................................
@@ -772,15 +773,40 @@ void SerialSession.enumeratePorts() {
 	m_portCombo.clear();
 
 	size_t count;
-	io.SerialPortDesc const* portList = io.createSerialPortDescList(&count);
+	io.SerialPortDesc const* portList = io.createSerialPortDescList(io.SerialPortDescMask.All, &count);
 	io.SerialPortDesc const* port = portList;
 
 	ui.EnumPropertyOption* optionArray = new ui.EnumPropertyOption[count];
 	ui.EnumPropertyOption* option = optionArray;
 
+	std.StringBuilder toolTip;
+
 	for (; port; port = port.m_next, option++) {
-		char const* description = $"$(port.m_deviceName) - $(port.m_description)";
-		m_portCombo.addItem(description, port.m_deviceName);
+		char const* description = $"$(port.m_deviceName) - $(port.m_description) by $(port.m_manufacturer)";
+
+		toolTip =
+			"<table>"
+			$"<tr><td>Device name:</td><td>%1</td></tr>"
+			$"<tr><td>Description:</td><td>%2</td></tr>"
+			$"<tr><td>Manufacturer:</td><td>%3</td></tr>"
+			$"<tr><td>Hardware&nbsp;ID(s):</td><td>%4</td></tr>"
+			$"<tr><td>Driver:</td><td>%5</td></tr>"(
+				port.m_deviceName,
+				port.m_description,
+				port.m_manufacturer,
+				port.m_hardwareIds,
+				port.m_driver
+
+			);
+
+		if (port.m_location)
+			toolTip.append($"<tr><td>Location:</td><td>%1</td></tr>"(port.m_location));
+
+		toolTip.append("</table>");
+
+		size_t i = m_portCombo.addItem(description, port.m_deviceName);
+		m_portCombo.m_itemToolTip[i] = toolTip.detachString();
+
 		option.m_text = description;
 		option.m_value = port.m_deviceName;
 	}
