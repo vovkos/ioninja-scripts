@@ -9,8 +9,8 @@
 enum TokenColor
 {
 	Keyword   = ui.StdColor.LightBlue,
-	SlComment = ui.StdColor.Gray,
-	MlComment = ui.StdColor.Gray,
+	SlComment = ui.StdColor.BrightBlack,
+	MlComment = ui.StdColor.BrightBlack,
 	SqLiteral = ui.StdColor.Cyan,
 	DqLiteral = ui.StdColor.Cyan,
 	DecNumber = ui.StdColor.Purple,

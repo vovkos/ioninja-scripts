@@ -52,7 +52,7 @@ enum StdLogIcon {
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 enum StdLogColor {
-	Start      = ui.StdColor.PastelPurple,
+	Start      = ui.StdColor.PastelMagenta,
 	Connect    = ui.StdColor.PastelGreen,
 	Disconnect = ui.StdColor.PastelGreen,
 	Info       = ui.StdColor.PastelBlue,

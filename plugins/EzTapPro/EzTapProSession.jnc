@@ -839,7 +839,7 @@ void EzTapProSession.updateLineInfoValue(
 	bool line
 ) {
 	m_infoTable[infoId].m_value = line ? "on" : "off";
-	m_infoTable[infoId].m_valueColor = line ? ui.StdColor.LightRed : ui.StdColor.Gray;
+	m_infoTable[infoId].m_valueColor = line ? ui.StdColor.LightRed : ui.StdColor.BrightBlack;
 }
 
 reactor EzTapProSession.m_uiReactor {
@@ -853,7 +853,7 @@ reactor EzTapProSession.m_uiReactor {
 	m_signalLevelProp.m_isEnabled = !m_state;
 	m_readIntervalProp.m_isEnabled = m_readModeProp.m_value == SerialReadMode.IntervalBased;
 	m_statusPane.m_text = m_state ? m_portName : "Port closed";
-	m_statusPane.m_color = m_state ? ui.StdColor.Blue : ui.StdColor.Gray;
+	m_statusPane.m_color = m_state ? ui.StdColor.Blue : ui.StdColor.BrightBlack;
 	m_infoTable[InfoId.Dtr].m_isEnabled = m_state;
 	m_infoTable[InfoId.Rts].m_isEnabled = m_state;
 	m_infoTable[InfoId.Dsr].m_isEnabled = m_state;

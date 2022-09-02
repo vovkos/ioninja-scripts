@@ -72,7 +72,7 @@ void representModbusRtuAdu(
 		);
 
 		representation.m_lineAttr.m_backColor = ui.ColorFlags.Transparent;
-		representation.m_lineAttr.m_textColor = ui.StdColor.Gray;
+		representation.m_lineAttr.m_textColor = ui.StdColor.BrightBlack;
 		representation.addBin(p, size);
 
 		ui.TextAttr attr;

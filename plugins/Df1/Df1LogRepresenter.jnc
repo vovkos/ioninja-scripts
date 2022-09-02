@@ -128,7 +128,7 @@ void representRawDataLinkData(
 	size_t size
 ) {
 	representation.addBreak();
-	representation.m_lineAttr.m_textColor = ui.StdColor.Gray;
+	representation.m_lineAttr.m_textColor = ui.StdColor.BrightBlack;
 	representation.m_lineAttr.m_backColor = ui.ColorFlags.Transparent;
 	representation.addBin(Df1LogPartCode.RawDataLinkData, p, size);
 
