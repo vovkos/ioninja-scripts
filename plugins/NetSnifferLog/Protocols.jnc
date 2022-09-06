@@ -22,7 +22,7 @@ bitflag enum ProtoFoldFlag: uint8_t {
 enum ProtoColor {
 	MetaLayer      = ui.StdColor.PastelGreen,
 	LinkLayer      = ui.StdColor.PastelBlue,
-	NetworkLayer   = ui.StdColor.PastelMagenta,
+	NetworkLayer   = ui.StdColor.PastelPurple,
 	TransportLayer = ui.StdColor.PastelRed,
 	AppLayer       = ui.StdColor.PastelOrange,
 	Payload        = ui.StdColor.PastelYellow,

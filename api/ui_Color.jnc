@@ -42,7 +42,7 @@ enum StdColor {
 	PastelGreen,    // 18
 	PastelOrange,   // 19
 	PastelBlue,     // 20
-	PastelMagenta,  // 21
+	PastelPurple,   // 21
 	PastelCyan,     // 22
 	PastelYellow,   // 23
 

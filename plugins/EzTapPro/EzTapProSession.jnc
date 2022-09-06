@@ -839,7 +839,7 @@ void EzTapProSession.updateLineInfoValue(
 	bool line
 ) {
 	m_infoTable[infoId].m_value = line ? "on" : "off";
-	m_infoTable[infoId].m_valueColor = line ? ui.StdColor.LightRed : ui.StdColor.BrightBlack;
+	m_infoTable[infoId].m_valueColor = line ? ui.StdColor.BrightRed : ui.StdColor.BrightBlack;
 }
 
 reactor EzTapProSession.m_uiReactor {

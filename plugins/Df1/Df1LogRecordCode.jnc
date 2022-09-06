@@ -40,7 +40,7 @@ bitflag enum Df1FoldFlag: uint8_t {
 
 enum Df1Color {
 	DataLinkLayer = ui.StdColor.PastelBlue,
-	AppMsgLayer   = ui.StdColor.PastelMagenta,
+	AppMsgLayer   = ui.StdColor.PastelPurple,
 	FuncLayer     = ui.StdColor.PastelOrange,
 	Payload       = ui.StdColor.PastelYellow,
 }
