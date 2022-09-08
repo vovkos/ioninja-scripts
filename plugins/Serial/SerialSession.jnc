@@ -779,35 +779,39 @@ void SerialSession.enumeratePorts() {
 	ui.EnumPropertyOption* optionArray = new ui.EnumPropertyOption[count];
 	ui.EnumPropertyOption* option = optionArray;
 
+	std.StringBuilder description;
 	std.StringBuilder toolTip;
 
 	for (; port; port = port.m_next, option++) {
-		char const* description = $"$(port.m_deviceName) - $(port.m_description) by $(port.m_manufacturer)";
+		description = port.m_deviceName;
+		toolTip = $"<table><tr><td>Device name:</td><td>(port.m_deviceName)</td></tr>";
 
-		toolTip =
-			"<table>"
-			$"<tr><td>Device name:</td><td>%1</td></tr>"
-			$"<tr><td>Description:</td><td>%2</td></tr>"
-			$"<tr><td>Manufacturer:</td><td>%3</td></tr>"
-			$"<tr><td>Hardware&nbsp;ID(s):</td><td>%4</td></tr>"
-			$"<tr><td>Driver:</td><td>%5</td></tr>"(
-				port.m_deviceName,
-				port.m_description,
-				port.m_manufacturer,
-				port.m_hardwareIds,
-				port.m_driver
+		if (port.m_description) {
+			description += $" - $(port.m_description)";
+			toolTip += $"<tr><td>Description:</td><td>$(port.m_description)</td></tr>";
+		}
 
-			);
+		if (port.m_manufacturer) {
+			description += $" by $(port.m_manufacturer)";
+			toolTip += $"<tr><td>Manufacturer:</td><td>$(port.m_manufacturer)</td></tr>";
+		}
+
+		if (port.m_hardwareIds)
+			toolTip += $"<tr><td>Hardware&nbsp;ID(s):</td><td>$(port.m_hardwareIds)</td></tr>";
+
+		if (port.m_driver)
+			toolTip += $"<tr><td>Driver:</td><td>$(port.m_driver)</td></tr>";
 
 		if (port.m_location)
-			toolTip.append($"<tr><td>Location:</td><td>%1</td></tr>"(port.m_location));
+			toolTip += $"<tr><td>Location:</td><td>$(port.m_location)</td></tr>";
 
 		toolTip.append("</table>");
 
-		size_t i = m_portCombo.addItem(description, port.m_deviceName);
+		char const* text = description.detachString();
+		size_t i = m_portCombo.addItem(text, port.m_deviceName);
 		m_portCombo.m_itemToolTip[i] = toolTip.detachString();
 
-		option.m_text = description;
+		option.m_text = text;
 		option.m_value = port.m_deviceName;
 	}
 
