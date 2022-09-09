@@ -7,7 +7,7 @@ import "doc_Session.jnc"
 import "io_base.jncx"
 import "io_Serial.jnc"
 import "io_SerialBuggyDrivers.jnc"
-import "ui_SerialSettingUi.jnc"
+import "ui_SerialUi.jnc"
 import "ui_BufferPropertySet.jnc"
 import "ui_StdSessionInfoSet.jnc"
 import "log_ThroughputCalc.jnc"
@@ -162,8 +162,6 @@ protected:
 	void onReopenTimer(uint_t syncId);
 
 	void createUi();
-
-	void enumeratePorts();
 	void waitSerialEvents();
 
 	void startReopenTimer() {
@@ -220,7 +218,7 @@ void SerialSession.createUi() {
 	m_portCombo.m_placeholderText = "Enter a serial port name...";
 
 	m_actionTable[ActionId.Refresh] = createAction("Re-enumerate ports", m_iconTable [IconId.Refresh]);
-	m_actionTable[ActionId.Refresh].m_onTriggered += enumeratePorts;
+	m_actionTable[ActionId.Refresh].m_onTriggered += ui.enumerateSerialPorts~(m_portCombo, m_portProp);
 
 	m_actionTable[ActionId.Open] = createAction("Open", m_iconTable [IconId.Open]);
 	m_actionTable[ActionId.Open].m_onTriggered += onOpen;
@@ -348,7 +346,7 @@ void SerialSession.createUi() {
 	m_pluginHost.m_propertyGrid.resizeNameColumnToContents();
 	m_pluginHost.m_informationGrid.resizeNameColumnToContents();
 
-	enumeratePorts();
+	ui.enumerateSerialPorts(m_portCombo, m_portProp);
 
 	m_uiReactor.start();
 }
@@ -766,57 +764,6 @@ bool errorcode SerialSession.dispatch(
 	}
 
 	return true;
-}
-
-void SerialSession.enumeratePorts() {
-	char const* editText = m_portCombo.m_editText; // save edit text
-	m_portCombo.clear();
-
-	size_t count;
-	io.SerialPortDesc const* portList = io.createSerialPortDescList(io.SerialPortDescMask.All, &count);
-	io.SerialPortDesc const* port = portList;
-
-	ui.EnumPropertyOption* optionArray = new ui.EnumPropertyOption[count];
-	ui.EnumPropertyOption* option = optionArray;
-
-	std.StringBuilder description;
-	std.StringBuilder toolTip;
-
-	for (; port; port = port.m_next, option++) {
-		description = port.m_deviceName;
-		toolTip = $"<table><tr><td>Device name:</td><td>(port.m_deviceName)</td></tr>";
-
-		if (port.m_description) {
-			description += $" - $(port.m_description)";
-			toolTip += $"<tr><td>Description:</td><td>$(port.m_description)</td></tr>";
-		}
-
-		if (port.m_manufacturer) {
-			description += $" by $(port.m_manufacturer)";
-			toolTip += $"<tr><td>Manufacturer:</td><td>$(port.m_manufacturer)</td></tr>";
-		}
-
-		if (port.m_hardwareIds)
-			toolTip += $"<tr><td>Hardware&nbsp;ID(s):</td><td>$(port.m_hardwareIds)</td></tr>";
-
-		if (port.m_driver)
-			toolTip += $"<tr><td>Driver:</td><td>$(port.m_driver)</td></tr>";
-
-		if (port.m_location)
-			toolTip += $"<tr><td>Location:</td><td>$(port.m_location)</td></tr>";
-
-		toolTip.append("</table>");
-
-		char const* text = description.detachString();
-		size_t i = m_portCombo.addItem(text, port.m_deviceName);
-		m_portCombo.m_itemToolTip[i] = toolTip.detachString();
-
-		option.m_text = text;
-		option.m_value = port.m_deviceName;
-	}
-
-	m_portCombo.m_editText = editText; // restore edit text
-	m_portProp.setOptions(optionArray, count);
 }
 
 void SerialSession.waitSerialEvents() {

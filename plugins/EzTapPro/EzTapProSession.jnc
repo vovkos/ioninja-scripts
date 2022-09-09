@@ -6,7 +6,7 @@
 import "doc_Session.jnc"
 import "io_base.jncx"
 import "io_Serial.jnc"
-import "ui_SerialSettingUi.jnc"
+import "ui_SerialUi.jnc"
 import "ui_BufferPropertySet.jnc"
 import "ui_StdSessionInfoSet.jnc"
 import "log_ThroughputCalc.jnc"
@@ -138,7 +138,6 @@ protected:
 	);
 
 	void createUi();
-	void enumeratePorts();
 	void flipDteDce();
 
 	ui.ComboBox* createSerialSettingComboBox(
@@ -229,8 +228,8 @@ void EzTapProSession.createUi() {
 	m_portCombo.m_onEnter += onPortComboEnter;
 	m_portCombo.m_placeholderText = "Enter a serial port name...";
 
-	m_actionTable[ActionId.Refresh] = createAction("Refresh port list", "images/refresh.png");
-	m_actionTable[ActionId.Refresh].m_onTriggered += enumeratePorts;
+	m_actionTable[ActionId.Refresh] = createAction("Re-enumerate ports", "images/refresh.png");
+	m_actionTable[ActionId.Refresh].m_onTriggered += ui.enumerateSerialPorts~(m_portCombo, m_portProp);
 
 	m_actionTable[ActionId.Capture]  = createAction("Capture", m_iconTable[IconId.Capture]);
 	m_actionTable[ActionId.Capture].m_onTriggered += onCapture;
@@ -350,7 +349,7 @@ void EzTapProSession.createUi() {
 	m_pluginHost.m_propertyGrid.resizeNameColumnToContents();
 	m_pluginHost.m_informationGrid.resizeNameColumnToContents();
 
-	enumeratePorts();
+	ui.enumerateSerialPorts(m_portCombo, m_portProp);
 	m_uiReactor.start();
 }
 
@@ -370,28 +369,6 @@ ui.ComboBox* EzTapProSession.createSerialSettingComboBox(
 	comboBox.m_onChanged += onChanged;
 
 	return comboBox;
-}
-
-void EzTapProSession.enumeratePorts() {
-	char const* name = m_portCombo.m_currentText;
-	m_portCombo.clear();
-
-	size_t count;
-	io.SerialPortDesc const* portList = io.createSerialPortDescList(&count);
-	io.SerialPortDesc const* port = portList;
-
-	ui.EnumPropertyOption* optionArray = new ui.EnumPropertyOption[count];
-	ui.EnumPropertyOption* option = optionArray;
-
-	for (; port; port = port.m_next, option++) {
-		char const* description = $"$(port.m_deviceName) - $(port.m_description)";
-		m_portCombo.addItem(description, port.m_deviceName);
-		option.m_text = description;
-		option.m_value = port.m_deviceName;
-	}
-
-	m_portCombo.m_editText = name; // preserve current text
-	m_portProp.setOptions(optionArray, count);
 }
 
 void EzTapProSession.flipDteDce() {

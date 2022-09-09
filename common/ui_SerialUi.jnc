@@ -359,6 +359,62 @@ void SerialSettingUi.restoreDefaultProperties() {
 
 //..............................................................................
 
+void enumerateSerialPorts(
+	ui.ComboBox* portCombo,
+	ui.ComboProperty* portProp
+) {
+	char const* editText = portCombo.m_editText; // save edit text
+	portCombo.clear();
+
+	size_t count;
+	io.SerialPortDesc const* portList = io.createSerialPortDescList(io.SerialPortDescMask.All, &count);
+	io.SerialPortDesc const* port = portList;
+
+	ui.EnumPropertyOption* optionArray = new ui.EnumPropertyOption[count];
+	ui.EnumPropertyOption* option = optionArray;
+
+	std.StringBuilder description;
+	std.StringBuilder toolTip;
+
+	for (; port; port = port.m_next, option++) {
+		description = port.m_deviceName;
+		toolTip = $"<table><tr><td>Device&nbsp;name:</td><td>$(port.m_deviceName)</td></tr>";
+
+		if (port.m_description) {
+			description += $" - $(port.m_description)";
+			toolTip += $"<tr><td>Description:</td><td>$(port.m_description)</td></tr>";
+		}
+
+		if (port.m_manufacturer) {
+			description += $" by $(port.m_manufacturer)";
+			toolTip += $"<tr><td>Manufacturer:</td><td>$(port.m_manufacturer)</td></tr>";
+		}
+
+		if (port.m_hardwareIds)
+			toolTip += $"<tr><td>Hardware&nbsp;ID(s):</td><td>$(port.m_hardwareIds)</td></tr>";
+
+		if (port.m_driver)
+			toolTip += $"<tr><td>Driver:</td><td>$(port.m_driver)</td></tr>";
+
+		if (port.m_location)
+			toolTip += $"<tr><td>Location:</td><td>$(port.m_location)</td></tr>";
+
+		toolTip.append("</table>");
+
+		char const* text = description.detachString();
+		size_t i = portCombo.addItem(text, port.m_deviceName);
+		portCombo.m_itemToolTip[i] = toolTip.detachString();
+
+		option.m_text = text;
+		option.m_value = port.m_deviceName;
+	}
+
+	portCombo.m_editText = editText; // restore edit text
+	portProp.setOptions(optionArray, count);
+}
+
+//..............................................................................
+
 //! @}
 
 } // namespace ui
