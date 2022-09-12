@@ -77,7 +77,7 @@ void representModbusRtuAdu(
 
 		ui.TextAttr attr;
 		attr.m_backColor = ui.ColorFlags.Transparent;
-		attr.m_textColor = ui.StdColor.Purple;
+		attr.m_textColor = ui.StdColor.Magenta;
 
 		representation.retroColorize(-size, sizeof(io.ModbusRtuAduHdr), attr);
 		representation.retroColorize(-sizeof(uint16_t), sizeof(uint16_t), attr);

@@ -74,7 +74,7 @@ void representModbusTcpAdu(
 
 		ui.TextAttr attr;
 		attr.m_backColor = ui.ColorFlags.Transparent;
-		attr.m_textColor = ui.StdColor.Purple;
+		attr.m_textColor = ui.StdColor.Magenta;
 
 		representation.retroColorize(-size, sizeof(io.ModbusTcpAduHdr), attr);
 	}

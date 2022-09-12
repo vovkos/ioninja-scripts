@@ -97,7 +97,7 @@ void representModbusAsciiAdu(
 
 		ui.TextAttr attr;
 		attr.m_backColor = ui.ColorFlags.Transparent;
-		attr.m_textColor = ui.StdColor.Purple;
+		attr.m_textColor = ui.StdColor.Magenta;
 
 		representation.retroColorize(-size, 1, attr); // :
 		representation.retroColorize(-2, 2, attr);    // \r\n
