@@ -391,7 +391,7 @@ void enumerateSerialPorts(
 		}
 
 		if (port.m_hardwareIds)
-			toolTip += $"<tr><td>Hardware&nbsp;ID(s):</td><td>$(port.m_hardwareIds)</td></tr>";
+			toolTip += $"<tr><td>Hardware&nbsp;ID:</td><td>$(port.m_hardwareIds)</td></tr>";
 
 		if (port.m_driver)
 			toolTip += $"<tr><td>Driver:</td><td>$(port.m_driver)</td></tr>";

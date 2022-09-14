@@ -93,6 +93,10 @@ protected:
 	}
 
 	void createUi();
+
+	void enumeratePorts() {
+		ui.enumerateSerialPorts(m_portCombo, m_portProp);
+	}
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -117,7 +121,7 @@ void SerialMonSession.createUi() {
 	m_portCombo.m_placeholderText = "Enter a serial port name...";
 
 	m_actionTable[ActionId.Refresh] = createAction("Refresh port list", "images/refresh.png");
-	m_actionTable[ActionId.Refresh].m_onTriggered += ui.enumerateSerialPorts~(m_portCombo, m_portProp);
+	m_actionTable[ActionId.Refresh].m_onTriggered += enumeratePorts;
 
 	m_iconTable[IconId.Capture] = new ui.Icon("images/capture.png");
 	m_iconTable[IconId.StopCapture] = new ui.Icon("images/pause.png");
@@ -179,7 +183,7 @@ void SerialMonSession.createUi() {
 	m_pluginHost.m_propertyGrid.resizeNameColumnToContents();
 	m_pluginHost.m_informationGrid.resizeNameColumnToContents();
 
-	ui.enumerateSerialPorts(m_portCombo, m_portProp);
+	enumeratePorts();
 	m_uiReactor.start();
 }
 

@@ -140,6 +140,10 @@ protected:
 	void createUi();
 	void flipDteDce();
 
+	void enumeratePorts() {
+		ui.enumerateSerialPorts(m_portCombo, m_portProp);
+	}
+
 	ui.ComboBox* createSerialSettingComboBox(
 		char const* labelText,
 		ui.EnumPropertyOption const* optionTable,
@@ -229,7 +233,7 @@ void EzTapProSession.createUi() {
 	m_portCombo.m_placeholderText = "Enter a serial port name...";
 
 	m_actionTable[ActionId.Refresh] = createAction("Re-enumerate ports", "images/refresh.png");
-	m_actionTable[ActionId.Refresh].m_onTriggered += ui.enumerateSerialPorts~(m_portCombo, m_portProp);
+	m_actionTable[ActionId.Refresh].m_onTriggered += enumeratePorts;
 
 	m_actionTable[ActionId.Capture]  = createAction("Capture", m_iconTable[IconId.Capture]);
 	m_actionTable[ActionId.Capture].m_onTriggered += onCapture;
@@ -349,7 +353,7 @@ void EzTapProSession.createUi() {
 	m_pluginHost.m_propertyGrid.resizeNameColumnToContents();
 	m_pluginHost.m_informationGrid.resizeNameColumnToContents();
 
-	ui.enumerateSerialPorts(m_portCombo, m_portProp);
+	enumeratePorts();
 	m_uiReactor.start();
 }
 
