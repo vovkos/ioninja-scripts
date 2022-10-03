@@ -313,7 +313,7 @@ bool errorcode SshEthernetTapSession.applyFilter(bool rebuildLog) {
 		return false;
 	}
 
-	m_filterCombo.m_backgroundColor = ui.ColorFlags.Transparent;
+	m_filterCombo.m_backgroundColor = ui.ColorFlags.Undefined;
 	m_filterCombo.addEditTextToHistory();
 
 	if (rebuildLog)
