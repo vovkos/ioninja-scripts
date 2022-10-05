@@ -7,6 +7,7 @@ import "ui_PropertyGrid.jnc"
 import "ui_ComboBox.jnc"
 import "ui_ToolBar.jnc"
 import "doc_Storage.jnc"
+import "std_Array.jnc"
 import "io_base.jncx"
 import "io_Serial.jnc"
 
@@ -359,6 +360,13 @@ void SerialSettingUi.restoreDefaultProperties() {
 
 //..............................................................................
 
+bool isSerialPortDescLess(
+	io.SerialPortDesc const* desc1,
+	io.SerialPortDesc const* desc2
+) {
+	return strcmp(desc1.m_deviceName, desc2.m_deviceName) < 0;
+}
+
 void enumerateSerialPorts(
 	ui.ComboBox* portCombo,
 	ui.ComboProperty* portProp
@@ -368,7 +376,14 @@ void enumerateSerialPorts(
 
 	size_t count;
 	io.SerialPortDesc const* portList = io.createSerialPortDescList(io.SerialPortDescMask.All, &count);
+
+	std.Array portArray;
+	portArray.setCount(count);
 	io.SerialPortDesc const* port = portList;
+	for (size_t i = 0; i < count; i++, port = port.m_next)
+		portArray[i] = port;
+
+	portArray.sort(isSerialPortDescLess);
 
 	ui.EnumPropertyOption* optionArray = new ui.EnumPropertyOption[count];
 	ui.EnumPropertyOption* option = optionArray;
@@ -376,7 +391,8 @@ void enumerateSerialPorts(
 	std.StringBuilder description;
 	std.StringBuilder toolTip;
 
-	for (; port; port = port.m_next, option++) {
+	for (size_t i = 0; i < count; i++, option++) {
+		port = portArray[i];
 		description = port.m_deviceName;
 		toolTip = $"<table><tr><td>Device&nbsp;name:</td><td>$(port.m_deviceName)</td></tr>";
 
