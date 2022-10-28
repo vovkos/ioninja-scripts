@@ -802,7 +802,7 @@ void SerialSession.onSerialEvent(
 		m_logWriter.write(log.StdRecordCode.Error, m_serial.m_ioError);
 		close();
 
-		if (m_reopenTimeoutProp.m_value)
+		if (m_useReopenProp.m_value)
 			startReopenTimer();
 
 		return;
