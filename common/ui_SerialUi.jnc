@@ -360,11 +360,11 @@ void SerialSettingUi.restoreDefaultProperties() {
 
 //..............................................................................
 
-bool isSerialPortDescLess(
-	io.SerialPortDesc const* desc1,
-	io.SerialPortDesc const* desc2
+bool isSerialPortLess(
+	io.SerialPortDesc const* port1,
+	io.SerialPortDesc const* port2
 ) {
-	return strcmp(desc1.m_deviceName, desc2.m_deviceName) < 0;
+	return strcmp(port1.m_deviceName, port2.m_deviceName) < 0;
 }
 
 void enumerateSerialPorts(
