@@ -8,42 +8,38 @@ import "log_RecordCode.jnc"
 //..............................................................................
 
 enum UsbMonLogRecordCode: uint64_t {
-	DeviceOpened         = 0x01d8fa56e6368500,
-	DeviceOpenError      = 0x01d8fa56e6368501,
-	DeviceClosed         = 0x01d8fa56e6368502,
-	KernelDriverDetached = 0x01d8fa56e6368503,
-	InterfaceClaimed     = 0x01d8fa56e6368504,
-	InterfaceClaimError  = 0x01d8fa56e6368505,
-	InterfaceReleased    = 0x01d8fa56e6368506,
-	ReadingStarted       = 0x01d8fa56e6368507,
-	ReadingStopped       = 0x01d8fa56e6368508,
-	EndpointOpenError    = 0x01d8fa56e6368509,
-	ControlTransfer      = 0x01d8fa56e636850a,
+	CaptureStarted        = 0x01d8fa56e6368500 | log.RecordCodeFlags.Foldable,
+	CaptureStopped        = 0x01d8fa56e6368501,
+	CaptureError          = 0x01d8fa56e6368502,
+	ControlTransfer       = 0x01d8fa56e6368503 | log.RecordCodeFlags.Foldable,
+	BulkInterruptTransfer = 0x01d8fa56e6368504,
+	IsochronousTransfer   = 0x01d8fa56e6368505,
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-struct DeviceParams {
-	uint8_t m_bus;
-	uint8_t m_address;
+struct CaptureStartedParams {
 	uint16_t m_vendorId;
 	uint16_t m_productId;
+	uint8_t m_osKind;
+	uint8_t m_captureDeviceId;
+	uint8_t m_address;
+	uint8_t m_speed;
+
+	// followed by null-terminated strings:
+	// - description
+	// - manufacturer
+	// - driver
 }
 
-// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-struct InterfaceParams {
-	uint8_t m_interfaceId;
-	uint8_t m_altSettingId;
+struct BulkInterruptTransferParams {
+	uint8_t m_endpoint;
+	io.UsbMonTransferType m_type;
 }
 
-// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-struct ControlTransferParams {
-	uint8_t m_type;
-	uint8_t m_code;
-	uint16_t m_value;
-	uint16_t m_index;
+struct IsochronousTransferParams {
+	uint8_t m_endpoint;
+	io.UsbMonIsochronousHdr m_isochronousHdr;
 }
 
 //..............................................................................

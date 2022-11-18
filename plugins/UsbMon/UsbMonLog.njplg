@@ -21,14 +21,9 @@ UsbMonLogRepresenter.jnc
 
 [records]
 
-01d8fa56e6368500  # DeviceOpened
-01d8fa56e6368501  # DeviceOpenError
-01d8fa56e6368502  # DeviceClosed
-01d8fa56e6368503  # KernelDriverDetached
-01d8fa56e6368504  # InterfaceClaimed
-01d8fa56e6368505  # InterfaceClaimError
-01d8fa56e6368506  # InterfaceReleased
-01d8fa56e6368507  # ReadingStarted
-01d8fa56e6368508  # ReadingStopped
-01d8fa56e6368509  # EndpointOpenError
-01d8fa56e636850a  # ControlTransfer
+81d8fa56e6368500  # CaptureStarted
+01d8fa56e6368501  # CaptureStopped
+01d8fa56e6368502  # CaptureError
+81d8fa56e6368503  # ControlTransfer
+01d8fa56e6368504  # BulkInterruptTransfer
+01d8fa56e6368505  # IsochronousTransfer
