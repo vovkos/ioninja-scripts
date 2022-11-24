@@ -6,6 +6,7 @@
 import "doc_Session.jnc"
 import "io_base.jncx"
 import "io_Serial.jnc"
+import "io_SerialPortEnumerator.jnc"
 import "io_SerialBuggyDrivers.jnc"
 import "ui_SerialUi.jnc"
 import "ui_BufferPropertySet.jnc"
@@ -198,7 +199,7 @@ void SerialTapSession.createUi() {
 	m_dtePortCombo.m_placeholderText = "Enter a serial port name...";
 
 	size_t portCount;
-	io.SerialPortDesc const* portList = io.createSerialPortDescList(&portCount);
+	io.SerialPortDesc const* portList = io.enumerateSerialPorts(&portCount);
 	io.SerialPortDesc const* port = portList;
 	for (; port; port = port.m_next) {
 		m_dtePortCombo.addItem(port.m_deviceName, null);

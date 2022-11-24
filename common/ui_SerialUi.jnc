@@ -10,6 +10,7 @@ import "doc_Storage.jnc"
 import "std_Array.jnc"
 import "io_base.jncx"
 import "io_Serial.jnc"
+import "io_SerialPortEnumerator.jnc"
 
 namespace ui {
 
@@ -375,7 +376,7 @@ void enumerateSerialPorts(
 	portCombo.clear();
 
 	size_t count;
-	io.SerialPortDesc const* portList = io.createSerialPortDescList(io.SerialPortDescMask.All, &count);
+	io.SerialPortDesc const* portList = io.enumerateSerialPorts(io.SerialPortDescMask.All, &count);
 
 	std.Array portArray;
 	portArray.setCount(count);
@@ -383,7 +384,7 @@ void enumerateSerialPorts(
 	for (size_t i = 0; i < count; i++, port = port.m_next)
 		portArray[i] = port;
 
-	portArray.sort(isSerialPortDescLess);
+	portArray.sort(isSerialPortLess);
 
 	ui.EnumPropertyOption* optionArray = new ui.EnumPropertyOption[count];
 	ui.EnumPropertyOption* option = optionArray;
