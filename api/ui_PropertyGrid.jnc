@@ -1,6 +1,6 @@
 //..............................................................................
 //
-// Ninja GUI - property grid
+// Ninja UI - property grid
 //
 
 import "ui_ComboItem.jnc"

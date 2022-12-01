@@ -1,9 +1,10 @@
 //..............................................................................
 //
-// Ninja UI - actions (QT-style model)
+// Ninja UI - group boxes
 //
 
-import "ui_Icon.jnc"
+import "ui_Widget.jnc"
+import "ui_Layout.jnc"
 
 namespace ui {
 
@@ -12,21 +13,18 @@ namespace ui {
 
 //..............................................................................
 
-opaque class Action {
-	construct(
-		char const* text,
-		Icon* icon = null
-	);
-
-	bool autoget property m_isVisible;
-	bool autoget property m_isEnabled;
+opaque class GroupBox: Widget {
+	char const* autoget property m_title;
+	Layout* autoget property m_layout;
 	bool autoget property m_isCheckable;
 	bool bindable autoget property m_isChecked;
 
-	char const* autoget property m_text;
-	Icon* autoget property m_icon;
+	construct(
+		char const* title = null,
+		Layout* layout = null
+	);
 
-	event m_onTriggered();
+	construct(Layout* layout);
 }
 
 //..............................................................................

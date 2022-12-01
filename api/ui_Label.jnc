@@ -1,9 +1,10 @@
 //..............................................................................
 //
-// Ninja UI - text attributes
+// Ninja UI - labels
 //
 
-import "ui_Color.jnc"
+import "ui_Widget.jnc"
+import "ui_Icon.jnc"
 
 namespace ui {
 
@@ -12,21 +13,15 @@ namespace ui {
 
 //..............................................................................
 
-bitflag enum FontFlags {
-	Bold,
-	Italic,
-	Underline,
-	Strikeout,
+opaque class Label: Widget {
+	char const* autoget property m_text;
+	Icon* m_icon;
+	TextFormat autoget property m_textFormat;
+	Alignment autoget property m_alignment;
 
-	Transparent,
-}
+	event m_onLinkClicked(char const* link);
 
-// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-struct TextAttr {
-	uint_t m_textColor;
-	uint_t m_backColor;
-	FontFlags m_fontFlags;
+	construct(char const* text);
 }
 
 //..............................................................................
