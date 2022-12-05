@@ -1,0 +1,170 @@
+//..............................................................................
+//
+// Serial log filter
+//
+
+import "doc_Plugin.jnc"
+import "log_Filter.jnc"
+import "ui_LogRecordCodeFilterUi.jnc"
+
+//..............................................................................
+
+class SerialLogFilter:
+	doc.LogFilter,
+	log.FoldingFilter {
+protected:
+	log.Log* m_log;
+
+	ui.LogRecordCodeFilterUi m_serialSettingChangeFilter;
+	ui.LogRecordCodeFilterUi m_controlLineChangeFilter;
+	ui.LogRecordCodeFilterUi m_statusLineChangeFilter;
+	ui.LogRecordCodeFilterUi m_lineErrorFilter;
+
+public:
+	void create(
+		doc.PluginHost* pluginHost,
+		char const* title,
+		char const* toolTip = null
+	);
+
+	override void load(doc.Storage* storage);
+	override void save(doc.Storage* storage);
+	override void updateProperties();
+	override bool errorcode applyProperties();
+	override void restoreDefaultProperties();
+
+	override uint8_t filter(
+		uint64_t timestamp,
+		uint64_t recordCode,
+		void const* p,
+		size_t size
+	);
+
+protected:
+	void onRebuildLog() {
+		m_log.rebuild();
+	}
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+void SerialLogFilter.create(
+	doc.PluginHost* pluginHost,
+	char const* title,
+	char const* toolTip
+) {
+	m_log = pluginHost.m_log;
+
+	ui.FormLayout* form = pluginHost.createForm();
+	ui.VBoxLayout* layout = new ui.VBoxLayout;
+	ui.GroupBox* groupBox = new ui.GroupBox(title, layout);
+	groupBox.m_toolTip = toolTip;
+	ui.GroupProperty* groupProp = pluginHost.m_propertyGrid.createGroupProperty(title, toolTip);
+
+	m_serialSettingChangeFilter.create(
+		layout,
+		groupProp,
+		"Serial setting changes",
+		"Show/hide serial setting changes (baud rate, data bits, etc)"
+	);
+
+	m_controlLineChangeFilter.create(
+		layout,
+		groupProp,
+		"Serial control line changes",
+		"Show/hide serial control lines changes (DTR/DSR)"
+	);
+
+	m_statusLineChangeFilter.create(
+		layout,
+		groupProp,
+		"Serial status line changes",
+		"Show/hide serial control lines changes (RTS/CTS)"
+	);
+
+	m_lineErrorFilter.create(
+		layout,
+		groupProp,
+		"Serial line errors",
+		"Show/hide serial line errors (FRAMING, PARITY, BREAK)"
+	);
+
+	ui.PushButton* applyButton = new ui.PushButton(new ui.Icon("images/apply.png"), "Rebuild Log");
+	applyButton.m_onClicked += onRebuildLog;
+
+	applyButton.m_toolTip = "Apply filter settings & rebuild log";
+	ui.HBoxLayout* buttonBoxLayout = new ui.HBoxLayout;
+	buttonBoxLayout.addStretch();
+	buttonBoxLayout.addWidget(applyButton);
+	layout.addLayout(buttonBoxLayout);
+	form.addRow(groupBox);
+
+	pluginHost.m_log.addFoldingFilter(this);
+}
+
+void SerialLogFilter.load(doc.Storage* storage) {
+}
+
+void SerialLogFilter.save(doc.Storage* storage) {
+}
+
+void SerialLogFilter.updateProperties() {
+}
+
+bool errorcode SerialLogFilter.applyProperties() {
+	return true;
+}
+
+void SerialLogFilter.restoreDefaultProperties() {
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+uint8_t SerialLogFilter.filter(
+	uint64_t timestamp,
+	uint64_t recordCode,
+	void const* p,
+	size_t size
+) {
+	bool isVisible = true;
+
+	printf("recordCode: %llx\n", recordCode);
+
+	switch (recordCode) {
+	case SerialLogRecordCode.BaudRateChanged:
+	case SerialLogRecordCode.DataBitsChanged:
+	case SerialLogRecordCode.StopBitsChanged:
+	case SerialLogRecordCode.ParityChanged:
+	case SerialLogRecordCode.FlowControlChanged:
+	case SerialLogRecordCode.ReadModeChanged:
+	case SerialLogRecordCode.ReadIntervalChanged:
+		isVisible = m_serialSettingChangeFilter.m_isVisible;
+		printf("m_serialSettingChangeFilter.m_isVisible: %d\n", isVisible);
+		break;
+
+	case SerialLogRecordCode.ControlLineChanged:
+	case SerialLogRecordCode.RtsChanged:
+	case SerialLogRecordCode.DtrChanged:
+	case SerialLogRecordCode.BreakConditionChanged:
+		isVisible = m_controlLineChangeFilter.m_isVisible;
+		printf("m_controlLineChangeFilter.m_isVisible: %d\n", isVisible);
+		break;
+
+	case SerialLogRecordCode.StatusLineChanged:
+		isVisible = m_statusLineChangeFilter.m_isVisible;
+		printf("m_statusLineChangeFilter.m_isVisible: %d\n", isVisible);
+		break;
+
+	case SerialLogRecordCode.LineError:
+		isVisible = m_lineErrorFilter.m_isVisible;
+		printf("m_lineErrorFilter.m_isVisible: %d\n", isVisible);
+		break;
+
+	default:
+		printf("isVisible: %d\n", isVisible);
+	}
+
+	return isVisible ? 0 : log.FoldFlags.Hidden;
+}
+
+//..............................................................................

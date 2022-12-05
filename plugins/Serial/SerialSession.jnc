@@ -10,15 +10,12 @@ import "io_SerialBuggyDrivers.jnc"
 import "ui_SerialUi.jnc"
 import "ui_BufferPropertySet.jnc"
 import "ui_StdSessionInfoSet.jnc"
+import "ui_GroupBox.jnc"
 import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
 import "std_Buffer.jnc"
 import "std_String.jnc"
 import "sys_Timer.jnc"
-
-import "ui_GroupBox.jnc"
-import "ui_Button.jnc"
-import "ui_LineEdit.jnc"
 
 //..............................................................................
 
@@ -82,6 +79,7 @@ protected:
 	// common serial ui
 
 	ui.SerialSettingUi m_serialSettingUi;
+	SerialLogFilter m_serialLogFilter;
 
 	// toolbar, status bar & menu
 
@@ -206,6 +204,7 @@ SerialSession.construct(doc.PluginHost* pluginHost) {
 	m_readBuffer.setSize(ui.BufferPropertySet.Defaults.ReadBufferSize);
 
 	createUi();
+	m_serialLogFilter.create(m_pluginHost, "Serial log filter");
 
 	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
@@ -230,9 +229,9 @@ void SerialSession.createUi() {
 	m_portCombo.m_onEnter += onPortComboEnter;
 	m_portCombo.m_placeholderText = "Enter a serial port name...";
 
-	m_actionTable[ActionId.Refresh] = createAction("Re-enumerate ports", m_iconTable [IconId.Refresh]);
+	m_actionTable[ActionId.Refresh] = createAction("Re-enumerate ports", m_iconTable[IconId.Refresh]);
 	m_actionTable[ActionId.Refresh].m_onTriggered += enumeratePorts;
-	m_actionTable[ActionId.Open] = createAction("Open", m_iconTable [IconId.Open]);
+	m_actionTable[ActionId.Open] = createAction("Open", m_iconTable[IconId.Open]);
 	m_actionTable[ActionId.Open].m_onTriggered += onOpen;
 
 	// settings
