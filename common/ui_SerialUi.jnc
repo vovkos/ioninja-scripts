@@ -330,7 +330,7 @@ void SerialSettingUi.applyProperties() {
 		m_parityCombo.m_currentIndex = m_parityProp.m_currentIndex;
 
 	if (m_stopBitsProp && m_stopBitsCombo)
-		m_dataBitsCombo.m_currentIndex = m_stopBitsProp.m_currentIndex;
+		m_stopBitsCombo.m_currentIndex = m_stopBitsProp.m_currentIndex;
 
 	if (m_flowControlProp && m_flowControlCombo)
 		m_flowControlCombo.m_currentIndex = m_flowControlProp.m_currentIndex;

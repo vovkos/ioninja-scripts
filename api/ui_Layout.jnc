@@ -51,17 +51,17 @@ opaque class BoxLayout: Layout {
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-opaque class HBoxLayout: BoxLayout {
+class HBoxLayout: BoxLayout {
 	construct() {
-		baseclass.construct(Direction.LeftToRight)
+		basetype.construct(Direction.LeftToRight)
 	}
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-opaque class VBoxLayout: BoxLayout {
+class VBoxLayout: BoxLayout {
 	construct() {
-		baseclass.construct(Direction.TopToBottom)
+		basetype.construct(Direction.TopToBottom)
 	}
 }
 

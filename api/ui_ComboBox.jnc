@@ -18,7 +18,6 @@ opaque class ComboBox: Widget {
 
 	char const* bindable autoget property m_editText;
 	char const* autoget property m_placeholderText;
-	char const* autoget property m_toolTipText;
 	uint_t autoget property m_backgroundColor;
 
 	size_t readonly m_itemCount;

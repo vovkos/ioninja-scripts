@@ -25,7 +25,14 @@ opaque class AbstractButton: Widget {
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 opaque class PushButton: AbstractButton {
+	bool autoget property m_isFlat;
+
 	construct(char const* text = null);
+
+	construct(
+		Icon* icon,
+		char const* text = null
+	);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
