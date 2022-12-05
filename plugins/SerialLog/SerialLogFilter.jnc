@@ -6,6 +6,9 @@
 import "doc_Plugin.jnc"
 import "log_Filter.jnc"
 import "ui_LogRecordCodeFilterUi.jnc"
+import "ui_Layout.jnc"
+import "ui_GroupBox.jnc"
+import "ui_Button.jnc"
 
 //..............................................................................
 
@@ -20,12 +23,10 @@ protected:
 	ui.LogRecordCodeFilterUi m_statusLineChangeFilter;
 	ui.LogRecordCodeFilterUi m_lineErrorFilter;
 
+	char const Title[] = "Serial log filter";
+
 public:
-	void create(
-		doc.PluginHost* pluginHost,
-		char const* title,
-		char const* toolTip = null
-	);
+	construct(doc.PluginHost* pluginHost);
 
 	override void load(doc.Storage* storage);
 	override void save(doc.Storage* storage);
@@ -48,18 +49,13 @@ protected:
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-void SerialLogFilter.create(
-	doc.PluginHost* pluginHost,
-	char const* title,
-	char const* toolTip
-) {
+SerialLogFilter.construct(doc.PluginHost* pluginHost) {
 	m_log = pluginHost.m_log;
 
 	ui.FormLayout* form = pluginHost.createForm();
 	ui.VBoxLayout* layout = new ui.VBoxLayout;
-	ui.GroupBox* groupBox = new ui.GroupBox(title, layout);
-	groupBox.m_toolTip = toolTip;
-	ui.GroupProperty* groupProp = pluginHost.m_propertyGrid.createGroupProperty(title, toolTip);
+	ui.GroupBox* groupBox = new ui.GroupBox(Title, layout);
+	ui.GroupProperty* groupProp = pluginHost.m_propertyGrid.createGroupProperty(Title);
 
 	m_serialSettingChangeFilter.create(
 		layout,
@@ -128,8 +124,6 @@ uint8_t SerialLogFilter.filter(
 ) {
 	bool isVisible = true;
 
-	printf("recordCode: %llx\n", recordCode);
-
 	switch (recordCode) {
 	case SerialLogRecordCode.BaudRateChanged:
 	case SerialLogRecordCode.DataBitsChanged:
@@ -139,7 +133,6 @@ uint8_t SerialLogFilter.filter(
 	case SerialLogRecordCode.ReadModeChanged:
 	case SerialLogRecordCode.ReadIntervalChanged:
 		isVisible = m_serialSettingChangeFilter.m_isVisible;
-		printf("m_serialSettingChangeFilter.m_isVisible: %d\n", isVisible);
 		break;
 
 	case SerialLogRecordCode.ControlLineChanged:
@@ -147,21 +140,15 @@ uint8_t SerialLogFilter.filter(
 	case SerialLogRecordCode.DtrChanged:
 	case SerialLogRecordCode.BreakConditionChanged:
 		isVisible = m_controlLineChangeFilter.m_isVisible;
-		printf("m_controlLineChangeFilter.m_isVisible: %d\n", isVisible);
 		break;
 
 	case SerialLogRecordCode.StatusLineChanged:
 		isVisible = m_statusLineChangeFilter.m_isVisible;
-		printf("m_statusLineChangeFilter.m_isVisible: %d\n", isVisible);
 		break;
 
 	case SerialLogRecordCode.LineError:
 		isVisible = m_lineErrorFilter.m_isVisible;
-		printf("m_lineErrorFilter.m_isVisible: %d\n", isVisible);
 		break;
-
-	default:
-		printf("isVisible: %d\n", isVisible);
 	}
 
 	return isVisible ? 0 : log.FoldFlags.Hidden;

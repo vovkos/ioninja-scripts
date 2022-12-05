@@ -79,7 +79,6 @@ protected:
 	// common serial ui
 
 	ui.SerialSettingUi m_serialSettingUi;
-	SerialLogFilter m_serialLogFilter;
 
 	// toolbar, status bar & menu
 
@@ -204,7 +203,6 @@ SerialSession.construct(doc.PluginHost* pluginHost) {
 	m_readBuffer.setSize(ui.BufferPropertySet.Defaults.ReadBufferSize);
 
 	createUi();
-	m_serialLogFilter.create(m_pluginHost, "Serial log filter");
 
 	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));

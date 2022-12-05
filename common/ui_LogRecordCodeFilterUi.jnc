@@ -1,5 +1,4 @@
 import "ui_Layout.jnc"
-import "ui_Button.jnc"
 import "ui_PropertyGrid.jnc"
 
 namespace ui {
