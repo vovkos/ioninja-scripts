@@ -1,0 +1,67 @@
+import "ui_Layout.jnc"
+import "ui_Button.jnc"
+import "ui_PropertyGrid.jnc"
+
+namespace ui {
+
+//! \addtogroup common
+//! @{
+
+//..............................................................................
+
+class LogRecordCodeFilterUi {
+protected:
+	CheckBox* m_checkBox;
+	BoolProperty* m_prop;
+
+public:
+	bool volatile readonly m_isVisible;
+
+	void create(
+		VBoxLayout* layout,
+		GroupProperty* groupProp,
+		char const* name,
+		char const* toolTip,
+		bool isVisible = true
+	);
+
+	void update() {
+		m_prop.m_value = m_isVisible;
+	}
+
+	void apply() {
+		m_isVisible = m_checkBox.m_isChecked = m_prop.m_value;
+	}
+
+protected:
+	void onCheckBoxClicked() {
+		m_isVisible = m_checkBox.m_isChecked;
+	}
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+void LogRecordCodeFilterUi.create(
+	VBoxLayout* layout,
+	GroupProperty* groupProp,
+	char const* name,
+	char const* toolTip,
+	bool isVisible
+) {
+	m_checkBox = new CheckBox(name);
+	m_checkBox.m_toolTip = toolTip;
+	m_checkBox.m_isChecked = isVisible;
+	bindingof(m_checkBox.m_isChecked) += onCheckBoxClicked;
+	layout.addWidget(m_checkBox);
+
+	m_prop = new BoolProperty(name);
+	m_prop.m_toolTip = toolTip;
+	m_prop.m_value = isVisible;
+	groupProp.addChildProperty(m_prop);
+
+	m_isVisible = isVisible;
+}
+
+//..............................................................................
+
+} // namespace ui
