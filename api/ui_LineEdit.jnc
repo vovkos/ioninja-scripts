@@ -26,7 +26,12 @@ opaque class LineEdit: Widget {
 	EchoMode m_echoMode;
 	bool autoget property m_isReadOnly;
 
+	event m_onReturnPressed();
+
 	construct();
+
+	void clear();
+	void selectAll();
 }
 
 //..............................................................................

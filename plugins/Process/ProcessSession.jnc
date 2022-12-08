@@ -178,7 +178,7 @@ void ProcessSession.createUi() {
 	m_pluginHost.m_toolBar.addLabel("Command:");
 	m_commandLineCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 	m_commandLineCombo.m_isEditable = true;
-	m_commandLineCombo.m_onEnter += onProcessNameComboEnter;
+	m_commandLineCombo.m_onReturnPressed += onProcessNameComboEnter;
 	m_commandLineCombo.m_placeholderText = "Enter a command line...";
 
 	m_iconTable[IconId.Start] = new ui.Icon("images/start.png");

@@ -4,6 +4,7 @@
 //
 
 import "ui_Action.jnc"
+import "ui_Label.jnc"
 import "ui_ComboBox.jnc"
 
 namespace ui {
@@ -15,17 +16,20 @@ namespace ui {
 
 // toolbar
 
-opaque class ToolBar {
+opaque class ToolBar: Widget {
 	enum {
 		Def_Spacing = 6,
 	}
 
+	construct();
 	destruct();
 
 	void addAction(Action* action);
 	void addWidget(Widget* widget);
 	void addSpacing(int size = Def_Spacing);
+	void addStretch(int stretch = 0);
 	void addSeparator();
+
 	Label* addLabel(
 		char const* text,
 		int spacing = Def_Spacing

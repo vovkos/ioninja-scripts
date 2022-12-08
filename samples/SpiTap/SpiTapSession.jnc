@@ -277,7 +277,7 @@ void SpiTapSession.createUi() {
 
 	m_pluginHost.m_toolBar.addLabel("Tap:");
 	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox(-1);
-	m_deviceCombo.m_onEnter += onDeviceComboEnter;
+	m_deviceCombo.m_onReturnPressed += onDeviceComboEnter;
 
 	m_actionTable[ActionId.Refresh] = createAction("Re-enumerate devices", "images/refresh.png");
 	m_actionTable[ActionId.Refresh].m_onTriggered += enumerateDevices;

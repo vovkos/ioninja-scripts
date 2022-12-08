@@ -253,8 +253,8 @@ void SocketPropertySet.createProperties(
 		);
 	}
 
-	ui.Property* localAddressGroup = group;
-	ui.Property* localAddressInsertBefore = insertBefore;
+	Property* localAddressGroup = group;
+	Property* localAddressInsertBefore = insertBefore;
 
 	if (mask & PropertyId.UseLocalAddress) {
 		m_useLocalAddressProp = propertyGrid.createBoolProperty(
@@ -298,7 +298,7 @@ void SocketPropertySet.createProperties(
 		);
 
 	if (mask & PropertyId.TcpOptions) {
-		ui.GroupProperty* tcpGroup = propertyGrid.createGroupProperty(
+		GroupProperty* tcpGroup = propertyGrid.createGroupProperty(
 			group,
 			insertBefore,
 			"Advanced TCP options",

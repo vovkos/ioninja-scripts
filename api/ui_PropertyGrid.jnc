@@ -3,7 +3,7 @@
 // Ninja UI - property grid
 //
 
-import "ui_ComboItem.jnc"
+import "ui_ListItem.jnc"
 import "std_HashTable.jnc"
 
 namespace ui {
@@ -66,7 +66,7 @@ opaque class StringProperty: Property {
 
 //..............................................................................
 
-typedef ComboItem EnumPropertyOption;
+typedef ListItem EnumPropertyOption;
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 

@@ -184,7 +184,7 @@ void EthernetTapSession.createUi() {
 	m_pluginHost.m_toolBar.addLabel("Filter:");
 	m_filterCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 	m_filterCombo.m_isEditable = true;
-	m_filterCombo.m_onEnter += onSetFilter;
+	m_filterCombo.m_onReturnPressed += onSetFilter;
 	m_filterCombo.m_placeholderText = "Enter a pcap-filter...";
 	m_filterCombo.m_toolTip =
 		"View only packets which pass this filter\n"

@@ -56,6 +56,9 @@ SerialLogFilter.construct(doc.PluginHost* pluginHost) {
 	ui.VBoxLayout* layout = new ui.VBoxLayout;
 	ui.GroupBox* groupBox = new ui.GroupBox(Title, layout);
 	ui.GroupProperty* groupProp = pluginHost.m_propertyGrid.createGroupProperty(Title);
+	ui.Action* applyAction = new ui.Action("images/apply.png", "Rebuild log", onRebuildLog);
+	ui.ToolBar* applyToolBar = new ui.ToolBar;
+	applyToolBar.addAction(applyAction);
 
 	m_serialSettingChangeFilter.create(
 		layout,
@@ -82,36 +85,48 @@ SerialLogFilter.construct(doc.PluginHost* pluginHost) {
 		layout,
 		groupProp,
 		"Serial line errors",
-		"Show/hide serial line errors (FRAMING, PARITY, BREAK)"
+		"Show/hide serial line errors (FRAMING, PARITY, BREAK)",
+		applyToolBar
 	);
 
-	ui.PushButton* applyButton = new ui.PushButton(new ui.Icon("images/apply.png"), "Rebuild Log");
-	applyButton.m_onClicked += onRebuildLog;
-
-	applyButton.m_toolTip = "Apply filter settings & rebuild log";
-	ui.HBoxLayout* buttonBoxLayout = new ui.HBoxLayout;
-	buttonBoxLayout.addStretch();
-	buttonBoxLayout.addWidget(applyButton);
-	layout.addLayout(buttonBoxLayout);
 	form.addRow(groupBox);
-
 	pluginHost.m_log.addFoldingFilter(this);
 }
 
 void SerialLogFilter.load(doc.Storage* storage) {
+	m_serialSettingChangeFilter := storage.readBool("serial-setting", true);
+	m_controlLineChangeFilter := storage.readBool("serial-control", true);
+	m_statusLineChangeFilter := storage.readBool("serial-status", true);
+	m_lineErrorFilter := storage.readBool("serial-line-error", true);
 }
 
 void SerialLogFilter.save(doc.Storage* storage) {
+	storage.writeBool("serial-setting", m_serialSettingChangeFilter.m_isVisible);
+	storage.writeBool("serial-control", m_controlLineChangeFilter.m_isVisible);
+	storage.writeBool("serial-status", m_statusLineChangeFilter.m_isVisible);
+	storage.writeBool("serial-line-error", m_lineErrorFilter.m_isVisible);
 }
 
 void SerialLogFilter.updateProperties() {
+	m_serialSettingChangeFilter.update();
+	m_controlLineChangeFilter.update();
+	m_statusLineChangeFilter.update();
+	m_lineErrorFilter.update();
 }
 
 bool errorcode SerialLogFilter.applyProperties() {
+	m_serialSettingChangeFilter.apply();
+	m_controlLineChangeFilter.apply();
+	m_statusLineChangeFilter.apply();
+	m_lineErrorFilter.apply();
 	return true;
 }
 
 void SerialLogFilter.restoreDefaultProperties() {
+	m_serialSettingChangeFilter := true;
+	m_controlLineChangeFilter := true;
+	m_statusLineChangeFilter := true;
+	m_lineErrorFilter := true;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .

@@ -20,7 +20,8 @@ public:
 		VBoxLayout* layout,
 		GroupProperty* groupProp,
 		char const* name,
-		char const* toolTip,
+		char const* toolTip = null,
+		ui.ToolBar* toolBar = null,
 		bool isVisible = true
 	);
 
@@ -31,6 +32,8 @@ public:
 	void apply() {
 		m_isVisible = m_checkBox.m_isChecked = m_prop.m_value;
 	}
+
+	void operator := (bool isVisible);
 
 protected:
 	void onCheckBoxClicked() {
@@ -45,13 +48,22 @@ void LogRecordCodeFilterUi.create(
 	GroupProperty* groupProp,
 	char const* name,
 	char const* toolTip,
+	ui.ToolBar* toolBar,
 	bool isVisible
 ) {
 	m_checkBox = new CheckBox(name);
 	m_checkBox.m_toolTip = toolTip;
 	m_checkBox.m_isChecked = isVisible;
 	bindingof(m_checkBox.m_isChecked) += onCheckBoxClicked;
-	layout.addWidget(m_checkBox);
+
+	if (!toolBar)
+		layout.addWidget(m_checkBox);
+	else {
+		ui.HBoxLayout* subLayout = new ui.HBoxLayout;
+		subLayout.addWidget(m_checkBox, 1, Alignment.Top);
+		subLayout.addWidget(toolBar);
+		layout.addLayout(subLayout);
+	}
 
 	m_prop = new BoolProperty(name);
 	m_prop.m_toolTip = toolTip;
@@ -59,6 +71,12 @@ void LogRecordCodeFilterUi.create(
 	groupProp.addChildProperty(m_prop);
 
 	m_isVisible = isVisible;
+}
+
+void LogRecordCodeFilterUi.operator := (bool isVisible) {
+	m_isVisible = isVisible;
+	m_checkBox.m_isChecked = isVisible;
+	m_prop.m_value = isVisible;
 }
 
 //..............................................................................

@@ -172,7 +172,7 @@ void PipeServerSession.createUi() {
 	m_pluginHost.m_toolBar.addLabel("Filter:");
 	m_clientFilterCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 	m_clientFilterCombo.m_isEditable = true;
-	m_clientFilterCombo.m_onEnter += onSetClientFilter;
+	m_clientFilterCombo.m_onReturnPressed += onSetClientFilter;
 	m_clientFilterCombo.m_placeholderText = "Enter client ID to filter...";
 	m_clientFilterCombo.m_toolTip = "View only communications with the specified client";
 
@@ -192,7 +192,7 @@ void PipeServerSession.createUi() {
 	m_pluginHost.m_toolBar.addLabel("Name:");
 	m_pipeNameCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 	m_pipeNameCombo.m_isEditable = true;
-	m_pipeNameCombo.m_onEnter += onPipeNameComboEnter;
+	m_pipeNameCombo.m_onReturnPressed += onPipeNameComboEnter;
 	m_pipeNameCombo.m_placeholderText = "Enter a pipe name...";
 
 	m_iconTable[IconId.Listen] = new ui.Icon("images/listen.png");
