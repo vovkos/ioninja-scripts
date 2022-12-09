@@ -14,6 +14,8 @@ namespace ui {
 //..............................................................................
 
 opaque class ListWidget: Widget {
+	char const* autoget property m_placeholderText;
+
 	size_t readonly m_itemCount;
 	char const* property m_itemText(size_t index);
 	variant property m_itemData(size_t index);

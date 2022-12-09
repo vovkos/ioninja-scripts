@@ -187,6 +187,7 @@ void TcpServerSession.createUi() {
 	ui.Label* label = new ui.Label("Active client(s):");
 	layout.addWidget(label);
 	m_clientWidget = new ui.ListWidget;
+	m_clientWidget.m_placeholderText = "No active clients";
 	layout.addWidget(m_clientWidget, 1);
 
 	m_actionTable[ActionId.Disconnect] = new ui.Action("images/disconnect.png", "Disconnect", disconnect);
@@ -561,10 +562,10 @@ reactor TcpServerSession.m_uiReactor {
 	m_actionTable[ActionId.Listen].m_text = m_state ? "Stop Listening" : "Listen";
 	m_actionTable[ActionId.Listen].m_icon = m_iconTable[m_state ? IconId.StopListen : IconId.Listen];
 	m_actionTable[ActionId.Disconnect].m_isEnabled =
-	m_actionTable[ActionId.DisconnectAll].m_isEnabled = m_clientWidget.m_currentData;
+	m_actionTable[ActionId.DisconnectAll].m_isEnabled =
+	m_clientWidget.m_isEnabled = m_clientCount;
 	m_statusPaneTable[StatusPaneId.ListenerState].m_text = m_state ? "Listening" : "Not listening";
 	m_statusPaneTable[StatusPaneId.ClientCount].m_text = $"$m_clientCount client(s)";
-	m_clientWidget.m_isEnabled = m_clientCount;
 
 	m_isTransmitEnabled =
 		m_clientWidget.m_currentData &&
