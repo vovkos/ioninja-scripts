@@ -320,14 +320,11 @@ void PipeServerSession.removeClient(PipeServerSession.Client* client) {
 	client.m_pipe.close();
 	client.m_syncId++;
 
+	size_t i = m_clientCombo.findData(client);
+	if (i != -1)
+		m_clientCombo.removeItem(i);
+
 	m_clientList.remove(client.m_entry);
-
-	for (size_t i = 0; i < m_clientCombo.m_itemCount; i++)
-		if (m_clientCombo.m_itemData[i] == client) {
-			m_clientCombo.removeItem(i);
-			break;
-		}
-
 	m_clientCount = m_clientList.m_count;
 	m_currentClient = null;
 }

@@ -334,9 +334,7 @@ void SerialTapSession.createUi() {
 		null, 0
 	);
 
-	ui.FormLayout* form = m_pluginHost.createForm();
-	ui.FormLayout* layout = new ui.FormLayout;
-	ui.GroupBox* formGroup = new ui.GroupBox("Serial tap settings", layout);
+	ui.FormLayout layout;
 
 	ui.SerialUi.ItemId serialUiMask =
 		ui.SerialUi.ItemId.BaudRate |
@@ -346,7 +344,9 @@ void SerialTapSession.createUi() {
 
 	m_serialUi.createForm(layout, serialUiMask);
 	m_serialUi.createProperties(m_pluginHost.m_propertyGrid, groupProp, serialUiMask);
-	form.addRow(formGroup);
+
+	ui.GroupBox groupBox("Serial tap settings", layout);
+	m_pluginHost.createForm(groupBox);
 
 	m_serialUi.m_baudRateCombo.m_onReturnPressed += onBaudRateChanged;
 	bindingof(m_serialUi.m_baudRateCombo.m_currentIndex) += onBaudRateChanged;

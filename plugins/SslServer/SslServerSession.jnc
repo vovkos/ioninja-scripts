@@ -185,9 +185,8 @@ void SslServerSession.createUi() {
 
 	// form
 
-	ui.VBoxLayout* layout = new ui.VBoxLayout;
-	m_pluginHost.createForm(layout, 1);
-	ui.Label* label = new ui.Label("Active client(s):");
+	ui.VBoxLayout layout;
+	ui.Label label("Active client(s):");
 	layout.addWidget(label);
 	m_clientWidget = new ui.ListWidget;
 	m_clientWidget.m_placeholderText = "No active clients";
@@ -196,11 +195,13 @@ void SslServerSession.createUi() {
 	m_actionTable[ActionId.Disconnect] = new ui.Action("images/disconnect.png", "Disconnect", disconnect);
 	m_actionTable[ActionId.DisconnectAll] = new ui.Action("images/disconnect-all.png", "Disconnect All", disconnectAll);
 
-	ui.ToolBar* clientToolBar = new ui.ToolBar;
+	ui.ToolBar clientToolBar;
 	clientToolBar.addStretch();
 	clientToolBar.addAction(m_actionTable[ActionId.Disconnect]);
 	clientToolBar.addAction(m_actionTable[ActionId.DisconnectAll]);
 	layout.addWidget(clientToolBar);
+
+	m_pluginHost.createForm(layout, 1);
 
 	// status bar
 

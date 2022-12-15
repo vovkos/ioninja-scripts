@@ -7,8 +7,10 @@ import "ui_PropertyGrid.jnc"
 import "ui_ComboBox.jnc"
 import "ui_Action.jnc"
 import "ui_Layout.jnc"
+import "ui_ToolBar.jnc"
 import "doc_Storage.jnc"
 import "std_Array.jnc"
+import "std_String.jnc"
 import "io_base.jncx"
 import "io_Serial.jnc"
 import "io_SerialPortEnumerator.jnc"
@@ -305,7 +307,7 @@ void SerialUi.createForm(
 	}
 
 	if (mask & (ItemId.Dtr | ItemId.Rts | ItemId.BreakCondition)) {
-		ui.ToolBar* toolBar = new ui.ToolBar;
+		ui.ToolBar toolBar;
 		toolBar.addStretch();
 
 		if (mask & ItemId.Dtr)
@@ -326,7 +328,7 @@ Action* SerialUi.createControlLineAction(
 	char const* iconFileName,
 	char const* text
 ) {
-	Action* action = new ui.Action(iconFileName, text);
+	Action action(iconFileName, text);
 	action.m_isCheckable = true;
 	toolBar.addAction(action);
 	return action;
