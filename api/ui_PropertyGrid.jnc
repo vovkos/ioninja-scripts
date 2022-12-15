@@ -4,6 +4,7 @@
 //
 
 import "ui_ListItem.jnc"
+import "ui_Dictionary.jnc"
 import "std_HashTable.jnc"
 
 namespace ui {
@@ -194,7 +195,7 @@ opaque class FileProperty: Property {
 opaque class DictionaryProperty: Property {
 	construct(char const* name);
 
-	std.HashTable* bindable autoget property m_value; // onChanged is also fired when contents changes
+	DictionaryEntry const* bindable autoget property m_value; // onChanged is also fired when contents changes
 
 	char const* autoget property m_propertyDisplayName;
 	char const* autoget property m_editDialogTitle;

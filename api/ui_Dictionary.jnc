@@ -1,0 +1,71 @@
+import "doc_Storage.jnc"
+
+// non-unique key-value store
+
+namespace ui {
+
+//! \addtogroup api-ui
+//! @{
+
+//..............................................................................
+
+struct DictionaryEntry {
+	DictionaryEntry cmut* m_next;
+	char const* m_key;
+	char const* m_value;
+	bool m_isChecked;
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+DictionaryEntry* loadDictionary(
+	doc.Storage* storage,
+	char const* name,
+	size_t* count = null
+) {
+	DictionaryEntry* dictionary = null;
+	DictionaryEntry* prevEntry = null;
+
+	for (size_t i = 0;; i++) {
+		char const* key = storage.readString($"%1-key-%2"(name, i));
+		if (!key)
+			break;
+
+		DictionaryEntry* entry = new DictionaryEntry;
+		entry.m_key = key;
+		entry.m_value = storage.readString($"%1-value-%2"(name, i));
+		entry.m_isChecked = storage.readBool($"%1-checked-%2"(name, i), true);
+
+		if (prevEntry)
+			prevEntry.m_next = entry;
+		else
+			dictionary = entry;
+
+		prevEntry = entry;
+	}
+
+	return dictionary;
+}
+
+void saveDictionary(
+	DictionaryEntry const* dictionary,
+	doc.Storage* storage,
+	char const* name
+) {
+	size_t i = 0;
+	DictionaryEntry const* entry = dictionary;
+	for (; entry; entry = entry.m_next, i++) {
+		printf("save %s: %s\n", entry.m_key, entry.m_value);
+		storage.writeString($"%1-key-%2"(name, i), entry.m_key);
+		storage.writeString($"%1-value-%2"(name, i), entry.m_value);
+		storage.writeBool($"%1-checked-%2"(name, i), entry.m_isChecked);
+	}
+
+	storage.writeString($"webSocketExtraHeader$i", null);
+}
+
+//..............................................................................
+
+//! @}
+
+} // namespace ui
