@@ -26,6 +26,12 @@ const EnumPropertyOption TransmitModeOptionTable[] = {
 	{ "Binary", WebSocketTransmitMode.Binary },
 }
 
+char const* const TransmitModeToolTipTable[] = {
+	"Transmit as text if the packet is a valid UTF-8; transmit as binary otherwise",
+	"Transmit as text always",
+	"Transmit as binary always",
+}
+
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 enum WebSocketCloseMode {
@@ -106,7 +112,9 @@ class WebSocketUi {
 public:
 	void createForm(
 		VBoxLayout* layout,
-		SettingId settingMask = SettingId.Headers
+		SettingId settingMask =
+			SettingId.Headers |
+			SettingId.TransmitMode
 	);
 
 	void createProperties(
@@ -173,6 +181,9 @@ void WebSocketUi.createForm(
 			TransmitModeOptionTable,
 			countof(TransmitModeOptionTable)
 		);
+
+		for (size_t i = 0; i < countof(TransmitModeToolTipTable); i++)
+			m_transmitModeCombo.m_itemToolTip[i] = TransmitModeToolTipTable[i];
 
 		FormLayout subLayout;
 		subLayout.addRow("Transmit as:", m_transmitModeCombo);
