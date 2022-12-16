@@ -51,24 +51,24 @@ protected:
 ServerSocketLogFilter.construct(doc.PluginHost* pluginHost) {
 	m_log = pluginHost.m_log;
 
-	ui.VBoxLayout* layout = new ui.VBoxLayout;
-	ui.HBoxLayout* subLayout = new ui.HBoxLayout;
-	pluginHost.createForm(layout);
-	ui.GroupProperty* groupProp = pluginHost.m_propertyGrid.createGroupProperty("Client log filter");
-	ui.Action* applyAction = new ui.Action("images/apply.png", "Apply && rebuild log", onApply);
-	ui.ToolBar* applyToolBar = new ui.ToolBar;
-	applyToolBar.addAction(applyAction);
-
 	m_filterCombo = new ui.ComboBox;
 	m_filterCombo.m_isEditable = true;
 	m_filterCombo.m_onReturnPressed += onApply;
 	m_filterCombo.m_placeholderText = "Enter address to keep in log...";
 	m_filterCombo.m_toolTip = "View only communications with the specified client";
 
+	ui.Action applyAction("images/apply.png", "Apply && rebuild log", onApply);
+	ui.ToolBar applyToolBar;
+	applyToolBar.addAction(applyAction);
+
+	ui.VBoxLayout layout;
+	ui.HBoxLayout subLayout;
 	subLayout.addWidget(m_filterCombo, 1);
 	subLayout.addWidget(applyToolBar);
+
 	layout.addWidget(new ui.Label("Client log filter:"));
 	layout.addLayout(subLayout);
+	pluginHost.createForm(layout);
 
 	pluginHost.m_log.addFilter(this);
 }
