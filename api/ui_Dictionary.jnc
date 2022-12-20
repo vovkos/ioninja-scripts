@@ -1,4 +1,5 @@
 import "doc_Storage.jnc"
+import "std_HashTable.jnc"
 
 // non-unique key-value store
 
@@ -55,13 +56,48 @@ void saveDictionary(
 	size_t i = 0;
 	DictionaryEntry const* entry = dictionary;
 	for (; entry; entry = entry.m_next, i++) {
-		printf("save %s: %s\n", entry.m_key, entry.m_value);
 		storage.writeString($"%1-key-%2"(name, i), entry.m_key);
 		storage.writeString($"%1-value-%2"(name, i), entry.m_value);
 		storage.writeBool($"%1-checked-%2"(name, i), entry.m_isChecked);
 	}
 
-	storage.writeString($"webSocketExtraHeader$i", null);
+	storage.writeString($"%1-key-%2"(name, i), null); // null-terminate
+}
+
+DictionaryEntry* insertDictionaryHead(
+	DictionaryEntry* dictionary,
+	char const* key,
+	char const* value,
+	bool isChecked = true
+) {
+	DictionaryEntry entry;
+	entry.m_key = key;
+	entry.m_value = value;
+	entry.m_isChecked = isChecked;
+	entry.m_next = dictionary;
+	return entry;
+}
+
+std.StringHashTable* createDictionaryHashTable(DictionaryEntry const* dictionary) {
+	std.StringHashTable hashTable;
+	DictionaryEntry const* entry = dictionary;
+	for (; entry; entry = entry.m_next)
+		if (entry.m_isChecked)
+			hashTable[entry.m_key] = entry.m_value;
+
+	return hashTable;
+}
+
+DictionaryEntry* findDictionaryEntry(
+	DictionaryEntry* dictionary,
+	char const* key
+) {
+	DictionaryEntry* entry = dictionary;
+	for (; entry; entry = entry.m_next)
+		if (strcmp(entry.m_key, key) == 0)
+			return entry;
+
+	return null;
 }
 
 //..............................................................................
