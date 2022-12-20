@@ -199,10 +199,9 @@ opaque class DictionaryProperty: Property {
 
 	char const* autoget property m_propertyDisplayName;
 	char const* autoget property m_editDialogTitle;
-	char const* autoget property m_keyLabel;
-	char const* autoget property m_valueLabel;
-	char const* autoget property m_newKey;
-	char const* autoget property m_newValue;
+	char const* autoget property m_keyColumnName;
+	char const* autoget property m_valueColumnName;
+	char const* autoget property m_placeholderText;
 }
 
 //..............................................................................
