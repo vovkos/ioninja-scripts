@@ -1,0 +1,139 @@
+//..............................................................................
+//
+// Socket client log filter (TCP Listener, TCP Proxy)
+//
+
+import "doc_Plugin.jnc"
+import "log_Filter.jnc"
+import "PipeServerLogRecordCode.jnc"
+import "ui_History.jnc"
+
+using extension ui.ComboBoxHistory;
+
+//..............................................................................
+
+class PipeServerLogFilter:
+	doc.LogFilter,
+	log.Filter {
+protected:
+	log.Log* m_log;
+
+	bool m_isVisible;
+	uint64_t m_filterId;
+	uint64_t m_lastVisibleId;
+
+	ui.ComboBox* m_filterCombo;
+	ui.StringProperty* m_filterProp;
+
+public:
+	construct(doc.PluginHost* pluginHost);
+
+	override void reset();
+
+	override bool filter(
+		uint64_t timestamp,
+		uint64_t recordCode,
+		void const* p,
+		size_t size
+	);
+
+protected:
+	void onApply();
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+PipeServerLogFilter.construct(doc.PluginHost* pluginHost) {
+	m_log = pluginHost.m_log;
+	m_filterId = -1;
+
+	m_filterCombo = new ui.ComboBox;
+	m_filterCombo.m_isEditable = true;
+	m_filterCombo.m_onReturnPressed += onApply;
+	m_filterCombo.m_placeholderText = "Enter client ID to keep in log...";
+	m_filterCombo.m_toolTip = "View only communications with the specified client";
+
+	ui.Action applyAction("images/apply.png", "Apply && rebuild log", onApply);
+	ui.ToolBar applyToolBar;
+	applyToolBar.addAction(applyAction);
+
+	ui.VBoxLayout layout;
+	ui.HBoxLayout subLayout;
+	subLayout.addWidget(m_filterCombo, 1);
+	subLayout.addWidget(applyToolBar);
+
+	layout.addWidget(new ui.Label("Client log filter:"));
+	layout.addLayout(subLayout);
+	pluginHost.createForm(layout);
+
+	pluginHost.m_log.addFilter(this);
+}
+
+void PipeServerLogFilter.onApply() {
+	char const* filter = m_filterCombo.m_currentText;
+	m_log.suspend();
+
+	if (!filter)
+		m_filterId = -1;
+	else {
+		char const* end;
+		uint64_t id = strtoul(filter, &end, 0);
+		if (end == filter) {
+			m_filterCombo.m_backgroundColor = ui.StdColor.PastelRed;
+			m_filterCombo.selectAllEditText();
+			m_filterCombo.setFocus();
+			return;
+		}
+
+		m_filterCombo.addEditTextToHistory();
+		m_filterId = id;
+	}
+
+	m_log.resume();
+	m_filterCombo.m_backgroundColor = ui.ColorFlags.Undefined;
+	m_log.rebuild();
+}
+
+void PipeServerLogFilter.reset() {
+	m_isVisible = false;
+	m_lastVisibleId = -1;
+}
+
+bool PipeServerLogFilter.filter(
+	uint64_t timestamp,
+	uint64_t recordCode,
+	void const* p,
+	size_t size
+) {
+	if (m_filterId == -1) // means, filtering is off
+		return true;
+
+	switch (recordCode) {
+	case PipeServerLogRecordCode.ClientConnected:
+	case PipeServerLogRecordCode.ClientChanged:
+		uint64_t id = *(uint64_t const*)p;
+		m_isVisible = id == m_filterId;
+		if (!m_isVisible)
+			return false;
+
+		if (recordCode == PipeServerLogRecordCode.ClientChanged && id == m_lastVisibleId)
+			return false; // don't show unnecessary client-changed messages
+
+		m_lastVisibleId = id;
+		return true;
+
+	case PipeServerLogRecordCode.ClientDisconnected:
+		uint64_t id = *(uint64_t const*)p;
+		bool result = id == m_filterId;
+		if (result)
+			m_lastVisibleId = -1;
+
+		m_isVisible = false;
+		return result;
+
+	default:
+		return m_isVisible;
+	}
+}
+
+//..............................................................................
