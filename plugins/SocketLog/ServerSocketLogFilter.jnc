@@ -54,7 +54,7 @@ ServerSocketLogFilter.construct(doc.PluginHost* pluginHost) {
 	m_filterCombo = new ui.ComboBox;
 	m_filterCombo.m_isEditable = true;
 	m_filterCombo.m_onReturnPressed += onApply;
-	m_filterCombo.m_placeholderText = "Enter address to keep in log...";
+	m_filterCombo.m_placeholderText = "Enter client address to keep in log...";
 	m_filterCombo.m_toolTip = "View only communications with the specified client";
 
 	ui.Action applyAction("images/apply.png", "Apply && rebuild log", onApply);

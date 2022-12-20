@@ -49,7 +49,7 @@ class SshPropertySet {
 	StringProperty* m_processParamProp;
 	StringProperty* m_ptyTypeProp;
 
-	protected reactor m_uiReactor;
+	reactor m_uiReactor;
 
 	void createProperties(
 		PropertyGrid* propertyGrid,
