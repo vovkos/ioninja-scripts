@@ -9,6 +9,9 @@ import "io_UsbDb.jnc"
 import "ui_UsbUi.jnc"
 import "ui_BufferPropertySet.jnc"
 import "ui_StdSessionInfoSet.jnc"
+import "ui_GroupBox.jnc"
+import "ui_SpinBox.jnc"
+
 import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
 import "parseInteger.jnc"
@@ -198,51 +201,44 @@ void UsbControlEndpointSession.createUi() {
 
 	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 
-	m_actionTable[ActionId.Refresh]  = createAction("Re-enumerate devices", m_iconTable [IconId.Refresh]);
+	m_actionTable[ActionId.Refresh] = createAction("Re-enumerate devices", m_iconTable [IconId.Refresh]);
 	m_actionTable[ActionId.Refresh].m_onTriggered += onEnumerateDevices;
 
 	m_actionTable[ActionId.Open] = createAction("Open device", m_iconTable [IconId.Open]);
 	m_actionTable[ActionId.Open].m_onTriggered += onOpenDevice;
 
-	m_pluginHost.m_toolBar.addLabel("Iface:");
-	m_interfaceCombo = m_pluginHost.m_toolBar.addComboBox();
+	m_actionTable[ActionId.Claim] = new ui.Action(m_iconTable[IconId.Open], "Claim", onClaimInterface);
 
-	m_actionTable[ActionId.Claim] = createAction("Claim interface", m_iconTable [IconId.Open]);
-	m_actionTable[ActionId.Claim].m_onTriggered += onClaimInterface;
+	m_interfaceCombo = new ui.ComboBox;
+	ui.ToolBar ifaceToolBar;
+	ifaceToolBar.addAction(m_actionTable[ActionId.Claim]);
 
-	m_reqDirectionCombo = m_pluginHost.m_toolBar.addComboBox(
-		"Dir:",
-		reqDirectionTable,
-		countof(reqDirectionTable)
-	);
+	ui.HBoxLayout ifaceLayout;
+	ui.GroupBox ifaceGroupBox("USB interface", ifaceLayout);
+	ifaceLayout.addWidget(m_interfaceCombo, 1);
+	ifaceLayout.addWidget(ifaceToolBar);
+	m_pluginHost.createForm(ifaceLayout);
+	m_pluginHost.createForm(ifaceGroupBox);
 
-	m_reqRecipientCombo = m_pluginHost.m_toolBar.addComboBox(
-		"Rcpt:",
-		reqRecipientTable,
-		countof(reqRecipientTable)
-	);
-
-	m_reqTypeCombo = m_pluginHost.m_toolBar.addComboBox(
-		"Type:",
-		reqTypeTable,
-		countof(reqTypeTable)
-	);
-
-	m_reqCodeCombo = m_pluginHost.m_toolBar.addComboBox(
-		"Req:",
-		reqCodeTable,
-		countof(reqCodeTable)
-	);
-
+	m_reqDirectionCombo = new ui.ComboBox(reqDirectionTable, countof(reqDirectionTable));
+	m_reqRecipientCombo = new ui.ComboBox(reqRecipientTable, countof(reqRecipientTable));
+	m_reqTypeCombo = new ui.ComboBox(reqTypeTable, countof(reqTypeTable));
+	m_reqCodeCombo = new ui.ComboBox(reqCodeTable, countof(reqCodeTable));
 	m_reqCodeCombo.m_isEditable = true;
-
-	m_pluginHost.m_toolBar.addLabel("Val:");
-	m_reqValueCombo = m_pluginHost.m_toolBar.addComboBox();
+	m_reqValueCombo = new ui.ComboBox;
 	m_reqValueCombo.m_isEditable = true;
-
-	m_pluginHost.m_toolBar.addLabel("Idx:");
-	m_reqIndexCombo = m_pluginHost.m_toolBar.addComboBox();
+	m_reqIndexCombo = new ui.ComboBox;
 	m_reqIndexCombo.m_isEditable = true;
+
+	ui.FormLayout reqLayout;
+	ui.GroupBox reqGroupBox("USB control request", reqLayout);
+	reqLayout.addRow("Direction:", m_reqDirectionCombo);
+	reqLayout.addRow("Recipient:", m_reqRecipientCombo);
+	reqLayout.addRow("Type:", m_reqTypeCombo);
+	reqLayout.addRow("Request:", m_reqCodeCombo);
+	reqLayout.addRow("Value:", m_reqValueCombo);
+	reqLayout.addRow("Index:", m_reqIndexCombo);
+	m_pluginHost.createForm(reqGroupBox);
 
 	// status bar
 
