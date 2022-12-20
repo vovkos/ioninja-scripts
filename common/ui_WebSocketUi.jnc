@@ -4,7 +4,7 @@
 //
 
 import "ui_PropertyGrid.jnc"
-import "ui_Action.jnc"
+import "ui_StdEditToolBar.jnc"
 import "ui_DictionaryWidget.jnc"
 
 namespace ui {
@@ -67,9 +67,7 @@ class WebSocketUi {
 	}
 
 	DictionaryWidget* m_headersWidget;
-	ui.Action* m_addHeaderAction;
-	ui.Action* m_editHeaderAction;
-	ui.Action* m_removeHeaderAction;
+	StdEditToolBar* m_headersToolBar;
 	ComboBox* m_transmitModeCombo;
 
 	DictionaryProperty* m_headersProp;
@@ -135,18 +133,6 @@ protected:
 	void onCloseModeChanged() {
 		m_closeTimeoutProp.m_isEnabled = m_closeModeProp.m_value == WebSocketCloseMode.Graceful;
 	}
-
-	void onAddHeader() {
-		m_headersWidget.addEditNew();
-	}
-
-	void onEditHeader() {
-		m_headersWidget.editSelection();
-	}
-
-	void onRemoveHeader() {
-		m_headersWidget.removeSelection();
-	}
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -158,19 +144,17 @@ void WebSocketUi.createForm(
 	if (settingMask & SettingId.Headers) {
 		layout.addWidget(new ui.Label("Extra headers:"));
 		m_headersWidget = new DictionaryWidget;
+		m_headersWidget.m_keyColumnName = "Header";
 		m_headersWidget.m_placeholderText = "No extra headers";
 		layout.addWidget(m_headersWidget, 1);
 
-		m_addHeaderAction = new ui.Action("images/add.png", "New", onAddHeader);
-		m_editHeaderAction = new ui.Action("images/edit.png", "Edit", onEditHeader);
-		m_removeHeaderAction = new ui.Action("images/remove.png", "Remove", onRemoveHeader);
-
-		ui.ToolBar toolBar;
-		toolBar.addStretch();
-		toolBar.addAction(m_addHeaderAction);
-		toolBar.addAction(m_editHeaderAction);
-		toolBar.addAction(m_removeHeaderAction);
-		layout.addWidget(toolBar);
+		m_headersToolBar = new StdEditToolBar;
+		m_headersToolBar.addStretch();
+		m_headersToolBar.createActions();
+		m_headersToolBar.m_addAction.m_onTriggered += m_headersWidget.addEditNew;
+		m_headersToolBar.m_editAction.m_onTriggered += m_headersWidget.editSelection;
+		m_headersToolBar.m_removeAction.m_onTriggered += m_headersWidget.removeSelection;
+		layout.addWidget(m_headersToolBar);
 
 		m_headersReactor.start();
 	}
@@ -205,9 +189,8 @@ void WebSocketUi.createProperties(
 		);
 
 		m_headersProp.m_editDialogTitle = "Edit Extra Headers";
-		m_headersProp.m_keyLabel = "Header";
-		m_headersProp.m_newKey = "New-Header";
-		m_headersProp.m_newValue = "VALUE";
+		m_headersProp.m_keyColumnName = "Header";
+		m_headersProp.m_placeholderText = "No extra headers";
 	}
 
 	if (settingMask & SettingId.TransmitMode)
@@ -296,8 +279,8 @@ void WebSocketUi.restoreDefaults() {
 }
 
 reactor WebSocketUi.m_headersReactor {
-	m_editHeaderAction.m_isEnabled = m_headersWidget.m_selectedItemCount == 1;
-	m_removeHeaderAction.m_isEnabled = m_headersWidget.m_selectedItemCount > 0;
+	m_headersToolBar.m_editAction.m_isEnabled = m_headersWidget.m_selectedItemCount == 1;
+	m_headersToolBar.m_removeAction.m_isEnabled = m_headersWidget.m_selectedItemCount > 0;
 }
 
 //..............................................................................
