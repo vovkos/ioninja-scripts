@@ -522,7 +522,7 @@ void enumerateSerialPorts(
 	portCombo.clear();
 
 	size_t count;
-	io.SerialPortDesc const* portList = io.enumerateSerialPorts(io.SerialPortDescMask.All, &count);
+	io.SerialPortDesc const* portList = io.enumerateSerialPorts(io.SerialPortDescFlags.All, &count);
 
 	std.Array portArray;
 	portArray.setCount(count);

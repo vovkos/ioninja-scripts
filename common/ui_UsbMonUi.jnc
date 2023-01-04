@@ -31,10 +31,7 @@ void refreshUsbMonDeviceListUi(
 	EnumProperty* deviceProp
 ) {
 	size_t count;
-	io.UsbMonDeviceDesc const* deviceList = io.enumerateUsbMonDevices(
-		io.UsbMonDeviceDescMask.AllButHubs,
-		&count
-	);
+	io.UsbMonDeviceDesc const* deviceList = io.enumerateUsbMonDevices(io.UsbMonEnumFlags.Database, &count);
 
 	std.Array deviceArray;
 	deviceArray.setCount(count);
@@ -82,13 +79,7 @@ void refreshUsbMonDeviceListUi(
 		prevDevice.m_address
 	);
 
-	if (i != -1) {
-		deviceCombo.m_currentIndex = i;
-		deviceProp.m_currentIndex = i;
-	} else {
-		deviceCombo.m_currentIndex = 0;
-		deviceProp.m_currentIndex = 0;
-	}
+	deviceCombo.m_currentIndex = i != -1 ? i : 0;
 }
 
 size_t findUsbMonDeviceComboIndex(

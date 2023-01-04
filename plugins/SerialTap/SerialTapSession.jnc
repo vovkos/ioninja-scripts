@@ -5,9 +5,10 @@
 
 import "doc_Session.jnc"
 import "io_usb.jncx"
+import "io_UsbDevice.jnc"
+import "io_UsbEnumerator.jnc"
 import "io_base.jncx"
 import "io_Serial.jnc"
-import "io_UsbDb.jnc"
 import "ui_SerialUi.jnc"
 import "ui_BufferPropertySet.jnc"
 import "ui_StdSessionInfoSet.jnc"
@@ -405,7 +406,7 @@ void SerialTapSession.createUi() {
 void SerialTapSession.enumerateDevices() {
 	m_deviceCombo.clear();
 
-	io.UsbDevice* const* deviceArray = io.createUsbDeviceArray();
+	io.UsbDevice* const* deviceArray = io.enumerateUsbDevicesNoDesc();
 	size_t totalCount = dynamic countof(deviceArray);
 	size_t actualCount = 0;
 
@@ -413,7 +414,7 @@ void SerialTapSession.enumerateDevices() {
 
 	for (size_t i = 0; i < totalCount; i++) {
 		io.UsbDevice* device = deviceArray[i];
-		io.UsbDeviceDesc const* deviceDesc = device.m_deviceDesc;
+		io.UsbDeviceDescriptor const* deviceDesc = device.m_deviceDescriptor;
 
 		if (deviceDesc.m_vendorId != UsbId.VendorId ||
 			deviceDesc.m_productId != UsbId.ProductId)
@@ -472,7 +473,7 @@ bool errorcode SerialTapSession.capture() {
 	startSession();
 
 	m_device = m_deviceCombo.m_currentData;
-	io.UsbDeviceDesc const* deviceDesc = m_device.m_deviceDesc;
+	io.UsbDeviceDescriptor const* deviceDesc = m_device.m_deviceDescriptor;
 
 	m_device.open();
 
