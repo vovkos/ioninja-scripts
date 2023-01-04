@@ -565,8 +565,8 @@ void enumerateSerialPorts(
 		toolTip.append("</table>");
 
 		char const* text = description.detachString();
-		size_t i = portCombo.addItem(text, port.m_deviceName);
-		portCombo.m_itemToolTip[i] = toolTip.detachString();
+		size_t j = portCombo.addItem(text, port.m_deviceName);
+		portCombo.m_itemToolTip[j] = toolTip.detachString();
 
 		option.m_text = text;
 		option.m_value = port.m_deviceName;

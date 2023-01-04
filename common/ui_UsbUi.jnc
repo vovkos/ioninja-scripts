@@ -7,6 +7,7 @@ import "io_usb.jncx"
 import "io_UsbEnumerator.jnc"
 import "ui_ComboBox.jnc"
 import "ui_PropertyGrid.jnc"
+import "std_String.jnc"
 import "std_Array.jnc"
 
 namespace ui {
@@ -31,7 +32,7 @@ void refreshUsbDeviceListUi(
 	EnumProperty* deviceProp
 ) {
 	size_t count;
-	io.UsbDeviceEntry const* deviceList = io.enumerateUsbDevices(io.UsbEnumFlags.Database, &count);
+	io.UsbDeviceEntry const* deviceList = io.enumerateUsbDevices(io.UsbEnumFlags.All, &count);
 
 	std.Array deviceArray;
 	deviceArray.setCount(count);
@@ -42,26 +43,75 @@ void refreshUsbDeviceListUi(
 	deviceArray.sort(isUsbDeviceLess);
 
 	io.UsbDevice* prevDevice = deviceCombo.m_currentData;
-	EnumPropertyOption* optionTable = new EnumPropertyOption[count];
+
+	EnumPropertyOption* optionArray = new EnumPropertyOption[count];
+	EnumPropertyOption* option = optionArray;
+
 	deviceCombo.clear();
 
-	for (size_t i = 0; i < count; i++) {
-		io.UsbDeviceEntry const* entry = deviceArray[i];
+	std.StringBuilder description;
+	std.StringBuilder toolTip;
 
-		char const* text = $"@%(1;03d):%(2;03d) %3 by %4" (
+	for (size_t i = 0; i < count; i++, option++) {
+		io.UsbDeviceEntry const* entry = deviceArray[i];
+		io.UsbDeviceDescriptor const* deviceDescriptor = entry.m_device.m_deviceDescriptor;
+
+		description = $"%03d:%03d - %3 by %4"(
 			entry.m_device.m_bus,
 			entry.m_device.m_address,
 			entry.m_description,
 			entry.m_manufacturer
 		);
 
-		deviceCombo.addItem(text, entry.m_device);
+		toolTip =
+			"<table>"
+			$"<tr><td>Address:</td><td>%03d:%03d</td></tr>"
+			$"<tr><td>Description:</td><td>%3</td></tr>"
+			$"<tr><td>Manufacturer:</td><td>%4</td></tr>"(
+				entry.m_device.m_bus,
+				entry.m_device.m_address,
+				entry.m_description,
+				entry.m_manufacturer
+			);
 
-		optionTable[i].m_text = text;
-		optionTable[i].m_value = entry.m_device;
+		if (entry.m_driver)
+			toolTip += $"<tr><td>Driver:</td><td>$(entry.m_driver)</td></tr>";
+
+		toolTip +=
+			$"<tr><td>Vendor&nbsp;ID:</td><td>%04X</td></tr>"
+			$"<tr><td>Product&nbsp;ID:</td><td>%04X</td></tr>"
+			$"<tr><td>Class:</td><td>%3 %4</td></tr>"
+			$"<tr><td>Speed:</td><td>%5</td></tr>"(
+				deviceDescriptor.m_vendorId,
+				deviceDescriptor.m_productId,
+				deviceDescriptor.m_class, typeof(io.UsbClass).getValueString(deviceDescriptor.m_class),
+				typeof(io.UsbSpeed).getValueString(entry.m_device.m_speed)
+			);
+
+		if (entry.m_manufacturerDescriptor || entry.m_productDescriptor || entry.m_serialNumberDescriptor) {
+			toolTip += $"<tr><td colspan=2><hr></td></tr>";
+
+			if (entry.m_productDescriptor)
+				toolTip += $"<tr><td>Product:</td><td>$(entry.m_productDescriptor)</td></tr>";
+
+			if (entry.m_manufacturerDescriptor)
+				toolTip += $"<tr><td>Manufacturer:</td><td>$(entry.m_manufacturerDescriptor)</td></tr>";
+
+			if (entry.m_serialNumberDescriptor)
+				toolTip += $"<tr><td>Serial&nbsp;number:</td><td>$(entry.m_serialNumberDescriptor)</td></tr>";
+		}
+
+		toolTip.append("</table>");
+
+		char const* text = description.detachString();
+		size_t j = deviceCombo.addItem(text, entry.m_device);
+		deviceCombo.m_itemToolTip[j] = toolTip.detachString();
+
+		option.m_text = text;
+		option.m_value = entry.m_device;
 	}
 
-	deviceProp.setOptions(optionTable, count);
+	deviceProp.setOptions(optionArray, count);
 
 	if (!prevDevice)
 		return;
