@@ -80,11 +80,11 @@ void refreshUsbDeviceListUi(
 		toolTip +=
 			$"<tr><td>Vendor&nbsp;ID:</td><td>%04X</td></tr>"
 			$"<tr><td>Product&nbsp;ID:</td><td>%04X</td></tr>"
-			$"<tr><td>Class:</td><td>%3 %4</td></tr>"
-			$"<tr><td>Speed:</td><td>%5</td></tr>"(
+			$"<tr><td>Class:</td><td>%3</td></tr>"
+			$"<tr><td>Speed:</td><td>%4</td></tr>"(
 				deviceDescriptor.m_vendorId,
 				deviceDescriptor.m_productId,
-				deviceDescriptor.m_class, typeof(io.UsbClass).getValueString(deviceDescriptor.m_class),
+				typeof(io.UsbClass).getValueString(deviceDescriptor.m_class),
 				typeof(io.UsbSpeed).getValueString(entry.m_device.m_speed)
 			);
 
