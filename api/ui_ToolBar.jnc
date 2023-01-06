@@ -24,6 +24,11 @@ opaque class ToolBar: Widget {
 	construct();
 	destruct();
 
+	void setIconSize(
+		int width,
+		int height
+	);
+
 	void addAction(Action* action);
 	void addWidget(Widget* widget);
 	void addSpacing(int size = Def_Spacing);
