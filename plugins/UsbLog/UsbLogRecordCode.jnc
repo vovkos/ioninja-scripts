@@ -80,4 +80,11 @@ struct DeviceParams {
 	// - driver
 }
 
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+struct IsochronousTransferParams {
+	uint8_t m_endpoint;
+	io.UsbIsochronousHdr m_isochronousHdr;
+}
+
 //..............................................................................

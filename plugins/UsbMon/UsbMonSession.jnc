@@ -208,13 +208,15 @@ bool errorcode UsbMonSession.capture() {
 	m_monitor.m_addressFilter = device.m_address;
 	m_monitor.open(device.m_captureDeviceName);
 
-	CaptureStartedParams params;
+	DeviceParams params;
 	params.m_osKind = sys.g_systemInfo.m_osKind;
 	params.m_captureDeviceId = device.m_captureDeviceId;
 	params.m_address = device.m_address;
-	params.m_speed = device.m_speed;
+	params.m_port = device.m_port;
 	params.m_vendorId = device.m_vendorId;
 	params.m_productId = device.m_productId;
+	params.m_speed = device.m_speed;
+	params.m_class = device.m_class;
 
 	std.Buffer buffer;
 	buffer.append(params, sizeof(params));
@@ -226,7 +228,7 @@ bool errorcode UsbMonSession.capture() {
 	buffer.append(0);
 
 	m_logWriter.write(
-		UsbMonLogRecordCode.CaptureStarted,
+		UsbLogRecordCode.CaptureStarted,
 		buffer.m_p,
 		buffer.m_size
 	);
@@ -239,7 +241,7 @@ bool errorcode UsbMonSession.capture() {
 	return true;
 
 catch:
-	m_logWriter.writeLastError(UsbMonLogRecordCode.CaptureError);
+	m_logWriter.writeLastError(UsbLogRecordCode.CaptureError);
 	m_monitor.close();
 	return false;
 }
@@ -248,7 +250,7 @@ void UsbMonSession.close() {
 	if (m_state != State.Opened)
 		return;
 
-	m_logWriter.write(UsbMonLogRecordCode.CaptureStopped);
+	m_logWriter.write(UsbLogRecordCode.CaptureStopped);
 
 	m_monitor.close();
 	m_state = State.Closed;
@@ -318,35 +320,33 @@ void UsbMonSession.processData(
 		}
 
 		switch (hdr.m_transferType) {
-		case io.UsbMonTransferType.Control:
+		case io.UsbTransferType.Control:
 			m_logWriter.write(
-				UsbMonLogRecordCode.ControlTransfer,
+				UsbLogRecordCode.ControlTransfer,
 				&hdr.m_controlSetup,
 				sizeof(hdr.m_controlSetup)
 			);
 
 			break;
 
-		case io.UsbMonTransferType.Bulk:
-		case io.UsbMonTransferType.Interrupt:
+		case io.UsbTransferType.Bulk:
+		case io.UsbTransferType.Interrupt:
 			if (!hdr.m_captureSize || // ignore empty transfers
 				m_prevTransferHdr.m_transferType == hdr.m_transferType &&
 				m_prevTransferHdr.m_endpoint == hdr.m_endpoint
 			) // if endpoint is the same, simply append the payload
 				break;
 
-			BulkInterruptTransferParams params;
-			params.m_endpoint = hdr.m_endpoint;
-			params.m_type = hdr.m_transferType;
-
 			m_logWriter.write(
-				UsbMonLogRecordCode.BulkInterruptTransfer,
-				&params,
-				sizeof(params)
+				hdr.m_transferType == io.UsbTransferType.Interrupt ?
+					UsbLogRecordCode.InterruptTransfer :
+					UsbLogRecordCode.BulkTransfer,
+				&hdr.m_endpoint,
+				sizeof(hdr.m_endpoint)
 			);
 			break;
 
-		case io.UsbMonTransferType.Isochronous:
+		case io.UsbTransferType.Isochronous:
 			if (!hdr.m_captureSize || // ignore empty transfers
 				m_prevTransferHdr.m_transferType == hdr.m_transferType &&
 				m_prevTransferHdr.m_endpoint == hdr.m_endpoint
@@ -358,7 +358,7 @@ void UsbMonSession.processData(
 			params.m_isochronousHdr = hdr.m_isochronousHdr;
 
 			m_logWriter.write(
-				UsbMonLogRecordCode.IsochronousTransfer,
+				UsbLogRecordCode.IsochronousTransfer,
 				&params,
 				sizeof(params)
 			);
