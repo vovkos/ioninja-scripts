@@ -1,6 +1,6 @@
 //..............................................................................
 //
-// Ninja UI - tool bars
+// Ninja UI - toolbars
 //
 
 import "ui_Action.jnc"
@@ -14,12 +14,23 @@ namespace ui {
 
 //..............................................................................
 
-// toolbar
+enum ToolButtonStyle {
+	IconOnly,
+	TextOnly,
+	TextBesideIcon,
+	TextUnderIcon,
+	FollowStyle,
+}
+
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 opaque class ToolBar: Widget {
 	enum {
 		Def_Spacing = 6,
 	}
+
+	ToolButtonStyle autoget property m_toolButtonStyle;
 
 	construct();
 	destruct();
