@@ -14,10 +14,10 @@ enum UsbLogRecordCode: uint64_t {
 	DeviceOpenError       = 0x01d485f4acbf80b8,
 	DeviceClosed          = 0x01d485f4acbf80b9,
 	KernelDriverDetached  = 0x01d485f4acbf80ba,
-	InterfaceClaimed      = 0x01d485f4acbf80bb,
+	InterfaceClaimed_0    = 0x01d485f4acbf80bb,
 	InterfaceClaimError   = 0x01d485f4acbf80bc,
 	InterfaceReleased     = 0x01d485f4acbf80bd,
-	ReadingStarted        = 0x01d485f4acbf80be,
+	ReadingStarted_0      = 0x01d485f4acbf80be,
 	ReadingStopped        = 0x01d485f4acbf80bf,
 	EndpointOpenError     = 0x01d485f4acbf80c0,
 	ControlTransfer_0     = 0x01d485f4acbf80c1,
@@ -29,6 +29,8 @@ enum UsbLogRecordCode: uint64_t {
 	BulkTransfer          = 0x01d485f4acbf80c7,
 	InterruptTransfer     = 0x01d485f4acbf80c8,
 	IsochronousTransfer   = 0x01d485f4acbf80c9,
+	InterfaceClaimed      = 0x01d485f4acbf80ca,
+	ReadingStarted        = 0x01d485f4acbf80cb,
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -42,9 +44,18 @@ struct DeviceParams_0 {
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-struct InterfaceParams {
+struct InterfaceParams_0 {
 	uint8_t m_interfaceId;
 	uint8_t m_altSettingId;
+}
+
+struct InterfaceParams: InterfaceParams_0 {
+	uint8_t m_class;
+}
+
+struct EndpointParams: InterfaceParams {
+	uint8_t m_endpointId;
+	uint8_t m_transferType;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -83,7 +94,7 @@ struct DeviceParams {
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 struct IsochronousTransferParams {
-	uint8_t m_endpoint;
+	uint8_t m_endpointId;
 	io.UsbIsochronousHdr m_isochronousHdr;
 }
 

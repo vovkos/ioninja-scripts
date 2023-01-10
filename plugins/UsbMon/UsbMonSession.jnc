@@ -354,7 +354,7 @@ void UsbMonSession.processData(
 				break;
 
 			IsochronousTransferParams params;
-			params.m_endpoint = hdr.m_endpoint;
+			params.m_endpointId = hdr.m_endpoint;
 			params.m_isochronousHdr = hdr.m_isochronousHdr;
 
 			m_logWriter.write(

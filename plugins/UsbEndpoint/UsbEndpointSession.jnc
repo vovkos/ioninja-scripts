@@ -11,12 +11,14 @@ import "ui_UsbUi.jnc"
 import "ui_BufferPropertySet.jnc"
 import "ui_StdSessionInfoSet.jnc"
 import "ui_GroupBox.jnc"
+import "ui_ListWidget.jnc"
 import "ui_LineEdit.jnc"
 
 import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
 import "parseInteger.jnc"
 import "std_Buffer.jnc"
+import "std_List.jnc"
 
 //..............................................................................
 
@@ -60,18 +62,29 @@ protected:
 		_Count,
 	}
 
+	class Read {
+		io.UsbEndpoint* m_endpoint;
+		uint_t m_syncId;
+		std.Buffer m_buffer;
+	}
+
+	class EndpointInfo {
+		io.UsbInterface* m_interface;
+		uint8_t m_endpointId;
+	}
+
 protected:
 	// usb
 
 	State bindable m_state;
 
 	io.UsbDevice* m_device;
-	io.UsbInterface* m_interface;
+	std.List m_interfaceList;
+	std.List m_readList;
 	io.UsbEndpoint* m_outEndpoint;
-	io.UsbEndpoint* m_inEndpoint;
-	std.Buffer m_readBuffer;
-	uint_t m_outSyncId;
-	uint_t m_inSyncId;
+
+	uint_t m_currentEndpointId;
+	uint_t m_outEpSyncId;
 	uint_t m_controlSyncId;
 
 	// toolbar, status bar & menu
@@ -80,9 +93,9 @@ protected:
 	ui.Icon* m_iconTable[IconId._Count];
 	ui.StatusPane* m_statusPaneTable[StatusPaneId._Count];
 	ui.ComboBox* m_deviceCombo;
-	ui.ComboBox* m_interfaceCombo;
+	ui.ListWidget* m_interfaceWidget;
 	ui.ComboBox* m_outEndpointCombo;
-	ui.ComboBox* m_inEndpointCombo;
+	ui.ListWidget* m_inEndpointWidget;
 	ui.ComboBox* m_controlDirectionCombo;
 	ui.ComboBox* m_controlRecipientCombo;
 	ui.ComboBox* m_controlTypeCombo;
@@ -93,9 +106,6 @@ protected:
 	// property grid
 
 	ui.EnumProperty* m_deviceProp;
-	ui.EnumProperty* m_interfaceProp;
-	ui.EnumProperty* m_inEndpointProp;
-	ui.EnumProperty* m_outEndpointProp;
 	ui.BoolProperty* m_autoDetachKernelDriverProp;
 	ui.BoolProperty* m_useReadTimeoutProp;
 	ui.IntProperty* m_readTimeoutProp;
@@ -122,11 +132,11 @@ protected:
 public:
 	construct(doc.PluginHost* pluginHost);
 
-	bool openDevice();
+	bool errorcode openDevice();
 	void closeDevice();
-	bool claimInterface();
-	void releaseInterface();
-	bool startReading();
+	bool errorcode claimInterfaces();
+	void releaseInterfaces();
+	bool errorcode startReading();
 	void stopReading();
 
 	override void load(doc.Storage* storage);
@@ -151,9 +161,17 @@ protected:
 		ui.refreshUsbDeviceListUi(m_deviceCombo, m_deviceProp);
 	}
 
-	void onOpenDevice();
-	void onClaimInterface();
-	void onReadEndpoint();
+	void onOpenDevice() {
+		m_state ? closeDevice() : try openDevice();
+	}
+
+	void onClaimInterfaces() {
+		m_state >= State.Claimed ? releaseInterfaces() : try claimInterfaces();
+	}
+
+	void onReadEndpoints() {
+		m_state >= State.Reading ? stopReading() : try startReading();
+	}
 
 	void onControlTransfer() {
 		try startControlTransfer(
@@ -173,6 +191,7 @@ protected:
 
 	void onInEndpointEvent(
 		uint_t syncId,
+		Read* read,
 		io.UsbEndpointEvents triggeredEvents
 	);
 
@@ -188,7 +207,10 @@ protected:
 	);
 
 	void addInterface(io.UsbInterfaceDescriptor const* ifaceDesc);
-	void configureInEndpoint();
+	void clearInterfaceList();
+	void configureRead(Read* read);
+	void configureAllReads();
+	void setCurrentEndpoint(io.UsbEndpointDescriptor const* epDesc);
 
 	bool errorcode startControlTransfer(
 		io.UsbControlDirection direction,
@@ -201,7 +223,7 @@ protected:
 
 	void createUi();
 	void waitOutEndpointEvents();
-	void waitInEndpointEvents();
+	void waitInEndpointEvents(Read* read);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -217,8 +239,8 @@ UsbEndpointSession.construct(doc.PluginHost* pluginHost) {
 
 void UsbEndpointSession.createUi() {
 	static ui.EnumPropertyOption reqDirectionTable[] = {
-		{ "Out", io.UsbControlDirection.Out },
 		{ "In",  io.UsbControlDirection.In },
+		{ "Out", io.UsbControlDirection.Out },
 	}
 
 	static ui.EnumPropertyOption reqTypeTable[] = {
@@ -265,15 +287,19 @@ void UsbEndpointSession.createUi() {
 
 	m_actionTable[ActionId.Claim] = new ui.Action(
 		m_iconTable[IconId.Open],
-		"Claim interface",
-		onClaimInterface
+		"Claim",
+		onClaimInterfaces
 	);
+
+	m_actionTable[ActionId.Claim].m_toolTip = "Claim/release selected interface(s)";
 
 	m_actionTable[ActionId.Read] = new ui.Action(
 		m_iconTable[IconId.Open],
-		"Start reading from the endpoint",
-		onReadEndpoint
+		"Read",
+		onReadEndpoints
 	);
+
+	m_actionTable[ActionId.Read].m_toolTip = "Read/stop reading from selected endpoint(s)";
 
 	m_actionTable[ActionId.ControlTransfer] = new ui.Action(
 		"images/transfer.png",
@@ -281,9 +307,11 @@ void UsbEndpointSession.createUi() {
 		onControlTransfer
 	);
 
-	m_interfaceCombo = new ui.ComboBox;
+	m_interfaceWidget = new ui.ListWidget;
+	m_interfaceWidget.m_isCheckable = true;
 	m_outEndpointCombo = new ui.ComboBox;
-	m_inEndpointCombo = new ui.ComboBox;
+	m_inEndpointWidget = new ui.ListWidget;
+	m_inEndpointWidget.m_isCheckable = true;
 	m_controlDirectionCombo = new ui.ComboBox(reqDirectionTable, countof(reqDirectionTable));
 	m_controlRecipientCombo = new ui.ComboBox(reqRecipientTable, countof(reqRecipientTable));
 	m_controlTypeCombo = new ui.ComboBox(reqTypeTable, countof(reqTypeTable));
@@ -295,30 +323,19 @@ void UsbEndpointSession.createUi() {
 	m_controlIndexEdit = new ui.LineEdit;
 	m_controlIndexEdit.m_onReturnPressed += onControlTransfer;
 
-	ui.HBoxLayout ifaceLayout;
-	ui.GroupBox ifaceGroupBox("USB interface", ifaceLayout);
-	ifaceLayout.addWidget(m_interfaceCombo, 1);
+	ui.HBoxLayout outEpLayout;
+	outEpLayout.addWidget(new ui.Label("OUT endpoint:"));
+	outEpLayout.addWidget(m_outEndpointCombo, 1);
 
-	ui.ToolBar ifaceToolBar;
-	ifaceToolBar.setIconSize(16, 16);
-	ifaceToolBar.addAction(m_actionTable[ActionId.Claim]);
-	ifaceLayout.addWidget(ifaceToolBar);
-	m_pluginHost.createForm(ifaceGroupBox);
-
-	ui.FormLayout epLayout;
-	ui.GroupBox epGroupBox("USB endpoints", epLayout);
-
-	ui.HBoxLayout readLayout;
-	readLayout.addWidget(m_inEndpointCombo, 1);
+	ui.ToolBar claimToolBar;
+	claimToolBar.m_toolButtonStyle = ui.ToolButtonStyle.TextBesideIcon;
+	claimToolBar.addStretch();
+	claimToolBar.addAction(m_actionTable[ActionId.Claim]);
 
 	ui.ToolBar readToolBar;
-	readToolBar.setIconSize(16, 16);
+	readToolBar.m_toolButtonStyle = ui.ToolButtonStyle.TextBesideIcon;
+	readToolBar.addStretch();
 	readToolBar.addAction(m_actionTable[ActionId.Read]);
-	readLayout.addWidget(readToolBar);
-
-	epLayout.addRow("Out:", m_outEndpointCombo);
-	epLayout.addRow("In:", readLayout);
-	m_pluginHost.createForm(epGroupBox);
 
 	ui.FormLayout controlLayout;
 	ui.GroupBox controlGroupBox("USB control transfer", controlLayout);
@@ -331,9 +348,21 @@ void UsbEndpointSession.createUi() {
 
 	ui.ToolBar controlToolBar;
 	controlToolBar.addStretch();
-	controlToolBar.setIconSize(73, 27); // imades/transfer.png
+	controlToolBar.setIconSize(73, 27); // images/transfer.png
 	controlToolBar.addAction(m_actionTable[ActionId.ControlTransfer]);
 	controlLayout.addRow(controlToolBar);
+
+	ui.VBoxLayout mainLayout;
+	mainLayout.addWidget(new ui.Label("USB interfaces:"));
+	mainLayout.addWidget(m_interfaceWidget, 1);
+	mainLayout.addWidget(claimToolBar);
+	mainLayout.addLayout(outEpLayout);
+
+	mainLayout.addWidget(new ui.Label("IN endpoints:"));
+	mainLayout.addWidget(m_inEndpointWidget, 1);
+	mainLayout.addWidget(readToolBar);
+	mainLayout.addWidget(controlGroupBox);
+	m_pluginHost.createForm(mainLayout, 1);
 
 	m_pluginHost.createForm(controlGroupBox);
 
@@ -359,27 +388,6 @@ void UsbEndpointSession.createUi() {
 		group,,
 		"Auto-detach",
 		"Auto detach kernel driver (if present)"
-	);
-
-	m_interfaceProp = m_pluginHost.m_propertyGrid.createEnumProperty(
-		group,,
-		"Interface",
-		"Target USB interface",
-		null, 0
-	);
-
-	m_outEndpointProp = m_pluginHost.m_propertyGrid.createEnumProperty(
-		group,,
-		"OUT endpoint",
-		"Transmitting USB endpoint",
-		null, 0
-	);
-
-	m_inEndpointProp = m_pluginHost.m_propertyGrid.createEnumProperty(
-		group,,
-		"IN endpoint",
-		"Receiving USB endpoint",
-		null, 0
 	);
 
 	group = m_pluginHost.m_propertyGrid.createGroupProperty(
@@ -477,27 +485,6 @@ void UsbEndpointSession.createUi() {
 	m_uiReactor.start();
 }
 
-void UsbEndpointSession.onOpenDevice() {
-	if (m_state >= State.Opened)
-		closeDevice();
-	else
-		openDevice();
-}
-
-void UsbEndpointSession.onClaimInterface() {
-	if (m_state >= State.Claimed)
-		releaseInterface();
-	else
-		claimInterface();
-}
-
-void UsbEndpointSession.onReadEndpoint() {
-	if (m_state >= State.Reading)
-		stopReading();
-	else
-		startReading();
-}
-
 void UsbEndpointSession.addInterface(io.UsbInterfaceDescriptor const* ifaceDesc) {
 	char const* description = ifaceDesc.m_stringDescriptorId ?
 		m_device.getStringDescriptor(ifaceDesc.m_stringDescriptorId) :
@@ -507,11 +494,10 @@ void UsbEndpointSession.addInterface(io.UsbInterfaceDescriptor const* ifaceDesc)
 		$"IF%1.%2 - %3"(ifaceDesc.m_interfaceId, ifaceDesc.m_altSettingId, description) :
 		$"IF%1 - %2"(ifaceDesc.m_interfaceId, description);
 
-	m_interfaceCombo.addItem(name, ifaceDesc);
-	m_interfaceProp.addOption(name, ifaceDesc);
+	m_interfaceWidget.addItem(name, ifaceDesc);
 }
 
-bool UsbEndpointSession.openDevice() {
+bool errorcode UsbEndpointSession.openDevice() {
 	io.UsbDeviceEntry const* deviceEntry = m_deviceCombo.m_currentData;
 	if (!deviceEntry)
 		return false;
@@ -521,8 +507,7 @@ bool UsbEndpointSession.openDevice() {
 
 	m_device = deviceEntry.m_device;
 	m_device.open();
-	m_interfaceCombo.clear();
-	m_interfaceProp.clear();
+	m_interfaceWidget.clear();
 
 	io.UsbConfigurationDescriptor const* confDesc = m_device.m_activeConfigurationDescriptor;
 	for (size_t i = 0; i < confDesc.m_interfaceCount; i++) {
@@ -535,7 +520,7 @@ bool UsbEndpointSession.openDevice() {
 		}
 	}
 
-	m_interfaceCombo.m_currentIndex = 0;
+	m_interfaceWidget.m_currentIndex = 0;
 
 	io.UsbDeviceDescriptor const* deviceDesc = m_device.m_deviceDescriptor;
 
@@ -565,6 +550,7 @@ bool UsbEndpointSession.openDevice() {
 	);
 
 	m_state = State.Opened;
+	m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
 	return true;
 
 catch:
@@ -576,74 +562,73 @@ void UsbEndpointSession.closeDevice() {
 	if (m_state == State.Closed)
 		return;
 
-	releaseInterface();
+	m_interfaceWidget.clear();
+
+	releaseInterfaces();
 	m_device.close();
 	m_device = null;
 	m_controlSyncId++;
+	m_currentEndpointId = 0;
 
 	m_logWriter.write(UsbLogRecordCode.DeviceClosed);
 	m_state = State.Closed;
 }
 
-bool UsbEndpointSession.claimInterface() {
-	if (m_interfaceCombo.m_currentIndex == -1)
-		return false;
+bool errorcode UsbEndpointSession.claimInterfaces() {
+	releaseInterfaces();
 
-	releaseInterface();
+	for (size_t i = 0; i < m_interfaceWidget.m_itemCount; i++) {
+		if (!m_interfaceWidget.m_isItemChecked[i])
+			continue;
 
-	io.UsbInterfaceDescriptor const* ifaceDesc = m_interfaceCombo.m_currentData;
+		io.UsbInterfaceDescriptor const* ifaceDesc = m_interfaceWidget.m_itemData[i];
 
-	if (m_device.m_isKernelDriverActive[ifaceDesc.m_interfaceId] &&
-		m_autoDetachKernelDriverProp.m_value) {
-		m_device.detachKernelDriver(ifaceDesc.m_interfaceId);
-		m_logWriter.write(UsbLogRecordCode.KernelDriverDetached, &ifaceDesc.m_interfaceId, sizeof(ifaceDesc.m_interfaceId));
-	}
+		if (m_device.m_isKernelDriverActive[ifaceDesc.m_interfaceId] &&
+			m_autoDetachKernelDriverProp.m_value) {
+			m_device.detachKernelDriver(ifaceDesc.m_interfaceId);
+			m_logWriter.write(UsbLogRecordCode.KernelDriverDetached, &ifaceDesc.m_interfaceId, sizeof(ifaceDesc.m_interfaceId));
+		}
 
-	m_interface = m_device.claimInterface(ifaceDesc.m_interfaceId, ifaceDesc.m_altSettingId);
+		io.UsbInterface* iface = m_device.claimInterface(ifaceDesc.m_interfaceId, ifaceDesc.m_altSettingId);
+		m_interfaceList.insertTail(iface);
 
-	m_outEndpointCombo.clear();
-	m_inEndpointCombo.clear();
+		InterfaceParams params;
+		params.m_interfaceId = ifaceDesc.m_interfaceId;
+		params.m_altSettingId = ifaceDesc.m_altSettingId;
+		m_logWriter.write(UsbLogRecordCode.InterfaceClaimed, &params, sizeof(params));
 
-	ui.EnumPropertyOption* outEnpointOptionTable = new ui.EnumPropertyOption[ifaceDesc.m_endpointCount];
-	ui.EnumPropertyOption* inEnpointOptionTable = new ui.EnumPropertyOption[ifaceDesc.m_endpointCount];
+		char const* ifaceName = ifaceDesc.m_altSettingId ?
+			$"IF%1.%2"(ifaceDesc.m_interfaceId, ifaceDesc.m_altSettingId) :
+			$"IF%1"(ifaceDesc.m_interfaceId);
 
-	size_t outEndpointCount = 0;
-	size_t inEndpointCount = 0;
+		for (size_t i = 0; i < ifaceDesc.m_endpointCount; i++) {
+			io.UsbEndpointDescriptor const* epDesc = &ifaceDesc.m_endpointDescriptorTable[i];
 
-	for (size_t i = 0; i < ifaceDesc.m_endpointCount; i++) {
-		io.UsbEndpointDescriptor const* endpointDesc = &ifaceDesc.m_endpointDescriptorTable[i];
+			char const* name = $"%1 - EP%2 - %3"(
+				ifaceName,
+				epDesc.m_endpointId & ~0x80,
+				typeof(io.UsbTransferType).getValueString(epDesc.m_transferType)
+			);
 
-		char const* name = $"EP%1 - %2"(
-			endpointDesc.m_endpointId & ~0x80,
-			typeof(io.UsbTransferType).getValueString(endpointDesc.m_transferType)
-		);
+			EndpointInfo* epInfo = new EndpointInfo;
+			epInfo.m_interface = iface;
+			epInfo.m_endpointId = epDesc.m_endpointId;
 
-		if (endpointDesc.m_endpointId & 0x80) {
-			m_inEndpointCombo.addItem(name, endpointDesc);
-			inEnpointOptionTable[inEndpointCount].m_text = name;
-			inEnpointOptionTable[inEndpointCount].m_value = endpointDesc;
-			inEndpointCount++;
-		} else {
-			m_outEndpointCombo.addItem(name, endpointDesc);
-			outEnpointOptionTable[outEndpointCount].m_text = name;
-			outEnpointOptionTable[outEndpointCount].m_value = endpointDesc;
-			outEndpointCount++;
+			if (epDesc.m_endpointId & 0x80)
+				m_inEndpointWidget.addItem(name, epInfo);
+			else
+				m_outEndpointCombo.addItem(name, epInfo);
 		}
 	}
 
+	if (!m_interfaceList.m_count)
+		return false;
+
+	m_interfaceWidget.m_currentIndex = -1; // remove selection
+	m_inEndpointWidget.m_currentIndex = 0;
 	m_outEndpointCombo.m_currentIndex = 0;
-	m_outEndpointProp.setOptions(outEnpointOptionTable, outEndpointCount);
-
-	m_inEndpointCombo.m_currentIndex = 0;
-	m_inEndpointProp.setOptions(inEnpointOptionTable, inEndpointCount);
-
-	InterfaceParams params;
-	params.m_interfaceId = ifaceDesc.m_interfaceId;
-	params.m_altSettingId = ifaceDesc.m_altSettingId;
-
-	m_logWriter.write(UsbLogRecordCode.InterfaceClaimed, &params, sizeof(params));
+	m_currentEndpointId = 0;
 	m_state = State.Claimed;
-	m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
 	return true;
 
 catch:
@@ -651,37 +636,58 @@ catch:
 	return false;
 }
 
-void UsbEndpointSession.releaseInterface() {
-	if (m_state <= State.Opened)
+void UsbEndpointSession.clearInterfaceList() {
+	std.ListEntry const* it = m_interfaceList.m_head;
+	for (; it; it = it.m_next) {
+		io.UsbInterface* iface = it.m_data;
+		iface.release();
+	}
+
+	m_interfaceList.clear();
+}
+
+void UsbEndpointSession.releaseInterfaces() {
+	if (m_state < State.Claimed)
 		return;
 
 	stopReading();
-	m_interface.release();
-	m_interface = null;
+	clearInterfaceList();
+	m_inEndpointWidget.clear();
+	m_outEndpointCombo.clear();
 
 	m_logWriter.writeLastError(UsbLogRecordCode.InterfaceReleased);
 	m_state = State.Opened;
-	m_inSyncId++;
-	m_outSyncId++;
+	m_outEpSyncId++;
 	m_stdSessionInfoSet.endSession();
 }
 
-bool UsbEndpointSession.startReading() {
-	if (m_inEndpointCombo.m_currentIndex == -1)
-		return false;
-
+bool errorcode UsbEndpointSession.startReading() {
 	stopReading();
 
-	io.UsbEndpointDescriptor const* endpointDesc = m_inEndpointCombo.m_currentData;
+	for (size_t i = 0; i < m_inEndpointWidget.m_itemCount; i++) {
+		if (!m_inEndpointWidget.m_isItemChecked[i])
+			continue;
 
-	m_inEndpoint = m_interface.openEndpoint(endpointDesc.m_endpointId, true);
-	configureInEndpoint();
-	m_inEndpoint.unsuspend();
+		EndpointInfo const* epInfo = m_inEndpointWidget.m_itemData[i];
+		Read* read = new Read;
+		read.m_endpoint = epInfo.m_interface.openEndpoint(epInfo.m_endpointId, true);
+		m_readList.insertTail(read);
+		configureRead(read);
+		read.m_endpoint.unsuspend();
 
-	m_logWriter.write(UsbLogRecordCode.ReadingStarted, &endpointDesc.m_endpointId, sizeof(endpointDesc.m_endpointId));
+		io.UsbInterfaceDescriptor const* ifaceDesc = epInfo.m_interface.m_interfaceDescriptor;
+		EndpointParams params;
+		params.m_interfaceId = ifaceDesc.m_interfaceId;
+		params.m_altSettingId = ifaceDesc.m_altSettingId;
+		params.m_class = ifaceDesc.m_class;
+		params.m_endpointId = epInfo.m_endpointId;
+		params.m_transferType = read.m_endpoint.m_endpointDescriptor.m_transferType;
+		m_logWriter.write(UsbLogRecordCode.ReadingStarted, &params, sizeof(params));
+		waitInEndpointEvents(read);
+	}
+
+	m_inEndpointWidget.m_currentIndex = -1; // remove selection
 	m_state = State.Reading;
-
-	waitInEndpointEvents();
 	return true;
 
 catch:
@@ -690,29 +696,43 @@ catch:
 }
 
 void UsbEndpointSession.stopReading() {
-	if (m_state <= State.Claimed)
+	if (m_state < State.Reading)
 		return;
 
-	m_inEndpoint.close();
-	m_inEndpoint = null;
+	std.ListEntry const* it = m_readList.m_head;
+	for (; it; it = it.m_next) {
+		Read* read = it.m_data;
+		read.m_endpoint.close();
+		read.m_syncId++;
+	}
+
+	m_readList.clear();
 
 	m_logWriter.writeLastError(UsbLogRecordCode.ReadingStopped);
 	m_state = State.Claimed;
-	m_inSyncId++;
 }
 
-void UsbEndpointSession.configureInEndpoint() {
+void UsbEndpointSession.configureRead(Read* read) {
+	size_t bufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
+	read.m_buffer.setSize(bufferSize);
+
 	if (m_useReadTimeoutProp.m_value) {
-		m_inEndpoint.m_transferTimeout = m_readTimeoutProp.m_value;
-		m_inEndpoint.m_readParallelism = 1;
-		m_inEndpoint.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
+		read.m_endpoint.m_transferTimeout = m_readTimeoutProp.m_value;
+		read.m_endpoint.m_readParallelism = 1;
+		read.m_endpoint.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
 	} else {
-		m_inEndpoint.m_transferTimeout = -1;
-		m_inEndpoint.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
-		m_inEndpoint.m_readBlockSize = m_inEndpoint.m_endpointDescriptor.m_maxPacketSize; // if no timeout, we must read with the USB packet size
+		read.m_endpoint.m_transferTimeout = -1;
+		read.m_endpoint.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
+		read.m_endpoint.m_readBlockSize = read.m_endpoint.m_endpointDescriptor.m_maxPacketSize; // if no timeout, we must read with the USB packet size
 	}
 
-	m_inEndpoint.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
+	read.m_endpoint.m_readBufferSize = bufferSize;
+}
+
+void UsbEndpointSession.configureAllReads() {
+	std.ListEntry const* it = m_readList.m_head;
+	for (; it; it = it.m_next)
+		configureRead(it.m_data);
 }
 
 void UsbEndpointSession.waitOutEndpointEvents() {
@@ -721,16 +741,16 @@ void UsbEndpointSession.waitOutEndpointEvents() {
 	if (!m_isTransmitEnabled)
 		eventMask |= io.UsbEndpointEvents.WriteBufferReady;
 
-	m_outEndpoint.wait(eventMask, onOutEndpointEvent~(++m_outSyncId) @ m_pluginHost.m_mainThreadScheduler);
+	m_outEndpoint.wait(eventMask, onOutEndpointEvent~(++m_outEpSyncId) @ m_pluginHost.m_mainThreadScheduler);
 }
 
-void UsbEndpointSession.waitInEndpointEvents() {
+void UsbEndpointSession.waitInEndpointEvents(Read* read) {
 	io.UsbEndpointEvents eventMask =
 		io.UsbEndpointEvents.IoError |
 		io.UsbEndpointEvents.ReadBufferFull |
 		io.UsbEndpointEvents.IncomingData;
 
-	m_inEndpoint.wait(eventMask, onInEndpointEvent~(++m_inSyncId) @ m_pluginHost.m_mainThreadScheduler);
+	read.m_endpoint.wait(eventMask, onInEndpointEvent~(++read.m_syncId, read) @ m_pluginHost.m_mainThreadScheduler);
 }
 
 void UsbEndpointSession.load(doc.Storage* storage) {
@@ -754,7 +774,6 @@ void UsbEndpointSession.load(doc.Storage* storage) {
 	m_controlValueEdit.m_text = storage.readString("controlValue", "0x0000");
 	m_controlIndexEdit.m_text = storage.readString("controlIndex", "0x0000");
 	m_bufferPropertySet.load(storage);
-	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
 }
 
 void UsbEndpointSession.save(doc.Storage* storage) {
@@ -784,10 +803,6 @@ void UsbEndpointSession.save(doc.Storage* storage) {
 
 void UsbEndpointSession.updateProperties() {
 	m_deviceProp.m_currentIndex = m_deviceCombo.m_currentIndex;
-	m_interfaceProp.m_currentIndex = m_interfaceCombo.m_currentIndex;
-	m_outEndpointProp.m_currentIndex = m_outEndpointCombo.m_currentIndex;
-	m_inEndpointProp.m_currentIndex = m_inEndpointCombo.m_currentIndex;
-
 	m_controlDirectionProp.m_currentIndex = m_controlDirectionCombo.m_currentIndex;
 	m_controlRecipientProp.m_currentIndex = m_controlRecipientCombo.m_currentIndex;
 	m_controlTypeProp.m_currentIndex = m_controlTypeCombo.m_currentIndex;
@@ -798,13 +813,9 @@ void UsbEndpointSession.updateProperties() {
 
 bool errorcode UsbEndpointSession.applyProperties() {
 	m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
-	m_interfaceCombo.m_currentIndex = m_interfaceProp.m_currentIndex;
-	m_outEndpointCombo.m_currentIndex = m_outEndpointProp.m_currentIndex;
-	m_inEndpointCombo.m_currentIndex = m_inEndpointProp.m_currentIndex;
-	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
 
-	if (m_inEndpoint)
-		configureInEndpoint();
+	if (m_readList.m_count)
+		configureAllReads();
 
 	if (m_outEndpoint)
 		m_outEndpoint.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
@@ -833,6 +844,31 @@ void UsbEndpointSession.restoreDefaultProperties() {
 	m_controlIndexProp.m_value = "0x0000";
 }
 
+void UsbEndpointSession.setCurrentEndpoint(io.UsbEndpointDescriptor const* epDesc) {
+	if (m_currentEndpointId == epDesc.m_endpointId)
+		return; // already
+
+	switch (epDesc.m_transferType) {
+	case io.UsbTransferType.Bulk:
+		m_logWriter.write(UsbLogRecordCode.BulkTransfer, &epDesc.m_endpointId, sizeof(epDesc.m_endpointId));
+		break;
+
+	case io.UsbTransferType.Interrupt:
+		m_logWriter.write(UsbLogRecordCode.InterruptTransfer, &epDesc.m_endpointId, sizeof(epDesc.m_endpointId));
+		break;
+
+	case io.UsbTransferType.Isochronous:
+		IsochronousTransferParams params;
+		params.m_endpointId = epDesc.m_endpointId;
+		// TODO: handle ISO packets
+
+		m_logWriter.write(UsbLogRecordCode.IsochronousTransfer, &params, sizeof(params));
+		break;
+	}
+
+	m_currentEndpointId = epDesc.m_endpointId;
+}
+
 size_t errorcode UsbEndpointSession.transmit(
 	void const* p,
 	size_t size
@@ -842,12 +878,16 @@ size_t errorcode UsbEndpointSession.transmit(
 		return -1;
 	}
 
-	io.UsbEndpointDescriptor const* endpointDesc = m_outEndpointCombo.m_currentData;
-	if (!m_outEndpoint || m_outEndpoint.m_endpointDescriptor.m_endpointId != endpointDesc.m_endpointId) {
-		m_outEndpoint = m_interface.openEndpoint(endpointDesc.m_endpointId);
+	EndpointInfo const* epInfo = m_outEndpointCombo.m_currentData;
+	if (!m_outEndpoint || m_outEndpoint.m_endpointDescriptor.m_endpointId != epInfo.m_endpointId) {
+		if (m_outEndpoint)
+			m_outEndpoint.close();
+
+		m_outEndpoint = epInfo.m_interface.openEndpoint(epInfo.m_endpointId);
 		m_outEndpoint.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
 	}
 
+	setCurrentEndpoint(m_outEndpoint.m_endpointDescriptor);
 	size = m_outEndpoint.write(p, size);
 	m_logWriter.write(log.StdRecordCode.Tx, p, size);
 	return size;
@@ -880,17 +920,6 @@ bool errorcode UsbEndpointSession.dispatch(
 			m_deviceCombo.m_currentIndex = i;
 		break;
 
-	case UsbEndpointDispatchCode.GetInterfaceId:
-		io.UsbInterfaceDescriptor const* ifaceDesc = m_interfaceCombo.m_currentData;
-		*out = ifaceDesc ? ifaceDesc.m_interfaceId : -1;
-		break;
-
-	case UsbEndpointDispatchCode.SetInterfaceId:
-		size_t i = ui.findUsbInterfaceComboIndex(m_interfaceCombo, (uint_t)in);
-		if (i != -1)
-			m_interfaceCombo.m_currentIndex = i;
-		break;
-
 	case UsbEndpointDispatchCode.GetOutEndpointId:
 		io.UsbEndpointDescriptor const* epDesc = m_outEndpointCombo.m_currentData;
 		*out = epDesc ? epDesc.m_endpointId : -1;
@@ -900,17 +929,6 @@ bool errorcode UsbEndpointSession.dispatch(
 		size_t i = ui.findUsbEndpointComboIndex(m_outEndpointCombo, (uint_t)in);
 		if (i != -1)
 			m_outEndpointCombo.m_currentIndex = i;
-		break;
-
-	case UsbEndpointDispatchCode.GetInEndpointId:
-		io.UsbEndpointDescriptor const* epDesc = m_inEndpointCombo.m_currentData;
-		*out = epDesc ? epDesc.m_endpointId : -1;
-		break;
-
-	case UsbEndpointDispatchCode.SetInEndpointId:
-		size_t i = ui.findUsbEndpointComboIndex(m_inEndpointCombo, (uint_t)in);
-		if (i != -1)
-			m_inEndpointCombo.m_currentIndex = i;
 		break;
 
 	case UsbEndpointDispatchCode.GetControlDirection:
@@ -980,37 +998,12 @@ bool errorcode UsbEndpointSession.dispatch(
 		break;
 
 	case UsbEndpointDispatchCode.ClaimInterface:
-		return claimInterface();
-
-	case UsbEndpointDispatchCode.ClaimInterfaceId:
-		size_t i = ui.findUsbInterfaceComboIndex(m_interfaceCombo, (uint_t)in);
-		if (i == -1) {
-			std.setError("interface not found");
-			return false;
-		}
-
-		m_interfaceCombo.m_currentIndex = i;
-		return claimInterface();
-
 	case UsbEndpointDispatchCode.ReleaseInterface:
-		releaseInterface();
-		break;
-
-	case UsbEndpointDispatchCode.StartReading:
-		return startReading();
-
+	case UsbEndpointDispatchCode.ReleaseAllInterfaces:
 	case UsbEndpointDispatchCode.StartReadingEndpoint:
-		size_t i = ui.findUsbEndpointComboIndex(m_inEndpointCombo, (uint_t)in);
-		if (i == -1) {
-			std.setError("endpoint not found");
-			return false;
-		}
-
-		m_inEndpointCombo.m_currentIndex = i;
-		return startReading();
-
-	case UsbEndpointDispatchCode.StopReading:
-		stopReading();
+	case UsbEndpointDispatchCode.StopReadingEndpoint:
+	case UsbEndpointDispatchCode.StopReadingAllEndpoints:
+		std.setError("not yet implemented");
 		break;
 
 	case UsbEndpointDispatchCode.StartControlTransfer:
@@ -1092,6 +1085,7 @@ void UsbEndpointSession.onControlTransferCompleted(
 	params.m_index = index;
 	params.m_length = size;
 
+	m_currentEndpointId = 0;
 	m_logWriter.write(UsbLogRecordCode.ControlTransfer, &params, sizeof(params));
 
 	if (error)
@@ -1110,11 +1104,11 @@ void UsbEndpointSession.onOutEndpointEvent(
 	uint_t syncId,
 	io.UsbEndpointEvents triggeredEvents
 ) {
-	if (syncId != m_outSyncId)
+	if (syncId != m_outEpSyncId)
 		return;
 
 	if (triggeredEvents & io.UsbEndpointEvents.IoError) {
-		m_logWriter.write(log.StdRecordCode.Error, m_inEndpoint.m_ioError);
+		m_logWriter.write(log.StdRecordCode.Error, m_outEndpoint.m_ioError);
 		closeDevice();
 		return;
 	}
@@ -1127,13 +1121,16 @@ void UsbEndpointSession.onOutEndpointEvent(
 
 void UsbEndpointSession.onInEndpointEvent(
 	uint_t syncId,
+	Read* read,
 	io.UsbEndpointEvents triggeredEvents
 ) {
-	if (syncId != m_inSyncId)
+	if (syncId != read.m_syncId)
 		return;
 
+	setCurrentEndpoint(read.m_endpoint.m_endpointDescriptor);
+
 	if (triggeredEvents & io.UsbEndpointEvents.IoError) {
-		m_logWriter.write(log.StdRecordCode.Error, m_inEndpoint.m_ioError);
+		m_logWriter.write(log.StdRecordCode.Error, read.m_endpoint.m_ioError);
 		closeDevice();
 		return;
 	}
@@ -1143,12 +1140,12 @@ void UsbEndpointSession.onInEndpointEvent(
 		m_logWriter.write(log.StdRecordCode.RxBufferFull);
 
 	if (triggeredEvents & io.UsbEndpointEvents.IncomingData) {
-		size_t result = m_inEndpoint.read(m_readBuffer.m_p, m_readBuffer.m_size);
+		size_t result = read.m_endpoint.read(read.m_buffer.m_p, read.m_buffer.m_size);
 		if (result)
-			m_logWriter.write(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
+			m_logWriter.write(log.StdRecordCode.Rx, read.m_buffer.m_p, result);
 	}
 
-	waitInEndpointEvents();
+	waitInEndpointEvents(read);
 }
 
 reactor UsbEndpointSession.m_uiReactor {
@@ -1160,20 +1157,17 @@ reactor UsbEndpointSession.m_uiReactor {
 
 	m_actionTable[ActionId.Open].m_text = isOpened ? "Close Device" : "Open Device";
 	m_actionTable[ActionId.Open].m_icon = m_iconTable[isOpened ? IconId.Close : IconId.Open];
-	m_actionTable[ActionId.Claim].m_text = isClaimed ? "Release Interface" : "Claim Interface";
+	m_actionTable[ActionId.Claim].m_text = isClaimed ? "Release" : "Claim";
 	m_actionTable[ActionId.Claim].m_icon = m_iconTable[isClaimed ? IconId.Close : IconId.Open];
 	m_actionTable[ActionId.Claim].m_isEnabled = isOpened;
-	m_actionTable[ActionId.Read].m_text = isReading ? "Stop reading" : "Start reading";
+	m_actionTable[ActionId.Read].m_text = isReading ? "Stop" : "Read";
 	m_actionTable[ActionId.Read].m_icon = m_iconTable[isReading ? IconId.Close : IconId.Open];
 	m_actionTable[ActionId.Read].m_isEnabled = isClaimed;
 	m_actionTable[ActionId.ControlTransfer].m_isEnabled = isOpened;
 
-	m_interfaceCombo.m_isEnabled = isOpened;
-	m_interfaceProp.m_isEnabled = isOpened;
+	m_interfaceWidget.m_isEnabled = isOpened && !isClaimed;
 	m_outEndpointCombo.m_isEnabled = isClaimed;
-	m_outEndpointProp.m_isEnabled = isClaimed;
-	m_inEndpointCombo.m_isEnabled = isClaimed;
-	m_inEndpointProp.m_isEnabled = isClaimed;
+	m_inEndpointWidget.m_isEnabled = isClaimed && !isReading;
 	m_readTimeoutProp.m_isEnabled = m_useReadTimeoutProp.m_value;
 	m_bufferPropertySet.m_readParallelismProp.m_isEnabled = !m_useReadTimeoutProp.m_value;
 	m_bufferPropertySet.m_readBlockSizeProp.m_isEnabled = m_useReadTimeoutProp.m_value;

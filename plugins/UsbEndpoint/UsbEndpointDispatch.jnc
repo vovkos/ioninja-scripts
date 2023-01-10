@@ -29,16 +29,6 @@ class UsbEndpointDispatch: ias.Session {
 		return dispatch(UsbEndpointDispatchCode.SetDeviceVidPid, (vid << 16) | (pid & 0xffff));
 	}
 
-	property m_interfaceId {
-		uint_t get() {
-			return dispatchGet(UsbEndpointDispatchCode.GetInterfaceId);
-		}
-
-		void set(uint_t value) {
-			dispatch(UsbEndpointDispatchCode.SetInterfaceId, value);
-		}
-	}
-
 	property m_outEndpointId {
 		uint_t get() {
 			return dispatchGet(UsbEndpointDispatchCode.GetOutEndpointId);
@@ -46,16 +36,6 @@ class UsbEndpointDispatch: ias.Session {
 
 		void set(uint_t value) {
 			dispatch(UsbEndpointDispatchCode.SetOutEndpointId, value);
-		}
-	}
-
-	property m_inEndpointId {
-		uint_t get() {
-			return dispatchGet(UsbEndpointDispatchCode.GetInEndpointId);
-		}
-
-		void set(uint_t value) {
-			dispatch(UsbEndpointDispatchCode.SetInEndpointId, value);
 		}
 	}
 
@@ -134,28 +114,28 @@ class UsbEndpointDispatch: ias.Session {
 		dispatch(UsbEndpointDispatchCode.CloseDevice);
 	}
 
-	void claimInterface() {
-		dispatch(UsbEndpointDispatchCode.ClaimInterface);
-	}
-
 	void claimInterface(uint_t interfaceId) {
-		dispatch(UsbEndpointDispatchCode.ClaimInterfaceId, interfaceId);
+		dispatch(UsbEndpointDispatchCode.ClaimInterface, interfaceId);
 	}
 
-	void releaseInterface() {
-		dispatch(UsbEndpointDispatchCode.ReleaseInterface);
+	void releaseInterface(uint_t interfaceId) {
+		dispatch(UsbEndpointDispatchCode.ReleaseInterface, interfaceId);
 	}
 
-	void startReading() {
-		dispatch(UsbEndpointDispatchCode.StartReading);
+	void releaseAllInterfaces() {
+		dispatch(UsbEndpointDispatchCode.ReleaseAllInterfaces);
 	}
 
-	void startReading(uint_t endpointId) {
+	void startReadingEndpoint(uint_t endpointId) {
 		dispatch(UsbEndpointDispatchCode.StartReadingEndpoint, endpointId);
 	}
 
-	void stopReading() {
-		dispatch(UsbEndpointDispatchCode.StopReading);
+	void stopReadingEndpoint(uint_t endpointId) {
+		dispatch(UsbEndpointDispatchCode.StopReadingEndpoint, endpointId);
+	}
+
+	void stopReadingAllEndpoints() {
+		dispatch(UsbEndpointDispatchCode.StopReadingAllEndpoints);
 	}
 
 	void startControlTransfer() {
