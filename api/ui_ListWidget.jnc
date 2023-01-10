@@ -31,6 +31,11 @@ opaque class ListWidget: Widget {
 	event m_onReturnPressed();
 	event m_onDoubleClicked();
 
+	event m_onItemCheckStateChanged(
+		size_t index,
+		bool isChecked
+	);
+
 	construct();
 	destruct();
 
