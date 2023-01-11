@@ -285,21 +285,11 @@ void UsbEndpointSession.createUi() {
 	m_actionTable[ActionId.Open] = createAction("Open device", m_iconTable[IconId.Open]);
 	m_actionTable[ActionId.Open].m_onTriggered += onOpenDevice;
 
-	m_actionTable[ActionId.Claim] = new ui.Action(
-		m_iconTable[IconId.Open],
-		"Claim",
-		onClaimInterfaces
-	);
-
+	m_actionTable[ActionId.Claim] = new ui.Action(m_iconTable[IconId.Open], "Claim", onClaimInterfaces);
 	m_actionTable[ActionId.Claim].m_toolTip = "Claim/release selected interface(s)";
 
-	m_actionTable[ActionId.Read] = new ui.Action(
-		m_iconTable[IconId.Open],
-		"Read",
-		onReadEndpoints
-	);
-
-	m_actionTable[ActionId.Read].m_toolTip = "Read/stop reading from selected endpoint(s)";
+	m_actionTable[ActionId.Read] = new ui.Action(m_iconTable[IconId.Open], "Read", onReadEndpoints);
+	m_actionTable[ActionId.Read].m_toolTip = "Read/stop reading from selected IN-endpoint(s)";
 
 	m_actionTable[ActionId.ControlTransfer] = new ui.Action(
 		"images/transfer.png",
@@ -1032,10 +1022,11 @@ bool errorcode UsbEndpointSession.startControlTransfer(
 	uint_t value,
 	uint_t index
 ) {
-	size_t size = m_controlInBufferSizeProp.m_value;
-	char* buffer = new char[size];
-	// if (!direction)
-	//	memcpy(buffer, p, size);
+	std.Buffer buffer;
+	if (direction == io.UsbControlDirection.In)
+		buffer.setSize(m_controlInBufferSizeProp.m_value);
+	else
+		getTransmitData(&buffer);
 
 	io.UsbControlRequestType requestType;
 	requestType.m_direction = direction;
@@ -1047,15 +1038,15 @@ bool errorcode UsbEndpointSession.startControlTransfer(
 		request,
 		value,
 		index,
-		buffer,
-		size,,
+		buffer.m_p,
+		buffer.m_size,,
 		onControlTransferCompleted~(
 			++m_controlSyncId,
 			requestType,
 			request,
 			value,
 			index,
-			buffer
+			buffer.m_p
 		) @ m_pluginHost.m_mainThreadScheduler
 	);
 
