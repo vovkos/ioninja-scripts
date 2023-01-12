@@ -5,6 +5,8 @@
 
 import "log_Representation.jnc"
 import "UsbLogRecordCode.jnc"
+import "io_usbmon.jncx"
+import "io_win_UsbdStatus.jnc"
 
 //..............................................................................
 
@@ -290,6 +292,28 @@ bool representUsbLog(
 		representation.m_lineAttr.m_backColor = ui.StdColor.PastelGray;
 		representation.m_lineAttr.m_iconIdx = getTransferIcon(params.m_endpointId);
 		representation.addHyperText($"\e[1;33mISOCHRONOUS\e[m \e[34mEP$(params.m_endpointId & ~0x80)");
+		break;
+
+	case UsbLogRecordCode.TransferError:
+		TransferErrorParams const* params = (TransferErrorParams const*)p;
+		char const* description;
+		switch (params.m_osKind) {
+		case sys.OsKind.Windows:
+			description = typeof(io.win.USBD_STATUS).getValueString(params.m_status);
+			break;
+
+		case sys.OsKind.Linux:
+			std.Error error;
+			error.m_size = sizeof(error);
+			error.m_guid = std.g_errnoGuid;
+			error.m_code = params.m_status;
+			description = error.m_description;
+			break;
+		}
+
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Error;
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		representation.addHyperText($"Transfer error: $(description)");
 		break;
 
 	default:

@@ -29,8 +29,9 @@ enum UsbLogRecordCode: uint64_t {
 	BulkTransfer          = 0x01d485f4acbf80c7,
 	InterruptTransfer     = 0x01d485f4acbf80c8,
 	IsochronousTransfer   = 0x01d485f4acbf80c9,
-	InterfaceClaimed      = 0x01d485f4acbf80ca,
-	ReadingStarted        = 0x01d485f4acbf80cb,
+	TransferError         = 0x01d485f4acbf80ca,
+	InterfaceClaimed      = 0x01d485f4acbf80cb,
+	ReadingStarted        = 0x01d485f4acbf80cc,
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -96,6 +97,13 @@ struct DeviceParams {
 struct IsochronousTransferParams {
 	uint8_t m_endpointId;
 	io.UsbIsochronousHdr m_isochronousHdr;
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+struct TransferErrorParams {
+	sys.OsKind m_osKind;
+	uint32_t m_status; // USBD_STATUS on Windows, errno on Linux
 }
 
 //..............................................................................

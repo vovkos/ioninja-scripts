@@ -40,5 +40,6 @@ UsbLogRepresenter.jnc
 01d485f4acbf80c7  # BulkTransfer
 01d485f4acbf80c8  # InterruptTransfer
 01d485f4acbf80c9  # IsochronousTransfer
-01d485f4acbf80ca  # InterfaceClaimed
-01d485f4acbf80cb  # ReadingStarted
+01d485f4acbf80ca  # TransferError
+01d485f4acbf80cb  # InterfaceClaimed
+01d485f4acbf80cc  # ReadingStarted
