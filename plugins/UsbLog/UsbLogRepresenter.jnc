@@ -288,10 +288,10 @@ bool representUsbLog(
 		break;
 
 	case UsbLogRecordCode.IsochronousTransfer:
-		IsochronousTransferParams const* params = (IsochronousTransferParams const*)p;
+		uint8_t endpointId = *(uint8_t const*)p;
 		representation.m_lineAttr.m_backColor = ui.StdColor.PastelGray;
-		representation.m_lineAttr.m_iconIdx = getTransferIcon(params.m_endpointId);
-		representation.addHyperText($"\e[1;33mISOCHRONOUS\e[m \e[34mEP$(params.m_endpointId & ~0x80)");
+		representation.m_lineAttr.m_iconIdx = getTransferIcon(endpointId);
+		representation.addHyperText($"\e[1;33mISOCHRONOUS\e[m \e[34mEP$(endpointId & ~0x80)");
 		break;
 
 	case UsbLogRecordCode.TransferError:

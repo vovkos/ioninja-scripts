@@ -94,13 +94,6 @@ struct DeviceParams {
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-struct IsochronousTransferParams {
-	uint8_t m_endpointId;
-	io.UsbIsochronousHdr m_isochronousHdr;
-}
-
-// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
 struct TransferErrorParams {
 	sys.OsKind m_osKind;
 	uint32_t m_status; // USBD_STATUS on Windows, errno on Linux
