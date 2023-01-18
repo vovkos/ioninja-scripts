@@ -110,6 +110,15 @@ protected:
 		void const* p,
 		size_t size
 	);
+
+	void writeTransferError(uint_t status);
+
+	void writeIsoTransferPayload(
+		uint64_t recordCode,
+		io.UsbIsoPacket const* packetArray,
+		size_t packetCount,
+		size_t dataSize
+	);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -282,6 +291,10 @@ void UsbMonSession.onMonitorEvent(
 	}
 
 	waitMonitorEvents();
+
+catch:
+	m_logWriter.writeLastError(log.StdRecordCode.Error); // broken data from usbpcap/usbmon?
+	close();
 }
 
 void UsbMonSession.waitMonitorEvents() {
@@ -313,6 +326,22 @@ void UsbMonSession.processData(
 
 		io.UsbMonTransferHdr const* hdr = (io.UsbMonTransferHdr const*)m_transferBuffer.m_p;
 		size_t transferSize = sizeof(io.UsbMonTransferHdr) + hdr.m_captureSize;
+		if (hdr.m_transferType == io.UsbTransferType.Isochronous) {
+			// for iso transfers we need to buffer the whole transfer --
+			// including the iso packet array and the payload -- before writing to log
+
+			transferSize += hdr.m_isoHdr.m_packetCount * sizeof(io.UsbIsoPacket);
+			size_t leftoverSize = transferSize - m_transferBuffer.m_size;
+			if (size < leftoverSize) {
+				m_transferBuffer.append(p, size);
+				break;
+			}
+
+			m_transferBuffer.append(p, leftoverSize);
+			hdr = (io.UsbMonTransferHdr const*)m_transferBuffer.m_p; // update hdr after append
+			p += leftoverSize;
+		}
+
 		size_t leftoverSize = transferSize - m_transferBuffer.m_size;
 		if (size < leftoverSize) {
 			m_transferBuffer.append(p, size);
@@ -336,13 +365,8 @@ void UsbMonSession.processData(
 			break;
 
 		case io.UsbTransferType.Isochronous:
-			if (m_prevTransferEndpoint == hdr.m_endpoint) // if endpoint is the same, simply append the payload
-				break;
-
-			IsochronousTransferParams params;
-			params.m_endpointId = hdr.m_endpoint;
-			params.m_isochronousHdr = hdr.m_isochronousHdr;
-			m_logWriter.write(UsbLogRecordCode.IsochronousTransfer, &params, sizeof(params));
+			if (m_prevTransferEndpoint != hdr.m_endpoint) // otherwise, simply append the payload
+				m_logWriter.write(UsbLogRecordCode.IsochronousTransfer, &hdr.m_endpoint, sizeof(uint8_t));
 			break;
 
 		case io.UsbTransferType.Bulk:
@@ -356,31 +380,60 @@ void UsbMonSession.processData(
 			break;
 		}
 
-		if (hdr.m_status != 0) { // error
-			TransferErrorParams params;
-			params.m_osKind = sys.g_systemInfo.m_osKind;
-			params.m_status = hdr.m_status;
+		if (hdr.m_status != 0)
+			writeTransferError(hdr.m_status);
+		else if (hdr.m_captureSize) {
+			uint64_t recordCode = (hdr.m_endpoint & 0x80) ?
+				log.StdRecordCode.Rx :
+				log.StdRecordCode.Tx;
 
-			m_logWriter.write(
-				UsbLogRecordCode.TransferError,
-				&params,
-				sizeof(params)
-			);
-		} else if (hdr.m_captureSize) {
-			m_logWriter.write(
-				(hdr.m_endpoint & 0x80) ?
-					log.StdRecordCode.Rx :
-					log.StdRecordCode.Tx,
-				hdr + 1,
-				m_transferBuffer.m_size - sizeof(io.UsbMonTransferHdr),
-				p,
-				leftoverSize
-			);
+			if (hdr.m_transferType == io.UsbTransferType.Isochronous)
+				writeIsoTransferPayload(
+					recordCode,
+					(io.UsbIsoPacket const*)(hdr + 1),
+					hdr.m_isoHdr.m_packetCount,
+					hdr.m_captureSize
+				);
+			else
+				m_logWriter.write(
+					recordCode,
+					hdr + 1,
+					m_transferBuffer.m_size - sizeof(io.UsbMonTransferHdr),
+					p,
+					leftoverSize
+				);
 		}
 
 		m_prevTransferEndpoint = hdr.m_endpoint;
 		m_transferBuffer.clear();
 		p += leftoverSize;
+	}
+}
+
+void UsbMonSession.writeTransferError(uint_t status) {
+	TransferErrorParams params;
+	params.m_osKind = sys.g_systemInfo.m_osKind;
+	params.m_status = status;
+	m_logWriter.write(UsbLogRecordCode.TransferError, &params, sizeof(params));
+}
+
+void UsbMonSession.writeIsoTransferPayload(
+	uint64_t recordCode,
+	io.UsbIsoPacket const* packetArray,
+	size_t packetCount,
+	size_t dataSize
+) {
+	io.UsbIsoPacket const* packet = packetArray;
+	io.UsbIsoPacket const* end = packetArray + packetCount;
+
+	void const* p = end;
+	while (packet < end) {
+		if (packet.m_status != 0)
+			writeTransferError(packet.m_status);
+		else
+			m_logWriter.write(recordCode, p + packet.m_offset, packet.m_length);
+
+		packet++;
 	}
 }
 
