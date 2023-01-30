@@ -848,11 +848,7 @@ void UsbEndpointSession.setCurrentEndpoint(io.UsbEndpointDescriptor const* epDes
 		break;
 
 	case io.UsbTransferType.Isochronous:
-		IsochronousTransferParams params;
-		params.m_endpointId = epDesc.m_endpointId;
-		// TODO: handle ISO packets
-
-		m_logWriter.write(UsbLogRecordCode.IsochronousTransfer, &params, sizeof(params));
+		m_logWriter.write(UsbLogRecordCode.IsochronousTransfer, &epDesc.m_endpointId, sizeof(epDesc.m_endpointId));
 		break;
 	}
 
