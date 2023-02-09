@@ -26,6 +26,16 @@ opaque class Label: Widget {
 
 //..............................................................................
 
+// to align with checkbox labels above
+
+opaque class CheckBoxLabel: Widget {
+	char const* autoget property m_text;
+
+	construct(char const* text);
+}
+
+//..............................................................................
+
 //! @}
 
 } // namespace ui
