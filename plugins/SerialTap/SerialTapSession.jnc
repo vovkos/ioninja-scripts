@@ -245,6 +245,14 @@ public:
 	override bool errorcode applyProperties();
 	override void restoreDefaultProperties();
 
+	override bool errorcode connectSession() {
+		return m_sessionConnectionState ? true : capture();
+	}
+
+	override void disconnectSession() {
+		stopCapture();
+	}
+
 protected:
 	void onCapture() {
 		m_state ? stopCapture() : try capture();
@@ -519,6 +527,7 @@ bool errorcode SerialTapSession.capture() {
 	);
 
 	m_state = State.Opened;
+	m_sessionConnectionState = SessionConnectionState.Connected;
 
 	waitBulkEndpointEvents(m_dteIface);
 	waitBulkEndpointEvents(m_dceIface);
@@ -552,6 +561,7 @@ void SerialTapSession.stopCapture() {
 	m_device.close();
 	m_device = null;
 	m_state = State.Closed;
+	m_sessionConnectionState = SessionConnectionState.Disconnected;
 }
 
 void SerialTapSession.waitBulkEndpointEvents(SerialIface* iface) {
