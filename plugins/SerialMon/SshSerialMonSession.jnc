@@ -123,6 +123,14 @@ public:
 	override bool errorcode applyProperties();
 	override void restoreDefaultProperties();
 
+	override bool errorcode connectSession() {
+		return m_sessionConnectionState ? true : connect();
+	}
+
+	override void disconnectSession() {
+		disconnect();
+	}
+
 protected:
 	void onConnect() {
 		m_state ? disconnect() : try connect();
@@ -693,6 +701,12 @@ void SshSerialMonSession.onResolverEvent(
 
 reactor SshSerialMonSession.m_uiReactor {
 	m_title = $"Mon $(m_addressCombo.m_currentText)";
+
+	m_sessionConnectionState =
+		m_state == State.Connected ? SessionConnectionState.Connected :
+		m_state == State.Closed ? SessionConnectionState.Disconnected :
+		SessionConnectionState.Connecting;
+
 	m_actionTable[ActionId.Connect].m_text = m_state ? "Disconnect" : "Connect && capture";
 	m_actionTable[ActionId.Connect].m_icon = m_iconTable[m_state ? IconId.Disconnect : IconId.Connect];
 	m_statusPaneTable[StatusPaneId.State].m_text = m_stateStringTable[m_state];
