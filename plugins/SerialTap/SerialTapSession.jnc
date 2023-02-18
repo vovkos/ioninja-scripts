@@ -527,7 +527,6 @@ bool errorcode SerialTapSession.capture() {
 	);
 
 	m_state = State.Opened;
-	m_sessionConnectionState = SessionConnectionState.Connected;
 
 	waitBulkEndpointEvents(m_dteIface);
 	waitBulkEndpointEvents(m_dceIface);
@@ -561,7 +560,6 @@ void SerialTapSession.stopCapture() {
 	m_device.close();
 	m_device = null;
 	m_state = State.Closed;
-	m_sessionConnectionState = SessionConnectionState.Disconnected;
 }
 
 void SerialTapSession.waitBulkEndpointEvents(SerialIface* iface) {
@@ -830,6 +828,10 @@ reactor SerialTapSession.m_uiReactor {
 	m_title = m_state ?
 		$"Serial Tap $(m_deviceName)" :
 		$"Serial Tap $(m_deviceCombo.m_currentText)";
+
+	m_sessionConnectionState = m_state == State.Opened ?
+		SessionConnectionState.Connected :
+		SessionConnectionState.Disconnected;
 
 	m_actionTable[ActionId.Capture].m_text = m_state ? "Stop capture" : "Capture";
 	m_actionTable[ActionId.Capture].m_icon = m_iconTable[m_state ? IconId.StopCapture : IconId.Capture];
