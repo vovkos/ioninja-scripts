@@ -10,43 +10,36 @@ using extension ui.ComboBoxHistory;
 
 //..............................................................................
 
-class $(sessionClass): doc.Session
-{
+class $(sessionClass): doc.Session {
 protected:
-	enum State
-	{
+	enum State {
 		Closed,
 		Connected,
 	}
 
-	static char const* m_stateStringTable[] =
-	{
+	static char const* m_stateStringTable[] = {
 		"Closed",
 		"Connected",
 	};
 
-	enum ActionId
-	{
+	enum ActionId {
 		Connect,
 		_Count,
 	}
 
-	enum IconId
-	{
+	enum IconId {
 		Connect,
 		Disconnect,
 		_Count,
 	}
 
-	enum StatusPaneId
-	{
+	enum StatusPaneId {
 		Address,
 		State,
 		_Count,
 	}
 
 protected:
-
 	// transport
 
 	State bindable m_state;
@@ -82,16 +75,14 @@ public:
 	override size_t errorcode transmit(
 		void const* p,
 		size_t size
-		);
+	);
 
 protected:
-	void onConnect()
-	{
+	void onConnect() {
 		m_state ? disconnect() : try connect();
 	}
 
-	void onAddressComboEnter()
-	{
+	void onAddressComboEnter() {
 		try connect();
 	}
 
@@ -100,16 +91,14 @@ protected:
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-$(sessionClass).construct(doc.PluginHost* pluginHost)
-{
+$(sessionClass).construct(doc.PluginHost* pluginHost) {
 	basetype.construct(pluginHost);
 
 	m_state = State.Closed;
 	createUi();
 }
 
-void $(sessionClass).createUi()
-{
+void $(sessionClass).createUi() {
 	// toolbar
 
 	m_pluginHost.m_toolBar.addLabel("Address:");
@@ -136,13 +125,12 @@ void $(sessionClass).createUi()
 		"Remote address",
 		"Enter a remote address...",
 		"Remote address to connect to"
-		);
+	);
 
 	m_uiReactor.start();
 }
 
-bool errorcode $(sessionClass).connect()
-{
+bool errorcode $(sessionClass).connect() {
 	disconnect();
 
 	char const* address = m_addressCombo.m_editText;
@@ -158,8 +146,7 @@ bool errorcode $(sessionClass).connect()
 	return true;
 }
 
-void $(sessionClass).disconnect()
-{
+void $(sessionClass).disconnect() {
 	if (!m_state)
 		return;
 
@@ -169,39 +156,33 @@ void $(sessionClass).disconnect()
 	m_state = State.Closed;
 }
 
-void $(sessionClass).load(doc.Storage* storage)
-{
+void $(sessionClass).load(doc.Storage* storage) {
 	m_addressCombo.loadHistory(storage, "addressHistory");
 	m_addressCombo.m_editText = storage.readString("address");
 }
 
-void $(sessionClass).save(doc.Storage* storage)
-{
+void $(sessionClass).save(doc.Storage* storage) {
 	m_addressCombo.saveHistory(storage, "addressHistory");
 	storage.writeString("address", m_addressCombo.m_editText);
 }
 
-void $(sessionClass).updateProperties()
-{
+void $(sessionClass).updateProperties() {
 	m_addressProp.m_value = m_addressCombo.m_editText;
 }
 
-bool errorcode $(sessionClass).applyProperties()
-{
+bool errorcode $(sessionClass).applyProperties() {
 	m_addressCombo.m_editText = m_addressProp.m_value;
 	return true;
 }
 
-void $(sessionClass).restoreDefaultProperties()
-{
+void $(sessionClass).restoreDefaultProperties() {
 	m_addressProp.m_value = "remote-address";
 }
 
 size_t errorcode $(sessionClass).transmit(
 	void const* p,
 	size_t size
-	)
-{
+) {
 	if (m_state != State.Connected)
 		return -1;
 
@@ -211,8 +192,7 @@ size_t errorcode $(sessionClass).transmit(
 	return size;
 }
 
-reactor $(sessionClass).m_uiReactor
-{
+reactor $(sessionClass).m_uiReactor {
 	m_title = $"$(pluginName) $(m_addressCombo.m_editText)";
 	m_isTransmitEnabled = m_state == State.Connected;
 	m_actionTable[ActionId.Connect].m_text = m_state ? "Disconnect" : "Connect";

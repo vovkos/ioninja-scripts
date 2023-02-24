@@ -9,8 +9,7 @@ import "doc_Layer.jnc"
 
 class $(layerClass):
 	doc.Layer,
-	log.Filter
-{
+	log.Filter {
 	ui.BoolProperty* m_txProp;
 	ui.BoolProperty* m_rxProp;
 
@@ -21,13 +20,12 @@ class $(layerClass):
 		uint64_t recordCode,
 		void const* p,
 		size_t size
-		);
+	);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-$(layerClass).construct(doc.PluginHost* pluginHost)
-{
+$(layerClass).construct(doc.PluginHost* pluginHost) {
 	basetype.construct(pluginHost);
 
 	m_txProp = m_pluginHost.m_propertyGrid.createBoolProperty("TX", "Show TX records in the log");
@@ -43,8 +41,7 @@ bool $(layerClass).filter(
 	uint64_t recordCode,
 	void const* p,
 	size_t size
-	)
-{
+) {
 	switch (recordCode)
 	{
 	case log.StdRecordCode.Tx:

@@ -7,8 +7,7 @@ import "doc_Layer.jnc"
 
 //..............................................................................
 
-class $(layerClass): doc.Layer
-{
+class $(layerClass): doc.Layer {
 public:
 	construct(doc.PluginHost* pluginHost);
 
@@ -17,13 +16,12 @@ protected:
 		char const* name,
 		void const* p,
 		size_t size = -1
-		);
+	);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-$(layerClass).construct(doc.PluginHost* pluginHost)
-{
+$(layerClass).construct(doc.PluginHost* pluginHost) {
 	basetype.construct(pluginHost);
 
 	m_pluginHost.m_toolBar.addLabel("Send:");
@@ -39,8 +37,7 @@ void $(layerClass).addButton(
 	char const* title,
 	void const* p,
 	size_t size
-	)
-{
+) {
 	if (size == -1)
 		size = strlen(p);
 
