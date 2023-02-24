@@ -4,13 +4,33 @@
 //
 
 import "doc_Layer.jnc"
+import "std_Buffer.jnc"
+
+//
+// This plugin scans the RX stream for in-band commands in the form:
+//     ... STX <command> CR ...
+//
+// The (easily extensible) list of supported commands:
+//     about
+//     version
+//     help
 
 //..............................................................................
 
-class $(layerClass): doc.Layer
-{
+class $(layerClass): doc.Layer {
 protected:
-	jnc.RegexState m_rxScannerState;
+	enum {
+		MaxCommandSize = 256 // don't let buffer grow uncontrollably
+	}
+
+	enum ScannerState {
+		Default,
+		Stx,
+	}
+
+protected:
+	ScannerState m_scannerState;
+	std.Buffer m_command;
 
 public:
 	construct(doc.PluginHost* pluginHost);
@@ -21,60 +41,97 @@ protected:
 		uint64_t recordCode,
 		void const* p,
 		size_t size
-		)
-	{
-		if (recordCode == log.StdRecordCode.Rx)
-			scanRx(p, size);
-	}
+	);
 
-	void scanRx(
+	void scan(
 		char const* p,
 		size_t length
-		);
+	);
 
-	size_t transmitString(char const* s)
-	{
-		return transmitNext(s, strlen(s));
+	void processCommand(char const* command);
+
+	size_t errorcode transmit(char const* p) {
+		return transmitNext(p, strlen(p));
 	}
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-$(layerClass).construct(doc.PluginHost* pluginHost)
-{
+$(layerClass).construct(doc.PluginHost* pluginHost) {
 	basetype.construct(pluginHost);
 	pluginHost.m_log.addObserver(onLogRecord @ pluginHost.m_mainThreadScheduler);
-	m_rxScannerState.m_isIncremental = true;
 }
 
-void $(layerClass).scanRx(
+void $(layerClass).onLogRecord(
+	uint64_t timestamp,
+	uint64_t recordCode,
+	void const* p,
+	size_t size
+) {
+	if (recordCode == log.StdRecordCode.Rx)
+		scan(p, size);
+	else
+		m_scannerState = ScannerState.Default; // reset state
+}
+
+// our commands
+
+void $(layerClass).scan(
 	char const* p,
 	size_t length
-	)
-{
+) {
 	char const* end = p + length;
-	while (p < end || m_rxScannerState.m_replayLength)
-	{
-		reswitch (m_rxScannerState, p, end - p)
-		{
-		case r"about[\r\n]":
-			transmitString("IO Ninja - $(pluginName)\r\n");
+	while (p < end) {
+		switch (m_scannerState) {
+		case ScannerState.Default:
+			char const* stx = memchr(p, '\x02', end - p); // search for STX
+			if (!stx)
+				break2;
+
+			m_scannerState = ScannerState.Stx;
+			m_command.clear();
+			p = stx + 1;
 			break;
 
-		case r"version[\r\n]":
-			transmitString("Version 1.0.0\r\n");
-			break;
+		case ScannerState.Stx:
+			char const* cr = memchr(p, '\r', end - p); // search for CR
+			if (!cr) {
+				m_command.append(p, end - p);
+				if (m_command.m_size > MaxCommandSize) {
+					transmit("Command too long\r\n");
+					m_scannerState = ScannerState.Default;
+				}
 
-		case r"help[\r\n]":
-			transmitString("This plugin is a starting point for writing your test utility\r\n");
-			break;
+				break2;
+			}
 
-		case ".":
-			// ignore everything else
+			m_command.append(p, cr - p);
+			m_command.append(0); // make it null-terminated
+			processCommand(m_command.m_p);
+			m_scannerState = ScannerState.Default;
+			p = cr + 1;
 			break;
 		}
+	}
+}
 
-		p += m_rxScannerState.m_match.m_length;
+void $(layerClass).processCommand(char const* command) {
+	switch (command) {
+	case "about":
+		transmit("IO Ninja Answering Machine\r\n");
+		break;
+
+	case "version":
+		transmit("Version 1.0.0\r\n");
+		break;
+
+	case "help":
+		transmit("This plugin is a starting point for writing your test utility\r\n");
+		break;
+
+	default:
+		transmit($"Unknown command '%s'\r\n"(command));
+		break;
 	}
 }
 
