@@ -288,28 +288,23 @@ size_t errorcode TxModifierLayer.transmit(
 	void const* packet;
 	size_t packetSize;
 
-	if (!m_isPrefixEnabledCheckBox.m_isChecked && !m_isSuffixEnabledCheckBox.m_isChecked) {
-		packet = p;
-		packetSize = size;
-	} else {
-		std.Buffer buffer;
-		std.StringBuilder string;
+	std.Buffer buffer;
+	std.StringBuilder string;
 
-		if (m_isPrefixEnabledCheckBox.m_isChecked) {
-			decodeEscapeString(&string, m_prefixEdit.m_text);
-			buffer.append(string.m_p, string.m_length);
-		}
-
-		buffer.append(p, size);
-
-		if (m_isSuffixEnabledCheckBox.m_isChecked) {
-			decodeEscapeString(&string, m_suffixEdit.m_text);
-			buffer.append(string.m_p, string.m_length);
-		}
-
-		packet = buffer.m_p;
-		packetSize = buffer.m_size;
+	if (m_isPrefixEnabledCheckBox.m_isChecked) {
+		decodeEscapeString(&string, m_prefixEdit.m_text);
+		buffer.append(string.m_p, string.m_length);
 	}
+
+	buffer.append(p, size);
+
+	if (m_isSuffixEnabledCheckBox.m_isChecked) {
+		decodeEscapeString(&string, m_suffixEdit.m_text);
+		buffer.append(string.m_p, string.m_length);
+	}
+
+	packet = buffer.m_p;
+	packetSize = buffer.m_size;
 
 	cancelRetransmission();
 
