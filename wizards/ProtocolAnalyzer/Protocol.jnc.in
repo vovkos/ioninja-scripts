@@ -1,0 +1,46 @@
+//..............................................................................
+//
+// $(pluginName) protocol definitions
+//
+
+pragma(Alignment, 1)
+
+//..............................................................................
+
+enum $(protocol)Code: uint16_t {
+	Connect,
+	Disconnect,
+	Read,
+	Write,
+	Reply,
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+struct $(protocol)Hdr {
+	uint16_t m_size;
+	$(protocol)Code m_code;
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+struct $(protocol)Read: $(protocol)Hdr {
+	uint16_t m_address;
+	uint16_t m_dataSize;
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+struct $(protocol)Write: $(protocol)Hdr {
+	uint16_t m_address;
+	//  followed by data (m_size - sizeof($(protocol)Write))
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+struct $(protocol)Reply: $(protocol)Hdr {
+	uint32_t m_status;
+	// optionally followed by data (m_size - sizeof($(protocol)Reply))
+}
+
+//..............................................................................

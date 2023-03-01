@@ -20,4 +20,4 @@ $(logRepresenterFile)
 
 [records]
 
-$(getLogRecordCode (0))  # InBandCommand
+$(getLogRecordCode(0))  # Packet

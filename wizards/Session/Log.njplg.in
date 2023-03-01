@@ -21,5 +21,5 @@ $(logRepresenterFile)
 
 [records]
 
-$(getLogRecordCode (0))  # Connected
-$(getLogRecordCode (1))  # Disconnected
+$(getLogRecordCode(0))  # Connected
+$(getLogRecordCode(1))  # Disconnected

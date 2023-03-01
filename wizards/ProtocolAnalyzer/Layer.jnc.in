@@ -9,19 +9,12 @@ import "doc_Layer.jnc"
 
 class $(layerClass):
 	doc.Layer,
-	log.Converter
-{
+	log.Converter {
 	static const std.Guid m_guid = "$(pluginGuid)";
 
 protected:
-	jnc.RegexState m_txScannerState;
-	jnc.RegexState m_rxScannerState;
-
-	log.Writer* m_writer;
-	uint64_t m_timestamp;
-	uint64_t m_recordCode;
-	void const* m_p;
-	size_t m_offset;
+	$(parserClass) m_txParser;
+	$(parserClass) m_rxParser;
 
 public:
 	construct(doc.PluginHost* pluginHost);
@@ -32,27 +25,14 @@ public:
 		uint64_t recordCode,
 		void const* p,
 		size_t size
-		);
-
-protected:
-	void scanStream(
-		jnc.RegexState* state,
-		char const* p,
-		size_t length
-		);
-
-	void writeOriginalData(jnc.RegexState* state);
+	);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-$(layerClass).construct(doc.PluginHost* pluginHost)
-{
+$(layerClass).construct(doc.PluginHost* pluginHost) {
 	basetype1.construct(pluginHost);
 	pluginHost.m_log.addConverter(this, &m_guid);
-
-	m_txScannerState.m_isIncremental = true;
-	m_rxScannerState.m_isIncremental = true;
 }
 
 bool $(layerClass).convert(
@@ -61,87 +41,29 @@ bool $(layerClass).convert(
 	uint64_t recordCode,
 	void const* p,
 	size_t size
-	)
-{
-	jnc.RegexState* state;
+) {
+	$(parserClass)* parser;
 
-	switch (recordCode)
-	{
+	switch (recordCode) {
+	case log.StdRecordCode.SessionStarted:
+		m_txParser.reset();
+		m_rxParser.reset();
+		break;
+
 	case log.StdRecordCode.Tx:
-		state = &m_txScannerState;
+		parser = &m_txParser;
 		break;
 
 	case log.StdRecordCode.Rx:
-		state = &m_rxScannerState;
+		parser = &m_rxParser;
 		break;
 
 	default:
 		return false; // don't convert other records
 	}
 
-	// prepare context for the scanner
-
-	m_writer = writer;
-	m_timestamp = timestamp;
-	m_recordCode = recordCode;
-	m_p = p;
-	m_offset = state.m_currentOffset;
-
-	// scan
-
-	scanStream(state, p, size);
+	parser.parse(writer, timestamp, recordCode, p, size);
 	return true;
-}
-
-void $(layerClass).writeOriginalData(jnc.RegexState* state)
-{
-	if (state.m_currentOffset <= m_offset)
-		return;
-
-	size_t chunkLength = state.m_currentOffset - m_offset;
-	m_writer.write(m_timestamp, m_recordCode, m_p, chunkLength);
-	m_p += chunkLength;
-	m_offset += chunkLength;
-}
-
-void $(layerClass).scanStream(
-	jnc.RegexState* state,
-	char const* p,
-	size_t length
-	)
-{
-	char const* end = p + length;
-	while (p < end || state.m_replayLength)
-	{
-		reswitch (state, p, end - p)
-		{
-		case "<([^>]*)>":
-			// write original data first...
-
-			writeOriginalData(state);
-
-			// ...and then the decoded in-band command
-
-			m_writer.write(
-				m_timestamp,
-				$(logRecordCodeEnum).InBandCommand,
-				state.m_captureArray[0].m_text,
-				state.m_captureArray[0].m_length
-				);
-
-			break;
-
-		case ".":
-			// ignore the rest
-			break;
-		}
-
-		p += state.m_match.m_length;
-	}
-
-	// write the rest of original data
-
-	writeOriginalData(state);
 }
 
 //..............................................................................

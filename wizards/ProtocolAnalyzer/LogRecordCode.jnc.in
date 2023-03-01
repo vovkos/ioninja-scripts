@@ -7,9 +7,8 @@ import "log_RecordCode.jnc"
 
 //..............................................................................
 
-enum $(logRecordCodeEnum): uint64_t
-{
-	InBandCommand = 0x$(getLogRecordCode(0)),
+enum $(logRecordCodeEnum): uint64_t {
+	Packet = 0x$(getLogRecordCode(0)),
 }
 
 //..............................................................................

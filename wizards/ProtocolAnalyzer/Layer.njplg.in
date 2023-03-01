@@ -17,3 +17,5 @@ layer-class = $(layerClass)
 [scripts]
 
 $(layerFile)
+$(protocolFile)
+$(parserFile)

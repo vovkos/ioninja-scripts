@@ -1,0 +1,81 @@
+//..............................................................................
+//
+// $(pluginName) stream parser
+//
+
+import "std_Buffer.jnc"
+import "log_Writer.jnc"
+
+//..............................................................................
+
+class $(parserClass) {
+protected:
+	std.Buffer m_buffer;
+
+public:
+	void reset() {
+		m_buffer.clear();
+	}
+
+	void parse(
+		log.Writer* writer,
+		uint64_t timestamp,
+		uint64_t recordCode,
+		void const* p,
+		size_t size
+	);
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+void $(parserClass).parse(
+	log.Writer* writer,
+	uint64_t timestamp,
+	uint64_t recordCode,
+	void const* p,
+	size_t size
+) {
+	void const* end = p + size;
+	while (p < end) {
+		void const* p0 = p;
+
+		// 1. ensure the header is fully buffered
+
+		if (m_buffer.m_size < sizeof($(protocol)Hdr)) {
+			size_t leftover = sizeof($(protocol)Hdr) - m_buffer.m_size;
+			if (leftover > end - p) { // not yet
+				m_buffer.append(p, end - p);
+				break;
+			}
+
+			m_buffer.append(p, leftover);
+			p += leftover;
+		}
+
+		// 2. ensure the whole packet is fully buffered
+
+		$(protocol)Hdr const* hdr = ($(protocol)Hdr*)m_buffer.m_p;
+		size_t leftover = m_buffer.m_size < hdr.m_size ? hdr.m_size - m_buffer.m_size : 0;
+		if (leftover > end - p) { // not yet
+			m_buffer.append(p, end - p);
+			break;
+		}
+
+		m_buffer.append(p, leftover);
+		p += leftover;
+
+		// 3. write the original data and then the packet
+
+		writer.write(timestamp, recordCode, p0, p - p0);
+		writer.write(timestamp, $(logRecordCodeEnum).Packet, m_buffer.m_p, m_buffer.m_size);
+
+		// 4. reset the buffer and move on to the next packet
+
+		m_buffer.clear();
+	}
+
+	if (end - p) // write the rest of original data
+		writer.write(timestamp, recordCode, p, end - p);
+}
+
+//..............................................................................

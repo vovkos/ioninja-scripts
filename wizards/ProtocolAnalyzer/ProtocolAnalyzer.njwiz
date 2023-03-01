@@ -23,30 +23,37 @@ name        = "Layer ID"
 value       = my-proto-analyzer
 
 [variable]
-id          = pluginPrefix
-name        = "Layer Prefix"
+id          = protocol
+name        = "Protocol Prefix"
 value       = MyProto
 
 [variable]
 id          = layerClass
 name        = "Layer Class"
 readOnly    = true
-value       = $(pluginPrefix)Layer
-rebuildOn   = pluginPrefix
+value       = $(protocol)Layer
+rebuildOn   = protocol
+
+[variable]
+id          = parserClass
+name        = "Parser Class"
+readOnly    = true
+value       = $(protocol)Parser
+rebuildOn   = protocol
 
 [variable]
 id          = logRecordCodeEnum
 name        = "Log Record Enum"
 readOnly    = true
-value       = $(pluginPrefix)LogRecordCode
-rebuildOn   = pluginPrefix
+value       = $(protocol)LogRecordCode
+rebuildOn   = protocol
 
 [variable]
 id          = logRepresenterFunc
 name        = "Log Representer Function"
 readOnly    = true
-value       = represent$(pluginPrefix)Log
-rebuildOn   = pluginPrefix
+value       = represent$(protocol)Log
+rebuildOn   = protocol
 
 [variable]
 id          = layerFile
@@ -56,18 +63,32 @@ value       = $(layerClass).jnc
 rebuildOn   = layerClass
 
 [variable]
+id          = protocolFile
+name        = "Protocol File"
+readOnly    = true
+value       = $(protocol).jnc
+rebuildOn   = protocol
+
+[variable]
+id          = parserFile
+name        = "Parser File"
+readOnly    = true
+value       = $(parserClass).jnc
+rebuildOn   = parserClass
+
+[variable]
 id          = logRecordCodeFile
 name        = "Log Record Code File"
 readOnly    = true
-value       = $(pluginPrefix)LogRecordCode.jnc
-rebuildOn   = pluginPrefix
+value       = $(protocol)LogRecordCode.jnc
+rebuildOn   = protocol
 
 [variable]
 id          = logRepresenterFile
 name        = "Log Representer File"
 readOnly    = true
-value       = $(pluginPrefix)LogRepresenter.jnc
-rebuildOn   = pluginPrefix
+value       = $(protocol)LogRepresenter.jnc
+rebuildOn   = protocol
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
@@ -79,6 +100,16 @@ interpolate = true
 [file]
 source = Layer.jnc.in
 target = $(layerFile)
+interpolate = true
+
+[file]
+source = Protocol.jnc.in
+target = $(protocolFile)
+interpolate = true
+
+[file]
+source = Parser.jnc.in
+target = $(parserFile)
 interpolate = true
 
 [file]
