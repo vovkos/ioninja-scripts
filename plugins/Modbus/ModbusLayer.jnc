@@ -145,7 +145,7 @@ void ModbusLayer.createUi() {
 	ui.GroupBox groupBox("Modbus analyzer", layout);
 
 	m_protocolCombo = new ui.ComboBox(protocolTable, countof(protocolTable));
-	bindingof(m_protocolCombo.m_currentIndex) += onParametersChanged;
+	bindingof(m_protocolCombo.m_currentIndex) += onProtocolChanged;
 	layout.addRow("Protocol:", m_protocolCombo);
 
 	m_streamRolesCombo = new ui.ComboBox(streamRolesTable, countof(streamRolesTable));
