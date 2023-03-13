@@ -99,6 +99,7 @@ void ModbusAsciiParser.parse(
 				recordCode = getPacketRecordCode();
 			}
 
+			m_state = State.Idle;
 			break;
 		}
 	}
@@ -115,7 +116,6 @@ void ModbusAsciiParser.parse(
 }
 
 void ModbusAsciiParser.reset() {
-	m_dataBuffer.clear();
 	m_state = State.Idle;
 
 	if (m_mode == ModbusParserMode.Alternate)
