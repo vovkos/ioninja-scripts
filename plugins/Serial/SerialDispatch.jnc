@@ -96,7 +96,7 @@ class SerialDispatch: ias.Session {
 		}
 	}
 
-	property m_break {
+	property m_breakCondition {
 		bool get() {
 			return dispatchGet(SerialDispatchCode.GetBreakCondition);
 		}
