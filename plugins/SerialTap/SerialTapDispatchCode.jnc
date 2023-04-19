@@ -1,0 +1,24 @@
+//..............................................................................
+//
+// Serial Tap session dispatch codes for IAS
+//
+
+//..............................................................................
+
+enum SerialTapDispatchCode {
+	GetBaudRate,
+	SetBaudRate,
+	GetDataBits,
+	SetDataBits,
+	GetParity,
+	SetParity,
+	GetStopBits,
+	SetStopBits,
+	GetStatusLines,
+	GetDtr,
+	GetRts,
+	Capture,
+	StopCapture,
+}
+
+//..............................................................................
