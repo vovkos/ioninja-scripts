@@ -1,0 +1,161 @@
+//..............................................................................
+//
+// HID log representer
+//
+
+import "log_Representation.jnc"
+import "io_hid.jncx"
+import "io_HidRd.jnc"
+import "HidLogRecordCode.jnc"
+import "std_String.jnc"
+
+//..............................................................................
+
+bool representFileLog(
+	log.Representation* representation,
+	uint64_t recordCode,
+	void const* p,
+	size_t size,
+	uint_t foldFlags
+) {
+	switch (recordCode) {
+	case HidLogRecordCode.Open:
+		char const* path = (char const*)p;
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Connect;
+		representation.addHyperText($"Opened HID device \e[34m$path\e[m");
+		break;
+
+	case HidLogRecordCode.OpenError:
+		std.Error const* error = (std.Error const*)p;
+		char const* path = (char const*)p + error.m_size;
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Error;
+		representation.addHyperText($"Cannot open HID device \e[34m$path\e[m: $(error.m_description)");
+		break;
+
+	case HidLogRecordCode.Close:
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
+		representation.addHyperText($"HID device closed");
+		break;
+
+	case HidLogRecordCode.ReportDescriptor:
+		io.HidRd rd;
+		std.StringBuilder indent;
+		rd.parse(g_hidDb, p, size);
+
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		representation.m_lineAttr.m_backColor = ui.StdColor.PastelGray;
+
+		for (size_t i = 0; i < rd.m_rootCollection.m_collectionCount; i++)
+			representCollection(representation, indent, rd.m_rootCollection.m_collectionArray[i]);
+
+		representFieldArray(representation, indent, rd.m_rootCollection);
+		break;
+
+	default:
+		return false;
+	}
+
+	return true;
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+void representCollection(
+	log.Representation* representation,
+	std.StringBuilder* indent,
+	io.HidRdCollection const* collection
+) {
+	representation.addHyperText(
+		$"%1Collection:\t\e[34m%2\n"
+		$"%1    UsagePage:\t\e[34m%3\n"
+		$"%1    Usage:\t\e[34m%4"(
+			indent.m_p,
+			typeof(io.HidRdCollectionKind).getValueString(collection.m_collectionKind),
+			collection.m_usagePage.m_name,
+			collection.m_usagePage.getUsageName(collection.m_usage)
+		)
+	);
+
+	indent.append(' ', 4);
+
+	representFieldArray(representation, indent, collection);
+	for (size_t i = 0; i < collection.m_collectionCount; i++)
+		representCollection(representation, indent, collection.m_collectionArray[i]);
+
+	indent.chop(4);
+}
+
+void representFieldArray(
+	log.Representation* representation,
+	std.StringBuilder* indent,
+	io.HidRdCollection const* collection
+) {
+	size_t count = collection.m_fieldCount;
+	for (size_t i = 0; i < count; i++) {
+		io.HidReportField const* field = collection.m_fieldArray[i];
+		if (field.m_isPadding) {
+			representation.addHyperText($"%sField:\t\e[34mPadding %d-bit"(indent.m_p, field.m_bitCount));
+			continue;
+		}
+
+		char const* kind = typeof(io.HidReportKind).getValueString(field.m_report.m_reportKind);
+		representation.addHyperText($"%sField:\t\e[34m%s %d-bit"(indent.m_p, kind, field.m_bitCount));
+
+		indent.append(' ', 4);
+
+		if (field.m_valueFlags) {
+			char const* text = typeof(io.HidRdValueFlags).getValueString(field.m_valueFlags);
+			representation.addHyperText($"%sFlags:\t\e[34m%s"(indent.m_p, text));
+		}
+
+		representation.addHyperText($"%sUsagePage:\t\e[34m%s"(indent.m_p, field.m_usagePage.m_name));
+
+		if (field.isSet(io.HidRdItemId.Usage)) {
+			for (size_t i = 0; i <= field.m_auxUsageCount; i++) {
+				char const* text = field.m_usagePage.getUsageName(field.m_usageArray[i]);
+				representation.addHyperText($"%sUsage:\t\e[34m%s"(indent.m_p, text));
+			}
+		}
+
+		if (field.isSet(io.HidRdItemId.UsageMinimum)) {
+			char const* text = field.m_usagePage.getUsageName(field[io.HidRdItemId.UsageMinimum]);
+			representation.addHyperText($"%sUsageMinimum:\t\e[34m%s"(indent.m_p, text));
+		}
+
+		if (field.isSet(io.HidRdItemId.UsageMaximum)) {
+			char const* text = field.m_usagePage.getUsageName(field[io.HidRdItemId.UsageMaximum]);
+			representation.addHyperText($"%sUsageMaximum:\t\e[34m%s"(indent.m_p, text));
+		}
+
+		representItem(representation, indent, field, io.HidRdItemId.LogicalMinimum);
+		representItem(representation, indent, field, io.HidRdItemId.LogicalMaximum);
+		representItem(representation, indent, field, io.HidRdItemId.PhysicalMinimum);
+		representItem(representation, indent, field, io.HidRdItemId.PhysicalMaximum);
+		representItem(representation, indent, field, io.HidRdItemId.ReportId);
+		representItem(representation, indent, field, io.HidRdItemId.ReportSize);
+		representItem(representation, indent, field, io.HidRdItemId.ReportCount);
+
+		indent.chop(4);
+	}
+}
+
+void representItem(
+	log.Representation* representation,
+	std.StringBuilder const* indent,
+	io.HidReportField const* field,
+	io.HidRdItemId id
+) {
+	if (field.isSet(id))
+		representation.addHyperText(
+			$"%s%s:\t\e[34m%d"(
+				indent.m_p,
+				typeof(io.HidRdItemId).getValueString(id),
+				field[id]
+			)
+		);
+}
+
+//..............................................................................
