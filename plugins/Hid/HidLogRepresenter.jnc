@@ -11,7 +11,7 @@ import "std_String.jnc"
 
 //..............................................................................
 
-bool representFileLog(
+bool representHidLog(
 	log.Representation* representation,
 	uint64_t recordCode,
 	void const* p,

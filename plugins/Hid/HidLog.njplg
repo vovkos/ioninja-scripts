@@ -12,7 +12,7 @@ guid        = cd2c079d-63ff-4b2f-a385-0a4fe3afaac2
 icon        = images/hid.png
 small-icon  = images/hid-16x16.png
 
-log-representer-func = representFileLog
+log-representer-func = representHidLog
 
 [scripts]
 
