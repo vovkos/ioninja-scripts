@@ -52,6 +52,7 @@ protected:
 
 	State bindable m_state;
 	io.HidDevice m_device;
+	io.HidRd m_rd;
 	std.Buffer m_readBuffer;
 	uint_t m_syncId;
 
@@ -119,6 +120,11 @@ protected:
 	void createUi();
 	void enumerateHidDevices();
 	void waitHidDeviceEvents();
+
+	void processReport(
+		void const* p,
+		size_t size
+	);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -255,11 +261,34 @@ bool errorcode HidSession.open() {
 	m_device.m_options = io.HidDeviceOptions.NonBlocking;
 	m_device.open(deviceName);
 
-	m_logWriter.write(HidLogRecordCode.Open, deviceName);
+	io.HidDeviceDesc* desc = m_device.m_deviceDesc;
 
-	char buffer[4096]; // maximum USB HID report descriptor size
-	size_t size = m_device.getReportDescriptor(buffer, sizeof(buffer));
-	m_logWriter.write(HidLogRecordCode.ReportDescriptor, buffer, size);
+	std.Buffer buffer;
+	buffer.setSize(sizeof(OpenParams));
+	OpenParams* params = (OpenParams*)buffer.m_p;
+	params.m_releaseNumber = desc.m_releaseNumber;
+	params.m_vendorId = desc.m_vendorId;
+	params.m_productId = desc.m_productId;
+	params.m_usagePage = desc.m_usagePage;
+	params.m_usage = desc.m_usage;
+	params.m_interfaceId = desc.m_interfaceId;
+	params.m_busType = desc.m_busType;
+	
+	buffer.append(deviceName);
+	buffer.append(0);
+	buffer.append(desc.m_manufacturer);
+	buffer.append(0);
+	buffer.append(desc.m_product);
+	buffer.append(0);
+	buffer.append(desc.m_serialNumber);
+	buffer.append(0);
+
+	m_logWriter.write(HidLogRecordCode.Open, buffer.m_p, buffer.m_size);
+
+	buffer.setSize(4096); // maximum USB HID report descriptor size
+	size_t size = m_device.getReportDescriptor(buffer.m_p, buffer.m_size);
+	m_rd.parse(g_hidDb, buffer.m_p, size);
+	m_logWriter.write(HidLogRecordCode.ReportDescriptor, buffer.m_p, size);
 
 	m_state = State.Opened;
 	m_sessionConnectionState = SessionConnectionState.Connected;
@@ -344,6 +373,21 @@ size_t errorcode HidSession.transmit(
 	return result;
 }
 
+void HidSession.processReport(
+	void const* p,
+	size_t size
+) {
+	uint_t reportId = 0;
+	
+	if (m_rd.m_flags & io.HidRdFlags.HasReportId) {
+		p++;
+		size--;
+	}
+	
+	io.HidReport const* report = m_rd.findReport(io.HidReportKind.Input, reportId);
+	m_logWriter.write();
+}
+
 void HidSession.onHidDeviceEvent(
 	uint_t syncId,
 	io.HidDeviceEvents triggeredEvents
@@ -364,7 +408,7 @@ void HidSession.onHidDeviceEvent(
 	if (triggeredEvents & io.HidDeviceEvents.IncomingData) {
 		size_t result = m_device.read(m_readBuffer.m_p, m_readBuffer.m_size);
 		if (result)
-			m_logWriter.write(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
+			processReport(m_readBuffer.m_p, result);
 	}
 
 	waitHidDeviceEvents();

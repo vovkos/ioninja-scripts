@@ -22,11 +22,12 @@ HidDb.jnc
 
 [records]
 
-01d9d57271fc2800  # Open
+81d9d57271fc2800  # Open
 01d9d57271fc2801  # OpenError
 01d9d57271fc2802  # Close
-01d9d57271fc2803  # ReportDescriptor
+81d9d57271fc2803  # ReportDescriptor
 01d9d57271fc2804  # InputReport
 01d9d57271fc2805  # OutputReport
 01d9d57271fc2806  # GetFeatureReport
 01d9d57271fc2807  # SendFeatureReport
+01d9d57271fc2808  # UnknownReport

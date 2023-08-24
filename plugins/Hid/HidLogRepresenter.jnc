@@ -6,6 +6,7 @@
 import "log_Representation.jnc"
 import "io_hid.jncx"
 import "io_HidRd.jnc"
+import "io_HidEnumerator.jnc"
 import "HidLogRecordCode.jnc"
 import "std_String.jnc"
 
@@ -20,10 +21,54 @@ bool representHidLog(
 ) {
 	switch (recordCode) {
 	case HidLogRecordCode.Open:
-		char const* path = (char const*)p;
+		OpenParams const* params = (OpenParams const*)p;
+		char const* path = (char const*)(params + 1);
+		char const* manufacturer = path + strlen(path) + 1;
+		char const* product = manufacturer + strlen(manufacturer) + 1;
+		char const* serialNumber = product + strlen(product) + 1;
+
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Connect;
-		representation.addHyperText($"Opened HID device \e[34m$path\e[m");
+
+		if (!(foldFlags & 1)) {
+			representation.addHyperText(
+				$"[\e^+1\e[34m+\e[m] Opened HID device: \e[34m%1\e[m by \e[34m%2\e[m: \e[34m%3"(
+					product,
+					manufacturer,
+					path
+				)
+			);
+			break;
+		}
+
+		io.HidUsagePage const* page = g_hidDb.getUsagePage(params.m_usagePage);
+
+		representation.addHyperText(
+			$"[\e^-1\e[34m-\e[m] Opened HID device:\n"
+			$"    \e[90mPath:\t\e[34m%1\n"
+			$"    \e[90mDescription:\t\e[34m%2\n"
+			$"    \e[90mManufacturer:\t\e[34m%3\n"
+			$"    \e[90mVendor ID:\t\e[34m%(4; 04X)\n"
+			$"    \e[90mProduct ID:\t\e[34m%(5; 04X)\n"
+			$"    \e[90mUsage page:\t\e[34m%6\n"
+			$"    \e[90mUsage:\t\e[34m%7\n"
+			$"    \e[90mBus:\t\e[34m%8\n"
+			$"    \e[90mInterface:\t\e[34m%9"(
+				path,
+				product,
+				manufacturer,
+				params.m_vendorId,
+				params.m_productId,
+				page.m_name,
+				page.getUsageName(params.m_usage),
+				typeof(io.HidBusType).getValueString(params.m_busType),
+				params.m_interfaceId
+			)
+		);
+
+		if (*serialNumber)
+			representation.addHyperText($"    Serial number\t\e[34m%1"(serialNumber));
+
 		break;
 
 	case HidLogRecordCode.OpenError:
@@ -41,12 +86,20 @@ bool representHidLog(
 		break;
 
 	case HidLogRecordCode.ReportDescriptor:
-		io.HidRd rd;
-		std.StringBuilder indent;
-		rd.parse(g_hidDb, p, size);
-
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		representation.m_lineAttr.m_backColor = ui.StdColor.PastelGray;
+		if (!(foldFlags & 1)) {
+			representation.addHyperText($"[\e^+1\e[34m+\e[m] HID report descriptor");
+			break;
+		}
+
+		representation.addHyperText($"[\e^-1\e[34m-\e[m] HID report descriptor:");
+
+		io.HidRd rd;
+		rd.parse(g_hidDb, p, size);
+
+		std.StringBuilder indent;
+		indent.copy(' ',  4);
 
 		for (size_t i = 0; i < rd.m_rootCollection.m_collectionCount; i++)
 			representCollection(representation, indent, rd.m_rootCollection.m_collectionArray[i]);
@@ -69,9 +122,9 @@ void representCollection(
 	io.HidRdCollection const* collection
 ) {
 	representation.addHyperText(
-		$"%1Collection:\t\e[34m%2\n"
-		$"%1    UsagePage:\t\e[34m%3\n"
-		$"%1    Usage:\t\e[34m%4"(
+		$"%1\e[90mCollection:\t\e[34m%2\n"
+		$"%1    \e[90mUsagePage:\t\e[34m%3\n"
+		$"%1    \e[90mUsage:\t\e[34m%4"(
 			indent.m_p,
 			typeof(io.HidRdCollectionKind).getValueString(collection.m_collectionKind),
 			collection.m_usagePage.m_name,
@@ -97,37 +150,37 @@ void representFieldArray(
 	for (size_t i = 0; i < count; i++) {
 		io.HidReportField const* field = collection.m_fieldArray[i];
 		if (field.m_isPadding) {
-			representation.addHyperText($"%sField:\t\e[34mPadding %d-bit"(indent.m_p, field.m_bitCount));
+			representation.addHyperText($"%s\e[90mField:\t\e[34mPadding %d-bit"(indent.m_p, field.m_bitCount));
 			continue;
 		}
 
 		char const* kind = typeof(io.HidReportKind).getValueString(field.m_report.m_reportKind);
-		representation.addHyperText($"%sField:\t\e[34m%s %d-bit"(indent.m_p, kind, field.m_bitCount));
+		representation.addHyperText($"%s\e[90mField:\t\e[34m%s %d-bit"(indent.m_p, kind, field.m_bitCount));
 
 		indent.append(' ', 4);
 
 		if (field.m_valueFlags) {
 			char const* text = typeof(io.HidRdValueFlags).getValueString(field.m_valueFlags);
-			representation.addHyperText($"%sFlags:\t\e[34m%s"(indent.m_p, text));
+			representation.addHyperText($"%s\e[90mFlags:\t\e[34m%s"(indent.m_p, text));
 		}
 
-		representation.addHyperText($"%sUsagePage:\t\e[34m%s"(indent.m_p, field.m_usagePage.m_name));
+		representation.addHyperText($"%s\e[90mUsagePage:\t\e[34m%s"(indent.m_p, field.m_usagePage.m_name));
 
 		if (field.isSet(io.HidRdItemId.Usage)) {
 			for (size_t i = 0; i <= field.m_auxUsageCount; i++) {
 				char const* text = field.m_usagePage.getUsageName(field.m_usageArray[i]);
-				representation.addHyperText($"%sUsage:\t\e[34m%s"(indent.m_p, text));
+				representation.addHyperText($"%s\e[90mUsage:\t\e[34m%s"(indent.m_p, text));
 			}
 		}
 
 		if (field.isSet(io.HidRdItemId.UsageMinimum)) {
 			char const* text = field.m_usagePage.getUsageName(field[io.HidRdItemId.UsageMinimum]);
-			representation.addHyperText($"%sUsageMinimum:\t\e[34m%s"(indent.m_p, text));
+			representation.addHyperText($"%s\e[90mUsageMinimum:\t\e[34m%s"(indent.m_p, text));
 		}
 
 		if (field.isSet(io.HidRdItemId.UsageMaximum)) {
 			char const* text = field.m_usagePage.getUsageName(field[io.HidRdItemId.UsageMaximum]);
-			representation.addHyperText($"%sUsageMaximum:\t\e[34m%s"(indent.m_p, text));
+			representation.addHyperText($"%s\e[90mUsageMaximum:\t\e[34m%s"(indent.m_p, text));
 		}
 
 		representItem(representation, indent, field, io.HidRdItemId.LogicalMinimum);
@@ -150,7 +203,7 @@ void representItem(
 ) {
 	if (field.isSet(id))
 		representation.addHyperText(
-			$"%s%s:\t\e[34m%d"(
+			$"%s\e[90m%s:\t\e[34m%d"(
 				indent.m_p,
 				typeof(io.HidRdItemId).getValueString(id),
 				field[id]
