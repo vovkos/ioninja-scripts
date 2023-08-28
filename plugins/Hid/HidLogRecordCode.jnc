@@ -16,7 +16,6 @@ enum HidLogRecordCode: uint64_t {
 	OutputReport      = 0x01d9d57271fc2805,
 	GetFeatureReport  = 0x01d9d57271fc2806,
 	SendFeatureReport = 0x01d9d57271fc2807,
-	UnknownReport     = 0x01d9d57271fc2808,
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -33,12 +32,9 @@ struct OpenParams {
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-struct Report {
-	uint8_t m_reportKind; // io.HidReportKind
-	uint8_t m_reportId;
-	uint16_t m_reportDescSize;
-	// followed by report mini-desc (m_reportDescSize)
-	// followed by report bytes
+struct UnknownReportParams {
+	uint16_t m_decodeInfoSize; // zero to indicate unknown report
+	uint16_t m_reportId;
 }
 
 //..............................................................................

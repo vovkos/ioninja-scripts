@@ -13,6 +13,7 @@ import "ui_StdSessionInfoSet.jnc"
 import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
 import "std_Buffer.jnc"
+import "std_HashTable.jnc"
 
 //..............................................................................
 
@@ -32,6 +33,7 @@ protected:
 	enum ActionId {
 		Refresh,
 		Open,
+		GetRd,
 		_Count,
 	}
 
@@ -39,6 +41,7 @@ protected:
 		Refresh,
 		Open,
 		Close,
+		Info,
 		_Count,
 	}
 
@@ -54,6 +57,7 @@ protected:
 	io.HidDevice m_device;
 	io.HidRd m_rd;
 	std.Buffer m_readBuffer;
+	std.HashTable m_reportDecodeInfoMap;
 	uint_t m_syncId;
 
 	// toolbar, status bar & menu
@@ -112,6 +116,8 @@ protected:
 		try open();
 	}
 
+	void onGetRd();
+
 	void onHidDeviceEvent(
 		uint_t syncId,
 		io.HidDeviceEvents triggeredEvents
@@ -121,7 +127,8 @@ protected:
 	void enumerateHidDevices();
 	void waitHidDeviceEvents();
 
-	void processReport(
+	void writeLogReport(
+		io.HidReportKind reportKind,
 		void const* p,
 		size_t size
 	);
@@ -150,11 +157,14 @@ void HidSession.createUi() {
 	m_iconTable[IconId.Refresh] = new ui.Icon("images/refresh.png");
 	m_iconTable[IconId.Open] = new ui.Icon("images/open.png");
 	m_iconTable[IconId.Close] = new ui.Icon("images/close.png");
+	m_iconTable[IconId.Info] = new ui.Icon("images/info.png");
 
 	m_actionTable[ActionId.Refresh] = createAction("Re-enumerate ports", m_iconTable[IconId.Refresh]);
 	m_actionTable[ActionId.Refresh].m_onTriggered += enumerateHidDevices;
 	m_actionTable[ActionId.Open] = createAction("Open", m_iconTable[IconId.Open]);
 	m_actionTable[ActionId.Open].m_onTriggered += onOpen;
+	m_actionTable[ActionId.GetRd] = createAction("Get HID resource descriptor", m_iconTable[IconId.Info]);
+	m_actionTable[ActionId.GetRd].m_onTriggered += onGetRd;
 
 	// status bar
 
@@ -285,11 +295,6 @@ bool errorcode HidSession.open() {
 
 	m_logWriter.write(HidLogRecordCode.Open, buffer.m_p, buffer.m_size);
 
-	buffer.setSize(4096); // maximum USB HID report descriptor size
-	size_t size = m_device.getReportDescriptor(buffer.m_p, buffer.m_size);
-	m_rd.parse(g_hidDb, buffer.m_p, size);
-	m_logWriter.write(HidLogRecordCode.ReportDescriptor, buffer.m_p, size);
-
 	m_state = State.Opened;
 	m_sessionConnectionState = SessionConnectionState.Connected;
 	m_isTransmitEnabled = true;
@@ -373,7 +378,8 @@ size_t errorcode HidSession.transmit(
 	return result;
 }
 
-void HidSession.processReport(
+void HidSession.writeLogReport(
+	io.HidReportKind reportKind,
 	void const* p,
 	size_t size
 ) {
@@ -383,9 +389,47 @@ void HidSession.processReport(
 		p++;
 		size--;
 	}
+
+	io.HidReport const* report = m_rd.findReport(reportKind, reportId);
+	if (!report) {
+		UnknownReportParams params;
+		params.m_decodeInfoSize = 0;
+		params.m_reportId = reportId;
+		
+		m_logWriter.write(
+			reportKind,
+			&params,
+			sizeof(params),
+			p,
+			size
+		);
+	} else {
+		std.MapEntry* it = m_reportDecodeInfoMap.visit(report);
+		std.Buffer* decodeInfo = it.m_value;
+		if (!decodeInfo) {
+			decodeInfo = new std.Buffer;
+			report.saveDecodeInfo(decodeInfo);
+			it.m_value = decodeInfo;
+		}
+
+		m_logWriter.write(
+			HidLogRecordCode.InputReport,
+			decodeInfo.m_p,
+			decodeInfo.m_size,
+			p,
+			size
+		);
+	}
+}
+
+void HidSession.onGetRd() {
+	char buffer[4096]; // maximum USB HID report descriptor size
+	size_t size = m_device.getReportDescriptor(buffer, sizeof(buffer));
+	m_rd.parse(g_hidDb, buffer, size);
+	m_logWriter.write(HidLogRecordCode.ReportDescriptor, buffer, size);
 	
-	io.HidReport const* report = m_rd.findReport(io.HidReportKind.Input, reportId);
-	m_logWriter.write();
+catch:
+	m_logWriter.writeLastError(log.StdRecordCode.Error);
 }
 
 void HidSession.onHidDeviceEvent(
@@ -408,7 +452,7 @@ void HidSession.onHidDeviceEvent(
 	if (triggeredEvents & io.HidDeviceEvents.IncomingData) {
 		size_t result = m_device.read(m_readBuffer.m_p, m_readBuffer.m_size);
 		if (result)
-			processReport(m_readBuffer.m_p, result);
+			writeLogReport(io.HidReportKind.Input, m_readBuffer.m_p, result);
 	}
 
 	waitHidDeviceEvents();
@@ -418,6 +462,7 @@ reactor HidSession.m_uiReactor {
 	m_title = $"HID $(m_deviceCombo.m_editText)";
 	m_actionTable[ActionId.Open].m_text = m_state ? "Close" : "Open";
 	m_actionTable[ActionId.Open].m_icon = m_iconTable[m_state ? IconId.Close : IconId.Open];
+	m_actionTable[ActionId.GetRd].m_isEnabled = m_state;
 	m_statusPaneTable[StatusPaneId.State].m_text = m_state ? "Opened" : "Closed";
 }
 

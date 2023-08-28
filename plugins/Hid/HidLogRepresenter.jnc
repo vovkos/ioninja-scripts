@@ -105,7 +105,61 @@ bool representHidLog(
 			representCollection(representation, indent, rd.m_rootCollection.m_collectionArray[i]);
 
 		representFieldArray(representation, indent, rd.m_rootCollection);
+		
+		if (!(foldFlags & 2)) {
+			representation.addHyperText($"[\e^+2\e[34m+\e[m] Raw data");
+			break;
+		}
+
+		representation.addHyperText($"[\e^-2\e[34m-\e[m] Raw data:");
+		representation.m_lineAttr.m_backColor = ui.ColorFlags.Undefined;
+		representation.addBin(p, size);
 		break;
+
+	case HidLogRecordCode.InputReport:
+		representReport(
+			representation,
+			log.StdLogIcon.RxPacket,
+			log.StdLogColor.Rx,
+			"INPUT",
+			p,
+			size
+		);
+		break;
+
+	case HidLogRecordCode.OutputReport:
+		representReport(
+			representation,
+			log.StdLogIcon.TxPacket,
+			log.StdLogColor.Tx,
+			"OUTPUT",
+			p,
+			size
+		);
+		break;
+
+	case HidLogRecordCode.GetFeatureReport:
+		representReport(
+			representation,
+			log.StdLogIcon.RxPacket,
+			log.StdLogColor.Rx,
+			"GET FEATURE",
+			p,
+			size
+		);
+		break;
+
+	case HidLogRecordCode.SendFeatureReport:
+		representReport(
+			representation,
+			log.StdLogIcon.TxPacket,
+			log.StdLogColor.Tx,
+			"SET FEATURE",
+			p,
+			size
+		);
+		break;
+		
 
 	default:
 		return false;
@@ -150,12 +204,12 @@ void representFieldArray(
 	for (size_t i = 0; i < count; i++) {
 		io.HidReportField const* field = collection.m_fieldArray[i];
 		if (field.m_isPadding) {
-			representation.addHyperText($"%s\e[90mField:\t\e[34mPadding %d-bit"(indent.m_p, field.m_bitCount));
+			representation.addHyperText($"%s\e[90mField:\t\e[34m%d-bit Padding"(indent.m_p, field.m_bitCount));
 			continue;
 		}
 
 		char const* kind = typeof(io.HidReportKind).getValueString(field.m_report.m_reportKind);
-		representation.addHyperText($"%s\e[90mField:\t\e[34m%s %d-bit"(indent.m_p, kind, field.m_bitCount));
+		representation.addHyperText($"%s\e[90mField:\t\e[34m%d-bit %s"(indent.m_p, field.m_bitCount, kind));
 
 		indent.append(' ', 4);
 
@@ -209,6 +263,116 @@ void representItem(
 				field[id]
 			)
 		);
+}
+
+int extractValue(
+	void const* p,
+	size_t size,
+	size_t bitOffset,
+	size_t bitCount
+) {
+	size_t i = bitOffset / 8;
+	size_t j = (bitOffset + bitCount - 1) / 8;
+	size_t l = j - i;
+	int shift = bitOffset & 7;
+	int mask = (1 << bitCount) - 1;
+
+	p += i;
+
+	int value = 
+		l == 0 ? *(uint8_t const*)p >> shift :
+		l == 1 ? *(uint16_t const*)p >> shift :
+		l <= 3 ? *(uint32_t const*)p >> shift :
+		*(uint64_t const*)p >> shift;
+
+	return bitCount > 1 && (value & (1 << (bitCount - 1))) ? // negative
+		(value & mask) | ((int)-1 & ~mask) :
+		value & mask;
+}
+
+void representReport(
+	log.Representation* representation,
+	uint_t iconIdx,
+	uint_t binTextColor,
+	char const* text,
+	void const* p,
+	size_t size
+) {
+	io.HidStandaloneReport* report;
+	uint_t reportId;
+	char const* suffix;
+	
+	if (!(uint16_t const*)p) {
+		UnknownReportParams const* params = (UnknownReportParams const*)p;
+		reportId = params.m_reportId;
+		suffix = " \e[31mUNKNOWN";
+		p = params + 1;
+		size -= sizeof(UnknownReportParams);
+	} else {	
+		report = new io.HidStandaloneReport;
+		size_t decodeInfoSize = report.loadDecodeInfo(g_hidDb, p, size);
+		reportId = report.m_reportId;
+		suffix = "";
+		p += decodeInfoSize;
+		size -= decodeInfoSize;
+	}
+	
+	representation.m_lineAttr.m_iconIdx = iconIdx;
+	representation.m_lineAttr.m_backColor = ui.StdColor.PastelGray;
+	representation.addHyperText(
+		reportId ? 
+			$"\e[1m%1\e[m \e[34m#%2%3"(text, reportId, suffix) :
+			$"\e[1m%1\e[m%2"(text, suffix)
+	);
+	
+	if (report)
+	 	representReportFields(representation, report, p, size);
+	
+	representation.m_lineAttr.m_backColor = ui.ColorFlags.Undefined;
+	representation.m_lineAttr.m_textColor = binTextColor;
+	representation.addBin(p, size);
+}
+
+void representReportFields(
+	log.Representation* representation,
+	io.HidStandaloneReport* report,
+	void const* p,
+	size_t size
+) {
+	size_t bitOffset = 0;
+
+	for (size_t i = 0; i < report.m_fieldCount; i++) {
+		io.HidReportField const* field = report.m_fieldArray[i];
+		if (field.m_isPadding) {
+			bitOffset += field.m_bitCount;
+			continue;
+		}
+
+		size_t reportSize = field[io.HidRdItemId.ReportSize];
+		size_t reportCount = field[io.HidRdItemId.ReportCount];
+
+		for (size_t i = 0; i < reportCount; i++, bitOffset += reportSize) {
+			int value = extractValue(p, size, bitOffset, reportSize);
+			if (value)
+				if (field.m_valueFlags & io.HidRdValueFlags.Variable) {
+					uint_t usage = field.m_usageArray[i];
+					representation.addHyperText(
+						$"%s:\t\e[34m%d"(
+							field.m_usagePage.getUsageName(usage), 
+							value
+						));
+				} else {
+					uint_t usage = field[io.HidRdItemId.UsageMinimum] + value;
+					representation.addHyperText(
+						$"[%d]:\t\e[34m%s"(
+							i, 
+							field.m_usagePage.getUsageName(usage)
+						));
+				}
+		}
+		
+		representation.addBreak();
+	}
 }
 
 //..............................................................................
