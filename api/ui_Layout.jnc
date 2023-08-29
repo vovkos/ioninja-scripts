@@ -23,6 +23,8 @@ opaque class Layout {
 	int autoget property m_spacing;
 
 	destruct();
+
+	void clear();
 }
 
 //..............................................................................

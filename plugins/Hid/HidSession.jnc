@@ -10,6 +10,10 @@ import "io_HidEnumerator.jnc"
 import "ui_History.jnc"
 import "ui_BufferPropertySet.jnc"
 import "ui_StdSessionInfoSet.jnc"
+import "ui_GroupBox.jnc"
+import "ui_Button.jnc"
+import "ui_DictionaryWidget.jnc"
+import "ui_LineEdit.jnc"
 import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
 import "std_Buffer.jnc"
@@ -33,7 +37,7 @@ protected:
 	enum ActionId {
 		Refresh,
 		Open,
-		GetRd,
+		Info,
 		_Count,
 	}
 
@@ -42,6 +46,7 @@ protected:
 		Open,
 		Close,
 		Info,
+		Send,
 		_Count,
 	}
 
@@ -56,6 +61,8 @@ protected:
 	State bindable m_state;
 	io.HidDevice m_device;
 	io.HidRd m_rd;
+	std.Buffer m_deviceInfoBuffer;
+	std.Buffer m_rdBuffer;
 	std.Buffer m_readBuffer;
 	std.HashTable m_reportDecodeInfoMap;
 	uint_t m_syncId;
@@ -66,6 +73,7 @@ protected:
 	ui.Icon* m_iconTable[IconId._Count];
 	ui.StatusPane* m_statusPaneTable[StatusPaneId._Count];
 	ui.ComboBox* m_deviceCombo;
+	ui.VBoxLayout m_formLayout;	
 
 	// property grid
 
@@ -116,14 +124,20 @@ protected:
 		try open();
 	}
 
-	void onGetRd();
+	void onInfo() {
+		m_logWriter.write(HidLogRecordCode.DeviceInfo, m_deviceInfoBuffer.m_p, m_deviceInfoBuffer.m_size);
+		m_logWriter.write(HidLogRecordCode.ReportDescriptor, m_rdBuffer.m_p, m_rdBuffer.m_size);
+	}
 
 	void onHidDeviceEvent(
 		uint_t syncId,
 		io.HidDeviceEvents triggeredEvents
 	);
 
+	void onSendReport(io.HidReport const* report);
+
 	void createUi();
+	void createReportUi(io.HidReport const* report);
 	void enumerateHidDevices();
 	void waitHidDeviceEvents();
 
@@ -158,13 +172,16 @@ void HidSession.createUi() {
 	m_iconTable[IconId.Open] = new ui.Icon("images/open.png");
 	m_iconTable[IconId.Close] = new ui.Icon("images/close.png");
 	m_iconTable[IconId.Info] = new ui.Icon("images/info.png");
+	m_iconTable[IconId.Send] = new ui.Icon("images/send.png");
 
 	m_actionTable[ActionId.Refresh] = createAction("Re-enumerate ports", m_iconTable[IconId.Refresh]);
 	m_actionTable[ActionId.Refresh].m_onTriggered += enumerateHidDevices;
 	m_actionTable[ActionId.Open] = createAction("Open", m_iconTable[IconId.Open]);
 	m_actionTable[ActionId.Open].m_onTriggered += onOpen;
-	m_actionTable[ActionId.GetRd] = createAction("Get HID resource descriptor", m_iconTable[IconId.Info]);
-	m_actionTable[ActionId.GetRd].m_onTriggered += onGetRd;
+	m_actionTable[ActionId.Info] = createAction("HID device info", m_iconTable[IconId.Info]);
+	m_actionTable[ActionId.Info].m_onTriggered += onInfo;
+
+	m_pluginHost.createForm(m_formLayout);
 
 	// status bar
 
@@ -199,6 +216,57 @@ void HidSession.createUi() {
 
 	enumerateHidDevices();
 	m_uiReactor.start();
+}
+
+void HidSession.createReportUi(io.HidReport const* report) {
+	char const* text = typeof(io.HidReportKind).getValueString(report.m_reportKind);
+	if (report.m_reportId)
+		text = $"%1 #%2"(text, report.m_reportId);
+			
+	ui.FormLayout layout;
+	ui.GroupBox groupBox(text, layout);
+	io.HidUsagePage const* usagePage;
+	for (size_t i = 0; i < report.m_fieldCount; i++) {
+		io.HidReportField const* field = report.m_fieldArray[i];		
+		if (field.m_isPadding)
+			continue;
+
+		if (usagePage != field.m_usagePage) {
+			usagePage = field.m_usagePage;
+			layout.addRow(new ui.Label(usagePage.m_name));
+		}
+
+		size_t reportSize = field[io.HidRdItemId.ReportSize];
+		size_t reportCount = field[io.HidRdItemId.ReportCount];
+
+		if (field.m_valueFlags & io.HidRdValueFlags.Variable) {
+			if (reportSize == 1)
+				for (size_t j = 0; j < reportCount; j++) {
+					uint_t usage = field.m_usageArray[j];
+					ui.CheckBox checkBox(usagePage.getUsageName(usage));
+					layout.addRow(checkBox);
+				}
+			else
+				for (size_t j = 0; j < reportCount; j++) {
+					uint_t usage = field.m_usageArray[j];
+					ui.Label label(usagePage.getUsageName(usage));
+					ui.LineEdit edit;
+					layout.addRow(label, edit);
+				}
+		} else {
+			for (size_t j = 0; j < reportCount; j++)
+				layout.addRow(new ui.Label($"[%d]"(j)));			
+		}
+		
+		ui.Action action(m_iconTable[IconId.Send], "Send", onSendReport~(report));
+		ui.ToolBar controlToolBar;
+		controlToolBar.addStretch();
+		controlToolBar.setIconSize(73, 27); // images/send.png
+		controlToolBar.addAction(action);
+		layout.addRow(controlToolBar);
+	}
+	
+	m_formLayout.addWidget(groupBox);	
 }
 
 void HidSession.enumerateHidDevices() {
@@ -273,9 +341,8 @@ bool errorcode HidSession.open() {
 
 	io.HidDeviceDesc* desc = m_device.m_deviceDesc;
 
-	std.Buffer buffer;
-	buffer.setSize(sizeof(OpenParams));
-	OpenParams* params = (OpenParams*)buffer.m_p;
+	m_deviceInfoBuffer.setSize(sizeof(DeviceInfoParams));
+	DeviceInfoParams* params = (DeviceInfoParams*)m_deviceInfoBuffer.m_p;
 	params.m_releaseNumber = desc.m_releaseNumber;
 	params.m_vendorId = desc.m_vendorId;
 	params.m_productId = desc.m_productId;
@@ -284,16 +351,31 @@ bool errorcode HidSession.open() {
 	params.m_interfaceId = desc.m_interfaceId;
 	params.m_busType = desc.m_busType;
 	
-	buffer.append(deviceName);
-	buffer.append(0);
-	buffer.append(desc.m_manufacturer);
-	buffer.append(0);
-	buffer.append(desc.m_product);
-	buffer.append(0);
-	buffer.append(desc.m_serialNumber);
-	buffer.append(0);
+	m_deviceInfoBuffer.append(desc.m_path);
+	m_deviceInfoBuffer.append(0);
+	m_deviceInfoBuffer.append(desc.m_manufacturer);
+	m_deviceInfoBuffer.append(0);
+	m_deviceInfoBuffer.append(desc.m_product);
+	m_deviceInfoBuffer.append(0);
+	m_deviceInfoBuffer.append(desc.m_serialNumber);
+	m_deviceInfoBuffer.append(0);
+	m_logWriter.write(HidLogRecordCode.Open, m_deviceInfoBuffer.m_p, m_deviceInfoBuffer.m_size);
 
-	m_logWriter.write(HidLogRecordCode.Open, buffer.m_p, buffer.m_size);
+	m_rdBuffer.setSize(4096);
+	size_t size = m_device.getReportDescriptor(m_rdBuffer.m_p, m_rdBuffer.m_size);
+	m_rdBuffer.setSize(size);
+	m_rd.parse(g_hidDb, m_rdBuffer.m_p, size);
+	m_logWriter.write(HidLogRecordCode.ReportDescriptor, m_rdBuffer.m_p, size);
+
+	m_formLayout.clear();
+
+	size_t reportCount = m_rd.m_reportCount[io.HidReportKind.Output];
+	for (size_t i = 0; i < reportCount; i++)
+		createReportUi(m_rd.m_reportArray[io.HidReportKind.Output][i]);
+
+	reportCount = m_rd.m_reportCount[io.HidReportKind.Feature];
+	for (size_t i = 0; i < reportCount; i++)
+		createReportUi(m_rd.m_reportArray[io.HidReportKind.Feature][i]);
 
 	m_state = State.Opened;
 	m_sessionConnectionState = SessionConnectionState.Connected;
@@ -315,6 +397,7 @@ void HidSession.close() {
 
 	m_logWriter.write(HidLogRecordCode.Close);
 	m_device.close();
+	m_rd.clear();	
 	m_state = State.Closed;
 	m_sessionConnectionState = SessionConnectionState.Disconnected;
 	m_isTransmitEnabled = false;
@@ -422,16 +505,6 @@ void HidSession.writeLogReport(
 	}
 }
 
-void HidSession.onGetRd() {
-	char buffer[4096]; // maximum USB HID report descriptor size
-	size_t size = m_device.getReportDescriptor(buffer, sizeof(buffer));
-	m_rd.parse(g_hidDb, buffer, size);
-	m_logWriter.write(HidLogRecordCode.ReportDescriptor, buffer, size);
-	
-catch:
-	m_logWriter.writeLastError(log.StdRecordCode.Error);
-}
-
 void HidSession.onHidDeviceEvent(
 	uint_t syncId,
 	io.HidDeviceEvents triggeredEvents
@@ -458,11 +531,15 @@ void HidSession.onHidDeviceEvent(
 	waitHidDeviceEvents();
 }
 
+void HidSession.onSendReport(io.HidReport const* report) {
+	printf("onSendReport(%p)\n", report);
+}
+
 reactor HidSession.m_uiReactor {
 	m_title = $"HID $(m_deviceCombo.m_editText)";
 	m_actionTable[ActionId.Open].m_text = m_state ? "Close" : "Open";
 	m_actionTable[ActionId.Open].m_icon = m_iconTable[m_state ? IconId.Close : IconId.Open];
-	m_actionTable[ActionId.GetRd].m_isEnabled = m_state;
+	m_actionTable[ActionId.Info].m_isEnabled = m_state;
 	m_statusPaneTable[StatusPaneId.State].m_text = m_state ? "Opened" : "Closed";
 }
 

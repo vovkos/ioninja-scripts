@@ -21,54 +21,25 @@ bool representHidLog(
 ) {
 	switch (recordCode) {
 	case HidLogRecordCode.Open:
-		OpenParams const* params = (OpenParams const*)p;
-		char const* path = (char const*)(params + 1);
-		char const* manufacturer = path + strlen(path) + 1;
-		char const* product = manufacturer + strlen(manufacturer) + 1;
-		char const* serialNumber = product + strlen(product) + 1;
-
-		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
-		representation.m_lineAttr.m_backColor = log.StdLogColor.Connect;
-
-		if (!(foldFlags & 1)) {
-			representation.addHyperText(
-				$"[\e^+1\e[34m+\e[m] Opened HID device: \e[34m%1\e[m by \e[34m%2\e[m: \e[34m%3"(
-					product,
-					manufacturer,
-					path
-				)
-			);
-			break;
-		}
-
-		io.HidUsagePage const* page = g_hidDb.getUsagePage(params.m_usagePage);
-
-		representation.addHyperText(
-			$"[\e^-1\e[34m-\e[m] Opened HID device:\n"
-			$"    \e[90mPath:\t\e[34m%1\n"
-			$"    \e[90mDescription:\t\e[34m%2\n"
-			$"    \e[90mManufacturer:\t\e[34m%3\n"
-			$"    \e[90mVendor ID:\t\e[34m%(4; 04X)\n"
-			$"    \e[90mProduct ID:\t\e[34m%(5; 04X)\n"
-			$"    \e[90mUsage page:\t\e[34m%6\n"
-			$"    \e[90mUsage:\t\e[34m%7\n"
-			$"    \e[90mBus:\t\e[34m%8\n"
-			$"    \e[90mInterface:\t\e[34m%9"(
-				path,
-				product,
-				manufacturer,
-				params.m_vendorId,
-				params.m_productId,
-				page.m_name,
-				page.getUsageName(params.m_usage),
-				typeof(io.HidBusType).getValueString(params.m_busType),
-				params.m_interfaceId
-			)
+		representDeviceInfo(
+			representation, 
+			log.StdLogIcon.Connect, 
+			log.StdLogColor.Connect, 
+			"Opened HID device",
+			(DeviceInfoParams const*)p,
+			foldFlags
 		);
+		break;
 
-		if (*serialNumber)
-			representation.addHyperText($"    Serial number\t\e[34m%1"(serialNumber));
-
+	case HidLogRecordCode.DeviceInfo:
+		representDeviceInfo(
+			representation, 
+			log.StdLogIcon.Info, 
+			ui.StdColor.PastelGray, 
+			"HID device info",
+			(DeviceInfoParams const*)p,
+			foldFlags
+		);
 		break;
 
 	case HidLogRecordCode.OpenError:
@@ -170,6 +141,64 @@ bool representHidLog(
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
+void representDeviceInfo(
+	log.Representation* representation,
+	uint_t iconIdx,
+	uint_t backColor,
+	char const* text,
+	DeviceInfoParams const* params,
+	uint_t foldFlags
+) {
+	char const* path = (char const*)(params + 1);
+	char const* manufacturer = path + strlen(path) + 1;
+	char const* product = manufacturer + strlen(manufacturer) + 1;
+	char const* serialNumber = product + strlen(product) + 1;
+
+	representation.m_lineAttr.m_iconIdx = iconIdx;
+	representation.m_lineAttr.m_backColor = backColor;
+
+	if (!(foldFlags & 1)) {
+		representation.addHyperText(
+			$"[\e^+1\e[34m+\e[m] %1: \e[34m%2\e[m by \e[34m%3\e[m: \e[34m%4"(
+				text,
+				product,
+				manufacturer,
+				path
+			)
+		);
+		return;
+	}
+
+	io.HidUsagePage const* page = g_hidDb.getUsagePage(params.m_usagePage);
+
+	representation.addHyperText(
+		$"[\e^-1\e[34m-\e[m] %1:\n"
+		$"    \e[90mPath:\t\e[34m%2\n"
+		$"    \e[90mDescription:\t\e[34m%3\n"
+		$"    \e[90mManufacturer:\t\e[34m%4\n"
+		$"    \e[90mVendor ID:\t\e[34m%(5; 04X)\n"
+		$"    \e[90mProduct ID:\t\e[34m%(6; 04X)\n"
+		$"    \e[90mUsage page:\t\e[34m%7\n"
+		$"    \e[90mUsage:\t\e[34m%8\n"
+		$"    \e[90mBus:\t\e[34m%9\n"
+		$"    \e[90mInterface:\t\e[34m%10"(
+			text,
+			path,
+			product,
+			manufacturer,
+			params.m_vendorId,
+			params.m_productId,
+			page.m_name,
+			page.getUsageName(params.m_usage),
+			typeof(io.HidBusType).getValueString(params.m_busType),
+			params.m_interfaceId
+		)
+	);
+
+	if (*serialNumber)
+		representation.addHyperText($"    Serial number\t\e[34m%1"(serialNumber));
+}
+
 void representCollection(
 	log.Representation* representation,
 	std.StringBuilder* indent,
@@ -204,12 +233,12 @@ void representFieldArray(
 	for (size_t i = 0; i < count; i++) {
 		io.HidReportField const* field = collection.m_fieldArray[i];
 		if (field.m_isPadding) {
-			representation.addHyperText($"%s\e[90mField:\t\e[34m%d-bit Padding"(indent.m_p, field.m_bitCount));
+			representation.addHyperText($"%s\e[90mPadding:\t\e[34m%d-bit"(indent.m_p, field.m_bitCount));
 			continue;
 		}
 
 		char const* kind = typeof(io.HidReportKind).getValueString(field.m_report.m_reportKind);
-		representation.addHyperText($"%s\e[90mField:\t\e[34m%d-bit %s"(indent.m_p, field.m_bitCount, kind));
+		representation.addHyperText($"%s\e[90m%s:\t\e[34m%d-bit"(indent.m_p, kind, field.m_bitCount));
 
 		indent.append(' ', 4);
 
