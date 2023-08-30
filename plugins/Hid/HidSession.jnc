@@ -1,6 +1,6 @@
 //..............................................................................
 //
-// Generic file session
+// HID session
 //
 
 import "doc_Session.jnc"
@@ -17,7 +17,6 @@ import "ui_LineEdit.jnc"
 import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
 import "std_Buffer.jnc"
-import "std_HashTable.jnc"
 
 //..............................................................................
 
@@ -64,7 +63,7 @@ protected:
 	std.Buffer m_deviceInfoBuffer;
 	std.Buffer m_rdBuffer;
 	std.Buffer m_readBuffer;
-	std.HashTable m_reportDecodeInfoMap;
+	HidReportDecodeInfoDb m_reportDecodeInfoDb;
 	uint_t m_syncId;
 
 	// toolbar, status bar & menu
@@ -73,7 +72,7 @@ protected:
 	ui.Icon* m_iconTable[IconId._Count];
 	ui.StatusPane* m_statusPaneTable[StatusPaneId._Count];
 	ui.ComboBox* m_deviceCombo;
-	ui.VBoxLayout m_formLayout;	
+	HidReportUi m_reportUi;
 
 	// property grid
 
@@ -137,7 +136,6 @@ protected:
 	void onSendReport(io.HidReport const* report);
 
 	void createUi();
-	void createReportUi(io.HidReport const* report);
 	void enumerateHidDevices();
 	void waitHidDeviceEvents();
 
@@ -152,6 +150,7 @@ protected:
 
 HidSession.construct(doc.PluginHost* pluginHost) {
 	basetype.construct(pluginHost);
+	m_reportUi.construct(pluginHost, m_reportDecodeInfoDb, m_device, m_rd);
 
 	createUi();
 
@@ -180,8 +179,6 @@ void HidSession.createUi() {
 	m_actionTable[ActionId.Open].m_onTriggered += onOpen;
 	m_actionTable[ActionId.Info] = createAction("HID device info", m_iconTable[IconId.Info]);
 	m_actionTable[ActionId.Info].m_onTriggered += onInfo;
-
-	m_pluginHost.createForm(m_formLayout);
 
 	// status bar
 
@@ -216,57 +213,6 @@ void HidSession.createUi() {
 
 	enumerateHidDevices();
 	m_uiReactor.start();
-}
-
-void HidSession.createReportUi(io.HidReport const* report) {
-	char const* text = typeof(io.HidReportKind).getValueString(report.m_reportKind);
-	if (report.m_reportId)
-		text = $"%1 #%2"(text, report.m_reportId);
-			
-	ui.FormLayout layout;
-	ui.GroupBox groupBox(text, layout);
-	io.HidUsagePage const* usagePage;
-	for (size_t i = 0; i < report.m_fieldCount; i++) {
-		io.HidReportField const* field = report.m_fieldArray[i];		
-		if (field.m_isPadding)
-			continue;
-
-		if (usagePage != field.m_usagePage) {
-			usagePage = field.m_usagePage;
-			layout.addRow(new ui.Label(usagePage.m_name));
-		}
-
-		size_t reportSize = field[io.HidRdItemId.ReportSize];
-		size_t reportCount = field[io.HidRdItemId.ReportCount];
-
-		if (field.m_valueFlags & io.HidRdValueFlags.Variable) {
-			if (reportSize == 1)
-				for (size_t j = 0; j < reportCount; j++) {
-					uint_t usage = field.m_usageArray[j];
-					ui.CheckBox checkBox(usagePage.getUsageName(usage));
-					layout.addRow(checkBox);
-				}
-			else
-				for (size_t j = 0; j < reportCount; j++) {
-					uint_t usage = field.m_usageArray[j];
-					ui.Label label(usagePage.getUsageName(usage));
-					ui.LineEdit edit;
-					layout.addRow(label, edit);
-				}
-		} else {
-			for (size_t j = 0; j < reportCount; j++)
-				layout.addRow(new ui.Label($"[%d]"(j)));			
-		}
-		
-		ui.Action action(m_iconTable[IconId.Send], "Send", onSendReport~(report));
-		ui.ToolBar controlToolBar;
-		controlToolBar.addStretch();
-		controlToolBar.setIconSize(73, 27); // images/send.png
-		controlToolBar.addAction(action);
-		layout.addRow(controlToolBar);
-	}
-	
-	m_formLayout.addWidget(groupBox);	
 }
 
 void HidSession.enumerateHidDevices() {
@@ -366,17 +312,8 @@ bool errorcode HidSession.open() {
 	m_rdBuffer.setSize(size);
 	m_rd.parse(g_hidDb, m_rdBuffer.m_p, size);
 	m_logWriter.write(HidLogRecordCode.ReportDescriptor, m_rdBuffer.m_p, size);
-
-	m_formLayout.clear();
-
-	size_t reportCount = m_rd.m_reportCount[io.HidReportKind.Output];
-	for (size_t i = 0; i < reportCount; i++)
-		createReportUi(m_rd.m_reportArray[io.HidReportKind.Output][i]);
-
-	reportCount = m_rd.m_reportCount[io.HidReportKind.Feature];
-	for (size_t i = 0; i < reportCount; i++)
-		createReportUi(m_rd.m_reportArray[io.HidReportKind.Feature][i]);
-
+	
+	m_reportUi.createReportForms();
 	m_state = State.Opened;
 	m_sessionConnectionState = SessionConnectionState.Connected;
 	m_isTransmitEnabled = true;
@@ -398,6 +335,7 @@ void HidSession.close() {
 	m_logWriter.write(HidLogRecordCode.Close);
 	m_device.close();
 	m_rd.clear();	
+	m_reportUi.clear();
 	m_state = State.Closed;
 	m_sessionConnectionState = SessionConnectionState.Disconnected;
 	m_isTransmitEnabled = false;
@@ -487,13 +425,7 @@ void HidSession.writeLogReport(
 			size
 		);
 	} else {
-		std.MapEntry* it = m_reportDecodeInfoMap.visit(report);
-		std.Buffer* decodeInfo = it.m_value;
-		if (!decodeInfo) {
-			decodeInfo = new std.Buffer;
-			report.saveDecodeInfo(decodeInfo);
-			it.m_value = decodeInfo;
-		}
+		std.Buffer const* decodeInfo = m_reportDecodeInfoDb.getReportDecodeInfo(report);
 
 		m_logWriter.write(
 			HidLogRecordCode.InputReport,
