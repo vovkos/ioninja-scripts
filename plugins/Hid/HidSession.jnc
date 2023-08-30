@@ -387,16 +387,43 @@ size_t errorcode HidSession.transmit(
 	void const* p,
 	size_t size
 ) {
-	if (m_state != State.Opened) {
-		std.setError("file stream not opened");
-		return -1;
-	}
+	if (!size)
+		return 0;
 
-	size_t result = m_device.write(p, size);
-	if (result)
-		m_logWriter.write(log.StdRecordCode.Tx, p, result);
+	if (m_state != State.Opened) {
+		std.setError("HID device is not opened");
+		return -1; // don't throw here
+	}
+	
+	uint_t reportId = *(uchar_t const*)p;
+	io.HidReport const* report = m_rd.findReport(io.HidReportKind.Output, reportId);
+	if (!report) {
+		std.setError($"HID output #%d not found"(reportId));
+		throw;		
+	}
+	
+	if (size < report.m_size + 1) {
+		std.setError($"Incomplete HID output report (expected 1 byte for report ID followed %d bytes of report fields)"(report.m_size));
+		throw;		
+	}
+	
+	size_t result = m_device.write(p, report.m_size + 1);
+
+	std.Buffer const* decodeInfo = m_reportDecodeInfoDb.getReportDecodeInfo(report);
+
+	m_logWriter.write(
+		HidLogRecordCode.OutputReport,
+		decodeInfo.m_p,
+		decodeInfo.m_size,
+		p + 1, 
+		report.m_size
+	);			
 
 	return result;
+	
+catch:
+	m_logWriter.writeLastError(log.StdRecordCode.Error);
+	return -1;
 }
 
 void HidSession.writeLogReport(

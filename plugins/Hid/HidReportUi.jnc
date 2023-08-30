@@ -89,6 +89,8 @@ void HidReportUi.createReportForm(io.HidReport const* report) {
 	if (report.m_reportId)
 		text = $"%1 #%2"(text, report.m_reportId);
 
+	// calculate the number of encoders
+
 	size_t encoderCount = 0;
 	for (size_t i = 0; i < report.m_fieldCount; i++) {
 		io.HidReportField const* field = report.m_fieldArray[i];		
@@ -96,10 +98,13 @@ void HidReportUi.createReportForm(io.HidReport const* report) {
 			encoderCount += field[io.HidRdItemId.ReportCount];
 	}
 
+	HidReportFieldEncoder** encoderArray = new HidReportFieldEncoder*[encoderCount];
+
 	ui.FormLayout layout;
+	layout.m_spacing = 1; // make it dense
+	
 	ui.GroupBox groupBox(text, layout);
 	io.HidUsagePage const* usagePage;
-	HidReportFieldEncoder** encoderArray = new HidReportFieldEncoder*[encoderCount];
 	size_t encoderIdx = 0;
 	for (size_t i = 0; i < report.m_fieldCount; i++) {
 		io.HidReportField const* field = report.m_fieldArray[i];		
@@ -108,23 +113,26 @@ void HidReportUi.createReportForm(io.HidReport const* report) {
 
 		if (usagePage != field.m_usagePage) {
 			usagePage = field.m_usagePage;
-			layout.addRow(new ui.Label(usagePage.m_name));
+		
+			ui.Label label(usagePage.m_name);
+			label.m_styleSheet = "font-weight: bold";
+			layout.addRow(label);
 		}
 
 		size_t reportSize = field[io.HidRdItemId.ReportSize];
 		size_t reportCount = field[io.HidRdItemId.ReportCount];
 
-		if (field.m_valueFlags & io.HidRdValueFlags.Variable)
-			for (size_t j = 0; j < reportCount; j++) {
-				uint_t usage = field.m_usageArray[j];
-				char const* text = usagePage.getUsageName(usage);
-				encoderArray[encoderIdx++] = createFieldEncoder(layout, text, reportSize);
-			}
-		else
-			for (size_t j = 0; j < reportCount; j++) {
-				char const* text = $"[%d]"(j);
-				encoderArray[encoderIdx++] = createFieldEncoder(layout, text, reportSize);
-			}
+		for (size_t j = 0; j < reportCount; j++) {
+			text = $"[$j]";
+			
+			if (field.m_valueFlags & io.HidRdValueFlags.Variable)
+				text = $"%s %s"(text, usagePage.getUsageName(field.m_usageArray[j]));
+			
+			if (reportSize > 1)
+				text = $"%s:"(text);
+
+			encoderArray[encoderIdx++] = createFieldEncoder(layout, text, reportSize);
+		}
 
 		ui.Action action(m_sendIcon, "Send", onSendReport~(report, encoderArray));
 		ui.ToolBar controlToolBar;
