@@ -27,10 +27,9 @@ protected:
 		Opened,
 	}
 
-	enum Access {
-		ReadWrite,
-		ReadOnly,
-		WriteOnly,
+	enum ReadMode {
+		Normal,
+		Disabled,
 	}
 
 	enum ActionId {
@@ -77,6 +76,7 @@ protected:
 	// property grid
 
 	ui.ComboProperty* m_deviceProp;
+	ui.EnumProperty* m_readModeProp;
 	ui.BufferPropertySet m_bufferPropertySet;
 
 	// information grid
@@ -132,8 +132,6 @@ protected:
 		uint_t syncId,
 		io.HidDeviceEvents triggeredEvents
 	);
-
-	void onSendReport(io.HidReport const* report);
 
 	void createUi();
 	void enumerateHidDevices();
@@ -198,7 +196,24 @@ void HidSession.createUi() {
 		"Specify a HID device name to open"
 	);
 
-	m_bufferPropertySet.createPropertiesGrouped(m_pluginHost.m_propertyGrid);
+	ui.EnumPropertyOption readModeOptionTable[] = {
+		{ "Normal (read)",         ReadMode.Normal },
+		{ "Disabled (don't read)", ReadMode.Disabled }
+	}
+
+	m_readModeProp = m_pluginHost.m_propertyGrid.createEnumProperty(
+		group,,
+		"Read mode",
+		"Specify the HID input report read mode",
+		readModeOptionTable,
+		countof(readModeOptionTable)
+	);
+
+	m_bufferPropertySet.createPropertiesGrouped(
+		m_pluginHost.m_propertyGrid,,,
+		ui.BufferPropertySet.PropertyId.ReadBlockSize |
+		ui.BufferPropertySet.PropertyId.ReadBufferSize
+	);
 
 	// information grid
 
@@ -279,10 +294,13 @@ bool errorcode HidSession.open() {
 	startSession();
 
 	char const* deviceName = m_deviceCombo.m_editText;
+	io.HidDeviceOptions options = io.HidDeviceOptions.NonBlocking;
+	if (m_readModeProp.m_value == ReadMode.Disabled)
+		options |= io.HidDeviceOptions.NoReadThread;
 
 	m_device.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
 	m_device.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
-	m_device.m_options = io.HidDeviceOptions.NonBlocking;
+	m_device.m_options = options;
 	m_device.open(deviceName);
 
 	io.HidDeviceDesc* desc = m_device.m_deviceDesc;
@@ -296,7 +314,7 @@ bool errorcode HidSession.open() {
 	params.m_usage = desc.m_usage;
 	params.m_interfaceId = desc.m_interfaceId;
 	params.m_busType = desc.m_busType;
-	
+
 	m_deviceInfoBuffer.append(desc.m_path);
 	m_deviceInfoBuffer.append(0);
 	m_deviceInfoBuffer.append(desc.m_manufacturer);
@@ -312,7 +330,7 @@ bool errorcode HidSession.open() {
 	m_rdBuffer.setSize(size);
 	m_rd.parse(g_hidDb, m_rdBuffer.m_p, size);
 	m_logWriter.write(HidLogRecordCode.ReportDescriptor, m_rdBuffer.m_p, size);
-	
+
 	m_reportUi.createReportForms();
 	m_state = State.Opened;
 	m_sessionConnectionState = SessionConnectionState.Connected;
@@ -334,7 +352,7 @@ void HidSession.close() {
 
 	m_logWriter.write(HidLogRecordCode.Close);
 	m_device.close();
-	m_rd.clear();	
+	m_rd.clear();
 	m_reportUi.clear();
 	m_state = State.Closed;
 	m_sessionConnectionState = SessionConnectionState.Disconnected;
@@ -354,6 +372,7 @@ void HidSession.waitHidDeviceEvents() {
 
 void HidSession.load(doc.Storage* storage) {
 	m_deviceCombo.m_editText = storage.readString("deviceName");
+	m_readModeProp.m_value = storage.readInt("readMode", ReadMode.Normal);
 	m_bufferPropertySet.load(storage);
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
 }
@@ -361,6 +380,7 @@ void HidSession.load(doc.Storage* storage) {
 void HidSession.save(doc.Storage* storage) {
 	m_bufferPropertySet.save(storage);
 	storage.writeString("deviceName", m_deviceCombo.m_editText);
+	storage.writeInt("readMode", m_readModeProp.m_value);
 }
 
 void HidSession.updateProperties() {
@@ -381,6 +401,7 @@ bool errorcode HidSession.applyProperties() {
 
 void HidSession.restoreDefaultProperties() {
 	m_bufferPropertySet.restoreDefaults();
+	m_readModeProp.m_value = ReadMode.Normal;
 }
 
 size_t errorcode HidSession.transmit(
@@ -394,19 +415,19 @@ size_t errorcode HidSession.transmit(
 		std.setError("HID device is not opened");
 		return -1; // don't throw here
 	}
-	
+
 	uint_t reportId = *(uchar_t const*)p;
 	io.HidReport const* report = m_rd.findReport(io.HidReportKind.Output, reportId);
 	if (!report) {
 		std.setError($"HID output #%d not found"(reportId));
-		throw;		
+		throw;
 	}
-	
+
 	if (size < report.m_size + 1) {
 		std.setError($"Incomplete HID output report (expected 1 byte for report ID followed %d bytes of report fields)"(report.m_size));
-		throw;		
+		throw;
 	}
-	
+
 	size_t result = m_device.write(p, report.m_size + 1);
 
 	std.Buffer const* decodeInfo = m_reportDecodeInfoDb.getReportDecodeInfo(report);
@@ -415,12 +436,12 @@ size_t errorcode HidSession.transmit(
 		HidLogRecordCode.OutputReport,
 		decodeInfo.m_p,
 		decodeInfo.m_size,
-		p + 1, 
+		p + 1,
 		report.m_size
-	);			
+	);
 
 	return result;
-	
+
 catch:
 	m_logWriter.writeLastError(log.StdRecordCode.Error);
 	return -1;
@@ -432,7 +453,7 @@ void HidSession.writeLogReport(
 	size_t size
 ) {
 	uint_t reportId = 0;
-	
+
 	if (m_rd.m_flags & io.HidRdFlags.HasReportId) {
 		p++;
 		size--;
@@ -443,7 +464,7 @@ void HidSession.writeLogReport(
 		UnknownReportParams params;
 		params.m_decodeInfoSize = 0;
 		params.m_reportId = reportId;
-		
+
 		m_logWriter.write(
 			reportKind,
 			&params,
@@ -490,15 +511,12 @@ void HidSession.onHidDeviceEvent(
 	waitHidDeviceEvents();
 }
 
-void HidSession.onSendReport(io.HidReport const* report) {
-	printf("onSendReport(%p)\n", report);
-}
-
 reactor HidSession.m_uiReactor {
 	m_title = $"HID $(m_deviceCombo.m_editText)";
 	m_actionTable[ActionId.Open].m_text = m_state ? "Close" : "Open";
 	m_actionTable[ActionId.Open].m_icon = m_iconTable[m_state ? IconId.Close : IconId.Open];
 	m_actionTable[ActionId.Info].m_isEnabled = m_state;
+	m_readModeProp.m_isEnabled = !m_state;
 	m_statusPaneTable[StatusPaneId.State].m_text = m_state ? "Opened" : "Closed";
 }
 
