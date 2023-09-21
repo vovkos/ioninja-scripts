@@ -17,6 +17,7 @@ import "ui_LineEdit.jnc"
 import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
 import "std_Buffer.jnc"
+import "std_Array.jnc"
 
 //..............................................................................
 
@@ -75,7 +76,7 @@ protected:
 
 	// property grid
 
-	ui.ComboProperty* m_deviceProp;
+	ui.EnumProperty* m_deviceProp;
 	ui.EnumProperty* m_readModeProp;
 	ui.BufferPropertySet m_bufferPropertySet;
 
@@ -161,9 +162,7 @@ void HidSession.createUi() {
 
 	m_pluginHost.m_toolBar.addLabel("Device:");
 	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox(-1);
-	m_deviceCombo.m_isEditable = true;
 	m_deviceCombo.m_onReturnPressed += onDeviceComboEnter;
-	m_deviceCombo.m_placeholderText = "Enter a HID device name...";
 
 	m_iconTable[IconId.Refresh] = new ui.Icon("images/refresh.png");
 	m_iconTable[IconId.Open] = new ui.Icon("images/open.png");
@@ -189,11 +188,11 @@ void HidSession.createUi() {
 		"File stream-specific connection settings"
 	);
 
-	m_deviceProp = m_pluginHost.m_propertyGrid.createComboProperty(
+	m_deviceProp = m_pluginHost.m_propertyGrid.createEnumProperty(
 		group,,
 		"Device name",
 		"Enter a HID device name...",
-		"Specify a HID device name to open"
+		null, 0
 	);
 
 	ui.EnumPropertyOption readModeOptionTable[] = {
@@ -230,22 +229,34 @@ void HidSession.createUi() {
 	m_uiReactor.start();
 }
 
+struct HidDeviceEntry {
+	io.HidDeviceDesc const* m_deviceDesc;
+	char const* m_description;
+	char const* m_toolTip;
+}
+
+bool isHidDeviceLess(
+	HidDeviceEntry const* device1,
+	HidDeviceEntry const* device2
+) {
+	return strcmp(device1.m_description, device2.m_description) < 0;
+}
+
 void HidSession.enumerateHidDevices() {
-	char const* editText = m_deviceCombo.m_editText; // save edit text
 	m_deviceCombo.clear();
 
 	size_t count;
 	io.HidDeviceDesc const* desc = io.enumerateHidDevices(&count);
-	ui.EnumPropertyOption* optionArray = new ui.EnumPropertyOption[count];
-	ui.EnumPropertyOption* option = optionArray;
 
-	std.StringBuilder description;
+	std.Array deviceArray;
+	deviceArray.setCount(count);
 	std.StringBuilder toolTip;
-
-	for (; desc; desc = desc.m_next, option++) {
+	for (size_t i = 0; i < count; i++, desc = desc.m_next) {
 		io.HidUsagePage const* page = g_hidDb.getUsagePage(desc.m_usagePage);
 
-		description = $"%1 by %2 (%3: %4)"(
+		HidDeviceEntry* entry = new HidDeviceEntry;
+		entry.m_deviceDesc = desc;
+		entry.m_description = $"%1 by %2 (%3: %4)"(
 			desc.m_product,
 			desc.m_manufacturer,
 			page.m_name,
@@ -277,15 +288,25 @@ void HidSession.enumerateHidDevices() {
 		if (desc.m_serialNumber)
 			toolTip += $"<tr><td>Serial number:</td><td>%s</td></tr>"(desc.m_serialNumber);
 
-		char const* text = description.detachString();
-		size_t i = m_deviceCombo.addItem(text, desc.m_path);
-		m_deviceCombo.m_itemToolTip[i] = toolTip.detachString();
+		toolTip += "</table>";
 
-		option.m_text = text;
-		option.m_value = desc.m_path;
+		entry.m_toolTip = toolTip.detachString();
+		deviceArray[i] = entry;
 	}
 
-	m_deviceCombo.m_editText = editText; // restore edit text
+	deviceArray.sort(isHidDeviceLess);
+
+	ui.EnumPropertyOption* optionArray = new ui.EnumPropertyOption[count];
+	ui.EnumPropertyOption* option = optionArray;
+
+	for (size_t i = 0; i < count; i++, option++) {
+		HidDeviceEntry* entry = deviceArray[i];
+		size_t i = m_deviceCombo.addItem(entry.m_description, entry.m_deviceDesc);
+		m_deviceCombo.m_itemToolTip[i] = entry.m_toolTip;
+		option.m_text = entry.m_description;
+		option.m_value = entry.m_deviceDesc;
+	}
+
 	m_deviceProp.setOptions(optionArray, count);
 }
 
@@ -293,7 +314,7 @@ bool errorcode HidSession.open() {
 	close();
 	startSession();
 
-	char const* deviceName = m_deviceCombo.m_editText;
+	io.HidDeviceDesc const* desc = m_deviceCombo.m_currentData;
 	io.HidDeviceOptions options = io.HidDeviceOptions.NonBlocking;
 	if (m_readModeProp.m_value == ReadMode.Disabled)
 		options |= io.HidDeviceOptions.NoReadThread;
@@ -301,9 +322,7 @@ bool errorcode HidSession.open() {
 	m_device.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
 	m_device.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 	m_device.m_options = options;
-	m_device.open(deviceName);
-
-	io.HidDeviceDesc* desc = m_device.m_deviceDesc;
+	m_device.open(desc.m_path);
 
 	m_deviceInfoBuffer.setSize(sizeof(DeviceInfoParams));
 	DeviceInfoParams* params = (DeviceInfoParams*)m_deviceInfoBuffer.m_p;
@@ -370,7 +389,37 @@ void HidSession.waitHidDeviceEvents() {
 	);
 }
 
+size_t findHidDeviceComboIndex(
+	ui.ComboBox* deviceCombo,
+	uint_t vid,
+	uint_t pid,
+	char const* path
+) {
+	size_t bestIndex = -1;
+
+	size_t itemCount = deviceCombo.m_itemCount;
+	for (size_t i = 0; i < itemCount; i++) {
+		io.HidDeviceDesc const* desc = deviceCombo.m_itemData[i];
+		if (desc && desc.m_vendorId == vid && desc.m_productId == pid) {
+			if (strcmp(desc.m_path, path) == 0)
+				return i; // exact match
+
+			bestIndex = i; // VID/PID match, but different path
+		}
+	}
+
+	return bestIndex;
+}
+
 void HidSession.load(doc.Storage* storage) {
+	uint_t vid = storage.readInt("deviceVid");
+	uint_t pid = storage.readInt("devicePid");
+	char const* path = storage.readString("devicePath");
+
+	size_t index = findHidDeviceComboIndex(m_deviceCombo, vid, pid, path);
+	if (index != -1)
+		m_deviceCombo.m_currentIndex = index;
+
 	m_deviceCombo.m_editText = storage.readString("deviceName");
 	m_readModeProp.m_value = storage.readInt("readMode", ReadMode.Normal);
 	m_bufferPropertySet.load(storage);
@@ -379,6 +428,14 @@ void HidSession.load(doc.Storage* storage) {
 
 void HidSession.save(doc.Storage* storage) {
 	m_bufferPropertySet.save(storage);
+
+	io.HidDeviceDesc const* desc = m_deviceCombo.m_currentData;
+	if (desc) {
+		storage.writeInt("deviceVid", desc.m_vendorId);
+		storage.writeInt("devicePid", desc.m_productId);
+		storage.writeString("devicePath", desc.m_path);
+	}
+
 	storage.writeString("deviceName", m_deviceCombo.m_editText);
 	storage.writeInt("readMode", m_readModeProp.m_value);
 }
