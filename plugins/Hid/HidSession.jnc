@@ -441,11 +441,11 @@ void HidSession.save(doc.Storage* storage) {
 }
 
 void HidSession.updateProperties() {
-	m_deviceProp.m_value = m_deviceCombo.m_editText;
+	m_deviceProp.m_currentIndex = m_deviceCombo.m_currentIndex;
 }
 
 bool errorcode HidSession.applyProperties() {
-	m_deviceCombo.m_editText = m_deviceProp.m_value;
+	m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
 
 	if (!m_device.m_isOpen)
