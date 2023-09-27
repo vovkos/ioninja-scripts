@@ -60,7 +60,9 @@ struct OutputReport {
 		impl.SetLedColorParams m_setLedColorParams;
 		impl.SetStatusLedParams m_setStatusLedParams;
 		impl.UpdateBrightnessParams m_updateBrightnessParams;
-		char m_padding[ReportSize - 1];
+
+		[ hidden ]
+		uchar_t m_padding[ReportSize - 1];
 	};
 
 	[ userAction = "Finalize" ]
@@ -77,6 +79,7 @@ struct OutputReport {
 namespace impl { // prevents adding these structs as standalone packet templates
 
 struct ValidatePairingParams {
+	[ collapsed ]
 	uchar_t m_pairingSequence[7];
 }
 
