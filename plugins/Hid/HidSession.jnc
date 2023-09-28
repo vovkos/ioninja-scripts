@@ -509,6 +509,7 @@ size_t errorcode HidSession.transmit(
 		report.m_size
 	);
 
+	m_pluginHost.m_txRxStats.addTx(report.m_size);
 	return result;
 
 catch:
@@ -552,6 +553,8 @@ void HidSession.writeLogReport(
 			size
 		);
 	}
+
+	m_pluginHost.m_txRxStats.addRx(size);
 }
 
 void HidSession.onHidDeviceEvent(
