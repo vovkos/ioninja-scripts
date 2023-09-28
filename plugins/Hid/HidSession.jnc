@@ -243,6 +243,7 @@ bool isHidDeviceLess(
 }
 
 void HidSession.enumerateHidDevices() {
+	io.HidDeviceDesc const* prevDesc = m_deviceCombo.m_currentData;
 	m_deviceCombo.clear();
 
 	size_t count;
@@ -308,6 +309,17 @@ void HidSession.enumerateHidDevices() {
 	}
 
 	m_deviceProp.setOptions(optionArray, count);
+
+	if (prevDesc) {
+		size_t index = findHidDeviceComboIndex(
+			m_deviceCombo,
+			prevDesc.m_vendorId,
+			prevDesc.m_productId,
+			prevDesc.m_path
+		);
+
+		m_deviceCombo.m_currentIndex = index != -1 ? index : 0;
+	}
 }
 
 bool errorcode HidSession.open() {
