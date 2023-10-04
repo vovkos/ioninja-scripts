@@ -1,20 +1,11 @@
 //..............................................................................
 //
-// HID usage tables DB
+// HID report decode info DB
 //
 
 import "io_hid.jncx"
-import "io_HidDb.jnc"
 import "io_HidRd.jnc"
 import "std_HashTable.jnc"
-
-//..............................................................................
-
-io.HidDb g_hidDb;
-
-construct() {
-	g_hidDb.load(); // load from io_hid.jncx
-}
 
 //..............................................................................
 

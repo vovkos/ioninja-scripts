@@ -5,6 +5,7 @@
 
 import "log_Representation.jnc"
 import "io_hid.jncx"
+import "io_HidDb.jnc"
 import "io_HidRd.jnc"
 import "io_HidEnumerator.jnc"
 import "HidLogRecordCode.jnc"

@@ -5,6 +5,7 @@
 
 import "doc_Session.jnc"
 import "io_hid.jncx"
+import "io_HidRd.jnc"
 import "io_HidDevice.jnc"
 import "io_HidEnumerator.jnc"
 import "ui_History.jnc"
@@ -59,6 +60,7 @@ protected:
 
 	State bindable m_state;
 	io.HidDevice m_device;
+	io.HidDb m_db;
 	io.HidRd m_rd;
 	std.Buffer m_deviceInfoBuffer;
 	std.Buffer m_rdBuffer;
