@@ -5,9 +5,9 @@
 
 import "log_Representation.jnc"
 import "io_hid.jncx"
-import "io_HidDb.jnc"
 import "io_HidRd.jnc"
 import "io_HidEnumerator.jnc"
+import "io_AutoHidDb.jnc"
 import "HidLogRecordCode.jnc"
 import "std_String.jnc"
 
@@ -68,7 +68,7 @@ bool representHidLog(
 		representation.addHyperText($"[\e^-1\e[34m-\e[m] HID report descriptor:");
 
 		io.HidRd rd;
-		rd.parse(g_hidDb, p, size);
+		rd.parse(io.g_hidDb, p, size);
 
 		std.StringBuilder indent;
 		indent.copy(' ',  4);
@@ -170,7 +170,7 @@ void representDeviceInfo(
 		return;
 	}
 
-	io.HidUsagePage const* page = g_hidDb.getUsagePage(params.m_usagePage);
+	io.HidUsagePage const* page = io.g_hidDb.getUsagePage(params.m_usagePage);
 
 	representation.addHyperText(
 		$"[\e^-1\e[34m-\e[m] %1:\n"
@@ -341,7 +341,7 @@ void representReport(
 		size -= sizeof(UnknownReportParams);
 	} else {
 		report = new io.HidStandaloneReport;
-		size_t decodeInfoSize = report.loadDecodeInfo(g_hidDb, p, size);
+		size_t decodeInfoSize = report.loadDecodeInfo(io.g_hidDb, p, size);
 		reportId = report.m_reportId;
 		suffix = "";
 		p += decodeInfoSize;

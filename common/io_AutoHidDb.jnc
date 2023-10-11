@@ -1,18 +1,21 @@
 //..............................................................................
 //
-// HID usage DB
+// HID usage DB auto-initilized global variable
 //
 
 import "io_hid.jncx"
 import "io_HidDb.jnc"
-import "std_HashTable.jnc"
+
+namespace io {
 
 //..............................................................................
 
 io.HidDb g_hidDb;
 
-construct() {
-	g_hidDb.load(); // load from io_hid.jncx
-}
-
 //..............................................................................
+
+} // namespace io
+
+construct() {
+	io.g_hidDb.load(); // load from io_hid.jncx
+}

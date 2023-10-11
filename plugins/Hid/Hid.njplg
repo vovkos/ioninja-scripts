@@ -23,4 +23,4 @@ org.jancy.io.usb
 
 HidSession.jnc
 HidReportUi.jnc
-HidReportDecodeInfoDb.jnc
+../HidLog/HidLogReportWriter.jnc

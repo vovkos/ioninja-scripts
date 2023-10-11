@@ -14,11 +14,11 @@ import "std_Buffer.jnc"
 
 class HidReportUi {
 protected:
+	HidLogReportWriter* m_reportWriter;
 	log.Writer* m_logWriter;
 	log.TxRxStats* m_txRxStats;
 	io.HidDevice* m_device;
 	io.HidRd const* m_rd;
-	HidReportDecodeInfoDb* m_reportDecodeInfoDb;
 	std.Buffer m_buffer;
 	ui.VBoxLayout m_container;
 	ui.Icon* m_sendIcon;
@@ -27,7 +27,7 @@ protected:
 public:
 	construct(
 		doc.PluginHost* pluginHost,
-		HidReportDecodeInfoDb* reportDecodeInfoDb,
+		HidLogReportWriter* reportWriter,
 		io.HidDevice* device,
 		io.HidRd const* rd
 	);
@@ -59,15 +59,15 @@ protected:
 
 HidReportUi.construct(
 	doc.PluginHost* pluginHost,
-	HidReportDecodeInfoDb* reportDecodeInfoDb,
+	HidLogReportWriter* reportWriter,
 	io.HidDevice* device,
 	io.HidRd const* rd
 ) {
 	m_sendIcon = new ui.Icon("images/send.png");
 	m_refreshIcon = new ui.Icon("images/refresh.png");
+	m_reportWriter = reportWriter;
 	m_logWriter = pluginHost.m_log.m_writer;
 	m_txRxStats = pluginHost.m_txRxStats;
-	m_reportDecodeInfoDb = reportDecodeInfoDb;
 	m_device = device;
 	m_rd = rd;
 
@@ -201,16 +201,7 @@ void HidReportUi.onSendReport(
 		recordCode = HidLogRecordCode.OutputReport;
 	}
 
-	std.Buffer const* decodeInfo = m_reportDecodeInfoDb.getReportDecodeInfo(report);
-
-	m_logWriter.write(
-		recordCode,
-		decodeInfo.m_p,
-		decodeInfo.m_size,
-		p,
-		report.m_size
-	);
-
+	m_reportWriter.writeReport(recordCode, report, p, report.m_size);
 	m_txRxStats.addTx(report.m_size);
 
 catch:
