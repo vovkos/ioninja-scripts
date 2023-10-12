@@ -369,7 +369,7 @@ size_t errorcode HidSession.transmit(
 	}
 
 	uint_t reportId = *(uchar_t const*)p;
-	io.HidReport const* report = m_rd.findReport(io.HidReportKind.Output, reportId);
+	io.HidReport const* report = m_rd.findReport(io.HidReportType.Output, reportId);
 	if (!report) {
 		std.setError($"HID output #%d not found"(reportId));
 		throw;
@@ -424,7 +424,7 @@ void HidSession.onHidDeviceEvent(
 				result--;
 			}
 			
-			io.HidReport const* report = m_rd.findReport(io.HidReportKind.Input, reportId);
+			io.HidReport const* report = m_rd.findReport(io.HidReportType.Input, reportId);
 			if (report)
 				m_reportWriter.writeReport(HidLogRecordCode.InputReport, report, p, result);
 			else
