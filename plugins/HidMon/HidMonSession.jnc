@@ -305,6 +305,17 @@ void HidMonSession.waitMonitorEvents() {
 	m_monitor.wait(eventMask, onMonitorEvent~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler);
 }
 
+// HID class-specific control request codes
+
+enum HidControlRequest {
+	GetReport   = 0x01,
+	GetIdle     = 0x02,
+	GetProtocol = 0x03,
+	SetReport   = 0x09,
+	SetIdle     = 0x0a,
+	SetProtocol = 0x0b,
+}
+
 void HidMonSession.processData(
 	void const* p,
 	size_t size
@@ -327,7 +338,7 @@ void HidMonSession.processData(
 		size_t transferSize = sizeof(io.UsbMonTransferHdr) + hdr.m_captureSize;
 		if (hdr.m_transferType == io.UsbTransferType.Isochronous) {
 			// for iso transfers we need to buffer the whole transfer --
-			// including the iso packet array and the payload -- before writing to log
+			// including the iso packet array and the payload
 
 			transferSize += hdr.m_isoHdr.m_packetCount * sizeof(io.UsbIsoPacket);
 			size_t leftoverSize = transferSize - m_transferBuffer.m_size;
@@ -351,9 +362,16 @@ void HidMonSession.processData(
 		hdr = (io.UsbMonTransferHdr const*)m_transferBuffer.m_p; // update hdr after append
 		p += leftoverSize;
 
-		if (hdr.m_transferType == -1 ||
-			hdr.m_transferType != io.UsbTransferType.Interrupt || 
-			hdr.m_endpoint != m_device.m_endpointId
+		if ((
+				hdr.m_transferType != io.UsbTransferType.Interrupt ||
+				hdr.m_endpoint != m_device.m_endpointId
+			) &&
+			(
+				hdr.m_transferType != io.UsbTransferType.Control ||
+				hdr.m_controlSetup.m_requestType.m_type != io.UsbControlType.Class ||
+				hdr.m_controlSetup.m_requestType.m_recipient != io.UsbControlRecipient.Interface ||
+				hdr.m_controlSetup.m_index != m_device.m_interfaceId
+			)
 		) {
 			m_transferBuffer.clear();
 			p += leftoverSize;
@@ -366,19 +384,52 @@ void HidMonSession.processData(
 			params.m_status = hdr.m_status;
 			m_logWriter.write(UsbLogRecordCode.TransferError, &params, sizeof(params));
 		} else if (hdr.m_captureSize) {
-			uint_t reportId = 0;
-			uchar_t const* p = (uchar_t const*)(hdr + 1);
-			size_t size = hdr.m_captureSize;
-			if (m_rd.m_flags & io.HidRdFlags.HasReportId) {
-				reportId = *p++;
-				size--;
-			}
+			uint64_t recordCode;
+			io.HidReportType reportType;
+			uint_t reportId;
+			uchar_t const* data = (uchar_t const*)(hdr + 1);
+			size_t dataSize = hdr.m_captureSize;
 			
-			io.HidReport const* report = m_rd.findReport(io.HidReportKind.Input, reportId);
-			if (report)
-				m_reportWriter.writeReport(HidLogRecordCode.InputReport, report, p, size);
-			else
-				m_reportWriter.writeUnknownReport(HidLogRecordCode.InputReport, reportId, p, size);
+			switch (hdr.m_transferType) {
+			case io.UsbTransferType.Interrupt:
+				recordCode = HidLogRecordCode.InputReport;
+				reportType = io.HidReportType.Input;
+				reportId = 0;
+				if (m_rd.m_flags & io.HidRdFlags.HasReportId) {
+					reportId = *data++;
+					dataSize--;
+				}
+
+				break;
+				
+			case io.UsbTransferType.Control:
+				reportType = (io.HidReportType)((hdr.m_controlSetup.m_value & 0x300) >> 8);
+				reportId = hdr.m_controlSetup.m_value & 0xff;
+
+				switch (hdr.m_controlSetup.m_request) {
+				case HidControlRequest.GetReport:
+					recordCode = 
+						reportType == io.HidReportType.Feature ? HidLogRecordCode.GetFeatureReport :
+						reportType == io.HidReportType.Input ? HidLogRecordCode.InputReport : 0;
+					break;
+
+				case HidControlRequest.SetReport:
+					recordCode = 
+						reportType == io.HidReportType.Feature ? HidLogRecordCode.SendFeatureReport :
+						reportType == io.HidReportType.Output ? HidLogRecordCode.OutputReport : 0;
+					break;
+				}
+			
+				break;
+			}
+
+			if (recordCode) {
+				io.HidReport const* report = m_rd.findReport(reportType, reportId);
+				if (report)
+					m_reportWriter.writeReport(recordCode, report, data, dataSize);
+				else
+					m_reportWriter.writeUnknownReport(recordCode, reportId, data, dataSize);
+			}
 		}
 
 		m_transferBuffer.clear();
