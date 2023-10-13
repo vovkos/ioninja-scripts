@@ -218,10 +218,10 @@ void representCollection(
 
 	indent.append(' ', 4);
 
-	representFieldArray(representation, indent, collection);
 	for (size_t i = 0; i < collection.m_collectionCount; i++)
 		representCollection(representation, indent, collection.m_collectionArray[i]);
 
+	representFieldArray(representation, indent, collection);
 	indent.chop(4);
 }
 
@@ -251,7 +251,7 @@ void representFieldArray(
 		representation.addHyperText($"%s\e[90mUsagePage:\t\e[34m%s"(indent.m_p, field.m_usagePage.m_name));
 
 		if (field.isSet(io.HidRdItemId.Usage)) {
-			for (size_t i = 0; i <= field.m_auxUsageCount; i++) {
+			for (size_t i = 0; i < field.m_usageCount; i++) {
 				char const* text = field.m_usagePage.getUsageName(field.m_usageArray[i]);
 				representation.addHyperText($"%s\e[90mUsage:\t\e[34m%s"(indent.m_p, text));
 			}
@@ -381,13 +381,15 @@ void representReportFields(
 
 		size_t reportSize = field[io.HidRdItemId.ReportSize];
 		size_t reportCount = field[io.HidRdItemId.ReportCount];
+		size_t usageCount = field.m_usageCount;
+		size_t baseUsageIdx = usageCount > reportCount ? usageCount - reportCount : 0;
 		bool isUnsigned = field.m_isUnsigned;
 
 		for (size_t i = 0; i < reportCount; i++, bitOffset += reportSize) {
 			int value = extractValue(p, size, bitOffset, reportSize, isUnsigned);
 			if (value)
 				if (field.m_valueFlags & io.HidRdValueFlags.Variable) {
-					uint_t usage = field.m_usageArray[i];
+					uint_t usage = field.m_usageArray[baseUsageIdx + i];
 					representation.addHyperText(
 						$"%s:\t\e[34m%d"(
 							field.m_usagePage.getUsageName(usage),
