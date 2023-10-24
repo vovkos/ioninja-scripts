@@ -411,7 +411,6 @@ void HidMonSession.processData(
 			)
 		) {
 			m_transferBuffer.clear();
-			p += leftoverSize;
 			continue;
 		}
 
