@@ -184,6 +184,8 @@ void refreshHidMonDeviceListUi(
 	for (size_t i = 0; i < count; i++, option++) {
 		io.HidMonDeviceDesc const* device = deviceArray[i];
 		io.HidUsagePage const* page = io.g_hidDb.getUsagePage(device.m_usagePage);
+		char const* product = device.m_productDescriptor ? device.m_productDescriptor : device.m_description;
+		char const* manufacturer = device.m_manufacturerDescriptor ? device.m_manufacturerDescriptor : device.m_manufacturer;
 		char const* usageName = page.getUsageName(device.m_usage);
 
 		description = $"%1%2:%(3; 03d).%4 - %5 by %6 (%7: %8)"(
@@ -191,8 +193,8 @@ void refreshHidMonDeviceListUi(
 			device.m_captureDeviceId,
 			device.m_address,
 			device.m_interfaceId,
-			device.m_description,
-			device.m_manufacturer,
+			product,
+			manufacturer,
 			page.m_name,
 			usageName
 		);

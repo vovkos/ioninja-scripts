@@ -234,11 +234,14 @@ bool errorcode HidMonSession.capture() {
 	usbDeviceParams.m_speed = device.m_speed;
 	usbDeviceParams.m_class = device.m_class;
 
+	char const* product = device.m_productDescriptor ? device.m_productDescriptor : device.m_description;
+	char const* manufacturer = device.m_manufacturerDescriptor ? device.m_manufacturerDescriptor : device.m_manufacturer;
+
 	std.Buffer buffer;
 	buffer.append(usbDeviceParams, sizeof(usbDeviceParams));
-	buffer.append(device.m_description);
+	buffer.append(product);
 	buffer.append(0);
-	buffer.append(device.m_manufacturer);
+	buffer.append(manufacturer);
 	buffer.append(0);
 	buffer.append(device.m_driver);
 	buffer.append(0);
@@ -261,9 +264,9 @@ bool errorcode HidMonSession.capture() {
 
 	m_deviceInfoBuffer.append(device.m_hidDeviceName);
 	m_deviceInfoBuffer.append(0);
-	m_deviceInfoBuffer.append(device.m_manufacturer);
+	m_deviceInfoBuffer.append(manufacturer);
 	m_deviceInfoBuffer.append(0);
-	m_deviceInfoBuffer.append(device.m_description);
+	m_deviceInfoBuffer.append(product);
 	m_deviceInfoBuffer.append(0);
 	m_deviceInfoBuffer.append(device.m_serialNumberDescriptor);
 	m_deviceInfoBuffer.append(0);
