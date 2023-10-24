@@ -400,7 +400,8 @@ void HidMonSession.processData(
 
 		if ((
 				hdr.m_transferType != io.UsbTransferType.Interrupt ||
-				hdr.m_endpoint != m_device.m_endpointId
+				hdr.m_endpoint != m_device.m_inEndpointId &&
+				hdr.m_endpoint != m_device.m_outEndpointId
 			) &&
 			(
 				hdr.m_transferType != io.UsbTransferType.Control ||
@@ -428,8 +429,15 @@ void HidMonSession.processData(
 
 			switch (hdr.m_transferType) {
 			case io.UsbTransferType.Interrupt:
-				recordCode = HidLogRecordCode.InputReport;
-				reportType = io.HidReportType.Input;
+				if (hdr.m_endpoint & 0x80) {
+					recordCode = HidLogRecordCode.InputReport;
+					reportType = io.HidReportType.Input;
+					isRx = true;
+				} else {
+					recordCode = HidLogRecordCode.OutputReport;
+					reportType = io.HidReportType.Output;
+				}
+
 				reportId = 0;
 				if (m_rd.m_flags & io.HidRdFlags.HasReportId) {
 					reportId = *data++;

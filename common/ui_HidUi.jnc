@@ -210,7 +210,7 @@ void refreshHidMonDeviceListUi(
 			$"<tr><td>Usage page:</td><td>%9</td></tr>"
 			$"<tr><td>Usage:</td><td>%10</td></tr>"
 			$"<tr><td>Interface:</td><td>%11</td></tr>"
-			$"<tr><td>Endpoint:</td><td>0x%(12; 02X)</td></tr>"(
+			$"<tr><td>IN endpoint:</td><td>0x%(12; 02X)</td></tr>"(
 				captureDevicePrefix,
 				device.m_captureDeviceId,
 				device.m_address,
@@ -222,8 +222,11 @@ void refreshHidMonDeviceListUi(
 				page.m_name,
 				usageName,
 				device.m_interfaceId,
-				device.m_endpointId
+				device.m_inEndpointId
 			);
+
+		if (device.m_outEndpointId)
+			toolTip += $"<tr><td>OUT endpoint:</td><td>0x$(device.m_outEndpointId; 02X)</td></tr>";
 
 		if (device.m_driver)
 			toolTip += $"<tr><td>Driver:</td><td>$(device.m_driver)</td></tr>";
