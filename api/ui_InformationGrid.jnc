@@ -31,7 +31,7 @@ class InformationGroup: InformationItem {
 
 //..............................................................................
 
-class InformationValue: InformationItem {
+opaque class InformationValue: InformationItem {
 	construct(string_t name);
 
 	string_t autoget property m_value;
