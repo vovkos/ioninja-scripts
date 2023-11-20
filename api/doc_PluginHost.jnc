@@ -53,7 +53,7 @@ opaque class PluginHost {
 
 } // namespace doc
 
-void trace(string_t p);
+void trace(string_t text);
 void sendKeepAlive();
 size_t getTransmitData(std.Buffer* buffer);
 

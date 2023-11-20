@@ -28,8 +28,12 @@ void disconnect();
 
 size_t errorcode transmit(
 	void const* p,
-	size_t size = -1 // -1 -- use strlen
+	size_t size
 );
+
+size_t errorcode transmit(string_t text) {
+	return transmit(text.m_p, text.m_length);
+}
 
 size_t getTransmitData(std.Buffer* buffer); // fetch contents of the "Transmit" pane
 

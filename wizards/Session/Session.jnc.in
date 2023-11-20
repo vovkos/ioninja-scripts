@@ -17,7 +17,7 @@ protected:
 		Connected,
 	}
 
-	static char const* m_stateStringTable[] = {
+	static string_t const m_stateStringTable[] = {
 		"Closed",
 		"Connected",
 	};
@@ -43,7 +43,7 @@ protected:
 	// transport
 
 	State bindable m_state;
-	char const* m_address;
+	string_t m_address;
 
 	// toolbar, status bar & menu
 
@@ -133,14 +133,14 @@ void $(sessionClass).createUi() {
 bool errorcode $(sessionClass).connect() {
 	disconnect();
 
-	char const* address = m_addressCombo.m_editText;
+	string_t address = m_addressCombo.m_editText;
 	m_addressCombo.addEditTextToHistory();
 
 	startSession();
 
 	// connection implementation...
 
-	m_logWriter.write($(logRecordCodeEnum).Connected, address, strlen(address));
+	m_logWriter.write($(logRecordCodeEnum).Connected, address);
 	m_address = strdup(address);
 	m_state = State.Connected;
 	return true;
@@ -152,7 +152,7 @@ void $(sessionClass).disconnect() {
 
 	// disconnection implementation...
 
-	m_logWriter.write($(logRecordCodeEnum).Disconnected, m_address, strlen(m_address));
+	m_logWriter.write($(logRecordCodeEnum).Disconnected, m_address);
 	m_state = State.Closed;
 }
 

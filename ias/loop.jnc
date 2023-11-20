@@ -10,8 +10,8 @@ void main() {
 	connect();
 
 	for (size_t i = 0;; i++) {
-		char const* p = $"packet $i\r\n"; // perl-like interpolating literals
-		transmit(p); // omitting length means, use strlen()
+		string_t packet = $"packet $i\r\n"; // perl-like interpolating literals
+		transmit(packet);
 		sys.sleep(1000); // wait one second and repeat
 	}
 }

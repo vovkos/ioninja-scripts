@@ -13,7 +13,7 @@ public:
 
 protected:
 	void addButton(
-		char const* name,
+		string_t name,
 		void const* p,
 		size_t size = -1
 	);
@@ -34,14 +34,14 @@ $(layerClass).construct(doc.PluginHost* pluginHost) {
 }
 
 void $(layerClass).addButton(
-	char const* title,
+	string_t name,
 	void const* p,
 	size_t size
 ) {
 	if (size == -1)
 		size = strlen(p);
 
-	ui.Action* action = new ui.Action(title);
+	ui.Action* action = new ui.Action(name);
 	action.m_onTriggered += transmit~(p, size);
 	m_pluginHost.m_toolBar.addAction(action);
 }

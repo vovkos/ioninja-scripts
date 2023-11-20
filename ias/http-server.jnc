@@ -38,7 +38,7 @@ protected:
 	jnc.Regex m_regex;
 	jnc.RegexState m_regexState;
 	std.Buffer m_buffer;
-	char const* m_rootDir;
+	string_t m_rootDir;
 
 public:
 	construct();
@@ -54,7 +54,7 @@ protected:
 		size_t size
 	);
 
-	void transmitFile(char const* fileName);
+	void transmitFile(string_t fileName);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -102,7 +102,7 @@ void HttpServer.processRequest(
 	jnc.RegexState state;
 	reswitch (state, p, size) {
 	case r"GET[ \t]+([^\s]+)[^\n]+\n": // only care about the first line of GET
-		char const* fileName = state.m_captureArray[0].m_text;
+		string_t fileName = state.m_captureArray[0].m_text;
 		sys.Thread thread;
 		thread.start(transmitFile~(fileName));
 		break;
@@ -111,8 +111,8 @@ void HttpServer.processRequest(
 	}
 }
 
-void HttpServer.transmitFile(char const* fileName)  {
-	char const* filePath = $"%1/%2"(m_rootDir, fileName);
+void HttpServer.transmitFile(string_t fileName)  {
+	string_t filePath = $"%1/%2"(m_rootDir, fileName);
 
 	g_logWriter.write($"Opening file: $filePath...");
 	g_logWriter.write(log.StdRecordCode.Break); // to ensure adjacent messages don't stick together
@@ -152,13 +152,13 @@ void HttpServer.transmitFile(char const* fileName)  {
 	g_logWriter.write(log.StdRecordCode.Break);
 
 catch:
-	char const* message = std.getLastErrorDescription();
+	string_t message = std.getLastErrorDescription();
 
 	transmit(
 		"HTTP/1.1 500 Internal Server Error\r\n"
 		"Content-Type: text/plain\r\n"
 		$"Content-Length: %1\r\n\r\n%2"(
-			strlen(message),
+			message.m_length,
 			message
 		)
 	);

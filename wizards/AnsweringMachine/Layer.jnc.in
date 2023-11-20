@@ -48,10 +48,10 @@ protected:
 		size_t length
 	);
 
-	void processCommand(char const* command);
+	void processCommand(string_t command);
 
-	size_t errorcode transmit(char const* p) {
-		return transmitNext(p, strlen(p));
+	size_t errorcode transmit(string_t text) {
+		return transmitNext(text);
 	}
 }
 
@@ -115,7 +115,7 @@ void $(layerClass).scan(
 	}
 }
 
-void $(layerClass).processCommand(char const* command) {
+void $(layerClass).processCommand(string_t command) {
 	switch (command) {
 	case "about":
 		transmit("IO Ninja Answering Machine\r\n");
