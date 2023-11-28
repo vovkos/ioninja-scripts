@@ -99,10 +99,9 @@ void HttpServer.processRequest(
 	void const* p,
 	size_t size
 ) {
-	jnc.RegexState state;
-	reswitch (state, p, size) {
+	switch (string_t(p, size)) {
 	case r"GET[ \t]+([^\s]+)[^\n]+\n": // only care about the first line of GET
-		string_t fileName = state.m_captureArray[0].m_text;
+		string_t fileName = strdup($1); // the original data can be re-written
 		sys.Thread thread;
 		thread.start(transmitFile~(fileName));
 		break;
