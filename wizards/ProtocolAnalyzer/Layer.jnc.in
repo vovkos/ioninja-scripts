@@ -48,7 +48,7 @@ bool $(layerClass).convert(
 	case log.StdRecordCode.SessionStarted:
 		m_txParser.reset();
 		m_rxParser.reset();
-		break;
+		return false; // fallback to the original representation
 
 	case log.StdRecordCode.Tx:
 		parser = &m_txParser;
@@ -59,7 +59,7 @@ bool $(layerClass).convert(
 		break;
 
 	default:
-		return false; // don't convert other records
+		return false; // ignore all other record codes
 	}
 
 	parser.parse(writer, timestamp, recordCode, p, size);
