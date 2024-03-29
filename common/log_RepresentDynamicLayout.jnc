@@ -35,10 +35,12 @@ class BinColorizer {
 typedef string_t ToStringFunc(void const* p);
 
 string_t getItemName(jnc.ModuleItemDecl* decl) {
-	string_t displayName = decl.findAttributeValue("displayName");
-	string_t name = displayName ? displayName : decl.m_name;
-	bool isRoot = decl.findAttribute("root");
-	return isRoot ? $"\e[1m$name\e[m" : name;
+	string_t name = decl.findAttributeValue("displayName");
+	if (!name)
+		name = decl.m_name;
+
+	string_t attr = decl.findAttributeValue("displayNameAttr");
+	return attr ? $"%1%2\e[m"(attr, name) : name;
 }
 
 string_t getItemDigest(
