@@ -1,0 +1,87 @@
+//..............................................................................
+//
+// Modbus RTU log record declarations and representer
+//
+
+import "log_Representation.jnc"
+import "crc16.jnc"
+import "io_Modbus.jnc"
+
+//..............................................................................
+
+void representModbusRtuAdu(
+	log.Representation* representation,
+	io.ModbusRole role,
+	void const* p,
+	size_t size,
+	uint_t foldFlags
+) {
+	io.ModbusRtuAduHdr const* aduHdr = (io.ModbusRtuAduHdr const*)p;
+	io.ModbusPduHdr const* pduHdr = (io.ModbusPduHdr const*)(aduHdr + 1);
+
+	representation.m_lineAttr.m_backColor = ui.StdColor.PastelGray;
+	representation.m_lineAttr.m_iconIdx = role == io.ModbusRole.Master ?
+		log.StdLogIcon.TxPacket :
+		log.StdLogIcon.RxPacket;
+
+	size_t checksumOffset = size - sizeof(uint16_t);
+	uint16_t actualChecksum = *(uint16_t const*)(p + checksumOffset);
+	uint16_t expectedChecksum = crc16_ansi(p, checksumOffset, 0xffff);
+
+	if (!(foldFlags & 1)) {
+		representation.addHyperText(
+			$"[\e^+1\e[34m+\e[m] \e[1mMODBUS-RTU\e[m Dev: \e[34m%1\e[m %2" (
+			aduHdr.m_deviceAddress,
+			actualChecksum == expectedChecksum ?
+				getModbusPduDigest(role, pduHdr) :
+				"[\e[31mCRC ERROR\e[m]"
+			));
+	} else {
+		representation.addHyperText(
+			"[\e^-1\e[34m-\e[m]\n"
+			"\e[1mADU-RTU\e[m\n"
+			$"    Device:    \e^!%1,%2\e[34m%3\e[m" (
+			offsetof(aduHdr.m_deviceAddress),
+			sizeof(aduHdr.m_deviceAddress),
+			aduHdr.m_deviceAddress
+		));
+
+		if (actualChecksum == expectedChecksum) {
+			representation.addHyperText(
+				$"    Checksum:  \e^!%1,%2\e[34m0x%(3; 04x)\e[m [\e[32mOK\e[m]" (
+				checksumOffset,
+				sizeof(uint16_t),
+				actualChecksum
+			));
+		} else {
+			representation.addHyperText(
+				$"    Checksum:  \e^!%1,%2\e[34m0x%(3; 04x)\e[m [\e[31mERROR\e[m] \e[90m(expected: 0x%(4; 04X))\e[m" (
+				checksumOffset,
+				sizeof(uint16_t),
+				actualChecksum,
+				expectedChecksum
+			));
+		}
+
+		representModbusPdu(
+			representation,
+			role,
+			pduHdr,
+			sizeof(io.ModbusRtuAduHdr),,
+			foldFlags
+		);
+
+		representation.m_lineAttr.m_backColor = ui.ColorFlags.Undefined;
+		representation.m_lineAttr.m_textColor = ui.StdColor.BrightBlack;
+		representation.addBin(p, size);
+
+		ui.TextAttr attr;
+		attr.m_backColor = ui.ColorFlags.Undefined;
+		attr.m_textColor = ui.StdColor.Magenta;
+
+		representation.retroColorize(-size, sizeof(io.ModbusRtuAduHdr), attr);
+		representation.retroColorize(-sizeof(uint16_t), sizeof(uint16_t), attr);
+	}
+}
+
+//..............................................................................

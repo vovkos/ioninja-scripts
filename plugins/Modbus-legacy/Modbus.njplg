@@ -5,11 +5,11 @@
 
 [plugin]
 
-name        = Modbus Analyzer
+name        = Modbus Analyzer (legacy)
 description = "Analyzes a Serial/TCP log and generates a secondary log with decoded Modbus messages"
 id          = modbus
 group       = analyzers
-log-guid    = 5144b05f-e687-45ca-81bb-6c5f7880a2f3  # modbus
+log-guid    = 53603C98-34BC-46EF-BA08-D3274F1057B4  # modbus-legacy
 icon        = images/modbus.png
 small-icon  = images/modbus-16x16.png
 
