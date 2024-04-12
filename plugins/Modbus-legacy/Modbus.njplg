@@ -7,7 +7,7 @@
 
 name        = Modbus Analyzer (legacy)
 description = "Analyzes a Serial/TCP log and generates a secondary log with decoded Modbus messages"
-id          = modbus
+id          = modbus-legacy
 group       = analyzers
 log-guid    = 53603C98-34BC-46EF-BA08-D3274F1057B4  # modbus-legacy
 icon        = images/modbus.png
