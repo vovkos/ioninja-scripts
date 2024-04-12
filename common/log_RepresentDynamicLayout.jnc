@@ -1,36 +1,17 @@
 import "log_Representation.jnc"
 import "log_RepresentStruct.jnc"
+import "ui_ColorRangeTree.jnc"
 
 namespace log {
 
 //..............................................................................
 
-enum DynamicLayoutPartCode {
+enum DynamicLayoutBinPartCode {
 	Raw     = 1,
 	Payload = 2,
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-class BinColorizer {
-	struct ColorChange {
-		size_t m_offset;
-		uint_t m_color;
-	}
-
-	ColorChange m_changeArray[16]; // more than enough
-	size_t m_count;
-
-	void add(
-		size_t offset,
-		uint_t color
-	) {
-		ColorChange change = { offset, color }
-		if (m_count < countof(m_changeArray))
-			m_changeArray[m_count++] = change;
-	}
-}
-//..............................................................................
 
 typedef string_t ToStringFunc(void const* p);
 
@@ -83,17 +64,19 @@ string_t getItemValue(
 
 void setItemBackColor(
 	Representation* representation,
-	BinColorizer* colorizer,
+	ui.ColorRangeTree* colorRangeTree,
 	jnc.ModuleItemDecl* decl,
-	size_t offset
+	size_t offset,
+	size_t length
 ) {
 	jnc.Attribute* attr = decl.findAttribute("backColor");
 	if (!attr)
 		return;
 
 	uint_t color = attr.m_value;
+	uint_t prevColor = representation.m_lineAttr.m_backColor;
 	representation.m_lineAttr.m_backColor = color;
-	colorizer.add(offset, color);
+	colorRangeTree.add(offset, length, color);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -103,13 +86,13 @@ void representDynamicLayout(
 	jnc.DynamicLayout* layout,
 	uint_t foldFlags
 ) {
-	BinColorizer colorizer;
+	ui.ColorRangeTree colorRangeTree;
 
 	if (!representDynamicSectionGroup(
 		representation,
-		colorizer,
+		colorRangeTree,
 		layout,
-		DynamicLayoutPartCode.Raw,
+		DynamicLayoutBinPartCode.Raw,
 		layout.m_p,
 		0,
 		foldFlags
@@ -119,18 +102,20 @@ void representDynamicLayout(
 	representation.addBreak();
 	representation.m_lineAttr.m_textColor = ui.StdColor.BrightBlack;
 	representation.m_lineAttr.m_backColor = ui.ColorFlags.Undefined;
-	representation.addBin(MyProtoLogPartCode.RawPacket, layout.m_p, layout.m_size);
+	representation.addBin(DynamicLayoutBinPartCode.Raw, layout.m_p, layout.m_size);
 
-	if (colorizer.m_count > 1) { // only if there are multiple colors
-		size_t end = layout.m_size;
-		for (intptr_t i = colorizer.m_count - 1; i >= 0; i--) {
-			BinColorizer.ColorChange change = colorizer.m_changeArray[i];
-			ui.TextAttr attr = { ui.ColorFlags.Undefined, change.m_color, ui.FontFlags.Undefined }
-			intptr_t retroOffset = change.m_offset - layout.m_size;
-			size_t length = end - change.m_offset;
-			representation.retroColorize(retroOffset, length, attr);
-			end = change.m_offset;
-		}
+	size_t rangeCount = colorRangeTree.m_rangeCount;
+	if (rangeCount <= 1) // only retro-colorize if there are multiple colors!
+		return;
+
+	ui.ColorRange* ranges = new ui.ColorRange[rangeCount];
+	colorRangeTree.flatten(ranges, rangeCount);
+
+	size_t end = layout.m_size;
+	for (size_t i = 0; i < rangeCount; i++) {
+		ui.ColorRange range = ranges[i];
+		ui.TextAttr attr = { ui.ColorFlags.Undefined, range.m_color, ui.FontFlags.Undefined	}
+		representation.retroColorize(range.m_offset - layout.m_size, range.m_length, attr);
 	}
 }
 
@@ -138,14 +123,16 @@ void representDynamicLayout(
 
 bool representDynamicSectionGroup(
 	Representation* representation,
-	BinColorizer* colorizer,
+	ui.ColorRangeTree* colorRangeTree,
 	jnc.DynamicSectionGroup* group,
-	uint64_t partCode = 0,
+	uint64_t binPartCode = 0,
 	void const* p0,
 	size_t offset0 = 0,
 	uint_t foldFlags = -1,
 	string_t indent = ""
 ) {
+	uint_t baseBackColor = representation.m_lineAttr.m_backColor;
+
 	for (size_t i = 0; i < group.m_sectionCount; i++) {
 		jnc.DynamicSection* section = group.m_sectionArray[i];
 		void const* p = p0 + section.m_offset;
@@ -155,9 +142,9 @@ bool representDynamicSectionGroup(
 		case jnc.DynamicSectionKind.Struct:
 			representFields(
 				representation,
-				colorizer,
+				colorRangeTree,
 				dynamic (jnc.StructType*)section.m_type,
-				partCode,
+				binPartCode,
 				p,
 				offset,
 				foldFlags,
@@ -166,36 +153,63 @@ bool representDynamicSectionGroup(
 			break;
 
 		case jnc.DynamicSectionKind.Array:
+			setItemBackColor(
+				representation,
+				colorRangeTree,
+				section.m_decl,
+				offset,
+				section.m_size
+			);
+
 			representArray(
 				representation,
-				colorizer,
+				colorRangeTree,
 				section.m_decl,
 				section.m_type,
 				section.m_elementCount,
-				partCode,
+				binPartCode,
 				p,
 				offset,
 				foldFlags,
 				indent
 			);
+
 			break;
 
 		case jnc.DynamicSectionKind.Group:
-			if (!representGroupHeader(representation, colorizer, section.m_decl, p, offset, foldFlags, indent))
-				return false;
+			string_t subIndent;
+
+			setItemBackColor(
+				representation,
+				colorRangeTree,
+				section.m_decl,
+				offset,
+				section.m_size
+			);
+
+			if (section.m_decl.findAttribute("ungroup"))
+				subIndent = indent;
+			else {
+				if (!representGroupHeader(representation, section.m_decl, p, foldFlags, indent))
+					break;
+
+				subIndent = indent + "    ";
+			}
 
 			representDynamicSectionGroup(
 				representation,
-				colorizer,
+				colorRangeTree,
 				section,
-				partCode,
-				p,
-				offset,
+				binPartCode,
+				p0,      // section group offsets are relative to the layout, not to parent group
+				offset0, // so we have to use layout offset and base
 				foldFlags,
-				indent + "    "
+				subIndent
 			);
 			break;
 		}
+
+		representation.m_lineAttr.m_backColor = baseBackColor; // restore
 	}
 
 	return true;
@@ -205,34 +219,39 @@ bool representDynamicSectionGroup(
 
 bool representGroupHeader(
 	Representation* representation,
-	BinColorizer* colorizer,
 	jnc.ModuleItemDecl* decl,
 	void const* p,
-	size_t offset,
 	uint_t foldFlags,
 	string_t indent
 ) {
-	setItemBackColor(representation, colorizer, decl, offset);
 	string_t name = getItemName(decl);
 	uint_t foldFlag = decl.findAttributeValue("foldFlag");
 
+	// always add \t to preserve the name-value table column position
+
 	if (!foldFlag)
-		representation.addHyperText($"%1%2"(indent, name));
+		representation.addHyperText($"%1%2\t"(indent, name));
 	else if (foldFlags & foldFlag)
-		representation.addHyperText($"%1[\e^-%2\e[34m-\e[m] %3"(
+		representation.addHyperText($"%1[\e^-%2\e[34m-\e[m] %3\t"(
 			indent,
 			foldFlag,
 			name
 		));
 	else {
-		string_t digest = getItemDigest(decl, p);
-		representation.addHyperText($"%1[\e^+%2\e[34m+\e[m] %3%4%5"(
-			indent,
-			foldFlag,
-			name,
-			digest.m_length ? " " : "",
-			digest
-		));
+		string_t digest; //  = getItemDigest(decl, p);
+		if (digest.m_length)
+			representation.addHyperText($"%1[\e^+%2\e[34m+\e[m] %3:\t%4"(
+				indent,
+				foldFlag,
+				name,
+				digest
+			));
+		else
+			representation.addHyperText($"%1[\e^+%2\e[34m+\e[m] %3\t"(
+				indent,
+				foldFlag,
+				name
+			));
 
 		return false;
 	}
@@ -242,118 +261,138 @@ bool representGroupHeader(
 
 void representArray(
 	Representation* representation,
-	BinColorizer* colorizer,
+	ui.ColorRangeTree* colorRangeTree,
 	jnc.ModuleItemDecl* decl,
-	jnc.Type* type,
+	jnc.Type* elementType,
 	size_t elementCount,
-	uint64_t partCode,
+	uint64_t binPartCode,
 	void const* p,
 	size_t offset,
 	uint_t foldFlags,
 	string_t indent
 ) {
-	if (!representGroupHeader(representation, colorizer, decl, p, offset, foldFlags, indent))
+	if (!representGroupHeader(representation, decl, p, foldFlags, indent))
 		return;
 
+	size_t elementSize = elementType.m_size;
+
 	if (decl.findAttribute("binary")) {
-		representation.addBin(0, p, type.m_size * elementCount);
+		representation.addBin(0, p, elementSize * elementCount);
 		return;
 	}
 
 	indent += "    ";
 
-	if (type.m_typeKindFlags & jnc.TypeKindFlags.Derivable) {
-		jnc.DerivableType* elementType = dynamic (jnc.DerivableType*)type;
+	if (elementType.m_typeKindFlags & jnc.TypeKindFlags.Derivable) {
+		jnc.DerivableType* derivableType = dynamic (jnc.DerivableType*)elementType;
 		string_t fieldIndent = indent + "    ";
 		for (size_t i = 0; i < elementCount; i++) {
 			representation.addHyperText($"%1[%2]"(indent, i));
 			representFields(
 				representation,
-				colorizer,
-				elementType,
-				partCode,
+				colorRangeTree,
+				derivableType,
+				binPartCode,
 				p,
 				offset,
 				-1, // no folds for array elements
 				fieldIndent
 			);
 
-			p += type.m_size;
-			offset += type.m_size;
+			p += elementSize;
+			offset += elementSize;
 		}
 	} else
 		for (size_t i = 0; i < elementCount; i++) {
-			p += type.m_size;
-			string_t value = getItemValue(decl, type, p);
-			representation.addHyperText($"%1[%2]:\t%3"(indent, i, value));
+			string_t value = getItemValue(decl, elementType, p);
+			representation.addHyperText($"%1[%2]:\t\e^!0x%x,%4,%5\e[34m%6"(
+				indent,
+				i,
+				binPartCode,
+				offset,
+				elementSize,
+				value
+			));
+
+			p += elementSize;
+			offset += elementSize;
 		}
 }
 
 void representFields(
 	log.Representation* representation,
-	BinColorizer* colorizer,
+	ui.ColorRangeTree* colorRangeTree,
 	jnc.DerivableType* type,
-	uint64_t partCode,
+	uint64_t binPartCode,
 	void const* p0,
 	size_t offset0,
 	uint_t foldFlags,
 	string_t indent
 ) {
+	uint_t baseBackColor = representation.m_lineAttr.m_backColor;
+
 	string_t fieldIndent = indent + "    ";
 	size_t count = type.m_fieldCount;
 	for (size_t i = 0; i < count; i++) {
 		jnc.Field* field = type.m_fieldArray[i];
+		jnc.Type* fieldType = field.m_type;
 		void const* p = p0 + field.m_offset;
 		size_t offset = offset0 + field.m_offset;
 
-		setItemBackColor(representation, colorizer, field, offset);
+		setItemBackColor(
+			representation,
+			colorRangeTree,
+			field,
+			offset,
+			fieldType.m_size
+		);
 
-		if (field.m_type.m_typeKindFlags & jnc.TypeKindFlags.Derivable) {
-			jnc.DerivableType* fieldType = dynamic (jnc.DerivableType*)field.m_type;
+		if (fieldType.m_typeKindFlags & jnc.TypeKindFlags.Derivable) {
+			jnc.DerivableType* derivableType = dynamic (jnc.DerivableType*)fieldType;
 			if (field.findAttribute("ungroup"))
 				representFields(
 					representation,
-					colorizer,
-					fieldType,
-					partCode,
+					colorRangeTree,
+					derivableType,
+					binPartCode,
 					p,
 					offset,
 					foldFlags,
 					indent
 				);
-			else if (representGroupHeader(representation, colorizer, field, p, offset, foldFlags, indent))
+			else if (representGroupHeader(representation, field, p, foldFlags, indent))
 				representFields(
 					representation,
-					colorizer,
-					fieldType,
-					partCode,
+					colorRangeTree,
+					derivableType,
+					binPartCode,
 					p,
 					offset,
 					foldFlags,
 					fieldIndent
 				);
+		} else {
+			string_t name = getItemName(field);
+			string_t value = getItemValue(
+				field,
+				fieldType,
+				p,
+				field.m_ptrTypeFlags,
+				field.m_bitOffset,
+				field.m_bitCount
+			);
 
-			continue;
+			representation.addHyperText($"%1%2:\t\e^!0x%x,%4,%5\e[34m%6"(
+				indent,
+				name,
+				binPartCode,
+				offset,
+				fieldType.m_size,
+				value
+			));
 		}
 
-		string_t name = getItemName(field);
-		string_t value = getItemValue(
-			field,
-			field.m_type,
-			p,
-			field.m_ptrTypeFlags,
-			field.m_bitOffset,
-			field.m_bitCount
-		);
-
-		representation.addHyperText($"%1%2:\t\e^!0x%x,%4,%5\e[34m%6"(
-			indent,
-			name,
-			partCode,
-			offset,
-			field.m_type.m_size,
-			value
-		));
+		representation.m_lineAttr.m_backColor = baseBackColor; // restore
 	}
 }
 
