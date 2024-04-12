@@ -4,6 +4,7 @@
 //
 
 import "log_Representation.jnc"
+import "log_RepresentDynamicLayout.jnc"
 import "io_Modbus.jnc"
 import "ModbusLogRecordCode.jnc"
 
@@ -18,11 +19,17 @@ bool representModbusLog(
 ) {
 	switch (recordCode) {
 	case ModbusLogRecordCode.MasterPacket_Rtu:
-		representModbusRtuAdu(representation, io.ModbusRole.Master, p, size, foldFlags);
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.TxPacket;
+		jnc.DynamicLayout layout(jnc.DynamicLayoutMode.Save, p, size);
+		io.layoutModbusRtuAdu(layout, io.ModbusRole.Master);
+		log.representDynamicLayout(representation, layout, foldFlags);
 		break;
 
 	case ModbusLogRecordCode.SlavePacket_Rtu:
-		representModbusRtuAdu(representation, io.ModbusRole.Slave, p, size, foldFlags);
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.RxPacket;
+		jnc.DynamicLayout layout(jnc.DynamicLayoutMode.Save, p, size);
+		io.layoutModbusRtuAdu(layout, io.ModbusRole.Slave);
+		log.representDynamicLayout(representation, layout, foldFlags);
 		break;
 
 	case ModbusLogRecordCode.MasterPacket_Ascii:
@@ -34,11 +41,17 @@ bool representModbusLog(
 		break;
 
 	case ModbusLogRecordCode.MasterPacket_Tcp:
-		representModbusTcpAdu(representation, io.ModbusRole.Master, p, size, foldFlags);
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.TxPacket;
+		jnc.DynamicLayout layout(jnc.DynamicLayoutMode.Save, p, size);
+		io.layoutModbusTcpAdu(layout, io.ModbusRole.Master);
+		log.representDynamicLayout(representation, layout, foldFlags);
 		break;
 
 	case ModbusLogRecordCode.SlavePacket_Tcp:
-		representModbusTcpAdu(representation, io.ModbusRole.Slave, p, size, foldFlags);
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.RxPacket;
+		jnc.DynamicLayout layout(jnc.DynamicLayoutMode.Save, p, size);
+		io.layoutModbusTcpAdu(layout, io.ModbusRole.Slave);
+		log.representDynamicLayout(representation, layout, foldFlags);
 		break;
 
 	case ModbusLogRecordCode.InvalidFunction: // legacy

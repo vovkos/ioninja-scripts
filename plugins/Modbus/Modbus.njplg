@@ -20,7 +20,12 @@ pure-layer  = true
 
 ModbusLayer.jnc
 ModbusParserBase.jnc
+ModbusBinParserBase.jnc
 ModbusRtuParser.jnc
-ModbusAsciiParser.jnc
 ModbusTcpParser.jnc
+ModbusAsciiParser.jnc
 ModbusInfoSet.jnc
+
+io_Modbus.jnc
+io_ModbusTemplates.jnc
+log_representDynamicLayout.jnc

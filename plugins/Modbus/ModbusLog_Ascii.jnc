@@ -104,7 +104,7 @@ void representModbusAsciiAdu(
 
 		attr.m_textColor = ui.StdColor.Cyan;
 
-		representation.retroColorize(-size + 1, sizeof(io.ModbusAsciiAduHdr), attr);
+		representation.retroColorize(-size + 1, sizeof(io.ModbusRtuAduHdr) * 2, attr);
 		representation.retroColorize(-4, 2, attr); // LRC8 (hex)
 	}
 }
