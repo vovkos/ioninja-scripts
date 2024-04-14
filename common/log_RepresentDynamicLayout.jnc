@@ -238,7 +238,7 @@ bool representGroupHeader(
 			name
 		));
 	else {
-		string_t digest; //  = getItemDigest(decl, p);
+		string_t digest = getItemDigest(decl, p);
 		if (digest.m_length)
 			representation.addHyperText($"%1[\e^+%2\e[34m+\e[m] %3:\t%4"(
 				indent,
