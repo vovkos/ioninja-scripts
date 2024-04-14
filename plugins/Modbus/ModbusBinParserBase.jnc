@@ -57,23 +57,20 @@ void ModbusBinParserBase.parse(
 
 nestedscope:
 	while (p < end) {
-		// buffer & parse until the packet is complete...
 
 		size_t sizeTaken;
-		if (m_packet.m_isIncomplete)
+		if (m_packet.m_isIncomplete) // resume the incomplete packet
 			sizeTaken = m_packet.resume(p, end - p);
-		else {
+		else { // start a new one
 			m_packet.reset(jnc.DynamicLayoutMode.Stream, p, end - p);
 			layoutPacket();
-			sizeTaken = m_packet.m_size;
+			sizeTaken = m_packet.m_bufferSize;
 		}
 
+		writer.write(timestamp, originalRecordCode, p, sizeTaken);
 		if (m_packet.m_isIncomplete)
 			break;
 
-		// ...after that, write the original data and then the packet
-
-		writer.write(timestamp, originalRecordCode, p, sizeTaken);
 		writer.write(timestamp, getPacketRecordCode(), m_packet.m_p, m_packet.m_size);
 		postPacket();
 		p += sizeTaken;
