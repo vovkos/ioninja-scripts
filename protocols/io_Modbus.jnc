@@ -146,10 +146,23 @@ void ModbusAddressAttr;
 
 // particular function code PDUs
 
-[ displayName = "PDU header" ]
 struct ModbusPduHdr {
 	[ displayName = "Function" ]
 	io.ModbusFunc m_func;
+}
+
+struct ModbusReplyPduHdr {
+	[
+		displayName = "Function",
+		displayType = typeof(ModbusFunc)
+	]
+	uint8_t m_func: 7;
+
+	[
+		displayName = "Exception flag",
+		displayType = typeof(bool)
+	]
+	uint8_t m_exceptionFlag: 1;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -247,13 +260,27 @@ struct ModbusWriteMultipleParams {
 	uint8_t m_size;
 
 	// followed by write data
+}
 
-	[
-		userAction = "Update size",
-		autorun = "Auto-update size"
-	]
+[
+	userAction = "Update size",
+	autorun = "Auto-update size"
+]
+void AutoUpdateSizeAttr;
+
+struct ModbusWriteMultipleCoilsParams: ModbusWriteMultipleParams {
+	[ @AutoUpdateSizeAttr ]
 	void updateSize() {
-		m_size = m_count * 2;
+		m_size = m_count / 8;
+		if (m_count & 7)
+			m_size++;
+	}
+}
+
+struct ModbusWriteMultipleRegistersParams: ModbusWriteMultipleParams {
+	[ @AutoUpdateSizeAttr ]
+	void updateSize() {
+		m_size = m_count * sizeof(uint16_t);
 	}
 }
 
@@ -431,6 +458,7 @@ void layoutModbusRegisterValues(
 		[
 			displayName = "Values",
 			backColor = ui.StdColor.PastelYellow,
+			digestFunc = getModbusRegisterDigest,
 			foldFlag = 2
 		]
 		dyfield bigendian uint16_t values[count];
@@ -438,7 +466,8 @@ void layoutModbusRegisterValues(
 		if (size & 1)
 			[
 				displayName = "Padding",
-				payload
+				backColor = ui.StdColor.PastelOrange,
+				binary
 			]
 			dyfield uint8_t padding;
 	}
@@ -454,10 +483,25 @@ async void layoutModbusPdu(
 			ungroup
 		]
 		dyfield pdu {
-			[ ungroup ]
-			dyfield ModbusPduHdr pduHdr;
+			ModbusFunc func;
 
-			switch (pduHdr.m_func) {
+			if (role == ModbusRole.Master) { // request
+				[ ungroup ]
+				dyfield ModbusPduHdr pduHdr;
+				func = pduHdr.m_func;
+			} else {
+				[ ungroup ]
+				dyfield ModbusReplyPduHdr pduHdr;
+				if (pduHdr.m_exceptionFlag) {
+					[ ungroup ]
+					dyfield ModbusExceptionParams params;
+					return;
+				}
+
+				func = (ModbusFunc)pduHdr.m_func;
+			}
+
+			switch (func) {
 			case io.ModbusFunc.ReadCoils:
 			case io.ModbusFunc.ReadDiscreteInputs:
 				if (role == ModbusRole.Master) // request
@@ -469,7 +513,8 @@ async void layoutModbusPdu(
 
 					[
 						displayName = "Values",
-						payload
+						backColor = ui.StdColor.PastelYellow,
+						binary
 					]
 					dyfield uint8_t data[params.m_size];
 				}
@@ -518,20 +563,22 @@ async void layoutModbusPdu(
 					if (params.m_size > 6)
 						[
 							displayName = "Values",
+							backColor = ui.StdColor.PastelYellow,
 							foldFlag = 2
 						]
-						dyfield uint8_t data[params.m_size - 3 * sizeof(uint16_t)]; //
+						dyfield uint8_t data[params.m_size - 3 * sizeof(uint16_t)];
 				}
 				break;
 
 			case io.ModbusFunc.ReportServerId:
 				if (role == ModbusRole.Slave) {
-					[ ungroup]
+					[ ungroup ]
 					dyfield ModbusReportServerIdReplyParams params;
 
 					[
 						displayName = "Server ID",
-						payload
+						backColor = ui.StdColor.PastelYellow,
+						binary
 					]
 					dyfield uint8_t data[params.m_size];
 				}
@@ -540,11 +587,12 @@ async void layoutModbusPdu(
 			case io.ModbusFunc.WriteMultipleCoils:
 				if (role == ModbusRole.Master) { // request
 					[ ungroup ]
-					dyfield ModbusWriteMultipleParams request;
+					dyfield ModbusWriteMultipleCoilsParams request;
 
 					[
 						displayName = "Values",
-						payload
+						backColor = ui.StdColor.PastelYellow,
+						binary
 					]
 					dyfield uint8_t data[request.m_size];
 				} else // reply
@@ -555,7 +603,7 @@ async void layoutModbusPdu(
 			case io.ModbusFunc.WriteMultipleRegisters:
 				if (role == ModbusRole.Master) { // request
 					[ ungroup ]
-					dyfield ModbusWriteMultipleParams params;
+					dyfield ModbusWriteMultipleRegistersParams params;
 					layoutModbusRegisterValues(layout, params.m_count, params.m_size);
 				} else // reply
 					[ ungroup ]
@@ -569,7 +617,8 @@ async void layoutModbusPdu(
 
 				[
 					displayName = "Records",
-					payload
+					backColor = ui.StdColor.PastelYellow,
+					binary
 				]
 				dyfield uint8_t data[params.m_size];
 				break;
@@ -745,13 +794,13 @@ async void layoutModbusTcpAduImpl(
 	ModbusRole role
 ) {
 	dylayout (layout) {
-		[ ungroup ]
-		dyfield ModbusRtuAduHdr aduHdr;
+		[
+			backColor = ui.StdColor.PastelPurple,
+			ungroup
+		]
+		dyfield ModbusTcpAduHdr aduHdr;
 
 		await layoutModbusPdu(layout, role);
-
-		[ ungroup ]
-		dyfield ModbusRtuCrc crc;
 	}
 }
 
@@ -804,6 +853,30 @@ string_t getModbusTcpMasterDigest(void const* p) {
 
 string_t getModbusTcpSlaveDigest(void const* p) {
 	return getModbusTcpDigest((ModbusTcpAduPduHdr const*)p, ModbusRole.Slave);
+}
+
+string_t getModbusRegisterDigest(
+	void const* p0,
+	size_t size
+) {
+	size_t count0 = size / sizeof(uint16_t);
+	size_t count = count0 < 4 ? count : 4;
+	bigendian uint16_t const* p = (bigendian uint16_t const*)p0;
+	bigendian uint16_t const* end = p + count;
+
+	std.StringBuilder string;
+	string.append('{');
+	for (; p < end; p++)
+		string.append($" %d,"(*p));
+
+	if (count0 > count)
+		string.append(" ... }");
+	else {
+		string.chop(1);
+		string.append(" }");
+	}
+
+	return string.detachString();
 }
 
 //..............................................................................
