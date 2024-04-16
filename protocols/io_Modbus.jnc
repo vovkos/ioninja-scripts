@@ -170,7 +170,7 @@ struct ModbusReplyPduHdr {
 // ModbusFunc.Exception (ModbusPduHdr.m_func has ModbusFunc.ExceptionFlag set)
 
 struct ModbusExceptionParams {
-	[ displayName = "Exception" ]
+	[ displayName = "Exception code" ]
 	ModbusException m_exception;
 }
 
@@ -665,6 +665,13 @@ async void layoutModbusPdu(
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
+uint16_t crc16_modbus(
+	void const* p,
+	size_t size
+) {
+	return crc16_ansi(p, size, 0xffff);
+}
+
 struct ModbusRtuCrc {
 	[
 		displayName = "CRC",
@@ -682,7 +689,7 @@ struct ModbusRtuCrc {
 
 	uint16_t calcCrc() const {
 		size_t size = dynamic offsetof(this);
-		return crc16_ansi((char const*)this - size, size, 0xffff);
+		return crc16_modbus((char const*)this - size, size);
 	}
 }
 
@@ -759,6 +766,7 @@ async void layoutModbusRtuAdu(
 
 string_t getModbusRtuDigest(
 	ModbusRtuAduPduHdr const* aduPduHdr,
+	size_t size,
 	ModbusRole role
 ) {
 	static string_t arrows[] = {
@@ -771,20 +779,34 @@ string_t getModbusRtuDigest(
 		"reply",
 	}
 
-	return $"#%1 %2 %3 \e[90m(%4)\e[m"(
+	string_t digest;
+
+	if (size >= sizeof(ModbusRtuAduPduHdr) + sizeof(uint16_t)) {
+		size -= sizeof(uint16_t);
+		uint16_t const* crc = (uint16_t const*)((char const*)aduPduHdr + size);
+		if (*crc != crc16_modbus(aduPduHdr, size))
+			digest = " [\e[31mCRC ERROR\e[m]";
+		else {
+			// prepare digest based on the function code
+		}
+	}
+
+	return $"#%1 %2 %3 \e[90m(%4)\e[m%5"(
 		aduPduHdr.m_deviceAddress,
 		arrows[role],
 		typeof(ModbusFunc).getValueString(aduPduHdr.m_func),
-		directions[role]
+		directions[role],
+		digest
+
 	);
 }
 
 string_t getModbusRtuMasterDigest(void const* p) {
-	return getModbusRtuDigest((ModbusRtuAduPduHdr const*)p, ModbusRole.Master);
+	return getModbusRtuDigest((ModbusRtuAduPduHdr const*)p, dynamic sizeof(p), ModbusRole.Master);
 }
 
 string_t getModbusRtuSlaveDigest(void const* p) {
-	return getModbusRtuDigest((ModbusRtuAduPduHdr const*)p, ModbusRole.Slave);
+	return getModbusRtuDigest((ModbusRtuAduPduHdr const*)p, dynamic sizeof(p), ModbusRole.Slave);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -860,7 +882,7 @@ string_t getModbusRegisterDigest(
 	size_t size
 ) {
 	size_t count0 = size / sizeof(uint16_t);
-	size_t count = count0 < 4 ? count : 4;
+	size_t count = count0 < 4 ? count0 : 4;
 	bigendian uint16_t const* p = (bigendian uint16_t const*)p0;
 	bigendian uint16_t const* end = p + count;
 
