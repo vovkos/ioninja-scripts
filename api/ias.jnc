@@ -98,8 +98,11 @@ size_t errorcode receiveAll(
 	void const* p0 = p;
 	void const* end = p + size;
 	while (p < end) {
-		timeout = timeEnd - sys.getTimestamp() / 10000; // adjust timeout
-		size_t result = receive(p, end - p, timeout);
+		uint_t time = sys.getTimestamp() / 10000;
+		if (time >= timeEnd)
+			break;
+
+		size_t result = receive(p, end - p, timeEnd - time);
 		if (!result) // timeout
 			break;
 
