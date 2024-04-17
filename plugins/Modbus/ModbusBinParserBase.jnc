@@ -52,37 +52,45 @@ void ModbusBinParserBase.parse(
 ) {
 	preParse(writer, timestamp);
 
-	void const* p0 = p;
 	void const* end = p + size;
-
-nestedscope:
 	while (p < end) {
+		size = end - p;
+		size_t prevBufferSize = 0;
 
-		size_t sizeTaken;
-		if (m_packet.m_isIncomplete) // resume the incomplete packet
-			sizeTaken = m_packet.resume(p, end - p);
-		else { // start a new one
-			m_packet.reset(jnc.DynamicLayoutMode.Stream, p, end - p);
-			layoutPacket();
-			sizeTaken = m_packet.m_bufferSize;
+		try {
+			if (m_packet.m_isIncomplete) { // resume the incomplete packet
+				prevBufferSize = m_packet.m_bufferSize;
+				size = m_packet.resume(p, size);
+			} else { // start a new one
+				m_packet.reset(jnc.DynamicLayoutMode.Stream, p, size);
+				layoutPacket();
+				if (!m_packet.m_isIncomplete)
+					size = m_packet.m_size;
+			}
+
+		catch: // exception during layout
+			if (!m_packet.m_isIncomplete)
+				size = m_packet.m_size > prevBufferSize ? m_packet.m_size - prevBufferSize : 0;
+
+			if (size) {
+				writer.write(timestamp, originalRecordCode, p, size);
+				p += size;
+			}
+
+			writer.writeLastError(timestamp, ModbusLogRecordCode.ParseError);
+			m_infoSet.addError();
+			reset();
+			continue;
 		}
 
-		writer.write(timestamp, originalRecordCode, p, sizeTaken);
+		writer.write(timestamp, originalRecordCode, p, size);
 		if (m_packet.m_isIncomplete)
 			break;
 
 		writer.write(timestamp, getPacketRecordCode(), m_packet.m_p, m_packet.m_size);
 		postPacket();
-		p += sizeTaken;
+		p += size;
 	}
-
-catch:
-	if (p0 < end)
-		writer.write(timestamp, originalRecordCode, p0, end - p0);
-
-	writer.writeLastError(timestamp, ModbusLogRecordCode.ParseError);
-	m_infoSet.addError();
-	reset();
 }
 
 //..............................................................................
