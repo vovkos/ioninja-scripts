@@ -47,6 +47,8 @@ opaque class Action {
 		initialize(null, text, onTriggered);
 	}
 
+	destruct();
+
 protected:
 	void initialize(
 		Icon* icon,
