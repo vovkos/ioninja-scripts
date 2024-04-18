@@ -148,7 +148,7 @@ void ModbusAddressAttr;
 
 struct ModbusPduHdr {
 	[ displayName = "Function" ]
-	io.ModbusFunc m_func;
+	ModbusFunc m_func;
 }
 
 struct ModbusReplyPduHdr {
@@ -502,8 +502,8 @@ async void layoutModbusPdu(
 			}
 
 			switch (func) {
-			case io.ModbusFunc.ReadCoils:
-			case io.ModbusFunc.ReadDiscreteInputs:
+			case ModbusFunc.ReadCoils:
+			case ModbusFunc.ReadDiscreteInputs:
 				if (role == ModbusRole.Master) // request
 					[ ungroup ]
 					dyfield ModbusReadParams params;
@@ -520,8 +520,8 @@ async void layoutModbusPdu(
 				}
 				break;
 
-			case io.ModbusFunc.ReadHoldingRegisters:
-			case io.ModbusFunc.ReadInputRegisters:
+			case ModbusFunc.ReadHoldingRegisters:
+			case ModbusFunc.ReadInputRegisters:
 				if (role == ModbusRole.Master) // request
 					[ ungroup ]
 					dyfield ModbusReadParams params;
@@ -532,30 +532,30 @@ async void layoutModbusPdu(
 				}
 				break;
 
-			case io.ModbusFunc.WriteSingleCoil:
-			case io.ModbusFunc.WriteSingleRegister:
+			case ModbusFunc.WriteSingleCoil:
+			case ModbusFunc.WriteSingleRegister:
 				[ ungroup ]
 				dyfield ModbusWriteSingleParams params; // same for request & reply
 				break;
 
-			case io.ModbusFunc.ReadExceptionStatus:
+			case ModbusFunc.ReadExceptionStatus:
 				if (role == ModbusRole.Slave)
 					[ ungroup]
 					dyfield ModbusReadExceptionStatusReplyParams params;
 				break;
 
-			case io.ModbusFunc.Diagnostics:
+			case ModbusFunc.Diagnostics:
 				std.setError("ModbusFunc.Diagnostics is unsupported");
 				throw;
 
-			case io.ModbusFunc.GetCommEventCounter:
+			case ModbusFunc.GetCommEventCounter:
 				if (role == ModbusRole.Slave)
 					[ ungroup]
 					dyfield ModbusGetCommEventCounterReplyParams params;
 
 				break;
 
-			case io.ModbusFunc.GetCommEventLog:
+			case ModbusFunc.GetCommEventLog:
 				if (role == ModbusRole.Slave) {
 					[ ungroup]
 					dyfield ModbusGetCommEventLogReplyParams params;
@@ -570,7 +570,7 @@ async void layoutModbusPdu(
 				}
 				break;
 
-			case io.ModbusFunc.ReportServerId:
+			case ModbusFunc.ReportServerId:
 				if (role == ModbusRole.Slave) {
 					[ ungroup ]
 					dyfield ModbusReportServerIdReplyParams params;
@@ -584,7 +584,7 @@ async void layoutModbusPdu(
 				}
 				break; // no extra params
 
-			case io.ModbusFunc.WriteMultipleCoils:
+			case ModbusFunc.WriteMultipleCoils:
 				if (role == ModbusRole.Master) { // request
 					[ ungroup ]
 					dyfield ModbusWriteMultipleCoilsParams request;
@@ -600,7 +600,7 @@ async void layoutModbusPdu(
 					dyfield ModbusWriteMultipleReplyParams reply;
 				break;
 
-			case io.ModbusFunc.WriteMultipleRegisters:
+			case ModbusFunc.WriteMultipleRegisters:
 				if (role == ModbusRole.Master) { // request
 					[ ungroup ]
 					dyfield ModbusWriteMultipleRegistersParams params;
@@ -610,8 +610,8 @@ async void layoutModbusPdu(
 					dyfield ModbusWriteMultipleReplyParams params;
 				break;
 
-			case io.ModbusFunc.ReadFileRecord:
-			case io.ModbusFunc.WriteFileRecord:
+			case ModbusFunc.ReadFileRecord:
+			case ModbusFunc.WriteFileRecord:
 				[ ungroup ]
 				dyfield ModbusReadWriteFileRecordParams params;
 
@@ -623,12 +623,12 @@ async void layoutModbusPdu(
 				dyfield uint8_t data[params.m_size];
 				break;
 
-			case io.ModbusFunc.MaskWriteRegister:
+			case ModbusFunc.MaskWriteRegister:
 				[ ungroup ]
 				dyfield ModbusMaskWriteParams params; // same for request & reply
 				break;
 
-			case io.ModbusFunc.ReadWriteMultipleRegisters:
+			case ModbusFunc.ReadWriteMultipleRegisters:
 				if (role == ModbusRole.Master) { // request
 					[ ungroup ]
 					dyfield ModbusReadWriteMultipleRegistersParams params;
@@ -640,7 +640,7 @@ async void layoutModbusPdu(
 				}
 				break;
 
-			case io.ModbusFunc.ReadFifoQueue:
+			case ModbusFunc.ReadFifoQueue:
 				if (role == ModbusRole.Master) // request
 					[ ungroup ]
 					dyfield ModbusReadFifoQueueParams params;
@@ -651,7 +651,7 @@ async void layoutModbusPdu(
 				}
 				break;
 
-			case io.ModbusFunc.EncapsulatedInterface:
+			case ModbusFunc.EncapsulatedInterface:
 				std.setError("ModbusFunc.EncapsulatedInterface is unsupported");
 				throw;
 
@@ -659,6 +659,112 @@ async void layoutModbusPdu(
 				std.setError("Unknown Modbus function");
 				throw;
 			}
+		}
+	}
+}
+
+void appendModbusPduDigest(
+	std.StringBuilder* digest,
+	void const* p,
+	size_t size,
+	ModbusRole role
+) {
+	jnc.DynamicLayout layout(p, size);
+	dylayout (layout) {
+		static string_t directions[] = {
+			"request",
+			"reply",
+		}
+
+		dyfield ModbusPduHdr pduHdr;
+		if (!(pduHdr.m_func & ModbusFunc.ExceptionFlag))
+			digest.append($"\e[34m%1\e[m (%2)"(
+				typeof(ModbusFunc).getValueString(pduHdr.m_func),
+				directions[role]
+			));
+		else {
+			dyfield ModbusExceptionParams params;
+			digest.append($"\e[34m%1\e[m (EXCEPTION: \e[31m%2\e[m)"(
+				typeof(ModbusFunc).getValueString(pduHdr.m_func & ~ModbusFunc.ExceptionFlag),
+				typeof(ModbusException).getValueString(params.m_exception)
+			));
+		}
+
+		switch (pduHdr.m_func) {
+		case ModbusFunc.ReadCoils:
+		case ModbusFunc.ReadDiscreteInputs:
+		case ModbusFunc.ReadHoldingRegisters:
+		case ModbusFunc.ReadInputRegisters:
+			if (role == ModbusRole.Master) {
+				dyfield ModbusReadParams params;
+				digest.append($" Addr: \e[34m0x$(params.m_address; 04x)\e[m");
+				if (params.m_count > 1)
+					digest.append($" N: \e[34m$(params.m_count)\e[m");
+			} else {
+				dyfield ModbusReadReplyParams params;
+				digest.append(' ');
+
+				if (pduHdr.m_func <= ModbusFunc.ReadDiscreteInputs)
+					digest.append(getModbusCoilDigest(&params + 1, params.m_size));
+				else
+					digest.append(getModbusRegisterDigest(&params + 1, params.m_size));
+			}
+			break;
+
+		case ModbusFunc.WriteSingleCoil:
+		case ModbusFunc.WriteSingleRegister:
+			dyfield ModbusWriteSingleParams params;
+			digest.append($" Addr: \e[34m0x$(params.m_address; 04x)\e[m Val: \e[34m$(params.m_value)\e[m");
+			break;
+
+		case ModbusFunc.WriteMultipleCoils:
+		case ModbusFunc.WriteMultipleRegisters:
+			if (role == ModbusRole.Master) {
+				dyfield ModbusWriteMultipleParams params;
+				digest.append($" Addr: \e[34m0x$(params.m_address; 04x)\e[m ");
+
+				if (pduHdr.m_func == ModbusFunc.WriteMultipleCoils)
+					digest.append(getModbusCoilDigest(&params + 1, params.m_size));
+				else
+					digest.append(getModbusRegisterDigest(&params + 1, params.m_size));
+			} else {
+				dyfield ModbusWriteMultipleReplyParams params;
+				digest.append($" Addr: \e[34m0x$(params.m_address; 04x) N: \e[34m$(params.m_count)\e[m");
+			}
+			break;
+
+		case ModbusFunc.MaskWriteRegister:
+			dyfield ModbusMaskWriteParams params;
+			digest.append(
+				$" Addr: \e[34m0x%(1; 04x)\e[m Masks: \e[34m0x%(2; 04x)\e[m/\e[34m0x%(3; 04x)\e[m"(
+				params.m_address,
+				params.m_andMask,
+				params.m_orMask
+			));
+			break;
+
+		case ModbusFunc.ReadWriteMultipleRegisters:
+			if (role == ModbusRole.Master) {
+				dyfield ModbusReadWriteMultipleRegistersParams params;
+				digest.append($" Addr: \e[34m0x$(params.m_readAddress; 04x)/0x$(params.m_writeAddress; 04x)\e[m ");
+				digest.append(getModbusRegisterDigest(&params + 1, params.m_writeSize));
+			} else {
+				dyfield ModbusReadReplyParams params;
+				digest.append(' ');
+				digest.append(getModbusRegisterDigest(&params + 1, params.m_size));
+			}
+			break;
+
+		case ModbusFunc.ReadExceptionStatus:
+		case ModbusFunc.Diagnostics:
+		case ModbusFunc.GetCommEventCounter:
+		case ModbusFunc.GetCommEventLog:
+		case ModbusFunc.ReportServerId:
+		case ModbusFunc.ReadFileRecord:
+		case ModbusFunc.WriteFileRecord:
+		case ModbusFunc.ReadFifoQueue:
+		case ModbusFunc.EncapsulatedInterface:
+			break; // not yet
 		}
 	}
 }
@@ -765,7 +871,7 @@ async void layoutModbusRtuAdu(
 }
 
 string_t getModbusRtuDigest(
-	ModbusRtuAduPduHdr const* aduPduHdr,
+	void const* p,
 	size_t size,
 	ModbusRole role
 ) {
@@ -774,31 +880,23 @@ string_t getModbusRtuDigest(
 		"\u2192", // right arrow
 	}
 
-	static string_t directions[] = {
-		"request",
-		"reply",
-	}
+	ModbusRtuAduHdr const* aduHdr = (ModbusRtuAduHdr const*)p;
+	std.StringBuilder digest;
+	digest = $"Dev: %1 %2 "(aduHdr.m_deviceAddress, arrows[role]);
 
-	string_t digest;
-
-	if (size >= sizeof(ModbusRtuAduPduHdr) + sizeof(uint16_t)) {
-		size -= sizeof(uint16_t);
-		uint16_t const* crc = (uint16_t const*)((char const*)aduPduHdr + size);
-		if (*crc != crc16_modbus(aduPduHdr, size))
-			digest = " [\e[31mCRC ERROR\e[m]";
-		else {
-			// prepare digest based on the function code
-		}
-	}
-
-	return $"#%1 %2 %3 \e[90m(%4)\e[m%5"(
-		aduPduHdr.m_deviceAddress,
-		arrows[role],
-		typeof(ModbusFunc).getValueString(aduPduHdr.m_func),
-		directions[role],
-		digest
-
+	appendModbusPduDigest(
+		digest,
+		p + sizeof(ModbusRtuAduHdr),
+		size - sizeof(ModbusRtuAduHdr) - sizeof(uint16_t),
+		role
 	);
+
+	size -= sizeof(uint16_t);
+	uint16_t const* crc = (uint16_t const*)(p + size);
+	if (*crc != crc16_modbus(p, size))
+		digest.append(" [\e[31mCRC ERROR\e[m]");
+
+	return digest.detachString();
 }
 
 string_t getModbusRtuMasterDigest(void const* p) {
@@ -863,18 +961,35 @@ async void layoutModbusTcpAdu(
 }
 
 string_t getModbusTcpDigest(
-	ModbusTcpAduPduHdr const* aduPduHdr,
+	void const* p,
+	size_t size,
 	ModbusRole role
 ) {
-	return $"%1"(typeof(ModbusFunc).getValueString(aduPduHdr.m_func));
+	static string_t arrows[] = {
+		"\u2190", // left arrow
+		"\u2192", // right arrow
+	}
+
+	ModbusTcpAduHdr const* aduHdr = (ModbusTcpAduHdr const*)p;
+	std.StringBuilder digest;
+	digest = $"TID: %04x Dev: %2 %3 "(aduHdr.m_transactionId, aduHdr.m_deviceAddress, arrows[role]);
+
+	appendModbusPduDigest(
+		digest,
+		p + sizeof(ModbusRtuAduHdr),
+		size - sizeof(ModbusRtuAduHdr) - sizeof(uint16_t),
+		role
+	);
+
+	return digest.detachString();
 }
 
 string_t getModbusTcpMasterDigest(void const* p) {
-	return getModbusTcpDigest((ModbusTcpAduPduHdr const*)p, ModbusRole.Master);
+	return getModbusTcpDigest(p, dynamic sizeof(p), ModbusRole.Master);
 }
 
 string_t getModbusTcpSlaveDigest(void const* p) {
-	return getModbusTcpDigest((ModbusTcpAduPduHdr const*)p, ModbusRole.Slave);
+	return getModbusTcpDigest(p, dynamic sizeof(p), ModbusRole.Slave);
 }
 
 string_t getModbusRegisterDigest(
@@ -899,6 +1014,13 @@ string_t getModbusRegisterDigest(
 	}
 
 	return string.detachString();
+}
+
+string_t getModbusCoilDigest(
+	void const* p0,
+	size_t size
+) {
+	return null;
 }
 
 //..............................................................................
