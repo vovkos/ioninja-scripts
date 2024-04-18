@@ -195,6 +195,27 @@ struct ModbusReadReplyParams {
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
+struct ModbusBitBank {
+	[ displayName = "[0]" ]
+	uchar_t m_coil0: 1;
+	[ displayName = "[1]" ]
+	uchar_t m_coil1: 1;
+	[ displayName = "[2]" ]
+	uchar_t m_coil2: 1;
+	[ displayName = "[3]" ]
+	uchar_t m_coil3: 1;
+	[ displayName = "[4]" ]
+	uchar_t m_coil4: 1;
+	[ displayName = "[5]" ]
+	uchar_t m_coil5: 1;
+	[ displayName = "[6]" ]
+	uchar_t m_coil6: 1;
+	[ displayName = "[7]" ]
+	uchar_t m_coil7: 1;
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
 // ModbusFunc.WriteSingleCoil/WriteSingleRegister
 
 struct ModbusWriteSingleParams {
@@ -445,7 +466,7 @@ enum {
 
 // no need to make this one async -- it doesn't read any preceding data
 
-void layoutModbusRegisterValues(
+void layoutModbusRegisters(
 	jnc.DynamicLayout* layout,
 	size_t count,
 	size_t size
@@ -477,6 +498,14 @@ async void layoutModbusPdu(
 	jnc.DynamicLayout* layout,
 	ModbusRole role
 ) {
+	[
+		displayName = "Values",
+		backColor = ui.StdColor.PastelYellow,
+		digestFunc = getModbusBitDigest,
+		foldFlag = 2
+	]
+	void ModbusBitBankAttr;
+
 	dylayout (layout) {
 		[
 			backColor = ui.StdColor.PastelBlue,
@@ -504,22 +533,6 @@ async void layoutModbusPdu(
 			switch (func) {
 			case ModbusFunc.ReadCoils:
 			case ModbusFunc.ReadDiscreteInputs:
-				if (role == ModbusRole.Master) // request
-					[ ungroup ]
-					dyfield ModbusReadParams params;
-				else { // reply
-					[ ungroup ]
-					dyfield ModbusReadReplyParams params;
-
-					[
-						displayName = "Values",
-						backColor = ui.StdColor.PastelYellow,
-						binary
-					]
-					dyfield uint8_t data[params.m_size];
-				}
-				break;
-
 			case ModbusFunc.ReadHoldingRegisters:
 			case ModbusFunc.ReadInputRegisters:
 				if (role == ModbusRole.Master) // request
@@ -528,9 +541,15 @@ async void layoutModbusPdu(
 				else { // reply
 					[ ungroup ]
 					dyfield ModbusReadReplyParams params;
-					layoutModbusRegisterValues(layout, -1, params.m_size);
+
+					if (func <= ModbusFunc.ReadDiscreteInputs)
+						[ @ModbusBitBankAttr ]
+						dyfield ModbusBitBank values[params.m_size];
+					else
+						layoutModbusRegisters(layout, -1, params.m_size);
 				}
 				break;
+
 
 			case ModbusFunc.WriteSingleCoil:
 			case ModbusFunc.WriteSingleRegister:
@@ -587,14 +606,10 @@ async void layoutModbusPdu(
 			case ModbusFunc.WriteMultipleCoils:
 				if (role == ModbusRole.Master) { // request
 					[ ungroup ]
-					dyfield ModbusWriteMultipleCoilsParams request;
+					dyfield ModbusWriteMultipleCoilsParams params;
 
-					[
-						displayName = "Values",
-						backColor = ui.StdColor.PastelYellow,
-						binary
-					]
-					dyfield uint8_t data[request.m_size];
+					[ @ModbusBitBankAttr ]
+					dyfield ModbusBitBank values[params.m_size];
 				} else // reply
 					[ ungroup ]
 					dyfield ModbusWriteMultipleReplyParams reply;
@@ -604,7 +619,7 @@ async void layoutModbusPdu(
 				if (role == ModbusRole.Master) { // request
 					[ ungroup ]
 					dyfield ModbusWriteMultipleRegistersParams params;
-					layoutModbusRegisterValues(layout, params.m_count, params.m_size);
+					layoutModbusRegisters(layout, params.m_count, params.m_size);
 				} else // reply
 					[ ungroup ]
 					dyfield ModbusWriteMultipleReplyParams params;
@@ -632,11 +647,11 @@ async void layoutModbusPdu(
 				if (role == ModbusRole.Master) { // request
 					[ ungroup ]
 					dyfield ModbusReadWriteMultipleRegistersParams params;
-					layoutModbusRegisterValues(layout, params.m_writeCount, params.m_writeSize);
+					layoutModbusRegisters(layout, params.m_writeCount, params.m_writeSize);
 				} else { // reply
 					[ ungroup ]
 					dyfield ModbusReadReplyParams params;
-					layoutModbusRegisterValues(layout, -1, params.m_size);
+					layoutModbusRegisters(layout, -1, params.m_size);
 				}
 				break;
 
@@ -647,7 +662,7 @@ async void layoutModbusPdu(
 				else {
 					[ ungroup ]
 					dyfield ModbusReadFifoQueueReplyParams params;
-					layoutModbusRegisterValues(layout, params.m_fifoCount, params.m_byteCount - sizeof(uint16_t));
+					layoutModbusRegisters(layout, params.m_fifoCount, params.m_byteCount - sizeof(uint16_t));
 				}
 				break;
 
@@ -705,7 +720,7 @@ void appendModbusPduDigest(
 				digest.append(' ');
 
 				if (pduHdr.m_func <= ModbusFunc.ReadDiscreteInputs)
-					digest.append(getModbusCoilDigest(&params + 1, params.m_size));
+					digest.append(getModbusBitDigest(&params + 1, params.m_size));
 				else
 					digest.append(getModbusRegisterDigest(&params + 1, params.m_size));
 			}
@@ -724,7 +739,7 @@ void appendModbusPduDigest(
 				digest.append($" Addr: \e[34m0x$(params.m_address; 04x)\e[m ");
 
 				if (pduHdr.m_func == ModbusFunc.WriteMultipleCoils)
-					digest.append(getModbusCoilDigest(&params + 1, params.m_size));
+					digest.append(getModbusBitDigest(&params + 1, params.m_size));
 				else
 					digest.append(getModbusRegisterDigest(&params + 1, params.m_size));
 			} else {
@@ -992,35 +1007,53 @@ string_t getModbusTcpSlaveDigest(void const* p) {
 	return getModbusTcpDigest(p, dynamic sizeof(p), ModbusRole.Slave);
 }
 
+enum {
+	ModbusDigestValueCount = 3
+}
+
 string_t getModbusRegisterDigest(
 	void const* p0,
 	size_t size
 ) {
 	size_t count0 = size / sizeof(uint16_t);
-	size_t count = count0 < 4 ? count0 : 4;
+	size_t count = count0 < ModbusDigestValueCount ? count0 : ModbusDigestValueCount;
 	bigendian uint16_t const* p = (bigendian uint16_t const*)p0;
 	bigendian uint16_t const* end = p + count;
 
-	std.StringBuilder string;
-	string.append('{');
+	std.StringBuilder digest;
+	digest.append('{');
 	for (; p < end; p++)
-		string.append($" %d,"(*p));
+		digest.append($" %d,"(*p));
 
 	if (count0 > count)
-		string.append(" ... }");
+		digest.append(" ... }");
 	else {
-		string.chop(1);
-		string.append(" }");
+		digest.chop(1);
+		digest.append(" }");
 	}
 
-	return string.detachString();
+	return digest.detachString();
 }
 
-string_t getModbusCoilDigest(
-	void const* p0,
+string_t getModbusBitDigest(
+	void const* p,
 	size_t size
 ) {
-	return null;
+	if (!size)
+		return "{ }";
+
+	size_t count0 = size * 8;
+
+	std.StringBuilder digest;
+	digest.append('{');
+
+	uchar_t x = *(uchar_t const*)p;
+	uchar_t mask = 1;
+	for (size_t i = 0; i < ModbusDigestValueCount; i++, x >>= 1)
+		digest.append($" %d,"(x & 1));
+
+	digest.append(" ... }");
+	return digest.detachString();
 }
 
 //..............................................................................
