@@ -18,55 +18,28 @@ bool representModbusLog(
 	uint_t foldFlags
 ) {
 	switch (recordCode) {
-	case ModbusLogRecordCode.MasterPacket_Rtu:
-		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.TxPacket;
-		jnc.DynamicLayout layout(jnc.DynamicLayoutMode.Save, p, size);
-		io.layoutModbusRtuAdu(layout, io.ModbusRole.Master);
-		log.representDynamicLayout(representation, layout, foldFlags);
-		break;
-
-	case ModbusLogRecordCode.SlavePacket_Rtu:
-		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.RxPacket;
-		jnc.DynamicLayout layout(jnc.DynamicLayoutMode.Save, p, size);
-		io.layoutModbusRtuAdu(layout, io.ModbusRole.Slave);
-		log.representDynamicLayout(representation, layout, foldFlags);
-		break;
-
-	case ModbusLogRecordCode.MasterPacket_Ascii:
-		representModbusAsciiAdu(representation, io.ModbusRole.Master, p, size, foldFlags);
-		break;
-
-	case ModbusLogRecordCode.SlavePacket_Ascii:
-		representModbusAsciiAdu(representation, io.ModbusRole.Slave, p, size, foldFlags);
-		break;
-
-	case ModbusLogRecordCode.MasterPacket_Tcp:
-		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.TxPacket;
-		jnc.DynamicLayout layout(jnc.DynamicLayoutMode.Save, p, size);
-		io.layoutModbusTcpAdu(layout, io.ModbusRole.Master);
-		log.representDynamicLayout(representation, layout, foldFlags);
-		break;
-
-	case ModbusLogRecordCode.SlavePacket_Tcp:
-		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.RxPacket;
-		jnc.DynamicLayout layout(jnc.DynamicLayoutMode.Save, p, size);
-		io.layoutModbusTcpAdu(layout, io.ModbusRole.Slave);
-		log.representDynamicLayout(representation, layout, foldFlags);
-		break;
-
-	case ModbusLogRecordCode.InvalidFunction: // legacy
-		uint8_t code = *(uint8_t const*)p;
-		representation.m_lineAttr.m_backColor = ui.StdColor.PastelYellow;
-		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
-		representation.addHyperText($"Invalid or unsupported Modbus function: \e[31m0x%(1; 02x)/%1\e[m" (code));
-		return true;
-
 	case ModbusLogRecordCode.ParseError:
 		std.Error const* error = (std.Error const*)p;
 		representation.m_lineAttr.m_backColor = ui.StdColor.PastelYellow;
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
-		representation.addHyperText($"Modbus parse error: $(error.m_description)");
-		return true;
+		representation.addHyperText($"Modbus parse error: %1"(error.m_description));
+		break;
+
+	case ModbusLogRecordCode.Packet_rtu_master:
+	case ModbusLogRecordCode.Packet_rtu_slave:
+	case ModbusLogRecordCode.Packet_ascii_master:
+	case ModbusLogRecordCode.Packet_ascii_slave:
+	case ModbusLogRecordCode.Packet_tcp_master:
+	case ModbusLogRecordCode.Packet_tcp_slave:
+		size_t i = recordCode - ModbusLogRecordCode.Packet_rtu_master;
+		io.ModbusProtocol protocol = (io.ModbusProtocol)((i >> 1) & 3);
+		io.ModbusRole role = (io.ModbusRole)(i & 1);
+		representation.m_lineAttr.m_iconIdx = role ? log.StdLogIcon.RxPacket : log.StdLogIcon.TxPacket;
+
+		jnc.DynamicLayout layout(jnc.DynamicLayoutMode.Save, p, size);
+		io.layoutModbusAdu(layout, protocol, role);
+		log.representDynamicLayout(representation, layout, foldFlags);
+		break;
 
 	default:
 		return false;

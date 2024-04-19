@@ -26,13 +26,13 @@ protected:
 	override void postPacket();
 
 	override void layoutPacket() {
-		io.layoutModbusRtuAdu(m_packet, m_modbusRole);
+		io.layoutModbusAdu(m_packet, io.ModbusProtocol.Rtu, m_modbusRole);
 	}
 
 	override uint64_t getPacketRecordCode() {
 		return m_modbusRole == io.ModbusRole.Master ?
-			ModbusLogRecordCode.MasterPacket_Rtu :
-			ModbusLogRecordCode.SlavePacket_Rtu;
+			ModbusLogRecordCode.Packet_rtu_master :
+			ModbusLogRecordCode.Packet_rtu_slave;
 	}
 }
 

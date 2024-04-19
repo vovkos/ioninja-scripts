@@ -11,13 +11,13 @@ public:
 
 protected:
 	override void layoutPacket() {
-		io.layoutModbusTcpAdu(m_packet, m_modbusRole);
+		io.layoutModbusAdu(m_packet, io.ModbusProtocol.Tcp, m_modbusRole);
 	}
 
 	override uint64_t getPacketRecordCode() {
 		return m_modbusRole == io.ModbusRole.Master ?
-			ModbusLogRecordCode.MasterPacket_Tcp :
-			ModbusLogRecordCode.SlavePacket_Tcp;
+			ModbusLogRecordCode.Packet_tcp_master  :
+			ModbusLogRecordCode.Packet_tcp_slave;
 	}
 }
 
