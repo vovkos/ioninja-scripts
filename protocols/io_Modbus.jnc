@@ -834,7 +834,7 @@ string_t formatModbusAsciiLrc(void const* p) {
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-async void layoutModbusAduImpl(
+async void layoutModbusAdu(
 	jnc.DynamicLayout* layout,
 	ModbusProtocol protocol,
 	ModbusRole role
@@ -845,250 +845,136 @@ async void layoutModbusAduImpl(
 	]
 	void AduAttr;
 
-	dylayout (layout) {
-		switch (protocol) {
-		case ModbusProtocol.Rtu:
-			[ @AduAttr ]
-			dyfield ModbusRtuAduHdr aduHdr;
-
-			await layoutModbusPdu(layout, role);
-
-			[ @AduAttr ]
-			dyfield ModbusRtuCrc crc;
-			break;
-
-		case ModbusProtocol.Ascii:
-			[ @AduAttr ]
-			dyfield ModbusRtuAduHdr aduHdr;
-
-			await layoutModbusPdu(layout, role);
-
-			[
-				@AduAttr,
-				displayName = "LRC",
-				formatFunc = formatModbusAsciiLrc
-			]
-			dyfield uint8_t lrc;
-			break;
-
-		case ModbusProtocol.Tcp:
-			[ @AduAttr ]
-			dyfield ModbusTcpAduHdr aduHdr;
-
-			await layoutModbusPdu(layout, role);
-			break;
-		}
+	static string_t displayNames[] = {
+		"MODBUS-RTU",
+		"MODBUS-ASCII",
+		"MODBUS-RTU",
 	}
-}
-
-async void layoutModbusAdu(
-	jnc.DynamicLayout* layout,
-	ModbusProtocol protocol,
-	ModbusRole role
-) {
-	// attributes are always static and constant
-	// we can't pass modbus protocol or role to the digest func
-	// therefore, we just branch and have two declarations (one for master, one for slave)
-
-	[
-		displayNameAttr = "\e[1m",
-		backColor = ui.StdColor.PastelGray,
-		foldFlag = 1,
-		root // root groups are for log only (ungrouped in packet templates)
-	]
-	void AduAttr;
-
-	[
-		@AduAttr,
-		displayName = "MODBUS RTU"
-	]
-	void RtuAduAttr;
-
-	[
-		@AduAttr,
-		displayName = "MODBUS ASCII"
-	]
-	void AsciiAduAttr;
-
-	[
-		@AduAttr,
-		displayName = "MODBUS TCP"
-	]
-	void TcpAduAttr;
 
 	dylayout (layout) {
-		switch (protocol) {
-		case ModbusProtocol.Rtu:
-			if (role == ModbusRole.Master)
-				[
-					@RtuAduAttr,
-					digestFunc = getModbusRtuMasterDigest
-				]
-				dyfield adu {
-					await layoutModbusAduImpl(layout, protocol, role);
-				}
-			else
-				[
-					@RtuAduAttr,
-					digestFunc = getModbusRtuSlaveDigest
-				]
-				dyfield adu {
-					await layoutModbusAduImpl(layout, protocol, role);
-				}
-			break;
+		[
+			displayNameAttr = "\e[1m",
+			backColor = ui.StdColor.PastelGray,
+			digestFunc = getModbusAduDigest,
+			foldFlag = 1,
+			root // root groups are for log only (ungrouped in packet templates)
+		]
+		dyfield adu {
+			// add dynamic attributes for representDynamicLayout / getModbusAduDigest
+			layout.setGroupAttribute("displayName", displayNames[protocol]);
+			layout.setGroupAttribute("protocol", protocol);
+			layout.setGroupAttribute("role", role);
 
-		case ModbusProtocol.Ascii:
-			if (role == ModbusRole.Master)
-				[
-					@AsciiAduAttr,
-					digestFunc = getModbusAsciiMasterDigest
-				]
-				dyfield adu {
-					await layoutModbusAduImpl(layout, protocol, role);
-				}
-			else
-				[
-					@AsciiAduAttr,
-					digestFunc = getModbusAsciiSlaveDigest
-				]
-				dyfield adu {
-					await layoutModbusAduImpl(layout, protocol, role);
-				}
-			break;
+			dylayout (layout) {
+				switch (protocol) {
+				case ModbusProtocol.Rtu:
+					[ @AduAttr ]
+					dyfield ModbusRtuAduHdr aduHdr;
 
-		case ModbusProtocol.Tcp:
-			if (role == ModbusRole.Master)
-				[
-					@RtuAduAttr,
-					digestFunc = getModbusTcpMasterDigest
-				]
-				dyfield adu {
-					await layoutModbusAduImpl(layout, protocol, role);
+					await layoutModbusPdu(layout, role);
+
+					[ @AduAttr ]
+					dyfield ModbusRtuCrc crc;
+					break;
+
+				case ModbusProtocol.Ascii:
+					[ @AduAttr ]
+					dyfield ModbusRtuAduHdr aduHdr;
+
+					await layoutModbusPdu(layout, role);
+
+					[
+						@AduAttr,
+						displayName = "LRC",
+						formatFunc = formatModbusAsciiLrc
+					]
+					dyfield uint8_t lrc;
+					break;
+
+				case ModbusProtocol.Tcp:
+					[ @AduAttr ]
+					dyfield ModbusTcpAduHdr aduHdr;
+
+					await layoutModbusPdu(layout, role);
+					break;
 				}
-			else
-				[
-					@RtuAduAttr,
-					digestFunc = getModbusTcpSlaveDigest
-				]
-				dyfield adu {
-					await layoutModbusAduImpl(layout, protocol, role);
-				}
-			break;
+			}
 		}
 	}
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-string_t getModbusRtuDigest(
+string_t getModbusAduDigest(
 	void const* p,
 	size_t size,
-	ModbusRole role
+	jnc.ModuleItemDecl* decl
 ) {
 	static string_t arrows[] = {
 		"\u2190", // left arrow
 		"\u2192", // right arrow
 	}
 
-	ModbusRtuAduHdr const* aduHdr = (ModbusRtuAduHdr const*)p;
-	std.StringBuilder digest = $"Dev: %1 %2 "(aduHdr.m_deviceAddress, arrows[role]);
+	ModbusProtocol protocol = decl.findAttributeValue("protocol");
+	ModbusRole role = decl.findAttributeValue("role");
+	std.StringBuilder digest;
 
-	appendModbusPduDigest(
-		digest,
-		p + sizeof(ModbusRtuAduHdr),
-		size - sizeof(ModbusRtuAduHdr) - sizeof(uint16_t),
-		role
-	);
+	switch (protocol) {
+	case ModbusProtocol.Rtu:
+		ModbusRtuAduHdr const* aduHdr = (ModbusRtuAduHdr const*)p;
+		digest := $"Dev: %1 %2 "(aduHdr.m_deviceAddress, arrows[role]);
 
-	size -= sizeof(uint16_t);
-	uint16_t const* crc = (uint16_t const*)(p + size);
-	if (*crc != crc16_modbus(p, size))
-		digest.append(" [\e[31mCRC ERROR\e[m]");
+		appendModbusPduDigest(
+			digest,
+			p + sizeof(ModbusRtuAduHdr),
+			size - sizeof(ModbusRtuAduHdr) - sizeof(uint16_t),
+			role
+		);
 
-	return digest.detachString();
-}
+		size -= sizeof(uint16_t);
+		uint16_t const* crc = (uint16_t const*)(p + size);
+		if (*crc != crc16_modbus(p, size))
+			digest.append(" [\e[31mCRC ERROR\e[m]");
 
-string_t getModbusRtuMasterDigest(void const* p) {
-	return getModbusRtuDigest((ModbusRtuAduPduHdr const*)p, dynamic sizeof(p), ModbusRole.Master);
-}
+		break;
 
-string_t getModbusRtuSlaveDigest(void const* p) {
-	return getModbusRtuDigest((ModbusRtuAduPduHdr const*)p, dynamic sizeof(p), ModbusRole.Slave);
-}
+	case ModbusProtocol.Ascii:
+		ModbusRtuAduHdr const* aduHdr = (ModbusRtuAduHdr const*)p;
+		digest := $"Dev: %1 %2 "(aduHdr.m_deviceAddress, arrows[role]);
 
-// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+		appendModbusPduDigest(
+			digest,
+			p + sizeof(ModbusRtuAduHdr),
+			size - sizeof(ModbusRtuAduHdr) - sizeof(uint16_t),
+			role
+		);
 
-string_t getModbusAsciiDigest(
-	void const* p,
-	size_t size,
-	ModbusRole role
-) {
-	static string_t arrows[] = {
-		"\u2190", // left arrow
-		"\u2192", // right arrow
+		size -= sizeof(uint8_t);
+		uint8_t const* checksum = (uint8_t const*)(p + size);
+		if (*checksum != lrc(p, size))
+			digest.append(" [\e[31mLRC ERROR\e[m]");
+
+		break;
+
+	case ModbusProtocol.Tcp:
+		ModbusTcpAduHdr const* aduHdr = (ModbusTcpAduHdr const*)p;
+		digest := $"TID: %04x Dev: %2 %3 "(
+			aduHdr.m_transactionId,
+			aduHdr.m_deviceAddress,
+			arrows[role]
+		);
+
+		appendModbusPduDigest(
+			digest,
+			p + sizeof(ModbusRtuAduHdr),
+			size - sizeof(ModbusRtuAduHdr) - sizeof(uint16_t),
+			role
+		);
+
+		break;
 	}
 
-	ModbusRtuAduHdr const* aduHdr = (ModbusRtuAduHdr const*)p;
-	std.StringBuilder digest = $"Dev: %1 %2 "(aduHdr.m_deviceAddress, arrows[role]);
-
-	appendModbusPduDigest(
-		digest,
-		p + sizeof(ModbusRtuAduHdr),
-		size - sizeof(ModbusRtuAduHdr) - sizeof(uint16_t),
-		role
-	);
-
-	size -= sizeof(uint8_t);
-	uint8_t const* checksum = (uint8_t const*)(p + size);
-	if (*checksum != lrc(p, size))
-		digest.append(" [\e[31mLRC ERROR\e[m]");
-
 	return digest.detachString();
-}
-
-string_t getModbusAsciiMasterDigest(void const* p) {
-	return getModbusAsciiDigest((ModbusRtuAduPduHdr const*)p, dynamic sizeof(p), ModbusRole.Master);
-}
-
-string_t getModbusAsciiSlaveDigest(void const* p) {
-	return getModbusAsciiDigest((ModbusRtuAduPduHdr const*)p, dynamic sizeof(p), ModbusRole.Slave);
-}
-
-// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-string_t getModbusTcpDigest(
-	void const* p,
-	size_t size,
-	ModbusRole role
-) {
-	static string_t arrows[] = {
-		"\u2190", // left arrow
-		"\u2192", // right arrow
-	}
-
-	ModbusTcpAduHdr const* aduHdr = (ModbusTcpAduHdr const*)p;
-	std.StringBuilder digest = $"TID: %04x Dev: %2 %3 "(
-		aduHdr.m_transactionId,
-		aduHdr.m_deviceAddress,
-		arrows[role]
-	);
-
-	appendModbusPduDigest(
-		digest,
-		p + sizeof(ModbusRtuAduHdr),
-		size - sizeof(ModbusRtuAduHdr) - sizeof(uint16_t),
-		role
-	);
-
-	return digest.detachString();
-}
-
-string_t getModbusTcpMasterDigest(void const* p) {
-	return getModbusTcpDigest(p, dynamic sizeof(p), ModbusRole.Master);
-}
-
-string_t getModbusTcpSlaveDigest(void const* p) {
-	return getModbusTcpDigest(p, dynamic sizeof(p), ModbusRole.Slave);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -1144,7 +1030,7 @@ string_t getModbusBitDigest(
 
 //..............................................................................
 
-// PDU definitions (for the legacy plugin)
+// PDU definitions (for the legacy plugin & packet templates)
 
 struct ModbusExceptionPdu:
 	ModbusPduHdr,
