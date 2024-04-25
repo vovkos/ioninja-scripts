@@ -1,0 +1,36 @@
+//..............................................................................
+//
+// This script can be used in conjuntcion with the Modbus RTU packet templates
+// to re-encode outbound packets as Modbus ASCII
+//
+//..............................................................................
+
+import "crc8.jnc"
+
+void pretransmit(
+	uint8_t const* p,
+	size_t size
+) {
+	size -= 2; // drop RTU CRC
+
+	std.Buffer buffer;
+	buffer.setSize(size * 2 + 1 + 2 + 2); // :(ADU)(LRC)\r\n
+	char* dst = buffer.m_p;
+	*dst++ = ':';
+
+	static const char hex[] = "0123456789ABCDEF";
+	for (size_t i = 0; i < size; i++) {
+		uint8_t x = p[i];
+		*dst++ = hex[(x & 0xf0) >> 4];
+		*dst++ = hex[x & 0x0f];
+	}
+
+	uint8_t x = lrc(p, size);
+	*dst++ = hex[(x & 0xf0) >> 4];
+	*dst++ = hex[x & 0x0f];
+	
+	*dst++ = '\r';
+	*dst++ = '\n';
+
+	transmit(buffer.m_p, buffer.m_size);
+}

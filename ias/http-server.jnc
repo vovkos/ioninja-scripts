@@ -12,10 +12,7 @@ import "io_File.jnc"
 import "sys_Thread.jnc"
 import "std_Buffer.jnc"
 
-void main() {
-	for (;;)
-		sys.sleep(500); // don't eat CPU in busy loop
-}
+//..............................................................................
 
 void onLogRecord(
 	uint64_t timestamp,
@@ -101,9 +98,7 @@ void HttpServer.processRequest(
 ) {
 	switch (string_t(p, size)) {
 	case r"GET[ \t]+([^\s]+)[^\n]+\n": // only care about the first line of GET
-		string_t fileName = strdup($1); // the original data can be re-written
-		sys.Thread thread;
-		thread.start(transmitFile~(fileName));
+		transmitFile~($1);
 		break;
 
 	// process other HTTP commands if necessary

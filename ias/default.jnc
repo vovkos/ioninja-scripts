@@ -25,3 +25,11 @@ void onLogRecord(
 ) {
 	// TODO: write the new log record handling logic here
 }
+
+void pretransmit(
+	void const* p,
+	size_t size
+) {
+	// TODO: write the outbound packet preprocessing logic here
+	transmit(p, size);
+}
