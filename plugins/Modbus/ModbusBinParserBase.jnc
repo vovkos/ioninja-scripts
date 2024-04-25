@@ -37,7 +37,8 @@ protected:
 	) {}
 
 	virtual void postPacket() {}
-	abstract void layoutPacket();
+
+	abstract jnc.Promise* layoutPacket();
 	abstract uint64_t getPacketRecordCode();
 }
 
@@ -55,41 +56,34 @@ void ModbusBinParserBase.parse(
 	void const* end = p + size;
 	while (p < end) {
 		size = end - p;
-		size_t prevBufferSize = 0;
+		jnc.Promise const* promise;
 
-		try {
-			if (m_packet.m_isIncomplete) { // resume the incomplete packet
-				prevBufferSize = m_packet.m_bufferSize;
-				size = m_packet.resume(p, size);
-			} else { // start a new one
-				m_packet.reset(jnc.DynamicLayoutMode.Stream, p, size);
-				layoutPacket();
-				if (!m_packet.m_isIncomplete)
-					size = m_packet.m_size;
-			}
-
-		catch: // exception during layout
+		if (m_packet.m_isIncomplete) { // resume the incomplete packet
+			size = m_packet.resume(p, size);
+			promise = m_packet.m_promise;
+		} else { // start a new one
+			m_packet.reset(jnc.DynamicLayoutMode.Stream, p, size);
+			promise = layoutPacket();
 			if (!m_packet.m_isIncomplete)
-				size = m_packet.m_size > prevBufferSize ? m_packet.m_size - prevBufferSize : 0;
+				size = m_packet.m_size;
+		}
 
-			if (size) {
-				writer.write(timestamp, originalRecordCode, p, size);
-				p += size;
-			}
+		writer.write(timestamp, originalRecordCode, p, size);
+		p += size;
 
-			writer.writeLastError(timestamp, ModbusLogRecordCode.ParseError);
+		if (promise.m_error) { // exception during layout
+			writer.write(timestamp, ModbusLogRecordCode.ParseError, promise.m_error);
 			m_infoSet.addError();
 			reset();
 			continue;
 		}
 
-		writer.write(timestamp, originalRecordCode, p, size);
 		if (m_packet.m_isIncomplete)
 			break;
 
 		writer.write(timestamp, getPacketRecordCode(), m_packet.m_p, m_packet.m_size);
+		m_infoSet.addAdu(m_modbusRole);
 		postPacket();
-		p += size;
 	}
 }
 

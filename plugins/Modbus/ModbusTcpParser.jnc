@@ -10,8 +10,8 @@ public:
 	}
 
 protected:
-	override void layoutPacket() {
-		io.layoutModbusAdu(m_packet, io.ModbusProtocol.Tcp, m_modbusRole);
+	override jnc.Promise* layoutPacket() {
+		return io.layoutModbusAdu(m_packet, io.ModbusProtocol.Tcp, m_modbusRole);
 	}
 
 	override uint64_t getPacketRecordCode() {
