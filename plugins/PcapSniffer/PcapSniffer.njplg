@@ -26,4 +26,3 @@ org.jancy.io.pcap
 [scripts]
 
 PcapSnifferSession.jnc
-../NetSnifferLog/NetSnifferLogFilter.jnc

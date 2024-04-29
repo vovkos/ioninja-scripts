@@ -31,7 +31,6 @@ protected:
 	}
 
 	enum ActionId {
-		ApplyFilter,
 		Capture,
 		ExportPcap,
 		_Count,
@@ -54,7 +53,6 @@ protected:
 
 	iox.SshChannel m_ssh;
 	io.HwcProtoDecoder m_decoder;
-	EthernetTapLogFilter m_filter;
 	EthernetTapLogToPcap m_exportPcap;
 
 	// toolbar, status bar & menu
@@ -63,13 +61,11 @@ protected:
 	ui.Icon* m_iconTable[IconId._Count];
 	ui.StatusPane* m_statusPaneTable[StatusPaneId._Count];
 	ui.ComboBox* m_addressCombo;
-	ui.ComboBox* m_filterCombo;
 
 	// property grid
 
 	ui.SocketPropertySet m_socketPropertySet;
 	ui.SshPropertySet m_sshPropertySet;
-	ui.StringProperty* m_filterProp;
 	ui.BufferPropertySet m_bufferPropertySet;
 
 	// information grid
@@ -138,14 +134,9 @@ protected:
 		m_logWriter.write(log.StdRecordCode.Bin, p, size);
 	}
 
-	void onSetFilter() {
-		try applyFilter(true);
-	}
-
 	void createUi();
 
 	bool errorcode startCapture();
-	bool errorcode applyFilter(bool rebuildLog = false);
 	iox.SshChannel.ConnectParams const* createConnectParams();
 }
 
@@ -166,7 +157,6 @@ SshEthernetTapSession.construct(doc.PluginHost* pluginHost) {
 	m_decoder.m_onOobData += onOobData;
 
 	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
-	pluginHost.m_log.addFilter(m_filter);
 }
 
 void SshEthernetTapSession.createUi() {
@@ -174,18 +164,6 @@ void SshEthernetTapSession.createUi() {
 
 	m_iconTable[IconId.Capture] = new ui.Icon("images/capture.png");
 	m_iconTable[IconId.StopCapture] = new ui.Icon("images/stop.png");
-
-	m_pluginHost.m_toolBar.addLabel("Filter:");
-	m_filterCombo = m_pluginHost.m_toolBar.addComboBox(-1);
-	m_filterCombo.m_isEditable = true;
-	m_filterCombo.m_onReturnPressed += onSetFilter;
-	m_filterCombo.m_placeholderText = "Enter a pcap-filter...";
-	m_filterCombo.m_toolTip =
-		"View only packets which pass this filter\n"
-		"For a complete syntax reference, google 'pcap-filter'";
-
-	m_actionTable[ActionId.ApplyFilter]  = createAction("Apply filter", "images/apply.png");
-	m_actionTable[ActionId.ApplyFilter].m_onTriggered += onSetFilter;
 
 	m_pluginHost.m_toolBar.addLabel("Address:");
 	m_addressCombo = m_pluginHost.m_toolBar.addComboBox(-1);
@@ -237,14 +215,6 @@ void SshEthernetTapSession.createUi() {
 		"Ethernet Tap settings"
 	);
 
-	m_filterProp = m_pluginHost.m_propertyGrid.createStringProperty(
-		group,,
-		"Filter",
-		"Enter a pcap-filter...",
-		"View only packets which pass this filter\n"
-		"For a complete syntax reference, google 'pcap-filter'"
-	);
-
 	ui.BufferPropertySet.PropertyId mask = ui.BufferPropertySet.PropertyId.All;
 	mask &= ~(
 		ui.BufferPropertySet.PropertyId.WriteBufferSize |
@@ -291,13 +261,6 @@ bool errorcode SshEthernetTapSession.connect() {
 	}
 
 	m_addressCombo.addEditTextToHistory();
-
-	bool result = try applyFilter();
-	if (!result) {
-		m_logWriter.writeLastError(EthernetTapLogRecordCode.CaptureError);
-		return false;
-	}
-
 	m_decoder.reset();
 	return m_ssh.connect(addressString, createConnectParams());
 }
@@ -309,25 +272,6 @@ void SshEthernetTapSession.disconnect() {
 
 	m_ssh.disconnect();
 	m_stdSessionInfoSet.endSession();
-}
-
-bool errorcode SshEthernetTapSession.applyFilter(bool rebuildLog) {
-	m_pluginHost.m_log.suspend();
-	bool result = try m_filter.setFilter(m_filterCombo.m_editText);
-	m_pluginHost.m_log.resume();
-
-	if (!result) {
-		m_filterCombo.m_backgroundColor = ui.StdColor.PastelRed;
-		return false;
-	}
-
-	m_filterCombo.m_backgroundColor = ui.ColorFlags.Undefined;
-	m_filterCombo.addEditTextToHistory();
-
-	if (rebuildLog)
-		m_pluginHost.m_log.rebuild();
-
-	return true;
 }
 
 iox.SshChannel.ConnectParams const* SshEthernetTapSession.createConnectParams() {
@@ -376,8 +320,6 @@ iox.SshChannel.ConnectParams const* SshEthernetTapSession.createConnectParams() 
 }
 
 void SshEthernetTapSession.load(doc.Storage* storage) {
-	m_filterCombo.loadHistory(storage, "filterHistory");
-	m_filterCombo.m_editText = storage.readString("filter");
 	m_addressCombo.loadHistory(storage, "addressHistory");
 	m_addressCombo.m_editText = storage.readString("address");
 
@@ -394,20 +336,15 @@ void SshEthernetTapSession.save(doc.Storage* storage) {
 
 	m_addressCombo.saveHistory(storage, "addressHistory");
 	storage.writeString("address", m_addressCombo.m_editText);
-	m_filterCombo.saveHistory(storage, "filterHistory");
-	storage.writeString("filter", m_filterCombo.m_editText);
 }
 
 void SshEthernetTapSession.updateProperties() {
 	m_socketPropertySet.m_remoteAddressProp.m_value = m_addressCombo.m_editText;
-	m_filterProp.m_value = m_filterCombo.m_editText;
 }
 
 bool errorcode SshEthernetTapSession.applyProperties() {
 	m_addressCombo.m_editText = m_socketPropertySet.m_remoteAddressProp.m_value;
 	m_ssh.applyProperties(m_socketPropertySet, m_sshPropertySet, m_bufferPropertySet);
-	m_filterCombo.m_editText = m_filterProp.m_value;
-	applyFilter();
 	return true;
 }
 
