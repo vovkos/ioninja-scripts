@@ -6,7 +6,6 @@
 import "doc_Session.jnc"
 import "io_base.jncx"
 import "io_Serial.jnc"
-import "io_ssh.jncx"
 import "iox_SshChannel.jnc"
 import "io_HwcProto.jnc"
 import "ui_History.jnc"

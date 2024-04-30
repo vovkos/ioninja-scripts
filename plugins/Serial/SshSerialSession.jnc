@@ -640,16 +640,14 @@ catch:
 }
 
 iox.SshChannel.ConnectParams const* SshSerialSession.createConnectParams() {
-	void const* privateKey;
+	std.Buffer privateKey;
 	string_t lastPassword;
 
 	if (m_sshPropertySet.m_authenticationMethodProp.m_value == ui.AuthenticationMethod.PrivateKey) {
-		privateKey = loadFile(m_sshPropertySet.m_privateKeyFileProp.m_value);
+		loadFile(privateKey, m_sshPropertySet.m_privateKeyFileProp.m_value);
 		lastPassword = m_ssh.getLastPrivateKeyPassphrase();
-	} else {
-		privateKey = null;
+	} else
 		lastPassword = m_ssh.getLastPassword();
-	}
 
 	iox.SshChannel.ConnectParams* params = new iox.SshChannel.ConnectParams;
 	params.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
@@ -669,8 +667,8 @@ iox.SshChannel.ConnectParams const* SshSerialSession.createConnectParams() {
 	params.m_privateKeyFileName = m_sshPropertySet.m_privateKeyFileProp.m_value;
 	params.m_rememberLastPassword = m_sshPropertySet.m_rememberLastPasswordProp.m_value;
 	params.m_sshParams.m_userName = m_sshPropertySet.m_userNameProp.m_value;
-	params.m_sshParams.m_privateKey = privateKey;
-	params.m_sshParams.m_privateKeySize = dynamic sizeof(privateKey);
+	params.m_sshParams.m_privateKey = privateKey.m_p;
+	params.m_sshParams.m_privateKeySize = privateKey.m_size;
 	params.m_sshParams.m_channelType = "session";
 	params.m_sshParams.m_processType = "exec";
 
