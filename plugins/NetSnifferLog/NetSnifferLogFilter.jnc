@@ -67,6 +67,9 @@ NetSnifferLogFilter.construct(doc.PluginHost* pluginHost) {
 
 	m_log = pluginHost.m_log;
 
+	pluginHost.m_menu.m_insertActionPos = ui.InsertActionPos.BeforeCurrentHead;
+	pluginHost.m_toolBar.m_insertActionPos = ui.InsertActionPos.BeforeCurrentHead;
+
 	pluginHost.m_toolBar.addLabel("Filter:");
 	m_filterCombo = pluginHost.m_toolBar.addComboBox(-1);
 	m_filterCombo.m_isEditable = true;
@@ -80,6 +83,9 @@ NetSnifferLogFilter.construct(doc.PluginHost* pluginHost) {
 	action.m_onTriggered += onApply;
 	pluginHost.m_menu.addAction(action);
 	pluginHost.m_toolBar.addAction(action);
+
+	pluginHost.m_menu.m_insertActionPos = ui.InsertActionPos.Tail;
+	pluginHost.m_toolBar.m_insertActionPos = ui.InsertActionPos.Tail;
 
 	action = new ui.Action("images/save-pcap.png", "Export Pcap file (*.pcap)");
 	action.m_onTriggered += m_exportPcap.export;

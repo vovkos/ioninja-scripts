@@ -173,11 +173,6 @@ void PcapSnifferSession.createUi() {
 	m_actionTable[ActionId.OpenPcap] = createAction("Open Pcap file (*.pcap)", "images/open-pcap.png");
 	m_actionTable[ActionId.OpenPcap].m_onTriggered += onOpenPcap;
 
-	// separator to delimit NetSnifferLogFilter
-	
-	m_pluginHost.m_menu.addSeparator();
-	m_pluginHost.m_toolBar.addSeparator();
-
 	// status bar
 
 	m_statusPaneTable[StatusPaneId.State] = m_pluginHost.m_statusBar.addPane(, 80);
