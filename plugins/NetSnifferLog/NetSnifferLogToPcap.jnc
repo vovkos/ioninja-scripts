@@ -1,6 +1,5 @@
-import "doc_PluginHost.jnc"
-import "ui_Dialog.jnc"
 import "log_exportToPcap.jnc"
+import "ui_Dialog.jnc"
 
 //..............................................................................
 
@@ -10,8 +9,8 @@ protected:
 	ui.FileDlg* m_fileDlg;
 
 public:
-	construct(doc.PluginHost* pluginHost) {
-		m_log = pluginHost.m_log;
+	construct(log.Log* log) {
+		m_log = log;
 	}
 
 	void export();

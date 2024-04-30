@@ -4,8 +4,8 @@ import "NetSnifferLog/NetSnifferLogToPcap.jnc"
 
 class EthernetTapLogToPcap: NetSnifferLogToPcap {
 public:
-	construct(doc.PluginHost* pluginHost) {
-		basetype.construct(pluginHost);
+	construct(log.Log* log) {
+		basetype.construct(log);
 	}
 
 	override size_t exportRecord(

@@ -25,7 +25,7 @@ protected:
 
 	std.HashTable m_pcapFilterMap; // link-type to pcap-filter
 	io.PcapFilter* m_pcapFilterTable[8]; // for fast lookup
-	NetSnifferLogToPcap m_exportPcap;
+	NetSnifferLogToPcap* m_logToPcap;
 
 	ui.ComboBox* m_filterCombo;
 	ui.StringProperty* m_filterProp;
@@ -58,13 +58,17 @@ protected:
 	void onApply() {
 		try applyFilter(true);
 	}
+
+	virtual NetSnifferLogToPcap* createLogToPcap() {
+		return new NetSnifferLogToPcap(m_log);
+	}
+
+	void onExport();
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 NetSnifferLogFilter.construct(doc.PluginHost* pluginHost) {
-	m_exportPcap.construct(pluginHost);
-
 	m_log = pluginHost.m_log;
 
 	pluginHost.m_menu.m_insertActionPos = ui.InsertActionPos.BeforeCurrentHead;
@@ -88,7 +92,7 @@ NetSnifferLogFilter.construct(doc.PluginHost* pluginHost) {
 	pluginHost.m_toolBar.m_insertActionPos = ui.InsertActionPos.Tail;
 
 	action = new ui.Action("images/save-pcap.png", "Export Pcap file (*.pcap)");
-	action.m_onTriggered += m_exportPcap.export;
+	action.m_onTriggered += onExport;
 	pluginHost.m_menu.addAction(action);
 	pluginHost.m_toolBar.addAction(action);
 
@@ -224,6 +228,13 @@ bool NetSnifferLogFilter.filter(
 	}
 
 	return pcapFilter ? pcapFilter.match(p, size) : true;
+}
+
+void NetSnifferLogFilter.onExport() {
+	if (!m_logToPcap)
+		m_logToPcap = createLogToPcap();
+
+	m_logToPcap.export();
 }
 
 //..............................................................................

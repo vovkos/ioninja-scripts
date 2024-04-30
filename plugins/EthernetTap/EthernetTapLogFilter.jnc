@@ -21,6 +21,10 @@ protected:
 		void const* p,
 		size_t size
 	);
+
+	override NetSnifferLogToPcap* createLogToPcap() {
+		return new EthernetTapLogToPcap(m_log);
+	}
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
