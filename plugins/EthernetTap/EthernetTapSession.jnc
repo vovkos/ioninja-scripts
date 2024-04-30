@@ -49,7 +49,6 @@ protected:
 	enum ActionId {
 		Refresh,
 		Capture,
-		ExportPcap,
 		_Count,
 	}
 
@@ -88,8 +87,6 @@ protected:
 	uint16_t m_packetOffset;
 	uint32_t m_packetIndex;
 	uint_t m_syncId;
-
-	EthernetTapLogToPcap m_exportPcap;
 
 	// toolbar, status bar & menu
 
@@ -165,7 +162,6 @@ protected:
 EthernetTapSession.construct(doc.PluginHost* pluginHost) {
 	basetype.construct(pluginHost);
 	m_uploader.construct(pluginHost);
-	m_exportPcap.construct(pluginHost);
 
 	m_uploader.m_onUpdateCompleted += onUpdateCompleted;
 
@@ -188,12 +184,6 @@ void EthernetTapSession.createUi() {
 
 	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable[IconId.Capture]);
 	m_actionTable[ActionId.Capture].m_onTriggered += onCapture;
-
-	m_pluginHost.m_menu.addSeparator();
-	m_pluginHost.m_toolBar.addSeparator();
-
-	m_actionTable[ActionId.ExportPcap] = createAction("Export Pcap file (*.pcap)", "images/save-pcap.png");
-	m_actionTable[ActionId.ExportPcap].m_onTriggered += m_exportPcap.export;
 
 	// status bar
 
@@ -571,7 +561,7 @@ reactor EthernetTapSession.m_uiReactor {
 		m_state == State.Closed ? SessionConnectionState.Disconnected :
 		SessionConnectionState.Connecting;
 
-	m_actionTable[ActionId.Capture].m_text = m_state ? "Close Device" : "Open Device";
+	m_actionTable[ActionId.Capture].m_text = m_state ? "Stop capture" : "Capture";
 	m_actionTable[ActionId.Capture].m_icon = m_iconTable[m_state ? IconId.StopCapture : IconId.Capture];
 	m_statusPaneTable[StatusPaneId.State].m_text = m_statusTextTable[m_state];
 }
