@@ -14,7 +14,6 @@ import "ui_StdSessionInfoSet.jnc"
 import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
 import "std_Buffer.jnc"
-import "loadFile.jnc"
 
 using extension ui.ComboBoxHistory;
 
@@ -77,7 +76,6 @@ public:
 	construct(doc.PluginHost* pluginHost);
 
 	bool errorcode connect();
-	bool errorcode connect(io.SocketAddress const* address);
 	void disconnect();
 
 	override void load(doc.Storage* storage);
@@ -130,7 +128,6 @@ protected:
 	);
 
 	void createUi();
-
 	iox.SshChannel.ConnectParams const* createConnectParams();
 }
 
@@ -218,59 +215,31 @@ void SshChannelSession.createUi() {
 bool errorcode SshChannelSession.connect() {
 	disconnect();
 	startSession();
-
 	m_addressCombo.addEditTextToHistory();
-	m_ssh.connect(m_addressCombo.m_editText, createConnectParams());
-	return true;
+	return m_ssh.connect(m_addressCombo.m_editText, createConnectParams());
 }
 
 void SshChannelSession.disconnect() {
 	if (!m_ssh.m_state)
 		return;
 
-	m_ssh.disconnect();
+	m_ssh.close();
 	m_stdSessionInfoSet.endSession();
 }
 
 iox.SshChannel.ConnectParams const* SshChannelSession.createConnectParams() {
-	std.Buffer privateKey;
-	string_t lastPassword;
+	string_t processType = m_sshPropertySet.m_processTypeProp.m_value;
+	string_t processExtra = processType != "shell" ? m_sshPropertySet.m_processParamProp.m_value : null;
 
-	if (m_sshPropertySet.m_authenticationMethodProp.m_value == ui.AuthenticationMethod.PrivateKey) {
-		loadFile(privateKey, m_sshPropertySet.m_privateKeyFileProp.m_value);
-		lastPassword = m_ssh.getLastPrivateKeyPassphrase();
-	} else
-		lastPassword = m_ssh.getLastPassword();
-
-	iox.SshChannel.ConnectParams* params = new iox.SshChannel.ConnectParams;
-	params.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
-	params.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
-	params.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
-	params.m_socketOptions = ui.getSocketOptions(m_socketPropertySet, m_bufferPropertySet);
-	params.m_defaultPort = m_socketPropertySet.m_remotePortProp.m_value;
-
-	if (m_socketPropertySet.m_useLocalAddressProp.m_value) {
-		io.SocketAddress const* adapterAddress = m_socketPropertySet.m_adapterProp.m_value;
-		if (adapterAddress)
-			params.m_localAddress = *adapterAddress;
-
-		params.m_localAddress.m_port = (uint16_t)m_socketPropertySet.m_localPortProp.m_value;
-	}
-
-	params.m_privateKeyFileName = m_sshPropertySet.m_privateKeyFileProp.m_value;
-	params.m_rememberLastPassword = m_sshPropertySet.m_rememberLastPasswordProp.m_value;
-	params.m_sshParams.m_userName = m_sshPropertySet.m_userNameProp.m_value;
-	params.m_sshParams.m_privateKey = privateKey.m_p;
-	params.m_sshParams.m_privateKeySize = privateKey.m_size;
-	params.m_sshParams.m_channelType = "session";
-	params.m_sshParams.m_processType = m_sshPropertySet.m_processTypeProp.m_value;
-
-	if (m_sshPropertySet.m_rememberLastPasswordProp.m_value)
-		params.m_sshParams.m_password = lastPassword;
-
-	params.m_useReconnect = m_socketPropertySet.m_useReconnectProp.m_value;
-	params.m_reconnectTimeout = m_socketPropertySet.m_reconnectTimeoutProp.m_value;
-	return params;
+	return iox.SshChannel.createConnectParams(
+		m_socketPropertySet,
+		m_sshPropertySet,
+		m_bufferPropertySet,
+		"session",
+		processType,
+		processExtra.m_p,
+		processExtra.m_length
+	);
 }
 
 void SshChannelSession.load(doc.Storage* storage) {
@@ -336,6 +305,7 @@ void SshChannelSession.onLoginDlgCompleted(
 
 reactor SshChannelSession.m_uiReactor {
 	m_title = $"SSH $(m_addressCombo.m_currentText)";
+	m_isTransmitEnabled = m_ssh.m_isTransmitEnabled;
 
 	m_sessionConnectionState =
 		m_ssh.m_state == State.Connected ? SessionConnectionState.Connected :

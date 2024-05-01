@@ -34,7 +34,7 @@ class SshPropertySet {
 
 	enum Defaults {
 		AuthenticationMethod = ui.AuthenticationMethod.Password,
-		RememberLastPassword = false,
+		RememberLastPassword = true,
 		ProcessTypeIndex     = 0,
 	}
 
@@ -113,9 +113,9 @@ void SshPropertySet.createProperties(
 
 	if (mask & PropertyId.Process) {
 		static ui.EnumPropertyOption processTypeTable[] = {
-			{ "shell",     "shell" },
-			{ "exec",      "exec" },
-			{ "subsystem", "subsystem" },
+			{ "shell",     (string_t)"shell" },
+			{ "exec",      (string_t)"exec" },
+			{ "subsystem", (string_t)"subsystem" },
 		}
 
 		m_processTypeProp = propertyGrid.createEnumProperty(
@@ -156,11 +156,10 @@ void SshPropertySet.load(doc.Storage* storage) {
 	if (m_rememberLastPasswordProp)
 		m_rememberLastPasswordProp.m_value = storage.readBool("rememberLastPassword", Defaults.RememberLastPassword);
 
-	if (m_processTypeProp)
+	if (m_processTypeProp) {
 		m_processTypeProp.m_currentIndex = storage.readInt("processTypeIdx", Defaults.ProcessTypeIndex);
-
-	if (m_processParamProp)
 		m_processParamProp.m_value = storage.readString("processParam");
+	}
 
 	if (m_ptyTypeProp)
 		m_ptyTypeProp.m_value = storage.readString("ptyType", DefaultPtyType);
@@ -179,11 +178,10 @@ void SshPropertySet.save(doc.Storage* storage) {
 	if (m_rememberLastPasswordProp)
 		storage.writeBool("rememberLastPassword", m_rememberLastPasswordProp.m_value);
 
-	if (m_processTypeProp)
+	if (m_processTypeProp) {
 		storage.writeInt("processTypeIdx", m_processTypeProp.m_currentIndex);
-
-	if (m_processParamProp)
 		storage.writeString("processParam", m_processParamProp.m_value);
+	}
 
 	if (m_ptyTypeProp)
 		storage.writeString("ptyType", m_ptyTypeProp.m_value);
