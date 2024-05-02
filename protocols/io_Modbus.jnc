@@ -133,6 +133,57 @@ enum ModbusException: uint8_t {
 	GatewayDeviceNoResponse = 11,
 }
 
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+// diagnostic sub-functions
+
+enum ModbusDiagnosticSubFunc: uint16_t {
+	[ displayName = "Return query data" ]
+	ReturnQueryData                     = 0,
+
+	[ displayName = "Restart communications option" ]
+	RestartCommunicationsOption         = 1,
+
+	[ displayName = "Return diagnostic register" ]
+	ReturnDiagnosticRegister            = 2,
+
+	[ displayName = "Change ascii input delimiter" ]
+	ChangeAsciiInputDelimiter           = 3,
+
+	[ displayName = "Force listen only mode" ]
+	ForceListenOnlyMode                 = 4,
+
+	[ displayName = "Clear counters and diagnostic register" ]
+	ClearCountersAndDiagnosticRegister  = 10,
+
+	[ displayName = "Return bus message count" ]
+	ReturnBusMessageCount               = 11,
+
+	[ displayName = "Return bus communication error count" ]
+	ReturnBusCommunicationErrorCount    = 12,
+
+	[ displayName = "Return bus exception error count" ]
+	ReturnBusExceptionErrorCount        = 13,
+
+	[ displayName = "Return server message count" ]
+	ReturnServerMessageCount            = 14,
+
+	[ displayName = "Return server no response count" ]
+	ReturnServerNoResponseCount         = 15,
+
+	[ displayName = "Return server nak count" ]
+	ReturnServerNakCount                = 16,
+
+	[ displayName = "Return server busy count" ]
+	ReturnServerBusyCount               = 17,
+
+	[ displayName = "Return bus character overrun count" ]
+	ReturnBusCharacterOverrunCount      = 18,
+
+	[ displayName = "Clear overrun counter and flag" ]
+	ClearOverrunCounterAndFlag          = 20,
+}
+
 //..............................................................................
 
 // shared attributes for address fields
@@ -240,6 +291,17 @@ struct ModbusReadExceptionStatusReplyParams {
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
+// ModbusFunc.Diagnostics
+
+struct ModbusDiagnosticsParams {
+	bigendian ModbusDiagnosticSubFunc m_subFunc;
+
+	[ displayName = "Data" ]
+	bigendian uint16_t m_data;
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
 // ModbusFunc.GetCommEventCounter
 
 struct ModbusGetCommEventCounterReplyParams {
@@ -283,6 +345,8 @@ struct ModbusWriteMultipleParams {
 
 	// followed by write data
 }
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 [
 	userAction = "Update size",
@@ -483,15 +547,14 @@ void layoutModbusRegisters(
 			digestFunc = getModbusRegisterDigest,
 			foldFlag = 2
 		]
-		dyfield bigendian uint16_t values[count];
-
-		if (size & 1)
-			[
-				displayName = "Padding",
-				backColor = ui.StdColor.PastelOrange,
-				binary
-			]
-			dyfield uint8_t padding;
+		dyfield values {
+			[ ungroup ]
+			dyfield bigendian uint16_t values[count];
+			
+			if (size & 1)
+				[ displayName = "Padding" ]
+				dyfield uint8_t padding;
+		}
 	}
 }
 
@@ -565,8 +628,9 @@ async void layoutModbusPdu(
 				break;
 
 			case ModbusFunc.Diagnostics:
-				std.setError("ModbusFunc.Diagnostics is unsupported");
-				throw;
+				[ ungroup]
+				dyfield ModbusDiagnosticsParams params;  // same for request & reply
+				break;
 
 			case ModbusFunc.GetCommEventCounter:
 				if (role == ModbusRole.Slave)
@@ -859,7 +923,7 @@ async void layoutModbusAdu(
 		[
 			displayNameAttr = "\e[1m",
 			backColor = ui.StdColor.PastelGray,
-			digestFunc = getModbusAduDigest,
+			// digestFunc = getModbusAduDigest,
 			foldFlag = 1,
 			root // root groups are for log only (ungrouped in packet templates)
 		]
@@ -993,6 +1057,9 @@ string_t getModbusRegisterDigest(
 ) {
 	size_t count0 = size / sizeof(uint16_t);
 	size_t count = count0 < ModbusDigestValueCount ? count0 : ModbusDigestValueCount;
+	if (!count)
+		return "{ }";
+
 	bigendian uint16_t const* p = (bigendian uint16_t const*)p0;
 	bigendian uint16_t const* end = p + count;
 
