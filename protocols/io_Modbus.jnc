@@ -923,7 +923,7 @@ async void layoutModbusAdu(
 		[
 			displayNameAttr = "\e[1m",
 			backColor = ui.StdColor.PastelGray,
-			// digestFunc = getModbusAduDigest,
+			digestFunc = getModbusAduDigest,
 			foldFlag = 1,
 			root // root groups are for log only (ungrouped in packet templates)
 		]
