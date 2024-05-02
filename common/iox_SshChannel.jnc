@@ -128,14 +128,11 @@ public:
 		size_t size
 	);
 
-	static ConnectParams* createConnectParams(
+	static void initConnectParams(
+		ConnectParams* params,
 		ui.SocketPropertySet const* socketPropSet,
 		ui.SshPropertySet const* sshPropSet,
-		ui.BufferPropertySet const* bufferPropSet,
-		string_t channelType,
-		string_t processType,
-		void const* processExtra = null,
-		size_t processExtraSize = 0
+		ui.BufferPropertySet const* bufferPropSet
 	);
 
 	bool errorcode applyProperties(
@@ -305,16 +302,12 @@ size_t errorcode SshChannel.write(
 	return result;
 }
 
-ConnectParams* SshChannel.createConnectParams(
+void SshChannel.initConnectParams(
+	ConnectParams* params,
 	ui.SocketPropertySet const* socketPropSet,
 	ui.SshPropertySet const* sshPropSet,
-	ui.BufferPropertySet const* bufferPropSet,
-	string_t channelType,
-	string_t processType,
-	void const* processExtra,
-	size_t processExtraSize
+	ui.BufferPropertySet const* bufferPropSet
 ) {
-	ConnectParams* params = new ConnectParams;
 	params.m_readBlockSize = bufferPropSet.m_readBlockSizeProp.m_value;
 	params.m_readBufferSize = bufferPropSet.m_readBufferSizeProp.m_value;
 	params.m_writeBufferSize = bufferPropSet.m_writeBufferSizeProp.m_value;
@@ -336,11 +329,9 @@ ConnectParams* SshChannel.createConnectParams(
 	params.m_rememberLastPassword = sshPropSet.m_rememberLastPasswordProp.m_value;
 	params.m_privateKeyFileName = sshPropSet.m_privateKeyFileProp.m_value;
 	params.m_sshParams.m_userName = sshPropSet.m_userNameProp.m_value;
-	params.m_sshParams.m_channelType = channelType;
-	params.m_sshParams.m_processType = processType;
-	params.m_sshParams.m_processExtra = processExtra;
-	params.m_sshParams.m_processExtraSize = processExtraSize;
-	return params;
+
+	if (authenticationMethod == ui.AuthenticationMethod.PrivateKey)
+		params.m_sshParams.m_privateKeyFileName = params.m_privateKeyFileName;
 }
 
 bool errorcode SshChannel.applyProperties(

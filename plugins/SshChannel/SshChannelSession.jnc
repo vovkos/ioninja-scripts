@@ -231,15 +231,16 @@ iox.SshChannel.ConnectParams const* SshChannelSession.createConnectParams() {
 	string_t processType = m_sshPropertySet.m_processTypeProp.m_value;
 	string_t processExtra = processType != "shell" ? m_sshPropertySet.m_processParamProp.m_value : null;
 
-	return iox.SshChannel.createConnectParams(
-		m_socketPropertySet,
-		m_sshPropertySet,
-		m_bufferPropertySet,
-		"session",
-		processType,
-		processExtra.m_p,
-		processExtra.m_length
-	);
+	iox.SshChannel.ConnectParams params;
+	iox.SshChannel.initConnectParams(&params, m_socketPropertySet, m_sshPropertySet, m_bufferPropertySet);
+	params.m_sshParams.m_channelType = "session";
+	params.m_sshParams.m_processType = processType;
+	params.m_sshParams.m_processExtra = processExtra.m_p;
+	params.m_sshParams.m_processExtraSize = processExtra.m_length;
+	params.m_sshParams.m_ptyType = m_sshPropertySet.m_ptyTypeProp.m_value;
+	params.m_sshParams.m_ptyHeight = m_pluginHost.m_terminal.m_consoleWidth;
+	params.m_sshParams.m_ptyHeight = m_pluginHost.m_terminal.m_consoleHeight;
+	return params;
 }
 
 void SshChannelSession.load(doc.Storage* storage) {

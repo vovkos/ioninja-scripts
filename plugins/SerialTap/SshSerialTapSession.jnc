@@ -595,15 +595,13 @@ iox.SshChannel.ConnectParams const* SshSerialTapSession.createConnectParams() {
 			parityStringTable[m_parity]
 		);
 
-	return iox.SshChannel.createConnectParams(
-		m_socketPropertySet,
-		m_sshPropertySet,
-		m_bufferPropertySet,
-		"session",
-		"exec",
-		cmdLine.m_p,
-		cmdLine.m_length
-	);
+	iox.SshChannel.ConnectParams params;
+	iox.SshChannel.initConnectParams(&params, m_socketPropertySet, m_sshPropertySet, m_bufferPropertySet);
+	params.m_sshParams.m_channelType = "session";
+	params.m_sshParams.m_processType = "exec";
+	params.m_sshParams.m_processExtra = cmdLine.m_p;
+	params.m_sshParams.m_processExtraSize = cmdLine.m_length;
+	return params;
 }
 
 bool errorcode SshSerialTapSession.writeSerialConfigMsg() {
