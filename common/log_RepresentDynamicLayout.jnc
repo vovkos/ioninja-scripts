@@ -195,7 +195,7 @@ bool representDynamicSectionGroup(
 				section.m_size
 			);
 
-			return representArray(
+			representArray(
 				representation,
 				colorRangeTree,
 				section.m_decl,
@@ -207,6 +207,7 @@ bool representDynamicSectionGroup(
 				foldFlags,
 				indent
 			);
+			break;
 
 		case jnc.DynamicSectionKind.Group:
 			string_t subIndent;
@@ -306,15 +307,17 @@ bool representArray(
 	size_t elementSize = elementType.m_size;
 	size_t arraySize = elementSize * elementCount;
 
-	if (!representGroupHeader(representation, decl, p, arraySize, foldFlags, indent))
-		return false;
+	if (!decl.findAttribute("ungroup")) {
+		if (!representGroupHeader(representation, decl, p, arraySize, foldFlags, indent))
+			return false;
 
-	if (decl.findAttribute("binary")) {
-		representation.addBin(DynamicLayoutBinPartCode.BinaryAttr, p, arraySize);
-		return true;
+		if (decl.findAttribute("binary")) {
+			representation.addBin(DynamicLayoutBinPartCode.BinaryAttr, p, arraySize);
+			return true;
+		}
+
+		indent += "    ";
 	}
-
-	indent += "    ";
 
 	if (elementType.m_typeKindFlags & jnc.TypeKindFlags.Derivable) {
 		jnc.DerivableType* derivableType = dynamic (jnc.DerivableType*)elementType;
