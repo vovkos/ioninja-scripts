@@ -14,12 +14,13 @@ namespace io {
 //..............................................................................
 
 enum IpProtocol: uint8_t {
-	HopByHopOption = 0,
-	Icmp           = 1,
-	Igmp           = 2,
-	Tcp            = 6,
-	Udp            = 17,
-	Icmp6          = 58,
+	HopOpt   = 0,
+	Icmp     = 1,
+	Igmp     = 2,
+	Tcp      = 6,
+	Udp      = 17,
+	Icmp6    = 58,
+	Reserved = 255,
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
