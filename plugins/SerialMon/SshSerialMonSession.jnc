@@ -196,7 +196,6 @@ void SshSerialMonSession.createUi() {
 		group,,
 		ui.SshPropertySet.PropertyId.UserName |
 		ui.SshPropertySet.PropertyId.AuthenticationMethod |
-		ui.SshPropertySet.PropertyId.PrivateKeyFile |
 		ui.SshPropertySet.PropertyId.RememberLastPassword
 	);
 

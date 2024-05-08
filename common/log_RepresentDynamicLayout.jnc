@@ -7,8 +7,8 @@ namespace log {
 //..............................................................................
 
 enum DynamicLayoutBinPartCode {
-	Raw = 1,    // raw block following the dynamic layout representation
-	BinaryAttr, // fields marked with the "binary" attribute
+	Raw = 1,     // raw block following the dynamic layout representation
+	PayloadAttr, // fields marked with the "payload" attribute
 }
 
 typedef string_t ToStringFunc(void const* p);
@@ -311,8 +311,8 @@ bool representArray(
 		if (!representGroupHeader(representation, decl, p, arraySize, foldFlags, indent))
 			return false;
 
-		if (decl.findAttribute("binary")) {
-			representation.addBin(DynamicLayoutBinPartCode.BinaryAttr, p, arraySize);
+		if (decl.findAttribute("payload")) {
+			representation.addBin(DynamicLayoutBinPartCode.PayloadAttr, p, arraySize);
 			return true;
 		}
 
@@ -400,7 +400,7 @@ void representFields(
 			fieldType.m_size
 		);
 
-		if (fieldType.m_typeKindFlags & jnc.TypeKindFlags.Derivable) {
+		if (fieldType.m_typeKindFlags & jnc.TypeKindFlags.Derivable && !field.findAttribute("stringify")) {
 			jnc.DerivableType* derivableType = dynamic (jnc.DerivableType*)fieldType;
 			if (field.findAttribute("ungroup"))
 				representFields(

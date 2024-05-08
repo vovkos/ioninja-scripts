@@ -29,25 +29,11 @@ static void UpdateChecksumAttr;
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 struct IpActions {
-	[ userAction = "Set source address" ]
-	void setSrcAddress(string_t addressString) {
-		io.Address_ip4 addr;
-		bool result = try addr.parse(addressString);
-		if (result)
-			getIpHdr().m_srcAddress = addr.m_i32;
-	}
-
-	[ userAction = "Set destination address" ]
-	void setDstAddress(string_t addressString) {
-		io.Address_ip4 addr;
-		bool result = try addr.parse(addressString);
-		if (result)
-			getIpHdr().m_dstAddress = addr.m_i32;
-	}
-
 	[ @UpdateLengthAttr	]
 	void updateLength() {
 		io.IpHdr* ipHdr = getIpHdr();
+		if (ipHdr.m_headerLength < 5)
+			ipHdr.m_headerLength = 5;
 		ipHdr.m_totalLength = dynamic sizeof(ipHdr);
 	}
 
@@ -61,6 +47,21 @@ struct IpActions {
 protected:
 	io.IpHdr* getIpHdr() {
 		return (io.IpHdr*)this - 1;
+	}
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+struct Ip6Actions {
+	[ @UpdateLengthAttr	]
+	void updateLength() {
+		io.Ip6Hdr* ip6Hdr = getIp6Hdr();
+		ip6Hdr.m_payloadLength = dynamic sizeof(this);
+	}
+
+protected:
+	io.Ip6Hdr* getIp6Hdr() {
+		return (io.Ip6Hdr*)this - 1;
 	}
 }
 
@@ -96,6 +97,13 @@ protected:
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 struct TcpActions: TcpUdpActionsBase {
+	[ @UpdateLengthAttr	]
+	void updateLength() {
+		io.TcpHdr* tcpHdr = getTcpHdr();
+		if (tcpHdr.m_dataOffset < 5)
+			tcpHdr.m_dataOffset = 5;
+	}
+
 	[ @UpdateChecksumAttr ]
 	void updateChecksum() {
 		io.TcpHdr* tcpHdr = getTcpHdr();
@@ -112,6 +120,12 @@ protected:
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 struct UdpActions: TcpUdpActionsBase {
+	[ @UpdateLengthAttr	]
+	void updateLength() {
+		io.UdpHdr* udpHdr = getUdpHdr();
+		udpHdr.m_length = dynamic sizeof(udpHdr);
+	}
+
 	[ @UpdateChecksumAttr ]
 	void updateChecksum() {
 		io.UdpHdr* udpHdr = getUdpHdr();
@@ -154,27 +168,35 @@ async void layoutEthernetFrame(jnc.DynamicLayout* layout) {
 
 			case io.EthernetType.Ip:
 				[ @io.IpHdr ]
-				dyfield io.IpHdr ipHdr;
-				[ ungroup ]
-				dyfield IpActions actions;
+				dyfield {
+					[ ungroup ]
+					dyfield io.IpHdr ipHdr;
+					[ ungroup ]
+					dyfield IpActions actions;
 
-				ipProtocol = ipHdr.m_protocol;
+					size_t headerLength = ipHdr.m_headerLength * sizeof(uint32_t);
+					if (headerLength > sizeof(io.IpHdr))
+						[
+							displayName = "IP options",
+							backColor = ui.StdColor.PastelCyan,
+							binary
+						]
+						dyfield char options[headerLength - sizeof(io.IpHdr)];
 
-				if (ipHdr.m_headerLength > 5) {
-					size_t optLength = (ipHdr.m_headerLength - 5) * sizeof(uint32_t);
-					[
-						displayName = "IP options",
-						backColor = ui.StdColor.PastelGreen,
-						binary
-					]
-					dyfield char options[optLength];
+					ipProtocol = ipHdr.m_protocol;
 				}
 				break;
 
 			case io.EthernetType.Ip6:
 				[ @io.Ip6Hdr ]
-				dyfield io.Ip6Hdr ip6Hdr;
-				ipProtocol = ip6Hdr.m_nextHeader;
+				dyfield {
+					[ ungroup ]
+					dyfield io.Ip6Hdr ip6Hdr;
+					[ ungroup ]
+					dyfield Ip6Actions actions;
+
+					ipProtocol = ip6Hdr.m_nextHeader;
+				}
 				break;
 			}
 		}
@@ -187,9 +209,12 @@ async void layoutEthernetFrame(jnc.DynamicLayout* layout) {
 			switch (ipProtocol) {
 			case io.IpProtocol.Icmp:
 				[ @io.IcmpHdr ]
-				dyfield io.IcmpHdr icmpHdr;
-				[ ungroup ]
-				dyfield IcmpActions actions;
+				dyfield {
+					[ ungroup ]
+					dyfield io.IcmpHdr icmpHdr;
+					[ ungroup ]
+					dyfield IcmpActions actions;
+				}
 				break;
 
 			case io.IpProtocol.Icmp6:
@@ -199,27 +224,49 @@ async void layoutEthernetFrame(jnc.DynamicLayout* layout) {
 
 			case io.IpProtocol.Tcp:
 				[ @io.TcpHdr ]
-				dyfield io.TcpHdr tcpHdr;
-				[ ungroup ]
-				dyfield TcpActions actions;
+				dyfield {
+					[ ungroup ]
+					dyfield io.TcpHdr tcpHdr;
+					[ ungroup ]
+					dyfield TcpActions actions;
 
-				if (tcpHdr.m_dataOffset > 5) {
-					size_t optLength = (tcpHdr.m_dataOffset - 5) * sizeof(uint32_t);
-					[
-						displayName = "TCP options",
-						backColor = ui.StdColor.PastelGreen,
-						binary
-					]
-					dyfield char options[optLength];
+					size_t dataOffset = tcpHdr.m_dataOffset * sizeof(uint32_t);
+					if (dataOffset > sizeof(io.TcpHdr))
+						[
+							displayName = "TCP options",
+							backColor = ui.StdColor.PastelCyan,
+							binary
+						]
+						dyfield char options[dataOffset - sizeof(io.TcpHdr)];
+
+					size_t size = dynamic sizeof(&tcpHdr);
+					if (size > dataOffset)
+						[
+							displayName = "TCP payload",
+							backColor = ui.StdColor.PastelYellow,
+							binary
+						]
+						dyfield char payload[size - dataOffset];
 				}
 
 				break;
 
 			case io.IpProtocol.Udp:
 				[ @io.UdpHdr ]
-				dyfield io.UdpHdr udpHdr;
-				[ ungroup ]
-				dyfield UdpActions actions;
+				dyfield {
+					[ ungroup ]
+					dyfield io.UdpHdr udpHdr;
+					[ ungroup ]
+					dyfield UdpActions actions;
+
+					if (udpHdr.m_length > sizeof(io.UdpHdr))
+						[
+							displayName = "UDP payload",
+							backColor = ui.StdColor.PastelYellow,
+							binary
+						]
+						dyfield char payload[udpHdr.m_length - sizeof(io.UdpHdr)];
+				}
 				break;
 			}
 		}
@@ -284,4 +331,3 @@ uint16_t calcTcpUdpChecksum(
 }
 
 //..............................................................................
-
