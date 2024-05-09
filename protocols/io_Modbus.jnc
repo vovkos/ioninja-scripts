@@ -865,7 +865,8 @@ uint16_t crc16_modbus(
 struct ModbusRtuCrc {
 	[
 		displayName = "CRC",
-		formatFunc  = formatModbusRtuCrc
+		formatFunc  = formatModbusRtuCrc,
+		formatSpec  = "0x%04X"
 	]
 	uint16_t m_crc; // Modbus RTU CRC is little-endian
 

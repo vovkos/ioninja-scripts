@@ -25,9 +25,10 @@ enum IpProtocol: uint8_t {
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-bitflag enum IpFlags {
-	Mf = 0x01,
-	Df = 0x02,
+bitflag enum IpFlags: uint8_t {
+	Mf       = 0x01,
+	Df       = 0x02,
+	Reserved = 0x04,
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
