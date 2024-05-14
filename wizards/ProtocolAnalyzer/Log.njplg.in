@@ -20,4 +20,6 @@ $(logRepresenterFile)
 
 [records]
 
-$(getLogRecordCode(0))  # Packet
+$(getLogRecordCode(0)) # ParseError
+$(getLogRecordCode(0x8000000000000001)) # TxPacket
+$(getLogRecordCode(0x8000000000000002)) # RxPacket

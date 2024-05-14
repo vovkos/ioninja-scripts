@@ -3,18 +3,17 @@
 // $(pluginName) stream parser
 //
 
-import "std_Buffer.jnc"
 import "log_Writer.jnc"
 
 //..............................................................................
 
 class $(parserClass) {
 protected:
-	std.Buffer m_buffer;
+	jnc.DynamicLayout m_packet;
 
 public:
 	void reset() {
-		m_buffer.clear();
+		m_packet.clear();
 	}
 
 	void parse(
@@ -36,46 +35,51 @@ void $(parserClass).parse(
 	size_t size
 ) {
 	void const* end = p + size;
-	while (p < end) {
-		void const* p0 = p;
+	while (p < end) { // loop to detect all packets in this block
+		size = end - p;
+		jnc.Promise const* promise;
 
-		// 1. ensure the header is fully buffered
-
-		if (m_buffer.m_size < sizeof($(protocol)Hdr)) {
-			size_t leftover = sizeof($(protocol)Hdr) - m_buffer.m_size;
-			if (leftover > end - p) { // not yet
-				m_buffer.append(p, end - p);
+		if (m_packet.m_isIncomplete) { // continue the last incomplete packet
+			size = m_packet.resume(p, size);
+			promise = m_packet.m_promise;
+		} else {
+			// a new packet; first, locate STX...
+			void const* stx = memchr(p, 0x02, size);
+			if (!stx) {
+				writer.write(timestamp, recordCode, p, size);
 				break;
 			}
 
-			m_buffer.append(p, leftover);
-			p += leftover;
+			if (p < stx) { // skip the pre-STX data
+				writer.write(timestamp, recordCode, p, stx - p);
+				p = stx;
+				size = end - stx;
+			}
+
+			// now, start laying out the new packet
+			m_packet.reset(jnc.DynamicLayoutMode.Stream, p, size);
+			promise = layout$(protocol)(m_packet);
+			if (!m_packet.m_isIncomplete)
+				size = m_packet.m_size;
 		}
 
-		// 2. ensure the whole packet is fully buffered
+		// write the original data first
+		writer.write(timestamp, recordCode, p, size);
+		p += size;
 
-		$(protocol)Hdr const* hdr = ($(protocol)Hdr*)m_buffer.m_p;
-		size_t leftover = m_buffer.m_size < hdr.m_size ? hdr.m_size - m_buffer.m_size : 0;
-		if (leftover > end - p) { // not yet
-			m_buffer.append(p, end - p);
+		if (promise.m_error) { // exception during layout
+			writer.write(timestamp, $(protocol)LogRecordCode.ParseError, promise.m_error);
+			reset();
+			continue;
+		}
+
+		if (m_packet.m_isIncomplete) // not yet
 			break;
-		}
 
-		m_buffer.append(p, leftover);
-		p += leftover;
-
-		// 3. write the original data and then the packet
-
-		writer.write(timestamp, recordCode, p0, p - p0);
-		writer.write(timestamp, $(logRecordCodeEnum).Packet, m_buffer.m_p, m_buffer.m_size);
-
-		// 4. reset the buffer and move on to the next packet
-
-		m_buffer.clear();
+		// the packet is successfully laid out; write it to the log after the original data
+		uint64_t packetRecordCode = $(protocol)LogRecordCode.TxPacket + recordCode - log.StdRecordCode.Tx;
+		writer.write(timestamp, packetRecordCode, m_packet.m_p, m_packet.m_size);
 	}
-
-	if (end - p) // write the rest of original data
-		writer.write(timestamp, recordCode, p, end - p);
 }
 
 //..............................................................................

@@ -7,7 +7,7 @@ pragma(Alignment, 1)
 
 //..............................................................................
 
-enum $(protocol)Code: uint16_t {
+enum $(protocol)Code: uint8_t {
 	Connect,
 	Disconnect,
 	Read,
@@ -17,30 +17,202 @@ enum $(protocol)Code: uint16_t {
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
+enum $(protocol)Status: uint8_t {
+	Success,
+	AccessDenied,
+	InvalidDeviceState,
+	InvalidAddress,
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+bitflag enum $(protocol)ConnectFlags: uint8_t {
+	ReadOnly,  // disallow write operations for this connection
+	Broadcast, // otherwise, the device name follows
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
 struct $(protocol)Hdr {
-	uint16_t m_size;
+	[
+		displayName = "STX",
+		formatSpec = "0x%02X"
+	]
+	char m_stx;
+	[ displayName = "Command code" ]
 	$(protocol)Code m_code;
+	[
+		displayName = "Command ID",
+		formatSpec = "#%d"
+	]
+	uint8_t m_id;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-struct $(protocol)Read: $(protocol)Hdr {
-	uint16_t m_address;
-	uint16_t m_dataSize;
+struct $(protocol)Connect {
+	[ displayName = "Connect flags" ]
+	$(protocol)ConnectFlags m_flags;
+	// if not Broadcast, followed by $(protocol)String name
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-struct $(protocol)Write: $(protocol)Hdr {
-	uint16_t m_address;
-	//  followed by data (m_size - sizeof($(protocol)Write))
+struct $(protocol)NameHdr {
+	[ displayName = "Name length" ]
+	uint8_t m_length;
+	// followed by char [m_length]
+};
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+struct $(protocol)ReadWrite {
+	[
+		displayName = "Data address",
+		formatSpec = "0x%04X"
+	]
+	bigendian uint16_t m_address;
+	[ displayName = "Data size" ]
+	bigendian uint16_t m_dataSize;
+	// for Write, followed by char data[m_dataSize]
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-struct $(protocol)Reply: $(protocol)Hdr {
-	uint32_t m_status;
-	// optionally followed by data (m_size - sizeof($(protocol)Reply))
+struct $(protocol)Reply {
+	[ displayName = "Original command code" ]
+	$(protocol)Code m_commandCode;
+	[ displayName = "Status" ]
+	$(protocol)Status m_status;
+	[ displayName = "Data size" ]
+	bigendian uint16_t m_dataSize;
+	// followed by char data[m_dataSize]
+}
+
+//..............................................................................
+
+[
+	packetTemplate,
+	displayName = "$(protocol)",
+	fixedSize
+]
+async void layout$(protocol)(jnc.DynamicLayout* layout) {
+	[
+		displayName = "Payload",
+		backColor = ui.StdColor.PastelYellow,
+		foldFlag = 2,
+		binary,
+		payload
+	]
+	static PayloadAttr;
+
+	dylayout (layout) {
+		[
+			displayName = "$(protocol)",
+			displayNameAttr = "\e[1m",
+			backColor = ui.StdColor.PastelGray,
+			digestFunc = get$(protocol)Digest,
+			foldFlag = 1,
+			root
+		]
+		dyfield myproto {
+			[
+				backColor = ui.StdColor.PastelPurple,
+				ungroup
+			]
+			dyfield $(protocol)Hdr hdr;
+
+			[
+				backColor = ui.StdColor.PastelBlue,
+				ungroup
+			]
+			dyfield {
+				switch (hdr.m_code) {
+				case $(protocol)Code.Connect:
+					[ ungroup ]
+					dyfield $(protocol)Connect connect;
+					if (!(connect.m_flags & $(protocol)ConnectFlags.Broadcast)) {
+						[ ungroup ]
+						dyfield $(protocol)NameHdr nameHdr;
+						[
+							displayName = "Target name",
+							backColor = ui.StdColor.PastelYellow
+						]
+						dyfield char name[nameHdr.m_length];
+					}
+					break;
+
+				case $(protocol)Code.Disconnect:
+					// no parameters
+					break;
+
+				case $(protocol)Code.Read:
+					[ ungroup ]
+					dyfield $(protocol)ReadWrite read;
+					break;
+
+				case $(protocol)Code.Write:
+					[ ungroup ]
+					dyfield $(protocol)ReadWrite write;
+					[ @PayloadAttr ]
+					dyfield char payload[write.m_dataSize];
+					break;
+
+				case $(protocol)Code.Reply:
+					[ ungroup ]
+					dyfield $(protocol)Reply reply;
+					[ @PayloadAttr ]
+					dyfield char payload[reply.m_dataSize];
+					break;
+
+				default:
+					std.setError($"unknown code %02x"(hdr.m_code));
+					throw;
+				}
+			}
+		}
+	}
+}
+
+string_t get$(protocol)Digest(
+	void const* p,
+	size_t size
+) {
+	std.StringBuilder digest;
+	jnc.DynamicLayout layout(p, size);
+	dylayout (layout) {
+		dyfield $(protocol)Hdr hdr;
+		digest := $"%1 #%2"(typeof($(protocol)Code).getValueString(hdr.m_code), hdr.m_id);
+
+		switch (hdr.m_code) {
+		case $(protocol)Code.Connect:
+			digest += " \u2192 ";
+			dyfield $(protocol)Connect connect;
+			if (connect.m_flags & $(protocol)ConnectFlags.Broadcast)
+				digest += '*';
+			else {
+				dyfield $(protocol)NameHdr nameHdr;
+				digest += string_t(layout.m_end, nameHdr.m_length);
+			}
+			break;
+
+		case $(protocol)Code.Read:
+		case $(protocol)Code.Write:
+			dyfield $(protocol)ReadWrite rw;
+			digest += $" at 0x%04X (%d bytes)"(rw.m_address, rw.m_dataSize);
+			break;
+
+		case $(protocol)Code.Reply:
+			dyfield $(protocol)Reply reply;
+			digest += $" to %1: %2"(
+				typeof($(protocol)Code).getValueString(reply.m_commandCode),
+				typeof($(protocol)Status).getValueString(reply.m_status)
+			);
+			break;
+		}
+	}
+
+	return digest.detachString();
 }
 
 //..............................................................................

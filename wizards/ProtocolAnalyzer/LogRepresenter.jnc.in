@@ -4,6 +4,7 @@
 //
 
 import "log_Representation.jnc"
+import "log_RepresentDynamicLayout.jnc"
 import "$(protocolFile)"
 
 //..............................................................................
@@ -16,72 +17,30 @@ bool $(logRepresenterFunc)(
 	uint_t foldFlags
 	)
 {
-	$(protocol)Hdr const* hdr = ($(protocol)Hdr const*)p;
-	if (recordCode != $(logRecordCodeEnum).Packet || size < sizeof($(protocol)Hdr) || size < hdr.m_size)
-		return false;
-
-	switch (hdr.m_code) {
-	case $(protocol)Code.Connect:
-		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
-		representation.m_lineAttr.m_backColor = log.StdLogColor.Connect;
-		representation.addHyperText($"\e[1m$(protocol):\e[m Connect");
+	switch (recordCode) {
+	case $(protocol)LogRecordCode.ParseError:
+		std.Error const* error = (std.Error const*)p;
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Warning;
+		representation.addHyperText($"\e[1m$(protocol):\e[m parse error: %1"(error.m_description));
 		break;
 
-	case $(protocol)Code.Disconnect:
-		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
-		representation.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
-		representation.addHyperText($"\e[1m$(protocol):\e[m Disconnect");
-		break;
+	case $(protocol)LogRecordCode.TxPacket:
+	case $(protocol)LogRecordCode.RxPacket:
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.TxPacket + recordCode - $(protocol)LogRecordCode.TxPacket;
 
-	case $(protocol)Code.Read:
-		if (size < sizeof($(protocol)Read))
-			return false;
-
-		$(protocol)Read const* read = ($(protocol)Read const*)p;
-		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.RxPacket;
-		representation.m_lineAttr.m_backColor = ui.StdColor.PastelGray;
-		representation.addHyperText($"\e[1m$(protocol):\e[m Read @%04X (%2 byte(s))"(read.m_address, read.m_dataSize));
-		break;
-
-	case $(protocol)Code.Write:
-		if (size < sizeof($(protocol)Write))
-			return false;
-
-		$(protocol)Write const* write = ($(protocol)Write const*)p;
-		size_t dataSize = (size - sizeof($(protocol)Write));
-
-		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.RxPacket;
-		representation.m_lineAttr.m_backColor = ui.StdColor.PastelGray;
-		representation.addHyperText($"\e[1m$(protocol):\e[m Write @%04X (%2 byte(s))"(write.m_address, dataSize));
-
-		representation.m_lineAttr.m_backColor = ui.ColorFlags.Undefined;
-		representation.addBin(write + 1, dataSize);
-		break;
-
-	case $(protocol)Code.Reply:
-		if (size < sizeof($(protocol)Reply))
-			return false;
-
-		$(protocol)Reply const* reply = ($(protocol)Reply const*)p;
-		if (reply.m_status) {
-			std.Error error;
-			error.m_size = sizeof(error);
-			error.m_guid = std.g_errnoGuid;
-			error.m_code = reply.m_status;
-
-			representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Error;
-			representation.m_lineAttr.m_backColor = log.StdLogColor.Error;
-			representation.addHyperText($"\e[1mMyProto:\e[m \e[31mERROR\e[m: %1"(error.m_description));
-		} else {
-			representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-			representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
-			representation.addHyperText($"\e[1mMyProto:\e[m \e[32mOK\e[m");
-
-			if (size > sizeof($(protocol)Reply)) {
-				representation.m_lineAttr.m_backColor = ui.ColorFlags.Undefined;
-				representation.addBin(reply + 1, size - sizeof($(protocol)Reply));
-			}
-		}
+		jnc.DynamicLayout layout(jnc.DynamicLayoutMode.Stream | jnc.DynamicLayoutMode.Save, p, size);
+		jnc.Promise* promise = layout$(protocol)(layout);
+		if (layout.m_isIncomplete) {
+			representation.m_lineAttr.m_backColor = ui.StdColor.PastelYellow;
+			representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
+			representation.addHyperText($"Incomplete $(protocol) packet: %1 of %2 bytes"(layout.m_bufferSize, layout.m_size));
+		} else if (promise.m_error) {
+			representation.m_lineAttr.m_backColor = ui.StdColor.PastelOrange;
+			representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
+			representation.addHyperText($"$(protocol) parse error: %1"(promise.m_error.m_description));
+		} else
+			log.representDynamicLayout(representation, layout, foldFlags);
 
 		break;
 
