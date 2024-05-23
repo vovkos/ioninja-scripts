@@ -506,8 +506,19 @@ struct ModbusTcpAduHdr {
 	[ displayName = "Length" ]
 	bigendian uint16_t m_length; // length of data following this field
 
-	[ displayName = "Device" ]
+	[
+		displayName = "Device",
+		formatSpec = "#%d"
+	]
 	uint8_t m_deviceAddress;
+
+	[
+		userAction = "Update length",
+		autorun = "Auto-update length"
+	]
+	void updateLength() {
+		m_length = dynamic sizeof(&m_length + 1);
+	}
 
 	// followed by PDU
 }
@@ -550,7 +561,7 @@ void layoutModbusRegisters(
 		dyfield values {
 			[ ungroup ]
 			dyfield bigendian uint16_t values[count];
-			
+
 			if (size & 1)
 				[ displayName = "Padding" ]
 				dyfield uint8_t padding;
@@ -917,7 +928,7 @@ async void layoutModbusAdu(
 	static string_t displayNames[] = {
 		"MODBUS-RTU",
 		"MODBUS-ASCII",
-		"MODBUS-RTU",
+		"MODBUS-TCP",
 	}
 
 	dylayout (layout) {
@@ -1027,7 +1038,7 @@ string_t getModbusAduDigest(
 
 	case ModbusProtocol.Tcp:
 		ModbusTcpAduHdr const* aduHdr = (ModbusTcpAduHdr const*)p;
-		digest := $"TID: %04x Dev: %2 %3 "(
+		digest := $"TID: %1 Dev: %2 %3 "(
 			aduHdr.m_transactionId,
 			aduHdr.m_deviceAddress,
 			arrows[role]
@@ -1035,8 +1046,8 @@ string_t getModbusAduDigest(
 
 		appendModbusPduDigest(
 			digest,
-			p + sizeof(ModbusRtuAduHdr),
-			size - sizeof(ModbusRtuAduHdr) - sizeof(uint16_t),
+			p + sizeof(ModbusTcpAduHdr),
+			size - sizeof(ModbusTcpAduHdr),
 			role
 		);
 
