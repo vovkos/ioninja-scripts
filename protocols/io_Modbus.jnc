@@ -1004,14 +1004,15 @@ string_t getModbusAduDigest(
 		ModbusRtuAduHdr const* aduHdr = (ModbusRtuAduHdr const*)p;
 		digest := $"Dev: %1 %2 "(aduHdr.m_deviceAddress, arrows[role]);
 
+		size -= sizeof(uint16_t); // minus CRC
+
 		appendModbusPduDigest(
 			digest,
 			p + sizeof(ModbusRtuAduHdr),
-			size - sizeof(ModbusRtuAduHdr) - sizeof(uint16_t),
+			size - sizeof(ModbusRtuAduHdr),
 			role
 		);
 
-		size -= sizeof(uint16_t);
 		uint16_t const* crc = (uint16_t const*)(p + size);
 		if (*crc != crc16_modbus(p, size))
 			digest.append(" [\e[31mCRC ERROR\e[m]");
@@ -1022,14 +1023,15 @@ string_t getModbusAduDigest(
 		ModbusRtuAduHdr const* aduHdr = (ModbusRtuAduHdr const*)p;
 		digest := $"Dev: %1 %2 "(aduHdr.m_deviceAddress, arrows[role]);
 
+		size -= sizeof(uint8_t); // minus LRC
+
 		appendModbusPduDigest(
 			digest,
 			p + sizeof(ModbusRtuAduHdr),
-			size - sizeof(ModbusRtuAduHdr) - sizeof(uint16_t),
+			size - sizeof(ModbusRtuAduHdr),
 			role
 		);
 
-		size -= sizeof(uint8_t);
 		uint8_t const* checksum = (uint8_t const*)(p + size);
 		if (*checksum != lrc(p, size))
 			digest.append(" [\e[31mLRC ERROR\e[m]");
