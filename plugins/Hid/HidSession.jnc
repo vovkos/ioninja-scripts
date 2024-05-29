@@ -372,12 +372,12 @@ size_t errorcode HidSession.transmit(
 	io.HidReport const* report = m_rd.findReport(io.HidReportType.Output, reportId);
 	if (!report) {
 		std.setError($"HID output #%d not found"(reportId));
-		throw;
+		return -1;
 	}
 
 	if (size < report.m_size + 1) {
 		std.setError($"Incomplete HID output report (expected 1 byte for report ID followed %d bytes of report fields)"(report.m_size));
-		throw;
+		return -1;
 	}
 
 	size_t result = m_device.write(p, report.m_size + 1);
@@ -391,10 +391,6 @@ size_t errorcode HidSession.transmit(
 
 	m_pluginHost.m_txRxStats.addTx(report.m_size);
 	return result;
-
-catch:
-	m_logWriter.writeLastError(log.StdRecordCode.Error);
-	return -1;
 }
 
 void HidSession.onHidDeviceEvent(
