@@ -115,7 +115,7 @@ async void layout$(protocol)(jnc.DynamicLayout* layout) {
 			foldFlag = 1,
 			root
 		]
-		dyfield myproto {
+		dyfield {
 			[
 				backColor = ui.StdColor.PastelPurple,
 				ungroup
