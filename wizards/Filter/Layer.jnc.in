@@ -42,8 +42,7 @@ bool $(layerClass).filter(
 	void const* p,
 	size_t size
 ) {
-	switch (recordCode)
-	{
+	switch (recordCode) {
 	case log.StdRecordCode.Tx:
 		return m_txProp.m_value;
 

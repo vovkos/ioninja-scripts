@@ -110,8 +110,7 @@ bool representModbusGatewayMonLog(
             log.StdLogIcon.TxPacket :
             log.StdLogIcon.RxPacket;
 
-        if (protocol != io.ModbusProtocol.Ascii)
-        {   // RTU, TCP
+        if (protocol != io.ModbusProtocol.Ascii) {   // RTU, TCP
             if ((*(char const*)(p + 1) & 0x80) == 0x00) {   // TCP channel
                 // Get IP and PORT info from packet
                 char _strAddr[22];

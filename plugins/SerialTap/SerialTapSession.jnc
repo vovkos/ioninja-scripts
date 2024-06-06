@@ -328,7 +328,7 @@ void SerialTapSession.createUi() {
 	m_actionTable[ActionId.Refresh] = createAction("Re-enumerate devices", "images/refresh.png");
 	m_actionTable[ActionId.Refresh].m_onTriggered += enumerateDevices;
 
-	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable [IconId.Capture]);
+	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable[IconId.Capture]);
 	m_actionTable[ActionId.Capture].m_onTriggered += onCapture;
 
 	// status bar (only one pane)
@@ -692,7 +692,7 @@ void SerialTapSession.save(doc.Storage* storage) {
 	m_serialUi.save(storage);
 
 	storage.writeInt("deviceIdx", (int) m_deviceCombo.m_currentIndex);
-	storage.writeBool("flipDteDce", m_actionTable [ActionId.Flip].m_isChecked);
+	storage.writeBool("flipDteDce", m_actionTable[ActionId.Flip].m_isChecked);
 
 	m_bufferPropertySet.save(storage);
 }

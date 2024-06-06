@@ -150,7 +150,7 @@ void HidMonSession.createUi() {
 
 	m_actionTable[ActionId.Refresh]  = createAction("Re-enumerate devices", m_iconTable[IconId.Refresh]);
 	m_actionTable[ActionId.Refresh].m_onTriggered += onRefresh;
-	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable [IconId.Capture]);
+	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable[IconId.Capture]);
 	m_actionTable[ActionId.Capture].m_onTriggered += onCapture;
 	m_actionTable[ActionId.Info] = createAction("HID device info", m_iconTable[IconId.Info]);
 	m_actionTable[ActionId.Info].m_onTriggered += onInfo;

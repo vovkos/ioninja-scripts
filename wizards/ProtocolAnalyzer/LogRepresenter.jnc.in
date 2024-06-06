@@ -15,8 +15,7 @@ bool $(logRepresenterFunc)(
 	void const* p,
 	size_t size,
 	uint_t foldFlags
-	)
-{
+) {
 	switch (recordCode) {
 	case $(protocol)LogRecordCode.ParseError:
 		std.Error const* error = (std.Error const*)p;
