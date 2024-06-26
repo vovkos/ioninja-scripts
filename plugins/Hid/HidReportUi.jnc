@@ -22,6 +22,7 @@ protected:
 	std.Buffer m_buffer;
 	ui.VBoxLayout m_container;
 	ui.Icon* m_sendIcon;
+	ui.Icon* m_recvIcon;
 	ui.Icon* m_refreshIcon;
 
 public:
@@ -49,6 +50,11 @@ protected:
 
 	void onRefreshReport();
 
+	void onGetFeatureReport(
+		io.HidReport const* report,
+		HidReportFieldEncoder** encoderArray
+	);
+
 	void onSendReport(
 		io.HidReport const* report,
 		HidReportFieldEncoder** encoderArray
@@ -64,6 +70,7 @@ HidReportUi.construct(
 	io.HidRd const* rd
 ) {
 	m_sendIcon = new ui.Icon("images/send.png");
+	m_recvIcon = new ui.Icon("images/recv.png");
 	m_refreshIcon = new ui.Icon("images/refresh.png");
 	m_reportWriter = reportWriter;
 	m_logWriter = pluginHost.m_log.m_writer;
@@ -135,14 +142,20 @@ void HidReportUi.createReportForm(io.HidReport const* report) {
 
 			encoderArray[encoderIdx++] = createFieldEncoder(layout, text, reportSize);
 		}
-
-		ui.Action action(m_sendIcon, "Send", onSendReport~(report, encoderArray));
-		ui.ToolBar controlToolBar;
-		controlToolBar.addStretch();
-		controlToolBar.setIconSize(73, 27); // images/send.png
-		controlToolBar.addAction(action);
-		layout.addRow(controlToolBar);
 	}
+
+	ui.ToolBar controlToolBar;
+	controlToolBar.addStretch();
+	controlToolBar.setIconSize(73, 27); // images/send.png
+
+	if (report.m_reportType == io.HidReportType.Feature) {
+		ui.Action getAction(m_recvIcon, "Get Report", onGetFeatureReport~(report, encoderArray));
+		controlToolBar.addAction(getAction);
+	}
+
+	ui.Action action(m_sendIcon, "Send Report", onSendReport~(report, encoderArray));
+	controlToolBar.addAction(action);
+	layout.addRow(controlToolBar);
 
 	m_container.addWidget(groupBox);
 }
@@ -163,6 +176,22 @@ HidReportFieldEncoder* HidReportUi.createFieldEncoder(
 		layout.addRow(label, edit);
 		return new HidReportIntEncoder(edit, reportSize);
 	}
+}
+
+void HidReportUi.onGetFeatureReport(
+	io.HidReport const* report,
+	HidReportFieldEncoder** encoderArray
+) {
+	m_buffer.setSize(report.m_size + sizeof(uint64_t));
+	memset(m_buffer.m_p, 0, m_buffer.m_size);
+	m_buffer[0] = report.m_reportId; // report ID in the first byte
+
+	m_device.getFeatureReport(m_buffer.m_p, report.m_size + 1);
+	m_reportWriter.writeReport(HidLogRecordCode.GetFeatureReport, report, m_buffer.m_p + 1, report.m_size);
+	m_txRxStats.addRx(report.m_size);
+
+catch:
+	m_logWriter.write(log.StdRecordCode.Error, std.getLastError());
 }
 
 void HidReportUi.onSendReport(
