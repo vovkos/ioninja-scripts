@@ -4,8 +4,10 @@
 //
 
 import "ui_Color.jnc"
+import "ias_FieldCodec.jnc"
 import "crc8.jnc"
 import "crc16.jnc"
+import "hexEncoding.jnc"
 
 namespace io {
 
@@ -480,6 +482,12 @@ struct ModbusReadFifoQueueReplyParams {
 
 // Modbus ADUs
 
+bitflag enum ModbusAduFlags {
+	AsciiEncoded, // by default, functions expect decoded MODBUS-ASCII (binary)
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
 struct ModbusRtuAduHdr {
 	[
 		displayName = "Device",
@@ -895,6 +903,28 @@ struct ModbusRtuCrc {
 	}
 }
 
+struct ModbusAsciiLrc {
+	[
+		displayName = "LRC",
+		formatFunc  = formatModbusAsciiLrc,
+		formatSpec  = "0x%02X"
+	]
+	uint8_t m_crc; // Modbus RTU CRC is little-endian
+
+	[
+		userAction = "Update LRC",
+		autorun = "Auto-update LRC"
+	]
+	void updateLrc() {
+		m_crc = calcLrc();
+	}
+
+	uint16_t calcLrc() const {
+		size_t size = dynamic offsetof(this);
+		return lrc((char const*)this - size, size);
+	}
+}
+
 string_t getModbusChecksumValidityString(bool isValid) {
 	return isValid ? "\e[32mOK\e[m" : "\e[31mERROR\e[m";
 }
@@ -914,10 +944,74 @@ string_t formatModbusAsciiLrc(void const* p) {
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
+struct ModbusAsciiCrLf {
+	[
+		displayName = "CR",
+		formatSpec  = "0x%02X"
+	]
+	char m_cr;
+
+	[
+		displayName = "LF",
+		formatSpec  = "0x%02X"
+	]
+	char m_lf;
+
+	[
+		userAction = "Init frame",
+		autorun = "Auto-init frame"
+	]
+	void init() {
+		char* stx = (char*)this - dynamic offsetof(this);
+		*stx = 0x02;
+		m_cr = 0x0d;
+		m_lf = 0x0a;
+	}
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+class HexFieldCodec: ias.FieldCodec {
+	override size_t errorcode decode(
+		std.Buffer* buffer,
+		void const* p,
+		size_t size
+	) {
+		return decodeHexString(buffer, string_t(p, size));
+	}
+
+	override size_t errorcode encode(
+		std.Buffer* buffer,
+		void const* p,
+		size_t size
+	) {
+		return buffer.copy(encodeHexString(p, size));
+	}
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+[
+	displayName = "Modbus ASCII request ADU (decoded)",
+	fixedSize
+]
+void layoutModbusAsciiDecodedRequestAdu(jnc.DynamicLayout* layout) {
+	io.layoutModbusAdu(layout, io.ModbusProtocol.Ascii, ModbusRole.Master);
+}
+
+[
+	displayName = "Modbus ASCII reply ADU (decoded)",
+	fixedSize
+]
+void layoutModbusAsciiDecodedReplyAdu(jnc.DynamicLayout* layout) {
+	io.layoutModbusAdu(layout, io.ModbusProtocol.Ascii, ModbusRole.Slave);
+}
+
 async void layoutModbusAdu(
 	jnc.DynamicLayout* layout,
 	ModbusProtocol protocol,
-	ModbusRole role
+	ModbusRole role,
+	ModbusAduFlags flags = 0
 ) {
 	[
 		backColor = ui.StdColor.PastelPurple,
@@ -940,7 +1034,7 @@ async void layoutModbusAdu(
 			root // root groups are for log only (ungrouped in packet templates)
 		]
 		dyfield adu {
-			// add dynamic attributes for representDynamicLayout / getModbusAduDigest
+			// dynamic attributes for representDynamicLayout / getModbusAduDigest
 			layout.setGroupAttribute("displayName", displayNames[protocol]);
 			layout.setGroupAttribute("protocol", protocol);
 			layout.setGroupAttribute("role", role);
@@ -958,17 +1052,53 @@ async void layoutModbusAdu(
 					break;
 
 				case ModbusProtocol.Ascii:
-					[ @AduAttr ]
-					dyfield ModbusRtuAduHdr aduHdr;
+					if (flags & ModbusAduFlags.AsciiEncoded) {
+						[
+							backColor = ui.StdColor.PastelGreen,
+							ungroup
+						]
+						void FrameAttr;
 
-					await layoutModbusPdu(layout, role);
+						[
+							@FrameAttr,
+							displayName = "STX",
+							formatSpec = "0x%02X"
+						]
+						dyfield char stx;
 
-					[
-						@AduAttr,
-						displayName = "LRC",
-						formatFunc = formatModbusAsciiLrc
-					]
-					dyfield uint8_t lrc;
+						[
+							backColor = ui.StdColor.PastelYellow,
+							displayName = "ADU",
+							valueText = "(Hex-encoded)",
+							codec = typeof(HexFieldCodec)
+						]
+						dyfield adu {
+							// set dynamic packet template attribute depending on the role
+							layout.setGroupAttribute(
+								"packetTemplate",
+								role == ModbusRole.Slave ?
+									declof(layoutModbusAsciiDecodedReplyAdu) :
+									declof(layoutModbusAsciiDecodedRequestAdu)
+							);
+
+							size_t length = await layout.asyncScanTo('\r');
+							dyfield char buffer[length];
+						}
+
+						[
+							@FrameAttr,
+							ungroup
+						]
+						dyfield ModbusAsciiCrLf crlf;
+					} else  {
+						[ @AduAttr ]
+						dyfield ModbusRtuAduHdr aduHdr;
+
+						await layoutModbusPdu(layout, role);
+
+						[ @AduAttr ]
+						dyfield ModbusAsciiLrc lrc;
+					}
 					break;
 
 				case ModbusProtocol.Tcp:
