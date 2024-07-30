@@ -88,11 +88,18 @@ size_t decodeHexString(
 
 string_t encodeHexString(
 	void const* p,
-	size_t size
+	size_t size,
+	char sep = 0 // 0 means no separator
 ) {
 	static char charTable[] = "0123456789ABCDEF";
 
+	if (!size)
+		return null;
+
 	size_t length = size * 2;
+	if (sep)
+		length += size - 1;
+
 	std.Buffer buffer;
 	buffer.setSize(length + 1); // plus null-terminator (not essential)
 
@@ -100,10 +107,21 @@ string_t encodeHexString(
 	uint8_t const* src = p;
 	uint8_t const* end = p + size;
 
-	for (; src < end; src++) {
-		uint8_t x = *src;
-		*dst++ = charTable[(x >> 4) & 0x0f];
-		*dst++ = charTable[x & 0x0f];
+	if (!sep)
+		for (; src < end; src++) {
+			uint8_t x = *src;
+			*dst++ = charTable[(x >> 4) & 0x0f];
+			*dst++ = charTable[x & 0x0f];
+		}
+	else {
+		memset(dst, sep, length);
+
+		for (; src < end; src++) {
+			uint8_t x = *src;
+			*dst++ = charTable[(x >> 4) & 0x0f];
+			*dst++ = charTable[x & 0x0f];
+			dst++; // sep
+		}
 	}
 
 	return string_t(buffer.m_p, length);
