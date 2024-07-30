@@ -87,9 +87,9 @@ string_t getItemValueString(
 	uint_t bitCount = 0,
 	void const* p
 ) {
-	ToStringFunc thin* formatFunc = decl.findAttributeValue("formatFunc");
+	ToStringFuncEx thin* formatFunc = decl.findAttributeValue("formatFunc");
 	if (formatFunc)
-		return formatFunc(p);
+		return formatFunc(p, type.m_size, decl);
 
 	string_t formatSpec = decl.findAttributeValue("formatSpec");
 	jnc.Type* displayType = decl.findAttributeValue("displayType");
@@ -106,17 +106,17 @@ string_t getItemValueString(
 	return displayPtrType.getTargetValueString(p, formatSpec);
 }
 
-ToStringFunc* getItemValueStringFunc(
+ToStringFunc* getElementValueStringFunc(
 	jnc.ModuleItemDecl safe* decl,
 	jnc.Type safe* type,
 	jnc.PtrTypeFlags ptrTypeFlags = 0
 ) {
-	ToStringFunc thin* formatFunc = decl.findAttributeValue("formatFunc");
+	ToStringFuncEx thin* formatFunc = decl.findAttributeValue("elementFormatFunc");
 	if (formatFunc)
-		return formatFunc;
+		return formatFunc~(, type.m_size, decl);
 
-	string_t formatSpec = decl.findAttributeValue("formatSpec");
-	jnc.Type* displayType = decl.findAttributeValue("displayType");
+	string_t formatSpec = decl.findAttributeValue("elementFormatSpec");
+	jnc.Type* displayType = decl.findAttributeValue("elementDisplayType");
 	if (!displayType)
 		displayType = type;
 
@@ -367,13 +367,18 @@ void representArray(
 	size_t arraySize = elementSize * elementCount;
 
 	if (!decl.findAttribute("ungroup")) {
-		if (elementType.m_typeKind == jnc.TypeKind.Char) { // display char[] as string
-			context.m_representation.addHyperText(
-				$"%1%2:\t\e[34m%3"(
-					indent,
-					getItemName(decl, context.m_rawBinPartCode, offset, arraySize),
-					string_t(p, elementCount)
-				));
+		ToStringFuncEx thin* formatFunc = decl.findAttributeValue("formatFunc");
+		string_t value =
+			formatFunc ? formatFunc(p, arraySize, decl) :
+			elementType.m_typeKind == jnc.TypeKind.Char ? string_t(p, elementCount) :
+			null;
+
+		if (value) {
+			context.m_representation.addHyperText($"%1%2:\t\e[34m%3"(
+				indent,
+				getItemName(decl, context.m_rawBinPartCode, offset, arraySize),
+				value
+			));
 			return;
 		}
 
@@ -398,7 +403,7 @@ void representArray(
 
 		context.m_foldFlags = prevFoldFlags; // restore
 	} else {
-		ToStringFunc* getValueStringFunc = getItemValueStringFunc(decl, elementType, ptrTypeFlags);
+		ToStringFunc* getValueStringFunc = getElementValueStringFunc(decl, elementType, ptrTypeFlags);
 		for (size_t i = 0; i < elementCount; i++) {
 			context.m_representation.addHyperText($"%1%2[%3]:\t\e[34m%4"(
 				indent,
