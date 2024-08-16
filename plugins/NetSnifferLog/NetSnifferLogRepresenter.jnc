@@ -179,12 +179,13 @@ void representRawPacketData(
 	void const* p,
 	size_t size
 ) {
-	representation.m_lineAttr.m_textColor = ui.StdColor.BrightBlack;
+	representation.m_lineAttr.m_textColor = ui.StdColor.Black;
 	representation.m_lineAttr.m_backColor = ui.ColorFlags.Undefined;
 	representation.addBin(NetSnifferLogPartCode.RawPacket, p, size);
 
 	ui.TextAttr attr;
 	attr.m_backColor = ui.ColorFlags.Undefined;
+	attr.m_textColor = ui.ColorFlags.Undefined;
 
 	size_t protoCount = protoRangeArray.m_count;
 	for (size_t i = 0; i < protoCount; i++) {
