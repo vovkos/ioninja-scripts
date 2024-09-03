@@ -3,6 +3,7 @@
 // Ninja UI - property grid
 //
 
+import "ui_Widget.jnc"
 import "ui_ListItem.jnc"
 import "ui_Dictionary.jnc"
 import "std_HashTable.jnc"
@@ -215,7 +216,10 @@ class DictionaryProperty: Property {
 
 //..............................................................................
 
-opaque class PropertyGrid {
+class PropertyGrid: Widget {
+	construct();
+	destruct();
+
 	void addProperty(
 		Property* prop,
 		Property* beforeProp = null
