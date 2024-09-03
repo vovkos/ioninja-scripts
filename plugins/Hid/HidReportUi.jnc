@@ -263,7 +263,7 @@ public:
 		void* p0,
 		size_t bitOffset
 	) {
-		uint8_t* p = (uint8_t*)(p + bitOffset / 8);
+		uint8_t* p = (uint8_t*)(p0 + bitOffset / 8);
 		uint_t value = 1 << (bitOffset & 7);
 		if (m_prop.m_value)
 			*p |= value;
