@@ -7,6 +7,7 @@ import "io_hid.jncx"
 import "io_HidRd.jnc"
 import "ui_GroupBox.jnc"
 import "ui_ToolBar.jnc"
+import "ui_PropertyGrid.jnc"
 import "std_HashTable.jnc"
 import "std_Buffer.jnc"
 
@@ -43,7 +44,7 @@ protected:
 	void createReportForm(io.HidReport const* report);
 
 	HidReportFieldEncoder* createFieldEncoder(
-		ui.FormLayout* layout,
+		ui.GroupProperty* groupProp,
 		string_t text,
 		size_t reportSize
 	);
@@ -109,8 +110,9 @@ void HidReportUi.createReportForm(io.HidReport const* report) {
 
 	HidReportFieldEncoder** encoderArray = new HidReportFieldEncoder*[encoderCount];
 
-	ui.FormLayout layout;
-	layout.m_spacing = 1; // make it dense
+	ui.VBoxLayout layout;
+	ui.PropertyGrid propertyGrid;
+	ui.GroupProperty* groupProp;
 
 	ui.GroupBox groupBox(text, layout);
 	io.HidUsagePage const* usagePage;
@@ -122,10 +124,8 @@ void HidReportUi.createReportForm(io.HidReport const* report) {
 
 		if (usagePage != field.m_usagePage) {
 			usagePage = field.m_usagePage;
-
-			ui.Label label(usagePage.m_name);
-			label.m_styleSheet = "font-weight: bold";
-			layout.addRow(label);
+			groupProp = new ui.GroupProperty(usagePage.m_name);
+			propertyGrid.addProperty(groupProp);
 		}
 
 		size_t reportSize = field[io.HidRdItemId.ReportSize];
@@ -140,9 +140,12 @@ void HidReportUi.createReportForm(io.HidReport const* report) {
 			if (reportSize > 1)
 				text = $"%s:"(text);
 
-			encoderArray[encoderIdx++] = createFieldEncoder(layout, text, reportSize);
+			encoderArray[encoderIdx++] = createFieldEncoder(groupProp, text, reportSize);
 		}
 	}
+
+	propertyGrid.resizeNameColumnToContents();
+	layout.addWidget(propertyGrid);
 
 	ui.ToolBar controlToolBar;
 	controlToolBar.addStretch();
@@ -155,26 +158,24 @@ void HidReportUi.createReportForm(io.HidReport const* report) {
 
 	ui.Action action(m_sendIcon, "Send Report", onSendReport~(report, encoderArray));
 	controlToolBar.addAction(action);
-	layout.addRow(controlToolBar);
+	layout.addWidget(controlToolBar);
 
 	m_container.addWidget(groupBox);
 }
 
 HidReportFieldEncoder* HidReportUi.createFieldEncoder(
-	ui.FormLayout* layout,
+	ui.GroupProperty* groupProp,
 	string_t text,
 	size_t reportSize
 ) {
 	if (reportSize == 1) {
-		ui.CheckBox checkBox(text);
-		layout.addRow(checkBox);
-		return new HidReportBitEncoder(checkBox);
+		ui.BoolProperty* prop = new ui.BoolProperty(text);
+		groupProp.addChildProperty(prop);
+		return new HidReportBitEncoder(prop);
 	} else {
-		ui.Label label(text);
-		ui.LineEdit edit;
-		edit.m_text = "0";
-		layout.addRow(label, edit);
-		return new HidReportIntEncoder(edit, reportSize);
+		ui.IntProperty* prop = new ui.IntProperty(text);
+		groupProp.addChildProperty(prop);
+		return new HidReportIntEncoder(prop, reportSize);
 	}
 }
 
@@ -251,20 +252,23 @@ public:
 
 class HidReportBitEncoder: HidReportFieldEncoder {
 protected:
-	ui.CheckBox* m_checkBox;
+	ui.BoolProperty* m_prop;
 
 public:
-	construct(ui.CheckBox* checkBox) {
-		m_checkBox = checkBox;
+	construct(ui.BoolProperty* prop) {
+		m_prop = prop;
 	}
 
 	override void encode(
-		void* p,
+		void* p0,
 		size_t bitOffset
 	) {
-		if (m_checkBox.m_isChecked) {
-			*(uint8_t*)(p + bitOffset / 8) |= 1 << (bitOffset & 7);
-		}
+		uint8_t* p = (uint8_t*)(p + bitOffset / 8);
+		uint_t value = 1 << (bitOffset & 7);
+		if (m_prop.m_value)
+			*p |= value;
+		else
+			*p &= ~value;
 	}
 }
 
@@ -272,15 +276,15 @@ public:
 
 class HidReportIntEncoder: HidReportFieldEncoder {
 protected:
-	ui.LineEdit* m_lineEdit;
+	ui.IntProperty* m_prop;
 	size_t m_bitCount;
 
 public:
 	construct(
-		ui.LineEdit* lineEdit,
+		ui.IntProperty* prop,
 		size_t bitCount
 	) {
-		m_lineEdit = lineEdit;
+		m_prop = prop;
 		m_bitCount = bitCount;
 	}
 
@@ -288,13 +292,12 @@ public:
 		void* p0,
 		size_t bitOffset
 	) {
-		uint64_t value = strtol(m_lineEdit.m_text);
 		uint_t shift = bitOffset & 7;
 		uint_t mask = (1 << m_bitCount) - 1;
 
 		int64_t* p = (int64_t*)(p0 + bitOffset / 8);
 		*p &= ~(mask << shift);
-		*p |= value << shift;
+		*p |= (m_prop.m_value & mask) << shift;
 	}
 }
 

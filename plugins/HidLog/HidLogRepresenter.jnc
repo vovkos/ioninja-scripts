@@ -391,7 +391,8 @@ void representReportFields(
 				if (field.m_valueFlags & io.HidRdValueFlags.Variable) {
 					uint_t usage = field.m_usageArray[baseUsageIdx + i];
 					representation.addHyperText(
-						$"%s:\t\e[34m%d"(
+						$"[%d] %s:\t\e[34m%d"(
+							i,
 							field.m_usagePage.getUsageName(usage),
 							value
 						));
