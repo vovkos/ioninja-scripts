@@ -220,6 +220,9 @@ class PropertyGrid: Widget {
 	construct();
 	destruct();
 
+	void clear();
+	void resizeNameColumnToContents();
+
 	void addProperty(
 		Property* prop,
 		Property* beforeProp = null
@@ -396,8 +399,6 @@ class PropertyGrid: Widget {
 	) {
 		return createDictionaryProperty(,, name, toolTip);
 	}
-
-	void resizeNameColumnToContents();
 
 protected:
 	void finalizeCreateProperty(
