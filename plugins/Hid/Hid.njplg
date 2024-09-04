@@ -22,5 +22,4 @@ org.jancy.io.usb
 [scripts]
 
 HidSession.jnc
-HidReportUi.jnc
 ../HidLog/HidLogReportWriter.jnc
