@@ -277,14 +277,18 @@ void HidSession.updateReportCombo() {
 
 	for (size_t i = 0; i < outputReportCount; i++) {
 		io.HidReport const* report = m_rd.m_reportArray[io.HidReportType.Output][i];
-		reportComboItems[i].m_text = $"Output #%1"(report.m_reportId);
 		reportComboItems[i].m_value = report;
+		reportComboItems[i].m_text = report.m_reportId ?
+			$"Output #%1"(report.m_reportId) :
+			"Output";
 	}
 
 	for (size_t i = 0, j = outputReportCount; i < featureReportCount; i++, j++) {
 		io.HidReport const* report = m_rd.m_reportArray[io.HidReportType.Feature][i];
-		reportComboItems[j].m_text = $"Feature #%1"(report.m_reportId);
 		reportComboItems[j].m_value = report;
+		reportComboItems[j].m_text = report.m_reportId ?
+			$"Feature #%1"(report.m_reportId) :
+			"Feature";
 	}
 
 	m_reportCombo.setItems(reportComboItems, totalReportCount);
@@ -297,6 +301,7 @@ void HidSession.updateReportUi(io.HidReport const* report) {
 	m_reportFieldEncoderArray = null;
 
 	if (!report) {
+		m_reportCombo.m_isEnabled = 
 		m_reportPropertyGrid.m_isEnabled =
 		m_actionTable[ActionId.SendReport].m_isEnabled =
 		m_actionTable[ActionId.GetFeatureReport].m_isEnabled = false;
