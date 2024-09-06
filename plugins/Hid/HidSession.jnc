@@ -193,7 +193,6 @@ void HidSession.createUi() {
 	ui.Label label("HID output & feature reports:");
 	layout.addWidget(label);
 	m_reportCombo = new ui.ComboBox;
-	m_reportCombo.m_placeholderText = "No reports";
 	layout.addWidget(m_reportCombo);
 
 	m_reportPropertyGrid = new ui.PropertyGrid;
@@ -301,7 +300,7 @@ void HidSession.updateReportUi(io.HidReport const* report) {
 	m_reportFieldEncoderArray = null;
 
 	if (!report) {
-		m_reportCombo.m_isEnabled = 
+		m_reportCombo.m_isEnabled =
 		m_reportPropertyGrid.m_isEnabled =
 		m_actionTable[ActionId.SendReport].m_isEnabled =
 		m_actionTable[ActionId.GetFeatureReport].m_isEnabled = false;
@@ -358,6 +357,7 @@ void HidSession.updateReportUi(io.HidReport const* report) {
 		}
 	}
 
+	m_reportCombo.m_isEnabled = true;
 	m_reportPropertyGrid.resizeNameColumnToContents();
 	m_reportPropertyGrid.m_isEnabled = true;
 	m_actionTable[ActionId.SendReport].m_isEnabled = true;
