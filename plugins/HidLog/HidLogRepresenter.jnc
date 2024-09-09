@@ -187,20 +187,20 @@ void representDeviceInfo(
 		$"    \e[90mManufacturer:\t\e[34m%4\n"
 		$"    \e[90mVendor ID:\t\e[34m0x%(5; 04X)\n"
 		$"    \e[90mProduct ID:\t\e[34m0x%(6; 04X)\n"
-		$"    \e[90mUsage page:\t\e[34m%7\n"
-		$"    \e[90mUsage:\t\e[34m%8\n"
-		$"    \e[90mBus:\t\e[34m%9\n"
-		$"    \e[90mInterface:\t\e[34m%10"(
+		$"    \e[90mBus:\t\e[34m%7\n"
+		$"    \e[90mInterface:\t\e[34m%8\n"
+		$"    \e[90mUsage page:\t\e[34m%9\n"
+		$"    \e[90mUsage:\t\e[34m%10"(
 			text,
 			path,
 			product,
 			manufacturer,
 			params.m_vendorId,
 			params.m_productId,
-			page.m_name,
-			page.getUsageName(params.m_usage),
 			typeof(io.HidBusType).getValueString(params.m_busType),
-			params.m_interfaceId
+			params.m_interfaceId,
+			page.m_name,
+			page.getUsageName(params.m_usage)
 		)
 	);
 
