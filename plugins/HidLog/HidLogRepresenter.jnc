@@ -393,28 +393,30 @@ void representReportFields(
 
 		size_t reportSize = field[io.HidRdItemId.ReportSize];
 		size_t reportCount = field[io.HidRdItemId.ReportCount];
+		uint_t usageMin = field[io.HidRdItemId.UsageMinimum];
 		size_t usageCount = field.m_usageCount;
 		size_t baseUsageIdx = usageCount > reportCount ? usageCount - reportCount : 0;
 		bool isUnsigned = field.m_isUnsigned;
 
+		bool hasIndex = 
+			reportCount > 1 &&
+			(field.m_valueFlags & io.HidRdValueFlags.Variable) && 
+			field.m_usageArray[0] == field.m_usageArray[1];
+
 		for (size_t i = 0; i < reportCount; i++, bitOffset += reportSize) {
 			int value = extractValue(p, size, bitOffset, reportSize, isUnsigned);
 			if (value)
-				if (field.m_valueFlags & io.HidRdValueFlags.Variable) {
-					uint_t usage = field.m_usageArray[baseUsageIdx + i];
-					representation.addHyperText(
-						$"%s [%d]:\t\e[34m%d"(
-							field.m_usagePage.getUsageName(usage),
-							i,
-							value
-						));
+				if (!(field.m_valueFlags & io.HidRdValueFlags.Variable)) {
+					string_t usageName = field.m_usagePage.getUsageName(usageMin + value);
+					representation.addHyperText($"[%d]:\t\e[34m%s"(i, usageName));
 				} else {
-					uint_t usage = field[io.HidRdItemId.UsageMinimum] + value;
+					uint_t usage = field.m_usageArray[baseUsageIdx + i];
+					string_t usageName = field.m_usagePage.getUsageName(usage);
 					representation.addHyperText(
-						$"[%d]:\t\e[34m%s"(
-							i,
-							field.m_usagePage.getUsageName(usage)
-						));
+						hasIndex ? 
+							$"%s [%d]:\t\e[34m%d"(usageName, i,value) :
+							$"%s:\t\e[34m%d"(usageName, value)
+					);
 				}
 		}
 
