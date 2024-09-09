@@ -89,44 +89,52 @@ bool representHidLog(
 		break;
 
 	case HidLogRecordCode.InputReport:
+	case HidLogRecordCode.InputReportNoId:
 		representReport(
 			representation,
 			log.StdLogIcon.RxPacket,
 			log.StdLogColor.Rx,
 			"INPUT",
+			recordCode == HidLogRecordCode.InputReport,
 			p,
 			size
 		);
 		break;
 
 	case HidLogRecordCode.OutputReport:
+	case HidLogRecordCode.OutputReportNoId:
 		representReport(
 			representation,
 			log.StdLogIcon.TxPacket,
 			log.StdLogColor.Tx,
 			"OUTPUT",
+			recordCode == HidLogRecordCode.OutputReport,
 			p,
 			size
 		);
 		break;
 
 	case HidLogRecordCode.GetFeatureReport:
+	case HidLogRecordCode.GetFeatureReportNoId:
 		representReport(
 			representation,
 			log.StdLogIcon.RxPacket,
 			log.StdLogColor.Rx,
 			"GET FEATURE",
+			recordCode == HidLogRecordCode.GetFeatureReport,
 			p,
 			size
 		);
 		break;
 
 	case HidLogRecordCode.SendFeatureReport:
+	case HidLogRecordCode.SendFeatureReportNoId:
 		representReport(
 			representation,
 			log.StdLogIcon.TxPacket,
 			log.StdLogColor.Tx,
 			"SET FEATURE",
+			recordCode == HidLogRecordCode.SendFeatureReport,
 			p,
 			size
 		);
@@ -326,6 +334,7 @@ void representReport(
 	uint_t iconIdx,
 	uint_t binTextColor,
 	string_t text,
+	bool isReportIdIncluded,
 	void const* p,
 	size_t size
 ) {
@@ -357,7 +366,10 @@ void representReport(
 	);
 
 	if (report)
-	 	representReportFields(representation, report, p, size);
+		if (isReportIdIncluded)
+			representReportFields(representation, report, p + 1, size - 1);
+		else
+			representReportFields(representation, report, p, size);
 
 	representation.m_lineAttr.m_backColor = ui.ColorFlags.Undefined;
 	representation.m_lineAttr.m_textColor = binTextColor;
@@ -391,9 +403,9 @@ void representReportFields(
 				if (field.m_valueFlags & io.HidRdValueFlags.Variable) {
 					uint_t usage = field.m_usageArray[baseUsageIdx + i];
 					representation.addHyperText(
-						$"[%d] %s:\t\e[34m%d"(
-							i,
+						$"%s [%d]:\t\e[34m%d"(
 							field.m_usagePage.getUsageName(usage),
+							i,
 							value
 						));
 				} else {

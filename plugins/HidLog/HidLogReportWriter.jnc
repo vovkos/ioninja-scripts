@@ -56,9 +56,6 @@ void HidLogReportWriter.writeReport(
 		it.m_value = decodeInfo;
 	}
 
-	if (size > report.m_size)
-		size = report.m_size; // don't write more than the report defines
-
 	m_writer.write(
 		recordCode,
 		decodeInfo.m_p,

@@ -337,20 +337,17 @@ void HidSession.updateReportUi(io.HidReport const* report) {
 		size_t reportCount = field[io.HidRdItemId.ReportCount];
 
 		for (size_t j = 0; j < reportCount; j++) {
-			string_t text = $"[$j]";
-
-			if (field.m_valueFlags & io.HidRdValueFlags.Variable)
-				text = $"%s %s"(text, usagePage.getUsageName(field.m_usageArray[j]));
-
-			if (reportSize > 1)
-				text = $"%s:"(text);
+			string_t text = (field.m_valueFlags & io.HidRdValueFlags.Variable) ?
+				$"%1 [%2]:"(usagePage.getUsageName(field.m_usageArray[j]), j) :
+				$"[$j]:";
 
 			if (reportSize == 1) {
 				ui.BoolProperty* prop = new ui.BoolProperty(text);
 				groupProp.addChildProperty(prop);
 				encoderArray[encoderIdx++] = new HidReportBitEncoder(prop);
 			} else {
-				ui.IntProperty* prop = new ui.IntProperty(text);
+				ui.StringProperty* prop = new ui.StringProperty(text);
+				prop->m_value = "0";
 				groupProp.addChildProperty(prop);
 				encoderArray[encoderIdx++] = new HidReportIntEncoder(prop, reportSize, isUnsigned);
 			}
@@ -510,21 +507,22 @@ size_t errorcode HidSession.transmit(
 		return -1;
 	}
 
-	if (size < report.m_size + 1) {
+	size_t writeSize = report.m_size + 1; // plus report ID
+	if (size < writeSize) {
 		std.setError($"Incomplete HID output report (expected 1 byte for report ID followed %d bytes of report fields)"(report.m_size));
 		return -1;
 	}
 
-	size_t result = m_device.write(p, report.m_size + 1);
+	size_t result = m_device.write(p, writeSize);
 
 	m_reportWriter.writeReport(
 		HidLogRecordCode.OutputReport,
 		report,
-		p + 1,
-		report.m_size
+		p,
+		writeSize
 	);
 
-	m_pluginHost.m_txRxStats.addTx(report.m_size);
+	m_pluginHost.m_txRxStats.addTx(writeSize);
 	return result;
 }
 
@@ -533,14 +531,14 @@ void HidSession.onSendReport() {
 	if (!report)
 		return;
 
-	m_reportBuffer.setSize(report.m_size + sizeof(uint64_t));
-	memset(m_reportBuffer.m_p, 0, m_reportBuffer.m_size);
+	size_t writeSize = report.m_size + 1; // plus report ID
+	m_reportBuffer.setSize(report.m_size + sizeof(uint64_t)); // plus padding for encoder
+	memset(m_reportBuffer.m_p, 0, writeSize);
 
 	// encode
 
 	m_reportBuffer[0] = report.m_reportId; // report ID in the first byte
-	void* p = m_reportBuffer.m_p + 1;
-	size_t bitOffset = 0;
+	size_t bitOffset = 8; // report ID
 	size_t encoderIdx = 0;
 	for (size_t i = 0; i < report.m_fieldCount; i++) {
 		io.HidReportField const* field = report.m_fieldArray[i];
@@ -552,7 +550,7 @@ void HidSession.onSendReport() {
 		size_t reportSize = field[io.HidRdItemId.ReportSize];
 		size_t reportCount = field[io.HidRdItemId.ReportCount];
 		for (size_t j = 0; j < reportCount; j++) {
-			m_reportFieldEncoderArray[encoderIdx++].encode(p, bitOffset);
+			m_reportFieldEncoderArray[encoderIdx++].encode(m_reportBuffer.m_p, bitOffset);
 			bitOffset += reportSize;
 		}
 	}
@@ -560,15 +558,15 @@ void HidSession.onSendReport() {
 	uint64_t recordCode;
 
 	if (report.m_reportType == io.HidReportType.Feature) {
-		m_device.sendFeatureReport(m_reportBuffer.m_p, report.m_size + 1);
+		m_device.sendFeatureReport(m_reportBuffer.m_p, writeSize);
 		recordCode = HidLogRecordCode.SendFeatureReport;
 	} else {
-		m_device.write(m_reportBuffer.m_p, report.m_size + 1);
+		m_device.write(m_reportBuffer.m_p, writeSize);
 		recordCode = HidLogRecordCode.OutputReport;
 	}
 
-	m_reportWriter.writeReport(recordCode, report, p, report.m_size);
-	m_pluginHost.m_txRxStats.addTx(report.m_size);
+	m_reportWriter.writeReport(recordCode, report, m_reportBuffer.m_p, writeSize);
+	m_pluginHost.m_txRxStats.addTx(writeSize);
 
 catch:
 	m_logWriter.write(log.StdRecordCode.Error, std.getLastError());
@@ -579,13 +577,14 @@ void HidSession.onGetFeatureReport() {
 	if (!report)
 		return;
 
-	m_reportBuffer.setSize(report.m_size + sizeof(uint64_t));
-	memset(m_reportBuffer.m_p, 0, m_reportBuffer.m_size);
+	size_t readSize = report.m_size + 1; // plus report ID;
+	m_reportBuffer.setSize(report.m_size + sizeof(uint64_t)); // plus padding for decoder
+	memset(m_reportBuffer.m_p, 0, readSize);
 	m_reportBuffer[0] = report.m_reportId; // report ID in the first byte
 
-	m_device.getFeatureReport(m_reportBuffer.m_p, report.m_size + 1);
-	m_reportWriter.writeReport(HidLogRecordCode.GetFeatureReport, report, m_reportBuffer.m_p + 1, report.m_size);
-	m_pluginHost.m_txRxStats.addRx(report.m_size);
+	m_device.getFeatureReport(m_reportBuffer.m_p, readSize);
+	m_reportWriter.writeReport(HidLogRecordCode.GetFeatureReport, report, m_reportBuffer.m_p, readSize);
+	m_pluginHost.m_txRxStats.addRx(readSize);
 
 	// decode
 
@@ -631,18 +630,22 @@ void HidSession.onHidDeviceEvent(
 	if (triggeredEvents & io.HidDeviceEvents.IncomingData) {
 		size_t result = m_device.read(m_readBuffer.m_p, m_readBuffer.m_size);
 		if (result) {
-			uint_t reportId = 0;
+			uint64_t recordCode;
+			uint_t reportId;
 			uchar_t const* p = m_readBuffer.m_p;
 			if (m_rd.m_flags & io.HidRdFlags.HasReportId) {
-				reportId = *p++;
-				result--;
+				reportId = *p;
+				recordCode = HidLogRecordCode.InputReport;
+			} else {
+				reportId = 0;
+				recordCode = HidLogRecordCode.InputReportNoId;
 			}
 
 			io.HidReport const* report = m_rd.findReport(io.HidReportType.Input, reportId);
 			if (report)
-				m_reportWriter.writeReport(HidLogRecordCode.InputReport, report, p, result);
+				m_reportWriter.writeReport(recordCode, report, p, result);
 			else
-				m_reportWriter.writeUnknownReport(HidLogRecordCode.InputReport, reportId, p, result);
+				m_reportWriter.writeUnknownReport(recordCode, reportId, p, result);
 
 			m_pluginHost.m_txRxStats.addRx(result);
 		}
@@ -659,101 +662,6 @@ reactor HidSession.m_uiReactor {
 	m_readModeProp.m_isEnabled = !m_state;
 	m_statusPaneTable[StatusPaneId.State].m_text = m_state ? "Opened" : "Closed";
 	updateReportUi((io.HidReport const*)m_reportCombo.m_currentData);
-}
-
-//..............................................................................
-
-class HidReportFieldEncoder {
-public:
-	abstract void encode(
-		void* p,
-		size_t bitOffset
-	);
-
-	abstract void decode(
-		void const* p,
-		size_t bitOffset
-	);
-}
-
-// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-class HidReportBitEncoder: HidReportFieldEncoder {
-protected:
-	ui.BoolProperty* m_prop;
-
-public:
-	construct(ui.BoolProperty* prop) {
-		m_prop = prop;
-	}
-
-	override void encode(
-		void* p0,
-		size_t bitOffset
-	) {
-		uint8_t* p = (uint8_t*)(p0 + bitOffset / 8);
-		uint_t value = 1 << (bitOffset & 7);
-		if (m_prop.m_value)
-			*p |= value;
-		else
-			*p &= ~value;
-	}
-
-	override void decode(
-		void const* p0,
-		size_t bitOffset
-	) {
-		uint8_t const* p = (uint8_t const*)(p0 + bitOffset / 8);
-		uint_t value = 1 << (bitOffset & 7);
-		m_prop.m_value = (*p & value) != 0;
-	}
-}
-
-// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-class HidReportIntEncoder: HidReportFieldEncoder {
-protected:
-	ui.IntProperty* m_prop;
-	size_t m_bitCount;
-	bool m_isUnsigned;
-
-public:
-	construct(
-		ui.IntProperty* prop,
-		size_t bitCount,
-		bool isUnsigned
-	) {
-		m_prop = prop;
-		m_bitCount = bitCount;
-		m_isUnsigned = isUnsigned;
-	}
-
-	override void encode(
-		void* p0,
-		size_t bitOffset
-	) {
-		uint_t shift = bitOffset & 7;
-		uint_t mask = (1 << m_bitCount) - 1;
-
-		int64_t* p = (int64_t*)(p0 + bitOffset / 8);
-		*p &= ~(mask << shift);
-		*p |= (m_prop.m_value & mask) << shift;
-	}
-
-	override void decode(
-		void const* p0,
-		size_t bitOffset
-	) {
-		uint_t shift = bitOffset & 7;
-		uint_t mask = (1 << m_bitCount) - 1;
-
-		int64_t const* p = (int64_t const*)(p0 + bitOffset / 8);
-		int64_t value = (*p >> shift) & mask;
-		if (!m_isUnsigned && (value & (1 << (m_bitCount - 1)))) // signed & negative
-			value |= -1 & ~(1 << (m_bitCount - 1));
-
-		m_prop.m_value = value;
-	}
 }
 
 //..............................................................................
