@@ -28,7 +28,7 @@ void pretransmit(
 	uint8_t x = lrc(p, size);
 	*dst++ = hex[(x & 0xf0) >> 4];
 	*dst++ = hex[x & 0x0f];
-	
+
 	*dst++ = '\r';
 	*dst++ = '\n';
 

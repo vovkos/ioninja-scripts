@@ -398,9 +398,9 @@ void representReportFields(
 		size_t baseUsageIdx = usageCount > reportCount ? usageCount - reportCount : 0;
 		bool isUnsigned = field.m_isUnsigned;
 
-		bool hasIndex = 
+		bool hasIndex =
 			reportCount > 1 &&
-			(field.m_valueFlags & io.HidRdValueFlags.Variable) && 
+			(field.m_valueFlags & io.HidRdValueFlags.Variable) &&
 			field.m_usageArray[0] == field.m_usageArray[1];
 
 		for (size_t i = 0; i < reportCount; i++, bitOffset += reportSize) {
@@ -413,7 +413,7 @@ void representReportFields(
 					uint_t usage = field.m_usageArray[baseUsageIdx + i];
 					string_t usageName = field.m_usagePage.getUsageName(usage);
 					representation.addHyperText(
-						hasIndex ? 
+						hasIndex ?
 							$"%s [%d]:\t\e[34m%d"(usageName, i,value) :
 							$"%s:\t\e[34m%d"(usageName, value)
 					);

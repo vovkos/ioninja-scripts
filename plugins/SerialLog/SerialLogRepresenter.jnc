@@ -7,7 +7,7 @@ import "log_Representation.jnc"
 import "io_base.jncx"
 import "io_Serial.jnc"
 import "SerialLogRecordCode.jnc"
- 
+
 //..............................................................................
 
 string_t getTableString(

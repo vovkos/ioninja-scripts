@@ -13,7 +13,7 @@ pragma(Alignment, 1);
 
 //..............................................................................
 
-[ 
+[
 	packetTemplate,
 	displayName = "Modbus TCP read",
 	fixedSize
