@@ -199,14 +199,26 @@ bool errorcode SerialMonSession.capture() {
 	close();
 	startSession();
 
-	string_t name = m_portCombo.m_currentText;
+	string_t portName = m_portCombo.m_currentText;
 
 	m_monitor.applyProperties(m_bufferPropertySet, m_pendingNotifySizeLimitProp.m_value);
-	m_monitor.capture(name);
+	m_monitor.capture(portName);
 
-	m_logWriter.write(DeviceMonLogRecordCode.CaptureStarted_name, name);
+	io.SerialPortDesc const* portDesc = findSerialPortDesc(portName);
+	if (!portDesc)
+		m_logWriter.write(DeviceMonLogRecordCode.CaptureStarted_name, portName);
+	else {
+		std.Buffer buffer;
+		packSerialPortDescStrings(buffer, portDesc);
 
-	m_portName = name;
+		m_logWriter.write(
+			SerialLogRecordCode.CaptureStarted,
+			buffer.m_p,
+			buffer.m_size
+		);
+	}
+
+	m_portName = portName;
 	m_state = State.Opened;
 	m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
 	return true;

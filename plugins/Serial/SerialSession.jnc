@@ -392,13 +392,27 @@ bool errorcode SerialSession.open() {
 	params.m_options = m_serial.m_options;
 	params.m_osKind = sys.g_systemInfo.m_osKind;
 
-	m_logWriter.write(
-		SerialLogRecordCode.PortOpened,
-		&params,
-		sizeof(params),
-		portName.m_p,
-		portName.m_length
-	);
+	io.SerialPortDesc const* portDesc = findSerialPortDesc(portName);
+	if (!portDesc)
+		m_logWriter.write(
+			SerialLogRecordCode.PortOpened,
+			&params,
+			sizeof(params),
+			portName.m_p,
+			portName.m_length
+		);
+	else {
+		std.Buffer buffer;
+		packSerialPortDescStrings(buffer, portDesc);
+
+		m_logWriter.write(
+			SerialLogRecordCode.PortOpenedEx,
+			&params,
+			sizeof(params),
+			buffer.m_p,
+			buffer.m_size
+		);
+	}
 
 	m_portName = portName;
 	m_baudRate = m_serial.m_baudRate;

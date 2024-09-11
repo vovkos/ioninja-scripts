@@ -514,7 +514,7 @@ bool isSerialPortLess(
 	return port1.m_deviceName < port2.m_deviceName;
 }
 
-void enumerateSerialPorts(
+size_t enumerateSerialPorts(
 	ComboBox* portCombo,
 	ComboProperty* portProp
 ) {
@@ -574,6 +574,7 @@ void enumerateSerialPorts(
 
 	portCombo.m_editText = editText; // restore edit text
 	portProp.setOptions(optionArray, count);
+	return count;
 }
 
 //..............................................................................
