@@ -663,7 +663,7 @@ void HidSession.onHidDeviceEvent(
 }
 
 reactor HidSession.m_uiReactor {
-	m_title = $"HID $(m_deviceCombo.m_editText)";
+	m_title = $"HID $(m_deviceCombo.m_currentText)";
 	m_actionTable[ActionId.Open].m_text = m_state ? "Close" : "Open";
 	m_actionTable[ActionId.Open].m_icon = m_iconTable[m_state ? IconId.Close : IconId.Open];
 	m_actionTable[ActionId.Info].m_isEnabled = m_state;

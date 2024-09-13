@@ -34,6 +34,20 @@ void refreshHidMonDeviceListUi(
 	ComboBox* deviceCombo,
 	EnumProperty* deviceProp
 ) {
+	string_t usbmonService = sys.g_systemInfo.m_osKind == sys.OsKind.Windows ?
+		"USBPcap" :
+		"usbmon";
+	
+	if (!io.detectUsbMon()) {
+		string_t text = $"(%1 not detected)"(usbmonService);
+		deviceCombo.clear();
+		deviceCombo.addItem(text);
+		deviceCombo.m_isEnabled = false;
+		deviceProp.addOption(text);
+		deviceProp.m_isEnabled = false;
+		return;
+	}
+	
 	size_t count;
 	io.HidMonDeviceDesc const* deviceList = io.enumerateHidMonDevices(&count);
 
@@ -52,10 +66,6 @@ void refreshHidMonDeviceListUi(
 
 	deviceCombo.clear();
 
-	string_t captureDevicePrefix = sys.g_systemInfo.m_osKind == sys.OsKind.Windows ?
-		"USBPcap" :
-		"usbmon";
-
 	std.StringBuilder description;
 	std.StringBuilder toolTip;
 
@@ -67,7 +77,7 @@ void refreshHidMonDeviceListUi(
 		string_t usageName = page.getUsageName(device.m_usage);
 
 		description = $"%1%2:%(3; 03d).%4 - %5 by %6 (%7: %8)"(
-			captureDevicePrefix,
+			usbmonService,
 			device.m_captureDeviceId,
 			device.m_address,
 			device.m_interfaceId,
@@ -89,7 +99,7 @@ void refreshHidMonDeviceListUi(
 			$"<tr><td>Usage:</td><td>%10</td></tr>"
 			$"<tr><td>Interface:</td><td>%11</td></tr>"
 			$"<tr><td>IN endpoint:</td><td>0x%(12; 02X)</td></tr>"(
-				captureDevicePrefix,
+				usbmonService,
 				device.m_captureDeviceId,
 				device.m_address,
 				device.m_description,
@@ -133,6 +143,8 @@ void refreshHidMonDeviceListUi(
 	}
 
 	deviceProp.setOptions(optionArray, count);
+	deviceProp.m_isEnabled = true;
+	deviceCombo.m_isEnabled = true;
 
 	if (!prevDevice)
 		return;
