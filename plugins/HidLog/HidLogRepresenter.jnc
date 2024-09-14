@@ -168,10 +168,10 @@ void representDeviceInfo(
 
 	if (!(foldFlags & 1)) {
 		representation.addHyperText(
-			$"[\e^+1\e[34m+\e[m] %1: \e[34m%2\e[m by \e[34m%3\e[m: \e[34m%4"(
+			$"[\e^+1\e[34m+\e[m] %1: \e[34m%2 IF%3\e[m: \e[34m%4"(
 				text,
 				product,
-				manufacturer,
+				params.m_interfaceId,
 				path
 			)
 		);
