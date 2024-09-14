@@ -101,7 +101,7 @@ protected:
 		try capture();
 	}
 
-	void createUi();	
+	void createUi();
 	void enumeratePorts();
 }
 
@@ -194,8 +194,8 @@ void SerialMonSession.createUi() {
 
 void SerialMonSession.enumeratePorts() {
 	m_hasDeviceMonitor = io.detectDeviceMonitor();
-	if (!m_hasDeviceMonitor) 
-		m_portCombo.m_editText = m_portProp.m_value = null; // clear up the value and show placeholder text
+	if (!m_hasDeviceMonitor)
+		m_portCombo.m_editText = m_portProp.m_value = null; // clear up the port name to show placeholder text
 	else
 		ui.enumerateSerialPorts(m_portCombo, m_portProp);
 }
@@ -203,6 +203,17 @@ void SerialMonSession.enumeratePorts() {
 bool errorcode SerialMonSession.capture() {
 	close();
 	startSession();
+
+	if (!m_hasDeviceMonitor) {
+		m_logWriter.write(
+			DeviceMonLogRecordCode.DeviceMonNotDetected,
+			&sys.g_systemInfo.m_osKind,
+			sizeof(sys.OsKind)
+		);
+
+		std.setError("Device monitoring service (tdevmon) not detected");
+		return false;
+	}
 
 	string_t portName = m_portCombo.m_currentText;
 
@@ -290,11 +301,8 @@ reactor SerialMonSession.m_uiReactor {
 
 	m_actionTable[ActionId.Capture].m_text = m_state ? "Stop capture" : "Capture";
 	m_actionTable[ActionId.Capture].m_icon = m_iconTable[m_state ? IconId.StopCapture : IconId.Capture];
-	m_actionTable[ActionId.Capture].m_isEnabled = 
-	m_portCombo.m_isEnabled =
-	m_portProp.m_isEnabled = m_hasDeviceMonitor;
-	m_portCombo.m_placeholderText = 
-	m_portProp.m_placeholderText = m_hasDeviceMonitor ? "Enter a serial port name..."  : "(tdevmon) not detected";
+	m_portCombo.m_placeholderText =
+	m_portProp.m_placeholderText = m_hasDeviceMonitor ? "Enter a serial port name..."  : "(tdevmon not detected)";
 	m_statusPaneTable[StatusPaneId.State].m_text = m_state ? "Capturing" : "Closed";
 }
 

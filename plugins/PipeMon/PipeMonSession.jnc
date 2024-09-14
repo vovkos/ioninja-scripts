@@ -246,6 +246,17 @@ bool errorcode PipeMonSession.capture() {
 	close();
 	startSession();
 
+	if (!io.detectDeviceMonitor()) {
+		m_logWriter.write(
+			DeviceMonLogRecordCode.DeviceMonNotDetected,
+			&sys.g_systemInfo.m_osKind,
+			sizeof(sys.OsKind)
+		);
+
+		std.setError("Device monitoring service (tdevmon) not detected");
+		return false;
+	}
+
 	m_captureFilter = createCaptureFilter();
 	m_npfsMonitor.applyProperties(m_bufferPropertySet, m_pendingNotifySizeLimitProp.m_value);
 	m_npfsMonitor.capture(r"\device\namedpipe", m_captureFilter);
