@@ -220,6 +220,17 @@ bool errorcode HidMonSession.capture() {
 	startSession();
 
 	io.HidMonDeviceDesc const* device = m_deviceCombo.m_currentData;
+	if (!device) {
+		m_logWriter.write(
+			UsbLogRecordCode.UsbMonNotDetected,
+			&sys.g_systemInfo.m_osKind,
+			sizeof(sys.OsKind)
+		);
+
+		std.setError("USB capturing service not detected");
+		return false;
+	}
+
 	m_monitor.m_options = io.UsbMonOptions.CompletedTransfersOnly;
 	m_monitor.m_addressFilter = device.m_address;
 	m_monitor.open(device.m_captureDeviceName);
@@ -553,7 +564,6 @@ reactor HidMonSession.m_uiReactor {
 	m_title = $"HID $(m_deviceCombo.m_currentText)";
 	m_actionTable[ActionId.Capture].m_text = m_state ? "Stop Capture" : "Capture";
 	m_actionTable[ActionId.Capture].m_icon = m_iconTable[m_state ? IconId.StopCapture : IconId.Capture];
-	m_actionTable[ActionId.Capture].m_isEnabled = m_deviceCombo.m_currentData;
 	m_actionTable[ActionId.Info].m_isEnabled = m_state;
 	m_statusPaneTable[StatusPaneId.State].m_text = m_state ? "Capturing" : "Closed";
 }

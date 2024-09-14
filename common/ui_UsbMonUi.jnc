@@ -34,17 +34,15 @@ void refreshUsbMonDeviceListUi(
 	string_t usbmonService = sys.g_systemInfo.m_osKind == sys.OsKind.Windows ?
 		"USBPcap" :
 		"usbmon";
-	
+
 	if (!io.detectUsbMon()) {
 		string_t text = $"(%1 not detected)"(usbmonService);
 		deviceCombo.clear();
 		deviceCombo.addItem(text);
-		deviceCombo.m_isEnabled = false;
 		deviceProp.addOption(text);
-		deviceProp.m_isEnabled = false;
 		return;
 	}
-	
+
 	size_t count;
 	io.UsbMonDeviceDesc const* deviceList = io.enumerateUsbMonDevices(io.UsbMonEnumFlags.All, &count);
 
@@ -125,8 +123,6 @@ void refreshUsbMonDeviceListUi(
 	}
 
 	deviceProp.setOptions(optionArray, count);
-	deviceProp.m_isEnabled = true;
-	deviceCombo.m_isEnabled = true;
 
 	if (!prevDevice)
 		return;
