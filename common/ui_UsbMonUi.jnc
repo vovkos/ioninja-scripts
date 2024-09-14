@@ -70,14 +70,12 @@ void refreshUsbMonDeviceListUi(
 		io.UsbMonDeviceDesc const* device = deviceArray[i];
 
 		string_t product = device.m_productDescriptor ? device.m_productDescriptor : device.m_description;
-		string_t manufacturer = device.m_manufacturerDescriptor ? device.m_manufacturerDescriptor : device.m_manufacturer;
 
-		description = $"%1%2:%03d - %4 by %5"(
+		description = $"%1%2:%03d - %4"(
 			usbmonService,
 			device.m_captureDeviceId,
 			device.m_address,
-			product,
-			manufacturer
+			product
 		);
 
 		toolTip =
