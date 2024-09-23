@@ -202,7 +202,7 @@ void HidMonSession.createUi() {
 
 	// information grid
 
-	ui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("Pipe monitor");
+	ui.InformationGroup* infoGroup = m_pluginHost.m_informationGrid.createGroup("HID monitor");
 
 	m_stdSessionInfoSet.create(m_pluginHost.m_txRxStats, m_pluginHost.m_informationGrid, infoGroup);
 	m_throughputInfoSet.createInformationValuesGrouped(m_pluginHost.m_informationGrid);
