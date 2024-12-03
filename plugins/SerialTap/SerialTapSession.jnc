@@ -331,6 +331,10 @@ void SerialTapSession.createUi() {
 	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable[IconId.Capture]);
 	m_actionTable[ActionId.Capture].m_onTriggered += onCapture;
 
+	m_actionTable[ActionId.Flip] = createAction("Flip DTE/DCE", "images/flip.png");
+	m_actionTable[ActionId.Flip].m_isCheckable = true;
+	m_actionTable[ActionId.Flip].m_onTriggered = flipDteDce;
+
 	// status bar (only one pane)
 
 	m_statusPane = m_pluginHost.m_statusBar.addPane(, 80);
@@ -368,12 +372,6 @@ void SerialTapSession.createUi() {
 	bindingof(m_serialUi.m_dataBitsCombo.m_currentIndex) += onDataBitsChanged;
 	bindingof(m_serialUi.m_parityCombo.m_currentIndex) += onParityChanged;
 	bindingof(m_serialUi.m_stopBitsCombo.m_currentIndex) += onStopBitsChanged;
-
-	m_pluginHost.m_menu.addSeparator();
-
-	m_actionTable[ActionId.Flip] = createAction("Flip DTE/DCE", "images/flip.png");
-	m_actionTable[ActionId.Flip].m_isCheckable = true;
-	m_actionTable[ActionId.Flip].m_onTriggered = flipDteDce;
 
 	m_flipProp = m_pluginHost.m_propertyGrid.createBoolProperty(
 		groupProp,,
