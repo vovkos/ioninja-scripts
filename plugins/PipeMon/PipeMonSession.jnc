@@ -137,11 +137,11 @@ void PipeMonSession.createUi() {
 	// toolbar
 
 	static ui.EnumPropertyOption viewFilterKindTable[] = {
-		{ "None",         log.MonitorFilterKind.None },
-		{ "File name",    log.MonitorFilterKind.FileName },
-		{ "File ID",  log.MonitorFilterKind.FileId },
-		{ "Process", log.MonitorFilterKind.ProcessName },
-		{ "PID",          log.MonitorFilterKind.ProcessId },
+		{ "None",      log.MonitorFilterKind.None },
+		{ "File name", log.MonitorFilterKind.FileName },
+		{ "File ID",   log.MonitorFilterKind.FileId },
+		{ "Process",   log.MonitorFilterKind.ProcessName },
+		{ "PID",       log.MonitorFilterKind.ProcessId },
 	}
 
 	m_viewFilterKindCombo = m_pluginHost.m_toolBar.addComboBox(
