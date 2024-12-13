@@ -123,6 +123,7 @@ bool representSerialLog(
 		"Even",
 		"Mark",
 		"Space",
+		"Ignore",
 	}
 
 	static string_t const readModeTable[] = {

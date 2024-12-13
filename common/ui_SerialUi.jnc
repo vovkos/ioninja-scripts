@@ -27,6 +27,7 @@ class SerialUi {
 		BaudRate,
 		DataBits,
 		Parity,
+		ParityIgnore,
 		StopBits,
 		FlowControl,
 		Dtr,
@@ -242,6 +243,15 @@ class SerialUi {
 		{ "Space", io.SerialParity.Space },
 	}
 
+	static EnumPropertyOption const m_parityIgnoreTable[] = {
+		{ "None",   io.SerialParity.None },
+		{ "Odd",    io.SerialParity.Odd },
+		{ "Even",   io.SerialParity.Even },
+		{ "Mark",   io.SerialParity.Mark },
+		{ "Space",  io.SerialParity.Space },
+		{ "Ignore", io.SerialParity.Space + 1 },
+	}
+
 	static EnumPropertyOption const m_flowControlTable[] = {
 		{ "None",     io.SerialFlowControl.None },
 		{ "RTS/CTS",  io.SerialFlowControl.RtsCts },
@@ -291,8 +301,13 @@ void SerialUi.createForm(
 		layout.addRow("Data bits:", m_dataBitsCombo);
 	}
 
-	if (mask & ItemId.Parity) {
-		m_parityCombo = new ComboBox(m_parityTable, countof(m_parityTable));
+	if (mask & (ItemId.Parity | ItemId.ParityIgnore)) {
+		m_parityCombo = new ComboBox;
+		if (mask & ItemId.ParityIgnore)
+			m_parityCombo.setItems(m_parityIgnoreTable, countof(m_parityIgnoreTable));
+		else
+			m_parityCombo.setItems(m_parityTable, countof(m_parityTable));
+
 		layout.addRow("Parity:", m_parityCombo);
 	}
 
