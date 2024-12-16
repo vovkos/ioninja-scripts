@@ -225,6 +225,8 @@ class SerialUi {
 	}
 
 	static EnumPropertyOption const m_dataBitsTable[] = {
+		{ "5 bits", 5 },
+		{ "6 bits", 6 },
 		{ "7 bits", 7 },
 		{ "8 bits", 8 },
 	}
