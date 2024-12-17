@@ -543,7 +543,7 @@ void CypressUploaderSession.onFpgaCheckTimer() {
 	if (m_fpgaCheckRetryNum < m_fpgaCheckRetryCountProp.m_value)
 		return;
 
-	std.setError("Can't load FPGA");
+	std.setError("can't load FPGA");
 	m_logWriter.writeLastError(log.StdRecordCode.Error);
 	cancelFileTransfer();
 

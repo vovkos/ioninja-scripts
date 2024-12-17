@@ -253,7 +253,7 @@ bool errorcode PipeMonSession.capture() {
 			sizeof(sys.OsKind)
 		);
 
-		std.setError("Device monitoring service (tdevmon) not detected");
+		std.setError("device monitoring service (tdevmon) not detected");
 		return false;
 	}
 

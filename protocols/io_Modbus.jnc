@@ -755,7 +755,7 @@ async void layoutModbusPdu(
 				throw;
 
 			default:
-				std.setError("Unknown Modbus function");
+				std.setError("unknown Modbus function");
 				throw;
 			}
 		}
