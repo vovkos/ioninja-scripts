@@ -19,7 +19,6 @@ import "std_Buffer.jnc"
 class HidMonSession: doc.Session {
 protected:
 	enum Defaults {
-		ReadParallelism  = 4,
 		ReadBlockSize    = 32 * 1024,
 		ReadBufferSize   = 512 * 1024,
 		KernelBufferSize = 1 * 1024 * 1024, // 1MB
@@ -187,14 +186,12 @@ void HidMonSession.createUi() {
 	m_kernelBufferSizeProp.m_minValue = 4 * 1024;
 	m_kernelBufferSizeProp.m_spinBoxStep = 1024;
 
-	m_bufferPropertySet.m_defaultReadParallelism = Defaults.ReadParallelism;
 	m_bufferPropertySet.m_defaultReadBlockSize = Defaults.ReadBlockSize;
 	m_bufferPropertySet.m_defaultReadBufferSize = Defaults.ReadBufferSize;
 
 	m_bufferPropertySet.createProperties(
 		m_pluginHost.m_propertyGrid,
 		group,,
-		ui.BufferPropertySet.PropertyId.ReadParallelism |
 		ui.BufferPropertySet.PropertyId.ReadBufferSize |
 		ui.BufferPropertySet.PropertyId.ReadBlockSize |
 		ui.BufferPropertySet.PropertyId.NotifyReadBufferFull
@@ -231,6 +228,9 @@ bool errorcode HidMonSession.capture() {
 		return false;
 	}
 
+	m_monitor.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
+	m_monitor.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
+	m_monitor.m_kernelBufferSize = m_kernelBufferSizeProp.m_value;
 	m_monitor.m_options = io.UsbMonOptions.CompletedTransfersOnly;
 	m_monitor.m_addressFilter = device.m_address;
 	m_monitor.open(device.m_captureDeviceName);
