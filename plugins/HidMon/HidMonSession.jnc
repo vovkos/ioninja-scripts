@@ -367,9 +367,7 @@ void HidMonSession.processData(
 	void const* p,
 	size_t size
 ) {
-	void const* end = p + size;
-	while (p < end) {
-		size_t size = end - p;
+	while (size) {
 		if (m_transferBuffer.m_size < sizeof(io.UsbMonTransferHdr)) {
 			size_t leftoverSize = sizeof(io.UsbMonTransferHdr) - m_transferBuffer.m_size;
 			if (size < leftoverSize) {
@@ -379,6 +377,7 @@ void HidMonSession.processData(
 
 			m_transferBuffer.append(p, leftoverSize);
 			p += leftoverSize;
+			size -= leftoverSize;
 		}
 
 		io.UsbMonTransferHdr const* hdr = (io.UsbMonTransferHdr const*)m_transferBuffer.m_p;
@@ -397,6 +396,7 @@ void HidMonSession.processData(
 			m_transferBuffer.append(p, leftoverSize);
 			hdr = (io.UsbMonTransferHdr const*)m_transferBuffer.m_p; // update hdr after append
 			p += leftoverSize;
+			size -= leftoverSize;
 		}
 
 		size_t leftoverSize = transferSize - m_transferBuffer.m_size;
@@ -408,6 +408,7 @@ void HidMonSession.processData(
 		m_transferBuffer.append(p, leftoverSize);
 		hdr = (io.UsbMonTransferHdr const*)m_transferBuffer.m_p; // update hdr after append
 		p += leftoverSize;
+		size -= leftoverSize;
 
 		if ((
 				hdr.m_transferType != io.UsbTransferType.Interrupt ||
