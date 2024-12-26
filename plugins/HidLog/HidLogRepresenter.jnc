@@ -205,7 +205,7 @@ void representDeviceInfo(
 	);
 
 	if (serialNumber)
-		representation.addHyperText($"    Serial number\t\e[34m%1"(serialNumber));
+		representation.addHyperText($"    \e[90mSerial number:\t\e[34m%1"(serialNumber));
 }
 
 void representCollection(
