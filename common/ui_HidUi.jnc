@@ -68,7 +68,7 @@ void refreshHidDeviceListUi(
 			$"<tr><td>Product ID:</td><td>0x%04X</td></tr>"
 			$"<tr><td>Bus:</td><td>%s</td></tr>"
 			$"<tr><td>Interface:</td><td>%d</td></tr>"
-			$"<tr><td>Usage page:</td><td>%s</td></tr>"
+			$"<tr><td>Usage&nbsp;page:</td><td>%s</td></tr>"
 			$"<tr><td>Usage:</td><td>%s</td></tr>"(
 				desc.m_path,
 				desc.m_product,
@@ -82,7 +82,7 @@ void refreshHidDeviceListUi(
 			);
 
 		if (desc.m_serialNumber)
-			toolTip += $"<tr><td>Serial number:</td><td>%s</td></tr>"(desc.m_serialNumber);
+			toolTip += $"<tr><td>Serial&nbsp;number:</td><td>%s</td></tr>"(desc.m_serialNumber);
 
 		toolTip += "</table>";
 
