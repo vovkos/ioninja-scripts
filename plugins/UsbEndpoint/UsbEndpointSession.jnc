@@ -968,10 +968,10 @@ bool errorcode UsbEndpointSession.dispatch(
 		break;
 
 	case UsbEndpointDispatchCode.OpenDevice:
-		return openDevice();
+		uint_t vidPid = in;
+		if (!vidPid)
+			return openDevice();
 
-	case UsbEndpointDispatchCode.OpenDeviceVidPid:
-		uint_t vidPid = (uint_t)in;
 		size_t i = ui.findUsbDeviceComboIndex(m_deviceCombo, vidPid >> 16, vidPid & 0xffff);
 		if (i == -1) {
 			std.setError("device not found");
