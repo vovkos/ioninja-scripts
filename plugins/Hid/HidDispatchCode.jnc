@@ -1,0 +1,17 @@
+//..............................................................................
+//
+// HID session dispatch codes for IAS
+//
+
+//..............................................................................
+
+enum HidDispatchCode {
+	GetDeviceVid,
+	GetDevicePid,
+	SetDeviceVidPid,
+	OpenDevice,
+	CloseDevice,
+	SendFeatureReport,
+}
+
+//..............................................................................

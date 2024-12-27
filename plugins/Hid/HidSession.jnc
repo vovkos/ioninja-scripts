@@ -121,6 +121,12 @@ public:
 		size_t size
 	);
 
+	override bool errorcode dispatch(
+		uint_t code,
+		variant_t in,
+		variant_t* out
+	);
+
 	override bool errorcode connectSession() {
 		return m_sessionConnectionState ? true : open();
 	}
@@ -594,6 +600,60 @@ size_t errorcode HidSession.transmit(
 	m_reportWriter.writeReport(details.m_recordCode, report, p, writeSize);
 	m_pluginHost.m_txRxStats.addTx(writeSize);
 	return result;
+}
+
+bool errorcode HidSession.dispatch(
+	uint_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case HidDispatchCode.GetDeviceVid:
+		io.HidDeviceDesc const* desc = m_deviceCombo.m_currentData;
+		*out = desc ? desc.m_vendorId : -1;
+		break;
+
+	case HidDispatchCode.GetDevicePid:
+		io.HidDeviceDesc const* desc = m_deviceCombo.m_currentData;
+		*out = desc ? desc.m_productId : -1;
+		break;
+
+	case HidDispatchCode.SetDeviceVidPid:
+		uint_t vidPid = (uint_t)in;
+		size_t i = ui.findHidDeviceComboIndex(m_deviceCombo, vidPid >> 16, vidPid & 0xffff);
+		if (i != -1)
+			m_deviceCombo.m_currentIndex = i;
+		break;
+
+	case HidDispatchCode.OpenDevice:
+		uint_t vidPid = in;
+		if (!vidPid)
+			return open();
+
+		size_t i = ui.findHidDeviceComboIndex(m_deviceCombo, vidPid >> 16, vidPid & 0xffff);
+		if (i == -1) {
+			std.setError("device not found");
+			return false;
+		}
+
+		m_deviceCombo.m_currentIndex = i;
+		return open();
+
+	case HidDispatchCode.CloseDevice:
+		close();
+		break;
+
+	case HidDispatchCode.SendFeatureReport:
+		string_t data = in;
+		m_device.sendFeatureReport(data.m_p, data.m_length);
+		break;
+
+	default:
+		std.setError("unsupported dispatch code");
+		return false;
+	}
+
+	return true;
 }
 
 void HidSession.onSendReport() {

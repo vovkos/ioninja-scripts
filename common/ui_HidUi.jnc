@@ -121,7 +121,7 @@ size_t findHidDeviceComboIndex(
 	ui.ComboBox* deviceCombo,
 	uint_t vid,
 	uint_t pid,
-	string_t path
+	string_t path = null
 ) {
 	size_t bestIndex = -1;
 
@@ -129,7 +129,7 @@ size_t findHidDeviceComboIndex(
 	for (size_t i = 0; i < itemCount; i++) {
 		io.HidDeviceDesc const* desc = deviceCombo.m_itemData[i];
 		if (desc && desc.m_vendorId == vid && desc.m_productId == pid) {
-			if (desc.m_path == path)
+			if (!path || desc.m_path == path)
 				return i; // exact match
 
 			bestIndex = i; // VID/PID match, but different path
