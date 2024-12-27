@@ -9,9 +9,23 @@ enum HidDispatchCode {
 	GetDeviceVid,
 	GetDevicePid,
 	SetDeviceVidPid,
+	GetTransmitMode,
+	SetTransmitMode,
 	OpenDevice,
 	CloseDevice,
 	SendFeatureReport,
+	SendOutputReport,
+}
+
+enum HidTransmitMode {
+	OutputReport,
+	FeatureReport,
+}
+
+struct HidDeviceId {
+	uint16_t m_vendorId;
+	uint16_t m_productId;
+	string_t m_path;
 }
 
 //..............................................................................

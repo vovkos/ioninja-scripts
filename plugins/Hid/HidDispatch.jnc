@@ -23,19 +23,41 @@ class HidDispatch: ias.Session {
 		return dispatch(HidDispatchCode.SetDeviceVidPid, (vid << 16) | (pid & 0xffff));
 	}
 
+	property m_transmitMode {
+		HidTransmitMode get() {
+			return dispatch(HidDispatchCode.GetTransmitMode);
+		}
+
+		void set(HidTransmitMode mode) {
+			dispatch(HidDispatchCode.SetTransmitMode, mode);
+		}
+	}
+
 	bool errorcode openDevice() {
 		return dispatch(HidDispatchCode.OpenDevice);
 	}
 
 	bool errorcode openDevice(
 		uint_t vid,
-		uint_t pid
+		uint_t pid,
+		string_t path = null
 	) {
-		return dispatch(HidDispatchCode.OpenDevice, (vid << 16) | (pid & 0xffff));
+		HidDeviceId id;
+		id.m_vendorId = vid;
+		id.m_productId = pid;
+		id.m_path = path;
+		return dispatch(HidDispatchCode.OpenDevice, id);
 	}
 
 	void closeDevice() {
 		dispatch(HidDispatchCode.CloseDevice);
+	}
+
+	void sendOutputReport(
+		void const* p,
+		size_t size
+	) {
+		dispatch(HidDispatchCode.SendOutputReport, string_t(p, size));
 	}
 
 	void sendFeatureReport(

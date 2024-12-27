@@ -34,11 +34,6 @@ protected:
 		Disabled,
 	}
 
-	enum TransmitMode {
-		OutputReport,
-		FeatureReport,
-	}
-
 	enum ActionId {
 		Refresh,
 		Open,
@@ -119,6 +114,14 @@ public:
 	override size_t errorcode transmit(
 		void const* p,
 		size_t size
+	) {
+		return transmit((HidTransmitMode)m_transmitModeCombo.m_currentData, p, size);
+	}
+
+	size_t errorcode transmit(
+		HidTransmitMode mode,
+		void const* p,
+		size_t size
 	);
 
 	override bool errorcode dispatch(
@@ -186,8 +189,8 @@ void HidSession.createUi() {
 	}
 
 	ui.ListItem transmitModeOptionTable[] = {
-		{ "Send as output report",  TransmitMode.OutputReport },
-		{ "Send as feature report", TransmitMode.FeatureReport }
+		{ "Send as output report",  HidTransmitMode.OutputReport },
+		{ "Send as feature report", HidTransmitMode.FeatureReport }
 	}
 
 	// toolbar
@@ -234,7 +237,7 @@ void HidSession.createUi() {
 
 	ui.VBoxLayout subLayout;
 	m_transmitModeCombo = new ui.ComboBox(transmitModeOptionTable, countof(transmitModeOptionTable));
-	layout.addLine();
+	layout.addLine(); // to stress it applies to the transmit pane
 	layout.addLabel("Transmit mode:");
 	layout.addWidget(m_transmitModeCombo);
 
@@ -342,7 +345,9 @@ void HidSession.setupReportUi() {
 	if (hasBothKinds)
 		m_reportCombo.insertSeparator(outputReportCount);
 	else {
-		TransmitMode mode = featureReportCount ? TransmitMode.FeatureReport : TransmitMode.OutputReport;
+		HidTransmitMode mode = featureReportCount ?
+			HidTransmitMode.FeatureReport :
+			HidTransmitMode.OutputReport;
 		m_transmitModeCombo.m_currentData = mode;
 		m_transmitModeProp.m_value = mode;
 	}
@@ -543,6 +548,7 @@ void HidSession.restoreDefaultProperties() {
 }
 
 size_t errorcode HidSession.transmit(
+	HidTransmitMode mode,
 	void const* p,
 	size_t size
 ) {
@@ -573,7 +579,7 @@ size_t errorcode HidSession.transmit(
 		},
 	}
 
-	TransmitDetails details = detailTable[(TransmitMode)m_transmitModeCombo.m_currentData];
+	TransmitDetails details = detailTable[mode];
 
 	uint_t reportId = *(uchar_t const*)p;
 	io.HidReport const* report = m_rd.findReport(details.m_reportType, reportId);
@@ -625,12 +631,20 @@ bool errorcode HidSession.dispatch(
 			m_deviceCombo.m_currentIndex = i;
 		break;
 
+	case HidDispatchCode.GetTransmitMode:
+		*out = m_transmitModeCombo.m_currentData;
+		break;
+
+	case HidDispatchCode.SetTransmitMode:
+		m_transmitModeCombo.m_currentData = in;
+		break;
+
 	case HidDispatchCode.OpenDevice:
-		uint_t vidPid = in;
-		if (!vidPid)
+		HidDeviceId id = in;
+		if (!id.m_vendorId || !id.m_productId)
 			return open();
 
-		size_t i = ui.findHidDeviceComboIndex(m_deviceCombo, vidPid >> 16, vidPid & 0xffff);
+		size_t i = ui.findHidDeviceComboIndex(m_deviceCombo, id.m_vendorId, id.m_productId, id.m_path);
 		if (i == -1) {
 			std.setError("device not found");
 			return false;
@@ -643,9 +657,14 @@ bool errorcode HidSession.dispatch(
 		close();
 		break;
 
+	case HidDispatchCode.SendOutputReport:
+		string_t data = in;
+		transmit(HidTransmitMode.OutputReport, data.m_p, data.m_length);
+		break;
+
 	case HidDispatchCode.SendFeatureReport:
 		string_t data = in;
-		m_device.sendFeatureReport(data.m_p, data.m_length);
+		transmit(HidTransmitMode.FeatureReport, data.m_p, data.m_length);
 		break;
 
 	default:
