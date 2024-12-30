@@ -503,10 +503,12 @@ void HidSession.waitHidDeviceEvents() {
 void HidSession.load(doc.Storage* storage) {
 	string_t path = storage.readString("devicePath");
 	size_t index = ui.findHidDeviceComboIndex(m_deviceCombo, path); // try path first
-	if (index == -1) { // try VID / PID
+	if (index == -1) { // try VID:PID:usage
 		uint_t vid = storage.readInt("deviceVid");
 		uint_t pid = storage.readInt("devicePid");
-		index = ui.findHidDeviceComboIndex(m_deviceCombo, vid, pid);
+		uint_t usagePage = storage.readInt("deviceUsagePage");
+		uint_t usage = storage.readInt("deviceUsage");
+		index = ui.findHidDeviceComboIndex(m_deviceCombo, vid, pid, usagePage, usage);
 	}
 
 	if (index != -1)
@@ -522,6 +524,8 @@ void HidSession.save(doc.Storage* storage) {
 	if (desc) {
 		storage.writeInt("deviceVid", desc.m_vendorId);
 		storage.writeInt("devicePid", desc.m_productId);
+		storage.writeInt("deviceUsagePage", desc.m_usagePage);
+		storage.writeInt("deviceUsage", desc.m_usage);
 		storage.writeString("devicePath", desc.m_path);
 	}
 
