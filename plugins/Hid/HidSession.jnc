@@ -501,11 +501,14 @@ void HidSession.waitHidDeviceEvents() {
 }
 
 void HidSession.load(doc.Storage* storage) {
-	uint_t vid = storage.readInt("deviceVid");
-	uint_t pid = storage.readInt("devicePid");
 	string_t path = storage.readString("devicePath");
+	size_t index = ui.findHidDeviceComboIndex(m_deviceCombo, path); // try path first
+	if (index == -1) { // try VID / PID
+		uint_t vid = storage.readInt("deviceVid");
+		uint_t pid = storage.readInt("devicePid");
+		index = ui.findHidDeviceComboIndex(m_deviceCombo, vid, pid);
+	}
 
-	size_t index = ui.findHidDeviceComboIndex(m_deviceCombo, vid, pid, path);
 	if (index != -1)
 		m_deviceCombo.m_currentIndex = index;
 
@@ -624,11 +627,63 @@ bool errorcode HidSession.dispatch(
 		*out = desc ? desc.m_productId : -1;
 		break;
 
+	case HidDispatchCode.GetDeviceUsagePage:
+		io.HidDeviceDesc const* desc = m_deviceCombo.m_currentData;
+		*out = desc ? desc.m_usagePage : -1;
+		break;
+
+	case HidDispatchCode.GetDeviceUsage:
+		io.HidDeviceDesc const* desc = m_deviceCombo.m_currentData;
+		*out = desc ? desc.m_usage : -1;
+		break;
+
 	case HidDispatchCode.SetDeviceVidPid:
-		uint_t vidPid = (uint_t)in;
-		size_t i = ui.findHidDeviceComboIndex(m_deviceCombo, vidPid >> 16, vidPid & 0xffff);
-		if (i != -1)
-			m_deviceCombo.m_currentIndex = i;
+		uint32_t vidPid = (uint_t)in;
+		size_t i = ui.findHidDeviceComboIndex(
+			m_deviceCombo,
+			(vidPid >> 16) & 0xffff,
+			vidPid & 0xffff
+		);
+
+		if (i == -1) {
+			std.setError("can't find device with specified VID:PID");
+			return false;
+		}
+
+		m_deviceCombo.m_currentIndex = i;
+		break;
+
+	case HidDispatchCode.SetDeviceVidPidUsage:
+		uint64_t vidPidUsage = (uint64_t)in;
+		size_t i = ui.findHidDeviceComboIndex(
+			m_deviceCombo,
+			(vidPidUsage >> 16) & 0xffff,
+			vidPidUsage & 0xffff,
+			(vidPidUsage >> 48) & 0xffff,
+			(vidPidUsage >> 32) & 0xffff
+		);
+
+		if (i == -1) {
+			std.setError($"can't find device with specified VID:PID and usage $(vidPidUsage; 0x%llx)");
+			return false;
+		}
+
+		m_deviceCombo.m_currentIndex = i;
+		break;
+
+	case HidDispatchCode.GetDevicePath:
+		io.HidDeviceDesc const* desc = m_deviceCombo.m_currentData;
+		*out = desc ? desc.m_path : null;
+		break;
+
+	case HidDispatchCode.SetDevicePath:
+		size_t i = ui.findHidDeviceComboIndex(m_deviceCombo, (string_t)in);
+		if (i == -1) {
+			std.setError("can't find device with specified path");
+			return false;
+		}
+
+		m_deviceCombo.m_currentIndex = i;
 		break;
 
 	case HidDispatchCode.GetTransmitMode:
@@ -640,17 +695,6 @@ bool errorcode HidSession.dispatch(
 		break;
 
 	case HidDispatchCode.OpenDevice:
-		HidDeviceId id = in;
-		if (!id.m_vendorId || !id.m_productId)
-			return open();
-
-		size_t i = ui.findHidDeviceComboIndex(m_deviceCombo, id.m_vendorId, id.m_productId, id.m_path);
-		if (i == -1) {
-			std.setError("device not found");
-			return false;
-		}
-
-		m_deviceCombo.m_currentIndex = i;
 		return open();
 
 	case HidDispatchCode.CloseDevice:

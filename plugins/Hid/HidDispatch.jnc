@@ -20,7 +20,36 @@ class HidDispatch: ias.Session {
 		uint_t vid,
 		uint_t pid
 	) {
-		return dispatch(HidDispatchCode.SetDeviceVidPid, (vid << 16) | (pid & 0xffff));
+		return dispatch(
+			HidDispatchCode.SetDeviceVidPid,
+			(vid << 16) |
+			(pid & 0xffff)
+		);
+	}
+
+	bool errorcode setDeviceVidPidUsage(
+		uint_t vid,
+		uint_t pid,
+		uint_t usagePage,
+		uint_t usage
+	) {
+		return dispatch(
+			HidDispatchCode.SetDeviceVidPidUsage,
+			((uint64_t)usagePage << 48) |
+			((uint64_t)usage << 32) |
+			(vid << 16) |
+			(pid & 0xffff)
+		);
+	}
+
+	property m_devicePath {
+		string_t get() {
+			return dispatchGet(HidDispatchCode.GetDevicePath);
+		}
+
+		bool errorcode set(string_t path) {
+			return dispatch(HidDispatchCode.SetDevicePath, path);
+		}
 	}
 
 	property m_transmitMode {
@@ -37,16 +66,25 @@ class HidDispatch: ias.Session {
 		return dispatch(HidDispatchCode.OpenDevice);
 	}
 
+	bool errorcode openDevice(string_t path) {
+		m_devicePath = path;
+		return openDevice();
+	}
+
 	bool errorcode openDevice(
 		uint_t vid,
 		uint_t pid,
-		string_t path = null
+		uint_t usagePage,
+		uint_t usage
 	) {
-		HidDeviceId id;
-		id.m_vendorId = vid;
-		id.m_productId = pid;
-		id.m_path = path;
-		return dispatch(HidDispatchCode.OpenDevice, id);
+		return setDeviceVidPidUsage(vid, pid, usagePage, usage) && openDevice();
+	}
+
+	bool errorcode openDevice(
+		uint_t vid,
+		uint_t pid
+	) {
+		return setDeviceVidPid(vid, pid) && openDevice();
 	}
 
 	void closeDevice() {
