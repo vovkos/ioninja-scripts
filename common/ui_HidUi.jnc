@@ -68,8 +68,8 @@ void refreshHidDeviceListUi(
 			$"<tr><td>Product ID:</td><td>0x%04X</td></tr>"
 			$"<tr><td>Bus:</td><td>%s</td></tr>"
 			$"<tr><td>Interface:</td><td>%d</td></tr>"
-			$"<tr><td>Usage&nbsp;page:</td><td>%s</td></tr>"
-			$"<tr><td>Usage:</td><td>%s</td></tr>"(
+			$"<tr><td>Usage&nbsp;page:</td><td>0x%02X - %s</td></tr>"
+			$"<tr><td>Usage:</td><td>0x%02X - %s</td></tr>"(
 				desc.m_path,
 				desc.m_product,
 				desc.m_manufacturer,
@@ -77,7 +77,9 @@ void refreshHidDeviceListUi(
 				desc.m_productId,
 				typeof(io.HidBusType).getValueString(desc.m_busType),
 				desc.m_interfaceId,
+				desc.m_usagePage,
 				page.m_name,
+				desc.m_usage,
 				usageName
 			);
 
