@@ -796,7 +796,7 @@ void appendModbusPduDigest(
 		case ModbusFunc.ReadInputRegisters:
 			if (role == ModbusRole.Master) {
 				dyfield ModbusReadParams params;
-				digest.append($" Addr: 0x%04x"(params.m_address));
+				digest.append($" Addr: 0x%04X"(params.m_address));
 				if (params.m_count > 1)
 					digest.append($" N: %1"(params.m_count));
 			} else {
@@ -813,14 +813,14 @@ void appendModbusPduDigest(
 		case ModbusFunc.WriteSingleCoil:
 		case ModbusFunc.WriteSingleRegister:
 			dyfield ModbusWriteSingleParams params;
-			digest.append($" Addr: 0x%04x Val: %2"(params.m_address, params.m_value));
+			digest.append($" Addr: 0x%04X Val: %2"(params.m_address, params.m_value));
 			break;
 
 		case ModbusFunc.WriteMultipleCoils:
 		case ModbusFunc.WriteMultipleRegisters:
 			if (role == ModbusRole.Master) {
 				dyfield ModbusWriteMultipleParams params;
-				digest.append($" Addr: 0x%04x "(params.m_address));
+				digest.append($" Addr: 0x%04X "(params.m_address));
 
 				if (pduHdr.m_func == ModbusFunc.WriteMultipleCoils)
 					digest.append(getModbusBitDigest(&params + 1, params.m_size));
@@ -828,14 +828,14 @@ void appendModbusPduDigest(
 					digest.append(getModbusRegisterDigest(&params + 1, params.m_size));
 			} else {
 				dyfield ModbusWriteMultipleReplyParams params;
-				digest.append($" Addr: 0x%04x N: %2"(params.m_address, params.m_count));
+				digest.append($" Addr: 0x%04X N: %2"(params.m_address, params.m_count));
 			}
 			break;
 
 		case ModbusFunc.MaskWriteRegister:
 			dyfield ModbusMaskWriteParams params;
 			digest.append(
-				$" Addr: 0x%04x Masks: 0x%04x/0x%04x"(
+				$" Addr: 0x%04X Masks: 0x%04X/0x%04X"(
 				params.m_address,
 				params.m_andMask,
 				params.m_orMask
@@ -846,7 +846,7 @@ void appendModbusPduDigest(
 			if (role == ModbusRole.Master) {
 				dyfield ModbusReadWriteMultipleRegistersParams params;
 				digest.append(
-					$" Addr: 0x%04x/0x%04x "(
+					$" Addr: 0x%04X/0x%04X "(
 					params.m_readAddress,
 					params.m_writeAddress
 				));
