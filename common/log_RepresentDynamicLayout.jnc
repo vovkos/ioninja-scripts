@@ -407,7 +407,7 @@ void representArray(
 		for (size_t i = 0; i < elementCount; i++) {
 			context.m_representation.addHyperText($"%1%2[%3]:\t\e[34m%4"(
 				indent,
-				getOffsetHyperlink(context.m_rawBinPartCode, offset, arraySize),
+				getOffsetHyperlink(context.m_rawBinPartCode, offset, elementSize),
 				i,
 				getValueStringFunc(p)
 			));
