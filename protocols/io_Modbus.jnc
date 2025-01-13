@@ -548,6 +548,10 @@ enum {
 
 //..............................................................................
 
+string_t formatModbusRegister(void const* p) {
+	return $"0x%(1;04X) (%(1;d))"(*(bigendian uint16_t const*)p);
+}
+
 // no need to make this one async -- it doesn't read any preceding data
 
 void layoutModbusRegisters(
@@ -567,7 +571,10 @@ void layoutModbusRegisters(
 			foldFlag = 2
 		]
 		dyfield values {
-			[ ungroup ]
+			[
+				ungroup,
+				elementFormatFunc = formatModbusRegister
+			]
 			dyfield bigendian uint16_t values[count];
 
 			if (size & 1)
@@ -1210,7 +1217,7 @@ string_t getModbusRegisterDigest(
 	std.StringBuilder digest;
 	digest.append('{');
 	for (; p < end; p++)
-		digest.append($" %d,"(*p));
+		digest.append($" 0x%(1;04X) (%(1;d)),"(*p));
 
 	if (count0 > count)
 		digest.append(" ... }");
