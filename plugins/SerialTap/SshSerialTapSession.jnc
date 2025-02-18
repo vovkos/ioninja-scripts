@@ -483,7 +483,7 @@ void SshSerialTapSession.onMsg(io.HwcMsgHdr const* hdr) {
 
 	case io.HwcMsgCode.SerialTapRtsDtr:
 		io.SerialStatusLines lines = (io.SerialStatusLines)*(uchar_t const*)(hdr + 1);
-		io.SerialStatusLines lineMask = lines ^ m_statusLines;
+		io.SerialStatusLines lineMask = lines ^ m_controlLines;
 		if (lineMask) {
 			SerialStatusLineChangedParams params = { lines, lineMask }
 			m_logWriter.write(SerialLogRecordCode.ControlLineChanged, params, sizeof(params));
