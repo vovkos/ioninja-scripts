@@ -52,6 +52,8 @@ public:
 		io.SocketOptions m_socketOptions;
 		bool m_useReconnect;
 		uint_t m_reconnectTimeout;
+
+		construct();
 	}
 
 protected:
@@ -172,6 +174,16 @@ protected:
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+SshChannel.ConnectParams.construct() {
+	m_readBlockSize = ui.BufferPropertySet.Defaults.ReadBlockSize;
+	m_readBufferSize = ui.BufferPropertySet.Defaults.ReadBufferSize;
+	m_writeBufferSize = ui.BufferPropertySet.Defaults.WriteBufferSize;
+	m_authenticationMethod = (ui.AuthenticationMethod)ui.SshPropertySet.Defaults.AuthenticationMethod;
+	m_rememberLastPassword = ui.SshPropertySet.Defaults.RememberLastPassword;
+	m_useReconnect = ui.SocketPropertySet.Defaults.UseReconnect;
+	m_reconnectTimeout = ui.SocketPropertySet.Defaults.ReconnectTimeout;
+}
 
 SshChannel.construct(doc.PluginHost* pluginHost) {
 	m_pluginHost = pluginHost;
@@ -308,27 +320,59 @@ void SshChannel.initConnectParams(
 	ui.SshPropertySet const* sshPropSet,
 	ui.BufferPropertySet const* bufferPropSet
 ) {
-	params.m_readBlockSize = bufferPropSet.m_readBlockSizeProp.m_value;
-	params.m_readBufferSize = bufferPropSet.m_readBufferSizeProp.m_value;
-	params.m_writeBufferSize = bufferPropSet.m_writeBufferSizeProp.m_value;
-	params.m_socketOptions = ui.getSocketOptions(socketPropSet, bufferPropSet);
-	params.m_defaultPort = socketPropSet.m_remotePortProp.m_value;
-	params.m_useReconnect = socketPropSet.m_useReconnectProp.m_value;
-	params.m_reconnectTimeout = socketPropSet.m_reconnectTimeoutProp.m_value;
+	params.m_readBlockSize = bufferPropSet.m_readBlockSizeProp ?
+		bufferPropSet.m_readBlockSizeProp.m_value :
+		ui.BufferPropertySet.Defaults.ReadBlockSize;
 
-	if (socketPropSet.m_useLocalAddressProp.m_value) {
+	params.m_readBufferSize = bufferPropSet.m_readBufferSizeProp ?
+		bufferPropSet.m_readBufferSizeProp.m_value :
+		ui.BufferPropertySet.Defaults.ReadBufferSize;
+
+	params.m_writeBufferSize = bufferPropSet.m_writeBufferSizeProp ?
+		bufferPropSet.m_writeBufferSizeProp.m_value :
+		ui.BufferPropertySet.Defaults.WriteBufferSize;
+
+	params.m_socketOptions = ui.getSocketOptions(socketPropSet, bufferPropSet);
+
+	params.m_defaultPort = socketPropSet.m_remotePortProp ?
+		socketPropSet.m_remotePortProp.m_value :
+		socketPropSet.m_defaultRemotePort;
+
+	params.m_useReconnect = socketPropSet.m_useReconnectProp ?
+		socketPropSet.m_useReconnectProp.m_value :
+		ui.SocketPropertySet.Defaults.UseReconnect;
+
+	params.m_reconnectTimeout = socketPropSet.m_reconnectTimeoutProp ?
+		socketPropSet.m_reconnectTimeoutProp.m_value :
+		ui.SocketPropertySet.Defaults.ReconnectTimeout;
+
+	if (socketPropSet.m_adapterProp &&
+		socketPropSet.m_useLocalAddressProp &&
+		socketPropSet.m_useLocalAddressProp.m_value
+	) {
 		io.SocketAddress const* adapterAddress = socketPropSet.m_adapterProp.m_value;
 		if (adapterAddress)
 			params.m_localAddress = *adapterAddress;
 
-		params.m_localAddress.m_port = (uint16_t)socketPropSet.m_localPortProp.m_value;
+		if (socketPropSet.m_localPortProp)
+			params.m_localAddress.m_port = (uint16_t)socketPropSet.m_localPortProp.m_value;
 	}
 
-	ui.AuthenticationMethod authenticationMethod = sshPropSet.m_authenticationMethodProp.m_value;
+	ui.AuthenticationMethod authenticationMethod = sshPropSet.m_authenticationMethodProp ?
+		sshPropSet.m_authenticationMethodProp.m_value :
+		ui.SshPropertySet.Defaults.AuthenticationMethod;
+
 	params.m_authenticationMethod = authenticationMethod;
-	params.m_rememberLastPassword = sshPropSet.m_rememberLastPasswordProp.m_value;
-	params.m_privateKeyFileName = sshPropSet.m_privateKeyFileProp.m_value;
-	params.m_sshParams.m_userName = sshPropSet.m_userNameProp.m_value;
+
+	params.m_rememberLastPassword = sshPropSet.m_rememberLastPasswordProp ?
+		sshPropSet.m_rememberLastPasswordProp.m_value :
+		ui.SshPropertySet.Defaults.RememberLastPassword;
+
+	if (sshPropSet.m_privateKeyFileProp)
+		params.m_privateKeyFileName = sshPropSet.m_privateKeyFileProp.m_value;
+
+	if (sshPropSet.m_userNameProp)
+		params.m_sshParams.m_userName = sshPropSet.m_userNameProp.m_value;
 
 	if (authenticationMethod == ui.AuthenticationMethod.PrivateKey)
 		params.m_sshParams.m_privateKeyFileName = params.m_privateKeyFileName;
