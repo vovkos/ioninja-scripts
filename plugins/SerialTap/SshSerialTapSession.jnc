@@ -319,6 +319,8 @@ bool errorcode SshSerialTapSession.connect() {
 	m_dataBits = m_serialUi.m_dataBits;
 	m_stopBits = m_serialUi.m_stopBits;
 	m_parity = m_serialUi.m_parity;
+	m_statusLines = 0;
+	m_controlLines = 0;
 	m_decoder.reset();
 
 	m_addressCombo.addEditTextToHistory();
