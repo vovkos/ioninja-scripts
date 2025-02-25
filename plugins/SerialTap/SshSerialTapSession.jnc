@@ -502,6 +502,13 @@ void SshSerialTapSession.onMsg(io.HwcMsgHdr const* hdr) {
 		}
 
 		break;
+
+	case io.HwcMsgCode.SerialLineError:
+		io.SerialLineErrors lineErrors = (io.SerialLineErrors)*(uchar_t const*)(hdr + 1);
+		if (lineErrors)
+			m_logWriter.write(SerialLogRecordCode.LineError, &lineErrors, sizeof(lineErrors));
+
+		break;
 	}
 }
 
