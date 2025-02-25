@@ -448,12 +448,12 @@ void SshSerialTapSession.onDisconnected() {
 
 void SshSerialTapSession.onMsg(io.HwcMsgHdr const* hdr) {
 	static io.HwcMsgCode flippedCodeTable[] = {
-		io.HwcMsgCode.Success,         // Success     = 0,
-		io.HwcMsgCode.ErrorString,     // ErrorString = 1,
-		io.HwcMsgCode.Rx,              // Tx          = 2,
-		io.HwcMsgCode.Tx,              // Rx          = 3,
-		io.HwcMsgCode.SerialTapCtsDsr, // SerialTapRtsDtr    = 4,
-		io.HwcMsgCode.SerialTapRtsDtr, // SerialTapCtsDsr    = 5,
+		io.HwcMsgCode.Success,         // Success         = 0,
+		io.HwcMsgCode.ErrorString,     // ErrorString     = 1,
+		io.HwcMsgCode.Rx,              // Tx              = 2,
+		io.HwcMsgCode.Tx,              // Rx              = 3,
+		io.HwcMsgCode.SerialTapCtsDsr, // SerialTapRtsDtr = 4,
+		io.HwcMsgCode.SerialTapRtsDtr, // SerialTapCtsDsr = 5,
 	}
 
 	uint_t code = m_isFlippedDteDce && (size_t)hdr.m_code < countof(flippedCodeTable) ?
@@ -483,7 +483,7 @@ void SshSerialTapSession.onMsg(io.HwcMsgHdr const* hdr) {
 
 	case io.HwcMsgCode.SerialTapRtsDtr:
 		io.SerialStatusLines lines = (io.SerialStatusLines)*(uchar_t const*)(hdr + 1);
-		io.SerialStatusLines lineMask = lines ^ m_controlLines;
+		io.SerialStatusLines lineMask = (lines ^ m_controlLines) & (io.SerialStatusLines.Cts | io.SerialStatusLines.Dsr);
 		if (lineMask) {
 			SerialStatusLineChangedParams params = { lines, lineMask }
 			m_logWriter.write(SerialLogRecordCode.ControlLineChanged, params, sizeof(params));
@@ -494,7 +494,7 @@ void SshSerialTapSession.onMsg(io.HwcMsgHdr const* hdr) {
 
 	case io.HwcMsgCode.SerialTapCtsDsr:
 		io.SerialStatusLines lines = (io.SerialStatusLines)*(uchar_t const*)(hdr + 1);
-		io.SerialStatusLines lineMask = lines ^ m_statusLines;
+		io.SerialStatusLines lineMask = (lines ^ m_statusLines) & (io.SerialStatusLines.Cts | io.SerialStatusLines.Dsr);
 		if (lineMask) {
 			SerialStatusLineChangedParams params = { lines, lineMask }
 			m_logWriter.write(SerialLogRecordCode.StatusLineChanged, params, sizeof(params));
