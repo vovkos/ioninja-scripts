@@ -49,6 +49,9 @@ enum StdRecordCode: uint64_t {
 	RxBufferFull      = 0x01d47ff1fc334a1a,
 	RxBufferFullLossy = 0x01d47ff1fc334a1b,
 	SyncId            = 0x01d47ff1fc334a1c,
+	Tx9               = 0x01d47ff1fc334a1d | PartCodeFlags.Mergeable,
+	Rx9               = 0x01d47ff1fc334a1e | PartCodeFlags.Mergeable,
+	TxRx9             = 0x01d47ff1fc334a1f | PartCodeFlags.Mergeable,
 }
 
 //..............................................................................
