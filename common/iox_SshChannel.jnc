@@ -222,6 +222,7 @@ void SshChannel.close() {
 	m_ssh.close();
 	m_state = State.Closed;
 	m_isTransmitEnabled = false;
+	m_lastReconnectTime = 0;
 	m_syncId++;
 }
 
@@ -518,7 +519,12 @@ void SshChannel.onSshEvent(
 		return;
 
 	if (triggeredEvents & io.SshEvents.IoError) {
+		bool isReconnecting = m_lastReconnectTime != 0;
 		handleConnectError(m_ssh.m_ioError);
+
+		if (isReconnecting && m_connectParams.m_useReconnect)
+			startReconnectTimer();
+
 		return;
 	}
 
@@ -582,10 +588,15 @@ void SshChannel.onSshEvent(
 			sizeof(params)
 		);
 
+		uint64_t lastReconnectTime = m_lastReconnectTime;
 		m_ssh.close();
 		m_state = State.Closed;
 		m_isTransmitEnabled = false;
 		m_onDisconnected();
+
+		if (m_connectParams.m_useReconnect)
+			startReconnectTimer(lastReconnectTime);
+
 		return;
 	}
 
@@ -627,7 +638,7 @@ void SshChannel.onReconnectTimer(uint_t syncId) {
 	if (syncId != m_syncId)
 		return;
 
-	bool result = try connect();
+	bool result = try connect(m_remoteAddress, m_connectParams);
 	m_lastReconnectTime = sys.getTimestamp(); // after connect (connect calls close)
 
 	if (!result && m_connectParams.m_useReconnect)
