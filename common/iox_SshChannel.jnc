@@ -168,6 +168,7 @@ protected:
 	void onLoginDlgCompleted(ui.StdDlgButton button);
 	void onConsoleSizeChanged();
 
+	void closeImpl();
 	void handleConnectError(std.Error const* error);
 	void handleSshAuthenticateError(std.Error const* error);
 	void startReconnectTimer(uint64_t lastReconnectTime = -1);
@@ -219,6 +220,10 @@ void SshChannel.close() {
 		break;
 	}
 
+	closeImpl();
+}
+
+void SshChannel.closeImpl() {
 	m_ssh.close();
 	m_state = State.Closed;
 	m_isTransmitEnabled = false;
@@ -589,9 +594,7 @@ void SshChannel.onSshEvent(
 		);
 
 		uint64_t lastReconnectTime = m_lastReconnectTime;
-		m_ssh.close();
-		m_state = State.Closed;
-		m_isTransmitEnabled = false;
+		closeImpl();
 		m_onDisconnected();
 
 		if (m_connectParams.m_useReconnect)
