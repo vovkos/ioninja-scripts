@@ -126,7 +126,6 @@ opaque class Representation {
 
 	void addBreak(bool isHardBreak = false) {
 		addPart(PartKind.Break, isHardBreak, null, 0);
-		m_lineAttr = null;
 	}
 
 	void addPlainText(
