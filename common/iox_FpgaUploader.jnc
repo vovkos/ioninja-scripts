@@ -12,7 +12,6 @@ import "sys_Timer.jnc"
 import "ui_Dialog.jnc"
 import "doc_PluginHost.jnc"
 import "std_Buffer.jnc"
-import "parseVersion.jnc"
 import "FpgaUploaderLog/FpgaUploaderLogRecordCode.jnc"
 
 namespace iox {

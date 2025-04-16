@@ -3,7 +3,22 @@
 
 //..............................................................................
 
-uint_t parseVersion(string_t string) {
+string_t getOnOffString(bool value) {
+	return value ? "\e[31mon\e[m" : "\e[90moff\e[m";
+}
+
+string_t getTableString(
+	size_t value,
+	string_t const* table,
+	size_t count = -1
+) {
+	if (count == -1)
+		count = dynamic countof(table);
+
+	return value < count ? table[value] : "\e[31mundefined\e[m";
+}
+
+uint_t parseVersionString(string_t string) {
 	char const* p = string;
 	char const* end;
 	uint_t version = strtol(p, &end) << 16;
@@ -19,7 +34,6 @@ uint_t parseVersion(string_t string) {
 	}
 
 	return version;
-
 }
 
 //..............................................................................
