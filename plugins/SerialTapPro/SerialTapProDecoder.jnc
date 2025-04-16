@@ -1,0 +1,134 @@
+//..............................................................................
+//
+// Serial Tap Pro protocol decoder
+//
+
+import "std_Buffer.jnc"
+
+//..............................................................................
+
+class SerialTapProDecoder {
+protected:
+	log.Writer* m_logWriter;
+	SerialTapProInfoSet* m_infoSet;
+	uint64_t m_timestamp;
+	uint64_t m_recordCode;
+	SerialTapProRawUsbBulkParams m_recordParams;
+
+public:
+	bool autoget property m_isFlipped;
+
+public:
+	construct(
+		log.Writer* logWriter,
+		SerialTapProInfoSet* infoSet
+	);
+
+	void reset(
+		SerialTapProMode mode,
+		SerialTapProStatusLines lines
+	);
+
+	void decode(
+		char const* p,
+		size_t size
+	);
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+SerialTapProDecoder.construct(
+	log.Writer* logWriter,
+	SerialTapProInfoSet* infoSet
+) {
+	m_logWriter = logWriter;
+	m_infoSet = infoSet;
+	m_recordCode = SerialTapProLogRecordCode.RawUsbBulkData;
+}
+
+void SerialTapProDecoder.m_isFlipped.set(bool value) {
+	m_value = value;
+	m_recordCode = value ?
+		SerialTapProLogRecordCode.RawUsbBulkDataFlipped :
+		SerialTapProLogRecordCode.RawUsbBulkData;
+}
+
+void SerialTapProDecoder.reset(
+	SerialTapProMode mode,
+	SerialTapProStatusLines lines
+) {
+	m_timestamp = sys.getTimestamp();
+	m_recordParams.m_status = mode;
+	m_recordParams.m_lines = lines;
+}
+
+void SerialTapProDecoder.decode(
+	char const* p0,
+	size_t size
+) {
+	char thin const* p = p0;
+	char thin const* end = p + size;
+	char const* next = p0 + SerialTapProUsb.BulkSize;
+	uint64_t timeDiff = 0;
+	uint8_t shadowStatus = m_recordParams.m_status;
+	SerialTapProStatusLines shadowStatusLines = m_recordParams.m_lines;
+
+	while (p < end) {
+		SerialTapProNotificationCode code;
+		if (p >= next || !(code = (SerialTapProNotificationCode)*p)) { // skip to the end of bulk
+			size_t offset = p - p0;
+			if (offset) {
+				m_logWriter.write(m_timestamp, m_recordCode, &m_recordParams, sizeof(m_recordParams), p0, offset);
+				m_recordParams.m_status = shadowStatus;
+				m_recordParams.m_lines = shadowStatusLines;
+			}
+
+			p = p0 = next;
+			next += SerialTapProUsb.BulkSize;
+			m_timestamp += timeDiff  * 10; // FPGA timestamps are in mcs
+			timeDiff = 0;
+			continue;
+		}
+
+		DecodeUlebResult uleb = decodeUleb(p + 1, end);
+		p = uleb.m_p;
+		timeDiff += uleb.m_value;
+
+		switch (code) {
+		case SerialTapProNotificationCode.Data_0:
+		case SerialTapProNotificationCode.Data_1:
+			p += 2;
+			break;
+
+		case SerialTapProNotificationCode.StatusLineChange:
+			SerialTapProStatusLines lines = (SerialTapProStatusLines)*p++;
+			SerialTapProStatusLines mask = lines ^ shadowStatusLines;
+			if (mask) {
+				m_infoSet.updateStatusLines(lines, mask);
+				shadowStatusLines = lines;
+			}
+			break;
+
+		case SerialTapProNotificationCode.Status:
+			uint8_t status = *p++;
+			if ((status ^ shadowStatus) & SerialTapProMode.Mask)
+				m_infoSet.setMode((SerialTapProMode)(status & SerialTapProMode.Mask));
+
+			if ((status ^ shadowStatus) & SerialTapProOverflows.Mask)
+				m_infoSet.setOverflows(status & SerialTapProOverflows.Mask);
+
+			shadowStatus = status;
+			break;
+		}
+	}
+
+	// write the remainder (only possible if a bulk is completely filled)
+
+	if (p0 < end) {
+		m_logWriter.write(m_timestamp, m_recordCode, &m_recordParams, sizeof(m_recordParams), p0, end - p0);
+		m_recordParams.m_status = shadowStatus;
+		m_recordParams.m_lines = shadowStatusLines;
+	}
+}
+
+//..............................................................................

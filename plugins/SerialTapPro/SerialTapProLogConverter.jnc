@@ -1,0 +1,443 @@
+//..............................................................................
+//
+// Serial Tap Pro log converter
+//
+
+import "doc_Plugin.jnc"
+import "log_Filter.jnc"
+import "ui_LogRecordCodeFilterUi.jnc"
+import "ui_Layout.jnc"
+import "ui_GroupBox.jnc"
+import "ui_Button.jnc"
+
+//..............................................................................
+
+class SerialTapProLogConverter:
+	doc.LogFilter,
+	log.Converter {
+protected:
+	static char const Title[] = "Serial Tap Pro Log";
+	static const std.Guid LogGuid = "3a1ec99b-234a-49a0-be4b-f6e60b80a5c0";
+
+	enum RecordCodeIdx {
+		Data_0,
+		Data_1,
+		Data9_0,
+		Data9_1,
+		BreakOn_0,
+		BreakOn_1,
+		BreakOff_0,
+		BreakOff_1,
+		_Count
+	}
+
+	static const uint64_t RecordCodeTable[2][2][RecordCodeIdx._Count] = {
+		{	// separate
+			{	// non-flipped
+				log.StdRecordCode.RxSep,
+				log.StdRecordCode.TxSep,
+				log.StdRecordCode.Rx9Sep,
+				log.StdRecordCode.Tx9Sep,
+				SerialTapProLogRecordCode.RxBreakOn,
+				SerialTapProLogRecordCode.TxBreakOn,
+				SerialTapProLogRecordCode.RxBreakOff,
+				SerialTapProLogRecordCode.TxBreakOff,
+			},
+			{	// flipped
+				log.StdRecordCode.TxSep,
+				log.StdRecordCode.RxSep,
+				log.StdRecordCode.Tx9Sep,
+				log.StdRecordCode.Rx9Sep,
+				SerialTapProLogRecordCode.TxBreakOn,
+				SerialTapProLogRecordCode.RxBreakOn,
+				SerialTapProLogRecordCode.TxBreakOff,
+				SerialTapProLogRecordCode.RxBreakOff,
+			},
+		},
+		{	// mergeable
+			{	// non-flipped
+				log.StdRecordCode.Rx,
+				log.StdRecordCode.Tx,
+				log.StdRecordCode.Rx9,
+				log.StdRecordCode.Tx9,
+				SerialTapProLogRecordCode.RxBreakOn,
+				SerialTapProLogRecordCode.TxBreakOn,
+				SerialTapProLogRecordCode.RxBreakOff,
+				SerialTapProLogRecordCode.TxBreakOff,
+			},
+			{	// flipped
+				log.StdRecordCode.Tx,
+				log.StdRecordCode.Rx,
+				log.StdRecordCode.Tx9,
+				log.StdRecordCode.Rx9,
+				SerialTapProLogRecordCode.TxBreakOn,
+				SerialTapProLogRecordCode.RxBreakOn,
+				SerialTapProLogRecordCode.TxBreakOff,
+				SerialTapProLogRecordCode.RxBreakOff,
+			},
+		},
+	};
+
+protected:
+	log.Log* m_log;
+
+	ui.LogRecordCodeFilterUi m_rawDataToggle;
+	ui.LogRecordCodeFilterUi m_separateBytesToggle;
+	ui.LogRecordCodeFilterUi m_parityBitToggle;
+	ui.LogRecordCodeFilterUi m_serialSettingChangeToggle;
+	ui.LogRecordCodeFilterUi m_statusLineChangeToggle;
+	ui.LogRecordCodeFilterUi m_lineErrorToggle;
+
+public:
+	construct(doc.PluginHost* pluginHost);
+
+	override void load(doc.Storage* storage);
+	override void save(doc.Storage* storage);
+	override void updateProperties();
+	override bool errorcode applyProperties();
+	override void restoreDefaultProperties();
+
+	override bool convert(
+		log.Writer* writer,
+		uint64_t timestamp,
+		uint64_t recordCode,
+		void const* p,
+		size_t size
+	);
+
+protected:
+	void createUi(doc.PluginHost* pluginHost);
+
+	void onRebuildLog() {
+		m_log.rebuild();
+	}
+
+	static void convertSerialTapProRawUsbBulk(
+		log.Writer* writer,
+		uint64_t thin const* recordCodeTable,
+		bool isParityBitVisible,
+		bool isStatusLineChangeVisible,
+		bool isLineErrorVisible,
+		uint64_t timestamp,
+		uint8_t status0,
+		SerialTapProStatusLines lines0,
+		void const thin* p0,
+		size_t size
+	);
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+SerialTapProLogConverter.construct(doc.PluginHost* pluginHost) {
+	m_log = pluginHost.m_log;
+	createUi(pluginHost);
+	pluginHost.m_log.addConverter(this, &LogGuid);
+}
+
+void SerialTapProLogConverter.createUi(doc.PluginHost* pluginHost) {
+	ui.VBoxLayout layout;
+	ui.GroupBox groupBox(Title, layout);
+
+	ui.Action applyAction("images/apply.png", "Rebuild log", onRebuildLog);
+	ui.ToolBar applyToolBar;
+	applyToolBar.addAction(applyAction);
+
+	ui.GroupProperty* groupProp = pluginHost.m_propertyGrid.createGroupProperty(Title);
+
+	m_rawDataToggle.create(
+		layout,
+		groupProp,
+		"Raw data (debug)",
+		"Show/hide raw USB bulk data (for debugging)"
+	);
+
+	m_separateBytesToggle.create(
+		layout,
+		groupProp,
+		"Separate bytes",
+		"Show each captured byte on a separate line to inspect individual byte timestamps"
+	);
+
+	m_parityBitToggle.create(
+		layout,
+		groupProp,
+		"Parity bit (9-bit)",
+		"Mark bytes that have the parity bit (9-bit) set"
+	);
+
+	m_serialSettingChangeToggle.create(
+		layout,
+		groupProp,
+		"Serial setting changes",
+		"Show/hide serial setting changes (baud rate, data bits, etc.)"
+	);
+
+	m_statusLineChangeToggle.create(
+		layout,
+		groupProp,
+		"Status line changes",
+		"Show/hide serial control lines changes (DTR/RTS/DSR/CTS/DCD/RI)"
+	);
+
+	m_lineErrorToggle.create(
+		layout,
+		groupProp,
+		"Serial line errors",
+		"Show/hide serial line errors (FRAMING, PARITY, BREAK)",
+		applyToolBar
+	);
+
+	pluginHost.createForm(groupBox);
+}
+
+void SerialTapProLogConverter.load(doc.Storage* storage) {
+	printf("SerialTapProLogConverter.load\n");
+	m_rawDataToggle := storage.readBool("rawData", true);
+	m_separateBytesToggle := storage.readBool("separateBytes", true);
+	m_parityBitToggle := storage.readBool("parityBit", true);
+	m_serialSettingChangeToggle := storage.readBool("serialSettingChange", true);
+	m_statusLineChangeToggle := storage.readBool("statusLineChange", true);
+	m_lineErrorToggle := storage.readBool("lineError", true);
+}
+
+void SerialTapProLogConverter.save(doc.Storage* storage) {
+	printf("SerialTapProLogConverter.save\n");
+	storage.writeBool("rawData", m_rawDataToggle.m_isVisible);
+	storage.writeBool("separateBytes", m_separateBytesToggle.m_isVisible);
+	storage.writeBool("parityBit", m_parityBitToggle.m_isVisible);
+	storage.writeBool("serialSettingChange", m_serialSettingChangeToggle.m_isVisible);
+	storage.writeBool("statusLineChange", m_statusLineChangeToggle.m_isVisible);
+	storage.writeBool("lineError", m_lineErrorToggle.m_isVisible);
+}
+
+void SerialTapProLogConverter.updateProperties() {
+	printf("SerialTapProLogConverter.updateProperties\n");
+	m_rawDataToggle.update();
+	m_separateBytesToggle.update();
+	m_parityBitToggle.update();
+	m_serialSettingChangeToggle.update();
+	m_statusLineChangeToggle.update();
+	m_lineErrorToggle.update();
+}
+
+bool errorcode SerialTapProLogConverter.applyProperties() {
+	printf("SerialTapProLogConverter.applyProperties\n");
+	m_rawDataToggle.apply();
+	m_separateBytesToggle.apply();
+	m_parityBitToggle.apply();
+	m_serialSettingChangeToggle.apply();
+	m_statusLineChangeToggle.apply();
+	m_lineErrorToggle.apply();
+	return true;
+}
+
+void SerialTapProLogConverter.restoreDefaultProperties() {
+	printf("SerialTapProLogConverter.restoreDefaultProperties\n");
+	m_rawDataToggle := false;
+	m_separateBytesToggle := false;
+	m_parityBitToggle := false;
+	m_serialSettingChangeToggle := true;
+	m_statusLineChangeToggle := true;
+	m_lineErrorToggle := true;
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+override bool SerialTapProLogConverter.convert(
+	log.Writer* writer,
+	uint64_t timestamp,
+	uint64_t recordCode,
+	void const* p,
+	size_t size
+) {
+	switch (recordCode) {
+	case SerialTapProLogRecordCode.RawUsbBulkData:
+	case SerialTapProLogRecordCode.RawUsbBulkDataFlipped:
+		SerialTapProRawUsbBulkParams params = *(SerialTapProRawUsbBulkParams const*)p;
+		p += sizeof(SerialTapProRawUsbBulkParams);
+		size -= sizeof(SerialTapProRawUsbBulkParams);
+
+		if (m_rawDataToggle.m_isVisible)
+			writer.write(timestamp, log.StdRecordCode.Bin, p, size);
+
+		size_t i = !m_separateBytesToggle.m_isVisible;
+		size_t j = recordCode - SerialTapProLogRecordCode.RawUsbBulkData;
+
+		convertSerialTapProRawUsbBulk(
+			writer,
+			RecordCodeTable[i][j],
+			m_parityBitToggle.m_isVisible,
+			m_statusLineChangeToggle.m_isVisible,
+			m_lineErrorToggle.m_isVisible,
+			timestamp,
+			params.m_status,
+			params.m_lines,
+			p,
+			size
+		);
+
+		break;
+
+	case SerialTapProLogRecordCode.BaudRateChanged:
+	case SerialTapProLogRecordCode.DataBitsChanged:
+	case SerialTapProLogRecordCode.ParityChanged:
+	case SerialTapProLogRecordCode.StopBitsChanged:
+		if (!m_statusLineChangeToggle.m_isVisible)
+			break;
+
+		// fall through
+
+	default:
+		return false;
+	}
+
+	return true;
+}
+
+void SerialTapProLogConverter.convertSerialTapProRawUsbBulk(
+	log.Writer* writer,
+	uint64_t thin const* recordCodeTable,
+	bool isParityBitVisible,
+	bool isStatusLineChangeVisible,
+	bool isLineErrorVisible,
+	uint64_t timestamp,
+	uint8_t status0,
+	SerialTapProStatusLines lines0,
+	void const thin* p0,
+	size_t size
+) {
+	enum {
+		MaxDataSize = SerialTapProUsb.BulkSize / 4 // code, timestamp, data, flags
+	}
+
+	char data[MaxDataSize];
+	uint64_t bin9[MaxDataSize / 64];
+
+	char thin* pd = data;
+	uint64_t thin* pd9 = bin9;
+	uint64_t dataRecordCode = 0;
+	RecordCodeIdx dataRecordCodeBase = isParityBitVisible ? RecordCodeIdx.Data9_0 : RecordCodeIdx.Data_0;
+
+	char thin const* p = p0;
+	char thin const* end = p + size;
+	while (p < end) {
+		SerialTapProNotificationCode notificationCode = (SerialTapProNotificationCode)*p++;
+		if (!notificationCode)
+			break;
+
+		DecodeUlebResult uleb = decodeUleb(p, end);
+		p = uleb.m_p;
+		timestamp += uleb.m_value * 10; // FPGA timestamps are in mcs
+
+		if (notificationCode == SerialTapProNotificationCode.Data_0 || // Rx
+			notificationCode == SerialTapProNotificationCode.Data_1    // Tx
+		) {
+			size_t channel = notificationCode - SerialTapProNotificationCode.Data_0;
+
+			char byte = *p++;
+			char flags = *p++;
+
+			uint64_t recordCode = recordCodeTable[dataRecordCodeBase + channel];
+			if (recordCode != (dataRecordCode | log.PartCodeFlags.Mergeable)) {
+				if (dataRecordCode) {
+					size_t size = pd - data;
+					isParityBitVisible ?
+						writer.write(timestamp, dataRecordCode, data, size, bin9, (size + 7) / 8) :
+						writer.write(timestamp, dataRecordCode, data, size);
+				}
+
+				dataRecordCode = recordCode;
+				pd = data;
+				bin9 = null;
+			}
+
+			if (isParityBitVisible && (flags & SerialTapProDataFlags.ParityBit)) {
+				size_t offset = pd - data;
+				size_t i = offset / 64;
+				pd9[i] |= (uint64_t)1 << (offset & 63);
+			}
+
+			*pd++ = byte;
+
+			if (isLineErrorVisible && (flags & SerialTapProDataFlags.ErrorMask)) {
+				size_t size = pd - data;
+				isParityBitVisible ?
+					writer.write(timestamp, dataRecordCode, data, size, bin9, (size + 7) / 8) :
+					writer.write(timestamp, dataRecordCode, data, size);
+
+				if (flags & SerialTapProDataFlags.FramingError)
+					writer.write(timestamp, SerialTapProLogRecordCode.RxFramingError - channel);
+				else if (flags & SerialTapProDataFlags.ParityError)
+					writer.write(timestamp, SerialTapProLogRecordCode.RxParityError - channel);
+
+				dataRecordCode = 0;
+			}
+		} else {
+			if (dataRecordCode) {
+				size_t size = pd - data;
+				isParityBitVisible ?
+					writer.write(timestamp, dataRecordCode, data, size, bin9, (size + 7) / 8) :
+					writer.write(timestamp, dataRecordCode, data, size);
+				dataRecordCode = 0;
+			}
+
+			switch (notificationCode) {
+			case SerialTapProNotificationCode.StatusLineChange:
+				SerialTapProStatusLines lines = (SerialTapProStatusLines)*p++;
+				if (!isStatusLineChangeVisible) {
+					lines0 = lines;
+					break;
+				}
+
+				SerialTapProStatusLines mask = lines ^ lines0;
+				if (!mask)
+					break;
+
+				SerialTapProStatusLineChangedParams thin* params = (SerialTapProStatusLineChangedParams thin*)data;
+				params.m_lines = lines;
+				params.m_mask = mask;
+				writer.write(timestamp, SerialTapProLogRecordCode.StatusLineChanged, data, sizeof(SerialTapProStatusLineChangedParams));
+				lines0 = lines;
+				break;
+
+			case SerialTapProNotificationCode.BreakOn_0:
+			case SerialTapProNotificationCode.BreakOn_1:
+			case SerialTapProNotificationCode.BreakOff_0:
+			case SerialTapProNotificationCode.BreakOff_1:
+				if (!isLineErrorVisible)
+					break;
+
+				uint64_t recordCode = recordCodeTable[RecordCodeIdx.BreakOn_0 + notificationCode - SerialTapProNotificationCode.BreakOn_0];
+				writer.write(timestamp, recordCode);
+				break;
+
+			case SerialTapProNotificationCode.Status:
+				uint8_t status = *p++;
+				if ((status ^ status0) & SerialTapProMode.Mask) {
+					data[0] = status & SerialTapProMode.Mask;
+					writer.write(timestamp, SerialTapProLogRecordCode.ModeChanged, data, sizeof(SerialTapProMode));
+				}
+
+				SerialTapProOverflows mask = (status ^ status0) & SerialTapProOverflows.Mask;
+				if (mask) {
+					SerialTapProOverflowChangedParams thin* params = (SerialTapProOverflowChangedParams thin*)data;
+					params.m_overflows = status & SerialTapProOverflows.Mask;
+					params.m_mask = mask;
+					writer.write(timestamp, SerialTapProLogRecordCode.OverflowsChanged, data, sizeof(SerialTapProOverflowChangedParams));
+				}
+
+				status0 = status;
+				break;
+			}
+		}
+	}
+
+	if (pd != data) {
+		size_t size = pd - data;
+		isParityBitVisible ?
+			writer.write(timestamp, dataRecordCode, data, size, bin9, (size + 7) / 8) :
+			writer.write(timestamp, dataRecordCode, data, size);
+	}
+}
+
+//..............................................................................

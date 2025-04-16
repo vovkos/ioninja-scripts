@@ -1,0 +1,62 @@
+//..............................................................................
+//
+// Serial Tap Pro log record codes
+//
+
+import "log_RecordCode.jnc"
+
+pragma(Alignment, 1);
+
+//..............................................................................
+
+enum SerialTapProLogRecordCode: uint64_t {
+	DeviceOpened              = 0x01db13c48f442500,
+	InterfaceClaimed          = 0x01db13c48f442501,
+	InEndpointOpened          = 0x01db13c48f442502,
+	OutEndpointOpened         = 0x01db13c48f442503,
+	CaptureStarted            = 0x01db13c48f442504,
+	CaptureStopped            = 0x01db13c48f442505,
+	CaptureError              = 0x01db13c48f442506,
+	UnexpectedCode            = 0x01db13c48f442507,
+	IncompleteByte            = 0x01db13c48f442508,
+	FpgaBufferOverflow        = 0x01db13c48f442509,
+	CypressBufferCleared      = 0x01db13c48f44250a,
+	StatusLineChanged         = 0x01db13c48f44250b,
+	TxParityError             = 0x01db13c48f44250c,
+	RxParityError             = 0x01db13c48f44250d,
+	TxFramingError            = 0x01db13c48f44250e,
+	RxFramingError            = 0x01db13c48f44250f,
+	TxBreakOn                 = 0x01db13c48f442510,
+	RxBreakOn                 = 0x01db13c48f442511,
+	TxBreakOff                = 0x01db13c48f442512,
+	RxBreakOff                = 0x01db13c48f442513,
+	TxParityBit               = 0x01db13c48f442514,
+	RxParityBit               = 0x01db13c48f442515,
+	ModeChanged               = 0x01db13c48f442516,
+	InjectChannelChanged      = 0x01db13c48f442517,
+	ForwardChanged            = 0x01db13c48f442518,
+	OverflowsChanged          = 0x01db13c48f442519,
+	RawUsbBulkData            = 0x01db13c48f44251a,
+	RawUsbBulkDataFlipped     = 0x01db13c48f44251b,
+	BaudRateChanged           = 0x01db13c48f44251c,
+	DataBitsChanged           = 0x01db13c48f44251d,
+	StopBitsChanged           = 0x01db13c48f44251e,
+	ParityChanged             = 0x01db13c48f44251f,
+}
+
+struct SerialTapProStatusLineChangedParams {
+	SerialTapProStatusLines m_lines;
+	SerialTapProStatusLines m_mask;
+}
+
+struct SerialTapProOverflowChangedParams {
+	SerialTapProOverflows m_overflows;
+	SerialTapProOverflows m_mask;
+}
+
+struct SerialTapProRawUsbBulkParams {
+	uint8_t m_status; // SerialTapProMode | SerialTapProOverflows
+	SerialTapProStatusLines m_lines;
+}
+
+//..............................................................................
