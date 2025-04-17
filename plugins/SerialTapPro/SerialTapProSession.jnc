@@ -33,7 +33,7 @@ protected:
 	enum {
 		CypressBufferSize         = 4 * 1024, // 4K (2K built-in in Cypress + 512 FPGA FIFO)
 		CypressClearBufferTimeout = 200,      // 0.2 sec
-		FpgaUploadBaseIndex       = 0x1000,
+		FpgaUploadBaseIndex       = 0x2000,
 		FpgaFreq                  = 48000000,
 	}
 
@@ -404,9 +404,7 @@ bool errorcode SerialTapProSession.capture() {
 	m_device = m_deviceCombo.m_currentData;
 	m_device.open();
 	m_logWriter.write(SerialTapProLogRecordCode.DeviceOpened, m_deviceCombo.m_currentText);
-	return startCapture();
-
-//	m_uploader.update(m_device, FirmwareFileName, FpgaUploadBaseIndex);
+	return m_uploader.update(m_device, FirmwareFileName, FpgaUploadBaseIndex);
 
 catch:
 	m_logWriter.writeLastError(SerialTapProLogRecordCode.CaptureError);
