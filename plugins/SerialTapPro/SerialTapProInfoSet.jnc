@@ -17,8 +17,8 @@ protected:
 		Dcd,
 		Rts,
 		Dtr,
-		BreakTx,
-		BreakRx,
+		Break_0,
+		Break_1,
 		Overflows,
 		_Count,
 	}
@@ -39,9 +39,9 @@ public:
 
 	void setOverflows(SerialTapProOverflows overflows);
 
-	void updateStatusLines(
-		SerialTapProStatusLines lines,
-		SerialTapProStatusLines mask = (SerialTapProStatusLines)-1
+	void updateLines(
+		SerialTapProLines lines,
+		SerialTapProLines mask = (SerialTapProLines)-1
 	);
 
 protected:
@@ -67,11 +67,11 @@ void SerialTapProInfoSet.create(
 	m_infoTable[InfoId.Cts] = infoGrid.createValue(infoGroup,,, "CTS");
 	m_infoTable[InfoId.Dcd] = infoGrid.createValue(infoGroup,,, "DCD");
 	m_infoTable[InfoId.Ring] = infoGrid.createValue(infoGroup,,, "RI");
-	m_infoTable[InfoId.BreakTx] = infoGrid.createValue(infoGroup,,, "BREAK (TX)");
-	m_infoTable[InfoId.BreakRx] = infoGrid.createValue(infoGroup,,, "BREAK (RX)");
+	m_infoTable[InfoId.Break_0] = infoGrid.createValue(infoGroup,,, "BREAK (TX)");
+	m_infoTable[InfoId.Break_1] = infoGrid.createValue(infoGroup,,, "BREAK (RX)");
 	m_infoTable[InfoId.Overflows] = infoGrid.createValue(infoGroup,,, "Overflow");
 
-	updateStatusLines(0); // set all off
+	updateLines(0); // set all off
 }
 
 void SerialTapProInfoSet.m_isEnabled.set(bool isEnabled) {
@@ -90,27 +90,33 @@ void  SerialTapProInfoSet.setOverflows(SerialTapProOverflows overflows) {
 	m_infoTable[InfoId.Overflows].m_valueColor = ui.StdColor.BrightRed;
 }
 
-void SerialTapProInfoSet.updateStatusLines(
-	SerialTapProStatusLines lines,
-	SerialTapProStatusLines mask
+void SerialTapProInfoSet.updateLines(
+	SerialTapProLines lines,
+	SerialTapProLines mask
 ) {
-	if (mask & SerialTapProStatusLines.Cts)
-		setLineState(InfoId.Cts, lines & SerialTapProStatusLines.Cts);
+	if (mask & SerialTapProLines.Cts)
+		setLineState(InfoId.Cts, lines & SerialTapProLines.Cts);
 
-	if (mask & SerialTapProStatusLines.Dsr)
-		setLineState(InfoId.Dsr, lines & SerialTapProStatusLines.Dsr);
+	if (mask & SerialTapProLines.Dsr)
+		setLineState(InfoId.Dsr, lines & SerialTapProLines.Dsr);
 
-	if (mask & SerialTapProStatusLines.Dcd)
-		setLineState(InfoId.Dcd, lines & SerialTapProStatusLines.Dcd);
+	if (mask & SerialTapProLines.Dcd)
+		setLineState(InfoId.Dcd, lines & SerialTapProLines.Dcd);
 
-	if (mask & SerialTapProStatusLines.Ring)
-		setLineState(InfoId.Ring, lines & SerialTapProStatusLines.Ring);
+	if (mask & SerialTapProLines.Ring)
+		setLineState(InfoId.Ring, lines & SerialTapProLines.Ring);
 
-	if (mask & SerialTapProStatusLines.Rts)
-		setLineState(InfoId.Rts, lines & SerialTapProStatusLines.Rts);
+	if (mask & SerialTapProLines.Rts)
+		setLineState(InfoId.Rts, lines & SerialTapProLines.Rts);
 
-	if (mask & SerialTapProStatusLines.Dtr)
-		setLineState(InfoId.Dtr, lines & SerialTapProStatusLines.Dtr);
+	if (mask & SerialTapProLines.Dtr)
+		setLineState(InfoId.Dtr, lines & SerialTapProLines.Dtr);
+
+	if (mask & SerialTapProLines.Break_0)
+		setLineState(InfoId.Break_0, lines & SerialTapProLines.Break_0);
+
+	if (mask & SerialTapProLines.Break_1)
+		setLineState(InfoId.Break_1, lines & SerialTapProLines.Break_1);
 }
 
 //..............................................................................

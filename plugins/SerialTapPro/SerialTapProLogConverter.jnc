@@ -24,6 +24,10 @@ protected:
 		Data_1,
 		Data9_0,
 		Data9_1,
+		ParityError_0,
+		ParityError_1,
+		FramingError_0,
+		FramingError_1,
 		BreakOn_0,
 		BreakOn_1,
 		BreakOff_0,
@@ -32,48 +36,64 @@ protected:
 	}
 
 	static const uint64_t RecordCodeTable[2][2][RecordCodeIdx._Count] = {
-		{	// separate
-			{	// non-flipped
-				log.StdRecordCode.RxSep,
-				log.StdRecordCode.TxSep,
-				log.StdRecordCode.Rx9Sep,
-				log.StdRecordCode.Tx9Sep,
-				SerialTapProLogRecordCode.RxBreakOn,
-				SerialTapProLogRecordCode.TxBreakOn,
-				SerialTapProLogRecordCode.RxBreakOff,
-				SerialTapProLogRecordCode.TxBreakOff,
-			},
-			{	// flipped
-				log.StdRecordCode.TxSep,
-				log.StdRecordCode.RxSep,
-				log.StdRecordCode.Tx9Sep,
-				log.StdRecordCode.Rx9Sep,
-				SerialTapProLogRecordCode.TxBreakOn,
-				SerialTapProLogRecordCode.RxBreakOn,
-				SerialTapProLogRecordCode.TxBreakOff,
-				SerialTapProLogRecordCode.RxBreakOff,
-			},
-		},
 		{	// mergeable
 			{	// non-flipped
+				log.StdRecordCode.Tx,
+				log.StdRecordCode.Rx,
+				log.StdRecordCode.Tx9,
+				log.StdRecordCode.Rx9,
+				SerialTapProLogRecordCode.TxParityError,
+				SerialTapProLogRecordCode.RxParityError,
+				SerialTapProLogRecordCode.TxFramingError,
+				SerialTapProLogRecordCode.RxFramingError,
+				SerialTapProLogRecordCode.TxBreakOn,
+				SerialTapProLogRecordCode.RxBreakOn,
+				SerialTapProLogRecordCode.TxBreakOff,
+				SerialTapProLogRecordCode.RxBreakOff,
+			},
+			{	// flipped
 				log.StdRecordCode.Rx,
 				log.StdRecordCode.Tx,
 				log.StdRecordCode.Rx9,
 				log.StdRecordCode.Tx9,
+				SerialTapProLogRecordCode.RxParityError,
+				SerialTapProLogRecordCode.TxParityError,
+				SerialTapProLogRecordCode.RxFramingError,
+				SerialTapProLogRecordCode.TxFramingError,
 				SerialTapProLogRecordCode.RxBreakOn,
 				SerialTapProLogRecordCode.TxBreakOn,
 				SerialTapProLogRecordCode.RxBreakOff,
 				SerialTapProLogRecordCode.TxBreakOff,
 			},
-			{	// flipped
-				log.StdRecordCode.Tx,
-				log.StdRecordCode.Rx,
-				log.StdRecordCode.Tx9,
-				log.StdRecordCode.Rx9,
+		},
+		{	// separate
+			{	// non-flipped
+				log.StdRecordCode.TxSep,
+				log.StdRecordCode.RxSep,
+				log.StdRecordCode.Tx9Sep,
+				log.StdRecordCode.Rx9Sep,
+				SerialTapProLogRecordCode.TxParityError,
+				SerialTapProLogRecordCode.RxParityError,
+				SerialTapProLogRecordCode.TxFramingError,
+				SerialTapProLogRecordCode.RxFramingError,
 				SerialTapProLogRecordCode.TxBreakOn,
 				SerialTapProLogRecordCode.RxBreakOn,
 				SerialTapProLogRecordCode.TxBreakOff,
 				SerialTapProLogRecordCode.RxBreakOff,
+			},
+			{	// flipped
+				log.StdRecordCode.RxSep,
+				log.StdRecordCode.TxSep,
+				log.StdRecordCode.Rx9Sep,
+				log.StdRecordCode.Tx9Sep,
+				SerialTapProLogRecordCode.RxParityError,
+				SerialTapProLogRecordCode.TxParityError,
+				SerialTapProLogRecordCode.RxFramingError,
+				SerialTapProLogRecordCode.TxFramingError,
+				SerialTapProLogRecordCode.RxBreakOn,
+				SerialTapProLogRecordCode.TxBreakOn,
+				SerialTapProLogRecordCode.RxBreakOff,
+				SerialTapProLogRecordCode.TxBreakOff,
 			},
 		},
 	};
@@ -114,13 +134,14 @@ protected:
 
 	static void convertSerialTapProRawUsbBulk(
 		log.Writer* writer,
-		uint64_t thin const* recordCodeTable,
+		bool isFlipped,
+		bool isSeparateBytes,
 		bool isParityBitVisible,
 		bool isStatusLineChangeVisible,
 		bool isLineErrorVisible,
 		uint64_t timestamp,
 		uint8_t status0,
-		SerialTapProStatusLines lines0,
+		SerialTapProLines lines0,
 		void const thin* p0,
 		size_t size
 	);
@@ -191,7 +212,6 @@ void SerialTapProLogConverter.createUi(doc.PluginHost* pluginHost) {
 }
 
 void SerialTapProLogConverter.load(doc.Storage* storage) {
-	printf("SerialTapProLogConverter.load\n");
 	m_rawDataToggle := storage.readBool("rawData", true);
 	m_separateBytesToggle := storage.readBool("separateBytes", true);
 	m_parityBitToggle := storage.readBool("parityBit", true);
@@ -201,7 +221,6 @@ void SerialTapProLogConverter.load(doc.Storage* storage) {
 }
 
 void SerialTapProLogConverter.save(doc.Storage* storage) {
-	printf("SerialTapProLogConverter.save\n");
 	storage.writeBool("rawData", m_rawDataToggle.m_isVisible);
 	storage.writeBool("separateBytes", m_separateBytesToggle.m_isVisible);
 	storage.writeBool("parityBit", m_parityBitToggle.m_isVisible);
@@ -211,7 +230,6 @@ void SerialTapProLogConverter.save(doc.Storage* storage) {
 }
 
 void SerialTapProLogConverter.updateProperties() {
-	printf("SerialTapProLogConverter.updateProperties\n");
 	m_rawDataToggle.update();
 	m_separateBytesToggle.update();
 	m_parityBitToggle.update();
@@ -221,7 +239,6 @@ void SerialTapProLogConverter.updateProperties() {
 }
 
 bool errorcode SerialTapProLogConverter.applyProperties() {
-	printf("SerialTapProLogConverter.applyProperties\n");
 	m_rawDataToggle.apply();
 	m_separateBytesToggle.apply();
 	m_parityBitToggle.apply();
@@ -232,7 +249,6 @@ bool errorcode SerialTapProLogConverter.applyProperties() {
 }
 
 void SerialTapProLogConverter.restoreDefaultProperties() {
-	printf("SerialTapProLogConverter.restoreDefaultProperties\n");
 	m_rawDataToggle := false;
 	m_separateBytesToggle := false;
 	m_parityBitToggle := false;
@@ -260,12 +276,12 @@ override bool SerialTapProLogConverter.convert(
 		if (m_rawDataToggle.m_isVisible)
 			writer.write(timestamp, log.StdRecordCode.Bin, p, size);
 
-		size_t i = !m_separateBytesToggle.m_isVisible;
-		size_t j = recordCode - SerialTapProLogRecordCode.RawUsbBulkData;
+		bool isFlipped = recordCode - SerialTapProLogRecordCode.RawUsbBulkData;
 
 		convertSerialTapProRawUsbBulk(
 			writer,
-			RecordCodeTable[i][j],
+			isFlipped,
+			m_separateBytesToggle.m_isVisible,
 			m_parityBitToggle.m_isVisible,
 			m_statusLineChangeToggle.m_isVisible,
 			m_lineErrorToggle.m_isVisible,
@@ -296,13 +312,14 @@ override bool SerialTapProLogConverter.convert(
 
 void SerialTapProLogConverter.convertSerialTapProRawUsbBulk(
 	log.Writer* writer,
-	uint64_t thin const* recordCodeTable,
+	bool isFlipped,
+	bool isSeparateBytes,
 	bool isParityBitVisible,
 	bool isStatusLineChangeVisible,
 	bool isLineErrorVisible,
 	uint64_t timestamp,
 	uint8_t status0,
-	SerialTapProStatusLines lines0,
+	SerialTapProLines lines0,
 	void const thin* p0,
 	size_t size
 ) {
@@ -310,12 +327,18 @@ void SerialTapProLogConverter.convertSerialTapProRawUsbBulk(
 		MaxDataSize = SerialTapProUsb.BulkSize / 4 // code, timestamp, data, flags
 	}
 
+	uint64_t thin const* recordCodeTable = RecordCodeTable[isSeparateBytes][isFlipped];
+
+	if (isFlipped) {
+		status0 = flipSerialTapProOverflows(status0);
+		lines0 = flipSerialTapProLines(lines0);
+	}
+
 	char data[MaxDataSize];
 	uint64_t bin9[MaxDataSize / 64];
-
 	char thin* pd = data;
 	uint64_t thin* pd9 = bin9;
-	uint64_t dataRecordCode = 0;
+	uint64_t dataRecordCode;
 	RecordCodeIdx dataRecordCodeBase = isParityBitVisible ? RecordCodeIdx.Data9_0 : RecordCodeIdx.Data_0;
 
 	char thin const* p = p0;
@@ -366,9 +389,9 @@ void SerialTapProLogConverter.convertSerialTapProRawUsbBulk(
 					writer.write(timestamp, dataRecordCode, data, size);
 
 				if (flags & SerialTapProDataFlags.FramingError)
-					writer.write(timestamp, SerialTapProLogRecordCode.RxFramingError - channel);
+					writer.write(timestamp, recordCodeTable[RecordCodeIdx.FramingError_0 + channel]);
 				else if (flags & SerialTapProDataFlags.ParityError)
-					writer.write(timestamp, SerialTapProLogRecordCode.RxParityError - channel);
+					writer.write(timestamp, recordCodeTable[RecordCodeIdx.ParityError_0 + channel]);
 
 				dataRecordCode = 0;
 			}
@@ -383,13 +406,16 @@ void SerialTapProLogConverter.convertSerialTapProRawUsbBulk(
 
 			switch (notificationCode) {
 			case SerialTapProNotificationCode.StatusLineChange:
-				SerialTapProStatusLines lines = (SerialTapProStatusLines)*p++;
+				SerialTapProLines lines = (SerialTapProLines)*p++;
+				if (isFlipped)
+					lines = flipSerialTapProLines(lines);
+
 				if (!isStatusLineChangeVisible) {
 					lines0 = lines;
 					break;
 				}
 
-				SerialTapProStatusLines mask = lines ^ lines0;
+				SerialTapProLines mask = lines ^ lines0;
 				if (!mask)
 					break;
 
@@ -404,15 +430,15 @@ void SerialTapProLogConverter.convertSerialTapProRawUsbBulk(
 			case SerialTapProNotificationCode.BreakOn_1:
 			case SerialTapProNotificationCode.BreakOff_0:
 			case SerialTapProNotificationCode.BreakOff_1:
-				if (!isLineErrorVisible)
-					break;
-
 				uint64_t recordCode = recordCodeTable[RecordCodeIdx.BreakOn_0 + notificationCode - SerialTapProNotificationCode.BreakOn_0];
 				writer.write(timestamp, recordCode);
 				break;
 
 			case SerialTapProNotificationCode.Status:
 				uint8_t status = *p++;
+				if (isFlipped)
+					status = flipSerialTapProOverflows(status);
+
 				if ((status ^ status0) & SerialTapProMode.Mask) {
 					data[0] = status & SerialTapProMode.Mask;
 					writer.write(timestamp, SerialTapProLogRecordCode.ModeChanged, data, sizeof(SerialTapProMode));

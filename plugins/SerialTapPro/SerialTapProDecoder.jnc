@@ -10,24 +10,26 @@ import "std_Buffer.jnc"
 class SerialTapProDecoder {
 protected:
 	log.Writer* m_logWriter;
+	log.TxRxStats* m_txRxStats;
 	SerialTapProInfoSet* m_infoSet;
 	uint64_t m_timestamp;
-	uint64_t m_recordCode;
 	SerialTapProRawUsbBulkParams m_recordParams;
-
-public:
-	bool autoget property m_isFlipped;
+	bool m_isFlipped;
 
 public:
 	construct(
 		log.Writer* logWriter,
+		log.TxRxStats* txRxStats,
 		SerialTapProInfoSet* infoSet
 	);
 
 	void reset(
 		SerialTapProMode mode,
-		SerialTapProStatusLines lines
+		SerialTapProLines lines,
+		bool isFlipped
 	);
+
+	void flip(bool isFlipped);
 
 	void decode(
 		char const* p,
@@ -39,27 +41,64 @@ public:
 
 SerialTapProDecoder.construct(
 	log.Writer* logWriter,
+	log.TxRxStats* txRxStats,
 	SerialTapProInfoSet* infoSet
 ) {
 	m_logWriter = logWriter;
+	m_txRxStats = txRxStats;
 	m_infoSet = infoSet;
-	m_recordCode = SerialTapProLogRecordCode.RawUsbBulkData;
-}
-
-void SerialTapProDecoder.m_isFlipped.set(bool value) {
-	m_value = value;
-	m_recordCode = value ?
-		SerialTapProLogRecordCode.RawUsbBulkDataFlipped :
-		SerialTapProLogRecordCode.RawUsbBulkData;
 }
 
 void SerialTapProDecoder.reset(
 	SerialTapProMode mode,
-	SerialTapProStatusLines lines
+	SerialTapProLines lines,
+	bool isFlipped
 ) {
 	m_timestamp = sys.getTimestamp();
 	m_recordParams.m_status = mode;
 	m_recordParams.m_lines = lines;
+	m_isFlipped = isFlipped;
+}
+
+void SerialTapProDecoder.flip(bool isFlipped) {
+	if (m_isFlipped == isFlipped)
+		return;
+
+	m_isFlipped = isFlipped;
+
+	uint64_t timestamp = sys.getTimestamp();
+	uint8_t status, status0;
+	SerialTapProLines lines, lines0;
+
+	if (isFlipped) {
+		status = flipSerialTapProOverflows(m_recordParams.m_status);
+		status0 = m_recordParams.m_status;
+		lines = flipSerialTapProLines(m_recordParams.m_lines);
+		lines0 = m_recordParams.m_lines;
+	} else {
+		status = m_recordParams.m_status;
+		status0 = flipSerialTapProOverflows(m_recordParams.m_status);
+		lines = m_recordParams.m_lines;
+		lines0 = flipSerialTapProLines(m_recordParams.m_lines);
+	}
+
+	SerialTapProOverflows overflowMask = (status ^ status0) & SerialTapProOverflows.Mask;
+	if (overflowMask) {
+		SerialTapProOverflowChangedParams params;
+		params.m_overflows = (SerialTapProOverflows)status;
+		params.m_mask = overflowMask;
+		m_logWriter.write(timestamp, SerialTapProLogRecordCode.OverflowsChanged, &params, sizeof(params));
+		m_infoSet.setOverflows((SerialTapProOverflows)status);
+	}
+
+	SerialTapProLines lineMask = lines ^ lines0;
+	if (lineMask) {
+		SerialTapProStatusLineChangedParams params;
+		params.m_lines = lines;
+		params.m_mask = lineMask;
+		m_logWriter.write(timestamp, SerialTapProLogRecordCode.StatusLineChanged, &params, sizeof(params));
+		m_infoSet.updateLines(lines, lineMask);
+	}
 }
 
 void SerialTapProDecoder.decode(
@@ -70,17 +109,22 @@ void SerialTapProDecoder.decode(
 	char thin const* end = p + size;
 	char const* next = p0 + SerialTapProUsb.BulkSize;
 	uint64_t timeDiff = 0;
-	uint8_t shadowStatus = m_recordParams.m_status;
-	SerialTapProStatusLines shadowStatusLines = m_recordParams.m_lines;
+	uint8_t status = m_recordParams.m_status;
+	uint8_t status0 = m_recordParams.m_status;
+	SerialTapProLines lines = m_recordParams.m_lines;
+	SerialTapProLines lines0 = m_recordParams.m_lines;
+	uint64_t recordCode = SerialTapProLogRecordCode.RawUsbBulkData + m_isFlipped;
+	size_t dataSize_0 = 0;
+	size_t dataSize_1 = 0;
 
 	while (p < end) {
 		SerialTapProNotificationCode code;
 		if (p >= next || !(code = (SerialTapProNotificationCode)*p)) { // skip to the end of bulk
 			size_t offset = p - p0;
 			if (offset) {
-				m_logWriter.write(m_timestamp, m_recordCode, &m_recordParams, sizeof(m_recordParams), p0, offset);
-				m_recordParams.m_status = shadowStatus;
-				m_recordParams.m_lines = shadowStatusLines;
+				m_logWriter.write(m_timestamp, recordCode, &m_recordParams, sizeof(m_recordParams), p0, offset);
+				m_recordParams.m_status = status;
+				m_recordParams.m_lines = lines;
 			}
 
 			p = p0 = next;
@@ -96,28 +140,37 @@ void SerialTapProDecoder.decode(
 
 		switch (code) {
 		case SerialTapProNotificationCode.Data_0:
+			dataSize_0++;
+			p += 2;
+			break;
+
 		case SerialTapProNotificationCode.Data_1:
+			dataSize_1++;
 			p += 2;
 			break;
 
 		case SerialTapProNotificationCode.StatusLineChange:
-			SerialTapProStatusLines lines = (SerialTapProStatusLines)*p++;
-			SerialTapProStatusLines mask = lines ^ shadowStatusLines;
-			if (mask) {
-				m_infoSet.updateStatusLines(lines, mask);
-				shadowStatusLines = lines;
-			}
+			lines = (SerialTapProLines)*p++;
 			break;
 
 		case SerialTapProNotificationCode.Status:
-			uint8_t status = *p++;
-			if ((status ^ shadowStatus) & SerialTapProMode.Mask)
-				m_infoSet.setMode((SerialTapProMode)(status & SerialTapProMode.Mask));
+			status = *p++;
+			break;
 
-			if ((status ^ shadowStatus) & SerialTapProOverflows.Mask)
-				m_infoSet.setOverflows(status & SerialTapProOverflows.Mask);
+		case SerialTapProNotificationCode.BreakOn_0:
+			lines |= SerialTapProLines.Break_0;
+			break;
 
-			shadowStatus = status;
+		case SerialTapProNotificationCode.BreakOn_1:
+			lines |= SerialTapProLines.Break_1;
+			break;
+
+		case SerialTapProNotificationCode.BreakOff_0:
+			lines &= ~SerialTapProLines.Break_0;
+			break;
+
+		case SerialTapProNotificationCode.BreakOff_1:
+			lines &= ~SerialTapProLines.Break_1;
 			break;
 		}
 	}
@@ -125,10 +178,35 @@ void SerialTapProDecoder.decode(
 	// write the remainder (only possible if a bulk is completely filled)
 
 	if (p0 < end) {
-		m_logWriter.write(m_timestamp, m_recordCode, &m_recordParams, sizeof(m_recordParams), p0, end - p0);
-		m_recordParams.m_status = shadowStatus;
-		m_recordParams.m_lines = shadowStatusLines;
+		m_logWriter.write(m_timestamp, recordCode, &m_recordParams, sizeof(m_recordParams), p0, end - p0);
+		m_recordParams.m_status = status;
+		m_recordParams.m_lines = lines;
 	}
+
+	if (m_isFlipped) {
+		status = flipSerialTapProOverflows(status);
+		status0 = flipSerialTapProOverflows(status0);
+		lines = flipSerialTapProLines(lines);
+		lines0 = flipSerialTapProLines(lines0);
+		size_t t = dataSize_0;
+		dataSize_0 = dataSize_1;
+		dataSize_1 = t;
+	}
+
+	// update stats & the info set
+
+	m_txRxStats.addTx(dataSize_0);
+	m_txRxStats.addRx(dataSize_1);
+
+	if ((status ^ status0) & SerialTapProMode.Mask)
+		m_infoSet.setMode((SerialTapProMode)(status & SerialTapProMode.Mask));
+
+	if ((status ^ status0) & SerialTapProOverflows.Mask)
+		m_infoSet.setOverflows((SerialTapProOverflows)status);
+
+	SerialTapProLines lineMask = lines ^ lines0;
+	if (lineMask)
+		m_infoSet.updateLines(lines, lineMask);
 }
 
 //..............................................................................

@@ -40,7 +40,7 @@ enum SerialTapProRegister {
 	BaudFreq    = 10,
 	BaudLimit   = 11,
 	Bits        = 12,
-	StatusLines = 13,
+	Lines       = 13,
 }
 
 bitflag enum SerialTapProControlFlags {
@@ -74,41 +74,74 @@ enum SerialTapProNotificationCode: uint8_t {
 	Status           = 13,
 }
 
-bitflag enum SerialTapProStatusLines: uint8_t {
-	Cts,
-	Dsr,
-	Ring,
-	Dcd,
-	Rts,
-	Dtr,
+bitflag enum SerialTapProLines: uint8_t {
+	Cts       = 0x01,
+	Dsr       = 0x02,
+	Ring      = 0x04,
+	Dcd       = 0x08,
+	Rts       = 0x10,
+	Dtr       = 0x20,
+	Break_0   = 0x40,
+	Break_1   = 0x80,
+
+	LineMask  = 0x3f,
+	BreakMask = 0xc0,
+}
+
+SerialTapProLines flipSerialTapProLines(SerialTapProLines lines) {
+	return
+		(lines & ~(
+			SerialTapProLines.Cts |
+			SerialTapProLines.Dsr |
+			SerialTapProLines.Rts |
+			SerialTapProLines.Dtr |
+			SerialTapProLines.Break_0 |
+			SerialTapProLines.Break_1
+		)) |
+		((lines & (SerialTapProLines.Cts | SerialTapProLines.Dsr)) << 4) |
+		((lines & (SerialTapProLines.Rts | SerialTapProLines.Dtr)) >> 4) |
+		((lines & SerialTapProLines.Break_0) << 1) |
+		((lines & SerialTapProLines.Break_1) >> 1);
 }
 
 bitflag enum SerialTapProOverflows: uint8_t {
 	Data_0      = 0x80,
 	Data_1      = 0x40,
 	Lines       = 0x20,
-	Break_1     = 0x10,
-	Break_0     = 0x08,
+	Break_0     = 0x10,
+	Break_1     = 0x08,
 	Status      = 0x04,
-	Mask        = 0xfc,
-	DataMask    = 0xc0,
+
 	NonDataMask = 0x3c,
+	Mask        = 0xfc,
+}
+
+uint8_t flipSerialTapProOverflows(uint8_t status) {
+	return
+		(status & ~(
+			SerialTapProOverflows.Data_0 |
+			SerialTapProOverflows.Data_1 |
+			SerialTapProOverflows.Break_0 |
+			SerialTapProOverflows.Break_1
+		)) |
+		((status & (SerialTapProOverflows.Data_0 | SerialTapProOverflows.Break_0)) >> 1) |
+		((status & (SerialTapProOverflows.Data_1 | SerialTapProOverflows.Break_1)) << 1);
 }
 
 string_t getSerialTapProOverflowsString(SerialTapProOverflows overflows) {
 	std.StringBuilder string;
 	if (overflows & SerialTapProOverflows.Data_0)
-		string += "RX ";
+		string += "TX ";
 
 	if (overflows & SerialTapProOverflows.Data_1)
-		string += "TX ";
+		string += "RX ";
 
 	if (overflows & SerialTapProOverflows.NonDataMask) { // unlikely
 		if (overflows & SerialTapProOverflows.Break_0)
-			string += "BREAK (RX) ";
+			string += "BREAK (TX) ";
 
 		if (overflows & SerialTapProOverflows.Break_1)
-			string += "BREAK (TX) ";
+			string += "BREAK (RX) ";
 
 		if (overflows & SerialTapProOverflows.Lines)
 			string += "LINES ";
@@ -129,17 +162,18 @@ bitflag enum SerialTapProDataFlags: int8_t {
 }
 
 enum SerialTapProMode: uint8_t {
-	Rs485 = 1,
-	Ttl   = 2,
-	Rs232 = 3,
-	Mask  = 3,
+	Undefined = 0,
+	Rs485     = 1,
+	Ttl       = 2,
+	Rs232     = 3,
+	Mask      = 3,
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 string_t getSerialTapProModeString(SerialTapProMode mode) {
 	static string_t const strings[] = {
-		"(invalid-serial-mode)",
+		"Unknown",
 		"RS485/RS422",
 		"TTL",
 		"RS232",

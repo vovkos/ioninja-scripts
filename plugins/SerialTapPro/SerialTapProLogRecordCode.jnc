@@ -45,8 +45,8 @@ enum SerialTapProLogRecordCode: uint64_t {
 }
 
 struct SerialTapProStatusLineChangedParams {
-	SerialTapProStatusLines m_lines;
-	SerialTapProStatusLines m_mask;
+	SerialTapProLines m_lines;
+	SerialTapProLines m_mask;
 }
 
 struct SerialTapProOverflowChangedParams {
@@ -56,7 +56,7 @@ struct SerialTapProOverflowChangedParams {
 
 struct SerialTapProRawUsbBulkParams {
 	uint8_t m_status; // SerialTapProMode | SerialTapProOverflows
-	SerialTapProStatusLines m_lines;
+	SerialTapProLines m_lines;
 }
 
 //..............................................................................

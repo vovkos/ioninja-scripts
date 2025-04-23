@@ -11,39 +11,39 @@ import "stringUtils.jnc"
 //..............................................................................
 
 string_t getStatusLineChangeString(
-	SerialTapProStatusLines lines,
-	SerialTapProStatusLines mask
+	SerialTapProLines lines,
+	SerialTapProLines mask
 ) {
 	std.StringBuilder string = "Status line(s) changed:";
 
-	if (mask & SerialTapProStatusLines.Dtr) {
+	if (mask & SerialTapProLines.Dtr) {
 		string += " DTR: ";
-		string += getOnOffString(lines & SerialTapProStatusLines.Dtr);
+		string += getOnOffString(lines & SerialTapProLines.Dtr);
 	}
 
-	if (mask & SerialTapProStatusLines.Rts) {
+	if (mask & SerialTapProLines.Rts) {
 		string += " RTS: ";
-		string += getOnOffString(lines & SerialTapProStatusLines.Rts);
+		string += getOnOffString(lines & SerialTapProLines.Rts);
 	}
 
-	if (mask & SerialTapProStatusLines.Cts) {
+	if (mask & SerialTapProLines.Cts) {
 		string += " CTS: ";
-		string += getOnOffString(lines & SerialTapProStatusLines.Cts);
+		string += getOnOffString(lines & SerialTapProLines.Cts);
 	}
 
-	if (mask & SerialTapProStatusLines.Dsr) {
+	if (mask & SerialTapProLines.Dsr) {
 		string += " DSR: ";
-		string += getOnOffString(lines & SerialTapProStatusLines.Dsr);
+		string += getOnOffString(lines & SerialTapProLines.Dsr);
 	}
 
-	if (mask & SerialTapProStatusLines.Dcd) {
+	if (mask & SerialTapProLines.Dcd) {
 		string += " DCD: ";
-		string += getOnOffString(lines & SerialTapProStatusLines.Dcd);
+		string += getOnOffString(lines & SerialTapProLines.Dcd);
 	}
 
-	if (mask & SerialTapProStatusLines.Ring) {
+	if (mask & SerialTapProLines.Ring) {
 		string += " RI: ";
-		string += getOnOffString(lines & SerialTapProStatusLines.Ring);
+		string += getOnOffString(lines & SerialTapProLines.Ring);
 	}
 
 	return string.detachString();
@@ -146,10 +146,20 @@ bool representSerialTapProLog(
 
 	case SerialTapProLogRecordCode.StatusLineChanged:
 		SerialTapProStatusLineChangedParams const* params = (SerialTapProStatusLineChangedParams const*)p;
-		string_t string = getStatusLineChangeString(params.m_lines, params.m_mask);
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		representation.addHyperText(string);
+
+		if (params.m_mask & SerialTapProLines.LineMask) {
+			string_t string = getStatusLineChangeString(params.m_lines, params.m_mask);
+			representation.addHyperText(string);
+		}
+
+		if (params.m_mask & SerialTapProLines.Break_0)
+			representation.addHyperText($"TX line BREAK condition: %1"(getOnOffString(params.m_lines & SerialTapProLines.Break_0)));
+
+		if (params.m_mask & SerialTapProLines.Break_1)
+			representation.addHyperText($"RX line BREAK condition: %1"(getOnOffString(params.m_lines & SerialTapProLines.Break_1)));
+
 		break;
 
 	case SerialTapProLogRecordCode.TxParityError:

@@ -166,7 +166,8 @@ protected:
 	void onDtrRtsChanged();
 
 	void onFlip() {
-		m_decoder.m_isFlipped = m_actionTable[ActionId.Flip].m_isChecked;
+		if (m_state == State.Capturing)
+			m_decoder.flip(m_actionTable[ActionId.Flip].m_isChecked);
 	}
 
 	void onUpdateCompleted(bool result);
@@ -213,7 +214,7 @@ protected:
 SerialTapProSession.construct(doc.PluginHost* pluginHost) {
 	basetype.construct(pluginHost);
 	m_uploader.construct(pluginHost);
-	m_decoder.construct(pluginHost.m_log.m_writer, m_serialTapProInfoSet);
+	m_decoder.construct(pluginHost.m_log.m_writer, pluginHost.m_txRxStats, m_serialTapProInfoSet);
 
 	m_controlBuffer.setSize(SerialTapProUsb.ControlBufferSize);
 	m_uploader.m_onUpdateCompleted += onUpdateCompleted;
@@ -452,15 +453,20 @@ bool errorcode SerialTapProSession.startCapture() {
 
 	m_logWriter.write(SerialTapProLogRecordCode.CaptureStarted, &mode, sizeof(mode));
 
-	SerialTapProStatusLines lines = (SerialTapProStatusLines)readRegister(SerialTapProRegister.StatusLines);
+	bool isFlipped = m_actionTable[ActionId.Flip].m_isChecked;
+	SerialTapProLines lines = (SerialTapProLines)readRegister(SerialTapProRegister.Lines);
+	m_decoder.reset(mode, lines, isFlipped); // decoder operates on original lines
+
+	if (isFlipped)
+		lines = flipSerialTapProLines(lines);
+
 	m_serialTapProInfoSet.setMode(mode);
 	m_serialTapProInfoSet.setOverflows(0);
-	m_serialTapProInfoSet.updateStatusLines(lines);
-	m_decoder.reset(mode, lines);
+	m_serialTapProInfoSet.updateLines(lines);
 
 	SerialTapProStatusLineChangedParams params;
 	params.m_lines = lines;
-	params.m_mask = (SerialTapProStatusLines)-1;
+	params.m_mask = SerialTapProLines.LineMask;
 	m_logWriter.write(SerialTapProLogRecordCode.StatusLineChanged, &params, sizeof(params));
 
 	m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
@@ -767,7 +773,6 @@ bool errorcode SerialTapProSession.applyProperties() {
 	}
 
 	m_inEndpoint.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
-	m_inEndpoint.m_readBlockSize = m_bufferPropertySet.m_readBlockSizeProp.m_value;
 	m_inEndpoint.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 	return true;
 
