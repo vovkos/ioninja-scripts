@@ -27,4 +27,5 @@ SerialTapPro.jnc
 SerialTapProSession.jnc
 SerialTapProDecoder.jnc
 SerialTapProInfoSet.jnc
+SerialTapProDispatchCode.jnc
 uleb128.jnc

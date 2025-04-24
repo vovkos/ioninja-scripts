@@ -20,6 +20,7 @@ SerialTapPro.jnc
 SerialTapProLogRecordCode.jnc
 SerialTapProLogRepresenter.jnc
 SerialTapProLogConverter.jnc
+SerialTapProDispatchCode.jnc
 uleb128.jnc
 
 [records]

@@ -14,7 +14,9 @@ protected:
 	SerialTapProInfoSet* m_infoSet;
 	uint64_t m_timestamp;
 	SerialTapProRawUsbBulkParams m_recordParams;
-	bool m_isFlipped;
+
+public:
+	bool readonly m_isFlipped;
 
 public:
 	construct(
@@ -25,8 +27,7 @@ public:
 
 	void reset(
 		SerialTapProMode mode,
-		SerialTapProLines lines,
-		bool isFlipped
+		SerialTapProLines lines
 	);
 
 	void flip(bool isFlipped);
@@ -51,13 +52,11 @@ SerialTapProDecoder.construct(
 
 void SerialTapProDecoder.reset(
 	SerialTapProMode mode,
-	SerialTapProLines lines,
-	bool isFlipped
+	SerialTapProLines lines
 ) {
 	m_timestamp = sys.getTimestamp();
 	m_recordParams.m_status = mode;
 	m_recordParams.m_lines = lines;
-	m_isFlipped = isFlipped;
 }
 
 void SerialTapProDecoder.flip(bool isFlipped) {
@@ -66,7 +65,6 @@ void SerialTapProDecoder.flip(bool isFlipped) {
 
 	m_isFlipped = isFlipped;
 
-	uint64_t timestamp = sys.getTimestamp();
 	uint8_t status, status0;
 	SerialTapProLines lines, lines0;
 
@@ -83,22 +81,12 @@ void SerialTapProDecoder.flip(bool isFlipped) {
 	}
 
 	SerialTapProOverflows overflowMask = (status ^ status0) & SerialTapProOverflows.Mask;
-	if (overflowMask) {
-		SerialTapProOverflowChangedParams params;
-		params.m_overflows = (SerialTapProOverflows)status;
-		params.m_mask = overflowMask;
-		m_logWriter.write(timestamp, SerialTapProLogRecordCode.OverflowsChanged, &params, sizeof(params));
+	if (overflowMask)
 		m_infoSet.setOverflows((SerialTapProOverflows)status);
-	}
 
 	SerialTapProLines lineMask = lines ^ lines0;
-	if (lineMask) {
-		SerialTapProStatusLineChangedParams params;
-		params.m_lines = lines;
-		params.m_mask = lineMask;
-		m_logWriter.write(timestamp, SerialTapProLogRecordCode.StatusLineChanged, &params, sizeof(params));
+	if (lineMask)
 		m_infoSet.updateLines(lines, lineMask);
-	}
 }
 
 void SerialTapProDecoder.decode(
@@ -113,7 +101,7 @@ void SerialTapProDecoder.decode(
 	uint8_t status0 = m_recordParams.m_status;
 	SerialTapProLines lines = m_recordParams.m_lines;
 	SerialTapProLines lines0 = m_recordParams.m_lines;
-	uint64_t recordCode = SerialTapProLogRecordCode.RawUsbBulkData + m_isFlipped;
+	uint64_t recordCode = SerialTapProLogRecordCode.RawUsbBulkData; // + m_isFlipped;
 	size_t dataSize_0 = 0;
 	size_t dataSize_1 = 0;
 

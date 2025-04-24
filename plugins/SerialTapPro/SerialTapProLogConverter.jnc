@@ -4,8 +4,9 @@
 //
 
 import "doc_Plugin.jnc"
+import "doc_SessionDispatch.jnc"
 import "log_Filter.jnc"
-import "ui_LogRecordCodeFilterUi.jnc"
+import "ui_ToggleUi.jnc"
 import "ui_Layout.jnc"
 import "ui_GroupBox.jnc"
 import "ui_Button.jnc"
@@ -101,12 +102,13 @@ protected:
 protected:
 	log.Log* m_log;
 
-	ui.LogRecordCodeFilterUi m_rawDataToggle;
-	ui.LogRecordCodeFilterUi m_separateBytesToggle;
-	ui.LogRecordCodeFilterUi m_parityBitToggle;
-	ui.LogRecordCodeFilterUi m_serialSettingChangeToggle;
-	ui.LogRecordCodeFilterUi m_statusLineChangeToggle;
-	ui.LogRecordCodeFilterUi m_lineErrorToggle;
+	ui.ToggleUi m_rawDataToggle;
+	ui.ToggleUi m_flipToggle;
+	ui.ToggleUi m_separateBytesToggle;
+	ui.ToggleUi m_parityBitToggle;
+	ui.ToggleUi m_serialSettingChangeToggle;
+	ui.ToggleUi m_statusLineChangeToggle;
+	ui.ToggleUi m_lineErrorToggle;
 
 public:
 	construct(doc.PluginHost* pluginHost);
@@ -130,6 +132,10 @@ protected:
 
 	void onRebuildLog() {
 		m_log.rebuild();
+	}
+
+	void onFlip() {
+		doc.sessionDispatch(SerialTapProInternalDispatchCode.Flip, m_flipToggle.m_value);
 	}
 
 	static void convertSerialTapProRawUsbBulk(
@@ -165,53 +171,66 @@ void SerialTapProLogConverter.createUi(doc.PluginHost* pluginHost) {
 
 	ui.GroupProperty* groupProp = pluginHost.m_propertyGrid.createGroupProperty(Title);
 
+	m_flipToggle.create(
+		layout,,
+		groupProp,
+		"Flip DTE/DCE",
+		"Flips the view of bi-directional lines TX/RX, DTR/DSR, RTS/CTS"
+	);
+
+	bindingof(m_flipToggle.m_value) += onFlip;
+
 	m_rawDataToggle.create(
-		layout,
+		layout,,
 		groupProp,
 		"Raw data (debug)",
 		"Show/hide raw USB bulk data (for debugging)"
 	);
 
 	m_separateBytesToggle.create(
-		layout,
+		layout,,
 		groupProp,
 		"Separate bytes",
 		"Show each captured byte on a separate line to inspect individual byte timestamps"
 	);
 
 	m_parityBitToggle.create(
-		layout,
+		layout,,
 		groupProp,
 		"Parity bit (9-bit)",
 		"Mark bytes that have the parity bit (9-bit) set"
 	);
 
 	m_serialSettingChangeToggle.create(
-		layout,
+		layout,,
 		groupProp,
 		"Serial setting changes",
-		"Show/hide serial setting changes (baud rate, data bits, etc.)"
+		"Show/hide serial setting changes (baud rate, data bits, etc.)",
+		true
 	);
 
 	m_statusLineChangeToggle.create(
-		layout,
+		layout,,
 		groupProp,
 		"Status line changes",
-		"Show/hide serial control lines changes (DTR/RTS/DSR/CTS/DCD/RI)"
+		"Show/hide serial control lines changes (DTR/RTS/DSR/CTS/DCD/RI)",
+		true
 	);
 
 	m_lineErrorToggle.create(
 		layout,
+		applyToolBar,
 		groupProp,
 		"Serial line errors",
 		"Show/hide serial line errors (FRAMING, PARITY, BREAK)",
-		applyToolBar
+		true
 	);
 
 	pluginHost.createForm(groupBox);
 }
 
 void SerialTapProLogConverter.load(doc.Storage* storage) {
+	m_flipToggle := storage.readBool("flipDteDce", true);
 	m_rawDataToggle := storage.readBool("rawData", true);
 	m_separateBytesToggle := storage.readBool("separateBytes", true);
 	m_parityBitToggle := storage.readBool("parityBit", true);
@@ -221,15 +240,17 @@ void SerialTapProLogConverter.load(doc.Storage* storage) {
 }
 
 void SerialTapProLogConverter.save(doc.Storage* storage) {
-	storage.writeBool("rawData", m_rawDataToggle.m_isVisible);
-	storage.writeBool("separateBytes", m_separateBytesToggle.m_isVisible);
-	storage.writeBool("parityBit", m_parityBitToggle.m_isVisible);
-	storage.writeBool("serialSettingChange", m_serialSettingChangeToggle.m_isVisible);
-	storage.writeBool("statusLineChange", m_statusLineChangeToggle.m_isVisible);
-	storage.writeBool("lineError", m_lineErrorToggle.m_isVisible);
+	storage.writeBool("flipDteDce", m_flipToggle.m_value);
+	storage.writeBool("rawData", m_rawDataToggle.m_value);
+	storage.writeBool("separateBytes", m_separateBytesToggle.m_value);
+	storage.writeBool("parityBit", m_parityBitToggle.m_value);
+	storage.writeBool("serialSettingChange", m_serialSettingChangeToggle.m_value);
+	storage.writeBool("statusLineChange", m_statusLineChangeToggle.m_value);
+	storage.writeBool("lineError", m_lineErrorToggle.m_value);
 }
 
 void SerialTapProLogConverter.updateProperties() {
+	m_flipToggle.update();
 	m_rawDataToggle.update();
 	m_separateBytesToggle.update();
 	m_parityBitToggle.update();
@@ -239,6 +260,7 @@ void SerialTapProLogConverter.updateProperties() {
 }
 
 bool errorcode SerialTapProLogConverter.applyProperties() {
+	m_flipToggle.apply();
 	m_rawDataToggle.apply();
 	m_separateBytesToggle.apply();
 	m_parityBitToggle.apply();
@@ -249,6 +271,7 @@ bool errorcode SerialTapProLogConverter.applyProperties() {
 }
 
 void SerialTapProLogConverter.restoreDefaultProperties() {
+	m_flipToggle := false;
 	m_rawDataToggle := false;
 	m_separateBytesToggle := false;
 	m_parityBitToggle := false;
@@ -273,18 +296,18 @@ override bool SerialTapProLogConverter.convert(
 		p += sizeof(SerialTapProRawUsbBulkParams);
 		size -= sizeof(SerialTapProRawUsbBulkParams);
 
-		if (m_rawDataToggle.m_isVisible)
+		if (m_rawDataToggle.m_value)
 			writer.write(timestamp, log.StdRecordCode.Bin, p, size);
 
-		bool isFlipped = recordCode - SerialTapProLogRecordCode.RawUsbBulkData;
+		// bool isFlipped = recordCode - SerialTapProLogRecordCode.RawUsbBulkData;
 
 		convertSerialTapProRawUsbBulk(
 			writer,
-			isFlipped,
-			m_separateBytesToggle.m_isVisible,
-			m_parityBitToggle.m_isVisible,
-			m_statusLineChangeToggle.m_isVisible,
-			m_lineErrorToggle.m_isVisible,
+			m_flipToggle.m_value,
+			m_separateBytesToggle.m_value,
+			m_parityBitToggle.m_value,
+			m_statusLineChangeToggle.m_value,
+			m_lineErrorToggle.m_value,
 			timestamp,
 			params.m_status,
 			params.m_lines,
@@ -298,7 +321,7 @@ override bool SerialTapProLogConverter.convert(
 	case SerialTapProLogRecordCode.DataBitsChanged:
 	case SerialTapProLogRecordCode.ParityChanged:
 	case SerialTapProLogRecordCode.StopBitsChanged:
-		if (!m_statusLineChangeToggle.m_isVisible)
+		if (!m_statusLineChangeToggle.m_value)
 			break;
 
 		// fall through

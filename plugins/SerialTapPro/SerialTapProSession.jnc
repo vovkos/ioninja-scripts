@@ -52,7 +52,6 @@ protected:
 	enum ActionId {
 		Refresh,
 		Capture,
-		Flip,
 		Test,
 		_Count,
 	}
@@ -109,7 +108,6 @@ protected:
 	// property grid
 
 	ui.EnumProperty* m_deviceProp;
-	ui.BoolProperty* m_flipProp;
 	ui.BoolProperty* m_forwardProp;
 	ui.BufferPropertySet m_bufferPropertySet;
 
@@ -150,6 +148,12 @@ public:
 		stopCapture();
 	}
 
+	override bool errorcode dispatch(
+		uint_t code,
+		variant_t in,
+		variant_t* out
+	);
+
 protected:
 	void onCapture();
 
@@ -164,11 +168,6 @@ protected:
 	void onInjectChannelChanged();
 	void onForwardChanged();
 	void onDtrRtsChanged();
-
-	void onFlip() {
-		if (m_state == State.Capturing)
-			m_decoder.flip(m_actionTable[ActionId.Flip].m_isChecked);
-	}
 
 	void onUpdateCompleted(bool result);
 
@@ -242,9 +241,6 @@ void SerialTapProSession.createUi() {
 
 	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable[IconId.Capture]);
 	m_actionTable[ActionId.Capture].m_onTriggered += onCapture;
-	m_actionTable[ActionId.Flip] = createAction("Flip DTE/DCE", m_iconTable[IconId.Flip]);
-	m_actionTable[ActionId.Flip].m_isCheckable = true;
-	m_actionTable[ActionId.Flip].m_onTriggered += onFlip;
 
 	// m_actionTable[ActionId.Test] = createAction("Test");
 	// m_actionTable[ActionId.Test].m_onTriggered += onTest;
@@ -309,12 +305,6 @@ void SerialTapProSession.createUi() {
 	bindingof(m_forwardCheckBox.m_isChecked) += onForwardChanged;
 	m_serialUi.m_dtrAction.m_onTriggered += onDtrRtsChanged;
 	m_serialUi.m_rtsAction.m_onTriggered += onDtrRtsChanged;
-
-	m_flipProp = m_pluginHost.m_propertyGrid.createBoolProperty(
-		groupProp,,
-		"Flip DTE/DCE",
-		"Flip logical sides of the tap cable"
-	);
 
 	ui.BufferPropertySet.PropertyId ids =
 		ui.BufferPropertySet.PropertyId.ReadParallelism |
@@ -453,11 +443,10 @@ bool errorcode SerialTapProSession.startCapture() {
 
 	m_logWriter.write(SerialTapProLogRecordCode.CaptureStarted, &mode, sizeof(mode));
 
-	bool isFlipped = m_actionTable[ActionId.Flip].m_isChecked;
 	SerialTapProLines lines = (SerialTapProLines)readRegister(SerialTapProRegister.Lines);
-	m_decoder.reset(mode, lines, isFlipped); // decoder operates on original lines
+	m_decoder.reset(mode, lines); // decoder operates on original lines
 
-	if (isFlipped)
+	if (m_decoder.m_isFlipped)
 		lines = flipSerialTapProLines(lines);
 
 	m_serialTapProInfoSet.setMode(mode);
@@ -709,7 +698,6 @@ void SerialTapProSession.load(doc.Storage* storage) {
 	m_forwardCheckBox.m_isChecked = storage.readBool("forward");
 
 	m_deviceCombo.m_currentIndex  = storage.readInt("deviceIdx");
-	m_actionTable[ActionId.Flip].m_isChecked = storage.readBool("flipDteDce", false);
 	m_bufferPropertySet.load(storage);
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
 }
@@ -719,7 +707,6 @@ void SerialTapProSession.save(doc.Storage* storage) {
 	storage.writeInt("injectChannel", m_injectChannelCombo.m_currentIndex);
 	storage.writeBool("forward", m_forwardCheckBox.m_isChecked);
 	storage.writeInt("deviceIdx", m_deviceCombo.m_currentIndex);
-	storage.writeBool("flipDteDce", m_actionTable[ActionId.Flip].m_isChecked);
 	m_bufferPropertySet.save(storage);
 }
 
@@ -733,7 +720,6 @@ bool errorcode SerialTapProSession.applyProperties() {
 	m_serialUi.applyProperties();
 
 	m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
-	m_actionTable[ActionId.Flip].m_isChecked = m_flipProp.m_value;
 
 	m_readBuffer.detach(); // drop buffer, so we re-allocate each time
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
@@ -783,7 +769,6 @@ catch:
 
 void SerialTapProSession.restoreDefaultProperties() {
 	m_serialUi.restoreDefaultProperties();
-	m_flipProp.m_value = false;
 	m_bufferPropertySet.restoreDefaults();
 }
 
@@ -804,6 +789,77 @@ size_t errorcode SerialTapProSession.transmit(
 
 	// don't write it to log -- the tap will decode and report the injected data
 	return result;
+}
+
+bool errorcode SerialTapProSession.dispatch(
+	uint_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case SerialTapProDispatchCode.GetBaudRate:
+		*out = m_serialUi.m_baudRate;
+		break;
+
+	case SerialTapProDispatchCode.SetBaudRate:
+		m_serialUi.m_baudRate = in;
+		onBaudRateChanged();
+		break;
+
+	case SerialTapProDispatchCode.GetDataBits:
+		*out = m_serialUi.m_dataBits;
+		break;
+
+	case SerialTapProDispatchCode.SetDataBits:
+		uint_t dataBits = in;
+		m_serialUi.m_dataBits = dataBits;
+		onDataBitsChanged();
+		break;
+
+	case SerialTapProDispatchCode.GetParity:
+		*out = m_serialUi.m_parity;
+		break;
+
+	case SerialTapProDispatchCode.SetParity:
+		io.SerialParity parity = in;
+		m_serialUi.m_parity = parity;
+		onParityChanged();
+		break;
+
+	case SerialTapProDispatchCode.GetStopBits:
+		*out = m_serialUi.m_stopBits;
+		break;
+
+	case SerialTapProDispatchCode.SetStopBits:
+		io.SerialStopBits stopBits = in;
+		m_serialUi.m_stopBits = stopBits;
+		onStopBitsChanged();
+		break;
+
+	case SerialTapProDispatchCode.GetStatusLines:
+	case SerialTapProDispatchCode.GetDtr:
+	case SerialTapProDispatchCode.GetRts:
+		// not yet
+		break;
+
+	case SerialTapProDispatchCode.Capture:
+		return capture();
+
+	case SerialTapProDispatchCode.StopCapture:
+		stopCapture();
+		break;
+
+	case SerialTapProInternalDispatchCode.Flip:
+		printf($"*** FLIP: $in\n");
+		m_decoder.flip(in);
+		break;
+
+	default:
+		std.setError("unsupported dispatch code");
+		return false;
+	}
+
+	return true;
 }
 
 void SerialTapProSession.onBaudRateChanged() {
