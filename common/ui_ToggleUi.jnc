@@ -1,5 +1,7 @@
 import "ui_Layout.jnc"
+import "ui_Button.jnc"
 import "ui_PropertyGrid.jnc"
+import "ui_ToolBar.jnc"
 
 namespace ui {
 
@@ -8,52 +10,52 @@ namespace ui {
 
 //..............................................................................
 
-class LogRecordCodeFilterUi {
+class ToggleUi {
 protected:
 	CheckBox* m_checkBox;
 	BoolProperty* m_prop;
 
 public:
-	bool volatile readonly m_isVisible;
+	bool bindable readonly m_value;
 
 	void create(
 		VBoxLayout* layout,
+		ToolBar* toolBar = null,
 		GroupProperty* groupProp,
 		string_t name,
 		string_t toolTip = null,
-		ui.ToolBar* toolBar = null,
-		bool isVisible = true
+		bool value = false
 	);
 
 	void update() {
-		m_prop.m_value = m_isVisible;
+		m_prop.m_value = m_value;
 	}
 
 	void apply() {
-		m_isVisible = m_checkBox.m_isChecked = m_prop.m_value;
+		m_value = m_checkBox.m_isChecked = m_prop.m_value;
 	}
 
-	void operator := (bool isVisible);
+	void operator := (bool value);
 
 protected:
 	void onCheckBoxClicked() {
-		m_isVisible = m_checkBox.m_isChecked;
+		m_value = m_checkBox.m_isChecked;
 	}
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-void LogRecordCodeFilterUi.create(
+void ToggleUi.create(
 	VBoxLayout* layout,
+	ToolBar* toolBar,
 	GroupProperty* groupProp,
 	string_t name,
 	string_t toolTip,
-	ui.ToolBar* toolBar,
-	bool isVisible
+	bool value
 ) {
 	m_checkBox = new CheckBox(name);
 	m_checkBox.m_toolTip = toolTip;
-	m_checkBox.m_isChecked = isVisible;
+	m_checkBox.m_isChecked = value;
 	bindingof(m_checkBox.m_isChecked) += onCheckBoxClicked;
 
 	if (!toolBar)
@@ -67,16 +69,16 @@ void LogRecordCodeFilterUi.create(
 
 	m_prop = new BoolProperty(name);
 	m_prop.m_toolTip = toolTip;
-	m_prop.m_value = isVisible;
+	m_prop.m_value = value;
 	groupProp.addChildProperty(m_prop);
 
-	m_isVisible = isVisible;
+	m_value = value;
 }
 
-void LogRecordCodeFilterUi.operator := (bool isVisible) {
-	m_isVisible = isVisible;
-	m_checkBox.m_isChecked = isVisible;
-	m_prop.m_value = isVisible;
+void ToggleUi.operator := (bool value) {
+	m_value = value;
+	m_checkBox.m_isChecked = value;
+	m_prop.m_value = value;
 }
 
 //..............................................................................
