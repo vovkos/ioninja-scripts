@@ -232,12 +232,12 @@ void WebSocketClientSession.createUi() {
 		"WebSocket-specific connection settings"
 	);
 
+	m_webSocketUi.createProperties(m_pluginHost.m_propertyGrid, propGroup);
+
 	propGroup = m_pluginHost.m_propertyGrid.createGroupProperty(
 		"TCP",
 		"TCP-specific connection settings"
 	);
-
-	m_webSocketUi.createProperties(m_pluginHost.m_propertyGrid, propGroup);
 
 	m_socketPropertySet.createProperties(
 		m_pluginHost.m_propertyGrid,
@@ -294,14 +294,15 @@ bool errorcode WebSocketClientSession.connect() {
 	string_t host;
 	string_t resource;
 
-	if (addressString =~ r"ws|(wss)://([^/?]+)(.*)") {
-		isSecure = $1 != null;
+	if (addressString =~ r"(ws|wss)://([^/?]+)(.*)") {
+		isSecure = $1.m_length == 3;
 		host = $2;
+
 		resource = $3.m_length && $3.m_text[0] == '/' ?
 			$3.m_text :
 			strcat("/", $3.m_text);
 	} else {
-		std.setError("invalid WebSocket URI");
+		std.setError("invalid WebSocket URI (ws:// or wss:// expected)");
 		m_logWriter.writeLastError(log.StdRecordCode.Error);
 		return false;
 	}
