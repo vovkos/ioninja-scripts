@@ -32,24 +32,29 @@ enum SerialTapProControlRequestCode {
 }
 
 enum SerialTapProRegister {
-	Status      = 3,
-	Control     = 4,
-	Time0       = 5,
-	Time1       = 6,
-	Time2       = 7,
-	BaudFreq    = 10,
-	BaudLimit   = 11,
-	Bits        = 12,
-	Lines       = 13,
+	Status       = 3,
+	Control      = 4,
+	Time0        = 5,
+	Time1        = 6,
+	Time2        = 7,
+	TxBufferSize = 8,
+	TxQueueSize  = 9,
+	BaudFreq0    = 10,
+	BaudFreq1    = 11,
+	BaudLimit0   = 12,
+	BaudLimit1   = 13,
+	Bits         = 14,
+	Lines        = 15,
 }
 
 bitflag enum SerialTapProControlFlags {
 	Start,
 	AutoBaud,
-	InjectChannel,
+	Rs485InjectChannel,
 	Forward,
 	Rts,
 	Dtr,
+	Rs485InjectHalfDuplex,
 }
 
 union SerialTapProBits {
@@ -166,10 +171,8 @@ enum SerialTapProMode: uint8_t {
 	Rs485     = 1,
 	Ttl       = 2,
 	Rs232     = 3,
-	Mask      = 3,
+	Mask      = 0x03,
 }
-
-// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 string_t getSerialTapProModeString(SerialTapProMode mode) {
 	static string_t const strings[] = {
@@ -180,6 +183,22 @@ string_t getSerialTapProModeString(SerialTapProMode mode) {
 	}
 
 	return strings[mode & SerialTapProMode.Mask];
+}
+
+enum SerialTapProRs485Mode: uint8_t {
+	HalfDuplex,
+	HalfDuplexForward,
+	FullDuplex,
+}
+
+string_t getSerialTapProRs485ModeString(SerialTapProRs485Mode mode) {
+	static string_t const strings[] = {
+		"Half-duplex",
+		"Half-duplex D1 \u2194 D2",
+		"Full-duplex"
+	}
+
+	return mode < countof(strings) ? strings[mode] : "Unknown";
 }
 
 //..............................................................................

@@ -17,7 +17,7 @@ class SerialTapProLogConverter:
 	doc.LogFilter,
 	log.Converter {
 protected:
-	static char const Title[] = "Serial Tap Pro Log";
+	static char const Title[] = "Serial Tap Pro log";
 	static const std.Guid LogGuid = "3a1ec99b-234a-49a0-be4b-f6e60b80a5c0";
 
 	enum RecordCodeIdx {
@@ -174,7 +174,7 @@ void SerialTapProLogConverter.createUi(doc.PluginHost* pluginHost) {
 	m_flipToggle.create(
 		layout,,
 		groupProp,
-		"Flip DTE/DCE",
+		"Flip line directions",
 		"Flips the view of bi-directional lines TX/RX, DTR/DSR, RTS/CTS"
 	);
 

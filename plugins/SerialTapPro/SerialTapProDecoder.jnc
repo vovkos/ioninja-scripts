@@ -16,6 +16,7 @@ protected:
 	SerialTapProRawUsbBulkParams m_recordParams;
 
 public:
+	SerialTapProMode bindable readonly m_serialMode;
 	bool readonly m_isFlipped;
 
 public:
@@ -55,6 +56,7 @@ void SerialTapProDecoder.reset(
 	SerialTapProLines lines
 ) {
 	m_timestamp = sys.getTimestamp();
+	m_serialMode = mode;
 	m_recordParams.m_status = mode;
 	m_recordParams.m_lines = lines;
 }
@@ -186,8 +188,10 @@ void SerialTapProDecoder.decode(
 	m_txRxStats.addTx(dataSize_0);
 	m_txRxStats.addRx(dataSize_1);
 
-	if ((status ^ status0) & SerialTapProMode.Mask)
-		m_infoSet.setMode((SerialTapProMode)(status & SerialTapProMode.Mask));
+	if ((status ^ status0) & SerialTapProMode.Mask) {
+		m_serialMode = (SerialTapProMode)(status & SerialTapProMode.Mask);
+		m_infoSet.setMode(m_serialMode);
+	}
 
 	if ((status ^ status0) & SerialTapProOverflows.Mask)
 		m_infoSet.setOverflows((SerialTapProOverflows)status);

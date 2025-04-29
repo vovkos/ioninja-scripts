@@ -60,7 +60,7 @@ void SerialTapProInfoSet.create(
 	ui.InformationGrid* infoGrid,
 	ui.InformationGroup* infoGroup
 ) {
-	m_infoTable[InfoId.Mode] = infoGrid.createValue(infoGroup,,, "Mode");
+	m_infoTable[InfoId.Mode] = infoGrid.createValue(infoGroup,,, "Interface");
 	m_infoTable[InfoId.Dtr] = infoGrid.createValue(infoGroup,,, "DTR");
 	m_infoTable[InfoId.Rts] = infoGrid.createValue(infoGroup,,, "RTS");
 	m_infoTable[InfoId.Dsr] = infoGrid.createValue(infoGroup,,, "DSR");

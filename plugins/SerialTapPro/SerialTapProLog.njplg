@@ -29,7 +29,7 @@ uleb128.jnc
 01db13c48f442501  # InterfaceClaimed
 01db13c48f442502  # InEndpointOpened
 01db13c48f442503  # OutEndpointOpened
-01db13c48f442504  # CaptureStarted
+81db13c48f442504  # CaptureStarted
 01db13c48f442505  # CaptureStopped
 01db13c48f442506  # CaptureError
 01db13c48f442507  # UnexpectedCode
@@ -57,4 +57,3 @@ uleb128.jnc
 01db13c48f44251d  # ...
 01db13c48f44251e  # ...
 01db13c48f44251f  # ...
-   

@@ -14,7 +14,7 @@ enum SerialTapProLogRecordCode: uint64_t {
 	InterfaceClaimed          = 0x01db13c48f442501,
 	InEndpointOpened          = 0x01db13c48f442502,
 	OutEndpointOpened         = 0x01db13c48f442503,
-	CaptureStarted            = 0x01db13c48f442504,
+	CaptureStarted            = 0x01db13c48f442504 | log.RecordCodeFlags.Foldable,
 	CaptureStopped            = 0x01db13c48f442505,
 	CaptureError              = 0x01db13c48f442506,
 	UnexpectedCode            = 0x01db13c48f442507,
@@ -33,8 +33,8 @@ enum SerialTapProLogRecordCode: uint64_t {
 	TxParityBit               = 0x01db13c48f442514,
 	RxParityBit               = 0x01db13c48f442515,
 	ModeChanged               = 0x01db13c48f442516,
-	InjectChannelChanged      = 0x01db13c48f442517,
-	ForwardChanged            = 0x01db13c48f442518,
+	Rs485InjectModeChanged    = 0x01db13c48f442517,
+	Rs485InjectChannelChanged = 0x01db13c48f442518,
 	OverflowsChanged          = 0x01db13c48f442519,
 	RawUsbBulkData            = 0x01db13c48f44251a,
 	RawUsbBulkDataFlipped     = 0x01db13c48f44251b,
@@ -42,6 +42,17 @@ enum SerialTapProLogRecordCode: uint64_t {
 	DataBitsChanged           = 0x01db13c48f44251d,
 	StopBitsChanged           = 0x01db13c48f44251e,
 	ParityChanged             = 0x01db13c48f44251f,
+}
+
+struct SerialTapProCaptureStartedParams {
+	SerialTapProMode m_mode;
+	SerialTapProRs485Mode m_rs485Mode;
+	SerialTapProBits m_bits;
+	uint_t m_baudRate;
+	SerialTapProLines m_lines;
+	uint8_t m_flip               : 1;
+	uint8_t m_inject             : 1;
+	uint8_t m_rs485InjectChannel : 1;
 }
 
 struct SerialTapProStatusLineChangedParams {

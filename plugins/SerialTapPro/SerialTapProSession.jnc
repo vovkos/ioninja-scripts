@@ -9,6 +9,7 @@ import "io_UsbDevice.jnc"
 import "io_UsbEnumerator.jnc"
 import "iox_FpgaUploader.jnc"
 import "ui_SerialUi.jnc"
+import "ui_LineEdit.jnc"
 import "ui_BufferPropertySet.jnc"
 import "ui_StdSessionInfoSet.jnc"
 import "log_ThroughputCalc.jnc"
@@ -52,6 +53,12 @@ protected:
 	enum ActionId {
 		Refresh,
 		Capture,
+		Dtr,
+		Rts,
+		Break,
+
+		ReadRegister,
+		WriteRegister,
 		Test,
 		_Count,
 	}
@@ -84,19 +91,24 @@ protected:
 	std.Buffer m_controlBuffer;
 	SerialTapProDecoder m_decoder;
 
-	SerialTapProMode bindable m_serialMode;
 	uint_t m_baudRate;
 	uint_t m_dataBits;
 	io.SerialStopBits m_stopBits;
 	io.SerialParity m_parity;
 	uint_t m_outEpSyncId;
 	uint_t m_inEpSyncId;
+	size_t m_txBufferSize;
 
 	// serial tap pro ui
 
 	ui.SerialUi m_serialUi;
-	ui.ComboBox* m_injectChannelCombo;
-	ui.CheckBox* m_forwardCheckBox;
+	ui.GroupBox* m_injectGroupBox;
+	ui.ComboBox* m_rs485ModeCombo;
+	ui.ComboBox* m_rs485ChannelCombo;
+	bool bindable m_isTransmitUsbBufferReady;
+
+	ui.LineEdit* m_registerEdit;
+	ui.LineEdit* m_registerValueEdit;
 
 	// toolbar, status bar & menu
 
@@ -108,7 +120,6 @@ protected:
 	// property grid
 
 	ui.EnumProperty* m_deviceProp;
-	ui.BoolProperty* m_forwardProp;
 	ui.BufferPropertySet m_bufferPropertySet;
 
 	// information grid
@@ -121,7 +132,6 @@ protected:
 	// ui reactor
 
 	reactor m_uiReactor;
-	sys.Timer m_statusTimer;
 
 public:
 	construct(doc.PluginHost* pluginHost);
@@ -165,8 +175,8 @@ protected:
 	void onDataBitsChanged();
 	void onParityChanged();
 	void onStopBitsChanged();
-	void onInjectChannelChanged();
-	void onForwardChanged();
+	void onRs485ModeChanged();
+	void onRs485ChannelChanged();
 	void onDtrRtsChanged();
 
 	void onUpdateCompleted(bool result);
@@ -181,7 +191,8 @@ protected:
 		io.UsbEndpointEvents triggeredEvents
 	);
 
-	void onStatusTimer();
+	void onReadRegister();
+	void onWriteRegister();
 	void onTest();
 
 	void createUi();
@@ -242,6 +253,20 @@ void SerialTapProSession.createUi() {
 	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable[IconId.Capture]);
 	m_actionTable[ActionId.Capture].m_onTriggered += onCapture;
 
+	m_actionTable[ActionId.Dtr] = new ui.Action("images/dtr.png", "DTR");
+	m_actionTable[ActionId.Dtr].m_isCheckable = true;
+	m_actionTable[ActionId.Dtr].m_onTriggered += onDtrRtsChanged;
+
+	m_actionTable[ActionId.Rts] = new ui.Action("images/rts.png", "RTS");
+	m_actionTable[ActionId.Rts].m_isCheckable = true;
+	m_actionTable[ActionId.Rts].m_onTriggered += onDtrRtsChanged;
+
+	m_actionTable[ActionId.ReadRegister] = new ui.Action("Read");
+	m_actionTable[ActionId.ReadRegister].m_onTriggered += onReadRegister;
+
+	m_actionTable[ActionId.WriteRegister] = new ui.Action("Write");
+	m_actionTable[ActionId.WriteRegister].m_onTriggered += onWriteRegister;
+
 	// m_actionTable[ActionId.Test] = createAction("Test");
 	// m_actionTable[ActionId.Test].m_onTriggered += onTest;
 
@@ -263,48 +288,57 @@ void SerialTapProSession.createUi() {
 		null, 0
 	);
 
-	ui.FormLayout layout;
-
 	ui.SerialUi.ItemId serialUiMask =
 		ui.SerialUi.ItemId.BaudRate |
 		ui.SerialUi.ItemId.DataBits |
 		ui.SerialUi.ItemId.StopBits |
 		ui.SerialUi.ItemId.Parity |
-		ui.SerialUi.ItemId.ParityIgnore |
-		ui.SerialUi.ItemId.Dtr |
-		ui.SerialUi.ItemId.Rts;
+		ui.SerialUi.ItemId.ParityIgnore;
 
-	m_serialUi.createForm(layout, serialUiMask);
+	ui.FormLayout serialLayout;
+	ui.GroupBox serialGroupBox("Serial settings", serialLayout);
+	m_serialUi.createForm(serialLayout, serialUiMask);
 	m_serialUi.createProperties(m_pluginHost.m_propertyGrid, groupProp, serialUiMask);
-
-	static ui.ComboItem const channelItems[] = {
-		{ "D0", 0 },
-		{ "D1", 1 },
-	};
-
-	ui.FormLayout injectLayout;
-
-	m_injectChannelCombo = new ui.ComboBox(channelItems, countof(channelItems));
-	injectLayout.addRow("Inject channel:", m_injectChannelCombo);
-
-	m_forwardCheckBox = new ui.CheckBox("Forward D0 \u2194 D1");
-	injectLayout.addRow(m_forwardCheckBox);
-
-	ui.GroupBox injectGroup("RS485 inject", injectLayout);
-	layout.addRow(injectGroup);
-
-	ui.GroupBox groupBox("Serial Tap Pro settings", layout);
-	m_pluginHost.createForm(groupBox);
-
 	m_serialUi.m_baudRateCombo.m_onReturnPressed += onBaudRateChanged;
 	bindingof(m_serialUi.m_baudRateCombo.m_currentIndex) += onBaudRateChanged;
 	bindingof(m_serialUi.m_dataBitsCombo.m_currentIndex) += onDataBitsChanged;
 	bindingof(m_serialUi.m_parityCombo.m_currentIndex) += onParityChanged;
 	bindingof(m_serialUi.m_stopBitsCombo.m_currentIndex) += onStopBitsChanged;
-	bindingof(m_injectChannelCombo.m_currentIndex) += onInjectChannelChanged;
-	bindingof(m_forwardCheckBox.m_isChecked) += onForwardChanged;
-	m_serialUi.m_dtrAction.m_onTriggered += onDtrRtsChanged;
-	m_serialUi.m_rtsAction.m_onTriggered += onDtrRtsChanged;
+	m_pluginHost.createForm(serialGroupBox);
+
+	static ui.ComboItem const rs485ModeItems[] = {
+		{ "Half-duplex",              SerialTapProRs485Mode.HalfDuplex },
+		{ "Half-duplex D1 \u2194 D2", SerialTapProRs485Mode.HalfDuplexForward },
+		{ "Full-duplex",              SerialTapProRs485Mode.FullDuplex },
+	};
+
+	static ui.ComboItem const rs485ChannelItems[] = {
+		{ "D1" },
+		{ "D2" },
+	};
+
+	m_rs485ModeCombo = new ui.ComboBox(rs485ModeItems, countof(rs485ModeItems));
+	m_rs485ChannelCombo = new ui.ComboBox(rs485ChannelItems, countof(rs485ChannelItems));
+	bindingof(m_rs485ModeCombo.m_currentIndex) += onRs485ModeChanged;
+	bindingof(m_rs485ChannelCombo.m_currentIndex) += onRs485ChannelChanged;
+
+	ui.ToolBar controlLineToolBar;
+	controlLineToolBar.addStretch();
+	controlLineToolBar.addAction(m_actionTable[ActionId.Dtr]);
+	controlLineToolBar.addAction(m_actionTable[ActionId.Rts]);
+	ui.HBoxLayout controlLineLayout;
+	controlLineLayout.addLabel("RS232/TTL:");
+	controlLineLayout.addWidget(controlLineToolBar);
+
+	ui.FormLayout injectLayout;
+	m_injectGroupBox = new ui.GroupBox("Serial Tap Pro injection", injectLayout);
+	m_injectGroupBox.m_isCheckable = true;
+	m_injectGroupBox.m_isChecked = false;
+	injectLayout.addLabel("RS485/RS422:");
+	injectLayout.addRow("    Mode:", m_rs485ModeCombo);
+	injectLayout.addRow("    Inject to:", m_rs485ChannelCombo);
+	injectLayout.addRow(controlLineLayout);
+	m_pluginHost.createForm(m_injectGroupBox);
 
 	ui.BufferPropertySet.PropertyId ids =
 		ui.BufferPropertySet.PropertyId.ReadParallelism |
@@ -315,6 +349,23 @@ void SerialTapProSession.createUi() {
 	m_bufferPropertySet.m_defaultReadBlockSize = Defaults.ReadBlockSize;
 	m_bufferPropertySet.m_defaultReadBufferSize = Defaults.ReadBufferSize;
 	m_bufferPropertySet.createPropertiesGrouped(m_pluginHost.m_propertyGrid,,, ids);
+
+	m_registerEdit = new ui.LineEdit;
+	m_registerEdit.m_text = "1";
+	m_registerValueEdit = new ui.LineEdit;
+	m_registerValueEdit.m_text = "0x0000";
+
+	ui.FormLayout registerLayout;
+	ui.GroupBox registerGroupBox("Serial Tap Pro registers", registerLayout);
+	registerLayout.addRow("Register:", m_registerEdit);
+	registerLayout.addRow("Value:", m_registerValueEdit);
+
+	ui.ToolBar registerToolBar;
+	registerToolBar.addStretch();
+	registerToolBar.addAction(m_actionTable[ActionId.ReadRegister]);
+	registerToolBar.addAction(m_actionTable[ActionId.WriteRegister]);
+	registerLayout.addRow(registerToolBar);
+	m_pluginHost.createForm(registerGroupBox);
 
 	// information grid
 
@@ -428,8 +479,7 @@ bool errorcode SerialTapProSession.startCapture() {
 	setBits(dataBits, parity, stopBits);
 
 	SerialTapProMode mode = (SerialTapProMode)(readRegister(SerialTapProRegister.Status) & SerialTapProMode.Mask);
-
-	m_serialMode = mode;
+	m_txBufferSize = readRegister(SerialTapProRegister.TxBufferSize);
 	m_baudRate = baudRate;
 	m_dataBits = dataBits;
 	m_parity = parity;
@@ -441,27 +491,33 @@ bool errorcode SerialTapProSession.startCapture() {
 	waitInEndpointEvents();
 	setControl(calcControl());
 
-	m_logWriter.write(SerialTapProLogRecordCode.CaptureStarted, &mode, sizeof(mode));
-
 	SerialTapProLines lines = (SerialTapProLines)readRegister(SerialTapProRegister.Lines);
 	m_decoder.reset(mode, lines); // decoder operates on original lines
 
 	if (m_decoder.m_isFlipped)
 		lines = flipSerialTapProLines(lines);
 
+	SerialTapProCaptureStartedParams params;
+	params.m_mode = mode;
+	params.m_rs485Mode = m_rs485ModeCombo.m_currentData;
+	params.m_baudRate = m_serialUi.m_baudRate;
+	params.m_bits.m_dataBits = m_serialUi.m_dataBits;
+	params.m_bits.m_parity = m_serialUi.m_parity;
+	params.m_bits.m_stopBits = m_serialUi.m_stopBits;
+	params.m_lines = lines;
+	params.m_flip = m_decoder.m_isFlipped;
+	params.m_inject = m_injectGroupBox.m_isChecked;
+	params.m_rs485InjectChannel = m_rs485ChannelCombo.m_currentIndex;
+
+	m_logWriter.write(SerialTapProLogRecordCode.CaptureStarted, &params, sizeof(params));
+
 	m_serialTapProInfoSet.setMode(mode);
 	m_serialTapProInfoSet.setOverflows(0);
 	m_serialTapProInfoSet.updateLines(lines);
 
-	SerialTapProStatusLineChangedParams params;
-	params.m_lines = lines;
-	params.m_mask = SerialTapProLines.LineMask;
-	m_logWriter.write(SerialTapProLogRecordCode.StatusLineChanged, &params, sizeof(params));
-
 	m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
-	m_statusTimer.startPeriodicTimer(onStatusTimer, 500);
 	m_state = State.Capturing;
-	m_isTransmitEnabled = true;
+	m_isTransmitUsbBufferReady = true;
 	return true;
 }
 
@@ -490,16 +546,19 @@ bool errorcode SerialTapProSession.flushInEndpoint() {
 }
 
 SerialTapProControlFlags SerialTapProSession.calcControl(SerialTapProControlFlags control) {
-	if (m_injectChannelCombo.m_currentIndex)
-		control |= SerialTapProControlFlags.InjectChannel;
+	if (m_rs485ModeCombo.m_currentData != SerialTapProRs485Mode.FullDuplex)
+		control |= SerialTapProControlFlags.Rs485InjectHalfDuplex;
 
-	if (m_forwardCheckBox.m_isChecked)
+	if (m_rs485ChannelCombo.m_currentIndex)
+		control |= SerialTapProControlFlags.Rs485InjectChannel;
+
+	if (m_rs485ModeCombo.m_currentData == SerialTapProRs485Mode.HalfDuplexForward)
 		control |= SerialTapProControlFlags.Forward;
 
-	if (m_serialUi.m_dtr)
+	if (m_actionTable[ActionId.Dtr].m_isChecked)
 		control |= SerialTapProControlFlags.Dtr;
 
-	if (m_serialUi.m_rts)
+	if (m_actionTable[ActionId.Rts].m_isChecked)
 		control |= SerialTapProControlFlags.Rts;
 
 	return control;
@@ -530,15 +589,24 @@ uint_t gcd(
 bool errorcode SerialTapProSession.setBaudRate(uint_t baudRate) {
 	uint_t baudRate16 = baudRate * 16;
 	uint_t freqBaudGcd = gcd(FpgaFreq, baudRate16);
-	uint16_t baudFreq = baudRate16 / freqBaudGcd;
-	uint16_t baudLimit = FpgaFreq / freqBaudGcd - baudFreq;
-	writeRegister(SerialTapProRegister.BaudFreq, baudFreq);
-	writeRegister(SerialTapProRegister.BaudLimit, baudLimit);
+	uint_t baudFreq = baudRate16 / freqBaudGcd;
+	uint_t baudLimit = FpgaFreq / freqBaudGcd - baudFreq;
 
-	baudFreq = readRegister(SerialTapProRegister.BaudFreq);
-	baudLimit = readRegister(SerialTapProRegister.BaudLimit);
-	m_logWriter.write($"DEBUG: baud: %d freq: 0x%04x limit: 0x%04x"(baudRate, baudFreq, baudLimit));
-	m_logWriter.write(log.StdRecordCode.Break);
+	writeRegister(SerialTapProRegister.BaudFreq0, baudFreq);
+	writeRegister(SerialTapProRegister.BaudFreq1, baudFreq >> 16);
+	writeRegister(SerialTapProRegister.BaudLimit0, baudLimit);
+	writeRegister(SerialTapProRegister.BaudLimit1, baudLimit >> 16);
+
+	m_logWriter.write(
+		log.StdRecordCode.PlainTextSep,
+		$"DEBUG: baud: %d freq: 0x%04x%04x limit: 0x%04x%04x"(
+			baudRate,
+			readRegister(SerialTapProRegister.BaudFreq1),
+			readRegister(SerialTapProRegister.BaudFreq0),
+			readRegister(SerialTapProRegister.BaudLimit1),
+			readRegister(SerialTapProRegister.BaudLimit0)
+		)
+	);
 	return true;
 }
 
@@ -593,8 +661,6 @@ bool errorcode SerialTapProSession.writeRegister(
 }
 
 void SerialTapProSession.stopCapture(bool isGraceful) {
-	m_statusTimer.stop();
-
 	if (m_device && isGraceful)
 	 	writeRegister(SerialTapProRegister.Control, 0);
 
@@ -628,7 +694,6 @@ void SerialTapProSession.stopCapture(bool isGraceful) {
 	}
 
 	m_uploader.cancel();
-	m_isTransmitEnabled = false;
 	m_outEpSyncId++;
 	m_inEpSyncId++;
 }
@@ -636,7 +701,7 @@ void SerialTapProSession.stopCapture(bool isGraceful) {
 void SerialTapProSession.waitOutEndpointEvents() {
 	io.UsbEndpointEvents eventMask = io.UsbEndpointEvents.IoError;
 
-	if (!m_isTransmitEnabled)
+	if (!m_isTransmitUsbBufferReady)
 		eventMask |= io.UsbEndpointEvents.WriteBufferReady;
 
 	m_outEndpoint.wait(eventMask, onOutEndpointEvent~(++m_outEpSyncId) @ m_pluginHost.m_mainThreadScheduler);
@@ -665,7 +730,7 @@ void SerialTapProSession.onOutEndpointEvent(
 	}
 
 	if (triggeredEvents & io.UsbEndpointEvents.WriteBufferReady)
-		m_isTransmitEnabled = true;
+		m_isTransmitUsbBufferReady = true;
 
 	waitOutEndpointEvents();
 }
@@ -686,7 +751,6 @@ void SerialTapProSession.onInEndpointEvent(
 	if (triggeredEvents & io.UsbEndpointEvents.IncomingData) {
 		size_t size = m_inEndpoint.read(m_readBuffer.m_p, m_readBuffer.m_size);
 		m_decoder.decode(m_readBuffer.m_p, size);
-		// m_decoder_legacy.decode(m_readBuffer.m_p, size);
 	}
 
 	waitInEndpointEvents();
@@ -694,19 +758,20 @@ void SerialTapProSession.onInEndpointEvent(
 
 void SerialTapProSession.load(doc.Storage* storage) {
 	m_serialUi.load(storage);
-	m_injectChannelCombo.m_currentIndex = storage.readBool("injectChannel");
-	m_forwardCheckBox.m_isChecked = storage.readBool("forward");
-
-	m_deviceCombo.m_currentIndex  = storage.readInt("deviceIdx");
+	m_deviceCombo.m_currentIndex = storage.readInt("deviceIdx");
+	m_injectGroupBox.m_isChecked = storage.readBool("inject");
+	m_rs485ModeCombo.m_currentIndex = storage.readInt("rs485Mode");
+	m_rs485ChannelCombo.m_currentIndex = storage.readInt("rs485Channel");
 	m_bufferPropertySet.load(storage);
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
 }
 
 void SerialTapProSession.save(doc.Storage* storage) {
 	m_serialUi.save(storage);
-	storage.writeInt("injectChannel", m_injectChannelCombo.m_currentIndex);
-	storage.writeBool("forward", m_forwardCheckBox.m_isChecked);
 	storage.writeInt("deviceIdx", m_deviceCombo.m_currentIndex);
+	storage.writeBool("inject", m_injectGroupBox.m_isChecked);
+	storage.writeInt("rs485Mode", m_rs485ModeCombo.m_currentIndex);
+	storage.writeInt("rs485Channel", m_rs485ChannelCombo.m_currentIndex);
 	m_bufferPropertySet.save(storage);
 }
 
@@ -776,14 +841,29 @@ size_t errorcode SerialTapProSession.transmit(
 	void const* p,
 	size_t size
 ) {
-	if (m_state != State.Capturing) {
-		std.setError("not connected");
+	if (!m_isTransmitEnabled) {
+		if (m_state != State.Capturing)
+			std.setError("Serial Tap Pro is not capturing");
+		else if (!m_injectGroupBox.m_isChecked)
+			std.setError("Serial Tap Pro injection is disabled");
+
 		return -1;
 	}
 
-	size_t result = m_outEndpoint.write(p, size);
-	if (result < size && m_isTransmitEnabled) {
-		m_isTransmitEnabled = false;
+	size_t queueSize = readRegister(SerialTapProRegister.TxQueueSize);
+	size_t freeSize = m_txBufferSize - queueSize;
+	size_t result;
+
+	if (size >= freeSize) {
+		if (!freeSize)
+			return 0;
+
+		size = freeSize;
+	}
+
+	result = m_outEndpoint.write(p, size);
+	if (result < size && m_isTransmitUsbBufferReady) {
+		m_isTransmitUsbBufferReady = false;
 		waitOutEndpointEvents();
 	}
 
@@ -936,42 +1016,44 @@ catch:
 	m_logWriter.writeLastError(log.StdRecordCode.Error);
 }
 
-void SerialTapProSession.onInjectChannelChanged() {
+void SerialTapProSession.onRs485ModeChanged() {
 	if (m_state != State.Capturing)
 		return;
 
 	setControl(calcControl());
 
-	uint8_t channel = m_injectChannelCombo.m_currentIndex;
-	m_logWriter.write(SerialTapProLogRecordCode.InjectChannelChanged, &channel, sizeof(channel));
+	SerialTapProRs485Mode mode = m_rs485ModeCombo.m_currentData;
+	m_logWriter.write(SerialTapProLogRecordCode.Rs485InjectModeChanged, &mode, sizeof(mode));
 
 catch:
 	m_logWriter.writeLastError(log.StdRecordCode.Error);
 }
 
-void SerialTapProSession.onForwardChanged() {
+void SerialTapProSession.onRs485ChannelChanged() {
 	if (m_state != State.Capturing)
 		return;
 
 	setControl(calcControl());
 
-	bool forward = m_forwardCheckBox.m_isChecked;
-	m_logWriter.write(SerialTapProLogRecordCode.ForwardChanged, &forward, sizeof(forward));
+	uint8_t channel = m_rs485ChannelCombo.m_currentIndex;
+	m_logWriter.write(SerialTapProLogRecordCode.Rs485InjectChannelChanged, &channel, sizeof(channel));
 
 catch:
 	m_logWriter.writeLastError(log.StdRecordCode.Error);
 }
 
-void SerialTapProSession.onStatusTimer() {
-	uint_t status = readRegister(SerialTapProRegister.Status);
-	SerialTapProMode mode = (SerialTapProMode)(status & SerialTapProMode.Mask);
-	if (m_serialMode != mode) {
-		m_serialMode = mode;
-		// m_serialTapProInfoSet.setMode(mode);
-		// m_logWriter.write(SerialTapProLogRecordCode.ModeChanged, &mode, sizeof(mode));
-	}
+void SerialTapProSession.onReadRegister() {
+	uint16_t register = strtoul(m_registerEdit.m_text);
+	uint16_t value = readRegister((SerialTapProRegister)register);
+	m_registerValueEdit.m_text = $"0x%04x"(value);
+	m_logWriter.write(log.StdRecordCode.PlainTextSep, $"Read register: [%d] = 0x%04x (%d)"(register, value, value));
+}
 
-	// maybe more
+void SerialTapProSession.onWriteRegister() {
+	uint16_t register = strtoul(m_registerEdit.m_text);
+	uint16_t value = strtoul(m_registerValueEdit.m_text);
+	writeRegister((SerialTapProRegister)register, value);
+	m_logWriter.write(log.StdRecordCode.PlainTextSep, $"Write register: [%d] = 0x%04x (%d)"(register, value, value));
 }
 
 void SerialTapProSession.onTest() {
@@ -991,15 +1073,27 @@ reactor SerialTapProSession.m_uiReactor {
 	m_actionTable[ActionId.Capture].m_text = m_state ? "Stop capture" : "Capture";
 	m_actionTable[ActionId.Capture].m_icon = m_iconTable[m_state ? IconId.Stop : IconId.Capture];
 	m_statusPaneTable[StatusPaneId.State].m_text = m_statusTextTable[m_state];
-	m_serialUi.m_dtrAction.m_isEnabled =
-	m_serialUi.m_dtrProp.m_isEnabled =
-	m_serialUi.m_rtsAction.m_isEnabled =
-	m_serialUi.m_rtsProp.m_isEnabled = m_state == State.Capturing;
-	m_injectChannelCombo.m_isEnabled =
-	m_forwardCheckBox.m_isEnabled = m_state == State.Capturing && m_serialMode == SerialTapProMode.Rs485;
+
+	m_actionTable[ActionId.Dtr].m_isEnabled =
+	m_actionTable[ActionId.Dtr].m_isEnabled =
+	m_actionTable[ActionId.Rts].m_isEnabled =
+	m_actionTable[ActionId.Rts].m_isEnabled =
+		m_injectGroupBox.m_isChecked &&
+		m_state == State.Capturing &&
+		m_decoder.m_serialMode != SerialTapProMode.Rs485;
+
+	m_rs485ModeCombo.m_isEnabled =
+	m_rs485ChannelCombo.m_isEnabled =
+		m_injectGroupBox.m_isChecked &&
+		m_state == State.Capturing &&
+		m_decoder.m_serialMode == SerialTapProMode.Rs485;
 
 	m_serialTapProInfoSet.m_isEnabled = m_state == State.Capturing;
-	m_serialTapProInfoSet.setMode(m_serialMode);
+
+	m_isTransmitEnabled =
+		m_state == State.Capturing &&
+		m_isTransmitUsbBufferReady &&
+		m_injectGroupBox.m_isChecked;
 }
 
 //..............................................................................

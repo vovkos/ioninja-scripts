@@ -98,10 +98,70 @@ bool representSerialTapProLog(
 		break;
 
 	case SerialTapProLogRecordCode.CaptureStarted:
-		SerialTapProMode mode = *(SerialTapProMode const*)p;
+		SerialTapProCaptureStartedParams const* params = (SerialTapProCaptureStartedParams const*)p;
+
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Connect;
-		representation.addHyperText($"Capture started in serial mode: \e[34m%1"(getSerialTapProModeString(mode)));
+
+		std.StringBuilder string;
+
+		if (!(foldFlags & 1)) {
+			string := $"[\e^+1\e[34m+\e[m] Capture started: \e[34m%1 %2 bps\e[m"(
+				getSerialTapProModeString(params.m_mode),
+				params.m_baudRate
+			);
+
+			if (params.m_mode != SerialTapProMode.Rs485)
+				string +=
+					$" DTR: %1 RTS: %2 DSR: %3 CTS: %4"(
+						getOnOffString(params.m_lines & SerialTapProLines.Dtr),
+						getOnOffString(params.m_lines & SerialTapProLines.Rts),
+						getOnOffString(params.m_lines & SerialTapProLines.Dsr),
+						getOnOffString(params.m_lines & SerialTapProLines.Cts)
+					);
+		} else {
+			string_t stopBitsString = getTableString(params.m_bits.m_stopBits, stopBitsStringTable);
+			string_t parityString = getTableString(params.m_bits.m_parity, parityStringTable);
+
+			string :=
+				$"[\e^-1\e[34m-\e[m] Capture started:\n"
+				$"    \e[90mInterface:\t\e[34m%1\n"
+				$"    \e[90mBaud rate:\t\e[34m%2 bps\n"
+				$"    \e[90mData bits:\t\e[34m%3 bits\n"
+				$"    \e[90mParity:\t\e[34m%4\n"
+				$"    \e[90mStop bits:\t%5"(
+					getSerialTapProModeString(params.m_mode),
+					params.m_baudRate,
+					params.m_bits.m_dataBits,
+					parityString,
+					stopBitsString
+				);
+
+			if (params.m_mode != SerialTapProMode.Rs485) {
+				string +=
+					"\n"
+					$"    \e[90mDTR:\t%1\n"
+					$"    \e[90mRTS:\t%2\n"
+					$"    \e[90mDSR:\t%3\n"
+					$"    \e[90mCTS:\t%4"(
+						getOnOffString(params.m_lines & SerialTapProLines.Dtr),
+						getOnOffString(params.m_lines & SerialTapProLines.Rts),
+						getOnOffString(params.m_lines & SerialTapProLines.Dsr),
+						getOnOffString(params.m_lines & SerialTapProLines.Cts)
+					);
+
+				if (params.m_mode == SerialTapProMode.Rs232)
+					string +=
+						"\n"
+						$"    \e[90mDCD:\t%1\n"
+						$"    \e[90mRI:\t%2"(
+							getOnOffString(params.m_lines & SerialTapProLines.Dcd),
+							getOnOffString(params.m_lines & SerialTapProLines.Ring)
+						);
+			}
+		}
+
+		representation.addHyperText(string.detachString());
 		break;
 
 	case SerialTapProLogRecordCode.CaptureStopped:
@@ -212,23 +272,25 @@ bool representSerialTapProLog(
 
 	case SerialTapProLogRecordCode.ModeChanged:
 		SerialTapProMode mode = *(SerialTapProMode const*)p;
+		string_t modeString = getSerialTapProModeString(mode);
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		representation.addHyperText($"Serial mode changed: \e[34m%1"(getSerialTapProModeString(mode)));
+		representation.addHyperText($"Serial interface changed: \e[34m%1"(modeString));
 		break;
 
-	case SerialTapProLogRecordCode.InjectChannelChanged:
+	case SerialTapProLogRecordCode.Rs485InjectModeChanged:
+		SerialTapProRs485Mode mode = *(SerialTapProRs485Mode const*)p;
+		string_t modeString = getSerialTapProRs485ModeString(mode);
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		representation.addHyperText($"Set RS485/RS422 inject mode: \e[34m%1"(modeString));
+		break;
+
+	case SerialTapProLogRecordCode.Rs485InjectChannelChanged:
 		uint8_t channel = *(uint8_t const*)p;
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		representation.addHyperText($"RS485 inject channel changed: \e[34mD%1"(channel));
-		break;
-
-	case SerialTapProLogRecordCode.ForwardChanged:
-		bool forward = *(bool const*)p;
-		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		representation.addHyperText($"RS485 D0 \u2194 D1 forwarding changed: %1"(getOnOffString(forward)));
+		representation.addHyperText($"Set RS485/RS422 inject channel: \e[34mD%1"(channel + 1));
 		break;
 
 	case SerialTapProLogRecordCode.OverflowsChanged:
@@ -237,14 +299,14 @@ bool representSerialTapProLog(
 		if (overflows) {
 			representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 			representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
-			representation.addHyperText($"Detector ready: %1"(getSerialTapProOverflowsString(overflows)));
+			representation.addHyperText($"Detector ready: \e[34m%1"(getSerialTapProOverflowsString(overflows)));
 		}
 
 		overflows = params.m_mask & params.m_overflows;
 		if (overflows) {
 			representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
 			representation.m_lineAttr.m_backColor = log.StdLogColor.Warning;
-			representation.addHyperText($"Detector overflow: %1"(getSerialTapProOverflowsString(overflows)));
+			representation.addHyperText($"Detector overflow: \e[34m%1"(getSerialTapProOverflowsString(overflows)));
 		}
 
 		break;
