@@ -343,12 +343,14 @@ void SerialTapProSession.createUi() {
 	ui.BufferPropertySet.PropertyId ids =
 		ui.BufferPropertySet.PropertyId.ReadParallelism |
 		ui.BufferPropertySet.PropertyId.ReadBufferSize |
+		ui.BufferPropertySet.PropertyId.WriteBufferSize |
 		ui.BufferPropertySet.PropertyId.NotifyReadBufferFull;
 
 	m_bufferPropertySet.m_defaultReadParallelism = Defaults.ReadParallelism;
 	m_bufferPropertySet.m_defaultReadBlockSize = Defaults.ReadBlockSize;
 	m_bufferPropertySet.m_defaultReadBufferSize = Defaults.ReadBufferSize;
 	m_bufferPropertySet.createPropertiesGrouped(m_pluginHost.m_propertyGrid,,, ids);
+	m_bufferPropertySet.m_readBufferSizeProp.m_minValue = SerialTapProUsb.BulkSize;
 
 	m_registerEdit = new ui.LineEdit;
 	m_registerEdit.m_text = "1";
@@ -460,6 +462,7 @@ bool errorcode SerialTapProSession.startCapture() {
 	flushInEndpoint();
 
 	m_outEndpoint = m_iface.openEndpoint(SerialTapProUsb.OutEndpoint, true);
+	m_outEndpoint.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
 	m_inEndpoint = m_iface.openEndpoint(SerialTapProUsb.InEndpoint, true);
 	m_inEndpoint.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
 	m_inEndpoint.m_readBlockSize = SerialTapProUsb.BulkSize;
