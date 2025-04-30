@@ -21,11 +21,24 @@ public:
 	void create(
 		VBoxLayout* layout,
 		ToolBar* toolBar = null,
+		PropertyGrid* propertyGrid,
+		string_t name,
+		string_t toolTip = null,
+		bool value = false
+	) {
+		createImpl(layout, toolBar, propertyGrid, null, name, toolTip, value);
+	}
+
+	void create(
+		VBoxLayout* layout,
+		ToolBar* toolBar = null,
 		GroupProperty* groupProp,
 		string_t name,
 		string_t toolTip = null,
 		bool value = false
-	);
+	) {
+		createImpl(layout, toolBar, null, groupProp, name, toolTip, value);
+	}
 
 	void update() {
 		m_prop.m_value = m_value;
@@ -41,13 +54,24 @@ protected:
 	void onCheckBoxClicked() {
 		m_value = m_checkBox.m_isChecked;
 	}
+
+	void createImpl(
+		VBoxLayout* layout,
+		ToolBar* toolBar,
+		PropertyGrid* propertyGrid,
+		GroupProperty* groupProp,
+		string_t name,
+		string_t toolTip,
+		bool value
+	);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-void ToggleUi.create(
+void ToggleUi.createImpl(
 	VBoxLayout* layout,
 	ToolBar* toolBar,
+	PropertyGrid* propertyGrid,
 	GroupProperty* groupProp,
 	string_t name,
 	string_t toolTip,
@@ -70,7 +94,11 @@ void ToggleUi.create(
 	m_prop = new BoolProperty(name);
 	m_prop.m_toolTip = toolTip;
 	m_prop.m_value = value;
-	groupProp.addChildProperty(m_prop);
+
+	if (groupProp)
+		groupProp.addChildProperty(m_prop);
+	else
+		propertyGrid.addProperty(m_prop);
 
 	m_value = value;
 }
