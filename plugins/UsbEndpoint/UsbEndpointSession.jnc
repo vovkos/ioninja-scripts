@@ -771,10 +771,12 @@ void UsbEndpointSession.load(doc.Storage* storage) {
 void UsbEndpointSession.save(doc.Storage* storage) {
 	m_bufferPropertySet.save(storage);
 
-	io.UsbDevice* device = m_deviceCombo.m_currentData;
-	if (device) {
-		storage.writeInt("deviceVid", device.m_deviceDescriptor.m_vendorId);
-		storage.writeInt("devicePid", device.m_deviceDescriptor.m_productId);
+	io.UsbDeviceEntry const* deviceEntry = m_deviceCombo.m_currentData;
+	if (deviceEntry) {
+		io.UsbDevice const* device = deviceEntry.m_device;
+		io.UsbDeviceDescriptor const* deviceDesc = device.m_deviceDescriptor;
+		storage.writeInt("deviceVid", deviceDesc.m_vendorId);
+		storage.writeInt("devicePid", deviceDesc.m_productId);
 		storage.writeInt("deviceBus", device.m_bus);
 		storage.writeInt("deviceAddress", device.m_address);
 	}
@@ -892,13 +894,13 @@ bool errorcode UsbEndpointSession.dispatch(
 ) {
 	switch (code) {
 	case UsbEndpointDispatchCode.GetDeviceVid:
-		io.UsbDevice const* device = m_deviceCombo.m_currentData;
-		*out = device ? device.m_deviceDescriptor.m_vendorId : -1;
+		io.UsbDeviceEntry const* deviceEntry = m_deviceCombo.m_currentData;
+		*out = deviceEntry ? deviceEntry.m_device.m_deviceDescriptor.m_vendorId : -1;
 		break;
 
 	case UsbEndpointDispatchCode.GetDevicePid:
-		io.UsbDevice const* device = m_deviceCombo.m_currentData;
-		*out = device ? device.m_deviceDescriptor.m_productId : -1;
+		io.UsbDeviceEntry const* deviceEntry = m_deviceCombo.m_currentData;
+		*out = deviceEntry ? deviceEntry.m_device.m_deviceDescriptor.m_productId : -1;
 		break;
 
 	case UsbEndpointDispatchCode.SetDeviceVidPid:
