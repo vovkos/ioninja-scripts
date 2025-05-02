@@ -61,6 +61,8 @@ enum StdRecordCode: uint64_t {
 	Rx9Sep            = 0x01d47ff1fc334a1e,
 	TxRx9             = 0x01d47ff1fc334a1f | PartCodeFlags.Mergeable,
 	TxRx9Sep          = 0x01d47ff1fc334a1f,
+	Bin9              = 0x01d47ff1fc334a20 | PartCodeFlags.Mergeable,
+	Bin9Sep           = 0x01d47ff1fc334a21,
 }
 
 //..............................................................................
@@ -76,6 +78,19 @@ struct RetroColorizeParams {
 	uint_t m_length;
 	ui.TextAttr m_attr;
 	RetroColorizeFlags m_flags;
+}
+
+//..............................................................................
+
+bitflag enum StdRecordCodeAwareness {
+	BinSepAware, // TxSep, RxSep, TxRxSep, BinSep
+	Bin9Aware,   // Tx9, Rx9, TxRx9, Bin9
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+class AbstractProcessor {
+	StdRecordCodeAwareness m_stdRecordCodeAwareness = 0;
 }
 
 //..............................................................................

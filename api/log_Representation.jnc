@@ -31,6 +31,14 @@ enum PartKind {
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
+// 9-bit data (Bin9) is layoud as such: data..... bin9.....
+// data is a normal 8-bit data byte array
+// bin9 is a bitmap of bytes with 9-bit set (1/8 of data)
+
+size_t getDataSizeWoBin9FromPartSize(size_t partSize) {
+	return partSize * 8 / 9;
+}
+
 size_t getBin9SizeFromDataSize(size_t dataSize) {
 	return (dataSize + 7) / 8;
 }

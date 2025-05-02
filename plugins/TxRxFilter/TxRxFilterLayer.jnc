@@ -108,15 +108,12 @@ bool TxRxFilterLayer.filter(
 ) {
 	switch (recordCode) {
 	case log.StdRecordCode.Tx:
-	case log.StdRecordCode.Tx9:
 		return m_isTxVisibleToggle.m_value;
 
 	case log.StdRecordCode.Rx:
-	case log.StdRecordCode.Rx9:
 		return m_isRxVisibleToggle.m_value;
 
 	case log.StdRecordCode.TxRx:
-	case log.StdRecordCode.TxRx9:
 		return m_isTxVisibleToggle.m_value || m_isRxVisibleToggle.m_value;
 
 	default:
