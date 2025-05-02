@@ -455,12 +455,29 @@ void UsbMonSession.writeIsoTransferPayload(
 }
 
 void UsbMonSession.load(doc.Storage* storage) {
+	uint_t vid = storage.readInt("deviceVid");
+	uint_t pid = storage.readInt("devicePid");
+	uint_t captureDeviceId = storage.readInt("captureDeviceId");
+	uint_t address = storage.readInt("deviceAddress");
+
+	size_t index = ui.findUsbMonDeviceComboIndex(m_deviceCombo, vid, pid, captureDeviceId, address);
+	if (index != -1)
+		m_deviceCombo.m_currentIndex = index;
+
 	m_kernelBufferSizeProp.m_value = storage.readInt("kernelBufferSize", Defaults.KernelBufferSize);
 	m_bufferPropertySet.load(storage);
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
 }
 
 void UsbMonSession.save(doc.Storage* storage) {
+	io.UsbMonDeviceDesc const* deviceDesc = m_deviceCombo.m_currentData;
+	if (deviceDesc) {
+		storage.writeInt("deviceVid", deviceDesc.m_vendorId);
+		storage.writeInt("devicePid", deviceDesc.m_productId);
+		storage.writeInt("captureDeviceId", deviceDesc.m_captureDeviceId);
+		storage.writeInt("deviceAddress", deviceDesc.m_address);
+	}
+
 	storage.writeInt("kernelBufferSize", m_kernelBufferSizeProp.m_value);
 	m_bufferPropertySet.save(storage);
 }
