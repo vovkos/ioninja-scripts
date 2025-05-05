@@ -480,6 +480,8 @@ void SslServerSession.onListenerSocketEvent(
 		socket.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 		socket.m_writeBufferSize = m_bufferPropertySet.m_writeBufferSizeProp.m_value;
 		socket.m_options = ui.getSocketOptions(m_socketPropertySet, m_bufferPropertySet);
+
+		socket.m_securityLevel = m_sslPropertySet.m_securityLevelProp.m_value;
 		socket.enableCiphers(m_sslPropertySet.m_cipherSetProp.m_value);
 
 		if (m_sslPropertySet.m_useEphemeralDhProp.m_value)
