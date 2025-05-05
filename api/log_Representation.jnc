@@ -85,9 +85,9 @@ enum StdLogColor {
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 bitflag enum LineAttrFlags {
+	Override,
 	TileIcon,
 	_Reserved,
-	Override,
 	Preview,
 	Local,
 	Delimiter,
