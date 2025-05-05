@@ -317,6 +317,7 @@ bool errorcode SslConnectionSession.connect(io.SocketAddress const* remoteAddres
 	m_sessionConnectionState = SessionConnectionState.Connecting;
 	m_remoteAddress = *remoteAddress;
 
+	m_socket.m_securityLevel = m_sslPropertySet.m_securityLevelProp.m_value;
 	m_socket.enableCiphers(m_sslPropertySet.m_cipherSetProp.m_value);
 
 	if (m_sslPropertySet.m_useCertificateProp.m_value) {
