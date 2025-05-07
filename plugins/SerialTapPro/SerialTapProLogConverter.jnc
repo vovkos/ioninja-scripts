@@ -462,9 +462,9 @@ void SerialTapProLogConverter.convertSerialTapProRawUsbBulk(
 				if (isFlipped)
 					status = flipSerialTapProOverflows(status);
 
-				if ((status ^ status0) & SerialTapProMode.Mask) {
-					data[0] = status & SerialTapProMode.Mask;
-					writer.write(timestamp, SerialTapProLogRecordCode.ModeChanged, data, sizeof(SerialTapProMode));
+				if ((status ^ status0) & SerialTapProIface.Mask) {
+					data[0] = status & SerialTapProIface.Mask;
+					writer.write(timestamp, SerialTapProLogRecordCode.IfaceChanged, data, sizeof(SerialTapProIface));
 				}
 
 				SerialTapProOverflows mask = (status ^ status0) & SerialTapProOverflows.Mask;

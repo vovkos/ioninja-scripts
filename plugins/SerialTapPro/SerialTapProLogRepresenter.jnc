@@ -107,11 +107,11 @@ bool representSerialTapProLog(
 
 		if (!(foldFlags & 1)) {
 			string := $"[\e^+1\e[34m+\e[m] Capture started: \e[34m%1 %2 bps\e[m"(
-				getSerialTapProModeString(params.m_mode),
+				getSerialTapProIfaceString(params.m_iface),
 				params.m_baudRate
 			);
 
-			if (params.m_mode != SerialTapProMode.Rs485)
+			if (params.m_iface != SerialTapProIface.Rs485)
 				string +=
 					$" DTR: %1 RTS: %2 DSR: %3 CTS: %4"(
 						getOnOffString(params.m_lines & SerialTapProLines.Dtr),
@@ -130,14 +130,14 @@ bool representSerialTapProLog(
 				$"    \e[90mData bits:\t\e[34m%3 bits\n"
 				$"    \e[90mParity:\t\e[34m%4\n"
 				$"    \e[90mStop bits:\t%5"(
-					getSerialTapProModeString(params.m_mode),
+					getSerialTapProIfaceString(params.m_iface),
 					params.m_baudRate,
 					params.m_bits.m_dataBits,
 					parityString,
 					stopBitsString
 				);
 
-			if (params.m_mode != SerialTapProMode.Rs485) {
+			if (params.m_iface != SerialTapProIface.Rs485) {
 				string +=
 					"\n"
 					$"    \e[90mDTR:\t%1\n"
@@ -150,7 +150,7 @@ bool representSerialTapProLog(
 						getOnOffString(params.m_lines & SerialTapProLines.Cts)
 					);
 
-				if (params.m_mode == SerialTapProMode.Rs232)
+				if (params.m_iface == SerialTapProIface.Rs232)
 					string +=
 						"\n"
 						$"    \e[90mDCD:\t%1\n"
@@ -158,6 +158,23 @@ bool representSerialTapProLog(
 							getOnOffString(params.m_lines & SerialTapProLines.Dcd),
 							getOnOffString(params.m_lines & SerialTapProLines.Ring)
 						);
+			}
+
+			string +=
+				"\n"
+				$"    \e[90mInjection:\t\e[34m%1"(getOnOffString(params.m_inject));
+
+			representation.addHyperText(string.detachString());
+			if (params.m_inject && params.m_iface == SerialTapProIface.Rs485) {
+				representation.addBreak();
+				representation.addHyperText(
+					$"    \e[90mRS485/422 injection:\n"
+					$"        \e[90mMode:\t\e[34m%1\n"
+					$"        \e[90mInject to:\t\e[34mD%2"(
+						getSerialTapProRs485ModeString(params.m_rs485Mode),
+						params.m_rs485InjectChannel + 1
+					)
+				);
 			}
 		}
 
@@ -270,12 +287,27 @@ bool representSerialTapProLog(
 		representation.addBin(log.StdRecordCode.Rx, p, size);
 		break;
 
-	case SerialTapProLogRecordCode.ModeChanged:
-		SerialTapProMode mode = *(SerialTapProMode const*)p;
-		string_t modeString = getSerialTapProModeString(mode);
+	case SerialTapProLogRecordCode.IfaceChanged:
+		SerialTapProIface iface = *(SerialTapProIface const*)p;
+		string_t modeString = getSerialTapProIfaceString(iface);
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
 		representation.addHyperText($"Serial interface changed: \e[34m%1"(modeString));
+		break;
+
+	case SerialTapProLogRecordCode.InjectChanged:
+		SerialTapProInjectChangedParams const* params = (SerialTapProInjectChangedParams const*)p;
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
+
+		std.StringBuilder string = $"Set injection: \e[34m%1"(getOnOffString(params.m_inject));
+		if (params.m_inject && params.m_rs485)
+			string += $"\e[m (RS485 \e[34m%1\e[m, inject to: \e[34mD%2\e[m)"(
+				getSerialTapProRs485ModeString(params.m_rs485Mode),
+				params.m_rs485InjectChannel + 1
+			);
+
+		representation.addHyperText(string.detachString());
 		break;
 
 	case SerialTapProLogRecordCode.Rs485InjectModeChanged:

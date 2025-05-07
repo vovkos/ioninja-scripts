@@ -10,7 +10,7 @@ import "ui_InformationGrid.jnc"
 class SerialTapProInfoSet {
 protected:
 	enum InfoId {
-		Mode,
+		Iface,
 		Cts,
 		Dsr,
 		Ring,
@@ -33,8 +33,8 @@ public:
 		ui.InformationGroup* infoGroup = null
 	);
 
-	void setMode(SerialTapProMode mode) {
-		m_infoTable[InfoId.Mode].m_value = getSerialTapProModeString(mode);
+	void setIface(SerialTapProIface iface) {
+		m_infoTable[InfoId.Iface].m_value = getSerialTapProIfaceString(iface);
 	}
 
 	void setOverflows(SerialTapProOverflows overflows);
@@ -60,7 +60,7 @@ void SerialTapProInfoSet.create(
 	ui.InformationGrid* infoGrid,
 	ui.InformationGroup* infoGroup
 ) {
-	m_infoTable[InfoId.Mode] = infoGrid.createValue(infoGroup,,, "Interface");
+	m_infoTable[InfoId.Iface] = infoGrid.createValue(infoGroup,,, "Interface");
 	m_infoTable[InfoId.Dtr] = infoGrid.createValue(infoGroup,,, "DTR");
 	m_infoTable[InfoId.Rts] = infoGrid.createValue(infoGroup,,, "RTS");
 	m_infoTable[InfoId.Dsr] = infoGrid.createValue(infoGroup,,, "DSR");

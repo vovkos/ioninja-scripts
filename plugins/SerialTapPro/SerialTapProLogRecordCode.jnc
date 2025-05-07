@@ -32,25 +32,32 @@ enum SerialTapProLogRecordCode: uint64_t {
 	RxBreakOff                = 0x01db13c48f442513,
 	TxParityBit               = 0x01db13c48f442514,
 	RxParityBit               = 0x01db13c48f442515,
-	ModeChanged               = 0x01db13c48f442516,
-	Rs485InjectModeChanged    = 0x01db13c48f442517,
-	Rs485InjectChannelChanged = 0x01db13c48f442518,
-	OverflowsChanged          = 0x01db13c48f442519,
-	RawUsbBulkData            = 0x01db13c48f44251a,
-	RawUsbBulkDataFlipped     = 0x01db13c48f44251b,
-	BaudRateChanged           = 0x01db13c48f44251c,
-	DataBitsChanged           = 0x01db13c48f44251d,
-	StopBitsChanged           = 0x01db13c48f44251e,
-	ParityChanged             = 0x01db13c48f44251f,
+	IfaceChanged              = 0x01db13c48f442516,
+	InjectChanged             = 0x01db13c48f442517,
+	Rs485InjectModeChanged    = 0x01db13c48f442518,
+	Rs485InjectChannelChanged = 0x01db13c48f442519,
+	OverflowsChanged          = 0x01db13c48f44251a,
+	RawUsbBulkData            = 0x01db13c48f44251b,
+	RawUsbBulkDataFlipped     = 0x01db13c48f44251c,
+	BaudRateChanged           = 0x01db13c48f44251d,
+	DataBitsChanged           = 0x01db13c48f44251e,
+	StopBitsChanged           = 0x01db13c48f44251f,
+	ParityChanged             = 0x01db13c48f442520,
 }
 
 struct SerialTapProCaptureStartedParams {
-	SerialTapProMode m_mode;
+	SerialTapProIface m_iface;
 	SerialTapProRs485Mode m_rs485Mode;
 	SerialTapProBits m_bits;
 	uint_t m_baudRate;
 	SerialTapProLines m_lines;
-	uint8_t m_flip               : 1;
+	uint8_t m_inject             : 1;
+	uint8_t m_rs485InjectChannel : 1;
+}
+
+struct SerialTapProInjectChangedParams {
+	SerialTapProRs485Mode m_rs485Mode;
+	uint8_t m_rs485              : 1;
 	uint8_t m_inject             : 1;
 	uint8_t m_rs485InjectChannel : 1;
 }
@@ -66,7 +73,7 @@ struct SerialTapProOverflowChangedParams {
 }
 
 struct SerialTapProRawUsbBulkParams {
-	uint8_t m_status; // SerialTapProMode | SerialTapProOverflows
+	uint8_t m_status; // SerialTapProIface | SerialTapProOverflows
 	SerialTapProLines m_lines;
 }
 

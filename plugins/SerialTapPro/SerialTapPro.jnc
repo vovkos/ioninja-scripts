@@ -166,7 +166,7 @@ bitflag enum SerialTapProDataFlags: int8_t {
 	ErrorMask    = 0x30,
 }
 
-enum SerialTapProMode: uint8_t {
+enum SerialTapProIface: uint8_t {
 	Undefined = 0,
 	Rs485     = 1,
 	Ttl       = 2,
@@ -174,7 +174,7 @@ enum SerialTapProMode: uint8_t {
 	Mask      = 0x03,
 }
 
-string_t getSerialTapProModeString(SerialTapProMode mode) {
+string_t getSerialTapProIfaceString(SerialTapProIface iface) {
 	static string_t const strings[] = {
 		"Unknown",
 		"RS485/RS422",
@@ -182,7 +182,7 @@ string_t getSerialTapProModeString(SerialTapProMode mode) {
 		"RS232",
 	}
 
-	return strings[mode & SerialTapProMode.Mask];
+	return strings[iface & SerialTapProIface.Mask];
 }
 
 enum SerialTapProRs485Mode: uint8_t {
