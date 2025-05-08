@@ -481,7 +481,7 @@ void SerialTapProLogConverter.convertSerialTapProRawUsbBulk(
 		}
 	}
 
-	if (pd != data) {
+	if (dataRecordCode) {
 		size_t size = pd - data;
 		isParityBitVisible ?
 			writer.write(timestamp, dataRecordCode, data, size, bin9, (size + 7) / 8) :
