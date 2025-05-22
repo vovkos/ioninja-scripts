@@ -5,7 +5,7 @@
 
 import "io_base.jncx"
 import "io_ssh.jncx"
-import "io_HostNameResolver.jnc"
+import "iox_HostNameResolver.jnc"
 import "ui_Dialog.jnc"
 import "ui_SocketUi.jnc"
 import "ui_SshPropertySet.jnc"
@@ -58,7 +58,7 @@ public:
 
 protected:
 	doc.PluginHost* m_pluginHost;
-	io.HostNameResolver m_resolver;
+	iox.HostNameResolver m_resolver;
 	io.SshChannel m_ssh;
 	ui.LoginDlg* m_loginDlg;
 	std.Buffer m_readBuffer;
@@ -154,10 +154,7 @@ public:
 	}
 
 protected:
-	void onResolverEvent(
-		uint_t syncId,
-		io.HostNameResolverEvents triggeredEvents
-	);
+	void onResolveCompleted();
 
 	void onSshEvent(
 		uint_t syncId,
@@ -187,9 +184,11 @@ SshChannel.ConnectParams.construct() {
 }
 
 SshChannel.construct(doc.PluginHost* pluginHost) {
+	m_resolver.construct(pluginHost);
 	m_pluginHost = pluginHost;
 	m_pluginHost.m_terminal.m_onConsoleSizeChanged += onConsoleSizeChanged;
 	m_readBuffer.setSize(ui.BufferPropertySet.Defaults.ReadBufferSize);
+	m_resolver.m_onCompleted += onResolveCompleted;
 }
 
 void SshChannel.close() {
@@ -247,19 +246,8 @@ bool errorcode SshChannel.connect(
 	m_state = State.Resolving;
 	m_connectParams = *params; // save for later
 
-	m_logWriter.write(
-		SocketLogRecordCode.Resolving,
-		addressString.m_p,
-		addressString.m_length
-	);
-
+	m_resolver.m_defaultPort = params.m_defaultPort;
 	m_resolver.resolve(addressString, params.m_localAddress.m_family);
-
-	m_resolver.wait(
-		io.HostNameResolverEvents.Resolved | io.HostNameResolverEvents.Error,
-		onResolverEvent~(++m_syncId) @ m_pluginHost.m_mainThreadScheduler
-	);
-
 	return true;
 }
 
@@ -648,31 +636,11 @@ void SshChannel.onReconnectTimer(uint_t syncId) {
 		startReconnectTimer();
 }
 
-void SshChannel.onResolverEvent(
-	uint_t syncId,
-	io.HostNameResolverEvents triggeredEvents
-) {
-	if (syncId != m_syncId)
-		return;
-
-	if (triggeredEvents & io.HostNameResolverEvents.Error) {
-		handleConnectError(m_resolver.m_error);
-		return;
-	}
-
-	m_logWriter.write(
-		SocketLogRecordCode.ResolveCompleted,
-		m_resolver.m_addressTable,
-		sizeof(io.SocketAddress)
-	);
-
+void SshChannel.onResolveCompleted() {
 	m_state = State.Closed;
-
-	io.SocketAddress address = m_resolver.m_addressTable[0];
-	if (!address.m_port)
-		address.m_port = m_connectParams.m_defaultPort;
-
-	try connect(address, &m_connectParams);
+	
+	if (m_resolver.m_state == iox.HostNameResolver.State.Resolved)
+		try connect(m_resolver.m_address, &m_connectParams);
 }
 
 void SshChannel.onConsoleSizeChanged() {
