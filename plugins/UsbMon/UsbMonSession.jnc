@@ -114,9 +114,7 @@ protected:
 
 	void writeIsoTransferPayload(
 		uint64_t recordCode,
-		io.UsbIsoPacket const* packetArray,
-		size_t packetCount,
-		size_t dataSize
+		io.UsbMonTransferHdr const* hdr
 	);
 }
 
@@ -339,7 +337,7 @@ void UsbMonSession.processData(
 		}
 
 		io.UsbMonTransferHdr const* hdr = (io.UsbMonTransferHdr const*)m_transferBuffer.m_p;
-		size_t transferSize = sizeof(io.UsbMonTransferHdr) + hdr.m_captureSize;
+		size_t transferSize = sizeof(io.UsbMonTransferHdr) + hdr.m_capturedDataSize;
 		if (hdr.m_transferType == io.UsbTransferType.Isochronous) {
 			// for iso transfers we need to buffer the whole transfer --
 			// including the iso packet array and the payload -- before writing to log
@@ -398,18 +396,13 @@ void UsbMonSession.processData(
 
 		if (hdr.m_status != 0)
 			writeTransferError(hdr.m_status);
-		else if (hdr.m_captureSize) {
+		else if (hdr.m_capturedDataSize) {
 			uint64_t recordCode = (hdr.m_endpoint & 0x80) ?
 				log.StdRecordCode.Rx :
 				log.StdRecordCode.Tx;
 
 			if (hdr.m_transferType == io.UsbTransferType.Isochronous)
-				writeIsoTransferPayload(
-					recordCode,
-					(io.UsbIsoPacket const*)(hdr + 1),
-					hdr.m_isoHdr.m_packetCount,
-					hdr.m_captureSize
-				);
+				writeIsoTransferPayload(recordCode, hdr);
 			else
 				m_logWriter.write(
 					recordCode,
@@ -418,6 +411,11 @@ void UsbMonSession.processData(
 					p,
 					leftoverSize
 				);
+		}
+
+		if (hdr.m_capturedDataSize < hdr.m_originalDataSize) {
+			uint32_t truncated = hdr.m_originalDataSize - hdr.m_capturedDataSize;
+			m_logWriter.write(UsbLogRecordCode.TruncatedCapture, &truncated, sizeof(truncated));
 		}
 
 		m_prevTransferEndpoint = hdr.m_endpoint;
@@ -436,18 +434,17 @@ void UsbMonSession.writeTransferError(uint_t status) {
 
 void UsbMonSession.writeIsoTransferPayload(
 	uint64_t recordCode,
-	io.UsbIsoPacket const* packetArray,
-	size_t packetCount,
-	size_t dataSize
+	io.UsbMonTransferHdr const* hdr
 ) {
-	io.UsbIsoPacket const* packet = packetArray;
-	io.UsbIsoPacket const* end = packetArray + packetCount;
-
+	io.UsbIsoPacket const* packet = (io.UsbIsoPacket const*)(hdr + 1);
+	io.UsbIsoPacket const* end = packet + hdr.m_isoHdr.m_packetCount;
 	void const* p = end;
+	uint64_t capturedDataSize64 = hdr.m_capturedDataSize;
+
 	while (packet < end) {
 		if (packet.m_status != 0)
 			writeTransferError(packet.m_status);
-		else
+		else if ((uint64_t)packet.m_offset + packet.m_length <= capturedDataSize64)
 			m_logWriter.write(recordCode, p + packet.m_offset, packet.m_length);
 
 		packet++;
