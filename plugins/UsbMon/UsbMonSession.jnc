@@ -394,28 +394,30 @@ void UsbMonSession.processData(
 			break;
 		}
 
-		if (hdr.m_status != 0)
-			writeTransferError(hdr.m_status);
-		else if (hdr.m_capturedDataSize) {
-			uint64_t recordCode = (hdr.m_endpoint & 0x80) ?
-				log.StdRecordCode.Rx :
-				log.StdRecordCode.Tx;
+		if (hdr.m_transferType != -1) { // not a real transfer (could be USBPcap meta-information)
+			if (hdr.m_status != 0)
+				writeTransferError(hdr.m_status);
+			else if (hdr.m_capturedDataSize) {
+				uint64_t recordCode = (hdr.m_endpoint & 0x80) ?
+					log.StdRecordCode.Rx :
+					log.StdRecordCode.Tx;
 
-			if (hdr.m_transferType == io.UsbTransferType.Isochronous)
-				writeIsoTransferPayload(recordCode, hdr);
-			else
-				m_logWriter.write(
-					recordCode,
-					hdr + 1,
-					m_transferBuffer.m_size - sizeof(io.UsbMonTransferHdr),
-					p,
-					leftoverSize
-				);
-		}
+				if (hdr.m_transferType == io.UsbTransferType.Isochronous)
+					writeIsoTransferPayload(recordCode, hdr);
+				else
+					m_logWriter.write(
+						recordCode,
+						hdr + 1,
+						m_transferBuffer.m_size - sizeof(io.UsbMonTransferHdr),
+						p,
+						leftoverSize
+					);
+			}
 
-		if (hdr.m_capturedDataSize < hdr.m_originalDataSize) {
-			uint32_t truncated = hdr.m_originalDataSize - hdr.m_capturedDataSize;
-			m_logWriter.write(UsbLogRecordCode.TruncatedCapture, &truncated, sizeof(truncated));
+			if (hdr.m_capturedDataSize < hdr.m_originalDataSize) {
+				uint32_t truncated = hdr.m_originalDataSize - hdr.m_capturedDataSize;
+				m_logWriter.write(UsbLogRecordCode.TruncatedCapture, &truncated, sizeof(truncated));
+			}
 		}
 
 		m_prevTransferEndpoint = hdr.m_endpoint;
