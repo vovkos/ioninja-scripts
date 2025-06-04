@@ -127,6 +127,7 @@ void $(sessionClass).createUi() {
 		"Remote address to connect to"
 	);
 
+	m_pluginHost.m_propertyGrid.resizeNameColumnToContents();
 	m_uiReactor.start();
 }
 
