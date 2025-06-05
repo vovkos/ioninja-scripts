@@ -9,6 +9,11 @@ import "std_Buffer.jnc"
 
 class SerialTapProDecoder {
 protected:
+	enum {
+		DeviceTimeSyncThreshold = 500000, // 500 ms
+	}
+
+protected:
 	log.Writer* m_logWriter;
 	log.TxRxStats* m_txRxStats;
 	SerialTapProInfoSet* m_infoSet;
@@ -32,6 +37,7 @@ public:
 	);
 
 	void flip(bool isFlipped);
+	void updateTimestamp(uint64_t deviceTime);
 
 	void decode(
 		char const* p,
@@ -91,6 +97,13 @@ void SerialTapProDecoder.flip(bool isFlipped) {
 		m_infoSet.updateLines(lines, lineMask);
 }
 
+void SerialTapProDecoder.updateTimestamp(uint64_t deviceTime) {
+	if (deviceTime < DeviceTimeSyncThreshold)
+		m_timestamp += deviceTime  * 10; // device time is in mcs
+	else
+		m_timestamp = sys.getTimestamp();
+}
+
 void SerialTapProDecoder.decode(
 	char const* p0,
 	size_t size
@@ -98,7 +111,7 @@ void SerialTapProDecoder.decode(
 	char thin const* p = p0;
 	char thin const* end = p + size;
 	char const* next = p0 + SerialTapProUsb.BulkSize;
-	uint64_t timeDiff = 0;
+	uint64_t deviceTime = 0;
 	uint8_t status = m_recordParams.m_status;
 	uint8_t status0 = m_recordParams.m_status;
 	SerialTapProLines lines = m_recordParams.m_lines;
@@ -119,14 +132,14 @@ void SerialTapProDecoder.decode(
 
 			p = p0 = next;
 			next += SerialTapProUsb.BulkSize;
-			m_timestamp += timeDiff  * 10; // FPGA timestamps are in mcs
-			timeDiff = 0;
+			updateTimestamp(deviceTime);
+			deviceTime = 0;
 			continue;
 		}
 
 		DecodeUlebResult uleb = decodeUleb(p + 1, end);
 		p = uleb.m_p;
-		timeDiff += uleb.m_value;
+		deviceTime += uleb.m_value;
 
 		switch (code) {
 		case SerialTapProNotificationCode.Data_0:
@@ -171,6 +184,7 @@ void SerialTapProDecoder.decode(
 		m_logWriter.write(m_timestamp, recordCode, &m_recordParams, sizeof(m_recordParams), p0, end - p0);
 		m_recordParams.m_status = status;
 		m_recordParams.m_lines = lines;
+		updateTimestamp(deviceTime);
 	}
 
 	if (m_isFlipped) {
