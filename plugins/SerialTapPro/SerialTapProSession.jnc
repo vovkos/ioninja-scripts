@@ -550,32 +550,31 @@ bool errorcode SerialTapProSession.flushInEndpoint() {
 }
 
 SerialTapProControlFlags SerialTapProSession.calcControl(SerialTapProControlFlags control) {
-	if (m_injectGroupBox.m_isChecked) {
-		SerialTapProRs485Mode rs485Mode = m_rs485ModeCombo.m_currentData;
-		switch (rs485Mode) {
-		case SerialTapProRs485Mode.HalfDuplex:
-			control |= SerialTapProControlFlags.Rs485InjectHalfDuplex;
-			break;
+	if (!m_injectGroupBox.m_isChecked)
+		return control;
 
-		case SerialTapProRs485Mode.HalfDuplexForward:
-			control |= SerialTapProControlFlags.Rs485InjectHalfDuplex | SerialTapProControlFlags.Forward;
-			break;
+	SerialTapProRs485Mode rs485Mode = m_rs485ModeCombo.m_currentData;
+	switch (rs485Mode) {
+	case SerialTapProRs485Mode.HalfDuplex:
+		control |= SerialTapProControlFlags.Rs485InjectHalfDuplex;
+		break;
 
-		case SerialTapProRs485Mode.FullDuplex:
-			break;
-		}
+	case SerialTapProRs485Mode.HalfDuplexForward:
+		control |= SerialTapProControlFlags.Rs485InjectHalfDuplex | SerialTapProControlFlags.Forward;
+		break;
+
+	case SerialTapProRs485Mode.FullDuplex:
+		break;
 	}
-
-	if (m_rs485ChannelCombo.m_currentIndex)
-		control |= SerialTapProControlFlags.Rs485InjectChannel;
-
-	if (m_rs485ModeCombo.m_currentData == SerialTapProRs485Mode.HalfDuplexForward)
 
 	if (m_actionTable[ActionId.Dtr].m_isChecked)
 		control |= SerialTapProControlFlags.Dtr;
 
 	if (m_actionTable[ActionId.Rts].m_isChecked)
 		control |= SerialTapProControlFlags.Rts;
+
+	if (m_rs485ChannelCombo.m_currentIndex)
+		control |= SerialTapProControlFlags.Rs485InjectChannel;
 
 	return control;
 }
