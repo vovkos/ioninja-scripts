@@ -291,15 +291,12 @@ override bool SerialTapProLogConverter.convert(
 ) {
 	switch (recordCode) {
 	case SerialTapProLogRecordCode.RawUsbBulkData:
-	case SerialTapProLogRecordCode.RawUsbBulkDataFlipped:
 		SerialTapProRawUsbBulkParams params = *(SerialTapProRawUsbBulkParams const*)p;
 		p += sizeof(SerialTapProRawUsbBulkParams);
 		size -= sizeof(SerialTapProRawUsbBulkParams);
 
 		if (m_rawDataToggle.m_value)
 			writer.write(timestamp, log.StdRecordCode.Bin, p, size);
-
-		// bool isFlipped = recordCode - SerialTapProLogRecordCode.RawUsbBulkData;
 
 		convertSerialTapProRawUsbBulk(
 			writer,
