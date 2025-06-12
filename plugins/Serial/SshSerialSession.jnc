@@ -479,7 +479,7 @@ bool errorcode SshSerialSession.connect() {
 	m_flowControl = m_serialUi.m_flowControl;
 	m_dtr = m_serialUi.m_dtr;
 	m_rts = m_serialUi.m_rts;
-	m_breakCondition = m_serialUi.m_breakCondition;
+	m_breakCondition = false; // set later after connect
 	m_decoder.reset();
 
 	m_addressCombo.addEditTextToHistory();
@@ -764,6 +764,11 @@ reactor SshSerialSession.m_uiReactor {
 		$"Serial $(m_addressCombo.m_currentText) $(m_portCombo.m_currentText) $(m_serialUi.m_baudRateCombo.m_editText)";
 
 	m_isTransmitEnabled = m_ssh.m_isTransmitEnabled && !m_breakCondition;
+
+	if (m_ssh.m_state == State.Connected) { // set BREAK on initial connect
+		if (!m_breakCondition && m_serialUi.m_breakCondition) // exclude bindingof(m_breakCondition)
+			onBreakConditionChanged();
+	}
 
 	m_sessionConnectionState =
 		m_ssh.m_state == State.Connected ? SessionConnectionState.Connected :
