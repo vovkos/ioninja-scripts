@@ -420,7 +420,7 @@ bool errorcode SshSerialSession.applyProperties() {
 	}
 
 	if (breakCondition != m_breakCondition) {
-		m_logWriter.write(SerialLogRecordCode.RtsChanged, &breakCondition, sizeof(breakCondition));
+		m_logWriter.write(SerialLogRecordCode.BreakConditionChanged, &breakCondition, sizeof(breakCondition));
 		m_breakCondition = breakCondition;
 		writeLineChangeMsg(io.HwcMsgCode.SerialSetDtr, breakCondition);
 	}
