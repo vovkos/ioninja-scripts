@@ -67,6 +67,7 @@ protected:
 	bool bindable m_dtr;
 	bool bindable m_rts;
 	bool bindable m_breakCondition;
+	bool bindable m_isTransmitBufferReady; // two-stage transmit enabler
 	io.SerialStatusLines bindable m_statusLines;
 
 	std.Buffer m_readBuffer;
@@ -420,7 +421,7 @@ bool errorcode SerialSession.open() {
 	m_rts = m_serial.m_rts;
 	m_breakCondition = m_serial.m_breakCondition;
 	m_statusLines = m_serial.m_statusLines;
-	m_isTransmitEnabled = true;
+	m_isTransmitBufferReady = true;
 	m_state = State.Opened;
 	m_sessionConnectionState = SessionConnectionState.Connected;
 
@@ -441,7 +442,7 @@ void SerialSession.close() {
 	m_logWriter.write(SerialLogRecordCode.PortClosed);
 	m_stdSessionInfoSet.endSession();
 	m_serial.close();
-	m_isTransmitEnabled = false;
+	m_isTransmitBufferReady = false;
 	m_state = State.Closed;
 	m_sessionConnectionState = SessionConnectionState.Disconnected;
 	m_syncId++;
@@ -608,8 +609,8 @@ size_t errorcode SerialSession.transmit(
 	if (result)
 		m_logWriter.write(log.StdRecordCode.Tx, p, result);
 
-	if (result < size && m_isTransmitEnabled) {
-		m_isTransmitEnabled = false;
+	if (result < size && m_isTransmitBufferReady) {
+		m_isTransmitBufferReady = false;
 		waitSerialEvents();
 	}
 
@@ -735,7 +736,7 @@ void SerialSession.waitSerialEvents() {
 		io.SerialEvents.IncomingData |
 		io.SerialEvents.LineError;
 
-	if (!m_isTransmitEnabled)
+	if (!m_isTransmitBufferReady)
 		eventMask |= io.SerialEvents.WriteBufferReady;
 
 	eventMask |= (m_statusLines & io.SerialStatusLines.Cts) ?
@@ -781,8 +782,8 @@ void SerialSession.onSerialEvent(
 		m_logWriter.write(SerialLogRecordCode.LineError, &errors, sizeof(errors));
 	}
 
-	if (!m_isTransmitEnabled)
-		m_isTransmitEnabled = (triggeredEvents & io.SerialEvents.WriteBufferReady);
+	if (!m_isTransmitBufferReady)
+		m_isTransmitBufferReady = (triggeredEvents & io.SerialEvents.WriteBufferReady);
 
 	io.SerialStatusLines statusLines = m_serial.m_statusLines;
 	io.SerialStatusLines statusLineMask = statusLines ^ m_statusLines;
@@ -967,6 +968,8 @@ reactor SerialSession.m_uiReactor {
 	updateLineInfoValue(InfoId.Dsr, m_statusLines & io.SerialStatusLines.Dsr);
 	updateLineInfoValue(InfoId.Cts, m_statusLines & io.SerialStatusLines.Cts);
 	updateLineInfoValue(InfoId.BreakCondition, m_breakCondition);
+
+	m_isTransmitEnabled = m_isTransmitBufferReady && !m_breakCondition;
 
 	onevent bindingof(m_portCombo.m_editText)() {
 		m_reopenTimer.stop();
