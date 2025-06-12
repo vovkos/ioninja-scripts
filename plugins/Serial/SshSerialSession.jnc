@@ -759,11 +759,11 @@ void SshSerialSession.updateLineInfoValue(
 }
 
 reactor SshSerialSession.m_uiReactor {
-	m_isTransmitEnabled = m_ssh.m_isTransmitEnabled;
-
 	m_title = m_ssh.m_state == State.Connected ?
 		$"Serial $(m_ssh.m_remoteAddress.getString()) $m_portName $m_baudRate bps" :
 		$"Serial $(m_addressCombo.m_currentText) $(m_portCombo.m_currentText) $(m_serialUi.m_baudRateCombo.m_editText)";
+
+	m_isTransmitEnabled = m_ssh.m_isTransmitEnabled && !m_breakCondition;
 
 	m_sessionConnectionState =
 		m_ssh.m_state == State.Connected ? SessionConnectionState.Connected :
