@@ -371,6 +371,7 @@ bool errorcode SerialSession.open() {
 	m_serial.m_flowControl = m_serialUi.m_flowControl;
 	m_serial.m_dtr = m_serialUi.m_dtr;
 	m_serial.m_rts = m_serialUi.m_rts;
+	m_serial.m_breakCondition = false;
 
 	string_t driverName = io.detectSerialBuggyDriver(portName);
 	if (driverName) {
@@ -419,7 +420,6 @@ bool errorcode SerialSession.open() {
 	m_baudRate = m_serial.m_baudRate;
 	m_dtr = m_serial.m_dtr;
 	m_rts = m_serial.m_rts;
-	m_breakCondition = m_serial.m_breakCondition;
 	m_statusLines = m_serial.m_statusLines;
 	m_isTransmitBufferReady = true;
 	m_state = State.Opened;
@@ -427,6 +427,10 @@ bool errorcode SerialSession.open() {
 
 	waitSerialEvents();
 	m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
+	
+	if (m_serialUi.m_breakCondition)
+		onBreakConditionChanged();
+	
 	return true;
 
 catch:
