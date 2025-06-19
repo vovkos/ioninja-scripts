@@ -45,6 +45,8 @@ enum SerialTapProRegister {
 	BaudLimit1   = 13,
 	Bits         = 14,
 	Lines        = 15,
+	Delay0       = 16,
+	Delay1       = 17,
 }
 
 bitflag enum SerialTapProControlFlags {
