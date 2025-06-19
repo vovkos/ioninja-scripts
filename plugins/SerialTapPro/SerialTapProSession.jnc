@@ -76,7 +76,7 @@ protected:
 		_Count,
 	}
 
-	static string_t const FirmwareFileName = __DIR__ "/firmware/serial-tap-pro.rpd";
+	static string_t const FirmwareFileName = __DIR__ "/firmware/serial-tap-pro-1.1.rpd";
 
 protected:
 	// usb
