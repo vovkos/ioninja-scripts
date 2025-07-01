@@ -37,7 +37,6 @@ public:
 	);
 
 	void flip(bool isFlipped);
-	void updateTimestamp(uint64_t deviceTime);
 
 	void decode(
 		char const* p,
@@ -97,13 +96,6 @@ void SerialTapProDecoder.flip(bool isFlipped) {
 		m_infoSet.updateLines(lines, lineMask);
 }
 
-void SerialTapProDecoder.updateTimestamp(uint64_t deviceTime) {
-	if (deviceTime < DeviceTimeSyncThreshold)
-		m_timestamp += deviceTime  * 10; // device time is in mcs
-	else
-		m_timestamp = sys.getTimestamp();
-}
-
 void SerialTapProDecoder.decode(
 	char const* p0,
 	size_t size
@@ -116,9 +108,10 @@ void SerialTapProDecoder.decode(
 	uint8_t status0 = m_recordParams.m_status;
 	SerialTapProLines lines = m_recordParams.m_lines;
 	SerialTapProLines lines0 = m_recordParams.m_lines;
-	uint64_t recordCode = SerialTapProLogRecordCode.RawUsbBulkData; // + m_isFlipped;
+	uint64_t recordCode = SerialTapProLogRecordCode.RawUsbBulkData;
 	size_t dataSize_0 = 0;
 	size_t dataSize_1 = 0;
+	bool isTimestampUpdated = false; // update once per bulk
 
 	while (p < end) {
 		SerialTapProNotificationCode code;
@@ -132,13 +125,21 @@ void SerialTapProDecoder.decode(
 
 			p = p0 = next;
 			next += SerialTapProUsb.BulkSize;
-			updateTimestamp(deviceTime);
+			m_timestamp += deviceTime  * 10; // device time is in mcs
 			deviceTime = 0;
 			continue;
 		}
 
 		DecodeUlebResult uleb = decodeUleb(p + 1, end);
 		p = uleb.m_p;
+
+		if (!isTimestampUpdated) { // update once per USB read (on the first notification)
+			if (uleb.m_value >= DeviceTimeSyncThreshold)
+				m_timestamp = sys.getTimestamp();
+
+			isTimestampUpdated = true;
+		}
+
 		deviceTime += uleb.m_value;
 
 		switch (code) {
@@ -184,7 +185,7 @@ void SerialTapProDecoder.decode(
 		m_logWriter.write(m_timestamp, recordCode, &m_recordParams, sizeof(m_recordParams), p0, end - p0);
 		m_recordParams.m_status = status;
 		m_recordParams.m_lines = lines;
-		updateTimestamp(deviceTime);
+		m_timestamp += deviceTime  * 10; // device time is in mcs
 	}
 
 	if (m_isFlipped) {
