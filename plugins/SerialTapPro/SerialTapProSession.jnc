@@ -40,6 +40,7 @@ protected:
 		CypressClearBufferTimeout = 200,      // 0.2 sec
 		FpgaUploadBaseIndex       = 0x2000,
 		FpgaFreq                  = 48000000,
+		BaudRateCap               = 2500000,  // artificial cap (brave ones can edit this)
 	}
 
 	enum State {
@@ -621,6 +622,11 @@ uint_t gcd(
 }
 
 bool errorcode SerialTapProSession.setBaudRate(uint_t baudRate) {
+	if (baudRate > BaudRateCap) {
+		std.setError("baud rates over 2.5 Mbps are not supported");
+		return false;
+	}
+
 	uint_t baudRate16 = baudRate * 16;
 	uint_t freqBaudGcd = gcd(FpgaFreq, baudRate16);
 	uint_t baudFreq = baudRate16 / freqBaudGcd;
