@@ -16,11 +16,6 @@ string_t getStatusLineChangeString(
 ) {
 	std.StringBuilder string = "Status line(s) changed:";
 
-	if (mask & SerialTapProLines.Dtr) {
-		string += " DTR: ";
-		string += getOnOffString(lines & SerialTapProLines.Dtr);
-	}
-
 	if (mask & SerialTapProLines.Rts) {
 		string += " RTS: ";
 		string += getOnOffString(lines & SerialTapProLines.Rts);
@@ -29,6 +24,11 @@ string_t getStatusLineChangeString(
 	if (mask & SerialTapProLines.Cts) {
 		string += " CTS: ";
 		string += getOnOffString(lines & SerialTapProLines.Cts);
+	}
+
+	if (mask & SerialTapProLines.Dtr) {
+		string += " DTR: ";
+		string += getOnOffString(lines & SerialTapProLines.Dtr);
 	}
 
 	if (mask & SerialTapProLines.Dsr) {
