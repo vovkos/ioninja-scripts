@@ -322,7 +322,7 @@ override bool SerialTapProLogConverter.convert(
 	case SerialTapProLogRecordCode.DataBitsChanged:
 	case SerialTapProLogRecordCode.ParityChanged:
 	case SerialTapProLogRecordCode.StopBitsChanged:
-		if (!m_statusLineChangeToggle.m_value)
+		if (!m_serialSettingChangeToggle.m_value)
 			break;
 
 		// fall through
