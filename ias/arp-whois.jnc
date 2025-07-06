@@ -12,10 +12,10 @@ import "io_TcpIp.jnc"
 struct ArpRequestFrame {
 	io.EthernetHdr m_ethernet;
 	io.ArpHdr m_arp;
-	uchar_t m_srcMac[6];
-	uchar_t m_srcIp[4];
-	uchar_t m_dstMac[6];
-	uchar_t m_dstIp[4];
+	io.EthernetAddress m_srcMac;
+	io.Address_ip4 m_srcIp;
+	io.EthernetAddress m_dstMac;
+	io.Address_ip4 m_dstIp;
 }
 
 // specify MAC/IP of the NIC opened in the Network Sniffer session:
@@ -28,19 +28,19 @@ void main() {
 
 	ArpRequestFrame frame;
 	frame.m_ethernet.m_type = io.EthernetType.Arp;
-	frame.m_ethernet.m_srcAddress = g_srcMac;
-	frame.m_ethernet.m_dstAddress = 0x"ff:ff:ff:ff:ff:ff";
+	frame.m_ethernet.m_srcAddress.m_mac = g_srcMac;
+	frame.m_ethernet.m_dstAddress.m_mac = 0x"ff:ff:ff:ff:ff:ff";
 	frame.m_arp.m_hardwareType = io.ArpHardwareType.Ethernet;
 	frame.m_arp.m_protocolType = io.EthernetType.Ip;
 	frame.m_arp.m_hardwareLength  = 6;
 	frame.m_arp.m_protocolLength  = 4;
 	frame.m_arp.m_opcode = io.ArpOpcode.Request;
-	frame.m_srcMac = g_srcMac;
-	frame.m_srcIp = g_srcIp;
-	frame.m_dstIp = g_srcIp; // the last octet will go 0..254
+	frame.m_srcMac.m_mac = g_srcMac;
+	frame.m_srcIp.m_i8 = g_srcIp;
+	frame.m_dstIp.m_i8 = g_srcIp; // the last octet will go 0..254
 
 	for (uint_t i = 0; i <= 254; i++) {
-		frame.m_dstIp[3] = i;
+		frame.m_dstIp.m_i8[3] = i;
 		transmit(&frame, sizeof(frame));
 		sys.sleep(200); // wait 1/5 second before the next entry
 	}

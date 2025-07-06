@@ -9,15 +9,19 @@
 import "io_base.jncx"
 import "io_File.jnc"
 
-void onLogRecord(
-	uint64_t timestamp,
-	uint64_t recordCode,
+void main() {
+	char buffer[256];
+
+	for (;;) {
+		size_t size = receive(buffer, sizeof(buffer));
+		parse(buffer, size);
+	}
+}
+
+void parse(
 	char const* p,
 	size_t size
 ) {
-	if (recordCode != log.StdRecordCode.Rx)
-		return;
-
 	static bool stx = false;
 
 	char const* end = p + size;

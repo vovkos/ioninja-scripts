@@ -1,7 +1,7 @@
 //..............................................................................
 //
 // The example shows how to properly process requests in a data stream.
-// First of all, we buffer HTTP requests all the way to a double CR-LF. After
+// First of all, we buffer HTTP requests all the way to a double LF. After
 // an HTTP request is fully buffered, we use the Jancy `reswitch` to parse and
 // process GET requests (by returning files from the the users's home directory.
 //
@@ -14,16 +14,16 @@ import "std_Buffer.jnc"
 
 //..............................................................................
 
-void onLogRecord(
-	uint64_t timestamp,
-	uint64_t recordCode,
-	void const* p,
-	size_t size
-) {
-	static HttpServer server;
+void main() {
+	HttpServer server;
 
-	if (recordCode == log.StdRecordCode.Rx)
-		server.write(p, size);
+	// receive loop
+
+	char buffer[256];
+	for (;;) {
+		size_t size = receive(buffer, sizeof(buffer));
+		server.parse(buffer, size);
+	}
 }
 
 //..............................................................................
@@ -32,71 +32,91 @@ void onLogRecord(
 
 class HttpServer {
 protected:
-	jnc.Regex m_regex;
-	jnc.RegexState m_regexState;
-	std.Buffer m_buffer;
+	enum ParseState {
+		Body,
+		Lf,
+		Cr,
+	}
+
+protected:
 	string_t m_rootDir;
+	std.Buffer m_buffer;
+	ParseState m_parseState;
 
 public:
 	construct();
 
-	void write(
-		void const* p,
+	void parse(
+		char const* p,
 		size_t size
 	);
 
 protected:
-	void processRequest(
-		void const* p,
-		size_t size
-	);
-
+	void processRequest(string_t request);
 	void transmitFile(string_t fileName);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 HttpServer.construct() {
-	m_regex.compile(r"\r?\n\r?\n"); // request is terminated with a double LF
-	m_regexState.initialize(jnc.RegexExecFlags.Stream);
 	m_rootDir = io.getHomeDir();
+	m_parseState = ParseState.Body;
 }
 
-void HttpServer.write(
-	void const* p,
+void HttpServer.parse(
+	char const* p,
 	size_t size
 ) {
-	// buffer request until we see double LF
+	// buffer request until we see double LF (LF CR? LF)
 
-	void const* end = p + size;
+	char const* p0 = p;
+	char const* end = p + size;
 	while (p < end) {
-		jnc.RegexExecResult result = m_regex.exec(m_regexState, p, end - p);
-		if (result == jnc.RegexExecResult.Continue) {
-			m_buffer.append(p, end - p);
-			break;
+		switch (m_parseState) {
+		case ParseState.Body:
+			char const* lf = memchr(p, '\n', end - p);
+			if (!lf)
+				break2; // out of while
+
+			m_parseState = ParseState.Lf;
+			continue;
+
+		case ParseState.Lf:
+			switch (*p++) {
+			case '\n':
+				break2; // out of parent switch
+
+			case '\r':
+				m_parseState = ParseState.Cr;
+				continue;
+
+			default:
+				m_parseState = ParseState.Body;
+				continue;
+			}
+
+		case ParseState.Cr:
+			if (*p != '\n') {
+				m_parseState = ParseState.Body;
+				continue;
+			}
 		}
 
-		assert(result > 0); // with this regex, we never need to go back
+		m_buffer.append(p0, p - p0);
+		processRequest(string_t(m_buffer.m_p, m_buffer.m_size));
 
-		size_t chunkSize = m_regexState.m_match.m_endOffset - m_buffer.m_size;
-		assert(chunkSize <= end - p);
+		// reset and prepare to process next request
 
-		m_buffer.append(p, chunkSize);
-		processRequest(m_buffer.m_p, m_buffer.m_size);
-
-		// reset and keep buffering
-
-		m_regexState.reset();
+		m_parseState = ParseState.Body;
 		m_buffer.clear();
-		p += chunkSize;
+		p0 = p;
 	}
+
+	m_buffer.append(p0, end - p0);
 }
 
-void HttpServer.processRequest(
-	void const* p,
-	size_t size
-) {
-	switch (string_t(p, size)) {
+void HttpServer.processRequest(string_t request) {
+	switch (request) {
 	case r"GET[ \t]+([^\s]+)[^\n]+\n": // only care about the first line of GET
 		transmitFile~($1);
 		break;
@@ -107,15 +127,12 @@ void HttpServer.processRequest(
 
 void HttpServer.transmitFile(string_t fileName)  {
 	string_t filePath = $"%1/%2"(m_rootDir, fileName);
-
-	g_logWriter.write($"Opening file: $filePath...");
-	g_logWriter.write(log.StdRecordCode.Break); // to ensure adjacent messages don't stick together
+	g_logWriter.write(log.StdRecordCode.PlainTextSep, $"Opening file: $filePath...");
 
 	io.File file;
 	file.open(filePath, io.FileOpenFlags.ReadOnly);
 
-	g_logWriter.write($"Transmitting file (%d bytes)..."(file.m_size));
-	g_logWriter.write(log.StdRecordCode.Break);
+	g_logWriter.write(log.StdRecordCode.PlainTextSep, $"Transmitting file (%d bytes)..."(file.m_size));
 
 	transmit(
 		"HTTP/1.1 200 OK\r\n"
@@ -123,30 +140,21 @@ void HttpServer.transmitFile(string_t fileName)  {
 		$"Content-Length: %1\r\n\r\n"(file.m_size)
 	);
 
-	char buffer[4 * 1024];
+	char buffer[4096];
 
 	for (;;) {
 		size_t size = file.read(buffer, sizeof(buffer));
 		if (!size) // all done
 			break;
 
-		char* p = buffer;
-		char* end = p + size;
-
-		while (p < end) {
-			size_t sent = transmit(p, end - p);
-			p += sent;
-
-			if (!sent) // SSL/TCP buffer is full, give some time to flush it
-				sys.sleep(100);
-		}
+		transmitAll(buffer, size);
 	}
 
-	g_logWriter.write("File transmitted!");
-	g_logWriter.write(log.StdRecordCode.Break);
+	g_logWriter.write(log.StdRecordCode.PlainTextSep, "File transmitted!");
 
 catch:
 	string_t message = std.getLastErrorDescription();
+	g_logWriter.write(log.StdRecordCode.PlainTextSep, $"Error: $message");
 
 	transmit(
 		"HTTP/1.1 500 Internal Server Error\r\n"
