@@ -108,17 +108,16 @@ void SerialTapProDecoder.decode(
 	uint8_t status0 = m_recordParams.m_status;
 	SerialTapProLines lines = m_recordParams.m_lines;
 	SerialTapProLines lines0 = m_recordParams.m_lines;
-	uint64_t recordCode = SerialTapProLogRecordCode.RawUsbBulkData;
 	size_t dataSize_0 = 0;
 	size_t dataSize_1 = 0;
-	bool isTimestampUpdated = false; // update once per bulk
+	bool isTimestampUpdated = false; // update once per USB read (on the first notification)
 
 	while (p < end) {
 		SerialTapProNotificationCode code;
 		if (p >= next || !(code = (SerialTapProNotificationCode)*p)) { // skip to the end of bulk
 			size_t offset = p - p0;
 			if (offset) {
-				m_logWriter.write(m_timestamp, recordCode, &m_recordParams, sizeof(m_recordParams), p0, offset);
+				m_logWriter.write(m_timestamp, SerialTapProLogRecordCode.RawUsbBulkData, &m_recordParams, sizeof(m_recordParams), p0, offset);
 				m_recordParams.m_status = status;
 				m_recordParams.m_lines = lines;
 			}
@@ -133,7 +132,7 @@ void SerialTapProDecoder.decode(
 		DecodeUlebResult uleb = decodeUleb(p + 1, end);
 		p = uleb.m_p;
 
-		if (!isTimestampUpdated) { // update once per USB read (on the first notification)
+		if (!isTimestampUpdated) {
 			if (uleb.m_value >= DeviceTimeSyncThreshold)
 				m_timestamp = sys.getTimestamp();
 
@@ -182,7 +181,7 @@ void SerialTapProDecoder.decode(
 	// write the remainder (only possible if a bulk is completely filled)
 
 	if (p0 < end) {
-		m_logWriter.write(m_timestamp, recordCode, &m_recordParams, sizeof(m_recordParams), p0, end - p0);
+		m_logWriter.write(m_timestamp, SerialTapProLogRecordCode.RawUsbBulkData, &m_recordParams, sizeof(m_recordParams), p0, end - p0);
 		m_recordParams.m_status = status;
 		m_recordParams.m_lines = lines;
 		m_timestamp += deviceTime  * 10; // device time is in mcs
