@@ -374,6 +374,8 @@ void SerialTapProLogConverter.convertSerialTapProRawUsbBulk(
 
 		DecodeUlebResult uleb = decodeUleb(p, end);
 		p = uleb.m_p;
+
+		uint64_t prevTimestamp = timestamp;
 		timestamp += uleb.m_value * 10; // FPGA timestamps are in mcs
 
 		if (notificationCode == SerialTapProNotificationCode.Data_0 || // Rx
@@ -389,8 +391,8 @@ void SerialTapProLogConverter.convertSerialTapProRawUsbBulk(
 				if (dataRecordCode) {
 					size_t size = pd - data;
 					isParityBitVisible ?
-						writer.write(timestamp, dataRecordCode, data, size, bin9, (size + 7) / 8) :
-						writer.write(timestamp, dataRecordCode, data, size);
+						writer.write(prevTimestamp, dataRecordCode, data, size, bin9, (size + 7) / 8) :
+						writer.write(prevTimestamp, dataRecordCode, data, size);
 				}
 
 				dataRecordCode = recordCode;
@@ -423,8 +425,8 @@ void SerialTapProLogConverter.convertSerialTapProRawUsbBulk(
 			if (dataRecordCode) {
 				size_t size = pd - data;
 				isParityBitVisible ?
-					writer.write(timestamp, dataRecordCode, data, size, bin9, (size + 7) / 8) :
-					writer.write(timestamp, dataRecordCode, data, size);
+					writer.write(prevTimestamp, dataRecordCode, data, size, bin9, (size + 7) / 8) :
+					writer.write(prevTimestamp, dataRecordCode, data, size);
 				dataRecordCode = 0;
 			}
 
