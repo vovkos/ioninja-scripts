@@ -131,15 +131,14 @@ void SerialTapProDecoder.decode(
 
 		DecodeUlebResult uleb = decodeUleb(p + 1, end);
 		p = uleb.m_p;
+		deviceTime += uleb.m_value;
 
 		if (!isTimestampUpdated) {
-			if (uleb.m_value >= DeviceTimeSyncThreshold)
-				m_timestamp = sys.getTimestamp();
+			if (deviceTime >= DeviceTimeSyncThreshold)
+				m_timestamp = sys.getTimestamp() - deviceTime * 10;
 
 			isTimestampUpdated = true;
 		}
-
-		deviceTime += uleb.m_value;
 
 		switch (code) {
 		case SerialTapProNotificationCode.Data_0:
