@@ -538,7 +538,14 @@ enum {
 
 //..............................................................................
 
-string_t formatModbusRegister(void const* p) {
+string_t formatModbusRegisterAddress(
+	size_t address,
+	size_t i
+) {
+	return $"%1"(address + i);
+}
+
+string_t formatModbusRegisterValue(void const* p) {
 	return $"0x%(1;04X) (%(1;d))"(*(bigendian uint16_t const*)p);
 }
 
@@ -546,6 +553,7 @@ string_t formatModbusRegister(void const* p) {
 
 void layoutModbusRegisters(
 	jnc.DynamicLayout* layout,
+	size_t address,
 	size_t count,
 	size_t size
 ) {
@@ -555,7 +563,7 @@ void layoutModbusRegisters(
 
 	dylayout (layout) {
 		[
-			displayName = "Values",
+			displayName = "Registers",
 			backColor = ui.StdColor.PastelYellow,
 			digestFunc = getModbusRegisterDigest,
 			foldFlag = 2
@@ -563,7 +571,8 @@ void layoutModbusRegisters(
 		dyfield values {
 			[
 				ungroup,
-				elementFormatFunc = formatModbusRegister
+				indexFormatFunc = address != -1 ? formatModbusRegisterAddress~(address) : null,
+				valueFormatFunc = formatModbusRegisterValue,
 			]
 			dyfield bigendian uint16_t values[count];
 
@@ -626,7 +635,7 @@ async void layoutModbusPdu(
 						[ @ModbusBitBankAttr ]
 						dyfield ModbusBitBank values[params.m_size];
 					else
-						layoutModbusRegisters(layout, -1, params.m_size);
+						layoutModbusRegisters(layout, -1, -1, params.m_size);
 				}
 				break;
 
@@ -700,7 +709,7 @@ async void layoutModbusPdu(
 				if (role == ModbusRole.Master) { // request
 					[ ungroup ]
 					dyfield ModbusWriteMultipleRegistersParams params;
-					layoutModbusRegisters(layout, params.m_count, params.m_size);
+					layoutModbusRegisters(layout, params.m_address, params.m_count, params.m_size);
 				} else // reply
 					[ ungroup ]
 					dyfield ModbusWriteMultipleReplyParams params;
@@ -728,11 +737,11 @@ async void layoutModbusPdu(
 				if (role == ModbusRole.Master) { // request
 					[ ungroup ]
 					dyfield ModbusReadWriteMultipleRegistersParams params;
-					layoutModbusRegisters(layout, params.m_writeCount, params.m_writeSize);
+					layoutModbusRegisters(layout, params.m_writeAddress, params.m_writeCount, params.m_writeSize);
 				} else { // reply
 					[ ungroup ]
 					dyfield ModbusReadReplyParams params;
-					layoutModbusRegisters(layout, -1, params.m_size);
+					layoutModbusRegisters(layout, -1, -1, params.m_size);
 				}
 				break;
 
@@ -743,7 +752,7 @@ async void layoutModbusPdu(
 				else {
 					[ ungroup ]
 					dyfield ModbusReadFifoQueueReplyParams params;
-					layoutModbusRegisters(layout, params.m_fifoCount, params.m_byteCount - sizeof(uint16_t));
+					layoutModbusRegisters(layout, -1, params.m_fifoCount, params.m_byteCount - sizeof(uint16_t));
 				}
 				break;
 
