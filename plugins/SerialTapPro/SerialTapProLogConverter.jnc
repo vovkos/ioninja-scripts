@@ -441,7 +441,7 @@ void SerialTapProLogConverter.convertSerialTapProRawUsbBulk(
 					break;
 				}
 
-				SerialTapProLines mask = lines ^ lines0;
+				SerialTapProLines mask = (lines ^ lines0) & ~(SerialTapProLines.Break_0 | SerialTapProLines.Break_1);
 				if (!mask)
 					break;
 

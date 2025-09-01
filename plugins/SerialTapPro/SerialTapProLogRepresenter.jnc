@@ -231,12 +231,6 @@ bool representSerialTapProLog(
 			representation.addHyperText(string);
 		}
 
-		if (params.m_mask & SerialTapProLines.Break_0)
-			representation.addHyperText($"TX line BREAK condition: %1"(getOnOffString(params.m_lines & SerialTapProLines.Break_0)));
-
-		if (params.m_mask & SerialTapProLines.Break_1)
-			representation.addHyperText($"RX line BREAK condition: %1"(getOnOffString(params.m_lines & SerialTapProLines.Break_1)));
-
 		break;
 
 	case SerialTapProLogRecordCode.TxParityError:
