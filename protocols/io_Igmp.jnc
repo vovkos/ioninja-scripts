@@ -25,7 +25,10 @@ enum IgmpType: uint8_t {
 	formatDigestFunc = formatIgmpDigest
 ]
 struct IgmpHdr {
-	[ displayName = "Type" ]
+	[
+		displayName = "Type",
+		formatSpec = "0x%02X"
+	]
 	IgmpType m_type;
 
 	[ displayName = "Max resp time" ]
