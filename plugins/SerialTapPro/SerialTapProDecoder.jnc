@@ -4,13 +4,15 @@
 //
 
 import "std_Buffer.jnc"
+import "io_abr.jncx"
 
 //..............................................................................
 
 class SerialTapProDecoder {
 protected:
 	enum {
-		DeviceTimeSyncThreshold = 500000, // 500 ms
+		DeviceTimeSyncThreshold = 500000,  // 500 ms (in mcsec)
+		AbrUpdateInterval       = 5000000, // 500 ms (in 100-nsec)
 	}
 
 protected:
@@ -19,6 +21,10 @@ protected:
 	SerialTapProInfoSet* m_infoSet;
 	uint64_t m_timestamp;
 	SerialTapProRawUsbBulkParams m_recordParams;
+
+	io.AutoBaudRate m_abr;
+	uint64_t m_abrTime;
+	uint64_t m_abrUpdateTime;
 
 public:
 	SerialTapProIface bindable readonly m_serialIface;
@@ -54,6 +60,8 @@ SerialTapProDecoder.construct(
 	m_logWriter = logWriter;
 	m_txRxStats = txRxStats;
 	m_infoSet = infoSet;
+
+	m_abr.create();
 }
 
 void SerialTapProDecoder.reset(
@@ -64,6 +72,11 @@ void SerialTapProDecoder.reset(
 	m_serialIface = iface;
 	m_recordParams.m_status = iface;
 	m_recordParams.m_lines = lines;
+
+	m_abr.reset(true);
+	m_abrTime = m_timestamp;
+	m_abrUpdateTime = m_timestamp;
+	m_infoSet.setAutoBaudRate(0, 0, 0);
 }
 
 void SerialTapProDecoder.flip(bool isFlipped) {
@@ -174,6 +187,14 @@ void SerialTapProDecoder.decode(
 		case SerialTapProNotificationCode.BreakOff_1:
 			lines &= ~SerialTapProLines.Break_1;
 			break;
+
+		case 14:
+		case 15:
+			uint64_t abrTime = m_timestamp + deviceTime * 10;
+			uint64_t dtime = abrTime - m_abrTime;
+			m_abr.addEdge(dtime);
+			m_abrTime = abrTime;
+			break;
 		}
 	}
 
@@ -212,6 +233,13 @@ void SerialTapProDecoder.decode(
 	SerialTapProLines lineMask = lines ^ lines0;
 	if (lineMask)
 		m_infoSet.updateLines(lines, lineMask);
+
+	if (m_timestamp - m_abrUpdateTime > AbrUpdateInterval) {
+		io.AutoBaudRateResult result = m_abr.calculate();
+		uint_t baudRate_gcd = m_abr.calculate_gcd();
+		m_infoSet.setAutoBaudRate(result.m_baudRate, result.m_frameBits, baudRate_gcd);
+		m_abrUpdateTime = m_timestamp;
+	}
 }
 
 //..............................................................................

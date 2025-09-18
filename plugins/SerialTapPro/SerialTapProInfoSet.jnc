@@ -20,6 +20,8 @@ protected:
 		Break_0,
 		Break_1,
 		Overflows,
+		AutoBaudRate,
+		AutoBaudRate_gcd,
 		_Count,
 	}
 
@@ -43,6 +45,15 @@ public:
 		SerialTapProLines lines,
 		SerialTapProLines mask = (SerialTapProLines)-1
 	);
+
+	void setAutoBaudRate(
+		uint_t baudRate,
+		uint_t frameBits,
+		uint_t baudRate_gcd
+	) {
+		m_infoTable[InfoId.AutoBaudRate].m_value = $"%1 bps %2 bits"(baudRate, frameBits);
+		m_infoTable[InfoId.AutoBaudRate_gcd].m_value = $"%1 bps"(baudRate_gcd);
+	}
 
 protected:
 	void setLineState(
@@ -70,6 +81,8 @@ void SerialTapProInfoSet.create(
 	m_infoTable[InfoId.Break_0] = infoGrid.createValue(infoGroup,,, "BREAK (TX)");
 	m_infoTable[InfoId.Break_1] = infoGrid.createValue(infoGroup,,, "BREAK (RX)");
 	m_infoTable[InfoId.Overflows] = infoGrid.createValue(infoGroup,,, "Overflow");
+	m_infoTable[InfoId.AutoBaudRate] = infoGrid.createValue(infoGroup,,, "Auto baud rate");
+	m_infoTable[InfoId.AutoBaudRate_gcd] = infoGrid.createValue(infoGroup,,, "Auto baud rate (GCD)");
 
 	updateLines(0); // set all off
 }
