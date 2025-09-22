@@ -22,11 +22,11 @@ protected:
 	uint64_t m_timestamp;
 	SerialTapProRawUsbBulkParams m_recordParams;
 
-	io.AutoBaudRate m_abr;
 	uint64_t m_abrTime;
 	uint64_t m_abrUpdateTime;
 
 public:
+	io.AutoBaudRate m_abr;
 	SerialTapProIface bindable readonly m_serialIface;
 	bool readonly m_isFlipped;
 
@@ -76,7 +76,9 @@ void SerialTapProDecoder.reset(
 	m_abr.reset(true);
 	m_abrTime = m_timestamp;
 	m_abrUpdateTime = m_timestamp;
-	m_infoSet.setAutoBaudRate(0, 0, 0);
+	m_infoSet.setAutoBaudRate(0, 0);
+	m_infoSet.setAutoBaudRate_alt(0, 0);
+	m_infoSet.setAutoBaudRate_gcd(0);
 }
 
 void SerialTapProDecoder.flip(bool isFlipped) {
@@ -124,6 +126,7 @@ void SerialTapProDecoder.decode(
 	size_t dataSize_0 = 0;
 	size_t dataSize_1 = 0;
 	bool isTimestampUpdated = false; // update once per USB read (on the first notification)
+	bool isAbrUpdated = false;
 
 	while (p < end) {
 		SerialTapProNotificationCode code;
@@ -194,6 +197,7 @@ void SerialTapProDecoder.decode(
 			uint64_t dtime = abrTime - m_abrTime;
 			m_abr.addEdge(dtime);
 			m_abrTime = abrTime;
+			isAbrUpdated = true;
 			break;
 		}
 	}
@@ -234,10 +238,13 @@ void SerialTapProDecoder.decode(
 	if (lineMask)
 		m_infoSet.updateLines(lines, lineMask);
 
-	if (m_timestamp - m_abrUpdateTime > AbrUpdateInterval) {
+	if (isAbrUpdated) {
 		io.AutoBaudRateResult result = m_abr.calculate();
-		uint_t baudRate_gcd = m_abr.calculate_gcd();
-		m_infoSet.setAutoBaudRate(result.m_baudRate, result.m_frameBits, baudRate_gcd);
+		io.AutoBaudRateResult result_alt = m_abr.calculate_alt();
+		uint_t result_gcd = m_abr.calculate_gcd();
+		m_infoSet.setAutoBaudRate(result.m_baudRate, result.m_frameBits);
+		m_infoSet.setAutoBaudRate_alt(result_alt.m_baudRate, result_alt.m_frameBits);
+		m_infoSet.setAutoBaudRate_gcd(result_gcd);
 		m_abrUpdateTime = m_timestamp;
 	}
 }

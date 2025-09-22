@@ -26,13 +26,16 @@ protected:
 	}
 
 	enum Defaults {
-		NotificationDelay = 20,
-		Inject            = false,
-		Rs485Mode         = SerialTapProRs485Mode.HalfDuplex,
-		Rs485Channel      = 0,
-		ReadParallelism   = 4,
-		ReadBlockSize     = 64 * 1024,
-		ReadBufferSize    = 1 * 1024 * 1024,
+		NotificationDelay     = 20,
+		Inject                = false,
+		Rs485Mode             = SerialTapProRs485Mode.HalfDuplex,
+		Rs485Channel          = 0,
+		AbrEdgeErrorTolerance = 10, // 10%
+		AbrHarmioncTolerance  = 10, // 10%
+		AbrHorizon            = 3000, // 3 sec
+		ReadParallelism       = 4,
+		ReadBlockSize         = 64 * 1024,
+		ReadBufferSize        = 1 * 1024 * 1024,
 	}
 
 	enum {
@@ -134,6 +137,9 @@ protected:
 
 	ui.EnumProperty* m_deviceProp;
 	ui.IntProperty* m_notificationDelayProp;
+	ui.IntProperty* m_abrEdgeErrorToleranceProp;
+	ui.IntProperty* m_abrHarmonicToleranceProp;
+	ui.IntProperty* m_abrHorizonProp;
 	ui.BufferPropertySet m_bufferPropertySet;
 
 	// information grid
@@ -311,6 +317,24 @@ void SerialTapProSession.createUi() {
 		groupProp,,
 		"Notification delay (ms)",
 		"Maximum delay until sending out a USB bulk transfer (ms)"
+	);
+
+	m_abrEdgeErrorToleranceProp = m_pluginHost.m_propertyGrid.createIntProperty(
+		groupProp,,
+		"ABR edge error tolerance (%)",
+		"Auto baud rate detector ignores edge errors within this tolerance (percents)"
+	);
+
+	m_abrHarmonicToleranceProp = m_pluginHost.m_propertyGrid.createIntProperty(
+		groupProp,,
+		"ABR harmonic tolerance (%)",
+		"Auto baud rate detector ignores harmonics with this tolerance (percents)"
+	);
+
+	m_abrHorizonProp = m_pluginHost.m_propertyGrid.createIntProperty(
+		groupProp,,
+		"ABR horizon (ms)",
+		"Maximum event horizon for auto baud rate detector (ms)"
 	);
 
 	ui.SerialUi.ItemId serialUiMask =
@@ -785,6 +809,9 @@ void SerialTapProSession.load(doc.Storage* storage) {
 	m_serialUi.load(storage);
 	m_deviceCombo.m_currentIndex = storage.readInt("deviceIdx");
 	m_notificationDelayProp.m_value = storage.readInt("notificationDelay", Defaults.NotificationDelay);
+	m_abrEdgeErrorToleranceProp.m_value = storage.readInt("abrEdgeErrorToleranceProp", Defaults.AbrEdgeErrorTolerance);
+	m_abrHarmonicToleranceProp.m_value = storage.readInt("abrHarmonicToleranceProp", Defaults.AbrHarmioncTolerance);
+	m_abrHorizonProp.m_value = storage.readInt("abrHorizon", Defaults.AbrHorizon);
 	m_injectGroupBox.m_isChecked = storage.readBool("inject", Defaults.Inject);
 	m_rs485ModeCombo.m_currentIndex = storage.readInt("rs485Mode", Defaults.Rs485Mode);
 	m_rs485ChannelCombo.m_currentIndex = storage.readInt("rs485Channel", Defaults.Rs485Channel);
@@ -796,6 +823,9 @@ void SerialTapProSession.save(doc.Storage* storage) {
 	m_serialUi.save(storage);
 	storage.writeInt("deviceIdx", m_deviceCombo.m_currentIndex);
 	storage.writeInt("notificationDelay", m_notificationDelayProp.m_value);
+	storage.writeInt("abrEdgeErrorToleranceProp", m_abrEdgeErrorToleranceProp.m_value);
+	storage.writeInt("abrHarmonicTolerance", m_abrHarmonicToleranceProp.m_value);
+	storage.writeInt("abrHorizon", m_abrHorizonProp.m_value);
 	storage.writeBool("inject", m_injectGroupBox.m_isChecked);
 	storage.writeInt("rs485Mode", m_rs485ModeCombo.m_currentIndex);
 	storage.writeInt("rs485Channel", m_rs485ChannelCombo.m_currentIndex);
@@ -815,6 +845,9 @@ bool errorcode SerialTapProSession.applyProperties() {
 
 	m_readBuffer.detach(); // drop buffer, so we re-allocate each time
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
+	m_decoder.m_abr.m_edgeErrorTolerance = m_abrEdgeErrorToleranceProp.m_value / 100.0;
+	m_decoder.m_abr.m_harmonicTolerance = m_abrHarmonicToleranceProp.m_value / 100.0;
+	m_decoder.m_abr.m_horizon = m_abrHorizonProp.m_value * 10000; // in 100-nsec intervals
 
 	if (m_state != State.Capturing)
 		return true;
@@ -868,6 +901,9 @@ catch:
 
 void SerialTapProSession.restoreDefaultProperties() {
 	m_notificationDelayProp.m_value = Defaults.NotificationDelay;
+	m_abrEdgeErrorToleranceProp.m_value = Defaults.AbrEdgeErrorTolerance;
+	m_abrHarmonicToleranceProp.m_value = Defaults.AbrHarmioncTolerance;
+	m_abrHorizonProp.m_value = Defaults.AbrHorizon;
 	m_serialUi.restoreDefaultProperties();
 	m_bufferPropertySet.restoreDefaults();
 }
