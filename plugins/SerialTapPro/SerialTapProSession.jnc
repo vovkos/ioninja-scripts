@@ -10,7 +10,9 @@ import "io_UsbEnumerator.jnc"
 import "iox_FpgaUploader.jnc"
 import "ui_SerialUi.jnc"
 import "ui_LineEdit.jnc"
+import "ui_Button.jnc"
 import "ui_BufferPropertySet.jnc"
+import "ui_StdSessionInfoSet.jnc"
 import "ui_StdSessionInfoSet.jnc"
 import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
@@ -26,16 +28,18 @@ protected:
 	}
 
 	enum Defaults {
-		NotificationDelay     = 20,
-		Inject                = false,
-		Rs485Mode             = SerialTapProRs485Mode.HalfDuplex,
-		Rs485Channel          = 0,
-		AbrEdgeErrorTolerance = 10, // 10%
-		AbrHarmioncTolerance  = 10, // 10%
-		AbrHorizon            = 3000, // 3 sec
-		ReadParallelism       = 4,
-		ReadBlockSize         = 64 * 1024,
-		ReadBufferSize        = 1 * 1024 * 1024,
+		NotificationDelay        = 20,
+		Inject                   = false,
+		Rs485Mode                = SerialTapProRs485Mode.HalfDuplex,
+		Rs485Channel             = 0,
+		AbrStdBaudRateOnly       = true,
+		AbrBaudRateGridCellCount = 10000,
+		AbrEdgeErrorTolerance    = 10, // 10%
+		AbrHarmioncTolerance     = 10, // 10%
+		AbrHorizon               = 3000, // 3 sec
+		ReadParallelism          = 4,
+		ReadBlockSize            = 64 * 1024,
+		ReadBufferSize           = 1 * 1024 * 1024,
 	}
 
 	enum {
@@ -65,11 +69,9 @@ protected:
 		Rts,
 		Break,
 
-		/*
 		ReadRegister,
 		WriteRegister,
 		Test,
-		*/
 
 		_Count,
 	}
@@ -114,6 +116,8 @@ protected:
 	// serial tap pro ui
 
 	ui.SerialUi m_serialUi;
+	ui.CheckBox* m_abrEnableCheckBox_0;
+	ui.CheckBox* m_abrEnableCheckBox_1;
 	ui.GroupBox* m_injectGroupBox;
 	ui.ComboBox* m_rs485ModeCombo;
 	ui.ComboBox* m_rs485ChannelCombo;
@@ -121,10 +125,8 @@ protected:
 
 	// read/write register debug ui
 
-	/*
 	ui.LineEdit* m_registerEdit;
 	ui.LineEdit* m_registerValueEdit;
-	*/
 
 	// toolbar, status bar & menu
 
@@ -137,6 +139,10 @@ protected:
 
 	ui.EnumProperty* m_deviceProp;
 	ui.IntProperty* m_notificationDelayProp;
+	ui.BoolProperty* m_abrEnableProp_0;
+	ui.BoolProperty* m_abrEnableProp_1;
+	ui.BoolProperty* m_abrStdBaudRateOnlyProp;
+	ui.IntProperty* m_abrBaudRateGridCellCountProp;
 	ui.IntProperty* m_abrEdgeErrorToleranceProp;
 	ui.IntProperty* m_abrHarmonicToleranceProp;
 	ui.IntProperty* m_abrHorizonProp;
@@ -199,6 +205,7 @@ protected:
 	void onRs485ModeChanged();
 	void onRs485ChannelChanged();
 	void onDtrRtsChanged();
+	void onAbrChanged();
 
 	void onUpdateCompleted(bool result);
 
@@ -212,11 +219,9 @@ protected:
 		io.UsbEndpointEvents triggeredEvents
 	);
 
-	/*
 	void onReadRegister();
 	void onWriteRegister();
 	void onTest();
-	*/
 
 	void createUi();
 	void enumerateDevices();
@@ -233,6 +238,15 @@ protected:
 		io.SerialParity parity,
 		io.SerialStopBits stopBits
 	);
+
+	void configureAbr() {
+		m_decoder.configureAbr(
+			m_abrStdBaudRateOnlyProp.m_value ? 0 : m_abrBaudRateGridCellCountProp.m_value,
+			m_abrEdgeErrorToleranceProp.m_value / 100.0,
+			m_abrHarmonicToleranceProp.m_value / 100.0,
+			m_abrHorizonProp.m_value * 10000 // in 100-nsec intervals
+		);
+	}
 
 	uint16_t readRegister(SerialTapProRegister register);
 
@@ -284,7 +298,6 @@ void SerialTapProSession.createUi() {
 	m_actionTable[ActionId.Rts].m_isCheckable = true;
 	m_actionTable[ActionId.Rts].m_onTriggered += onDtrRtsChanged;
 
-	/*
 	m_actionTable[ActionId.ReadRegister] = new ui.Action("Read");
 	m_actionTable[ActionId.ReadRegister].m_onTriggered += onReadRegister;
 
@@ -293,13 +306,10 @@ void SerialTapProSession.createUi() {
 
 	m_actionTable[ActionId.Test] = createAction("Test");
 	m_actionTable[ActionId.Test].m_onTriggered += onTest;
-	*/
-
-	// status bar
 
 	m_statusPaneTable[StatusPaneId.State] = m_pluginHost.m_statusBar.addPane(, 80);
 
-	// property grid
+	// form & property grid
 
 	ui.GroupProperty* groupProp = m_pluginHost.m_propertyGrid.createGroupProperty(
 		"Connection",
@@ -319,24 +329,6 @@ void SerialTapProSession.createUi() {
 		"Maximum delay until sending out a USB bulk transfer (ms)"
 	);
 
-	m_abrEdgeErrorToleranceProp = m_pluginHost.m_propertyGrid.createIntProperty(
-		groupProp,,
-		"ABR edge error tolerance (%)",
-		"Auto baud rate detector ignores edge errors within this tolerance (percents)"
-	);
-
-	m_abrHarmonicToleranceProp = m_pluginHost.m_propertyGrid.createIntProperty(
-		groupProp,,
-		"ABR harmonic tolerance (%)",
-		"Auto baud rate detector ignores harmonics with this tolerance (percents)"
-	);
-
-	m_abrHorizonProp = m_pluginHost.m_propertyGrid.createIntProperty(
-		groupProp,,
-		"ABR horizon (ms)",
-		"Maximum event horizon for auto baud rate detector (ms)"
-	);
-
 	ui.SerialUi.ItemId serialUiMask =
 		ui.SerialUi.ItemId.BaudRate |
 		ui.SerialUi.ItemId.DataBits |
@@ -353,7 +345,63 @@ void SerialTapProSession.createUi() {
 	bindingof(m_serialUi.m_dataBitsCombo.m_currentIndex) += onDataBitsChanged;
 	bindingof(m_serialUi.m_parityCombo.m_currentIndex) += onParityChanged;
 	bindingof(m_serialUi.m_stopBitsCombo.m_currentIndex) += onStopBitsChanged;
+
+	m_abrEnableCheckBox_0 = new ui.CheckBox("Auto-detect baud rate (TX)");
+	m_abrEnableCheckBox_1 = new ui.CheckBox("Auto-detect baud rate (RX)");
+	m_abrEnableCheckBox_0.m_onClicked += onAbrChanged;
+	m_abrEnableCheckBox_1.m_onClicked += onAbrChanged;
+
+	serialLayout.addLine(ui.FrameShadow.Sunken);
+	serialLayout.addRow(m_abrEnableCheckBox_0);
+	serialLayout.addRow(m_abrEnableCheckBox_1);
 	m_pluginHost.createForm(serialGroupBox);
+
+	groupProp = m_pluginHost.m_propertyGrid.createGroupProperty(
+		"Auto baud rate detector",
+		"Automatic baud rate detection settings"
+	);
+
+	m_abrEnableProp_0 = m_pluginHost.m_propertyGrid.createBoolProperty(
+		groupProp,,
+		"Auto-detect baud rate (TX)",
+		"Enable auto baud rate detector on TX line"
+	);
+
+	m_abrEnableProp_1 = m_pluginHost.m_propertyGrid.createBoolProperty(
+		groupProp,,
+		"Auto-detect baud rate (RX)",
+		"Enable auto baud rate detector on RX line"
+	);
+
+	m_abrStdBaudRateOnlyProp = m_pluginHost.m_propertyGrid.createBoolProperty(
+		groupProp,,
+		"Standard baud rates only",
+		"Limit auto baud rate detector to standard baud rates only"
+	);
+
+	m_abrBaudRateGridCellCountProp = m_pluginHost.m_propertyGrid.createIntProperty(
+		groupProp,,
+		"Baud rate grid cell count",
+		"Number of cells in the baud rate approximation grid"
+	);
+
+	m_abrEdgeErrorToleranceProp = m_pluginHost.m_propertyGrid.createIntProperty(
+		groupProp,,
+		"Edge error tolerance (%)",
+		"Auto baud rate detector ignores edge errors within this tolerance (percents)"
+	);
+
+	m_abrHarmonicToleranceProp = m_pluginHost.m_propertyGrid.createIntProperty(
+		groupProp,,
+		"Harmonic tolerance (%)",
+		"Auto baud rate detector ignores harmonics with this tolerance (percents)"
+	);
+
+	m_abrHorizonProp = m_pluginHost.m_propertyGrid.createIntProperty(
+		groupProp,,
+		"Horizon (ms)",
+		"Maximum event horizon for auto baud rate detector (ms)"
+	);
 
 	static ui.ComboItem const rs485ModeItems[] = {
 		{ "Half-duplex",              SerialTapProRs485Mode.HalfDuplex },
@@ -403,7 +451,6 @@ void SerialTapProSession.createUi() {
 	m_bufferPropertySet.createPropertiesGrouped(m_pluginHost.m_propertyGrid,,, ids);
 	m_bufferPropertySet.m_readBufferSizeProp.m_minValue = SerialTapProUsb.BulkSize;
 
-	/*
 	m_registerEdit = new ui.LineEdit;
 	m_registerEdit.m_text = "1";
 	m_registerValueEdit = new ui.LineEdit;
@@ -420,7 +467,6 @@ void SerialTapProSession.createUi() {
 	registerToolBar.addAction(m_actionTable[ActionId.WriteRegister]);
 	registerLayout.addRow(registerToolBar);
 	m_pluginHost.createForm(registerGroupBox);
-	*/
 
 	// information grid
 
@@ -529,16 +575,18 @@ bool errorcode SerialTapProSession.startCapture() {
 	m_stopBits = m_serialUi.m_stopBits;
 	m_notificationDelay = m_notificationDelayProp.m_value;
 
+	configureAbr();
+	setBaudRate(m_baudRate);
+	setBits(m_dataBits, m_parity, m_stopBits);
+	setNotificationDelay(m_notificationDelay);
+	waitInEndpointEvents();
+
 	writeRegister(SerialTapProRegister.Time2, 0);
 	writeRegister(SerialTapProRegister.Time1, 0);
 	writeRegister(SerialTapProRegister.Time0, 0);
 
-	setBaudRate(m_baudRate);
-	setBits(m_dataBits, m_parity, m_stopBits);
-	setNotificationDelay(m_notificationDelay);
-
-	waitInEndpointEvents();
-	writeRegister(SerialTapProRegister.Control, calcControl());
+	uint16_t control = calcControl();
+	writeRegister(SerialTapProRegister.Control, control);
 
 	m_txBufferSize = readRegister(SerialTapProRegister.TxBufferSize);
 	SerialTapProIface iface = (SerialTapProIface)(readRegister(SerialTapProRegister.Status) & SerialTapProIface.Mask);
@@ -559,6 +607,9 @@ bool errorcode SerialTapProSession.startCapture() {
 	params.m_rs485Mode = m_rs485ModeCombo.m_currentData;
 	params.m_rs485InjectChannel = m_rs485ChannelCombo.m_currentIndex;
 	m_logWriter.write(SerialTapProLogRecordCode.CaptureStarted, &params, sizeof(params));
+
+	if (control & (SerialTapProControlFlags.Edges_0 | SerialTapProControlFlags.Edges_1))
+		m_logWriter.write(SerialTapProLogRecordCode.AbrChanged, &control, sizeof(control));
 
 	m_serialTapProInfoSet.setIface(iface);
 	m_serialTapProInfoSet.setOverflows(0);
@@ -621,6 +672,12 @@ SerialTapProControlFlags SerialTapProSession.calcControl() {
 
 	if (m_rs485ChannelCombo.m_currentIndex)
 		control |= SerialTapProControlFlags.Rs485InjectChannel;
+
+	if (m_abrEnableCheckBox_0.m_isChecked)
+		control |= SerialTapProControlFlags.Edges_0;
+
+	if (m_abrEnableCheckBox_1.m_isChecked)
+		control |= SerialTapProControlFlags.Edges_1;
 
 	return control;
 }
@@ -809,6 +866,8 @@ void SerialTapProSession.load(doc.Storage* storage) {
 	m_serialUi.load(storage);
 	m_deviceCombo.m_currentIndex = storage.readInt("deviceIdx");
 	m_notificationDelayProp.m_value = storage.readInt("notificationDelay", Defaults.NotificationDelay);
+	m_abrStdBaudRateOnlyProp.m_value = storage.readBool("abrStdBaudRateOnly", Defaults.AbrStdBaudRateOnly);
+	m_abrBaudRateGridCellCountProp.m_value = storage.readInt("abrBaudRateGridCellCount", Defaults.AbrBaudRateGridCellCount);
 	m_abrEdgeErrorToleranceProp.m_value = storage.readInt("abrEdgeErrorToleranceProp", Defaults.AbrEdgeErrorTolerance);
 	m_abrHarmonicToleranceProp.m_value = storage.readInt("abrHarmonicToleranceProp", Defaults.AbrHarmioncTolerance);
 	m_abrHorizonProp.m_value = storage.readInt("abrHorizon", Defaults.AbrHorizon);
@@ -823,6 +882,8 @@ void SerialTapProSession.save(doc.Storage* storage) {
 	m_serialUi.save(storage);
 	storage.writeInt("deviceIdx", m_deviceCombo.m_currentIndex);
 	storage.writeInt("notificationDelay", m_notificationDelayProp.m_value);
+	storage.writeBool("abrStdBaudRateOnly", m_abrStdBaudRateOnlyProp.m_value);
+	storage.writeInt("abrBaudRateGridCellCount", m_abrBaudRateGridCellCountProp.m_value);
 	storage.writeInt("abrEdgeErrorToleranceProp", m_abrEdgeErrorToleranceProp.m_value);
 	storage.writeInt("abrHarmonicTolerance", m_abrHarmonicToleranceProp.m_value);
 	storage.writeInt("abrHorizon", m_abrHorizonProp.m_value);
@@ -835,6 +896,8 @@ void SerialTapProSession.save(doc.Storage* storage) {
 void SerialTapProSession.updateProperties() {
 	m_serialUi.updateProperties();
 
+	m_abrEnableProp_0.m_value = m_abrEnableCheckBox_0.m_isChecked;
+	m_abrEnableProp_1.m_value = m_abrEnableCheckBox_1.m_isChecked;
 	m_deviceProp.m_currentIndex = m_deviceCombo.m_currentIndex;
 }
 
@@ -845,12 +908,14 @@ bool errorcode SerialTapProSession.applyProperties() {
 
 	m_readBuffer.detach(); // drop buffer, so we re-allocate each time
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
-	m_decoder.m_abr.m_edgeErrorTolerance = m_abrEdgeErrorToleranceProp.m_value / 100.0;
-	m_decoder.m_abr.m_harmonicTolerance = m_abrHarmonicToleranceProp.m_value / 100.0;
-	m_decoder.m_abr.m_horizon = m_abrHorizonProp.m_value * 10000; // in 100-nsec intervals
 
-	if (m_state != State.Capturing)
+	configureAbr();
+
+	if (m_state != State.Capturing) {
+		m_abrEnableCheckBox_0.m_isChecked = m_abrEnableProp_0.m_value;
+		m_abrEnableCheckBox_1.m_isChecked = m_abrEnableProp_1.m_value;
 		return true;
+	}
 
 	uint_t baudRate = m_serialUi.m_baudRate;
 	uint_t dataBits = m_serialUi.m_dataBits;
@@ -890,6 +955,16 @@ bool errorcode SerialTapProSession.applyProperties() {
 		m_notificationDelay = notificationDelay;
 	}
 
+	uint16_t oldControl = calcControl();
+	m_abrEnableCheckBox_0.m_isChecked = m_abrEnableProp_0.m_value;
+	m_abrEnableCheckBox_1.m_isChecked = m_abrEnableProp_1.m_value;
+
+	uint16_t newControl = calcControl();
+	if ((newControl ^ oldControl) & (SerialTapProControlFlags.Edges_0 | SerialTapProControlFlags.Edges_1)) {
+		writeRegister(SerialTapProRegister.Control, newControl);
+		m_logWriter.write(SerialTapProLogRecordCode.AbrChanged, &newControl, sizeof(newControl));
+	}
+
 	m_inEndpoint.m_readParallelism = m_bufferPropertySet.m_readParallelismProp.m_value;
 	m_inEndpoint.m_readBufferSize = m_bufferPropertySet.m_readBufferSizeProp.m_value;
 	return true;
@@ -901,6 +976,10 @@ catch:
 
 void SerialTapProSession.restoreDefaultProperties() {
 	m_notificationDelayProp.m_value = Defaults.NotificationDelay;
+	m_abrEnableProp_0.m_value = false;
+	m_abrEnableProp_0.m_value = false;
+	m_abrStdBaudRateOnlyProp.m_value = Defaults.AbrStdBaudRateOnly;
+	m_abrBaudRateGridCellCountProp.m_value = Defaults.AbrBaudRateGridCellCount;
 	m_abrEdgeErrorToleranceProp.m_value = Defaults.AbrEdgeErrorTolerance;
 	m_abrHarmonicToleranceProp.m_value = Defaults.AbrHarmioncTolerance;
 	m_abrHorizonProp.m_value = Defaults.AbrHorizon;
@@ -1086,6 +1165,18 @@ catch:
 	m_logWriter.writeLastError(log.StdRecordCode.Error);
 }
 
+void SerialTapProSession.onAbrChanged() {
+	if (m_state != State.Capturing)
+		return;
+
+	uint16_t control = calcControl();
+	writeRegister(SerialTapProRegister.Control, control);
+	m_logWriter.write(SerialTapProLogRecordCode.AbrChanged, &control, sizeof(control));
+
+catch:
+	m_logWriter.writeLastError(log.StdRecordCode.Error);
+}
+
 void SerialTapProSession.onInjectChanged() {
 	if (m_state != State.Capturing)
 		return;
@@ -1133,7 +1224,6 @@ catch:
 	m_logWriter.writeLastError(log.StdRecordCode.Error);
 }
 
-/*
 void SerialTapProSession.onReadRegister() {
 	uint16_t register = strtoul(m_registerEdit.m_text);
 	uint16_t value = readRegister((SerialTapProRegister)register);
@@ -1153,7 +1243,6 @@ void SerialTapProSession.onTest() {
 	m_logWriter.write(log.StdRecordCode.Bin, data, sizeof(data));
 	m_decoder.decode(data, sizeof(data));
 }
-*/
 
 reactor SerialTapProSession.m_uiReactor {
 	m_title = $"Serial Tap Pro $(m_deviceCombo.m_currentText)";
@@ -1181,7 +1270,13 @@ reactor SerialTapProSession.m_uiReactor {
 		m_state == State.Capturing &&
 		m_decoder.m_serialIface == SerialTapProIface.Rs485;
 
-	m_serialTapProInfoSet.m_isEnabled = m_state == State.Capturing;
+	m_serialTapProInfoSet.enable(
+		m_state == State.Capturing,
+		m_abrEnableCheckBox_0.m_isChecked,
+		m_abrEnableCheckBox_1.m_isChecked
+	);
+
+	m_abrBaudRateGridCellCountProp.m_isEnabled = !m_abrStdBaudRateOnlyProp.m_value;
 
 	m_isTransmitEnabled =
 		m_state == State.Capturing &&

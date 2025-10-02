@@ -374,6 +374,16 @@ bool representSerialTapProLog(
 		representation.addHyperText($"Set notification delay: \e[34m$delay\e[m ms");
 		break;
 
+	case SerialTapProLogRecordCode.AbrChanged:
+		SerialTapProControlFlags flags = *(SerialTapProControlFlags const*)p;
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		representation.addHyperText($"Auto baud rate detection: TX: %1 RX: %2"(
+			getOnOffString(flags & SerialTapProControlFlags.Edges_0),
+			getOnOffString(flags & SerialTapProControlFlags.Edges_1)
+		));
+		break;
+
 	default:
 		return false;
 	}

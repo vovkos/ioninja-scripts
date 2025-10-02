@@ -4,6 +4,7 @@
 //
 
 import "ui_InformationGrid.jnc"
+import "io_abr.jncx"
 
 //..............................................................................
 
@@ -20,20 +21,27 @@ protected:
 		Break_0,
 		Break_1,
 		Overflows,
-		AutoBaudRate,
-		AutoBaudRate_alt,
-		AutoBaudRate_gcd,
+		Abr_0,
+		Abr_1,
+		Abr_alt_0,
+		Abr_alt_1,
+		Abr_gcd_0,
+		Abr_gcd_1,
 		_Count,
 	}
 
 	ui.InformationValue* m_infoTable[InfoId._Count];
 
 public:
-	bool autoget property m_isEnabled;
-
 	void create(
 		ui.InformationGrid* infoGrid,
 		ui.InformationGroup* infoGroup = null
+	);
+
+	void enable(
+		bool isEnabled,
+		bool isAbrEnabled_0,
+		bool isAbrEnabled_1
 	);
 
 	void setIface(SerialTapProIface iface) {
@@ -47,23 +55,10 @@ public:
 		SerialTapProLines mask = (SerialTapProLines)-1
 	);
 
-	void setAutoBaudRate(
-		uint_t baudRate,
-		uint_t frameBits
-	) {
-		m_infoTable[InfoId.AutoBaudRate].m_value = $"%1 bps %2 bits"(baudRate, frameBits);
-	}
-
-	void setAutoBaudRate_alt(
-		uint_t baudRate,
-		uint_t frameBits
-	) {
-		m_infoTable[InfoId.AutoBaudRate_alt].m_value = $"%1 bps %2 bits"(baudRate, frameBits);
-	}
-
-	void setAutoBaudRate_gcd(uint_t baudRate) {
-		m_infoTable[InfoId.AutoBaudRate_gcd].m_value = $"%1 bps"(baudRate);
-	}
+	void updateAbr(
+		size_t channel,
+		io.AutoBaudRate* abr
+	);
 
 protected:
 	void setLineState(
@@ -91,16 +86,33 @@ void SerialTapProInfoSet.create(
 	m_infoTable[InfoId.Break_0] = infoGrid.createValue(infoGroup,,, "BREAK (TX)");
 	m_infoTable[InfoId.Break_1] = infoGrid.createValue(infoGroup,,, "BREAK (RX)");
 	m_infoTable[InfoId.Overflows] = infoGrid.createValue(infoGroup,,, "Overflow");
-	m_infoTable[InfoId.AutoBaudRate] = infoGrid.createValue(infoGroup,,, "Auto baud rate");
-	m_infoTable[InfoId.AutoBaudRate_alt] = infoGrid.createValue(infoGroup,,, "Auto baud rate (alt)");
-	m_infoTable[InfoId.AutoBaudRate_gcd] = infoGrid.createValue(infoGroup,,, "Auto baud rate (GCD)");
+
+	ui.InformationGroup* subGroup = infoGrid.createGroup(infoGroup,, "Auto baud rate detector");
+	m_infoTable[InfoId.Abr_0] = infoGrid.createValue(subGroup,,, "Baud rate (TX)");
+	m_infoTable[InfoId.Abr_alt_0] = infoGrid.createValue(subGroup,,, "Baud rate (TX, alt)");
+	m_infoTable[InfoId.Abr_gcd_0] = infoGrid.createValue(subGroup,,, "Baud rate (TX, GCD)");
+	m_infoTable[InfoId.Abr_1] = infoGrid.createValue(subGroup,,, "Baud rate (RX)");
+	m_infoTable[InfoId.Abr_alt_1] = infoGrid.createValue(subGroup,,, "Baud rate (RX, alt)");
+	m_infoTable[InfoId.Abr_gcd_1] = infoGrid.createValue(subGroup,,, "Baud rate (RX, GCD)");
 
 	updateLines(0); // set all off
 }
 
-void SerialTapProInfoSet.m_isEnabled.set(bool isEnabled) {
-	for (size_t i = 0; i < InfoId._Count; i++)
+void SerialTapProInfoSet.enable(
+	bool isEnabled,
+	bool isAbrEnabled_0,
+	bool isAbrEnabled_1
+) {
+	for (size_t i = 0; i < InfoId.Abr_0; i++)
 		m_infoTable[i].m_isEnabled = isEnabled;
+
+	m_infoTable[InfoId.Abr_0].m_isEnabled =
+	m_infoTable[InfoId.Abr_alt_0].m_isEnabled =
+	m_infoTable[InfoId.Abr_gcd_0].m_isEnabled = isEnabled && isAbrEnabled_0;
+
+	m_infoTable[InfoId.Abr_1].m_isEnabled =
+	m_infoTable[InfoId.Abr_alt_1].m_isEnabled =
+	m_infoTable[InfoId.Abr_gcd_1].m_isEnabled = isEnabled && isAbrEnabled_1;
 }
 
 void  SerialTapProInfoSet.setOverflows(SerialTapProOverflows overflows) {
@@ -141,6 +153,19 @@ void SerialTapProInfoSet.updateLines(
 
 	if (mask & SerialTapProLines.Break_1)
 		setLineState(InfoId.Break_1, lines & SerialTapProLines.Break_1);
+}
+
+void SerialTapProInfoSet.updateAbr(
+	size_t channel,
+	io.AutoBaudRate* abr
+) {
+	io.AutoBaudRateResult result = abr.calculate();
+	io.AutoBaudRateResult result_alt = abr.calculate_alt();
+	uint_t result_gcd = abr.calculate_gcd();
+
+	m_infoTable[InfoId.Abr_0 + channel].m_value = $"%1 bps %2 bits"(result.m_baudRate, result.m_frameBits);
+	m_infoTable[InfoId.Abr_alt_0 + channel].m_value = $"%1 bps %2 bits"(result_alt.m_baudRate, result_alt.m_frameBits);
+	m_infoTable[InfoId.Abr_gcd_0 + channel].m_value = $"%1 bps"(result_gcd);
 }
 
 //..............................................................................
