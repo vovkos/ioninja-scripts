@@ -97,7 +97,7 @@ bitflag enum SerialTapProLines: uint16_t {
 	Break_1   = 0x0080,
 	Data_0    = 0x0100,
 	Data_1    = 0x0200,
-
+	
 	LineMask  = 0x003f,
 	BreakMask = 0x00c0,
 }
@@ -121,13 +121,13 @@ SerialTapProLines flipSerialTapProLines(SerialTapProLines lines) {
 }
 
 bitflag enum SerialTapProOverflows: uint16_t {
-	Edge_0      = 0x0200,
-	Edge_1      = 0x0100,
-	Data_0      = 0x0080,
-	Data_1      = 0x0040,
+	Edge_1      = 0x0200,
+	Edge_0      = 0x0100,
+	Data_1      = 0x0080,
+	Data_0      = 0x0040,
 	Lines       = 0x0020,
-	Break_0     = 0x0010,
-	Break_1     = 0x0008,
+	Break_1     = 0x0010,
+	Break_0     = 0x0008,
 	Status      = 0x0004,
 
 	NonDataMask = 0x003c,
