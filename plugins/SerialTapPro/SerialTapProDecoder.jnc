@@ -70,9 +70,6 @@ void SerialTapProDecoder.reset(
 	m_serialIface = iface;
 	m_recordParams.m_status = iface;
 	m_recordParams.m_lines = lines;
-
-	m_abr[0].reset((lines & SerialTapProLines.Data_0) != 0);
-	m_abr[1].reset((lines & SerialTapProLines.Data_1) != 0);
 	m_abrTime[0] = m_abrTime[1] = m_timestamp;
 }
 
@@ -185,13 +182,14 @@ void SerialTapProDecoder.decode(
 			lines &= ~SerialTapProLines.Break_1;
 			break;
 
-		case SerialTapProNotificationCode.EdgeUp_0:
-		case SerialTapProNotificationCode.EdgeDown_0:
-		case SerialTapProNotificationCode.EdgeUp_1:
-		case SerialTapProNotificationCode.EdgeDown_1:
-			size_t i = (code - SerialTapProNotificationCode.EdgeUp_0) / 2;
+		case SerialTapProNotificationCode.EdgeFall_0:
+		case SerialTapProNotificationCode.EdgeRise_0:
+		case SerialTapProNotificationCode.EdgeFall_1:
+		case SerialTapProNotificationCode.EdgeRise_1:
+			size_t i = (code - SerialTapProNotificationCode.EdgeFall_0) / 2;
+			bool uart = code & 1;
 			uint64_t time = m_timestamp + deviceTime * 10;
-			m_abr[i].addEdge(time - m_abrTime[i]);
+			m_abr[i].addEdge(time - m_abrTime[i], uart);
 			m_abrTime[i] = time;
 			break;
 		}

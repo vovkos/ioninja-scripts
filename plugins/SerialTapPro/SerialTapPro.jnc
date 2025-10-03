@@ -80,10 +80,10 @@ enum SerialTapProNotificationCode: uint8_t {
 	BreakOff_0       = 9,
 	BreakOff_1       = 10,
 	Status           = 13, // 2 byte
-	EdgeUp_0         = 14,
-	EdgeDown_0       = 15,
-	EdgeUp_1         = 16,
-	EdgeDown_1       = 17,
+	EdgeFall_0       = 14,
+	EdgeRise_0       = 15,
+	EdgeFall_1       = 16,
+	EdgeRise_1       = 17,
 }
 
 bitflag enum SerialTapProLines: uint16_t {
@@ -97,7 +97,7 @@ bitflag enum SerialTapProLines: uint16_t {
 	Break_1   = 0x0080,
 	Data_0    = 0x0100,
 	Data_1    = 0x0200,
-	
+
 	LineMask  = 0x003f,
 	BreakMask = 0x00c0,
 }
