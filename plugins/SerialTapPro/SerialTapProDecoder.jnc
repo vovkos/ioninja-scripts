@@ -12,8 +12,6 @@ class SerialTapProDecoder {
 protected:
 	enum {
 		DeviceTimeSyncThreshold = 500000,  // 500 ms (in mcsec)
-		AbrBaudRateCap          = 1000000, // should't go any higher with 1 mcs precision
-		AbrUpdateInterval       = 5000000, // 500 ms (in 100-nsec)
 	}
 
 protected:
@@ -22,11 +20,8 @@ protected:
 	SerialTapProInfoSet* m_infoSet;
 	uint64_t m_timestamp;
 	SerialTapProRawUsbBulkParams m_recordParams;
-
-	io.AutoBaudRate m_abr_0;
-	io.AutoBaudRate m_abr_1;
-	uint64_t m_abrTime;
-	uint64_t m_abrUpdateTime;
+	io.AutoBaudRate* m_abr[2];
+	uint64_t m_abrTime[2];
 
 public:
 	SerialTapProIface bindable readonly m_serialIface;
@@ -36,19 +31,13 @@ public:
 	construct(
 		log.Writer* logWriter,
 		log.TxRxStats* txRxStats,
-		SerialTapProInfoSet* infoSet
+		SerialTapProInfoSet* infoSet,
+		io.AutoBaudRate* abr[2]
 	);
 
 	void reset(
 		SerialTapProIface iface,
 		SerialTapProLines lines
-	);
-
-	void configureAbr(
-		size_t baudRateGridCount,
-		double edgeErrorTolerance,
-		double harmonicTolerance,
-		uint64_t horizon
 	);
 
 	void flip(bool isFlipped);
@@ -64,14 +53,13 @@ public:
 SerialTapProDecoder.construct(
 	log.Writer* logWriter,
 	log.TxRxStats* txRxStats,
-	SerialTapProInfoSet* infoSet
+	SerialTapProInfoSet* infoSet,
+	io.AutoBaudRate* abr[2]
 ) {
 	m_logWriter = logWriter;
 	m_txRxStats = txRxStats;
 	m_infoSet = infoSet;
-
-	m_abr_0.create();
-	m_abr_1.create();
+	m_abr = abr;
 }
 
 void SerialTapProDecoder.reset(
@@ -83,32 +71,9 @@ void SerialTapProDecoder.reset(
 	m_recordParams.m_status = iface;
 	m_recordParams.m_lines = lines;
 
-	m_abr_0.reset((lines & SerialTapProLines.Data_0) != 0);
-	m_abr_1.reset((lines & SerialTapProLines.Data_1) != 0);
-	m_abrTime = m_timestamp;
-	m_abrUpdateTime = m_timestamp;
-
-	m_infoSet.updateAbr(0, m_abr_0);
-	m_infoSet.updateAbr(1, m_abr_1);
-}
-
-void SerialTapProDecoder.configureAbr(
-	size_t baudRateGridCount,
-	double edgeErrorTolerance,
-	double harmonicTolerance,
-	uint64_t horizon
-) {
-	if (baudRateGridCount != m_abr_0.m_baudGridCellCount) {
-		m_abr_0.create(AbrBaudRateCap, baudRateGridCount);
-		m_abr_1.create(AbrBaudRateCap, baudRateGridCount);
-	}
-
-	m_abr_0.m_edgeErrorTolerance = edgeErrorTolerance;
-	m_abr_1.m_edgeErrorTolerance = edgeErrorTolerance;
-	m_abr_0.m_harmonicTolerance = harmonicTolerance;
-	m_abr_1.m_harmonicTolerance = harmonicTolerance;
-	m_abr_0.m_horizon = horizon;
-	m_abr_1.m_horizon = horizon;
+	m_abr[0].reset((lines & SerialTapProLines.Data_0) != 0);
+	m_abr[1].reset((lines & SerialTapProLines.Data_1) != 0);
+	m_abrTime[0] = m_abrTime[1] = m_timestamp;
 }
 
 void SerialTapProDecoder.flip(bool isFlipped) {
@@ -156,8 +121,6 @@ void SerialTapProDecoder.decode(
 	size_t dataSize_0 = 0;
 	size_t dataSize_1 = 0;
 	bool isTimestampUpdated = false; // update once per USB read (on the first notification)
-	bool isAbrUpdated_0 = false;
-	bool isAbrUpdated_1 = false;
 
 	while (p < end) {
 		SerialTapProNotificationCode code;
@@ -226,18 +189,10 @@ void SerialTapProDecoder.decode(
 		case SerialTapProNotificationCode.EdgeDown_0:
 		case SerialTapProNotificationCode.EdgeUp_1:
 		case SerialTapProNotificationCode.EdgeDown_1:
-			uint64_t abrTime = m_timestamp + deviceTime * 10;
-			uint64_t dtime = abrTime - m_abrTime;
-			m_abrTime = abrTime;
-
-			if (code >= SerialTapProNotificationCode.EdgeUp_1) {
-				m_abr_0.addEdge(dtime);
-				isAbrUpdated_0 = true;
-			} else {
-				m_abr_1.addEdge(dtime);
-				isAbrUpdated_1 = true;
-			}
-
+			size_t i = (code - SerialTapProNotificationCode.EdgeUp_0) / 2;
+			uint64_t time = m_timestamp + deviceTime * 10;
+			m_abr[i].addEdge(time - m_abrTime[i]);
+			m_abrTime[i] = time;
 			break;
 		}
 	}
@@ -277,16 +232,6 @@ void SerialTapProDecoder.decode(
 	SerialTapProLines lineMask = lines ^ lines0;
 	if (lineMask)
 		m_infoSet.updateLines(lines, lineMask);
-
-	if (isAbrUpdated_0) {
-		m_infoSet.updateAbr(0, m_abr_0);
-		m_abrUpdateTime = m_timestamp;
-	}
-
-	if (isAbrUpdated_1) {
-		m_infoSet.updateAbr(1, m_abr_1);
-		m_abrUpdateTime = m_timestamp;
-	}
 }
 
 //..............................................................................

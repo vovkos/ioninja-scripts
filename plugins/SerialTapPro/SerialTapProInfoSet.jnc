@@ -159,13 +159,17 @@ void SerialTapProInfoSet.updateAbr(
 	size_t channel,
 	io.AutoBaudRate* abr
 ) {
-	io.AutoBaudRateResult result = abr.calculate();
-	io.AutoBaudRateResult result_alt = abr.calculate_alt();
-	uint_t result_gcd = abr.calculate_gcd();
+	m_infoTable[InfoId.Abr_0 + channel].m_value = abr.m_baudRate ?
+		$"%1 bps %2 bits"(abr.m_baudRate, abr.m_frameBits) :
+		"unknown";
 
-	m_infoTable[InfoId.Abr_0 + channel].m_value = $"%1 bps %2 bits"(result.m_baudRate, result.m_frameBits);
-	m_infoTable[InfoId.Abr_alt_0 + channel].m_value = $"%1 bps %2 bits"(result_alt.m_baudRate, result_alt.m_frameBits);
-	m_infoTable[InfoId.Abr_gcd_0 + channel].m_value = $"%1 bps"(result_gcd);
+	m_infoTable[InfoId.Abr_alt_0 + channel].m_value = abr.m_baudRate_alt ?
+		$"%1 bps %2 bits"(abr.m_baudRate_alt, abr.m_frameBits_alt) :
+		"unknown";
+
+	m_infoTable[InfoId.Abr_gcd_0 + channel].m_value = abr.m_baudRate_gcd ?
+		$"%1 bps"(abr.m_baudRate_gcd) :
+		"unknown";
 }
 
 //..............................................................................
