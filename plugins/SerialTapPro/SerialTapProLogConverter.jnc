@@ -458,7 +458,7 @@ void SerialTapProLogConverter.convertSerialTapProRawUsbBulk(
 
 			case SerialTapProNotificationCode.Status:
 				uint16_t status = *(uint16_t const thin*)p;
-				p += sizeof(uint16_t);
+				p += 2;
 
 				if (isFlipped)
 					status = flipSerialTapProOverflows(status);

@@ -111,8 +111,8 @@ void SerialTapProDecoder.decode(
 	char thin const* end = p + size;
 	char const* next = p0 + SerialTapProUsb.BulkSize;
 	uint64_t deviceTime = 0;
-	uint8_t status = m_recordParams.m_status;
-	uint8_t status0 = m_recordParams.m_status;
+	uint16_t status = m_recordParams.m_status;
+	uint16_t status0 = m_recordParams.m_status;
 	SerialTapProLines lines = m_recordParams.m_lines;
 	SerialTapProLines lines0 = m_recordParams.m_lines;
 	size_t dataSize_0 = 0;
@@ -163,7 +163,8 @@ void SerialTapProDecoder.decode(
 			break;
 
 		case SerialTapProNotificationCode.Status:
-			status = *p++;
+			status = *(uint16_t const thin*)p;
+			p += 2;
 			break;
 
 		case SerialTapProNotificationCode.BreakOn_0:
