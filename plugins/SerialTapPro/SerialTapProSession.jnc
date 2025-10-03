@@ -206,7 +206,7 @@ protected:
 	void onRs485ModeChanged();
 	void onRs485ChannelChanged();
 	void onDtrRtsChanged();
-	void onAbrSettingsChanged();
+	void onAbrChanged();
 
 	void onUpdateCompleted(bool result);
 
@@ -241,7 +241,7 @@ protected:
 	);
 
 	io.AutoBaudRate* constructAbr()[2];
-	void configureAbr();
+	void configureAbr(SerialTapProLines lines);
 
 	uint16_t readRegister(SerialTapProRegister register);
 
@@ -369,7 +369,7 @@ void SerialTapProSession.createUi() {
 
 	for (size_t i = 0; i < 2; i++) {
 		ui.CheckBox checkBox(abrNames[i]);
-		checkBox.m_onClicked += onAbrSettingsChanged;
+		checkBox.m_onClicked += onAbrChanged;
 		serialLayout.addRow(checkBox);
 		m_abrEnableCheckBoxes[i] = checkBox;
 
@@ -584,7 +584,6 @@ bool errorcode SerialTapProSession.startCapture() {
 	m_stopBits = m_serialUi.m_stopBits;
 	m_notificationDelay = m_notificationDelayProp.m_value;
 
-	configureAbr();
 	setBaudRate(m_baudRate);
 	setBits(m_dataBits, m_parity, m_stopBits);
 	setNotificationDelay(m_notificationDelay);
@@ -601,6 +600,7 @@ bool errorcode SerialTapProSession.startCapture() {
 	SerialTapProIface iface = (SerialTapProIface)(readRegister(SerialTapProRegister.Status) & SerialTapProIface.Mask);
 	SerialTapProLines lines = (SerialTapProLines)readRegister(SerialTapProRegister.Lines);
 	m_decoder.reset(iface, lines); // decoder operates on original lines
+	configureAbr(lines); // abr operate on original lines
 
 	if (m_decoder.m_isFlipped)
 		lines = flipSerialTapProLines(lines);
@@ -748,7 +748,7 @@ io.AutoBaudRate* SerialTapProSession.constructAbr()[2] {
 	return m_abr;
 }
 
-void SerialTapProSession.configureAbr() {
+void SerialTapProSession.configureAbr(SerialTapProLines lines) {
 	size_t baudRateGridCount = m_abrStdBaudRateOnlyProp.m_value ? 0 : m_abrBaudRateGridCellCountProp.m_value;
 	double edgeErrorTolerance = m_abrEdgeErrorToleranceProp.m_value / 100.0;
 	double harmonicTolerance = m_abrHarmonicToleranceProp.m_value / 100.0;
@@ -763,7 +763,8 @@ void SerialTapProSession.configureAbr() {
 			}
 		} else {
 			if (!abr.m_isOpen || baudRateGridCount != abr.m_baudGridCellCount) {
-				abr.create(AbrBaudRateCap, baudRateGridCount);
+				bool uart = lines & (SerialTapProLines.Data_0 << i);
+				abr.create(AbrBaudRateCap, baudRateGridCount, uart);
 				m_serialTapProInfoSet.updateAbr(i, abr);
 			}
 
@@ -951,8 +952,6 @@ bool errorcode SerialTapProSession.applyProperties() {
 	m_readBuffer.detach(); // drop buffer, so we re-allocate each time
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
 
-	configureAbr();
-
 	if (m_state != State.Capturing) {
 		m_abrEnableCheckBoxes[0].m_isChecked = m_abrEnableProps[0].m_value;
 		m_abrEnableCheckBoxes[1].m_isChecked = m_abrEnableProps[1].m_value;
@@ -996,6 +995,9 @@ bool errorcode SerialTapProSession.applyProperties() {
 		m_logWriter.write(SerialTapProLogRecordCode.NotificationDelayChanged, &notificationDelay, sizeof(notificationDelay));
 		m_notificationDelay = notificationDelay;
 	}
+
+	SerialTapProLines lines = (SerialTapProLines)readRegister(SerialTapProRegister.Lines);
+	configureAbr(lines);
 
 	uint16_t oldControl = calcControl();
 	m_abrEnableCheckBoxes[0].m_isChecked = m_abrEnableProps[0].m_value;
@@ -1207,11 +1209,12 @@ catch:
 	m_logWriter.writeLastError(log.StdRecordCode.Error);
 }
 
-void SerialTapProSession.onAbrSettingsChanged() {
+void SerialTapProSession.onAbrChanged() {
 	if (m_state != State.Capturing)
 		return;
 
-	configureAbr();
+	SerialTapProLines lines = (SerialTapProLines)readRegister(SerialTapProRegister.Lines);
+	configureAbr(lines);
 
 	uint16_t control = calcControl();
 	writeRegister(SerialTapProRegister.Control, control);
