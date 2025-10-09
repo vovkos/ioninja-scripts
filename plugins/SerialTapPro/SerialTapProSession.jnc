@@ -71,9 +71,11 @@ protected:
 		Rts,
 		Break,
 
+		/*
 		ReadRegister,
 		WriteRegister,
 		Test,
+		*/
 
 		_Count,
 	}
@@ -125,10 +127,12 @@ protected:
 	ui.ComboBox* m_rs485ChannelCombo;
 	bool bindable m_isTransmitUsbBufferReady;
 
+	/*
 	// read/write register debug ui
 
 	ui.LineEdit* m_registerEdit;
 	ui.LineEdit* m_registerValueEdit;
+	*/
 
 	// toolbar, status bar & menu
 
@@ -220,9 +224,11 @@ protected:
 		io.UsbEndpointEvents triggeredEvents
 	);
 
+	/*
 	void onReadRegister();
 	void onWriteRegister();
 	void onTest();
+	*/
 
 	void createUi();
 	void enumerateDevices();
@@ -302,6 +308,7 @@ void SerialTapProSession.createUi() {
 	m_actionTable[ActionId.Rts].m_isCheckable = true;
 	m_actionTable[ActionId.Rts].m_onTriggered += onDtrRtsChanged;
 
+	/*
 	m_actionTable[ActionId.ReadRegister] = new ui.Action("Read");
 	m_actionTable[ActionId.ReadRegister].m_onTriggered += onReadRegister;
 
@@ -310,6 +317,7 @@ void SerialTapProSession.createUi() {
 
 	m_actionTable[ActionId.Test] = createAction("Test");
 	m_actionTable[ActionId.Test].m_onTriggered += onTest;
+	*/
 
 	m_statusPaneTable[StatusPaneId.State] = m_pluginHost.m_statusBar.addPane(, 80);
 
@@ -460,6 +468,7 @@ void SerialTapProSession.createUi() {
 	m_bufferPropertySet.createPropertiesGrouped(m_pluginHost.m_propertyGrid,,, ids);
 	m_bufferPropertySet.m_readBufferSizeProp.m_minValue = SerialTapProUsb.BulkSize;
 
+	/*
 	m_registerEdit = new ui.LineEdit;
 	m_registerEdit.m_text = "1";
 	m_registerValueEdit = new ui.LineEdit;
@@ -476,6 +485,7 @@ void SerialTapProSession.createUi() {
 	registerToolBar.addAction(m_actionTable[ActionId.WriteRegister]);
 	registerLayout.addRow(registerToolBar);
 	m_pluginHost.createForm(registerGroupBox);
+	*/
 
 	// information grid
 
@@ -1271,6 +1281,7 @@ catch:
 	m_logWriter.writeLastError(log.StdRecordCode.Error);
 }
 
+/*
 void SerialTapProSession.onReadRegister() {
 	uint16_t register = strtoul(m_registerEdit.m_text);
 	uint16_t value = readRegister((SerialTapProRegister)register);
@@ -1290,6 +1301,7 @@ void SerialTapProSession.onTest() {
 	m_logWriter.write(log.StdRecordCode.Bin, data, sizeof(data));
 	m_decoder.decode(data, sizeof(data));
 }
+*/
 
 reactor SerialTapProSession.m_uiReactor {
 	m_title = $"Serial Tap Pro $(m_deviceCombo.m_currentText)";
