@@ -479,12 +479,13 @@ void SerialTapProLogConverter.convertSerialTapProRawUsbBulk(
 				status0 = status;
 				break;
 
+			/*
 			case SerialTapProNotificationCode.EdgeFall_0:
 			case SerialTapProNotificationCode.EdgeRise_0:
 			case SerialTapProNotificationCode.EdgeFall_1:
 			case SerialTapProNotificationCode.EdgeRise_1:
 				writer.write(timestamp, log.StdRecordCode.PlainTextSep, $"code: %d uleb: %lld mcs"(notificationCode, uleb.m_value));
-				break;
+				break; */
 			}
 		}
 	}

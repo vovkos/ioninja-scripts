@@ -35,9 +35,9 @@ protected:
 		Rs485Channel             = 0,
 		AbrStdBaudRateOnly       = true,
 		AbrBaudRateGridCellCount = 10000,
-		AbrEdgeErrorTolerance    = 10, // 10%
-		AbrHarmioncTolerance     = 10, // 10%
-		AbrHorizon               = 3000, // 3 sec
+		AbrEdgeErrorTolerance    = 10,   // 10%
+		AbrHarmioncTolerance     = 10,   // 10%
+		AbrHorizon               = 1000, // 1 sec
 		ReadParallelism          = 4,
 		ReadBlockSize            = 64 * 1024,
 		ReadBufferSize           = 1 * 1024 * 1024,
