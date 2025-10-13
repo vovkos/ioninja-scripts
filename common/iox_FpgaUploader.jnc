@@ -100,7 +100,7 @@ protected:
 	void finalizeLoad();
 	void complete(bool result);
 
-	bool checkStatus();
+	bool checkStatus(Status errorMask);
 
 	void onProgressDlgButtonClicked(ui.StdDlgButton button);
 	void onTimer(uint_t syncId);
@@ -209,7 +209,7 @@ Status FpgaUploader.getStatus() {
 }
 
 void FpgaUploader.erase(bool isCheckRequired) {
-	if (isCheckRequired && !checkStatus())
+	if (isCheckRequired && !checkStatus(0))
 		return;
 
 	m_logWriter.write(FpgaUploaderLogRecordCode.ErasingFlash);
@@ -225,12 +225,12 @@ void FpgaUploader.erase(bool isCheckRequired) {
 		0
 	);
 
-	if (checkStatus())
+	if (checkStatus(Status.FlashWriteError))
 		sendFirstBlock(false);
 }
 
 void FpgaUploader.load(bool isCheckRequired) {
-	if (isCheckRequired && !checkStatus())
+	if (isCheckRequired && !checkStatus(Status.FlashWriteError))
 		return;
 
 	m_logWriter.write(FpgaUploaderLogRecordCode.EnablingFpga);
@@ -246,12 +246,12 @@ void FpgaUploader.load(bool isCheckRequired) {
 		0
 	);
 
-	if (checkStatus())
+	if (checkStatus(Status.FlashWriteError | Status.AppLoadError | Status.InvalidApp))
 		finalizeLoad();
 }
 
 void FpgaUploader.sendFirstBlock(bool isCheckRequired) {
-	if (isCheckRequired && !checkStatus())
+	if (isCheckRequired && !checkStatus(Status.FlashWriteError))
 		return;
 
 	m_logWriter.write(FpgaUploaderLogRecordCode.UploadingFirmware);
@@ -265,7 +265,7 @@ void FpgaUploader.sendFirstBlock(bool isCheckRequired) {
 }
 
 void FpgaUploader.sendNextBlock(bool isCheckRequired) {
-	if (isCheckRequired && !checkStatus())
+	if (isCheckRequired && !checkStatus(Status.FlashWriteError))
 		return;
 
 	if (m_fileOffset >= m_fileSize) {
@@ -326,9 +326,16 @@ void FpgaUploader.complete(bool result) {
 	m_onUpdateCompleted(result);
 }
 
-bool FpgaUploader.checkStatus() {
+bool FpgaUploader.checkStatus(Status errorMask) {
 	for (size_t i = 0; i < StatusCheckCount; i++) {
 		Status status = getStatus();
+		if (status & errorMask) {
+			std.setError($"FPGA loader error: %1"(typeof(Status).getValueString(status)));
+			m_logWriter.writeLastError(log.StdRecordCode.Error);
+			cancel();
+			return false;
+		}
+
 		if (!(status & (Status.FlashBusy | Status.FpgaBusy)))
 			return true;
 	}
