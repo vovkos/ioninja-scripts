@@ -330,9 +330,13 @@ bool FpgaUploader.checkStatus(Status errorMask) {
 	for (size_t i = 0; i < StatusCheckCount; i++) {
 		Status status = getStatus();
 		if (status & errorMask) {
-			std.setError($"FPGA loader error: %1"(typeof(Status).getValueString(status)));
+			std.setError($"FPGA loader error at index 0x%x: %2"(
+				m_baseIndex + (m_fileOffset - sizeof(io.RpdHdr)) / AtomSize,
+				typeof(Status).getValueString(status))
+			);
+
 			m_logWriter.writeLastError(log.StdRecordCode.Error);
-			cancel();
+			complete(false);
 			return false;
 		}
 
