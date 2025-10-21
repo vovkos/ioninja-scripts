@@ -84,6 +84,8 @@ public:
 
 	void cancel();
 
+	io.RpdVersion getVersion(io.UsbDevice* device);
+
 	bool errorcode update(
 		io.UsbDevice* device,
 		string_t fileName,
@@ -92,7 +94,10 @@ public:
 	);
 
 protected:
-	io.RpdVersion getVersion();
+	io.RpdVersion getVersion() {
+		return getVersion(m_device);
+	}
+
 	Status getStatus();
 	void erase(bool isCheckRequired);
 	void sendFirstBlock(bool isCheckRequired);
@@ -173,7 +178,6 @@ bool errorcode FpgaUploader.update(
 
 	m_state = State.PreErase;
 	erase(true);
-
 	return true;
 
 catch:
@@ -181,10 +185,10 @@ catch:
 	return false; // don't write log error (session will do that)
 }
 
-io.RpdVersion FpgaUploader.getVersion() {
+io.RpdVersion FpgaUploader.getVersion(io.UsbDevice* device) {
 	io.RpdVersion version;
 
-	m_device.controlTransfer(
+	device.controlTransfer(
 		UsbControlReqType.VendorIn,
 		UsbControlReqCode.GetVersion,
 		0,
