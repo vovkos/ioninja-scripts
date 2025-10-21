@@ -177,9 +177,8 @@ bool errorcode FpgaUploader.update(
 	return true;
 
 catch:
-	m_logWriter.writeLastError(log.StdRecordCode.Error);
 	cancel();
-	return false;
+	return false; // don't write log error (session will do that)
 }
 
 io.RpdVersion FpgaUploader.getVersion() {
