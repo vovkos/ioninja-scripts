@@ -23,10 +23,6 @@ protected:
 		Overflows,
 		Abr_0,
 		Abr_1,
-		Abr_alt_0,
-		Abr_alt_1,
-		Abr_gcd_0,
-		Abr_gcd_1,
 		_Count,
 	}
 
@@ -89,11 +85,7 @@ void SerialTapProInfoSet.create(
 
 	ui.InformationGroup* subGroup = infoGrid.createGroup(infoGroup,, "Auto baud rate detector");
 	m_infoTable[InfoId.Abr_0] = infoGrid.createValue(subGroup,,, "Baud rate (TX)");
-	m_infoTable[InfoId.Abr_alt_0] = infoGrid.createValue(subGroup,,, "Baud rate (TX, alt)");
-	m_infoTable[InfoId.Abr_gcd_0] = infoGrid.createValue(subGroup,,, "Baud rate (TX, GCD)");
 	m_infoTable[InfoId.Abr_1] = infoGrid.createValue(subGroup,,, "Baud rate (RX)");
-	m_infoTable[InfoId.Abr_alt_1] = infoGrid.createValue(subGroup,,, "Baud rate (RX, alt)");
-	m_infoTable[InfoId.Abr_gcd_1] = infoGrid.createValue(subGroup,,, "Baud rate (RX, GCD)");
 
 	updateLines(0); // set all off
 }
@@ -106,13 +98,8 @@ void SerialTapProInfoSet.enable(
 	for (size_t i = 0; i < InfoId.Abr_0; i++)
 		m_infoTable[i].m_isEnabled = isEnabled;
 
-	m_infoTable[InfoId.Abr_0].m_isEnabled =
-	m_infoTable[InfoId.Abr_alt_0].m_isEnabled =
-	m_infoTable[InfoId.Abr_gcd_0].m_isEnabled = isEnabled && isAbrEnabled_0;
-
-	m_infoTable[InfoId.Abr_1].m_isEnabled =
-	m_infoTable[InfoId.Abr_alt_1].m_isEnabled =
-	m_infoTable[InfoId.Abr_gcd_1].m_isEnabled = isEnabled && isAbrEnabled_1;
+	m_infoTable[InfoId.Abr_0].m_isEnabled = isEnabled && isAbrEnabled_0;
+	m_infoTable[InfoId.Abr_1].m_isEnabled = isEnabled && isAbrEnabled_1;
 }
 
 void  SerialTapProInfoSet.setOverflows(SerialTapProOverflows overflows) {
@@ -161,14 +148,6 @@ void SerialTapProInfoSet.updateAbr(
 ) {
 	m_infoTable[InfoId.Abr_0 + channel].m_value = abr.m_baudRate ?
 		$"%1 bps %2 bits"(abr.m_baudRate, abr.m_frameBits) :
-		"unknown";
-
-	m_infoTable[InfoId.Abr_alt_0 + channel].m_value = abr.m_baudRate_alt ?
-		$"%1 bps %2 bits"(abr.m_baudRate_alt, abr.m_frameBits_alt) :
-		"unknown";
-
-	m_infoTable[InfoId.Abr_gcd_0 + channel].m_value = abr.m_baudRate_gcd ?
-		$"%1 bps"(abr.m_baudRate_gcd) :
 		"unknown";
 }
 
