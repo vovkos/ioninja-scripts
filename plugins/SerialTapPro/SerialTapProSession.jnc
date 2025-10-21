@@ -54,13 +54,15 @@ protected:
 
 	enum State {
 		Closed,
-		Uploading,
+		UploadingBootloader,
+		UploadingFirmware,
 		Capturing,
 	}
 
 	string_t m_statusTextTable[] = {
 		"Closed",
-		"Uploading",
+		"Uploading bootloader",
+		"Uploading firmware",
 		"Capturing",
 	}
 
@@ -93,7 +95,8 @@ protected:
 		_Count,
 	}
 
-	static string_t const FirmwareFileName = __DIR__ "/firmware/serial-tap-pro-1.2.rpd";
+	static string_t const BooloaderFileName = __DIR__ "/firmware/serial-tap-pro-1.2-bl.rpd";
+	static string_t const FirmwareFileName = __DIR__ "/firmware/serial-tap-pro-1.3.rpd";
 
 protected:
 	// usb
@@ -517,7 +520,20 @@ void SerialTapProSession.onUpdateCompleted(bool result) {
 		return;
 	}
 
-	startCapture();
+	switch (m_state) {
+	case State.UploadingBootloader:
+		m_state = State.UploadingFirmware;
+		m_uploader.update(m_device, FirmwareFileName, FpgaUploadBaseIndex);
+		break;
+
+	case State.UploadingFirmware:
+		startCapture();
+		break;
+
+	default:
+		stopCapture();
+		return;
+	}
 
 catch:
 	m_logWriter.writeLastError(SerialTapProLogRecordCode.CaptureError);
@@ -566,7 +582,18 @@ bool errorcode SerialTapProSession.capture() {
 	m_device = m_deviceCombo.m_currentData;
 	m_device.open();
 	m_logWriter.write(SerialTapProLogRecordCode.DeviceOpened, m_deviceCombo.m_currentText);
-	return m_uploader.update(m_device, FirmwareFileName, FpgaUploadBaseIndex);
+
+	string_t fileName;
+	io.RpdVersion version = m_uploader.getVersion(m_device);
+	if (version.m_firmwareVersion <= 0x0102) {
+		m_state = State.UploadingBootloader;
+		m_uploader.update(m_device, BooloaderFileName, FpgaUploadBaseIndex, true);
+	} else {
+		m_state = State.UploadingFirmware;
+		m_uploader.update(m_device, FirmwareFileName, FpgaUploadBaseIndex);
+	}
+
+	return true;
 
 catch:
 	m_logWriter.writeLastError(SerialTapProLogRecordCode.CaptureError);
@@ -845,10 +872,9 @@ void SerialTapProSession.stopCapture(bool isGraceful) {
 		m_device = null;
 	}
 
-	if (m_state) {
+	if (m_state >= State.Capturing) {
 		m_stdSessionInfoSet.endSession();
 		m_logWriter.write(SerialTapProLogRecordCode.CaptureStopped);
-		m_state = State.Closed;
 	}
 
 	m_abr[0].close();
@@ -856,6 +882,7 @@ void SerialTapProSession.stopCapture(bool isGraceful) {
 	m_uploader.cancel();
 	m_outEpSyncId++;
 	m_inEpSyncId++;
+	m_state = State.Closed;
 }
 
 void SerialTapProSession.waitOutEndpointEvents() {
