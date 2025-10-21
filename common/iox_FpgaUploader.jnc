@@ -253,7 +253,7 @@ void FpgaUploader.load(bool isCheckRequired) {
 		0
 	);
 
-	if (checkStatus(Status.FlashWriteError | Status.AppLoadError | Status.InvalidApp))
+	if (checkStatus(Status.AppLoadError))
 		finalizeLoad();
 }
 
@@ -287,7 +287,6 @@ void FpgaUploader.sendNextBlock(bool isCheckRequired) {
 		size = leftover;
 
 	void const* p = m_file.view(m_fileOffset, size);
-
 	m_block.setSize(size);
 	memcpy(m_block.m_p, p, size);
 
@@ -308,6 +307,9 @@ void FpgaUploader.sendNextBlock(bool isCheckRequired) {
 }
 
 void FpgaUploader.finalizeLoad() {
+	if (!checkStatus(Status.InvalidApp | Status.FlashWriteError | Status.AppLoadError))
+		return;
+
 	io.RpdVersion version = getVersion();
 
 	if (version.m_firmwareType == m_fileVersion.m_firmwareType &&
