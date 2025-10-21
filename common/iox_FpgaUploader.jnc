@@ -87,7 +87,8 @@ public:
 	bool errorcode update(
 		io.UsbDevice* device,
 		string_t fileName,
-		size_t baseIndex
+		size_t baseIndex,
+		bool skipVersionCheck = false
 	);
 
 protected:
@@ -131,7 +132,8 @@ void FpgaUploader.cancel() {
 bool errorcode FpgaUploader.update(
 	io.UsbDevice* device,
 	string_t fileName,
-	size_t baseIndex
+	size_t baseIndex,
+	bool skipVersionCheck
 ) {
 	cancel();
 
@@ -141,19 +143,21 @@ bool errorcode FpgaUploader.update(
 	m_fileVersion = hdr.m_version;
 	m_baseIndex = baseIndex;
 
-	Status status = getStatus();
-	io.RpdVersion version = getVersion();
+	if (!skipVersionCheck) {
+		Status status = getStatus();
+		io.RpdVersion version = getVersion();
 
-	bool isUpToDate =
-		status == 0 &&
-		version.m_firmwareType == m_fileVersion.m_firmwareType &&
-		version.m_firmwareVersion >= m_fileVersion.m_firmwareVersion;
+		bool isUpToDate =
+			status == 0 &&
+			version.m_firmwareType == m_fileVersion.m_firmwareType &&
+			version.m_firmwareVersion >= m_fileVersion.m_firmwareVersion;
 
-	if (isUpToDate) {
-		m_logWriter.write(FpgaUploaderLogRecordCode.FirmwareUpToDate);
-		m_onUpdateCompleted(true);
-		m_file.close();
-		return true;
+		if (isUpToDate) {
+			m_logWriter.write(FpgaUploaderLogRecordCode.FirmwareUpToDate);
+			m_onUpdateCompleted(true);
+			m_file.close();
+			return true;
+		}
 	}
 
 	char const* p = strrchr(fileName, '/');
