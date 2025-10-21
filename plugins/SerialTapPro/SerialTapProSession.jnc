@@ -578,7 +578,7 @@ bool errorcode SerialTapProSession.capture() {
 
 	string_t fileName;
 	io.RpdVersion version = m_uploader.getVersion(m_device);
-	if (version.m_firmwareVersion <= 0x0102) {
+	if (version.m_firmwareVersion < 0x0102) {
 		m_state = State.UploadingBootloader;
 		m_uploader.update(m_device, BooloaderFileName, FpgaUploadBaseIndex, true);
 	} else {
