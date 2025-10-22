@@ -51,7 +51,7 @@ struct IgmpHdr {
 
 string_t formatIgmpDigest(void const* p) {
 	IgmpHdr const* hdr = (IgmpHdr const*)p;
-	return typeof(IgmpType).getValueString(&hdr.m_type);
+	return typeof(IgmpType).getValueName(&hdr.m_type);
 }
 
 //..............................................................................

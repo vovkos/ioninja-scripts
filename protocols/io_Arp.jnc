@@ -53,7 +53,7 @@ struct ArpHdr {
 
 string_t formatArpDigest(void const* p) {
 	ArpHdr const* hdr = (ArpHdr const*)p;
-	return typeof(ArpOpcode).getValueString(hdr.m_opcode);
+	return typeof(ArpOpcode).getValueName(hdr.m_opcode);
 }
 
 //..............................................................................

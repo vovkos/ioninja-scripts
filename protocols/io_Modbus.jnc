@@ -785,13 +785,13 @@ void appendModbusPduDigest(
 		dyfield ModbusPduHdr pduHdr;
 		if (!(pduHdr.m_func & ModbusFunc.ExceptionFlag))
 			digest.append($"%1 (%2)"(
-				typeof(ModbusFunc).getValueString(pduHdr.m_func),
+				typeof(ModbusFunc).getValueName(pduHdr.m_func),
 				directions[role]
 			));
 		else {
 			dyfield ModbusExceptionParams params;
 			digest.append($"%1 (EXCEPTION: \e[31m%2\e[m)"(
-				typeof(ModbusFunc).getValueString(pduHdr.m_func & ~ModbusFunc.ExceptionFlag),
+				typeof(ModbusFunc).getValueName(pduHdr.m_func & ~ModbusFunc.ExceptionFlag),
 				typeof(ModbusException).getValueString(params.m_exception)
 			));
 		}

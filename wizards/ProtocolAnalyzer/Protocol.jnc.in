@@ -181,7 +181,7 @@ string_t get$(protocol)Digest(
 	jnc.DynamicLayout layout(p, size);
 	dylayout (layout) {
 		dyfield $(protocol)Hdr hdr;
-		digest := $"%1 #%2"(typeof($(protocol)Code).getValueString(hdr.m_code), hdr.m_id);
+		digest := $"%1 #%2"(typeof($(protocol)Code).getValueName(hdr.m_code), hdr.m_id);
 
 		switch (hdr.m_code) {
 		case $(protocol)Code.Connect:
@@ -204,7 +204,7 @@ string_t get$(protocol)Digest(
 		case $(protocol)Code.Reply:
 			dyfield $(protocol)Reply reply;
 			digest += $" to %1: %2"(
-				typeof($(protocol)Code).getValueString(reply.m_commandCode),
+				typeof($(protocol)Code).getValueName(reply.m_commandCode),
 				typeof($(protocol)Status).getValueString(reply.m_status)
 			);
 			break;

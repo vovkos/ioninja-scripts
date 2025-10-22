@@ -248,7 +248,7 @@ void representFieldArray(
 			continue;
 		}
 
-		string_t kind = typeof(io.HidReportType).getValueString(field.m_report.m_reportType);
+		string_t kind = typeof(io.HidReportType).getValueName(field.m_report.m_reportType);
 		representation.addHyperText($"%s\e[90m%s:\t\e[34m%d-bit"(indent.m_p, kind, field.m_bitCount));
 
 		indent.append(' ', 4);
@@ -299,7 +299,7 @@ void representItem(
 		representation.addHyperText(
 			$"%s\e[90m%s:\t\e[34m%d"(
 				indent.m_p,
-				typeof(io.HidRdItemId).getValueString(id),
+				typeof(io.HidRdItemId).getValueName(id),
 				field[id]
 			)
 		);
