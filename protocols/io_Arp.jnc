@@ -36,7 +36,10 @@ struct ArpHdr {
 	[ displayName = "Hardware type" ]
 	bigendian ArpHardwareType m_hardwareType;
 
-	[ displayName = "Protocol type" ]
+	[
+		displayName = "Protocol type",
+		formatSpec = "0x%04X"
+	]
 	bigendian EthernetType m_protocolType;
 
 	[ displayName = "Hardware size" ]
