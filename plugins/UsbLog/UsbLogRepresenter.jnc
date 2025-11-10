@@ -3,11 +3,10 @@
 // USB log packet declarations and representer
 //
 
-import "log_Representation.jnc"
-import "UsbLogRecordCode.jnc"
 import "io_usbmon.jncx"
 import "io_UsbDescriptors.jnc"
 import "io_win_UsbdStatus.jnc"
+import "log_Representation.jnc"
 
 //..............................................................................
 

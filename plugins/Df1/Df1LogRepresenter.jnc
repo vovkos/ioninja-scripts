@@ -5,7 +5,6 @@
 
 import "log_Representation.jnc"
 import "log_RepresentStruct.jnc"
-import "Df1LogRecordCode.jnc"
 import "io_Df1.jnc"
 import "crc16.jnc"
 

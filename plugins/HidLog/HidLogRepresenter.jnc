@@ -3,12 +3,11 @@
 // HID log representer
 //
 
-import "log_Representation.jnc"
 import "io_hid.jncx"
 import "io_HidRd.jnc"
 import "io_HidEnumerator.jnc"
 import "io_AutoHidDb.jnc"
-import "HidLogRecordCode.jnc"
+import "log_Representation.jnc"
 import "std_String.jnc"
 
 using extension io.HidUsagePageEnumStrings;

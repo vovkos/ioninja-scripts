@@ -13,11 +13,11 @@ import "ui_StdSessionInfoSet.jnc"
 import "ui_GroupBox.jnc"
 import "ui_ListWidget.jnc"
 import "ui_LineEdit.jnc"
-
 import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
 import "std_Buffer.jnc"
 import "std_List.jnc"
+import "UsbLog/UsbLogRecordCode.jnc"
 
 //..............................................................................
 
