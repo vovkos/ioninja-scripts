@@ -254,6 +254,8 @@ void ModbusLayer.load(doc.Storage* storage) {
 	m_protocolCombo.m_currentData = storage.readInt("protocol", Def.Protocol);
 	m_halfDuplexModeCombo.m_currentData = storage.readInt("halfDuplexMode", Def.HalfDuplexMode);
 	m_halfDuplexTimeoutSpin.m_value = storage.readInt("halfDuplexTimeout", Def.HalfDuplexTimeout);
+
+	onProtocolChanged();
 }
 
 void ModbusLayer.save(doc.Storage* storage) {
