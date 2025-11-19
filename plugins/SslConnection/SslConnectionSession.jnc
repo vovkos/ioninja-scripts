@@ -395,6 +395,7 @@ void SslConnectionSession.handleSocketError(std.Error const* error) {
 void SslConnectionSession.close() {
 	m_stdSessionInfoSet.endSession();
 	m_isTransmitEnabled = false;
+	m_resolver.cancel();
 	m_socket.close();
 	m_state = State.Closed;
 	m_sessionConnectionState = SessionConnectionState.Disconnected;
@@ -408,6 +409,9 @@ void SslConnectionSession.disconnect() {
 		return;
 
 	case State.Resolving:
+		m_resolver.cancel();
+		break;
+
 	case State.TcpConnecting:
 	case State.SslHandshaking:
 		m_logWriter.write(SocketLogRecordCode.ConnectCancelled);

@@ -342,8 +342,8 @@ void TcpConnectionSession.handleSocketError(std.Error const* error) {
 void TcpConnectionSession.close() {
 	m_stdSessionInfoSet.endSession();
 	m_isTransmitEnabled = false;
-	m_socket.close();
 	m_resolver.cancel();
+	m_socket.close();
 	m_state = State.Closed;
 	m_sessionConnectionState = SessionConnectionState.Disconnected;
 	m_lastReconnectTime = 0;
