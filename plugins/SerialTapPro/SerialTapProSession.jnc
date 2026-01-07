@@ -687,10 +687,17 @@ bool errorcode SerialTapProSession.flushInEndpoint() {
 }
 
 SerialTapProControlFlags SerialTapProSession.calcControl() {
-	if (!m_injectGroupBox.m_isChecked)
-		return SerialTapProControlFlags.Start;
-
 	SerialTapProControlFlags control = SerialTapProControlFlags.Start;
+
+	if (m_abrEnableCheckBoxes[0].m_isChecked)
+		control |= SerialTapProControlFlags.Edges_0;
+
+	if (m_abrEnableCheckBoxes[1].m_isChecked)
+		control |= SerialTapProControlFlags.Edges_1;
+
+	if (!m_injectGroupBox.m_isChecked)
+		return control;
+
 	SerialTapProRs485Mode rs485Mode = m_rs485ModeCombo.m_currentData;
 	switch (rs485Mode) {
 	case SerialTapProRs485Mode.HalfDuplex:
@@ -713,12 +720,6 @@ SerialTapProControlFlags SerialTapProSession.calcControl() {
 
 	if (m_rs485ChannelCombo.m_currentIndex)
 		control |= SerialTapProControlFlags.Rs485InjectChannel;
-
-	if (m_abrEnableCheckBoxes[0].m_isChecked)
-		control |= SerialTapProControlFlags.Edges_0;
-
-	if (m_abrEnableCheckBoxes[1].m_isChecked)
-		control |= SerialTapProControlFlags.Edges_1;
 
 	return control;
 }
