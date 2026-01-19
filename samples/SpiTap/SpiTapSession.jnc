@@ -286,7 +286,7 @@ void SpiTapSession.createUi() {
 
 	m_actionTable[ActionId.Flip] = createAction("Flip Master/Slave roles", "images/flip.png");
 	m_actionTable[ActionId.Flip].m_isCheckable = true;
-	m_actionTable[ActionId.Flip].m_onTriggered = flipAB;
+	m_actionTable[ActionId.Flip].m_onTriggered += flipAB;
 
 	m_pluginHost.m_toolBar.addLabel("Mode:");
 	m_modeCombo = m_pluginHost.m_toolBar.addComboBox();
