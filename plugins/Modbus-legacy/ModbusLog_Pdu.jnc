@@ -212,7 +212,7 @@ string_t formatModbusFuncDescription(
 	bool isCodeIncluded
 ) {
 	bool isException = (func & io.ModbusFunc.ExceptionFlag) != 0;
-	func &= ~io.ModbusFunc.ExceptionFlag;
+	func = (io.ModbusFunc)(func & ~io.ModbusFunc.ExceptionFlag);
 
 	string_t funcName = isCodeIncluded ?
 		typeof(io.ModbusFunc).getValueString(func) :
