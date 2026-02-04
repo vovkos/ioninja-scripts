@@ -45,6 +45,7 @@ protected:
 	}
 
 	enum ActionId {
+		Refresh,
 		UseSsl,
 		Listen,
 		Disconnect,
@@ -54,6 +55,7 @@ protected:
 	}
 
 	enum IconId {
+		Refresh,
 		Listen,
 		StopListen,
 		_Count,
@@ -141,6 +143,14 @@ public:
 	}
 
 protected:
+	void onRefresh() {
+		ui.enumerateNetworkAdapters(
+			ui.NetworkAdapterUsage.Listener,
+			m_adapterCombo,
+			m_socketPropertySet.m_adapterProp
+		);
+	}
+
 	void onListen() {
 		m_listenerState ? stopListen() : try listen();
 	}
@@ -189,17 +199,21 @@ WebSocketServerSession.construct(doc.PluginHost* pluginHost) {
 void WebSocketServerSession.createUi() {
 	// toolbar
 
+	m_iconTable[IconId.Refresh] = new ui.Icon("images/refresh.png");
+	m_iconTable[IconId.Listen] = new ui.Icon("images/listen.png");
+	m_iconTable[IconId.StopListen] = new ui.Icon("images/pause.png");
+
 	m_pluginHost.m_toolBar.addLabel("Adapter:");
 	m_adapterCombo = ui.createNetworkAdapterComboBox(m_pluginHost.m_toolBar, ui.NetworkAdapterUsage.Listener);
+
+	m_actionTable[ActionId.Refresh] = createAction("Re-enumerate adapters", m_iconTable[IconId.Refresh]);
+	m_actionTable[ActionId.Refresh].m_onTriggered += onRefresh;
 
 	m_pluginHost.m_toolBar.addSpacing();
 	m_pluginHost.m_toolBar.addLabel("Port:");
 	m_portCombo = m_pluginHost.m_toolBar.addComboBox();
 	m_portCombo.m_isEditable = true;
 	m_portCombo.m_onReturnPressed += onPortComboEnter;
-
-	m_iconTable[IconId.Listen] = new ui.Icon("images/listen.png");
-	m_iconTable[IconId.StopListen] = new ui.Icon("images/pause.png");
 
 	m_actionTable[ActionId.UseSsl] = createAction("Secure WebWockets (wss://)", "images/ssl.png");
 	m_actionTable[ActionId.UseSsl].m_isCheckable = true;
