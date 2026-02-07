@@ -10,11 +10,11 @@
 void main() {
 	// TODO: write the main action sequence here
 
-	// if we return from main now, the script terminates.
-	// wait in the inifinite loop and handle new log records
+ 	// prints will go both to session log and system log
+	print("Hello from Jancy in-app scripting!\n");
 
-	for (;;)
-		sys.sleep(500); // don't eat CPU in the loop
+	// we have event handlers below, so the script won't terminate after main()
+	// returns -- stop it manually by clicking the "Stop" button
 }
 
 void onLogRecord(

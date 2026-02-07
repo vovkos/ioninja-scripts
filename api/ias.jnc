@@ -1,6 +1,6 @@
 //..............................................................................
 //
-// IO Ninja IAS (In-App Scripting) API
+// IO Ninja IAS (In-App Scripting) API for Jancy
 //
 
 import "log_Writer.jnc"
