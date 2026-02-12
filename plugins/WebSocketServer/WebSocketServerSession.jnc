@@ -573,6 +573,7 @@ void WebSocketServerSession.waitClientSocketEvents(WebSocketServerSession.Client
 }
 
 void WebSocketServerSession.configureSsl(io.SslState* sslState) {
+	sslState.m_securityLevel = m_sslPropertySet.m_securityLevelProp.m_value;
 	sslState.enableCiphers(m_sslPropertySet.m_cipherSetProp.m_value);
 
 	if (m_sslPropertySet.m_useEphemeralDhProp.m_value)

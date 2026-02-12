@@ -384,6 +384,7 @@ bool errorcode WebSocketClientSession.connect(
 	m_remoteAddress = *remoteAddress;
 
 	if (isSecure) {
+		m_socket.m_sslState.m_securityLevel = m_sslPropertySet.m_securityLevelProp.m_value;
 		m_socket.m_sslState.enableCiphers(m_sslPropertySet.m_cipherSetProp.m_value);
 
 		if (m_sslPropertySet.m_useCertificateProp.m_value) {
