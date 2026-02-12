@@ -6,5 +6,5 @@
 #...............................................................................
 
 while True:
-	data = receive();
-	transmit(data);
+	data = receive()
+	transmit(data)
