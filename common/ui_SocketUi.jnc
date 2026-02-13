@@ -140,7 +140,7 @@ size_t enumerateNetworkAdapters(
 
 	size_t index = -1;
 	io.SocketAddress const* address = adapterCombo.m_currentData;
-	if (address) {
+	if (address)
 		for (size_t i = 0; i < optionCount; i++) {
 			io.SocketAddress const* address2 = optionArray[i].m_value;
 			if (address.isEqual(address2)) {
@@ -148,7 +148,6 @@ size_t enumerateNetworkAdapters(
 				break;
 			}
 		}
-	}
 
 	adapterCombo.setItems(optionArray, optionCount);
 	adapterProp.setOptions(optionArray, optionCount);
