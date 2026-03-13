@@ -10,7 +10,7 @@
 void main() {
 	// TODO: write the main action sequence here
 
- 	// prints will go both to session log and system log
+	// prints will go both to session log and system log
 	print("Hello from Jancy in-app scripting!\n");
 
 	// we have event handlers below, so the script won't terminate after main()
