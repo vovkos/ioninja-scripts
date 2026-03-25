@@ -13,9 +13,9 @@ print("Hello from Python in-app scripting!")
 # stop it manually by clicking the "Stop" button
 
 def on_log_record(timestamp, record_code, data):
-	# TODO: write the new log record handling logic here
-	trace(f"on_log_record 0x{record_code: 016x}, {data}")
+    # TODO: write the new log record handling logic here
+    trace(f"on_log_record 0x{record_code: 016x}, {data}")
 
 def pretransmit(data):
-	# TODO: write the outbound packet preprocessing logic here
-	transmit(data)
+    # TODO: write the outbound packet preprocessing logic here
+    transmit(data)

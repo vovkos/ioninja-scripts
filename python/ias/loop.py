@@ -12,7 +12,7 @@ connect()
 
 i = 0
 while True:
-	packet = f"packet {i}\r\n"
-	transmit(packet)
-	time.sleep(1) # wait one second and repeat
-	i += 1
+    packet = f"packet {i}\r\n"
+    transmit(packet)
+    time.sleep(1) # wait one second and repeat
+    i += 1
