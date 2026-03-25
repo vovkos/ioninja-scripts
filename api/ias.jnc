@@ -23,6 +23,7 @@ void clearLog();
 
 // basic session transport operations
 
+bool const property g_isConnected;
 bool errorcode connect();
 void disconnect();
 
@@ -36,6 +37,8 @@ size_t errorcode transmit(string_t text) {
 }
 
 size_t getTransmitData(std.Buffer* buffer); // fetch contents of the "Transmit" pane
+
+size_t const property g_pendingReceiveSize;
 
 size_t errorcode receive(
 	void* p,
