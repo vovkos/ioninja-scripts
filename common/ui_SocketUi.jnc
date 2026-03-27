@@ -359,15 +359,17 @@ void SocketPropertySet.createProperties(
 			"Detect connection loss with TCP keep-alive probes (SO_KEEPALIVE)"
 		);
 
+		m_tcpKeepAliveProp.m_isGroupEnabler = true;
+
 		m_tcpKeepAliveIdleTimeoutProp = propertyGrid.createIntProperty(
 			m_tcpKeepAliveProp,,
-			"Keep-alive idle timeout (ms)",
+			"Idle timeout (ms)",
 			"Time to wait before sending a keep-alive probe when connection is idle (TCP_KEEPIDLE)"
 		);
 
 		m_tcpKeepAliveRetryIntervalProp = propertyGrid.createIntProperty(
 			m_tcpKeepAliveProp,,
-			"Keep-alive retry interval (ms)",
+			"Retry interval (ms)",
 			"Interval before resending unanswered keep-alive probes (TCP_KEEPINTVL)"
 		);
 	}
