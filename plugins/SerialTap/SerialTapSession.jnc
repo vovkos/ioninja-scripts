@@ -77,7 +77,6 @@ enum UartGpioPin {
 	Cts = 13,
 }
 
-
 bool getGpioPin(
 	io.UsbDevice* device,
 	uint_t pin

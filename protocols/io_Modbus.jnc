@@ -642,7 +642,6 @@ async void layoutModbusPdu(
 				}
 				break;
 
-
 			case ModbusFunc.WriteSingleCoil:
 			case ModbusFunc.WriteSingleRegister:
 				[ ungroup ]

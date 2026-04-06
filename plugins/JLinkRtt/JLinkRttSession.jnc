@@ -175,7 +175,6 @@ protected:
 		io.SocketEvents triggeredEvents
 	);
 
-
 	void jlinkReadThreadFunc();
 
 	static void jlinkTraceInfo(char const thin* p) {

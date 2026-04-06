@@ -275,7 +275,6 @@ bool errorcode SshChannel.connect(
 	m_ssh.m_tcpKeepAliveIdleTimeout = params.m_tcpKeepAliveIdleTimeout;
 	m_ssh.m_tcpKeepAliveRetryInterval = params.m_tcpKeepAliveRetryInterval;
 
-
 	if (params.m_localAddress.m_family)
 		m_ssh.open(params.m_localAddress);
 	else if (!params.m_localAddress.m_port)

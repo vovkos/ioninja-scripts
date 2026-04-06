@@ -16,7 +16,6 @@ import "std_Buffer.jnc"
 import "HwSerialMonLogRecordCode.jnc"
 import "UsbLog/UsbLogRecordCode.jnc"
 
-
 //..............................................................................
 
 class HwSerialMonSession: doc.Session {

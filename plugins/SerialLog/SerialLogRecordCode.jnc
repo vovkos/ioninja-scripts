@@ -89,7 +89,6 @@ io.SerialPortDesc const* findSerialPortDesc(string_t deviceName) {
 		if (port.m_deviceName == deviceName)
 			return port;
 
-
 	return null;
 }
 

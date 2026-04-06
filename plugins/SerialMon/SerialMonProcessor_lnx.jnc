@@ -229,7 +229,6 @@ void SerialMonProcessor_lnx.processNotification(io.DeviceMonitorNotifyHdr const*
 			);
 		break;
 
-
 	case io.lnx.DeviceMonitorNotifyCode.UnlockedIoctl:
 	case io.lnx.DeviceMonitorNotifyCode.CompatIoctl:
 		io.lnx.DeviceMonitorIoctlNotifyParams const* params = (io.lnx.DeviceMonitorIoctlNotifyParams const*)(notifyHdr + 1);
@@ -530,7 +529,6 @@ void SerialMonProcessor_lnx.processTermiosSetAttr(
 	flowControl =
 		(cflags & psx.CRTSCTS) ? io.SerialFlowControl.RtsCts :
 		(iflags & (psx.IXON | psx.IXOFF)) ? io.SerialFlowControl.XonXoff : io.SerialFlowControl.None;
-
 
 	m_logWriter.write(
 		timestamp,

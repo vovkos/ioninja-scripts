@@ -181,7 +181,6 @@ io.PcapFilter* NetSnifferLogFilter.getPcapFilter(io.PcapLinkType linkType) {
 			return pcapFilter;
 	}
 
-
 	io.PcapFilter* pcapFilter = new io.PcapFilter;
 
 	try pcapFilter.compile(

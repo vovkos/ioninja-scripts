@@ -25,7 +25,6 @@ protected:
 		Opened,
 	}
 
-
 	enum ActionId {
 		Open,
 		_Count,

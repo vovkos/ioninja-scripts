@@ -141,7 +141,6 @@ bool representHidLog(
 		);
 		break;
 
-
 	default:
 		return false;
 	}
