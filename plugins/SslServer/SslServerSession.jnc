@@ -126,6 +126,8 @@ public:
 		size_t size
 	);
 
+	override bool errorcode connectSession();
+
 	override void disconnectSession() {
 		disconnectAll();
 	}
@@ -439,6 +441,17 @@ size_t errorcode SslServerSession.transmit(
 	return result;
 }
 
+bool errorcode SslServerSession.connectSession() {
+	if (m_sessionConnectionState)
+		return true;
+
+	if (!m_listenerState)
+		listen();
+
+	m_sessionConnectionState = SessionConnectionState.Connecting;
+	return true;
+}
+
 void SslServerSession.waitListenerSocketEvents() {
 	m_listenerSocket.wait(
 		io.SslSocketEvents.IoError |
@@ -487,6 +500,7 @@ void SslServerSession.onListenerSocketEvent(
 		m_logWriter.write(log.StdRecordCode.Error, m_listenerSocket.m_ioError);
 		m_listenerSocket.close();
 		m_listenerState = ListenerState.Closed;
+		m_listenerSyncId++;
 		m_stdSessionInfoSet.endSession();
 		return;
 	}
@@ -649,6 +663,9 @@ reactor SslServerSession.m_uiReactor {
 	m_sessionConnectionState = m_clientWidget.m_currentData ?
 		SessionConnectionState.Connected :
 		SessionConnectionState.Disconnected;
+
+	if (!m_listenerState && m_sessionConnectionState == SessionConnectionState.Connecting)
+		m_sessionConnectionState = SessionConnectionState.Disconnected;
 }
 
 //..............................................................................

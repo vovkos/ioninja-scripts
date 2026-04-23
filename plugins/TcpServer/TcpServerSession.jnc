@@ -28,7 +28,7 @@ protected:
 		LocalPort = 8080,
 	}
 
-	enum State {
+	enum ListenerState {
 		Closed,
 		Listening,
 	}
@@ -65,7 +65,7 @@ protected:
 protected:
 	// listener socket & list of clients
 
-	State bindable m_state;
+	ListenerState bindable m_listenerState;
 	io.Socket m_listenerSocket;
 	io.SocketAddress m_localAddress;
 	uint_t m_listenerSyncId;
@@ -117,6 +117,8 @@ public:
 		size_t size
 	);
 
+	override bool errorcode connectSession();
+
 	override void disconnectSession() {
 		disconnectAll();
 	}
@@ -137,7 +139,7 @@ protected:
 	}
 
 	void onListen() {
-		m_state ? stopListen() : try listen();
+		m_listenerState ? stopListen() : try listen();
 	}
 
 	void onPortComboEnter() {
@@ -265,7 +267,7 @@ bool errorcode TcpServerSession.listen() {
 	address = m_listenerSocket.m_address;
 	m_logWriter.write(SocketLogRecordCode.Listening, &address, sizeof(address));
 	m_localAddress = address;
-	m_state = State.Listening;
+	m_listenerState = ListenerState.Listening;
 	waitListenerSocketEvents();
 	m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
 	return true;
@@ -273,19 +275,19 @@ bool errorcode TcpServerSession.listen() {
 catch:
 	m_logWriter.writeLastError(SocketLogRecordCode.ListenError);
 	m_listenerSocket.close();
-	m_state = State.Closed;
+	m_listenerState = ListenerState.Closed;
 	m_listenerSyncId++;
 	m_stdSessionInfoSet.endSession();
 	return false;
 }
 
 void TcpServerSession.stopListen() {
-	if (m_state != State.Listening)
+	if (m_listenerState != ListenerState.Listening)
 		return;
 
 	m_logWriter.write(SocketLogRecordCode.ListenStopped, &m_localAddress, sizeof(m_localAddress));
 	m_listenerSocket.close();
-	m_state = State.Closed;
+	m_listenerState = ListenerState.Closed;
 	m_listenerSyncId++;
 	m_stdSessionInfoSet.endSession();
 }
@@ -412,6 +414,17 @@ size_t errorcode TcpServerSession.transmit(
 	return result;
 }
 
+bool errorcode TcpServerSession.connectSession() {
+	if (m_sessionConnectionState)
+		return true;
+
+	if (!m_listenerState)
+		listen();
+
+	m_sessionConnectionState = SessionConnectionState.Connecting;
+	return true;
+}
+
 bool errorcode TcpServerSession.dispatch(
 	uint_t code,
 	variant_t in,
@@ -483,7 +496,8 @@ void TcpServerSession.onListenerSocketEvent(
 	if (triggeredEvents & io.SocketEvents.IoError) {
 		m_logWriter.write(log.StdRecordCode.Error, m_listenerSocket.m_ioError);
 		m_listenerSocket.close();
-		m_state = State.Closed;
+		m_listenerState = ListenerState.Closed;
+		m_listenerSyncId++;
 		m_stdSessionInfoSet.endSession();
 		return;
 	}
@@ -576,12 +590,12 @@ void TcpServerSession.onClientSocketEvent(
 
 reactor TcpServerSession.m_uiReactor {
 	m_title = $"TCP @ $(m_portCombo.m_editText)";
-	m_actionTable[ActionId.Listen].m_text = m_state ? "Stop Listening" : "Listen";
-	m_actionTable[ActionId.Listen].m_icon = m_iconTable[m_state ? IconId.StopListen : IconId.Listen];
+	m_actionTable[ActionId.Listen].m_text = m_listenerState ? "Stop Listening" : "Listen";
+	m_actionTable[ActionId.Listen].m_icon = m_iconTable[m_listenerState ? IconId.StopListen : IconId.Listen];
 	m_actionTable[ActionId.Disconnect].m_isEnabled =
 	m_actionTable[ActionId.DisconnectAll].m_isEnabled =
 	m_clientWidget.m_isEnabled = m_clientCount;
-	m_statusPaneTable[StatusPaneId.ListenerState].m_text = m_state ? "Listening" : "Not listening";
+	m_statusPaneTable[StatusPaneId.ListenerState].m_text = m_listenerState ? "Listening" : "Not listening";
 	m_statusPaneTable[StatusPaneId.ClientCount].m_text = $"$m_clientCount client(s)";
 
 	m_isTransmitEnabled =
@@ -591,6 +605,9 @@ reactor TcpServerSession.m_uiReactor {
 	m_sessionConnectionState = m_clientWidget.m_currentData ?
 		SessionConnectionState.Connected :
 		SessionConnectionState.Disconnected;
+
+	if (!m_listenerState && m_sessionConnectionState == SessionConnectionState.Connecting)
+		m_sessionConnectionState = SessionConnectionState.Disconnected;
 }
 
 //..............................................................................
