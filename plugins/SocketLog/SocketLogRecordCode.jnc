@@ -4,6 +4,8 @@
 //
 
 import "log_RecordCode.jnc"
+import "io_base.jncx"
+import "io_SocketEvents.jnc"
 
 //..............................................................................
 
@@ -50,8 +52,12 @@ enum SocketLogPartCode: uint64_t {
 
 bitflag enum TcpDisconnectLogRecordFlags {
 	Remote,
-	Reset,
-	KeepClient,
+	Reset_old,      // for compatibility with existing logs
+	KeepClient,     // hint for ServerSocketLogFilter
+	Reset           = io.SocketEvents.TcpReset,
+	TimedOut        = io.SocketEvents.TcpTimedOut,
+	ResetMask       = Reset | Reset_old,
+	SocketEventMask = Reset | TimedOut,
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
