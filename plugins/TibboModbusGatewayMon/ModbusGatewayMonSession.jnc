@@ -386,7 +386,8 @@ void ModbusGatewayMonSession.waitSocketEvents() {
 		eventMask |=
 			io.SocketEvents.IncomingData |
 			io.SocketEvents.TcpDisconnected |
-			io.SocketEvents.TcpReset;
+			io.SocketEvents.TcpReset |
+			io.SocketEvents.TcpTimedOut;
 
 		break;
 	}
@@ -429,10 +430,9 @@ void ModbusGatewayMonSession.onSocketEvent(
 
 		TcpDisconnectLogRecordParams recordParams;
 		recordParams.m_address = m_remoteAddress;
-		recordParams.m_flags = TcpDisconnectLogRecordFlags.Remote;
-
-		if (triggeredEvents & io.SocketEvents.TcpReset)
-			recordParams.m_flags |= TcpDisconnectLogRecordFlags.Reset;
+		recordParams.m_flags =
+			TcpDisconnectLogRecordFlags.Remote |
+			triggeredEvents & TcpDisconnectLogRecordFlags.SocketEventMask;
 
 		m_logWriter.write(
 			SocketLogRecordCode.Disconnected,

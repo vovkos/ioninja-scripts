@@ -432,7 +432,8 @@ void WebSocketClientSession.waitSocketEvents() {
 	io.WebSocketEvents eventMask =
 		io.WebSocketEvents.IoError |
 		io.WebSocketEvents.TcpDisconnected |
-		io.WebSocketEvents.TcpReset;
+		io.WebSocketEvents.TcpReset |
+		io.WebSocketEvents.TcpTimedOut;
 
 	switch (m_state) {
 	case State.TcpConnecting:
@@ -743,9 +744,8 @@ void WebSocketClientSession.onSocketEvent(
 			));
 
 		addDisconnectLogRecord(
-			(triggeredEvents & io.WebSocketEvents.TcpReset) ?
-			TcpDisconnectLogRecordFlags.Remote | TcpDisconnectLogRecordFlags.Reset :
-			TcpDisconnectLogRecordFlags.Remote
+			TcpDisconnectLogRecordFlags.Remote |
+			triggeredEvents & TcpDisconnectLogRecordFlags.SocketEventMask
 		);
 
 		uint64_t lastReconnectTime = m_lastReconnectTime;

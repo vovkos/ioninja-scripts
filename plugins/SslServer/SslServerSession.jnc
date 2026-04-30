@@ -468,6 +468,7 @@ void SslServerSession.waitClientSocketEvents(SslServerSession.Client* client) {
 		eventMask |=
 			io.SslSocketEvents.TcpDisconnected |
 			io.SslSocketEvents.TcpReset |
+			io.SslSocketEvents.TcpTimedOut |
 			io.SslSocketEvents.SslHandshakeCompleted;
 		break;
 
@@ -475,7 +476,8 @@ void SslServerSession.waitClientSocketEvents(SslServerSession.Client* client) {
 		eventMask |=
 			io.SslSocketEvents.IncomingData |
 			io.SslSocketEvents.TcpDisconnected |
-			io.SslSocketEvents.TcpReset;
+			io.SslSocketEvents.TcpReset |
+			io.SslSocketEvents.TcpTimedOut;
 
 		if (!client.m_isTransmitEnabled)
 			eventMask |= io.SslSocketEvents.WriteBufferReady;
@@ -616,10 +618,9 @@ void SslServerSession.onClientSocketEvent(
 
 		TcpDisconnectLogRecordParams recordParams;
 		recordParams.m_address = client.m_address;
-		recordParams.m_flags = TcpDisconnectLogRecordFlags.Remote;
-
-		if (triggeredEvents & io.SslSocketEvents.TcpReset)
-			recordParams.m_flags |= TcpDisconnectLogRecordFlags.Reset;
+		recordParams.m_flags =
+			TcpDisconnectLogRecordFlags.Remote |
+			triggeredEvents & TcpDisconnectLogRecordFlags.SocketEventMask;
 
 		m_logWriter.write(
 			SocketLogRecordCode.ClientDisconnected,

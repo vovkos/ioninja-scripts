@@ -635,10 +635,9 @@ void TcpProxySession.onConnectionSocketEvent(
 
 		TcpDisconnectLogRecordParams params;
 		params.m_address = connection.m_address;
-		params.m_flags = TcpDisconnectLogRecordFlags.Remote;
-
-		if (triggeredEvents & io.SocketEvents.TcpReset)
-			params.m_flags |= TcpDisconnectLogRecordFlags.Reset;
+		params.m_flags =
+			TcpDisconnectLogRecordFlags.Remote |
+			triggeredEvents & TcpDisconnectLogRecordFlags.SocketEventMask;
 
 		if (isClient) {
 			params.m_flags |= TcpDisconnectLogRecordFlags.KeepClient;
@@ -771,7 +770,8 @@ void TcpProxySession.waitConnectionSocketEvents(
 	case ConnectionState.Connected:
 		eventMask |=
 			io.SocketEvents.TcpDisconnected |
-			io.SocketEvents.TcpReset;
+			io.SocketEvents.TcpReset |
+			io.SocketEvents.TcpTimedOut;
 
 		if (peerCanTransmit)
 			eventMask |= io.SocketEvents.IncomingData;

@@ -544,7 +544,8 @@ void WebSocketServerSession.waitClientSocketEvents(WebSocketServerSession.Client
 	io.WebSocketEvents eventMask =
 		io.WebSocketEvents.IoError |
 		io.WebSocketEvents.TcpDisconnected |
-		io.WebSocketEvents.TcpReset;
+		io.WebSocketEvents.TcpReset |
+		io.WebSocketEvents.TcpTimedOut;
 
 	switch (client.m_state) {
 	case ConnectionState.SslHandshaking:
@@ -756,10 +757,9 @@ void WebSocketServerSession.onClientSocketEvent(
 
 		addDisconnectLogRecord(
 			client,
-			(triggeredEvents & io.WebSocketEvents.TcpReset) ?
-				TcpDisconnectLogRecordFlags.Remote | TcpDisconnectLogRecordFlags.Reset :
-				TcpDisconnectLogRecordFlags.Remote
-			);
+			TcpDisconnectLogRecordFlags.Remote |
+			triggeredEvents & TcpDisconnectLogRecordFlags.SocketEventMask
+		);
 
 		removeClient(client);
 		return;
