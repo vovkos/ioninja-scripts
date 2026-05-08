@@ -433,7 +433,7 @@ void WebSocketClientSession.waitSocketEvents() {
 		io.WebSocketEvents.IoError |
 		io.WebSocketEvents.TcpDisconnected |
 		io.WebSocketEvents.TcpReset |
-		io.WebSocketEvents.TcpTimedOut;
+		io.WebSocketEvents.TcpAborted;
 
 	switch (m_state) {
 	case State.TcpConnecting:

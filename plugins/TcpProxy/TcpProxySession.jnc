@@ -771,7 +771,7 @@ void TcpProxySession.waitConnectionSocketEvents(
 		eventMask |=
 			io.SocketEvents.TcpDisconnected |
 			io.SocketEvents.TcpReset |
-			io.SocketEvents.TcpTimedOut;
+			io.SocketEvents.TcpAborted;
 
 		if (peerCanTransmit)
 			eventMask |= io.SocketEvents.IncomingData;

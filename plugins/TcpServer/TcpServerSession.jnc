@@ -476,7 +476,7 @@ void TcpServerSession.waitClientSocketEvents(TcpServerSession.Client* client) {
 		io.SocketEvents.IncomingData |
 		io.SocketEvents.TcpDisconnected |
 		io.SocketEvents.TcpReset |
-		io.SocketEvents.TcpTimedOut;
+		io.SocketEvents.TcpAborted;
 
 	if (!client.m_isTransmitEnabled)
 		eventMask |= io.SocketEvents.WriteBufferReady;

@@ -545,7 +545,7 @@ void WebSocketServerSession.waitClientSocketEvents(WebSocketServerSession.Client
 		io.WebSocketEvents.IoError |
 		io.WebSocketEvents.TcpDisconnected |
 		io.WebSocketEvents.TcpReset |
-		io.WebSocketEvents.TcpTimedOut;
+		io.WebSocketEvents.TcpAborted;
 
 	switch (client.m_state) {
 	case ConnectionState.SslHandshaking:

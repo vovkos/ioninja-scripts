@@ -55,9 +55,9 @@ bitflag enum TcpDisconnectLogRecordFlags {
 	Reset_old,      // for compatibility with existing logs
 	KeepClient,     // hint for ServerSocketLogFilter
 	Reset           = io.SocketEvents.TcpReset,
-	TimedOut        = io.SocketEvents.TcpTimedOut,
+	Aborted         = io.SocketEvents.TcpAborted,
 	ResetMask       = Reset | Reset_old,
-	SocketEventMask = Reset | TimedOut,
+	SocketEventMask = Reset | Aborted,
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .

@@ -387,7 +387,7 @@ void ModbusGatewayMonSession.waitSocketEvents() {
 			io.SocketEvents.IncomingData |
 			io.SocketEvents.TcpDisconnected |
 			io.SocketEvents.TcpReset |
-			io.SocketEvents.TcpTimedOut;
+			io.SocketEvents.TcpAborted;
 
 		break;
 	}

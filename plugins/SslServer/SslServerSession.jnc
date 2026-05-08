@@ -468,7 +468,7 @@ void SslServerSession.waitClientSocketEvents(SslServerSession.Client* client) {
 		eventMask |=
 			io.SslSocketEvents.TcpDisconnected |
 			io.SslSocketEvents.TcpReset |
-			io.SslSocketEvents.TcpTimedOut |
+			io.SslSocketEvents.TcpAborted |
 			io.SslSocketEvents.SslHandshakeCompleted;
 		break;
 
@@ -477,7 +477,7 @@ void SslServerSession.waitClientSocketEvents(SslServerSession.Client* client) {
 			io.SslSocketEvents.IncomingData |
 			io.SslSocketEvents.TcpDisconnected |
 			io.SslSocketEvents.TcpReset |
-			io.SslSocketEvents.TcpTimedOut;
+			io.SslSocketEvents.TcpAborted;
 
 		if (!client.m_isTransmitEnabled)
 			eventMask |= io.SslSocketEvents.WriteBufferReady;

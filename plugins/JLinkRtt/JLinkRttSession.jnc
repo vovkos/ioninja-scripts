@@ -630,7 +630,7 @@ void JLinkRttSession.waitSocketEvents() {
 			io.SocketEvents.IncomingData |
 			io.SocketEvents.TcpDisconnected |
 			io.SocketEvents.TcpReset |
-			io.SocketEvents.TcpTimedOut;
+			io.SocketEvents.TcpAborted;
 
 		if (!m_isTransmitEnabled)
 			eventMask |= io.SocketEvents.WriteBufferReady;

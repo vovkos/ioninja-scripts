@@ -104,22 +104,23 @@ bool representSocketLog(
 		TcpDisconnectLogRecordParams const* params = (TcpDisconnectLogRecordParams const*)p;
 
 		string_t addressString = params.m_address.getString();
-		string_t reason;
+		string_t closeKind;
+		string_t initiator;
 		uint_t backColor;
 
-		if (params.m_flags & TcpDisconnectLogRecordFlags.TimedOut) {
-			reason = "timed out";
+		if (params.m_flags & TcpDisconnectLogRecordFlags.Aborted) {
+			closeKind = "aborted";
+			initiator = "local";
 			backColor = log.StdLogColor.Warning;
 		} else {
-			string_t closeKind = (params.m_flags & TcpDisconnectLogRecordFlags.ResetMask) ? "reset" : "closed";
-			string_t initiator = (params.m_flags & TcpDisconnectLogRecordFlags.Remote) ? "remote" : "local";
-			reason = $"$closeKind by $initiator node";
+			closeKind = (params.m_flags & TcpDisconnectLogRecordFlags.ResetMask) ? "reset" : "closed";
+			initiator = (params.m_flags & TcpDisconnectLogRecordFlags.Remote) ? "remote" : "local";
 			backColor = log.StdLogColor.Disconnect;
 		}
 
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
 		representation.m_lineAttr.m_backColor = backColor;
-		representation.addHyperText($"Disconnected from \e[34m$addressString\e[m ($reason)");
+		representation.addHyperText($"Disconnected from \e[34m$addressString\e[m ($closeKind by $initiator node)");
 		break;
 
 	case SocketLogRecordCode.Disconnected_old:
