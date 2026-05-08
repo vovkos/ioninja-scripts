@@ -441,8 +441,10 @@ void SshChannel.waitSshEvents() {
 
 	case State.Connected:
 		eventMask |=
+			io.SshEvents.IncomingData |
 			io.SshEvents.TcpDisconnected |
-			io.SshEvents.IncomingData;
+			io.SshEvents.TcpReset |
+			io.SshEvents.TcpAborted;
 
 		if (!m_isTransmitEnabled)
 			eventMask |= io.SshEvents.WriteBufferReady;
