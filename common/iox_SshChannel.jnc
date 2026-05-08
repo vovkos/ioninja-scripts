@@ -394,12 +394,20 @@ bool errorcode SshChannel.applyProperties(
 	ui.BufferPropertySet const* bufferPropSet
 ) {
 	m_readBuffer.setSize(bufferPropSet.m_readBufferSizeProp.m_value);
+
 	m_connectParams.m_useReconnect = socketPropSet.m_useReconnectProp ?
 		socketPropSet.m_useReconnectProp.m_value :
 		ui.SocketPropertySet.Defaults.UseReconnect;
 	m_connectParams.m_reconnectTimeout = socketPropSet.m_reconnectTimeoutProp ?
 		socketPropSet.m_reconnectTimeoutProp.m_value :
 		ui.SocketPropertySet.Defaults.ReconnectTimeout;
+
+	m_ssh.m_readBlockSize = bufferPropSet.m_readBlockSizeProp.m_value;
+	m_ssh.m_readBufferSize = bufferPropSet.m_readBufferSizeProp.m_value;
+	m_ssh.m_writeBufferSize = bufferPropSet.m_writeBufferSizeProp.m_value;
+	m_ssh.m_options = ui.getSocketOptions(socketPropSet, bufferPropSet);
+	m_ssh.m_tcpKeepAliveIdleTimeout = socketPropSet.m_tcpKeepAliveIdleTimeoutProp.m_value;
+	m_ssh.m_tcpKeepAliveRetryInterval = socketPropSet.m_tcpKeepAliveRetryIntervalProp.m_value;
 	return true;
 }
 
