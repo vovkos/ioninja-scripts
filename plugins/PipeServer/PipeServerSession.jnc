@@ -294,7 +294,7 @@ void PipeServerSession.disconnectAll() {
 }
 
 void PipeServerSession.disconnect(PipeServerSession.Client* client) {
-	PipeDisconnectLogRecordParams params;
+	PipeServerLogDisconnectParams params;
 	params.m_id = client.m_pipe.m_osHandle;
 	m_logWriter.write(PipeServerLogRecordCode.ClientDisconnected, &params, sizeof(params));
 	removeClient(client);
@@ -510,9 +510,9 @@ void PipeServerSession.onClientPipeEvent(
 			m_logWriter.write(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 		}
 
-		PipeDisconnectLogRecordParams params;
+		PipeServerLogDisconnectParams params;
 		params.m_id = client.m_pipe.m_osHandle;
-		params.m_flags = PipeDisconnectLogRecordFlags.Remote;
+		params.m_flags = PipeServerLogDisconnectFlags.Remote;
 		m_logWriter.write(PipeServerLogRecordCode.ClientDisconnected, &params, sizeof(params));
 		removeClient(client);
 		return;

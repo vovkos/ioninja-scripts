@@ -1,6 +1,6 @@
 //..............................................................................
 //
-// Pipe listener log record codes
+// Pipe server log record codes
 //
 
 import "log_RecordCode.jnc"
@@ -21,13 +21,13 @@ enum PipeServerLogRecordCode: uint64_t {
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-bitflag enum PipeDisconnectLogRecordFlags {
+bitflag enum PipeServerLogDisconnectFlags {
 	Remote
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-struct PipeDisconnectLogRecordParams {
+struct PipeServerLogDisconnectParams {
 	uint64_t m_id;
 	uint_t m_flags;
 }
