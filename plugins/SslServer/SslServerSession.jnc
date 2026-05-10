@@ -322,9 +322,9 @@ void SslServerSession.disconnectAll() {
 }
 
 void SslServerSession.disconnect(SslServerSession.Client* client) {
-	TcpDisconnectLogRecordParams params;
+	SocketLogDisconnectParams params;
 	params.m_address = client.m_address;
-	params.m_flags = getTcpDisconnectLogRecordFlagsFromSocketOptions(client.m_socket.m_options);
+	params.m_flags = getSocketLogDisconnectFlagsFromOptions(client.m_socket.m_options);
 	m_logWriter.write(SocketLogRecordCode.ClientDisconnected, &params, sizeof(params));
 	removeClient(client);
 }
@@ -612,9 +612,9 @@ void SslServerSession.onClientSocketEvent(
 			m_logWriter.write(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 		}
 
-		TcpDisconnectLogRecordParams params;
+		SocketLogDisconnectParams params;
 		params.m_address = client.m_address;
-		params.m_flags = getTcpDisconnectLogRecordFlagsFromSocketEvents(triggeredEvents);
+		params.m_flags = getSocketLogDisconnectFlagsFromEvents(triggeredEvents);
 		m_logWriter.write(SocketLogRecordCode.ClientDisconnected, &params, sizeof(params));
 		removeClient(client);
 		return;

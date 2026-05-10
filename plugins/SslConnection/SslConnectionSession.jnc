@@ -422,9 +422,9 @@ void SslConnectionSession.disconnect() {
 		break;
 
 	case State.Connected:
-		TcpDisconnectLogRecordParams params;
+		SocketLogDisconnectParams params;
 		params.m_address = m_remoteAddress;
-		params.m_flags = getTcpDisconnectLogRecordFlagsFromSocketOptions(m_socket.m_options);
+		params.m_flags = getSocketLogDisconnectFlagsFromOptions(m_socket.m_options);
 		m_logWriter.write(SocketLogRecordCode.Disconnected, &params, sizeof(params));
 		break;
 	}
@@ -571,9 +571,9 @@ void SslConnectionSession.onSocketEvent(
 			m_logWriter.write(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 		}
 
-		TcpDisconnectLogRecordParams params;
+		SocketLogDisconnectParams params;
 		params.m_address = m_remoteAddress;
-		params.m_flags = getTcpDisconnectLogRecordFlagsFromSocketEvents(triggeredEvents);
+		params.m_flags = getSocketLogDisconnectFlagsFromEvents(triggeredEvents);
 		m_logWriter.write(SocketLogRecordCode.Disconnected, &params, sizeof(params));
 
 		uint64_t lastReconnectTime = m_lastReconnectTime;

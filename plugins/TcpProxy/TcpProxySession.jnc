@@ -381,7 +381,7 @@ void TcpProxySession.disconnectAll() {
 }
 
 void TcpProxySession.disconnect(Proxy* proxy) {
-	TcpDisconnectLogRecordParams params;
+	SocketLogDisconnectParams params;
 
 	switch (proxy.m_target.m_state) {
 	case ConnectionState.Connecting:
@@ -392,7 +392,7 @@ void TcpProxySession.disconnect(Proxy* proxy) {
 	case ConnectionState.Connected:
 		proxy.m_target.m_socket.blockingWait(io.SocketEvents.WriteBufferEmpty, Defaults.TxDisconnectTimeout);
 		params.m_address = proxy.m_target.m_address;
-		params.m_flags = getTcpDisconnectLogRecordFlagsFromSocketOptions(proxy.m_target.m_socket.m_options);
+		params.m_flags = getSocketLogDisconnectFlagsFromOptions(proxy.m_target.m_socket.m_options);
 		m_logWriter.write(SocketLogRecordCode.Disconnected, &params, sizeof(params));
 		break;
 	}
@@ -402,7 +402,7 @@ void TcpProxySession.disconnect(Proxy* proxy) {
 	} else {
 		proxy.m_client.m_socket.blockingWait(io.SocketEvents.WriteBufferEmpty, Defaults.TxDisconnectTimeout);
 		params.m_address = proxy.m_client.m_address;
-		params.m_flags = getTcpDisconnectLogRecordFlagsFromSocketOptions(proxy.m_client.m_socket.m_options);
+		params.m_flags = getSocketLogDisconnectFlagsFromOptions(proxy.m_client.m_socket.m_options);
 		m_logWriter.write(SocketLogRecordCode.ClientDisconnected, &params, sizeof(params));
 	}
 
@@ -624,12 +624,12 @@ void TcpProxySession.onConnectionSocketEvent(
 
 		forwardData(proxy, peer, connection);
 
-		TcpDisconnectLogRecordParams params;
+		SocketLogDisconnectParams params;
 		params.m_address = connection.m_address;
-		params.m_flags = getTcpDisconnectLogRecordFlagsFromSocketEvents(triggeredEvents);
+		params.m_flags = getSocketLogDisconnectFlagsFromEvents(triggeredEvents);
 
 		if (isClient) {
-			params.m_flags |= TcpDisconnectLogRecordFlags.KeepClient;
+			params.m_flags |= SocketLogDisconnectFlags.KeepClient;
 			m_logWriter.write(SocketLogRecordCode.ClientDisconnected, &params, sizeof(params));
 		} else {
 			setCurrentProxy(proxy);

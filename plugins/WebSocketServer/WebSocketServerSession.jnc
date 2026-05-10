@@ -379,7 +379,7 @@ void WebSocketServerSession.disconnect(WebSocketServerSession.Client* client) {
 		return;
 	}
 
-	addDisconnectLogRecord(client, getTcpDisconnectLogRecordFlagsFromSocketOptions(client.m_socket.m_options));
+	addDisconnectLogRecord(client, getSocketLogDisconnectFlagsFromOptions(client.m_socket.m_options));
 	removeClient(client);
 }
 
@@ -387,7 +387,7 @@ void WebSocketServerSession.addDisconnectLogRecord(
 	Client* client,
 	uint_t flags
 ) {
-	TcpDisconnectLogRecordParams params;
+	SocketLogDisconnectParams params;
 	params.m_address = client.m_address;
 	params.m_flags = flags;
 	m_logWriter.write(SocketLogRecordCode.Disconnected, &params, sizeof(params));
@@ -722,7 +722,7 @@ void WebSocketServerSession.onClientSocketEvent(
 				m_readBuffer.m_size
 			));
 
-		addDisconnectLogRecord(client, getTcpDisconnectLogRecordFlagsFromSocketOptions(client.m_socket.m_options));
+		addDisconnectLogRecord(client, getSocketLogDisconnectFlagsFromOptions(client.m_socket.m_options));
 		removeClient(client);
 		return;
 	}
@@ -738,7 +738,7 @@ void WebSocketServerSession.onClientSocketEvent(
 				m_readBuffer.m_size
 			));
 
-		addDisconnectLogRecord(client, getTcpDisconnectLogRecordFlagsFromSocketEvents(triggeredEvents));
+		addDisconnectLogRecord(client, getSocketLogDisconnectFlagsFromEvents(triggeredEvents));
 		removeClient(client);
 		return;
 	}

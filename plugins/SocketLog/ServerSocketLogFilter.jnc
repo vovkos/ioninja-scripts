@@ -126,9 +126,9 @@ bool ServerSocketLogFilter.filter(
 		return true;
 
 	case SocketLogRecordCode.ClientDisconnected:
-		TcpDisconnectLogRecordParams const* params = (TcpDisconnectLogRecordParams const*)p;
+		SocketLogDisconnectParams const* params = (SocketLogDisconnectParams const*)p;
 		bool result = params.m_address.isMatch(m_filterAddress);
-		if (params.m_flags & TcpDisconnectLogRecordFlags.KeepClient) {
+		if (params.m_flags & SocketLogDisconnectFlags.KeepClient) {
 			if (result)
 				m_lastVisibleAddress = params.m_address;
 

@@ -9,12 +9,12 @@ import "log_Representation.jnc"
 
 //..............................................................................
 
-string_t getTcpDisconnectReasonString(uint_t flags) {
-	if (flags & TcpDisconnectLogRecordFlags.Aborted)
+string_t getDisconnectReasonString(uint_t flags) {
+	if (flags & SocketLogDisconnectFlags.Aborted)
 		return "aborted by local node";
 
-	string_t closeKind = (flags & TcpDisconnectLogRecordFlags.ResetMask) ? "reset" : "closed";
-	string_t initiator = (flags & TcpDisconnectLogRecordFlags.Remote) ? "remote" : "local";
+	string_t closeKind = (flags & SocketLogDisconnectFlags.ResetMask) ? "reset" : "closed";
+	string_t initiator = (flags & SocketLogDisconnectFlags.Remote) ? "remote" : "local";
 	return $"closeKind by $initiator";
 }
 
@@ -112,12 +112,12 @@ bool representSocketLog(
 		break;
 
 	case SocketLogRecordCode.Disconnected:
-		TcpDisconnectLogRecordParams const* params = (TcpDisconnectLogRecordParams const*)p;
+		SocketLogDisconnectParams const* params = (SocketLogDisconnectParams const*)p;
 		string_t addressString = params.m_address.getString();
-		string_t reasonString = getTcpDisconnectReasonString(params.m_flags);
+		string_t reasonString = getDisconnectReasonString(params.m_flags);
 
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
-		representation.m_lineAttr.m_backColor = (params.m_flags & TcpDisconnectLogRecordFlags.Aborted) ?
+		representation.m_lineAttr.m_backColor = (params.m_flags & SocketLogDisconnectFlags.Aborted) ?
 			log.StdLogColor.Warning :
 			log.StdLogColor.Disconnect;
 
@@ -166,12 +166,12 @@ bool representSocketLog(
 		break;
 
 	case SocketLogRecordCode.ClientDisconnected:
-		TcpDisconnectLogRecordParams const* params = (TcpDisconnectLogRecordParams const*)p;
+		SocketLogDisconnectParams const* params = (SocketLogDisconnectParams const*)p;
 		string_t addressString = params.m_address.getString();
-		string_t reasonString = getTcpDisconnectReasonString(params.m_flags);
+		string_t reasonString = getDisconnectReasonString(params.m_flags);
 
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
-		representation.m_lineAttr.m_backColor = (params.m_flags & TcpDisconnectLogRecordFlags.Aborted) ?
+		representation.m_lineAttr.m_backColor = (params.m_flags & SocketLogDisconnectFlags.Aborted) ?
 			log.StdLogColor.Warning :
 			log.StdLogColor.Disconnect;
 

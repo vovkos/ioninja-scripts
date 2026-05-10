@@ -51,7 +51,7 @@ enum SocketLogPartCode: uint64_t {
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-bitflag enum TcpDisconnectLogRecordFlags {
+bitflag enum SocketLogDisconnectFlags {
 	Remote,
 	Reset_old,   // for compatibility with existing logs
 	KeepClient,  // hint for ServerSocketLogFilter
@@ -63,25 +63,25 @@ bitflag enum TcpDisconnectLogRecordFlags {
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-TcpDisconnectLogRecordFlags getTcpDisconnectLogRecordFlagsFromSocketEvents(uint_t events) {
-	TcpDisconnectLogRecordFlags flags = (
-		TcpDisconnectLogRecordFlags.Reset_event |
-		TcpDisconnectLogRecordFlags.Aborted
+SocketLogDisconnectFlags getSocketLogDisconnectFlagsFromEvents(uint_t events) {
+	SocketLogDisconnectFlags flags = (
+		SocketLogDisconnectFlags.Reset_event |
+		SocketLogDisconnectFlags.Aborted
 	) & events;
 
-	if (!(flags & TcpDisconnectLogRecordFlags.Aborted))
-		flags |= TcpDisconnectLogRecordFlags.Remote;
+	if (!(flags & SocketLogDisconnectFlags.Aborted))
+		flags |= SocketLogDisconnectFlags.Remote;
 
 	return flags;
 }
 
-TcpDisconnectLogRecordFlags getTcpDisconnectLogRecordFlagsFromSocketOptions(uint_t options) {
-	return TcpDisconnectLogRecordFlags.Reset_option & options;
+SocketLogDisconnectFlags getSocketLogDisconnectFlagsFromOptions(uint_t options) {
+	return SocketLogDisconnectFlags.Reset_option & options;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-struct TcpDisconnectLogRecordParams {
+struct SocketLogDisconnectParams {
 	io.SocketAddress m_address;
 	uint_t m_flags;
 }

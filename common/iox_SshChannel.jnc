@@ -213,9 +213,9 @@ void SshChannel.close() {
 		break;
 
 	case State.Connected:
-		TcpDisconnectLogRecordParams params;
+		SocketLogDisconnectParams params;
 		params.m_address = m_remoteAddress;
-		params.m_flags = getTcpDisconnectLogRecordFlagsFromSocketOptions(m_ssh.m_options);
+		params.m_flags = getSocketLogDisconnectFlagsFromOptions(m_ssh.m_options);
 		m_logWriter.write(SocketLogRecordCode.Disconnected, &params, sizeof(params));
 		break;
 	}
@@ -590,9 +590,9 @@ void SshChannel.onSshEvent(
 			m_onIncomingData(m_readBuffer.m_p, size);
 		}
 
-		TcpDisconnectLogRecordParams params;
+		SocketLogDisconnectParams params;
 		params.m_address = m_remoteAddress;
-		params.m_flags = getTcpDisconnectLogRecordFlagsFromSocketEvents(triggeredEvents);
+		params.m_flags = getSocketLogDisconnectFlagsFromEvents(triggeredEvents);
 		m_logWriter.write(SocketLogRecordCode.Disconnected, &params, sizeof(params));
 
 		uint64_t lastReconnectTime = m_lastReconnectTime;
