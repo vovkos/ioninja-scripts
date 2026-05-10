@@ -282,8 +282,8 @@ bool errorcode HidMonSession.capture() {
 		buffer.m_size
 	);
 
-	m_deviceInfoBuffer.setSize(sizeof(HidDeviceInfoParams));
-	HidDeviceInfoParams* hidDeviceInfoParams = (HidDeviceInfoParams*)m_deviceInfoBuffer.m_p;
+	m_deviceInfoBuffer.setSize(sizeof(HidLogDeviceInfoParams));
+	HidLogDeviceInfoParams* hidDeviceInfoParams = (HidLogDeviceInfoParams*)m_deviceInfoBuffer.m_p;
 	hidDeviceInfoParams.m_releaseNumber = device.m_releaseNumber;
 	hidDeviceInfoParams.m_vendorId = device.m_vendorId;
 	hidDeviceInfoParams.m_productId = device.m_productId;
