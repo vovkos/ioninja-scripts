@@ -474,12 +474,7 @@ void WebSocketClientSession.addDisconnectLogRecord(uint_t flags) {
 	TcpDisconnectLogRecordParams params;
 	params.m_address = m_remoteAddress;
 	params.m_flags = flags;
-
-	m_logWriter.write(
-		SocketLogRecordCode.Disconnected,
-		&params,
-		sizeof(params)
-	);
+	m_logWriter.write(SocketLogRecordCode.Disconnected, &params, sizeof(params));
 }
 
 void WebSocketClientSession.handleSocketError(std.Error const* error) {
@@ -526,11 +521,7 @@ void WebSocketClientSession.disconnect() {
 		// ...and fall-through
 
 	case State.Closing:
-		addDisconnectLogRecord(
-			(m_socket.m_options & io.SocketOptions.TcpReset) ?
-			TcpDisconnectLogRecordFlags.Reset :
-			0
-		);
+		addDisconnectLogRecord(getTcpDisconnectLogRecordFlagsFromSocketOptions(m_socket.m_options));
 		break;
 	}
 
@@ -724,11 +715,7 @@ void WebSocketClientSession.onSocketEvent(
 				m_readBuffer.m_size
 			));
 
-		addDisconnectLogRecord(
-			(m_socket.m_options & io.SocketOptions.TcpReset) ?
-			TcpDisconnectLogRecordFlags.Reset :
-			0
-		);
+		addDisconnectLogRecord(getTcpDisconnectLogRecordFlagsFromSocketOptions(m_socket.m_options));
 
 		close();
 		return;
@@ -743,10 +730,7 @@ void WebSocketClientSession.onSocketEvent(
 				m_readBuffer.m_size
 			));
 
-		addDisconnectLogRecord(
-			TcpDisconnectLogRecordFlags.Remote |
-			triggeredEvents & TcpDisconnectLogRecordFlags.SocketEventMask
-		);
+		addDisconnectLogRecord(getTcpDisconnectLogRecordFlagsFromSocketEvents(triggeredEvents));
 
 		uint64_t lastReconnectTime = m_lastReconnectTime;
 		close();

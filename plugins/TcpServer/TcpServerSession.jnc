@@ -306,11 +306,7 @@ void TcpServerSession.disconnectAll() {
 void TcpServerSession.disconnect(Client* client) {
 	TcpDisconnectLogRecordParams params;
 	params.m_address = client.m_address;
-	params.m_flags = 0;
-
-	if (m_socketPropertySet.m_tcpResetProp.m_value)
-		params.m_flags |= TcpDisconnectLogRecordFlags.Reset;
-
+	params.m_flags = getTcpDisconnectLogRecordFlagsFromSocketOptions(client.m_socket.m_options);
 	m_logWriter.write(SocketLogRecordCode.ClientDisconnected, &params, sizeof(params));
 	removeClient(client);
 }
@@ -557,18 +553,10 @@ void TcpServerSession.onClientSocketEvent(
 			m_logWriter.write(log.StdRecordCode.Rx, m_readBuffer.m_p, result);
 		}
 
-		TcpDisconnectLogRecordParams recordParams;
-		recordParams.m_address = client.m_address;
-		recordParams.m_flags =
-			TcpDisconnectLogRecordFlags.Remote |
-			triggeredEvents & TcpDisconnectLogRecordFlags.SocketEventMask;
-
-		m_logWriter.write(
-			SocketLogRecordCode.ClientDisconnected,
-			&recordParams,
-			sizeof(recordParams)
-		);
-
+		TcpDisconnectLogRecordParams params;
+		params.m_address = client.m_address;
+		params.m_flags = getTcpDisconnectLogRecordFlagsFromSocketEvents(triggeredEvents);
+		m_logWriter.write(SocketLogRecordCode.ClientDisconnected, &params, sizeof(params));
 		removeClient(client);
 		return;
 	}

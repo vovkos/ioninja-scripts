@@ -379,13 +379,7 @@ void WebSocketServerSession.disconnect(WebSocketServerSession.Client* client) {
 		return;
 	}
 
-	addDisconnectLogRecord(
-		client,
-		(client.m_socket.m_options & io.SocketOptions.TcpReset) ?
-			TcpDisconnectLogRecordFlags.Reset :
-			0
-		);
-
+	addDisconnectLogRecord(client, getTcpDisconnectLogRecordFlagsFromSocketOptions(client.m_socket.m_options));
 	removeClient(client);
 }
 
@@ -396,12 +390,7 @@ void WebSocketServerSession.addDisconnectLogRecord(
 	TcpDisconnectLogRecordParams params;
 	params.m_address = client.m_address;
 	params.m_flags = flags;
-
-	m_logWriter.write(
-		SocketLogRecordCode.Disconnected,
-		&params,
-		sizeof(params)
-	);
+	m_logWriter.write(SocketLogRecordCode.Disconnected, &params, sizeof(params));
 }
 
 void WebSocketServerSession.addClient(WebSocketServerSession.Client* client) {
@@ -733,13 +722,7 @@ void WebSocketServerSession.onClientSocketEvent(
 				m_readBuffer.m_size
 			));
 
-		addDisconnectLogRecord(
-			client,
-			(client.m_socket.m_options & io.SocketOptions.TcpReset) ?
-				TcpDisconnectLogRecordFlags.Reset :
-				0
-			);
-
+		addDisconnectLogRecord(client, getTcpDisconnectLogRecordFlagsFromSocketOptions(client.m_socket.m_options));
 		removeClient(client);
 		return;
 	}
@@ -755,12 +738,7 @@ void WebSocketServerSession.onClientSocketEvent(
 				m_readBuffer.m_size
 			));
 
-		addDisconnectLogRecord(
-			client,
-			TcpDisconnectLogRecordFlags.Remote |
-			triggeredEvents & TcpDisconnectLogRecordFlags.SocketEventMask
-		);
-
+		addDisconnectLogRecord(client, getTcpDisconnectLogRecordFlagsFromSocketEvents(triggeredEvents));
 		removeClient(client);
 		return;
 	}

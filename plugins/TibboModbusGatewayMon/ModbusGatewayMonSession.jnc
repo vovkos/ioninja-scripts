@@ -311,16 +311,8 @@ void ModbusGatewayMonSession.disconnect() {
 	case State.Connected:
 		TcpDisconnectLogRecordParams params;
 		params.m_address = m_remoteAddress;
-		params.m_flags = 0;
-
-		if (m_socketPropertySet.m_tcpResetProp.m_value)
-			params.m_flags |= TcpDisconnectLogRecordFlags.Reset;
-
-		m_logWriter.write(
-			SocketLogRecordCode.Disconnected,
-			&params,
-			sizeof(params)
-		);
+		params.m_flags = getTcpDisconnectLogRecordFlagsFromSocketOptions(m_socket.m_options);
+		m_logWriter.write(SocketLogRecordCode.Disconnected, &params, sizeof(params));
 
 		m_isTransmitEnabled = false;
 		m_stdSessionInfoSet.endSession();
@@ -428,17 +420,10 @@ void ModbusGatewayMonSession.onSocketEvent(
 			m_logWriter.write(log.StdRecordCode.Rx, m_bufferIncoming, result);
 		}
 
-		TcpDisconnectLogRecordParams recordParams;
-		recordParams.m_address = m_remoteAddress;
-		recordParams.m_flags =
-			TcpDisconnectLogRecordFlags.Remote |
-			triggeredEvents & TcpDisconnectLogRecordFlags.SocketEventMask;
-
-		m_logWriter.write(
-			SocketLogRecordCode.Disconnected,
-			&recordParams,
-			sizeof(recordParams)
-		);
+		TcpDisconnectLogRecordParams params;
+		params.m_address = m_remoteAddress;
+		params.m_flags = getTcpDisconnectLogRecordFlagsFromSocketEvents(triggeredEvents);
+		m_logWriter.write(SocketLogRecordCode.Disconnected, &params, sizeof(params));
 
 		m_socket.close();
 		m_state = State.Closed;

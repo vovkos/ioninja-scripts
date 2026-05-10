@@ -679,17 +679,10 @@ void JLinkRttSession.onSocketEvent(
 			m_logWriter.write(log.StdRecordCode.Rx, m_socketReadBuffer.m_p, result);
 		}
 
-		TcpDisconnectLogRecordParams recordParams;
-		recordParams.m_address = m_socketRemoteAddress;
-		recordParams.m_flags =
-			TcpDisconnectLogRecordFlags.Remote |
-			triggeredEvents & TcpDisconnectLogRecordFlags.SocketEventMask;
-
-		m_logWriter.write(
-			SocketLogRecordCode.Disconnected,
-			&recordParams,
-			sizeof(recordParams)
-		);
+		TcpDisconnectLogRecordParams params;
+		params.m_address = m_socketRemoteAddress;
+		params.m_flags = getTcpDisconnectLogRecordFlagsFromSocketEvents(triggeredEvents);
+		m_logWriter.write(SocketLogRecordCode.Disconnected, &params, sizeof(params));
 
 		m_socket.close();
 		startSocketReconnectTimer();

@@ -6,6 +6,7 @@
 import "log_RecordCode.jnc"
 import "io_base.jncx"
 import "io_SocketEvents.jnc"
+import "io_SocketOptions.jnc"
 
 //..............................................................................
 
@@ -52,12 +53,30 @@ enum SocketLogPartCode: uint64_t {
 
 bitflag enum TcpDisconnectLogRecordFlags {
 	Remote,
-	Reset_old,      // for compatibility with existing logs
-	KeepClient,     // hint for ServerSocketLogFilter
-	Reset           = io.SocketEvents.TcpReset,
-	Aborted         = io.SocketEvents.TcpAborted,
-	ResetMask       = Reset | Reset_old,
-	SocketEventMask = Reset | Aborted,
+	Reset_old,   // for compatibility with existing logs
+	KeepClient,  // hint for ServerSocketLogFilter
+	Reset_event  = io.SocketEvents.TcpReset,
+	Reset_option = io.SocketOptions.TcpReset,
+	Aborted      = io.SocketEvents.TcpAborted,
+	ResetMask    = Reset_event | Reset_option | Reset_old,
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+TcpDisconnectLogRecordFlags getTcpDisconnectLogRecordFlagsFromSocketEvents(uint_t events) {
+	TcpDisconnectLogRecordFlags flags = (
+		TcpDisconnectLogRecordFlags.Reset_event |
+		TcpDisconnectLogRecordFlags.Aborted
+	) & events;
+
+	if (!(flags & TcpDisconnectLogRecordFlags.Aborted))
+		flags |= TcpDisconnectLogRecordFlags.Remote;
+
+	return flags;
+}
+
+TcpDisconnectLogRecordFlags getTcpDisconnectLogRecordFlagsFromSocketOptions(uint_t options) {
+	return TcpDisconnectLogRecordFlags.Reset_option & options;
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
