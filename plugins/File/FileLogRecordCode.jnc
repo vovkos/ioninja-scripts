@@ -19,7 +19,7 @@ enum FileLogRecordCode: uint64_t {
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-struct FileOpenLogRecordParams {
+struct FileLogOpenParams {
 	io.FileKind m_kind;
 	io.FileOpenFlags m_openFlags;
 

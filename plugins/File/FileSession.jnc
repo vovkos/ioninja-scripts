@@ -229,7 +229,7 @@ bool errorcode FileSession.open() {
 	m_file.m_options = getFileStreamOptions();
 	m_file.open(fileName, openFlags);
 
-	FileOpenLogRecordParams	params;
+	FileLogOpenParams	params;
 	params.m_kind = m_file.m_kind;
 	params.m_openFlags = openFlags;
 
@@ -237,8 +237,8 @@ bool errorcode FileSession.open() {
 		FileLogRecordCode.Opened,
 		&params,
 		sizeof(params),
-		fileName.m_p,
-		fileName.m_length
+		(const char*)fileName,
+		fileName.m_length + 1
 	);
 
 	m_state = State.Opened;
