@@ -15,7 +15,7 @@ string_t getDisconnectReasonString(uint_t flags) {
 
 	string_t closeKind = (flags & SocketLogDisconnectFlags.ResetMask) ? "reset" : "closed";
 	string_t initiator = (flags & SocketLogDisconnectFlags.Remote) ? "remote" : "local";
-	return $"closeKind by $initiator";
+	return $"$closeKind by $initiator";
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
