@@ -92,6 +92,31 @@ enum HwcMsgCode: uint8_t {
 	EthernetTapUploadFirmware = 29,
 	EthernetTapStartCapture   = 30,
 	EthernetTapStopCapture    = 31,
+
+	// hardware: Serial Tap Pro
+
+	// in
+
+	SerialTapProRawUsbBulk        = 41,
+	SerialTapProTx9               = 42,
+	SerialTapProRx9               = 43,
+	SerialTapProStatusLineChanged = 44,
+	SerialTapProTxBreakOn         = 45,
+	SerialTapProRxBreakOn         = 46,
+	SerialTapProTxBreakOff        = 47,
+	SerialTapProRxBreakOff        = 48,
+	SerialTapProInterfaceChanged  = 49,
+	SerialTapProOverflowChanged   = 50,
+	SerialTapProCaptureStarted    = 57,
+
+	// out
+
+	SerialTapProUploadFirmware       = 51,
+	SerialTapProStartCapture         = 52,
+	SerialTapProStopCapture          = 53,
+	SerialTapProSetControl           = 54,
+	SerialTapProSetRs485InjectFlags  = 55,
+	SerialTapProSetNotificationDelay = 56,
 };
 
 pragma(Alignment, 1)
@@ -135,6 +160,35 @@ struct HwcEthernetTapPacketHdr {
 	uint16_t m_size;
 	uint8_t m_reserved;
 	uint8_t m_flags;
+};
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+// SerialTapProRawUsbBulk (followed by the raw notification stream)
+
+struct HwcSerialTapProRawUsbBulkParams {
+	uint16_t m_status;
+	uint16_t m_lines;
+};
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+// SerialTapProCaptureStarted uses HwcSerialTapProRawUsbBulkParams, too
+
+// SerialTapProStatusLineChanged
+
+struct HwcSerialTapProStatusLineChangedParams {
+	uint16_t m_lines;
+	uint16_t m_mask;
+};
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+// SerialTapProOverflowChanged
+
+struct HwcSerialTapProOverflowChangedParams {
+	uint16_t m_overflows;
+	uint16_t m_mask;
 };
 
 //..............................................................................
