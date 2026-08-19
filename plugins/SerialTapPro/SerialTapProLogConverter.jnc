@@ -146,7 +146,7 @@ protected:
 		bool isStatusLineChangeVisible,
 		bool isLineErrorVisible,
 		uint64_t timestamp,
-		uint8_t status0,
+		uint16_t status0,
 		SerialTapProLines lines0,
 		void const thin* p0,
 		size_t size
@@ -342,7 +342,7 @@ void SerialTapProLogConverter.convertSerialTapProRawUsbBulk(
 	bool isStatusLineChangeVisible,
 	bool isLineErrorVisible,
 	uint64_t timestamp,
-	uint8_t status0,
+	uint16_t status0,
 	SerialTapProLines lines0,
 	void const thin* p0,
 	size_t size
