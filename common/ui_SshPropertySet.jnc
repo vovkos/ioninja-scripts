@@ -104,8 +104,8 @@ void SshPropertySet.createProperties(
 	if (mask & PropertyId.RememberLastPassword)
 		m_rememberLastPasswordProp = propertyGrid.createBoolProperty(
 			group,,
-			"Remember last password",
-			"Re-use the last entered password during subsequent connect attempts"
+			"Remember password",
+			"Reuse the last entered password or private key passphrase during subsequent connect attempts"
 		);
 
 	if (mask & PropertyId.Process) {
