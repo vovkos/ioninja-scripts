@@ -123,6 +123,12 @@ bool representSslLog(
 		representation.addHyperText($"SSL cipher: \e[34m$((char const*)p)");
 		break;
 
+	case SslLogRecordCode.SslPassphrasePrompt:
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		representation.addHyperText(SocketLogPartCode.Connecting, "Prompting for the private key passphrase...");
+		break;
+
 	case SslLogRecordCode.SslConnectCompleted:
 		representation.m_lineAttr.m_iconIdx  = log.StdLogIcon.Connect;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Connect;

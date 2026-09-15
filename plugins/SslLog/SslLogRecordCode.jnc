@@ -13,6 +13,7 @@ enum SslLogRecordCode: uint64_t {
 	SslCertificate         = 0x01d5cdeded08f702 | log.RecordCodeFlags.Foldable,
 	SslCipher              = 0x01d5cdeded08f703,
 	SslConnectCompleted    = 0x01d5cdeded08f704,
+	SslPassphrasePrompt    = 0x01d5cdeded08f705,
 }
 
 //..............................................................................
