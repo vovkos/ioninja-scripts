@@ -19,6 +19,7 @@ enum FpgaUploaderLogRecordCode: uint64_t {
 	FirmwareUploadCancelled = 0x01d487bb6423b818,
 	FirmwareUploadCompleted = 0x01d487bb6423b819,
 	FirmwareBootFailed      = 0x01d487bb6423b81a,
+	UnsupportedUsbSpeed     = 0x01d487bb6423b81b,
 }
 
 //..............................................................................

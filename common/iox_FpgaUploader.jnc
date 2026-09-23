@@ -142,6 +142,13 @@ bool errorcode FpgaUploader.update(
 ) {
 	cancel();
 
+	io.UsbSpeed speed = device.m_speed;
+	if (speed && speed != io.UsbSpeed.High) {
+		m_logWriter.write(FpgaUploaderLogRecordCode.UnsupportedUsbSpeed);
+		std.setError("incompatible USB speed");
+		return false;
+	}
+
 	m_device = device;
 	m_file.open(fileName, io.FileOpenFlags.ReadOnly);
 	io.RpdHdr const* hdr = (io.RpdHdr const*)m_file.view(0, sizeof(io.RpdHdr), false);

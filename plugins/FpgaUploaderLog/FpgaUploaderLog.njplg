@@ -31,3 +31,4 @@ FpgaUploaderLogRepresenter.jnc
 01d487bb6423b818  # FirmwareUpdateCancelled
 01d487bb6423b819  # FirmwareUpdateCompleted
 01d487bb6423b81a  # FirmwareBootFailed
+01d487bb6423b81b  # UnsupportedUsbSpeed
