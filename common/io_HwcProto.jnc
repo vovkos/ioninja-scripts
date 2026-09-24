@@ -117,6 +117,27 @@ enum HwcMsgCode: uint8_t {
 	SerialTapProSetControl           = 54,
 	SerialTapProSetRs485InjectFlags  = 55,
 	SerialTapProSetNotificationDelay = 56,
+
+	// hardware selector for ioninja-hwc running in server mode (tcp/pipe/rdv)
+
+	// out
+
+	HardwareSelect = 58,
+};
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+// mirrors ControllerKind in nj_hwc/ControllerBase.h
+
+enum HwcControllerKind {
+	Undefined = 0,
+	HardwareSelector,
+	Serial,
+	SerialTap,
+	I2cTap,
+	SpiTap,
+	EthernetTap,
+	SerialTapPro,
 };
 
 pragma(Alignment, 1)
@@ -190,6 +211,18 @@ struct HwcSerialTapProOverflowChangedParams {
 	uint16_t m_overflows;
 	uint16_t m_mask;
 };
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+// HardwareSelect
+
+struct HwcHardwareSelectParams {
+	HwcControllerKind m_controllerKind;
+	uint32_t m_index;
+
+	// for HwcControllerKind.Serial followed by serial port name
+};
+
 
 //..............................................................................
 
