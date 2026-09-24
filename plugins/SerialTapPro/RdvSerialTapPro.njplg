@@ -1,0 +1,38 @@
+#...............................................................................
+#
+#  Serial Tap Pro over rendezvous session plugin
+#
+
+[plugin]
+
+name        = "Serial Tap Pro over Rendezvous"
+description = "Monitor serial communication via a Serial Tap Pro connected to a remote machine reachable over the IO Ninja rendezvous relay"
+id          = rdv-serial-tap-pro
+group       = hw
+log-guid    = 3a1ec99b-234a-49a0-be4b-f6e60b80a5c0  # serial tap pro
+log-guid    = db8c8923-a699-46cc-be7c-f0bcd523082b  # socket
+icon        = images/serialmon.png
+small-icon  = images/serialmon-16x16.png
+
+session-class = RdvSerialTapProSession
+
+[required-capabilities]
+
+org.jancy.io.net
+
+[optional-capabilities]
+
+org.jancy.io.ip4
+org.jancy.io.ip6
+org.jancy.io.file
+
+[scripts]
+
+SerialTapPro.jnc
+RdvSerialTapProSession.jnc
+SerialTapProUi.jnc
+SerialTapProDecoder.jnc
+SerialTapProInfoSet.jnc
+SerialTapProLogRecordCode.jnc
+SerialTapProDispatchCode.jnc
+uleb128.jnc
