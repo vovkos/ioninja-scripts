@@ -94,7 +94,7 @@ bool representFpgaUploaderLog(
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Warning;
 		representation.addHyperText(
-			$"Device failed to negotiate \e[34mHigh\e[m speed\n"
+			$"Device failed to negotiate\e[34mHigh\e[m speed\n"
 			"Please try plugging it via a different USB hub or cable"
 		);
 
