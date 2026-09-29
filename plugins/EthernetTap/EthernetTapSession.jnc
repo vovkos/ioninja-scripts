@@ -462,7 +462,7 @@ void EthernetTapSession.parse(
 					break2;
 
 			size_t packetSize = ((*p & 0xffff) + 3) & ~3; // align on 4 bytes
-			size_t bufferSize = sizeof(uint32_t) * 2 + packetSize;
+			size_t bufferSize = sizeof(uint32_t) + sizeof(PacketHdr) + packetSize;
 			m_packetBuffer.setSize(bufferSize);
 			*(uint32_t*)m_packetBuffer.m_p = ++m_packetIndex;
 			m_packetOffset = sizeof(uint32_t);
