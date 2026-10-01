@@ -40,7 +40,7 @@ enum HwcMsgCode: uint8_t {
 
 	// out
 
-	SerialTapSetConfig = 6,
+	SerialTapSetConfig = 6, // HwcSerialConfig
 
 	// FPGA-based decoders
 
@@ -84,8 +84,8 @@ enum HwcMsgCode: uint8_t {
 
 	// in
 
-	EthernetTapPacket_ch1     = 27,
-	EthernetTapPacket_ch2     = 28,
+	EthernetTapPacket_ch1     = 27, // uint32_t index, then HwcEthernetTapPacketHdr
+	EthernetTapPacket_ch2     = 28, // uint32_t index, then HwcEthernetTapPacketHdr
 
 	// out
 
@@ -97,17 +97,17 @@ enum HwcMsgCode: uint8_t {
 
 	// in
 
-	SerialTapProRawUsbBulk        = 41,
+	SerialTapProRawUsbBulk        = 41, // HwcSerialTapProRawUsbBulkParams
 	SerialTapProTx9               = 42,
 	SerialTapProRx9               = 43,
-	SerialTapProStatusLineChanged = 44,
+	SerialTapProStatusLineChanged = 44, // HwcSerialTapProStatusLineChangedParams
 	SerialTapProTxBreakOn         = 45,
 	SerialTapProRxBreakOn         = 46,
 	SerialTapProTxBreakOff        = 47,
 	SerialTapProRxBreakOff        = 48,
 	SerialTapProInterfaceChanged  = 49,
-	SerialTapProOverflowChanged   = 50,
-	SerialTapProCaptureStarted    = 57,
+	SerialTapProOverflowChanged   = 50, // HwcSerialTapProOverflowChangedParams
+	SerialTapProCaptureStarted    = 57, // HwcSerialTapProRawUsbBulkParams
 
 	// out
 
@@ -118,11 +118,18 @@ enum HwcMsgCode: uint8_t {
 	SerialTapProSetRs485InjectFlags  = 55,
 	SerialTapProSetNotificationDelay = 56,
 
-	// hardware selector for ioninja-hwc running in server mode (tcp/pipe/rdv)
+	// device manager in ioninja-hwc (server tcp/pipe/rdv)
+
+	// in
+
+	DeviceMgrDeviceAdded   = 60, // HwcDeviceMgrDeviceParams
+	DeviceMgrDeviceRemoved = 61, // HwcDeviceMgrDeviceParams
 
 	// out
 
-	HardwareSelect = 58,
+	DeviceMgrActivateDevice            = 58, // HwcDeviceMgrDeviceParams
+	DeviceMgrEnumDevices               = 59,
+	DeviceMgrEnableDeviceNotifications = 62, // bool
 };
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -131,11 +138,23 @@ enum HwcMsgCode: uint8_t {
 
 enum HwcControllerKind {
 	Undefined = 0,
-	HardwareSelector,
+	DeviceMgr,
 	Serial,
 	SerialTap,
 	I2cTap,
 	SpiTap,
+	EthernetTap,
+	SerialTapPro,
+};
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+// mirrors DeviceKind in nj_hwc/ControllerBase.h
+
+enum HwcDeviceKind {
+	Serial,
+	SerialTap,
+	I2cSpiTap, // HwcControllerKind.I2cTap & HwcControllerKind.SpiTap
 	EthernetTap,
 	SerialTapPro,
 };
@@ -166,8 +185,6 @@ struct HwcSerialConfig {
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-// EthernetTapPacket_ch1, EthernetTapPacket_ch2
-
 bitflag enum HwcEthernetTapPacketFlag {
 	Reserved,
 	CrcValid,
@@ -180,23 +197,19 @@ bitflag enum HwcEthernetTapPacketFlag {
 struct HwcEthernetTapPacketHdr {
 	uint16_t m_size;
 	uint8_t m_reserved;
-	uint8_t m_flags;
+	uint8_t m_flags; // HwcEthernetTapPacketFlag
 };
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-// SerialTapProRawUsbBulk (followed by the raw notification stream)
 
 struct HwcSerialTapProRawUsbBulkParams {
 	uint16_t m_status;
 	uint16_t m_lines;
+
+	// followed by the raw notification stream
 };
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-// SerialTapProCaptureStarted uses HwcSerialTapProRawUsbBulkParams, too
-
-// SerialTapProStatusLineChanged
 
 struct HwcSerialTapProStatusLineChangedParams {
 	uint16_t m_lines;
@@ -205,8 +218,6 @@ struct HwcSerialTapProStatusLineChangedParams {
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-// SerialTapProOverflowChanged
-
 struct HwcSerialTapProOverflowChangedParams {
 	uint16_t m_overflows;
 	uint16_t m_mask;
@@ -214,15 +225,18 @@ struct HwcSerialTapProOverflowChangedParams {
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-// HardwareSelect
+// DeviceMgrEnumDevices, DeviceMgrEnableDeviceNotifications resend the full list
 
-struct HwcHardwareSelectParams {
-	HwcControllerKind m_controllerKind;
+struct HwcDeviceMgrDeviceParams {
+	union {
+		HwcDeviceKind m_deviceKind;
+		HwcControllerKind m_controllerKind;
+	}
+
 	uint32_t m_index;
 
-	// for HwcControllerKind.Serial followed by serial port name
+	// for serial, followed by serial port name
 };
-
 
 //..............................................................................
 
