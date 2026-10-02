@@ -8,11 +8,11 @@
 
 import "doc_Session.jnc"
 import "io_rdv.jncx"
-import "ui_SocketPropertySet.jnc"
+import "ui_SocketUi.jnc"
 import "ui_BufferPropertySet.jnc"
 import "std_Buffer.jnc"
 import "sys_Timer.jnc"
-import "SocketLogRecordCode.jnc"
+import "SocketLog/SocketLogRecordCode.jnc"
 
 namespace iox {
 

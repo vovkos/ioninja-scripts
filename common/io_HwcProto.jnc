@@ -127,9 +127,10 @@ enum HwcMsgCode: uint8_t {
 
 	// out
 
-	DeviceMgrActivateDevice            = 58, // HwcDeviceMgrDeviceParams
-	DeviceMgrEnumDevices               = 59,
-	DeviceMgrEnableDeviceNotifications = 62, // bool
+	DeviceMgrActivateDevice            = 62, // HwcDeviceMgrDeviceParams
+	DeviceMgrActivateDeviceByIndex     = 63, // HwcDeviceMgrDeviceParams
+	DeviceMgrEnumerateDevices          = 64,
+	DeviceMgrEnableDeviceNotifications = 65, // bool (default: true)
 };
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -152,6 +153,7 @@ enum HwcControllerKind {
 // mirrors DeviceKind in nj_hwc/ControllerBase.h
 
 enum HwcDeviceKind {
+	Undefined = 0,
 	Serial,
 	SerialTap,
 	I2cSpiTap, // HwcControllerKind.I2cTap & HwcControllerKind.SpiTap
@@ -225,17 +227,20 @@ struct HwcSerialTapProOverflowChangedParams {
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-// DeviceMgrEnumDevices, DeviceMgrEnableDeviceNotifications resend the full list
+// DeviceMgrEnumerateDevices and the first DeviceMgrEnableDeviceNotifications
+// send the full list as DeviceMgrDeviceAdded
 
 struct HwcDeviceMgrDeviceParams {
 	union {
-		HwcDeviceKind m_deviceKind;
-		HwcControllerKind m_controllerKind;
+		HwcDeviceKind m_deviceKind;         // DeviceMgrDeviceAdded/Removed
+		HwcControllerKind m_controllerKind; // DeviceMgrActivateDevice*
 	}
 
-	uint32_t m_index;
+	uint8_t m_bus;
+	uint8_t m_address;
+	uint16_t m_index; // DeviceMgrActivateDeviceByIndex; 0xffff in DeviceMgrDeviceAdded/Removed
 
-	// for serial, followed by serial port name
+	// for serial, followed by serial port name (zero-terminated in DeviceMgrDeviceAdded/Removed)
 };
 
 //..............................................................................

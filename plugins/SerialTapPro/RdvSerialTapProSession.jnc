@@ -180,7 +180,7 @@ protected:
 		size_t size = 0
 	);
 
-	bool errorcode writeSelectMsg();
+	bool errorcode writeActivateDeviceMsg();
 	bool errorcode writeSerialConfigMsg();
 	bool errorcode writeControlMsg();
 	bool errorcode writeNotificationDelayMsg();
@@ -251,10 +251,11 @@ void RdvSerialTapProSession.createUi() {
 	m_keyFileProp = m_pluginHost.m_propertyGrid.createFileProperty(
 		groupProp,,
 		"Private key",
-		"Select a private key file...",
-		"PEM files (*.pem);; All files (*.*)",
 		"The key this peer is identified by on the rendezvous relay"
 	);
+
+	m_keyFileProp.m_fileDialogTitle = "Select a private key file...";
+	m_keyFileProp.m_filter = "PEM files (*.pem);;All files (*.*)";
 
 	m_indexProp = m_pluginHost.m_propertyGrid.createIntProperty(
 		groupProp,,
@@ -265,8 +266,7 @@ void RdvSerialTapProSession.createUi() {
 	m_socketPropertySet.createProperties(
 		m_pluginHost.m_propertyGrid,
 		groupProp,,
-		ui.SocketPropertySet.PropertyId.UseReconnect |
-		ui.SocketPropertySet.PropertyId.ReconnectTimeout
+		ui.SocketPropertySet.PropertyId.Reconnect
 	);
 
 	groupProp = m_pluginHost.m_propertyGrid.createGroupProperty(
@@ -397,7 +397,7 @@ void RdvSerialTapProSession.onConnected() {
 	// configuration on its command line -- the tap is already running with no
 	// hardware selected, so we pick it first, then configure it
 
-	writeSelectMsg();
+	writeActivateDeviceMsg();
 	writeSerialConfigMsg();
 	writeControlMsg();
 	writeNotificationDelayMsg();
@@ -836,11 +836,11 @@ bool errorcode RdvSerialTapProSession.writeMsg(
 	return true;
 }
 
-bool errorcode RdvSerialTapProSession.writeSelectMsg() {
-	io.HwcHardwareSelectParams params;
+bool errorcode RdvSerialTapProSession.writeActivateDeviceMsg() {
+	io.HwcDeviceMgrDeviceParams params;
 	params.m_controllerKind = io.HwcControllerKind.SerialTapPro;
 	params.m_index = m_indexProp.m_value;
-	return writeMsg(io.HwcMsgCode.HardwareSelect, &params, sizeof(params));
+	return writeMsg(io.HwcMsgCode.DeviceMgrActivateDeviceByIndex, &params, sizeof(params));
 }
 
 bool errorcode RdvSerialTapProSession.writeSerialConfigMsg() {
