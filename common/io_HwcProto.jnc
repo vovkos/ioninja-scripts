@@ -127,8 +127,8 @@ enum HwcMsgCode: uint8_t {
 
 	// out
 
-	DeviceMgrActivateDevice            = 62, // HwcDeviceMgrDeviceParams
-	DeviceMgrActivateDeviceByIndex     = 63, // HwcDeviceMgrDeviceParams
+	DeviceMgrActivateDevice            = 62, // HwcDeviceMgrActivateDeviceParams
+	DeviceMgrActivateDeviceByIndex     = 63, // HwcDeviceMgrActivateDeviceParams
 	DeviceMgrEnumerateDevices          = 64,
 	DeviceMgrEnableDeviceNotifications = 65, // bool (default: true)
 };
@@ -137,7 +137,7 @@ enum HwcMsgCode: uint8_t {
 
 // mirrors ControllerKind in nj_hwc/ControllerBase.h
 
-enum HwcControllerKind {
+enum HwcControllerKind: uint16_t {
 	Undefined = 0,
 	DeviceMgr,
 	Serial,
@@ -152,7 +152,7 @@ enum HwcControllerKind {
 
 // mirrors DeviceKind in nj_hwc/ControllerBase.h
 
-enum HwcDeviceKind {
+enum HwcDeviceKind: uint16_t {
 	Undefined = 0,
 	Serial,
 	SerialTap,
@@ -231,16 +231,39 @@ struct HwcSerialTapProOverflowChangedParams {
 // send the full list as DeviceMgrDeviceAdded
 
 struct HwcDeviceMgrDeviceParams {
-	union {
-		HwcDeviceKind m_deviceKind;         // DeviceMgrDeviceAdded/Removed
-		HwcControllerKind m_controllerKind; // DeviceMgrActivateDevice*
-	}
-
+	HwcDeviceKind m_deviceKind;
 	uint8_t m_bus;
 	uint8_t m_address;
-	uint16_t m_index; // DeviceMgrActivateDeviceByIndex; 0xffff in DeviceMgrDeviceAdded/Removed
 
-	// for serial, followed by serial port name (zero-terminated in DeviceMgrDeviceAdded/Removed)
+	// for serial, followed by zero-terminated serial port name
+};
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+// mirrors the subset of CmdLineFlag in nj_hwc/CmdLine.h a client may pass on activation
+
+bitflag enum HwcCmdLineFlags: uint32_t {
+	Suspend    = 0x0004, // start suspended -- capture starts on SerialTapProStartCapture etc.
+	RawUsbBulk = 0x0400, // pass USB bulks as is -- the client decodes them
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+struct HwcDeviceMgrActivateDeviceParams {
+	HwcControllerKind m_controllerKind;
+
+	union {
+		struct {
+			uint8_t m_bus;
+			uint8_t m_address;
+		}
+
+		uint16_t m_index; // DeviceMgrActivateDeviceByIndex
+	}
+
+	HwcCmdLineFlags m_cmdLineFlags;
+
+	// for serial, followed by serial port name
 };
 
 //..............................................................................

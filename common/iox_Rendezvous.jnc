@@ -13,6 +13,7 @@ import "ui_BufferPropertySet.jnc"
 import "std_Buffer.jnc"
 import "sys_Timer.jnc"
 import "SocketLog/SocketLogRecordCode.jnc"
+import "RendezvousLog/RendezvousLogRecordCode.jnc"
 
 namespace iox {
 
@@ -27,7 +28,8 @@ public:
 		Closed,
 		ReconnectDelay,
 		Connecting,  // opening the relay websocket, then authenticating our key
-		Negotiating, // the relay paired us with the tap; ICE is in progress
+		Pairing,     // waiting for the relay to pair us with the tap
+		Negotiating, // ICE is in progress
 		Connected,   // the data channel is open
 	}
 
@@ -70,6 +72,7 @@ public:
 		"Not connected",
 		"Waiting...",
 		"Connecting...",
+		"Pairing...",
 		"Negotiating...",
 		"Connected",
 	}
@@ -80,7 +83,7 @@ public:
 	void close();
 
 	// url is the full relay path, device included:
-	// wss://<host>/rendezvous/<owner>/<device>
+	// wss://<host>/rendezvous/<owner>/<device>[:<endpoint>]
 
 	bool errorcode connect(
 		string_t url,
@@ -122,6 +125,7 @@ protected:
 	void onReconnectTimer(uint_t syncId);
 
 	void closeImpl();
+	void writeDisconnected(SocketLogDisconnectFlags flags);
 	void handleConnectError(std.Error const* error);
 	void startReconnectTimer(uint64_t lastReconnectTime = -1);
 }
@@ -145,16 +149,23 @@ void Rendezvous.close() {
 		return;
 
 	case State.Connecting:
+	case State.Pairing:
 	case State.Negotiating:
 		m_logWriter.write(SocketLogRecordCode.ConnectCancelled);
 		break;
 
 	case State.Connected:
-		m_logWriter.write(log.StdRecordCode.PlainText, "Rendezvous session closed");
+		writeDisconnected(0);
 		break;
 	}
 
 	closeImpl();
+}
+
+void Rendezvous.writeDisconnected(SocketLogDisconnectFlags flags) {
+	RendezvousLogDisconnectParams params;
+	params.m_flags = flags;
+	m_logWriter.write(RendezvousLogRecordCode.Disconnected, &params, sizeof(params), m_url.m_p, m_url.m_length);
 }
 
 void Rendezvous.closeImpl() {
@@ -180,7 +191,7 @@ bool errorcode Rendezvous.connect(
 	m_identity.setKeyPemFile(params.m_keyFileName);
 	m_socket.m_readBufferSize = params.m_readBufferSize;
 
-	m_logWriter.write(log.StdRecordCode.PlainText, $"Calling $url...");
+	m_logWriter.write(RendezvousLogRecordCode.Connecting, url);
 	m_socket.connect(m_identity, url);
 
 	m_state = State.Connecting;
@@ -252,6 +263,10 @@ void Rendezvous.waitRendezvousEvents() {
 		eventMask |= io.RendezvousSocketEvents.Authenticated;
 		break;
 
+	case State.Pairing:
+		eventMask |= io.RendezvousSocketEvents.SessionReady;
+		break;
+
 	case State.Negotiating:
 		eventMask |= io.RendezvousSocketEvents.Connected;
 		break;
@@ -294,16 +309,18 @@ void Rendezvous.onRendezvousEvent(
 	}
 
 	if (triggeredEvents & io.RendezvousSocketEvents.Authenticated) {
-		m_logWriter.write(
-			log.StdRecordCode.PlainText,
-			$"Relay accepted key $(m_identity.m_keyFingerprint)"
-		);
+		m_logWriter.write(RendezvousLogRecordCode.Authenticated);
+		m_state = State.Pairing;
+	}
 
+	if (triggeredEvents & io.RendezvousSocketEvents.SessionReady) {
+		m_logWriter.write(RendezvousLogRecordCode.SessionReady);
 		m_state = State.Negotiating;
 	}
 
 	if (triggeredEvents & io.RendezvousSocketEvents.Connected) {
-		m_logWriter.write(SocketLogRecordCode.ConnectCompleted);
+		m_logWriter.write(RendezvousLogRecordCode.PeerConnected);
+		m_logWriter.write(RendezvousLogRecordCode.ConnectCompleted);
 		m_state = State.Connected;
 		m_isTransmitEnabled = true;
 		m_onConnected();
@@ -318,7 +335,7 @@ void Rendezvous.onRendezvousEvent(
 			m_onIncomingData(m_readBuffer.m_p, size);
 		}
 
-		m_logWriter.write(log.StdRecordCode.PlainText, "Rendezvous peer disconnected");
+		writeDisconnected(SocketLogDisconnectFlags.Remote);
 
 		uint64_t lastReconnectTime = m_lastReconnectTime;
 		closeImpl();
