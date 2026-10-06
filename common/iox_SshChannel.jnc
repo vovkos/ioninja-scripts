@@ -14,7 +14,7 @@ import "doc_PluginHost.jnc"
 import "std_Buffer.jnc"
 import "sys_Timer.jnc"
 import "SocketLog/SocketLogRecordCode.jnc"
-import "SshChannel/SshLogRecordCode.jnc"
+import "SshLog/SshLogRecordCode.jnc"
 
 namespace iox {
 
