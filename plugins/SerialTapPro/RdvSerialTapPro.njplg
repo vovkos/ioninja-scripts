@@ -5,12 +5,13 @@
 
 [plugin]
 
-name        = "Serial Tap Pro over Rendezvous"
+name        = "Serial Tap Pro over RDV"
 description = "Monitor serial communication via a Serial Tap Pro connected to a remote machine reachable over the IO Ninja rendezvous relay"
 id          = rdv-serial-tap-pro
 group       = hw
 log-guid    = 3a1ec99b-234a-49a0-be4b-f6e60b80a5c0  # serial tap pro
 log-guid    = db8c8923-a699-46cc-be7c-f0bcd523082b  # socket
+log-guid    = e44cf2e3-53c6-4484-8b32-4931a1df0f8a  # rendezvous
 icon        = images/serialmon.png
 small-icon  = images/serialmon-16x16.png
 

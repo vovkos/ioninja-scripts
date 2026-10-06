@@ -1,0 +1,27 @@
+//..............................................................................
+//
+// RDV (IO Ninja rendezvous) log record codes
+//
+
+import "log_RecordCode.jnc"
+
+//..............................................................................
+
+enum RendezvousLogRecordCode: uint64_t {
+	Connecting       = 0x01dd548d3f674700, // char[] url
+	Authenticated    = 0x01dd548d3f674701,
+	PeerConnected    = 0x01dd548d3f674702,
+	ConnectCompleted = 0x01dd548d3f674703,
+	Disconnected     = 0x01dd548d3f674704, // RendezvousLogDisconnectParams
+	SessionReady     = 0x01dd548d3f674705,
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+struct RendezvousLogDisconnectParams {
+	uint_t m_flags; // SocketLogDisconnectFlags
+
+	// followed by char[] url
+}
+
+//..............................................................................

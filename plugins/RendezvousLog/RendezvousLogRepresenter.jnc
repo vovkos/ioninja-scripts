@@ -1,0 +1,68 @@
+//..............................................................................
+//
+// RDV (IO Ninja rendezvous) log representer
+//
+
+import "log_Representation.jnc"
+import "SocketLog/SocketLogRecordCode.jnc"
+
+//..............................................................................
+
+bool representRendezvousLog(
+	log.Representation* representation,
+	uint64_t recordCode,
+	void const* p,
+	size_t size,
+	uint_t foldFlags
+) {
+	switch (recordCode) {
+	case RendezvousLogRecordCode.Connecting:
+		string_t url = string_t(p, size);
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		representation.addHyperText(SocketLogPartCode.Connecting, $"Connecting to \e[34m$url\e[m...");
+		break;
+
+	case RendezvousLogRecordCode.Authenticated:
+		representation.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		representation.addHyperText(SocketLogPartCode.ConnectCompleted, "ok");
+		representation.addHyperText(SocketLogPartCode.Connecting, "Waiting for RDV session...");
+		break;
+
+	case RendezvousLogRecordCode.SessionReady:
+		representation.m_lineAttr.m_flags = log.LineAttrFlags.TileIcon;
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		representation.addHyperText(SocketLogPartCode.ConnectCompleted, "ok");
+		representation.addHyperText(SocketLogPartCode.Connecting, "Negotiating peer-to-peer connection...");
+		break;
+
+	case RendezvousLogRecordCode.PeerConnected:
+		representation.addHyperText(SocketLogPartCode.ConnectCompleted, "ok");
+		break;
+
+	case RendezvousLogRecordCode.ConnectCompleted:
+		representation.m_lineAttr.m_iconIdx  = log.StdLogIcon.Connect;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Connect;
+		representation.addHyperText("RDV connection established");
+		break;
+
+	case RendezvousLogRecordCode.Disconnected:
+		RendezvousLogDisconnectParams const* params = (RendezvousLogDisconnectParams const*)p;
+		string_t url = string_t((char const*)(params + 1), size - sizeof(RendezvousLogDisconnectParams));
+		string_t initiator = (params.m_flags & SocketLogDisconnectFlags.Remote) ? "remote" : "local";
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
+		representation.addHyperText($"Disconnected from \e[34m$url\e[m (closed by $initiator)");
+		break;
+
+	default:
+		return false;
+	}
+
+	return true;
+}
+
+//..............................................................................
