@@ -551,7 +551,8 @@ void SslConnectionSession.onSocketEvent(
 			m_logWriter.write(SslLogRecordCode.SslCertificate, buffer.m_p, buffer.m_size);
 		}
 
-		m_logWriter.write(SslLogRecordCode.SslCipher, m_socket.m_currentCipher.m_name);
+		packSslLogInfo(buffer, m_socket.m_version, m_socket.m_keyExchangeGroup, m_socket.m_currentCipher.m_name);
+		m_logWriter.write(SslLogRecordCode.SslInfo, buffer.m_p, buffer.m_size);
 
 		m_logWriter.write(SslLogRecordCode.SslConnectCompleted);
 		m_infoTable[InfoId.LocalAddress].m_value = m_localAddress.getString();

@@ -123,6 +123,33 @@ bool representSslLog(
 		representation.addHyperText($"SSL cipher: \e[34m$((char const*)p)");
 		break;
 
+	case SslLogRecordCode.SslInfo:
+		SslLogInfoParams const* params = (SslLogInfoParams const*)p;
+		char const* s = (char const*)(params + 1);
+		string_t version = s;
+		s += version.m_length + 1;
+		string_t group = s;
+		s += group.m_length + 1;
+		string_t cipher = s;
+
+		string_t protocol = version.m_length >= 4 && strneq(version.m_p, "DTLS", 4) ? "DTLS" : "SSL";
+		string_t groupString = group.m_length ? $" kex: \e[34m$group\e[m" : "";
+		string_t roleString =
+			(params.m_flags & SslLogInfoFlags.Server) ? " role: \e[34mserver\e[m" :
+			(params.m_flags & SslLogInfoFlags.Client) ? " role: \e[34mclient\e[m" :
+			"";
+
+		string_t verifyString = (params.m_flags & SslLogInfoFlags.CertificateNotVerified) ?
+			" \e[31m(certificate not verified)" :
+			"";
+
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		representation.m_lineAttr.m_backColor = ui.StdColor.PastelGray;
+		representation.addHyperText(
+			$"$protocol version: \e[34m$version\e[m$groupString cipher: \e[34m$cipher\e[m$roleString$verifyString"
+		);
+		break;
+
 	case SslLogRecordCode.SslPassphrasePrompt:
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;

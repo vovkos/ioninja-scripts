@@ -4,6 +4,7 @@
 //
 
 import "log_RecordCode.jnc"
+import "std_Buffer.jnc"
 
 //..............................................................................
 
@@ -11,9 +12,44 @@ enum SslLogRecordCode: uint64_t {
 	SslHandshaking         = 0x01d5cdeded08f700,
 	SslHandshakeCompleted  = 0x01d5cdeded08f701,
 	SslCertificate         = 0x01d5cdeded08f702 | log.RecordCodeFlags.Foldable,
-	SslCipher              = 0x01d5cdeded08f703,
+	SslCipher              = 0x01d5cdeded08f703, // superseded by SslInfo; kept for old logs
 	SslConnectCompleted    = 0x01d5cdeded08f704,
 	SslPassphrasePrompt    = 0x01d5cdeded08f705,
+	SslInfo                = 0x01d5cdeded08f706, // SslLogInfoParams
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+bitflag enum SslLogInfoFlags {
+	Client, // a role is shown only when it's set (e.g. for DTLS, where it's negotiated)
+	Server,
+	CertificateNotVerified,
+}
+
+struct SslLogInfoParams {
+	SslLogInfoFlags m_flags;
+
+	// followed by zero-terminated char[] version, key exchange group, cipher
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+void packSslLogInfo(
+	std.Buffer* buffer,
+	string_t version,
+	string_t keyExchangeGroup,
+	string_t cipher,
+	SslLogInfoFlags flags = 0
+) {
+	SslLogInfoParams params;
+	params.m_flags = flags;
+	buffer.copy(&params, sizeof(params));
+	buffer.append(version.m_p, version.m_length);
+	buffer.append(0);
+	buffer.append(keyExchangeGroup.m_p, keyExchangeGroup.m_length);
+	buffer.append(0);
+	buffer.append(cipher.m_p, cipher.m_length);
+	buffer.append(0);
 }
 
 //..............................................................................

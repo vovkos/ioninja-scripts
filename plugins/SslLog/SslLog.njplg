@@ -27,3 +27,4 @@ SslLogRepresenter.jnc
 01d5cdeded08f703  # SslCipher
 01d5cdeded08f704  # SslConnectCompleted
 01d5cdeded08f705  # SslPassphrasePrompt
+01d5cdeded08f706  # SslInfo
