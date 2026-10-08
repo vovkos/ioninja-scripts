@@ -27,3 +27,13 @@ RendezvousLogRepresenter.jnc
 01dd548d3f674703  # ConnectCompleted
 01dd548d3f674704  # Disconnected
 01dd548d3f674705  # SessionReady
+01dd548d3f674707  # SelfIdentity
+01dd548d3f674708  # LocalCandidate
+01dd548d3f674709  # RemoteCandidate
+01dd548d3f67470a  # LocalGatheringComplete
+01dd548d3f67470b  # IceStateChanged
+01dd548d3f67470c  # CandidatePairSelected
+01dd548d3f67470e  # RoundTripTime
+01dd548d3f67470f  # SignalingEstablished
+01dd548d3f674710  # PeerIdentity
+01dd548d3f674711  # DtlsConnected

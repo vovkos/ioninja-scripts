@@ -14,6 +14,7 @@ import "std_Buffer.jnc"
 import "sys_Timer.jnc"
 import "SocketLog/SocketLogRecordCode.jnc"
 import "RendezvousLog/RendezvousLogRecordCode.jnc"
+import "SslLog/SslLogRecordCode.jnc"
 
 namespace iox {
 
@@ -36,6 +37,7 @@ public:
 	struct ConnectParams {
 		size_t m_readBufferSize;
 		string_t m_keyFileName;
+		io.RendezvousOptions m_options;
 		bool m_useReconnect;
 		uint_t m_reconnectTimeout;
 
@@ -125,6 +127,13 @@ protected:
 	void onReconnectTimer(uint_t syncId);
 
 	void closeImpl();
+	void writeSignalingInfo();
+	void writeTlsInfo(
+		io.RendezvousTlsInfo const* tlsInfo,
+		SslLogInfoFlags flags
+	);
+	void writeNegotiationSteps();
+	void writeNegotiationStep(io.RendezvousNegotiationStep const* step);
 	void writeDisconnected(SocketLogDisconnectFlags flags);
 	void handleConnectError(std.Error const* error);
 	void startReconnectTimer(uint64_t lastReconnectTime = -1);
@@ -134,6 +143,7 @@ protected:
 
 Rendezvous.ConnectParams.construct() {
 	m_readBufferSize = ui.BufferPropertySet.Defaults.ReadBufferSize;
+	m_options = io.RendezvousOptions.NegotiationSteps;
 	m_useReconnect = ui.SocketPropertySet.Defaults.UseReconnect;
 	m_reconnectTimeout = ui.SocketPropertySet.Defaults.ReconnectTimeout;
 }
@@ -151,6 +161,7 @@ void Rendezvous.close() {
 	case State.Connecting:
 	case State.Pairing:
 	case State.Negotiating:
+		writeNegotiationSteps();
 		m_logWriter.write(SocketLogRecordCode.ConnectCancelled);
 		break;
 
@@ -166,6 +177,103 @@ void Rendezvous.writeDisconnected(SocketLogDisconnectFlags flags) {
 	RendezvousLogDisconnectParams params;
 	params.m_flags = flags;
 	m_logWriter.write(RendezvousLogRecordCode.Disconnected, &params, sizeof(params), m_url.m_p, m_url.m_length);
+}
+
+void Rendezvous.writeSignalingInfo() {
+	io.RendezvousSignalingInfo const* info = m_socket.m_signalingInfo;
+	if (!info)
+		return;
+
+	writeTlsInfo(
+		info.m_tlsInfo,
+		(m_socket.m_options & io.RendezvousOptions.DisableTlsVerification) ?
+			SslLogInfoFlags.CertificateNotVerified :
+			0
+	);
+}
+
+void Rendezvous.writeTlsInfo(
+	io.RendezvousTlsInfo const* tlsInfo,
+	SslLogInfoFlags flags
+) {
+	for (size_t i = 0; i < tlsInfo.m_certificateCount; i++)
+		m_logWriter.write(
+			SslLogRecordCode.SslCertificate,
+			tlsInfo.m_certificateChain[i].m_p,
+			tlsInfo.m_certificateChain[i].m_size
+		);
+
+	std.Buffer buffer;
+	packSslLogInfo(buffer, tlsInfo.m_version, tlsInfo.m_group, tlsInfo.m_cipher, flags);
+	m_logWriter.write(SslLogRecordCode.SslInfo, buffer.m_p, buffer.m_size);
+}
+
+void Rendezvous.writeNegotiationSteps() {
+	if (m_state < State.Negotiating) // SessionReady goes first
+		return;
+
+	io.RendezvousNegotiationStep stepTable[8];
+
+	for (;;) {
+		size_t count = m_socket.readNegotiationSteps(stepTable, countof(stepTable));
+		for (size_t i = 0; i < count; i++)
+			writeNegotiationStep(&stepTable[i]);
+
+		if (count < countof(stepTable))
+			break;
+	}
+}
+
+void Rendezvous.writeNegotiationStep(io.RendezvousNegotiationStep const* step) {
+	std.Buffer buffer;
+
+	switch (step.m_kind) {
+	case io.RendezvousNegotiationStepKind.LocalCandidate:
+	case io.RendezvousNegotiationStepKind.RemoteCandidate:
+		if (m_state == State.Connected) // late candidates don't matter anymore
+			break;
+
+		bool isLocal = step.m_kind == io.RendezvousNegotiationStepKind.LocalCandidate;
+		io.RendezvousCandidate const* candidate = isLocal ? &step.m_localCandidate : &step.m_remoteCandidate;
+
+		RendezvousLogCandidateParams params;
+		initLogCandidate(&params.m_candidate, candidate);
+
+		m_logWriter.write(
+			isLocal ? RendezvousLogRecordCode.LocalCandidate : RendezvousLogRecordCode.RemoteCandidate,
+			&params,
+			sizeof(params),
+			candidate.m_address.m_p,
+			candidate.m_address.m_length
+		);
+		break;
+
+	case io.RendezvousNegotiationStepKind.LocalGatheringComplete:
+		if (m_state != State.Connected)
+			m_logWriter.write(RendezvousLogRecordCode.LocalGatheringComplete);
+
+		break;
+
+	case io.RendezvousNegotiationStepKind.IceStateChanged:
+		m_logWriter.write(RendezvousLogRecordCode.IceStateChanged, &step.m_iceState, sizeof(step.m_iceState));
+		break;
+
+	case io.RendezvousNegotiationStepKind.CandidatePairSelected:
+		RendezvousLogCandidatePairParams params;
+		initLogCandidate(&params.m_localCandidate, &step.m_localCandidate);
+		initLogCandidate(&params.m_remoteCandidate, &step.m_remoteCandidate);
+
+		buffer.copy(&params, sizeof(params));
+		appendZeroTerminated(buffer, step.m_localCandidate.m_address);
+		appendZeroTerminated(buffer, step.m_remoteCandidate.m_address);
+		m_logWriter.write(RendezvousLogRecordCode.CandidatePairSelected, buffer.m_p, buffer.m_size);
+		break;
+
+	case io.RendezvousNegotiationStepKind.DtlsConnected:
+		writeTlsInfo(step.m_dtlsInfo, step.m_dtlsInfo.m_isServer ? SslLogInfoFlags.Server : SslLogInfoFlags.Client);
+		m_logWriter.write(RendezvousLogRecordCode.DtlsConnected);
+		break;
+	}
 }
 
 void Rendezvous.closeImpl() {
@@ -190,8 +298,11 @@ bool errorcode Rendezvous.connect(
 
 	m_identity.setKeyPemFile(params.m_keyFileName);
 	m_socket.m_readBufferSize = params.m_readBufferSize;
+	m_socket.m_options = params.m_options;
 
-	m_logWriter.write(RendezvousLogRecordCode.Connecting, url);
+	string_t fingerprint = m_identity.m_keyFingerprint;
+	m_logWriter.write(RendezvousLogRecordCode.SelfIdentity, fingerprint.m_p, fingerprint.m_length);
+	m_logWriter.write(RendezvousLogRecordCode.Connecting, url.m_p, url.m_length);
 	m_socket.connect(m_identity, url);
 
 	m_state = State.Connecting;
@@ -268,13 +379,16 @@ void Rendezvous.waitRendezvousEvents() {
 		break;
 
 	case State.Negotiating:
-		eventMask |= io.RendezvousSocketEvents.Connected;
+		eventMask |=
+			io.RendezvousSocketEvents.Connected |
+			io.RendezvousSocketEvents.NegotiationStep;
 		break;
 
 	case State.Connected:
 		eventMask |=
 			io.RendezvousSocketEvents.IncomingData |
-			io.RendezvousSocketEvents.Disconnected;
+			io.RendezvousSocketEvents.Disconnected |
+			io.RendezvousSocketEvents.NegotiationStep; // e.g., ICE disconnected
 
 		if (!m_isTransmitEnabled)
 			eventMask |= io.RendezvousSocketEvents.WriteBufferReady;
@@ -298,6 +412,22 @@ void Rendezvous.onRendezvousEvent(
 	if (syncId != m_syncId)
 		return;
 
+	if (triggeredEvents & io.RendezvousSocketEvents.Authenticated) {
+		m_logWriter.write(RendezvousLogRecordCode.Authenticated);
+		writeSignalingInfo();
+		m_logWriter.write(RendezvousLogRecordCode.SignalingEstablished);
+		m_state = State.Pairing;
+	}
+
+	if (triggeredEvents & io.RendezvousSocketEvents.SessionReady) {
+		string_t peerFingerprint = m_socket.m_peerFingerprint;
+		m_logWriter.write(RendezvousLogRecordCode.PeerIdentity, peerFingerprint.m_p, peerFingerprint.m_length);
+		m_logWriter.write(RendezvousLogRecordCode.SessionReady);
+		m_state = State.Negotiating;
+	}
+
+	writeNegotiationSteps(); // before the error -- it tells why
+
 	if (triggeredEvents & io.RendezvousSocketEvents.IoError) {
 		bool isReconnecting = m_lastReconnectTime != 0;
 		handleConnectError(m_socket.m_ioError);
@@ -308,18 +438,11 @@ void Rendezvous.onRendezvousEvent(
 		return;
 	}
 
-	if (triggeredEvents & io.RendezvousSocketEvents.Authenticated) {
-		m_logWriter.write(RendezvousLogRecordCode.Authenticated);
-		m_state = State.Pairing;
-	}
-
-	if (triggeredEvents & io.RendezvousSocketEvents.SessionReady) {
-		m_logWriter.write(RendezvousLogRecordCode.SessionReady);
-		m_state = State.Negotiating;
-	}
-
 	if (triggeredEvents & io.RendezvousSocketEvents.Connected) {
-		m_logWriter.write(RendezvousLogRecordCode.PeerConnected);
+		uint_t rtt = m_socket.m_roundTripTime;
+		if (rtt != -1)
+			m_logWriter.write(RendezvousLogRecordCode.RoundTripTime, &rtt, sizeof(rtt));
+
 		m_logWriter.write(RendezvousLogRecordCode.ConnectCompleted);
 		m_state = State.Connected;
 		m_isTransmitEnabled = true;
@@ -393,6 +516,25 @@ void Rendezvous.onReconnectTimer(uint_t syncId) {
 
 	if (!result && m_connectParams.m_useReconnect)
 		startReconnectTimer();
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+void appendZeroTerminated(
+	std.Buffer* buffer,
+	string_t string
+) {
+	buffer.append(string);
+	buffer.append('\0');
+}
+
+void initLogCandidate(
+	RendezvousLogCandidate* logCandidate,
+	io.RendezvousCandidate const* candidate
+) {
+	logCandidate.m_type = candidate.m_type;
+	logCandidate.m_transport = candidate.m_transport;
+	logCandidate.m_port = candidate.m_port;
 }
 
 //..............................................................................

@@ -3,17 +3,28 @@
 // RDV (IO Ninja rendezvous) log record codes
 //
 
+import "io_rdv.jncx"
 import "log_RecordCode.jnc"
 
 //..............................................................................
 
 enum RendezvousLogRecordCode: uint64_t {
-	Connecting       = 0x01dd548d3f674700, // char[] url
-	Authenticated    = 0x01dd548d3f674701,
-	PeerConnected    = 0x01dd548d3f674702,
-	ConnectCompleted = 0x01dd548d3f674703,
-	Disconnected     = 0x01dd548d3f674704, // RendezvousLogDisconnectParams
-	SessionReady     = 0x01dd548d3f674705,
+	Connecting             = 0x01dd548d3f674700, // char[] url
+	Authenticated          = 0x01dd548d3f674701,
+	PeerConnected          = 0x01dd548d3f674702,
+	ConnectCompleted       = 0x01dd548d3f674703,
+	Disconnected           = 0x01dd548d3f674704, // RendezvousLogDisconnectParams
+	SessionReady           = 0x01dd548d3f674705,
+	SelfIdentity           = 0x01dd548d3f674707, // char[] own key fingerprint
+	LocalCandidate         = 0x01dd548d3f674708, // RendezvousLogCandidateParams
+	RemoteCandidate        = 0x01dd548d3f674709, // RendezvousLogCandidateParams
+	LocalGatheringComplete = 0x01dd548d3f67470a,
+	IceStateChanged        = 0x01dd548d3f67470b, // io.RendezvousIceState
+	CandidatePairSelected  = 0x01dd548d3f67470c, // RendezvousLogCandidatePairParams
+	RoundTripTime          = 0x01dd548d3f67470e, // uint_t round-trip time, ms
+	SignalingEstablished   = 0x01dd548d3f67470f,
+	PeerIdentity           = 0x01dd548d3f674710, // char[] peer key fingerprint
+	DtlsConnected          = 0x01dd548d3f674711,
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -22,6 +33,27 @@ struct RendezvousLogDisconnectParams {
 	uint_t m_flags; // SocketLogDisconnectFlags
 
 	// followed by char[] url
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+struct RendezvousLogCandidate {
+	io.RendezvousCandidateType m_type;
+	io.RendezvousCandidateTransport m_transport;
+	uint_t m_port;
+}
+
+struct RendezvousLogCandidateParams {
+	RendezvousLogCandidate m_candidate;
+
+	// followed by char[] address
+}
+
+struct RendezvousLogCandidatePairParams {
+	RendezvousLogCandidate m_localCandidate;
+	RendezvousLogCandidate m_remoteCandidate;
+
+	// followed by zero-terminated char[] local address, remote address
 }
 
 //..............................................................................
