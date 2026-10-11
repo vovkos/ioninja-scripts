@@ -15,16 +15,15 @@ enum RendezvousLogRecordCode: uint64_t {
 	ConnectCompleted       = 0x01dd548d3f674703,
 	Disconnected           = 0x01dd548d3f674704, // RendezvousLogDisconnectParams
 	SessionReady           = 0x01dd548d3f674705,
-	SelfIdentity           = 0x01dd548d3f674707, // char[] own key fingerprint
-	LocalCandidate         = 0x01dd548d3f674708, // RendezvousLogCandidateParams
-	RemoteCandidate        = 0x01dd548d3f674709, // RendezvousLogCandidateParams
-	LocalGatheringComplete = 0x01dd548d3f67470a,
-	IceStateChanged        = 0x01dd548d3f67470b, // io.RendezvousIceState
-	CandidatePairSelected  = 0x01dd548d3f67470c, // RendezvousLogCandidatePairParams
-	RoundTripTime          = 0x01dd548d3f67470e, // uint_t round-trip time, ms
-	SignalingEstablished   = 0x01dd548d3f67470f,
-	PeerIdentity           = 0x01dd548d3f674710, // char[] peer key fingerprint
-	DtlsConnected          = 0x01dd548d3f674711,
+	SelfIdentity           = 0x01dd548d3f674706, // char[] own key fingerprint
+	LocalCandidate         = 0x01dd548d3f674707, // RendezvousLogCandidateParams
+	RemoteCandidate        = 0x01dd548d3f674708, // RendezvousLogCandidateParams
+	LocalGatheringComplete = 0x01dd548d3f674709,
+	IceStateChanged        = 0x01dd548d3f67470a, // io.RendezvousIceState
+	CandidatePairSelected  = 0x01dd548d3f67470b, // RendezvousLogCandidatePairParams
+	RoundTripTime          = 0x01dd548d3f67470c, // uint_t round-trip time, ms
+	SignalingEstablished   = 0x01dd548d3f67470d,
+	PeerIdentity           = 0x01dd548d3f67470e, // char[] peer key fingerprint
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .

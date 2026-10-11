@@ -166,12 +166,6 @@ bool representRendezvousLog(
 		));
 		break;
 
-	case RendezvousLogRecordCode.DtlsConnected:
-		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		representation.addHyperText("DTLS connection established");
-		break;
-
 	case RendezvousLogRecordCode.RoundTripTime:
 		uint_t rtt = *(uint_t const*)p;
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;

@@ -80,6 +80,56 @@ void representSslCertificate(
 	}
 }
 
+void representSslConnectCompleted(
+	log.Representation* representation,
+	void const* p,
+	uint_t foldFlags
+) {
+	SslLogConnectFlags flags = *(SslLogConnectFlags const*)p++;
+	string_t version = p;
+	string_t protocol = version.m_length >= 4 && strneq(version.m_p, "DTLS", 4) ? "DTLS" : "SSL";
+
+	representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
+	representation.m_lineAttr.m_backColor = log.StdLogColor.Connect;
+
+	if (!(foldFlags & 1)) {
+		representation.addHyperText(
+			$"[\e^+1\e[34m+\e[m] $(protocol) connection established (\e[34m$(version)\e[m)"
+		);
+
+		return;
+	}
+
+	p += version.m_length + 1;
+	string_t group = p;
+	p += group.m_length + 1;
+	string_t cipher = p;
+
+	string_t role =
+		(flags & SslLogConnectFlags.Server) ? "server" :
+		(flags & SslLogConnectFlags.Client) ? "client" :
+		"";
+
+	string_t groupString = group.m_length ?
+		$"    \e[90mKey exchange:  \e[34m$(group)\n" :
+		"";
+
+	string_t roleString = role.m_length ?
+		$"    \e[90mRole:          \e[34m$(role)\n" :
+		"";
+
+	string_t verifiedString = (flags & SslLogConnectFlags.CertificateNotVerified) ?
+		"\e[31mno" :
+		"\e[34myes";
+
+	representation.addHyperText(
+		$"[\e^-1\e[34m-\e[m] $(protocol) connection established\n"
+		$"    \e[90mVersion:       \e[34m$(version)\n$groupString"
+		$"    \e[90mCipher:        \e[34m$(cipher)\n$roleString"
+		$"    \e[90mCert verified: $verifiedString"
+	);
+}
+
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 bool representSslLog(
@@ -123,31 +173,8 @@ bool representSslLog(
 		representation.addHyperText($"SSL cipher: \e[34m$((char const*)p)");
 		break;
 
-	case SslLogRecordCode.SslInfo:
-		SslLogInfoParams const* params = (SslLogInfoParams const*)p;
-		char const* s = (char const*)(params + 1);
-		string_t version = s;
-		s += version.m_length + 1;
-		string_t group = s;
-		s += group.m_length + 1;
-		string_t cipher = s;
-
-		string_t protocol = version.m_length >= 4 && strneq(version.m_p, "DTLS", 4) ? "DTLS" : "SSL";
-		string_t groupString = group.m_length ? $" kex: \e[34m$group\e[m" : "";
-		string_t roleString =
-			(params.m_flags & SslLogInfoFlags.Server) ? " role: \e[34mserver\e[m" :
-			(params.m_flags & SslLogInfoFlags.Client) ? " role: \e[34mclient\e[m" :
-			"";
-
-		string_t verifyString = (params.m_flags & SslLogInfoFlags.CertificateNotVerified) ?
-			" \e[31m(certificate not verified)" :
-			"";
-
-		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		representation.m_lineAttr.m_backColor = ui.StdColor.PastelGray;
-		representation.addHyperText(
-			$"$protocol version: \e[34m$version\e[m$groupString cipher: \e[34m$cipher\e[m$roleString$verifyString"
-		);
+	case SslLogRecordCode.SslConnectCompleted:
+		representSslConnectCompleted(representation, p, foldFlags);
 		break;
 
 	case SslLogRecordCode.SslPassphrasePrompt:
@@ -156,7 +183,7 @@ bool representSslLog(
 		representation.addHyperText(SocketLogPartCode.Connecting, "Prompting for the private key passphrase...");
 		break;
 
-	case SslLogRecordCode.SslConnectCompleted:
+	case SslLogRecordCode.SslConnectCompleted_0:
 		representation.m_lineAttr.m_iconIdx  = log.StdLogIcon.Connect;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Connect;
 		representation.addHyperText("SSL connection established");

@@ -723,8 +723,15 @@ void WebSocketClientSession.onSocketEvent(
 			m_logWriter.write(SslLogRecordCode.SslCertificate, buffer.m_p, buffer.m_size);
 		}
 
-		packSslLogInfo(buffer, m_socket.m_sslState.m_version, m_socket.m_sslState.m_keyExchangeGroup, m_socket.m_sslState.m_currentCipher.m_name);
-		m_logWriter.write(SslLogRecordCode.SslInfo, buffer.m_p, buffer.m_size);
+		packSslLogConnectParams(
+			buffer,
+			m_socket.m_sslState.m_version,
+			m_socket.m_sslState.m_keyExchangeGroup,
+			m_socket.m_sslState.m_currentCipher.m_name,
+			(m_socket.m_sslState.m_verifyMode & io.SslVerifyMode.VerifyPeerCertificate) ? 0 : SslLogConnectFlags.CertificateNotVerified
+		);
+
+		m_logWriter.write(SslLogRecordCode.SslConnectCompleted, buffer.m_p, buffer.m_size);
 		m_state = State.WebSocketHandshakeRequest;
 	}
 

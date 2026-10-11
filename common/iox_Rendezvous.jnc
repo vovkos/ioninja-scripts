@@ -130,7 +130,7 @@ protected:
 	void writeSignalingInfo();
 	void writeTlsInfo(
 		io.RendezvousTlsInfo const* tlsInfo,
-		SslLogInfoFlags flags
+		SslLogConnectFlags flags
 	);
 	void writeNegotiationSteps();
 	void writeNegotiationStep(io.RendezvousNegotiationStep const* step);
@@ -187,14 +187,14 @@ void Rendezvous.writeSignalingInfo() {
 	writeTlsInfo(
 		info.m_tlsInfo,
 		(m_socket.m_options & io.RendezvousOptions.DisableTlsVerification) ?
-			SslLogInfoFlags.CertificateNotVerified :
+			SslLogConnectFlags.CertificateNotVerified :
 			0
 	);
 }
 
 void Rendezvous.writeTlsInfo(
 	io.RendezvousTlsInfo const* tlsInfo,
-	SslLogInfoFlags flags
+	SslLogConnectFlags flags
 ) {
 	for (size_t i = 0; i < tlsInfo.m_certificateCount; i++)
 		m_logWriter.write(
@@ -204,8 +204,8 @@ void Rendezvous.writeTlsInfo(
 		);
 
 	std.Buffer buffer;
-	packSslLogInfo(buffer, tlsInfo.m_version, tlsInfo.m_group, tlsInfo.m_cipher, flags);
-	m_logWriter.write(SslLogRecordCode.SslInfo, buffer.m_p, buffer.m_size);
+	packSslLogConnectParams(buffer, tlsInfo.m_version, tlsInfo.m_group, tlsInfo.m_cipher, flags);
+	m_logWriter.write(SslLogRecordCode.SslConnectCompleted, buffer.m_p, buffer.m_size);
 }
 
 void Rendezvous.writeNegotiationSteps() {
@@ -270,8 +270,7 @@ void Rendezvous.writeNegotiationStep(io.RendezvousNegotiationStep const* step) {
 		break;
 
 	case io.RendezvousNegotiationStepKind.DtlsConnected:
-		writeTlsInfo(step.m_dtlsInfo, step.m_dtlsInfo.m_isServer ? SslLogInfoFlags.Server : SslLogInfoFlags.Client);
-		m_logWriter.write(RendezvousLogRecordCode.DtlsConnected);
+		writeTlsInfo(step.m_dtlsInfo, step.m_dtlsInfo.m_isServer ? SslLogConnectFlags.Server : SslLogConnectFlags.Client);
 		break;
 	}
 }

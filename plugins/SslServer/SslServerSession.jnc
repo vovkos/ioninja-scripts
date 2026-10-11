@@ -594,10 +594,15 @@ void SslServerSession.onClientSocketEvent(
 			m_logWriter.write(SslLogRecordCode.SslCertificate, buffer.m_p, buffer.m_size);
 		}
 
-		packSslLogInfo(buffer, client.m_socket.m_version, client.m_socket.m_keyExchangeGroup, client.m_socket.m_currentCipher.m_name);
-		m_logWriter.write(SslLogRecordCode.SslInfo, buffer.m_p, buffer.m_size);
+		packSslLogConnectParams(
+			buffer,
+			client.m_socket.m_version,
+			client.m_socket.m_keyExchangeGroup,
+			client.m_socket.m_currentCipher.m_name,
+			cert && (client.m_socket.m_verifyMode & io.SslVerifyMode.VerifyPeerCertificate) ? 0 : SslLogConnectFlags.CertificateNotVerified
+		);
 
-		m_logWriter.write(SslLogRecordCode.SslConnectCompleted);
+		m_logWriter.write(SslLogRecordCode.SslConnectCompleted, buffer.m_p, buffer.m_size);
 		client.m_state = ConnectionState.Connected;
 		client.m_isTransmitEnabled = true;
 		m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
