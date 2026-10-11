@@ -124,7 +124,7 @@ bool representSocketLog(
 		representation.addHyperText($"Disconnected from \e[34m$addressString\e[m ($reasonString)");
 		break;
 
-	case SocketLogRecordCode.Disconnected_old:
+	case SocketLogRecordCode.Disconnected_0:
 		string_t addressString = ((io.SocketAddress const*)p).getString();
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Disconnect;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
