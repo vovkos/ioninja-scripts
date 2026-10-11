@@ -12,7 +12,7 @@ import "std_Buffer.jnc"
 
 enum SerialLogRecordCode: uint64_t {
 	PortOpened            = 0x01d47c8fc7b0f700 | log.RecordCodeFlags.Foldable,
-	PortOpened_0          = 0x01d47c8fc7b0f701 | log.RecordCodeFlags.Foldable,
+	PortOpened_0          = 0x01d47c8fc7b0f701 | log.RecordCodeFlags.Foldable, // deprecated
 	PortOpenError         = 0x01d47c8fc7b0f702,
 	PortClosedNamed       = 0x01d47c8fc7b0f703,
 	BaudRateChanged       = 0x01d47c8fc7b0f704,
