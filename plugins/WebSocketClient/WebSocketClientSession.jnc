@@ -442,10 +442,12 @@ bool errorcode WebSocketClientSession.connect(
 			m_socket.m_sslState.m_verifyMode = io.SslVerifyMode.VerifyPeerCertificate;
 			m_socket.m_sslState.m_verifyDepth = m_sslPropertySet.m_verifyDepthProp.m_value;
 
-			m_socket.m_sslState.loadVerifyLocations(
-				m_sslPropertySet.m_verifyCaFileProp.m_value,
-				m_sslPropertySet.m_verifyCaDirProp.m_value
-			);
+			string_t caFileName = m_sslPropertySet.m_verifyCaFileProp.m_value;
+			string_t caDir = m_sslPropertySet.m_verifyCaDirProp.m_value;
+			if (caFileName || caDir)
+				m_socket.m_sslState.loadVerifyLocations(caFileName, caDir);
+			else
+				m_socket.m_sslState.setDefaultVerifyPaths();
 		}
 	}
 

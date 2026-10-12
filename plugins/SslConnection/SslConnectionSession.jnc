@@ -325,10 +325,12 @@ bool errorcode SslConnectionSession.connect(io.SocketAddress const* remoteAddres
 		m_socket.m_verifyMode = io.SslVerifyMode.VerifyPeerCertificate;
 		m_socket.m_verifyDepth = m_sslPropertySet.m_verifyDepthProp.m_value;
 
-		m_socket.loadVerifyLocations(
-			m_sslPropertySet.m_verifyCaFileProp.m_value,
-			m_sslPropertySet.m_verifyCaDirProp.m_value
-		);
+		string_t caFileName = m_sslPropertySet.m_verifyCaFileProp.m_value;
+		string_t caDir = m_sslPropertySet.m_verifyCaDirProp.m_value;
+		if (caFileName || caDir)
+			m_socket.loadVerifyLocations(caFileName, caDir);
+		else
+			m_socket.setDefaultVerifyPaths();
 	}
 
 	if (m_hostname)

@@ -536,10 +536,12 @@ void SslServerSession.onListenerSocketEvent(
 				socket.m_verifyMode = io.SslVerifyMode.VerifyPeerCertificate;
 				socket.m_verifyDepth = m_sslPropertySet.m_verifyDepthProp.m_value;
 
-				socket.loadVerifyLocations(
-					m_sslPropertySet.m_verifyCaFileProp.m_value,
-					m_sslPropertySet.m_verifyCaDirProp.m_value
-				);
+				string_t caFileName = m_sslPropertySet.m_verifyCaFileProp.m_value;
+				string_t caDir = m_sslPropertySet.m_verifyCaDirProp.m_value;
+				if (caFileName || caDir)
+					socket.loadVerifyLocations(caFileName, caDir);
+				else
+					socket.setDefaultVerifyPaths();
 			}
 		}
 

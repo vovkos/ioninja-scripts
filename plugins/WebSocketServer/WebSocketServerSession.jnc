@@ -584,10 +584,12 @@ void WebSocketServerSession.configureSsl(io.SslState* sslState) {
 			sslState.m_verifyMode = io.SslVerifyMode.VerifyPeerCertificate;
 			sslState.m_verifyDepth = m_sslPropertySet.m_verifyDepthProp.m_value;
 
-			sslState.loadVerifyLocations(
-				m_sslPropertySet.m_verifyCaFileProp.m_value,
-				m_sslPropertySet.m_verifyCaDirProp.m_value
-			);
+			string_t caFileName = m_sslPropertySet.m_verifyCaFileProp.m_value;
+			string_t caDir = m_sslPropertySet.m_verifyCaDirProp.m_value;
+			if (caFileName || caDir)
+				sslState.loadVerifyLocations(caFileName, caDir);
+			else
+				sslState.setDefaultVerifyPaths();
 		}
 	}
 }
