@@ -52,8 +52,8 @@ string_t getRendezvousLogCandidateString(
 	string_t transportString = transportStringTable[candidate.m_transport < countof(transportStringTable) ? candidate.m_transport : 0];
 
 	return memchr(address.m_p, ':', address.m_length) ? // IPv6
-		$"$typeString \e[34m[$address]:$(candidate.m_port)\e[m ($transportString)" :
-		$"$typeString \e[34m$address:$(candidate.m_port)\e[m ($transportString)";
+		$"\e[34m$typeString [$address]:$(candidate.m_port)\e[m ($transportString)" :
+		$"\e[34m$typeString $address:$(candidate.m_port)\e[m ($transportString)";
 }
 
 string_t getRendezvousLogIceStateString(io.RendezvousIceState state) {
@@ -70,11 +70,11 @@ string_t getRendezvousLogIceStateString(io.RendezvousIceState state) {
 	return state < countof(stringTable) ? stringTable[state] : "unknown";
 }
 
-string_t getRendezvousLogCandidateTypeString(RendezvousLogIceConnectedParams const* params) {
+string_t getRendezvousLogMethodString(RendezvousLogIceConnectedParams const* params) {
 	if (params.m_localCandidate.m_type == io.RendezvousCandidateType.Relayed ||
 		params.m_remoteCandidate.m_type == io.RendezvousCandidateType.Relayed
 	)
-		return "\e[34mrelayed\e[m (TURN)";
+		return "\e[34mrelay\e[m (TURN)";
 
 	if (params.m_localCandidate.m_type == io.RendezvousCandidateType.Host &&
 		params.m_remoteCandidate.m_type == io.RendezvousCandidateType.Host
@@ -112,18 +112,19 @@ bool representRendezvousLog(
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
 
+		string_t strings[3]; // ICE server, local fingerprint, remote fingerprint
+		splitRendezvousLogStrings(strings, countof(strings), p, size);
+
 		if (!(foldFlags & 1)) {
-			representation.addHyperText("[\e^+1\e[34m+\e[m] RDV session established");
+			representation.addHyperText($"[\e^+1\e[34m+\e[m] RDV session established (ICE server: \e[34m$(strings[0])\e[m)");
 			break;
 		}
 
-		string_t strings[2]; // local fingerprint, remote fingerprint
-		splitRendezvousLogStrings(strings, countof(strings), p, size);
-
 		representation.addHyperText(
 			$"[\e^-1\e[34m-\e[m] RDV session established\n"
-			$"    \e[90mLocal identity:\t\e[34m$(strings[0])\n"
-			$"    \e[90mRemote identity:\t\e[34m$(strings[1])"
+			$"    \e[90mICE server:\t\e[34m$(strings[0])\n"
+			$"    \e[90mLocal identity:\t\e[34m$(strings[1])\n"
+			$"    \e[90mRemote identity:\t\e[34m$(strings[2])"
 		);
 		break;
 
@@ -173,7 +174,7 @@ bool representRendezvousLog(
 			$"    \e[90mState:\t\e[34m$stateString\n"
 			$"    \e[90mLocal candidate:\t\e[m$localString\n"
 			$"    \e[90mRemote candidate:\t\e[m$remoteString\n"
-			$"    \e[90mPath:\t\e[m$(getRendezvousLogCandidateTypeString(params))"
+			$"    \e[90mMethod:\t\e[m$(getRendezvousLogMethodString(params))"
 		);
 		break;
 

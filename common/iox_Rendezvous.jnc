@@ -424,6 +424,7 @@ void Rendezvous.onRendezvousEvent(
 
 	if (triggeredEvents & io.RendezvousSocketEvents.SessionReady) {
 		std.Buffer buffer;
+		appendZeroTerminated(buffer, m_socket.m_iceServer);
 		appendZeroTerminated(buffer, m_identity.m_keyFingerprint);
 		appendZeroTerminated(buffer, m_socket.m_peerFingerprint);
 		m_logWriter.write(RendezvousLogRecordCode.SessionReady, buffer.m_p, buffer.m_size);
