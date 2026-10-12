@@ -204,7 +204,13 @@ void Rendezvous.writeTlsInfo(
 		);
 
 	std.Buffer buffer;
-	packSslLogConnectParams(buffer, tlsInfo.m_version, tlsInfo.m_group, tlsInfo.m_cipher, flags);
+	packSslLogConnectParams(
+		buffer,
+		tlsInfo.m_version,
+		tlsInfo.m_group,
+		tlsInfo.m_cipher,
+		flags | SslLogConnectFlags.Info // RDV connection established comes later
+	);
 	m_logWriter.write(SslLogRecordCode.SslConnectCompleted, buffer.m_p, buffer.m_size);
 }
 
@@ -255,18 +261,19 @@ void Rendezvous.writeNegotiationStep(io.RendezvousNegotiationStep const* step) {
 		break;
 
 	case io.RendezvousNegotiationStepKind.IceStateChanged:
-		m_logWriter.write(RendezvousLogRecordCode.IceStateChanged, &step.m_iceState, sizeof(step.m_iceState));
-		break;
+		if (!step.m_localCandidate.m_address) { // no selected pair
+			m_logWriter.write(RendezvousLogRecordCode.IceStateChanged, &step.m_iceState, sizeof(step.m_iceState));
+			break;
+		}
 
-	case io.RendezvousNegotiationStepKind.CandidatePairSelected:
-		RendezvousLogCandidatePairParams params;
+		RendezvousLogIceConnectedParams params;
+		params.m_iceState = step.m_iceState;
 		initLogCandidate(&params.m_localCandidate, &step.m_localCandidate);
 		initLogCandidate(&params.m_remoteCandidate, &step.m_remoteCandidate);
-
 		buffer.copy(&params, sizeof(params));
 		appendZeroTerminated(buffer, step.m_localCandidate.m_address);
 		appendZeroTerminated(buffer, step.m_remoteCandidate.m_address);
-		m_logWriter.write(RendezvousLogRecordCode.CandidatePairSelected, buffer.m_p, buffer.m_size);
+		m_logWriter.write(RendezvousLogRecordCode.IceConnected, buffer.m_p, buffer.m_size);
 		break;
 
 	case io.RendezvousNegotiationStepKind.DtlsConnected:
@@ -299,8 +306,6 @@ bool errorcode Rendezvous.connect(
 	m_socket.m_readBufferSize = params.m_readBufferSize;
 	m_socket.m_options = params.m_options;
 
-	string_t fingerprint = m_identity.m_keyFingerprint;
-	m_logWriter.write(RendezvousLogRecordCode.SelfIdentity, fingerprint.m_p, fingerprint.m_length);
 	m_logWriter.write(RendezvousLogRecordCode.Connecting, url.m_p, url.m_length);
 	m_socket.connect(m_identity, url);
 
@@ -414,14 +419,14 @@ void Rendezvous.onRendezvousEvent(
 	if (triggeredEvents & io.RendezvousSocketEvents.Authenticated) {
 		m_logWriter.write(RendezvousLogRecordCode.Authenticated);
 		writeSignalingInfo();
-		m_logWriter.write(RendezvousLogRecordCode.SignalingEstablished);
 		m_state = State.Pairing;
 	}
 
 	if (triggeredEvents & io.RendezvousSocketEvents.SessionReady) {
-		string_t peerFingerprint = m_socket.m_peerFingerprint;
-		m_logWriter.write(RendezvousLogRecordCode.PeerIdentity, peerFingerprint.m_p, peerFingerprint.m_length);
-		m_logWriter.write(RendezvousLogRecordCode.SessionReady);
+		std.Buffer buffer;
+		appendZeroTerminated(buffer, m_identity.m_keyFingerprint);
+		appendZeroTerminated(buffer, m_socket.m_peerFingerprint);
+		m_logWriter.write(RendezvousLogRecordCode.SessionReady, buffer.m_p, buffer.m_size);
 		m_state = State.Negotiating;
 	}
 
@@ -440,9 +445,10 @@ void Rendezvous.onRendezvousEvent(
 	if (triggeredEvents & io.RendezvousSocketEvents.Connected) {
 		uint_t rtt = m_socket.m_roundTripTime;
 		if (rtt != -1)
-			m_logWriter.write(RendezvousLogRecordCode.RoundTripTime, &rtt, sizeof(rtt));
+			m_logWriter.write(RendezvousLogRecordCode.ConnectCompleted, &rtt, sizeof(rtt));
+		else
+			m_logWriter.write(RendezvousLogRecordCode.ConnectCompleted);
 
-		m_logWriter.write(RendezvousLogRecordCode.ConnectCompleted);
 		m_state = State.Connected;
 		m_isTransmitEnabled = true;
 		m_onConnected();
@@ -457,11 +463,10 @@ void Rendezvous.onRendezvousEvent(
 			m_onIncomingData(m_readBuffer.m_p, size);
 		}
 
-		writeDisconnected(SocketLogDisconnectFlags.Remote);
-
 		uint64_t lastReconnectTime = m_lastReconnectTime;
 		closeImpl();
-		m_onDisconnected();
+		m_onDisconnected(); // let the session close its nested scopes (e.g. capture stopped) first
+		writeDisconnected(SocketLogDisconnectFlags.Remote);
 
 		if (m_connectParams.m_useReconnect)
 			startReconnectTimer(lastReconnectTime);

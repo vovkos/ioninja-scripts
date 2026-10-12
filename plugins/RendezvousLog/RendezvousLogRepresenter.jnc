@@ -52,8 +52,8 @@ string_t getRendezvousLogCandidateString(
 	string_t transportString = transportStringTable[candidate.m_transport < countof(transportStringTable) ? candidate.m_transport : 0];
 
 	return memchr(address.m_p, ':', address.m_length) ? // IPv6
-		$"\e[34m$typeString\e[m [$address]:$(candidate.m_port) ($transportString)" :
-		$"\e[34m$typeString\e[m $address:$(candidate.m_port) ($transportString)";
+		$"$typeString \e[34m[$address]:$(candidate.m_port)\e[m ($transportString)" :
+		$"$typeString \e[34m$address:$(candidate.m_port)\e[m ($transportString)";
 }
 
 string_t getRendezvousLogIceStateString(io.RendezvousIceState state) {
@@ -70,16 +70,18 @@ string_t getRendezvousLogIceStateString(io.RendezvousIceState state) {
 	return state < countof(stringTable) ? stringTable[state] : "unknown";
 }
 
-string_t getRendezvousLogCandidatePairVerdict(RendezvousLogCandidatePairParams const* params) {
+string_t getRendezvousLogCandidateTypeString(RendezvousLogIceConnectedParams const* params) {
 	if (params.m_localCandidate.m_type == io.RendezvousCandidateType.Relayed ||
-		params.m_remoteCandidate.m_type == io.RendezvousCandidateType.Relayed)
-		return "relayed via TURN";
+		params.m_remoteCandidate.m_type == io.RendezvousCandidateType.Relayed
+	)
+		return "\e[34mrelayed\e[m (TURN)";
 
 	if (params.m_localCandidate.m_type == io.RendezvousCandidateType.Host &&
-		params.m_remoteCandidate.m_type == io.RendezvousCandidateType.Host)
-		return "direct, same network";
+		params.m_remoteCandidate.m_type == io.RendezvousCandidateType.Host
+	)
+		return "\e[34mdirect\e[m (same network)";
 
-	return "direct, NAT traversal";
+	return "\e[34mdirect\e[m (NAT traversal)";
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -92,15 +94,6 @@ bool representRendezvousLog(
 	uint_t foldFlags
 ) {
 	switch (recordCode) {
-	case RendezvousLogRecordCode.SelfIdentity:
-	case RendezvousLogRecordCode.PeerIdentity:
-		string_t fingerprint = string_t((char const*)p, size);
-		string_t side = recordCode == RendezvousLogRecordCode.SelfIdentity ? "self" : "peer";
-		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		representation.m_lineAttr.m_backColor = ui.StdColor.PastelGray;
-		representation.addHyperText($"RDV $side identity: \e[34m$fingerprint");
-		break;
-
 	case RendezvousLogRecordCode.Connecting:
 		string_t url = string_t((char const*)p, size);
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
@@ -115,16 +108,23 @@ bool representRendezvousLog(
 		representation.addHyperText(SocketLogPartCode.ConnectCompleted, "ok");
 		break;
 
-	case RendezvousLogRecordCode.SignalingEstablished:
-		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		representation.addHyperText("WSS session established");
-		break;
-
 	case RendezvousLogRecordCode.SessionReady:
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
-		representation.addHyperText("RDV session established");
+
+		if (!(foldFlags & 1)) {
+			representation.addHyperText("[\e^+1\e[34m+\e[m] RDV session established");
+			break;
+		}
+
+		string_t strings[2]; // local fingerprint, remote fingerprint
+		splitRendezvousLogStrings(strings, countof(strings), p, size);
+
+		representation.addHyperText(
+			$"[\e^-1\e[34m-\e[m] RDV session established\n"
+			$"    \e[90mLocal identity:\t\e[34m$(strings[0])\n"
+			$"    \e[90mRemote identity:\t\e[34m$(strings[1])"
+		);
 		break;
 
 	case RendezvousLogRecordCode.LocalCandidate:
@@ -151,39 +151,46 @@ bool representRendezvousLog(
 		representation.addHyperText($"ICE state changed: \e[34m%1"(getRendezvousLogIceStateString(state)));
 		break;
 
-	case RendezvousLogRecordCode.CandidatePairSelected:
-		RendezvousLogCandidatePairParams const* params = (RendezvousLogCandidatePairParams const*)p;
+	case RendezvousLogRecordCode.IceConnected:
+		RendezvousLogIceConnectedParams const* params = (RendezvousLogIceConnectedParams const*)p;
 		string_t strings[2]; // local address, remote address
-		splitRendezvousLogStrings(strings, countof(strings), params + 1, size - sizeof(RendezvousLogCandidatePairParams));
+		splitRendezvousLogStrings(strings, countof(strings), params + 1, size - sizeof(RendezvousLogIceConnectedParams));
+
+		string_t stateString = getRendezvousLogIceStateString(params.m_iceState);
+		string_t localString = getRendezvousLogCandidateString(params.m_localCandidate, strings[0]);
+		string_t remoteString = getRendezvousLogCandidateString(params.m_remoteCandidate, strings[1]);
 
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		representation.m_lineAttr.m_backColor = ui.StdColor.PastelGray;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
+
+		if (!(foldFlags & 1)) {
+			representation.addHyperText($"[\e^+1\e[34m+\e[m] ICE state changed: \e[34m$stateString\e[m: $localString \u2194 $remoteString");
+			break;
+		}
+
 		representation.addHyperText(
-			$"Selected candidate pair: %1 \u2194 %2 -- \e[34m%3"(
-			getRendezvousLogCandidateString(params.m_localCandidate, strings[0]),
-			getRendezvousLogCandidateString(params.m_remoteCandidate, strings[1]),
-			getRendezvousLogCandidatePairVerdict(params)
-		));
-		break;
-
-	case RendezvousLogRecordCode.RoundTripTime:
-		uint_t rtt = *(uint_t const*)p;
-		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
-		representation.m_lineAttr.m_backColor = ui.StdColor.PastelGray;
-		representation.addHyperText(rtt ?
-			$"Round-trip time: \e[34m$rtt ms" :
-			"Round-trip time: \e[34m< 1 ms" // usrsctp reports whole milliseconds
+			$"[\e^-1\e[34m-\e[m] ICE state changed:\n"
+			$"    \e[90mState:\t\e[34m$stateString\n"
+			$"    \e[90mLocal candidate:\t\e[m$localString\n"
+			$"    \e[90mRemote candidate:\t\e[m$remoteString\n"
+			$"    \e[90mPath:\t\e[m$(getRendezvousLogCandidateTypeString(params))"
 		);
 		break;
 
-	case RendezvousLogRecordCode.PeerConnected:
-		representation.addHyperText(SocketLogPartCode.ConnectCompleted, "ok");
-		break;
-
 	case RendezvousLogRecordCode.ConnectCompleted:
-		representation.m_lineAttr.m_iconIdx  = log.StdLogIcon.Connect;
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Connect;
-		representation.addHyperText("RDV connection established");
+
+		if (size < sizeof(uint_t)) {
+			representation.addHyperText("RDV connection established");
+			break;
+		}
+
+		uint_t rtt = *(uint_t const*)p;
+		representation.addHyperText(rtt ?
+			$"RDV connection established (round-trip time \e[34m$rtt ms)" :
+			"RDV connection established (round-trip time \e[34m< 1 ms)" // usrsctp reports whole milliseconds
+		);
 		break;
 
 	case RendezvousLogRecordCode.Disconnected:
