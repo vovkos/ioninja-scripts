@@ -694,7 +694,9 @@ void WebSocketServerSession.onClientSocketEvent(
 			client.m_socket.m_sslState.m_version,
 			client.m_socket.m_sslState.m_keyExchangeGroup,
 			client.m_socket.m_sslState.m_currentCipher.m_name,
-			cert && (client.m_socket.m_sslState.m_verifyMode & io.SslVerifyMode.VerifyPeerCertificate) ? 0 : SslLogConnectFlags.CertificateNotVerified
+			SslLogConnectFlags.Info | ( // WebSocket connection established comes later
+				cert && (client.m_socket.m_sslState.m_verifyMode & io.SslVerifyMode.VerifyPeerCertificate) ? 0 : SslLogConnectFlags.CertificateNotVerified
+			)
 		);
 
 		m_logWriter.write(SslLogRecordCode.SslConnectCompleted, buffer.m_p, buffer.m_size);

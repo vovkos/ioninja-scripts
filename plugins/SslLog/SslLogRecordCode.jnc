@@ -23,6 +23,7 @@ enum SslLogRecordCode: uint64_t {
 // SslConnectCompleted params:
 
 bitflag enum SslLogConnectFlags: uint8_t {
+	Info,   // use log.StdLogColor.Info rather than StdLogColor.Connect
 	Client, // a role is shown only when it's set (e.g. for DTLS, where it's negotiated)
 	Server,
 	CertificateNotVerified,

@@ -89,8 +89,13 @@ void representSslConnectCompleted(
 	string_t version = p;
 	string_t protocol = version.m_length >= 4 && strneq(version.m_p, "DTLS", 4) ? "DTLS" : "SSL";
 
-	representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
-	representation.m_lineAttr.m_backColor = log.StdLogColor.Connect;
+	if (flags & SslLogConnectFlags.Info) {
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
+	} else {
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Connect;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Connect;
+	}
 
 	if (!(foldFlags & 1)) {
 		representation.addHyperText(
@@ -111,11 +116,11 @@ void representSslConnectCompleted(
 		"";
 
 	string_t groupString = group.m_length ?
-		$"    \e[90mKey exchange:  \e[34m$(group)\n" :
+		$"    \e[90mKey exchange:\t\e[34m$(group)\n" :
 		"";
 
 	string_t roleString = role.m_length ?
-		$"    \e[90mRole:          \e[34m$(role)\n" :
+		$"    \e[90mRole:\t\e[34m$(role)\n" :
 		"";
 
 	string_t verifiedString = (flags & SslLogConnectFlags.CertificateNotVerified) ?
@@ -124,9 +129,9 @@ void representSslConnectCompleted(
 
 	representation.addHyperText(
 		$"[\e^-1\e[34m-\e[m] $(protocol) connection established\n"
-		$"    \e[90mVersion:       \e[34m$(version)\n$groupString"
-		$"    \e[90mCipher:        \e[34m$(cipher)\n$roleString"
-		$"    \e[90mCert verified: $verifiedString"
+		$"    \e[90mVersion:\t\e[34m$(version)\n$groupString"
+		$"    \e[90mCipher:\t\e[34m$(cipher)\n$roleString"
+		$"    \e[90mCert verified:\t$verifiedString"
 	);
 }
 
