@@ -564,13 +564,12 @@ void RdvSerialTapProSession.disconnect() {
 	if (!m_rdv.m_state)
 		return;
 
-	m_rdv.close();
-
-	if (m_captureState == CaptureState.Capturing) {
+	if (m_captureState == CaptureState.Capturing) { // capture stopped goes before disconnected
 		m_logWriter.write(SerialTapProLogRecordCode.CaptureStopped);
 		m_captureState = CaptureState.Idle;
 	}
 
+	m_rdv.close();
 	m_abr[0].close();
 	m_abr[1].close();
 	m_stdSessionInfoSet.endSession();
