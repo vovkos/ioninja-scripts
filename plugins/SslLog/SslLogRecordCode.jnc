@@ -27,6 +27,7 @@ bitflag enum SslLogConnectFlags: uint8_t {
 	Client, // a role is shown only when it's set (e.g. for DTLS, where it's negotiated)
 	Server,
 	CertificateNotVerified,
+	CertificateFingerprintVerified, // pinned via a fingerprint (DTLS in WebRTC) rather than a CA chain
 }
 
 // followed by zero-terminated char[]:

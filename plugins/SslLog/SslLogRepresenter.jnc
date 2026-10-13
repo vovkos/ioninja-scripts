@@ -123,8 +123,9 @@ void representSslConnectCompleted(
 		$"    \e[90mRole:\t\e[34m$(role)\n" :
 		"";
 
-	string_t verifiedString = (flags & SslLogConnectFlags.CertificateNotVerified) ?
-		"\e[31mno" :
+	string_t verifiedString =
+		(flags & SslLogConnectFlags.CertificateNotVerified) ? "\e[31mno" :
+		(flags & SslLogConnectFlags.CertificateFingerprintVerified) ? "\e[34mby fingerprint (SDP)" :
 		"\e[34myes";
 
 	representation.addHyperText(
