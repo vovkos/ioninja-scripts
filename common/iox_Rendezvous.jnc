@@ -277,7 +277,11 @@ void Rendezvous.writeNegotiationStep(io.RendezvousNegotiationStep const* step) {
 		break;
 
 	case io.RendezvousNegotiationStepKind.DtlsConnected:
-		writeTlsInfo(step.m_dtlsInfo, step.m_dtlsInfo.m_isServer ? SslLogConnectFlags.Server : SslLogConnectFlags.Client);
+		writeTlsInfo( // libdatachannel ignores the chain and matches the SDP fingerprint
+			step.m_dtlsInfo,
+			SslLogConnectFlags.CertificateFingerprintVerified |
+			(step.m_dtlsInfo.m_isServer ? SslLogConnectFlags.Server : SslLogConnectFlags.Client)
+		);
 		break;
 	}
 }

@@ -13,17 +13,15 @@ import "SocketLog/SocketLogRecordCode.jnc"
 void splitRendezvousLogStrings(
 	string_t* strings,
 	size_t count,
-	void const* p,
+	void const* p0,
 	size_t size
 ) {
-	char const* s = (char const*)p;
-	char const* end = s + size;
-
-	for (size_t i = 0; i < count && s < end; i++) {
-		char const* term = memchr(s, 0, end - s);
-		size_t length = term ? term - s : end - s;
-		strings[i] = string_t(s, length);
-		s += length + 1;
+	char const* p = p0;
+	char const* end = p + size;
+	for (size_t i = 0; i < count && p < end; i++) {
+		string_t string = p;
+		strings[i] = string;
+		p += string.m_length + 1;
 	}
 }
 
@@ -52,8 +50,8 @@ string_t getRendezvousLogCandidateString(
 	string_t transportString = transportStringTable[candidate.m_transport < countof(transportStringTable) ? candidate.m_transport : 0];
 
 	return memchr(address.m_p, ':', address.m_length) ? // IPv6
-		$"\e[34m$typeString [$address]:$(candidate.m_port)\e[m ($transportString)" :
-		$"\e[34m$typeString $address:$(candidate.m_port)\e[m ($transportString)";
+		$"$typeString [$address]:$(candidate.m_port) ($transportString)" :
+		$"$typeString $address:$(candidate.m_port) ($transportString)";
 }
 
 string_t getRendezvousLogIceStateString(io.RendezvousIceState state) {
@@ -74,14 +72,14 @@ string_t getRendezvousLogMethodString(RendezvousLogIceConnectedParams const* par
 	if (params.m_localCandidate.m_type == io.RendezvousCandidateType.Relayed ||
 		params.m_remoteCandidate.m_type == io.RendezvousCandidateType.Relayed
 	)
-		return "\e[34mrelay\e[m (TURN)";
+		return "relayed (TURN)";
 
 	if (params.m_localCandidate.m_type == io.RendezvousCandidateType.Host &&
 		params.m_remoteCandidate.m_type == io.RendezvousCandidateType.Host
 	)
-		return "\e[34mdirect\e[m (same network)";
+		return "direct (same network)";
 
-	return "\e[34mdirect\e[m (NAT traversal)";
+	return "direct (NAT traversal)";
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -135,7 +133,7 @@ bool representRendezvousLog(
 		string_t side = recordCode == RendezvousLogRecordCode.LocalCandidate ? "Local" : "Remote";
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		representation.m_lineAttr.m_backColor = ui.StdColor.PastelGray;
-		representation.addHyperText($"%1 candidate: %2"(side, getRendezvousLogCandidateString(params.m_candidate, address)));
+		representation.addHyperText($"%1 candidate: \e[34m%2"(side, getRendezvousLogCandidateString(params.m_candidate, address)));
 		break;
 
 	case RendezvousLogRecordCode.LocalGatheringComplete:
@@ -154,27 +152,26 @@ bool representRendezvousLog(
 
 	case RendezvousLogRecordCode.IceConnected:
 		RendezvousLogIceConnectedParams const* params = (RendezvousLogIceConnectedParams const*)p;
-		string_t strings[2]; // local address, remote address
-		splitRendezvousLogStrings(strings, countof(strings), params + 1, size - sizeof(RendezvousLogIceConnectedParams));
-
 		string_t stateString = getRendezvousLogIceStateString(params.m_iceState);
-		string_t localString = getRendezvousLogCandidateString(params.m_localCandidate, strings[0]);
-		string_t remoteString = getRendezvousLogCandidateString(params.m_remoteCandidate, strings[1]);
+		string_t methodString = getRendezvousLogMethodString(params);
 
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
 
 		if (!(foldFlags & 1)) {
-			representation.addHyperText($"[\e^+1\e[34m+\e[m] ICE state changed: \e[34m$stateString\e[m: $localString \u2194 $remoteString");
+			representation.addHyperText($"[\e^+1\e[34m+\e[m] ICE state changed: \e[34m$stateString, $methodString");
 			break;
 		}
+
+		string_t strings[2]; // local address, remote address
+		splitRendezvousLogStrings(strings, countof(strings), params + 1, size - sizeof(RendezvousLogIceConnectedParams));
 
 		representation.addHyperText(
 			$"[\e^-1\e[34m-\e[m] ICE state changed:\n"
 			$"    \e[90mState:\t\e[34m$stateString\n"
-			$"    \e[90mLocal candidate:\t\e[m$localString\n"
-			$"    \e[90mRemote candidate:\t\e[m$remoteString\n"
-			$"    \e[90mMethod:\t\e[m$(getRendezvousLogMethodString(params))"
+			$"    \e[90mMethod:\t\e[34m$methodString\n"
+			$"    \e[90mLocal candidate:\t\e[34m$(getRendezvousLogCandidateString(params.m_localCandidate, strings[0]))\n"
+			$"    \e[90mRemote candidate:\t\e[34m$(getRendezvousLogCandidateString(params.m_remoteCandidate, strings[1]))"
 		);
 		break;
 
