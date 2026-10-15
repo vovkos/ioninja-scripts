@@ -7,14 +7,16 @@ import "doc_Session.jnc"
 import "io_base.jncx"
 import "io_Serial.jnc"
 import "io_abr.jncx"
-import "iox_Rendezvous.jnc"
+import "iox_RendezvousHwc.jnc"
+import "iox_HwcFpgaUploader.jnc"
 import "io_HwcProto.jnc"
 import "ui_SocketUi.jnc"
 import "ui_SerialUi.jnc"
 import "ui_BufferPropertySet.jnc"
 import "ui_StdSessionInfoSet.jnc"
 import "ui_GroupBox.jnc"
-import "ui_Dialog.jnc"
+import "ui_RendezvousHwcUi.jnc"
+import "ui_FpgaUploaderProgressDlg.jnc"
 import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
 import "std_Buffer.jnc"
@@ -24,35 +26,22 @@ import "SerialTapProUi.jnc"
 
 //..............................................................................
 
-// a Serial Tap Pro attached to a remote ioninja-hwc, as listed by the relay
-
-class RdvSerialTapProDevice {
-	string_t m_path; // <owner>/<device>:<endpoint>; the server url is taken on connect
-	uint_t m_bus;
-	uint_t m_address;
-}
-
-//..............................................................................
-
-class RdvSerialTapProSession: doc.Session {
+class RdvSerialTapProSession:
+	doc.Session,
+	iox.HwcTransportSink {
 protected:
 	alias RdvState = iox.Rendezvous.State;
 
-	static string_t const DefaultServerUrl = "wss://ioninja.com/rendezvous";
-	static string_t const HwcEndpoint = "ioninja-hwc";
-
-	enum CaptureState {
-		Idle,
+	enum State {
+		Closed,
+		Connecting,          // see the transport state
+		UploadingBootloader, // old firmware needs the bootloader updated first
+		UploadingFirmware,   // incl. the version query & up-to-date check
+		StartingCapture,     // waiting for SerialTapProCaptureStarted
 		Capturing,
 	}
 
-	enum EnumeratorState {
-		Idle,
-		Enumerating,
-	}
-
 	enum ActionId {
-		Refresh,
 		Capture,
 		_Count,
 	}
@@ -60,7 +49,6 @@ protected:
 	enum IconId {
 		Capture,
 		StopCapture,
-		Refresh,
 		_Count,
 	}
 
@@ -71,11 +59,16 @@ protected:
 	}
 
 protected:
+	static string_t const BootloaderFileName = __DIR__ "/firmware/serial-tap-pro-1.2-bl.rpd";
+	static string_t const FirmwareFileName = __DIR__ "/firmware/serial-tap-pro-1.3.rpd";
+
 	// Serial Tap Pro over rendezvous
 
-	iox.Rendezvous m_rdv;
-	RdvSerialTapProDevice* m_device;
-	io.HwcProtoDecoder m_protoDecoder;
+	iox.RendezvousHwc m_rdv;
+	ui.RendezvousHwcUi m_rdvUi;
+	iox.RendezvousHwcDevice* m_device;
+	iox.HwcFpgaUploader m_uploader;
+	ui.FpgaUploaderProgressDlg m_uploaderDlg;
 	SerialTapProDecoder m_decoder;
 	io.AutoBaudRate* m_abr[2];
 
@@ -84,20 +77,10 @@ protected:
 	io.SerialParity m_parity;
 	io.SerialStopBits m_stopBits;
 
-	CaptureState m_captureState;
+	State m_state;
 	SerialTapProIface m_iface;
 	SerialTapProLines m_lines;
 	uint_t m_notificationDelay;
-
-	// tap enumeration over the relay -- needs the identity, takes a while, may fail;
-	// until there is something to pick, the device combo shows the status instead
-
-	io.RendezvousIdentity m_identity;
-	io.RendezvousEnumerator m_enumerator;
-	EnumeratorState bindable m_enumeratorState;
-	uint_t m_enumeratorSyncId;
-	string_t m_selectedDeviceText;   // to re-select once the list arrives
-	ui.FileDlg* m_keyFileDlg;
 
 	// common serial ui
 
@@ -109,14 +92,10 @@ protected:
 	ui.Action* m_actionTable[ActionId._Count];
 	ui.Icon* m_iconTable[IconId._Count];
 	ui.StatusPane* m_statusPaneTable[StatusPaneId._Count];
-	ui.ComboBox* m_deviceCombo;
 
 	// property grid
 
 	ui.SocketPropertySet m_socketPropertySet;
-	ui.EnumProperty* m_deviceProp;
-	ui.StringProperty* m_serverProp;
-	ui.FileProperty* m_keyFileProp;
 	ui.BufferPropertySet m_bufferPropertySet;
 
 	// information grid
@@ -169,35 +148,15 @@ protected:
 		try connect();
 	}
 
-	void onRefresh();
-	void onKeyFileDlgCompleted(ui.StdDlgButton button);
-	void enumerateDevices();
-
-	void onEnumeratorEvent(
-		uint_t syncId,
-		io.RendezvousEnumeratorEvents triggeredEvents
-	);
-
-	void setDeviceStatus(
-		string_t text,
-		string_t toolTip = null
-	);
-
-	string_t getServerUrl(string_t path);
-
 	void onConnected();
 	void onDisconnected();
+	void onTransportStateChanged();
+	void onFirmwareVersion(io.RpdVersion version);
+	void onUpdateCompleted(bool result);
 
-	void onIncomingData(
-		void const* p,
-		size_t size
-	) {
-		m_protoDecoder.write(p, size);
-	}
+	override void onMsg(io.HwcMsgHdr const* hdr);
 
-	void onMsg(io.HwcMsgHdr const* hdr);
-
-	void onOobData(
+	override void onOobData(
 		void const* p,
 		size_t size
 	) {
@@ -217,16 +176,11 @@ protected:
 	void createUi();
 	io.AutoBaudRate* constructAbr()[2];
 	void startCapture();
+	void stopCapture();
+	bool errorcode requestCapture();
 
 	iox.Rendezvous.ConnectParams const* createConnectParams();
 
-	bool errorcode writeMsg(
-		io.HwcMsgCode code,
-		void const* p = null,
-		size_t size = 0
-	);
-
-	bool errorcode writeActivateDeviceMsg();
 	bool errorcode writeSerialConfigMsg();
 	bool errorcode writeControlMsg();
 	bool errorcode writeNotificationDelayMsg();
@@ -237,6 +191,9 @@ protected:
 RdvSerialTapProSession.construct(doc.PluginHost* pluginHost) {
 	basetype.construct(pluginHost);
 	m_rdv.construct(pluginHost);
+	m_rdvUi.construct(pluginHost, io.RendezvousHwcPeripheralKind.SerialTapPro, "Serial Tap Pro");
+	m_uploader.construct(pluginHost, m_rdv);
+	m_uploaderDlg.construct(m_uploader);
 
 	m_decoder.construct(
 		pluginHost.m_log.m_writer,
@@ -250,11 +207,12 @@ RdvSerialTapProSession.construct(doc.PluginHost* pluginHost) {
 
 	createUi();
 
+	m_uploader.m_onVersion += onFirmwareVersion;
+	m_uploader.m_onUpdateCompleted += onUpdateCompleted;
 	m_rdv.m_onConnected += onConnected;
 	m_rdv.m_onDisconnected += onDisconnected;
-	m_rdv.m_onIncomingData += onIncomingData;
-	m_protoDecoder.m_onMsg += onMsg;
-	m_protoDecoder.m_onOobData += onOobData;
+	bindingof(m_rdv.m_state) += onTransportStateChanged;
+	m_rdv.m_sink = this;
 
 	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
@@ -271,14 +229,9 @@ void RdvSerialTapProSession.createUi() {
 
 	m_iconTable[IconId.Capture] = new ui.Icon("images/capture.png");
 	m_iconTable[IconId.StopCapture] = new ui.Icon("images/stop.png");
-	m_iconTable[IconId.Refresh] = new ui.Icon("images/refresh.png");
 
-	m_pluginHost.m_toolBar.addLabel("Tap:");
-	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox(-1);
-	m_deviceCombo.m_onReturnPressed += onDeviceComboEnter;
-
-	m_actionTable[ActionId.Refresh] = createAction("Re-enumerate remote Serial Tap Pro devices", m_iconTable[IconId.Refresh]);
-	m_actionTable[ActionId.Refresh].m_onTriggered += onRefresh;
+	m_rdvUi.createToolBar("Tap:");
+	m_rdvUi.m_deviceCombo.m_onReturnPressed += onDeviceComboEnter;
 
 	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable[IconId.Capture]);
 	m_actionTable[ActionId.Capture].m_onTriggered += onCapture;
@@ -296,28 +249,7 @@ void RdvSerialTapProSession.createUi() {
 		"Rendezvous-specific connection settings"
 	);
 
-	m_deviceProp = m_pluginHost.m_propertyGrid.createEnumProperty(
-		groupProp,,
-		"Device",
-		"Remote Serial Tap Pro",
-		null, 0
-	);
-
-	m_serverProp = m_pluginHost.m_propertyGrid.createStringProperty(
-		groupProp,,
-		"Server",
-		DefaultServerUrl,
-		"Rendezvous relay URL"
-	);
-
-	m_keyFileProp = m_pluginHost.m_propertyGrid.createFileProperty(
-		groupProp,,
-		"Private key",
-		"The key this peer is identified by on the rendezvous relay"
-	);
-
-	m_keyFileProp.m_fileDialogTitle = "Select a private key file...";
-	m_keyFileProp.m_filter = "PEM files (*.pem);;All files (*.*)";
+	m_rdvUi.createProperties(groupProp);
 
 	m_socketPropertySet.createProperties(
 		m_pluginHost.m_propertyGrid,
@@ -380,163 +312,12 @@ void RdvSerialTapProSession.createUi() {
 	m_pluginHost.m_propertyGrid.resizeNameColumnToContents();
 	m_pluginHost.m_informationGrid.resizeNameColumnToContents();
 
-	enumerateDevices();
+	m_rdvUi.enumerate();
 	m_uiReactor.start();
 }
 
-string_t RdvSerialTapProSession.getServerUrl(string_t path) {
-	string_t url = m_serverProp.m_value;
-	return url.m_length && url[url.m_length - 1] == '/' ? $"$url$path" : $"$url/$path";
-}
-
-void RdvSerialTapProSession.setDeviceStatus(
-	string_t text,
-	string_t toolTip
-) {
-	m_deviceCombo.clear();
-	m_deviceCombo.addItem(text);
-	m_deviceCombo.m_itemToolTip[0] = toolTip;
-	m_deviceProp.setOptions(null, 0);
-}
-
-// a manual refresh with no identity asks for the key right away;
-// automatic enumeration just shows "No private key" in the device combo
-
-void RdvSerialTapProSession.onRefresh() {
-	if (m_keyFileProp.m_value.m_length) {
-		enumerateDevices();
-		return;
-	}
-
-	if (!m_keyFileDlg) {
-		m_keyFileDlg = new ui.FileDlg;
-		m_keyFileDlg.m_onCompleted += onKeyFileDlgCompleted;
-	}
-
-	m_keyFileDlg.m_kind = ui.FileDlgKind.Open;
-	m_keyFileDlg.m_title = m_keyFileProp.m_fileDialogTitle;
-	m_keyFileDlg.m_filter = m_keyFileProp.m_filter;
-	m_keyFileDlg.show();
-}
-
-void RdvSerialTapProSession.onKeyFileDlgCompleted(ui.StdDlgButton button) {
-	if (button != ui.StdDlgButton.Ok)
-		return;
-
-	m_keyFileProp.m_value = m_keyFileDlg.m_filePath;
-	enumerateDevices();
-}
-
-void RdvSerialTapProSession.enumerateDevices() {
-	if (m_deviceCombo.m_currentData)
-		m_selectedDeviceText = m_deviceCombo.m_currentText;
-
-	m_enumerator.close();
-	m_enumeratorSyncId++;
-	m_enumeratorState = EnumeratorState.Idle;
-
-	string_t keyFileName = m_keyFileProp.m_value;
-	if (!keyFileName.m_length) {
-		setDeviceStatus("No private key", "Click Refresh to choose the rendezvous private key");
-		return;
-	}
-
-	m_identity.setKeyPemFile(keyFileName);
-	m_enumerator.enumerate(m_identity, getServerUrl($"?enum=$HwcEndpoint"));
-
-	m_enumerator.wait(
-		io.RendezvousEnumeratorEvents.EnumerationCompleted |
-		io.RendezvousEnumeratorEvents.Error,
-		onEnumeratorEvent~(m_enumeratorSyncId) @ m_pluginHost.m_mainThreadScheduler
-	);
-
-	setDeviceStatus("Enumerating...");
-	m_enumeratorState = EnumeratorState.Enumerating;
-	return;
-
-catch:
-	string_t description = std.getLastError().m_description;
-	setDeviceStatus($"Error: $description", description);
-	m_enumerator.close();
-}
-
-void RdvSerialTapProSession.onEnumeratorEvent(
-	uint_t syncId,
-	io.RendezvousEnumeratorEvents triggeredEvents
-) {
-	if (syncId != m_enumeratorSyncId)
-		return;
-
-	m_enumeratorState = EnumeratorState.Idle;
-
-	if (triggeredEvents & io.RendezvousEnumeratorEvents.Error) {
-		string_t description = m_enumerator.m_error.m_description;
-		setDeviceStatus($"Error: $description", description);
-		m_enumerator.close();
-		return;
-	}
-
-	io.RendezvousDeviceSnapshot const* snapshot = m_enumerator.m_deviceSnapshot;
-	size_t totalCount = 0;
-
-	for (size_t i = 0; i < snapshot.m_deviceCount; i++) {
-		io.RendezvousDevice const* device = &snapshot.m_deviceTable[i];
-		for (size_t j = 0; j < device.m_endpointCount; j++)
-			totalCount += device.m_endpointTable[j].m_hwcPeripheralCount;
-	}
-
-	ui.EnumPropertyOption* optionTable = new ui.EnumPropertyOption[totalCount];
-	size_t actualCount = 0;
-	intptr_t selectedIndex = -1;
-
-	m_deviceCombo.clear();
-
-	for (size_t i = 0; i < snapshot.m_deviceCount; i++) {
-		io.RendezvousDevice const* device = &snapshot.m_deviceTable[i];
-
-		for (size_t j = 0; j < device.m_endpointCount; j++) {
-			io.RendezvousEndpoint const* endpoint = &device.m_endpointTable[j];
-
-			for (size_t k = 0; k < endpoint.m_hwcPeripheralCount; k++) {
-				io.RendezvousHwcPeripheral const* peripheral = &endpoint.m_hwcPeripheralTable[k];
-				if (peripheral.m_kind != io.RendezvousHwcPeripheralKind.SerialTapPro)
-					continue;
-
-				RdvSerialTapProDevice* tap = new RdvSerialTapProDevice;
-				tap.m_path = $"$(device.m_owner)/$(device.m_name):$(endpoint.m_name)";
-				tap.m_bus = peripheral.m_bus;
-				tap.m_address = peripheral.m_address;
-
-				string_t location = $"@%(1;03d):%(2;03d)"(peripheral.m_bus, peripheral.m_address);
-				string_t text = $"$(device.m_owner)/$(device.m_name) $location Serial Tap Pro";
-				m_deviceCombo.addItem(text, tap);
-
-				if (selectedIndex == -1 && text == m_selectedDeviceText)
-					selectedIndex = actualCount;
-
-				optionTable[actualCount].m_text = text;
-				optionTable[actualCount].m_value = tap;
-				actualCount++;
-			}
-		}
-	}
-
-	m_enumerator.close();
-
-	if (!actualCount) {
-		setDeviceStatus("No remote Serial Tap Pro found");
-		return;
-	}
-
-	if (selectedIndex != -1)
-		m_deviceCombo.m_currentIndex = selectedIndex;
-
-	m_deviceProp.setOptions(optionTable, actualCount);
-	m_deviceProp.m_currentIndex = m_deviceCombo.m_currentIndex;
-}
-
 bool errorcode RdvSerialTapProSession.connect() {
-	RdvSerialTapProDevice* device = m_deviceCombo.m_currentData;
+	iox.RendezvousHwcDevice* device = m_rdvUi.m_device;
 	if (!device) {
 		std.setError("no remote Serial Tap Pro selected");
 		return false;
@@ -553,22 +334,16 @@ bool errorcode RdvSerialTapProSession.connect() {
 
 	m_iface = SerialTapProIface.Undefined;
 	m_lines = 0;
-	m_captureState = CaptureState.Idle;
-	m_protoDecoder.reset();
-
 	m_device = device;
-	return m_rdv.connect(getServerUrl(device.m_path), createConnectParams());
+	return m_rdv.connect(m_rdvUi.getServerUrl(device.m_path), createConnectParams());
 }
 
 void RdvSerialTapProSession.disconnect() {
+	m_uploader.cancel(); // completes with false, which re-enters disconnect()
 	if (!m_rdv.m_state)
 		return;
 
-	if (m_captureState == CaptureState.Capturing) { // capture stopped goes before disconnected
-		m_logWriter.write(SerialTapProLogRecordCode.CaptureStopped);
-		m_captureState = CaptureState.Idle;
-	}
-
+	stopCapture(); // capture stopped goes before disconnected
 	m_rdv.close();
 	m_abr[0].close();
 	m_abr[1].close();
@@ -602,38 +377,102 @@ void RdvSerialTapProSession.startCapture() {
 	m_tapUi.m_infoSet.setIface(m_iface);
 	m_tapUi.m_infoSet.setOverflows(0);
 	m_tapUi.m_infoSet.updateLines(lines);
-	m_captureState = CaptureState.Capturing;
+	m_state = State.Capturing;
+}
+
+void RdvSerialTapProSession.stopCapture() {
+	if (m_state == State.Capturing)
+		m_logWriter.write(SerialTapProLogRecordCode.CaptureStopped);
+
+	m_state = State.Closed;
 }
 
 void RdvSerialTapProSession.onConnected() {
-	// unlike the SSH session -- which launches ioninja-hwc with the whole
-	// configuration on its command line -- the tap is already running with no
-	// hardware selected, so we pick it first, then configure it
+	m_state = State.UploadingFirmware;
 
-	writeActivateDeviceMsg();
-	writeSerialConfigMsg();
-	writeControlMsg();
-	writeNotificationDelayMsg();
+	// ioninja-hwc is running with no hardware selected, so we pick it first;
+	// suspended: the firmware may need an update before capturing
+
+	m_rdv.writeActivateDeviceMsg(
+		m_device,
+		io.HwcControllerKind.SerialTapPro,
+		io.HwcCmdLineFlags.Suspend | io.HwcCmdLineFlags.RawUsbBulk // we decode bulks ourselves
+	);
+
 	m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
+	m_uploader.queryVersion();
+	return;
 
 catch:
 	m_logWriter.writeLastError(log.StdRecordCode.Error);
+	disconnect();
+}
+
+void RdvSerialTapProSession.onFirmwareVersion(io.RpdVersion version) {
+	// same as the local session: old firmware needs the bootloader updated first
+
+	if (version.m_firmwareVersion < 0x0102) {
+		m_state = State.UploadingBootloader;
+		m_uploader.update(BootloaderFileName, true);
+	} else
+		m_uploader.update(FirmwareFileName);
+
+	return;
+
+catch:
+	m_logWriter.writeLastError(log.StdRecordCode.Error);
+	disconnect();
+}
+
+void RdvSerialTapProSession.onUpdateCompleted(bool result) {
+	if (!result) {
+		disconnect();
+		return;
+	}
+
+	if (m_state == State.UploadingBootloader) {
+		m_state = State.UploadingFirmware;
+		m_uploader.update(FirmwareFileName);
+	} else
+		requestCapture();
+
+	return;
+
+catch:
+	m_logWriter.writeLastError(log.StdRecordCode.Error);
+	disconnect();
+}
+
+// hwc replies with SerialTapProCaptureStarted; config changes then apply live
+
+bool errorcode RdvSerialTapProSession.requestCapture() {
+	m_state = State.StartingCapture;
+	m_rdv.writeMsg(io.HwcMsgCode.SerialTapProStartCapture);
+	writeSerialConfigMsg();
+	writeControlMsg();
+	writeNotificationDelayMsg();
+	return true;
 }
 
 void RdvSerialTapProSession.onDisconnected() {
-	if (!m_protoDecoder.m_msgCount) {
+	m_uploader.cancel(); // completes with false, disconnect() is a no-op by now
+
+	if (!m_rdv.m_msgCount) {
 		std.setError("'ioninja-hwc' on the target machine failed to initialize");
 		m_logWriter.writeLastError(log.StdRecordCode.Error);
 	}
 
-	if (m_captureState == CaptureState.Capturing) {
-		m_logWriter.write(SerialTapProLogRecordCode.CaptureStopped);
-		m_captureState = CaptureState.Idle;
-	}
-
+	stopCapture();
 	m_abr[0].close();
 	m_abr[1].close();
 	m_stdSessionInfoSet.endSession();
+}
+
+// auto-reconnecting (or giving up on it) fires no session events
+
+void RdvSerialTapProSession.onTransportStateChanged() {
+	if (m_state <= State.Connecting)
+		m_state = m_rdv.m_state ? State.Connecting : State.Closed;
 }
 
 void RdvSerialTapProSession.onMsg(io.HwcMsgHdr const* hdr) {
@@ -701,24 +540,19 @@ size_t errorcode RdvSerialTapProSession.transmit(
 		return -1;
 	}
 
-	writeMsg(io.HwcMsgCode.SerialTransmit, p, size);
+	m_rdv.writeMsg(io.HwcMsgCode.SerialTransmit, p, size);
 
 	// don't write it to log -- the tap will decode and report the injected data
 	return size;
 }
 
 void RdvSerialTapProSession.load(doc.Storage* storage) {
-	m_serverProp.m_value = storage.readString("server", DefaultServerUrl);
-	m_keyFileProp.m_value = storage.readString("keyFile");
-	m_selectedDeviceText = storage.readString("device");
-
 	m_serialUi.load(storage);
 	m_tapUi.load(storage);
 	m_socketPropertySet.load(storage);
 	m_bufferPropertySet.load(storage);
 	m_rdv.applyProperties(m_socketPropertySet, m_bufferPropertySet);
-
-	enumerateDevices(); // after we loaded server and key
+	m_rdvUi.load(storage);
 }
 
 void RdvSerialTapProSession.save(doc.Storage* storage) {
@@ -726,20 +560,13 @@ void RdvSerialTapProSession.save(doc.Storage* storage) {
 	m_tapUi.save(storage);
 	m_socketPropertySet.save(storage);
 	m_bufferPropertySet.save(storage);
-
-	storage.writeString("server", m_serverProp.m_value);
-	storage.writeString("keyFile", m_keyFileProp.m_value);
-
-	storage.writeString(
-		"device",
-		m_deviceCombo.m_currentData ? m_deviceCombo.m_currentText : m_selectedDeviceText
-	);
+	m_rdvUi.save(storage);
 }
 
 void RdvSerialTapProSession.updateProperties() {
 	m_serialUi.updateProperties();
 	m_tapUi.updateProperties();
-	m_deviceProp.m_currentIndex = m_deviceCombo.m_currentIndex;
+	m_rdvUi.updateProperties();
 }
 
 bool errorcode RdvSerialTapProSession.applyProperties() {
@@ -748,9 +575,7 @@ bool errorcode RdvSerialTapProSession.applyProperties() {
 	m_serialUi.applyProperties();
 	m_tapUi.applyProperties();
 	m_rdv.applyProperties(m_socketPropertySet, m_bufferPropertySet);
-
-	if (m_deviceCombo.m_currentData)
-		m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
+	m_rdvUi.applyProperties();
 
 	if (m_rdv.m_state != RdvState.Connected)
 		return true;
@@ -820,7 +645,7 @@ void RdvSerialTapProSession.restoreDefaultProperties() {
 	m_serialUi.restoreDefaultProperties();
 	m_tapUi.restoreDefaultProperties();
 	m_bufferPropertySet.restoreDefaults();
-	m_serverProp.m_value = DefaultServerUrl;
+	m_rdvUi.restoreDefaults();
 }
 
 bool errorcode RdvSerialTapProSession.dispatch(
@@ -1034,36 +859,10 @@ iox.Rendezvous.ConnectParams const* RdvSerialTapProSession.createConnectParams()
 		&params,
 		m_socketPropertySet,
 		m_bufferPropertySet,
-		m_keyFileProp.m_value
+		m_rdvUi.m_keyFileProp.m_value
 	);
 
 	return params;
-}
-
-bool errorcode RdvSerialTapProSession.writeMsg(
-	io.HwcMsgCode code,
-	void const* p,
-	size_t size
-) {
-	io.HwcMsgHdr hdr;
-	hdr.m_stx = 0x02;
-	hdr.m_code = code;
-	hdr.m_dataSize = size;
-
-	std.Buffer buffer;
-	buffer.append(&hdr, sizeof(hdr));
-	buffer.append(p, size);
-	m_rdv.write(buffer.m_p, buffer.m_size);
-	return true;
-}
-
-bool errorcode RdvSerialTapProSession.writeActivateDeviceMsg() {
-	io.HwcDeviceMgrActivateDeviceParams params;
-	params.m_controllerKind = io.HwcControllerKind.SerialTapPro;
-	params.m_bus = m_device.m_bus;
-	params.m_address = m_device.m_address;
-	params.m_cmdLineFlags = io.HwcCmdLineFlags.RawUsbBulk; // we decode bulks ourselves
-	return writeMsg(io.HwcMsgCode.DeviceMgrActivateDevice, &params, sizeof(params));
 }
 
 bool errorcode RdvSerialTapProSession.writeSerialConfigMsg() {
@@ -1073,23 +872,23 @@ bool errorcode RdvSerialTapProSession.writeSerialConfigMsg() {
 	config.m_stopBits = m_stopBits;
 	config.m_parity = m_parity;
 	config.m_flowControl = false;
-	return writeMsg(io.HwcMsgCode.SerialTapSetConfig, &config, sizeof(config));
+	return m_rdv.writeMsg(io.HwcMsgCode.SerialTapSetConfig, &config, sizeof(config));
 }
 
 bool errorcode RdvSerialTapProSession.writeControlMsg() {
 	uint16_t control = m_tapUi.calcControl();
-	return writeMsg(io.HwcMsgCode.SerialTapProSetControl, &control, sizeof(control));
+	return m_rdv.writeMsg(io.HwcMsgCode.SerialTapProSetControl, &control, sizeof(control));
 }
 
 bool errorcode RdvSerialTapProSession.writeNotificationDelayMsg() {
 	uint32_t delay = m_notificationDelay;
-	return writeMsg(io.HwcMsgCode.SerialTapProSetNotificationDelay, &delay, sizeof(delay));
+	return m_rdv.writeMsg(io.HwcMsgCode.SerialTapProSetNotificationDelay, &delay, sizeof(delay));
 }
 
 reactor RdvSerialTapProSession.m_uiReactor {
 	m_title = m_rdv.m_state == RdvState.Connected ?
-		$"Serial Tap Pro $(m_rdv.m_url) $m_baudRate bps" :
-		$"Serial Tap Pro $(m_deviceCombo.m_currentText) $(m_serialUi.m_baudRateCombo.m_editText)";
+		$"Serial Tap Pro $(m_device.m_text) $m_baudRate bps" :
+		$"Serial Tap Pro $(m_rdvUi.m_deviceCombo.m_currentText) $(m_serialUi.m_baudRateCombo.m_editText)";
 
 	m_sessionConnectionState =
 		m_rdv.m_state == RdvState.Connected ? SessionConnectionState.Connected :
@@ -1099,7 +898,6 @@ reactor RdvSerialTapProSession.m_uiReactor {
 	m_actionTable[ActionId.Capture].m_text = m_rdv.m_state ? "Stop capture" : "Capture";
 	m_actionTable[ActionId.Capture].m_icon = m_iconTable[m_rdv.m_state ? IconId.StopCapture : IconId.Capture];
 	m_statusPaneTable[StatusPaneId.State].m_text = m_rdv.m_stateStringTable[m_rdv.m_state];
-	m_actionTable[ActionId.Refresh].m_isEnabled = m_enumeratorState == EnumeratorState.Idle;
 	m_statusPaneTable[StatusPaneId.RemoteAddress].m_text = m_rdv.m_state ? m_rdv.m_url : "<tap-url>";
 	m_statusPaneTable[StatusPaneId.RemoteAddress].m_isVisible = m_rdv.m_state != RdvState.Closed;
 

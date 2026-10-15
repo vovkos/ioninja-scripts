@@ -60,6 +60,12 @@ bool representFpgaUploaderLog(
 		representation.addHyperText("Uploading FPGA firmware...");
 		break;
 
+	case FpgaUploaderLogRecordCode.SendingFirmware:
+		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		representation.addHyperText("Sending FPGA firmware to the remote host...");
+		break;
+
 	case FpgaUploaderLogRecordCode.EnablingFpga:
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Info;
 		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;

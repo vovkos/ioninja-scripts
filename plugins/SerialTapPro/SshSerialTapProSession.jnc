@@ -7,13 +7,15 @@ import "doc_Session.jnc"
 import "io_base.jncx"
 import "io_Serial.jnc"
 import "io_abr.jncx"
-import "iox_SshChannel.jnc"
+import "iox_SshHwc.jnc"
+import "iox_HwcFpgaUploader.jnc"
 import "io_HwcProto.jnc"
 import "ui_History.jnc"
 import "ui_SocketUi.jnc"
 import "ui_SerialUi.jnc"
 import "ui_SshPropertySet.jnc"
 import "ui_BufferPropertySet.jnc"
+import "ui_FpgaUploaderProgressDlg.jnc"
 import "ui_StdSessionInfoSet.jnc"
 import "ui_GroupBox.jnc"
 import "log_ThroughputCalc.jnc"
@@ -27,7 +29,9 @@ using extension ui.ComboBoxHistory;
 
 //..............................................................................
 
-class SshSerialTapProSession: doc.Session {
+class SshSerialTapProSession:
+	doc.Session,
+	iox.HwcTransportSink {
 protected:
 	alias SshState = iox.SshChannel.State;
 
@@ -35,8 +39,12 @@ protected:
 		ServerPort = 22,
 	}
 
-	enum CaptureState {
-		Idle,
+	enum State {
+		Closed,
+		Connecting,          // see the transport state
+		UploadingBootloader, // old firmware needs the bootloader updated first
+		UploadingFirmware,   // incl. the version query & up-to-date check
+		StartingCapture,     // waiting for SerialTapProCaptureStarted
 		Capturing,
 	}
 
@@ -58,10 +66,14 @@ protected:
 	}
 
 protected:
+	static string_t const BootloaderFileName = __DIR__ "/firmware/serial-tap-pro-1.2-bl.rpd";
+	static string_t const FirmwareFileName = __DIR__ "/firmware/serial-tap-pro-1.3.rpd";
+
 	// Serial Tap Pro over SSH
 
-	iox.SshChannel m_ssh;
-	io.HwcProtoDecoder m_protoDecoder;
+	iox.SshHwc m_ssh;
+	iox.HwcFpgaUploader m_uploader;
+	ui.FpgaUploaderProgressDlg m_uploaderDlg;
 	SerialTapProDecoder m_decoder;
 	io.AutoBaudRate* m_abr[2];
 
@@ -70,7 +82,7 @@ protected:
 	io.SerialParity m_parity;
 	io.SerialStopBits m_stopBits;
 
-	CaptureState m_captureState;
+	State m_state;
 	SerialTapProIface m_iface;
 	SerialTapProLines m_lines;
 	uint_t m_notificationDelay;
@@ -145,13 +157,9 @@ protected:
 
 	void onConnected();
 	void onDisconnected();
-
-	void onIncomingData(
-		void const* p,
-		size_t size
-	) {
-		m_protoDecoder.write(p, size);
-	}
+	void onTransportStateChanged();
+	void onFirmwareVersion(io.RpdVersion version);
+	void onUpdateCompleted(bool result);
 
 	void onLoginDlgCompleted(
 		string_t userName,
@@ -159,9 +167,9 @@ protected:
 		string_t privateKeyFileName
 	);
 
-	void onMsg(io.HwcMsgHdr const* hdr);
+	override void onMsg(io.HwcMsgHdr const* hdr);
 
-	void onOobData(
+	override void onOobData(
 		void const* p,
 		size_t size
 	) {
@@ -181,6 +189,8 @@ protected:
 	void createUi();
 	io.AutoBaudRate* constructAbr()[2];
 	void startCapture();
+	void stopCapture();
+	bool errorcode requestCapture();
 
 	iox.SshChannel.ConnectParams const* createConnectParams();
 
@@ -200,6 +210,8 @@ protected:
 SshSerialTapProSession.construct(doc.PluginHost* pluginHost) {
 	basetype.construct(pluginHost);
 	m_ssh.construct(pluginHost);
+	m_uploader.construct(pluginHost, m_ssh);
+	m_uploaderDlg.construct(m_uploader);
 
 	m_decoder.construct(
 		pluginHost.m_log.m_writer,
@@ -213,12 +225,13 @@ SshSerialTapProSession.construct(doc.PluginHost* pluginHost) {
 
 	createUi();
 
+	m_uploader.m_onVersion += onFirmwareVersion;
+	m_uploader.m_onUpdateCompleted += onUpdateCompleted;
 	m_ssh.m_onLoginDlgCompleted += onLoginDlgCompleted;
 	m_ssh.m_onConnected += onConnected;
 	m_ssh.m_onDisconnected += onDisconnected;
-	m_ssh.m_onIncomingData += onIncomingData;
-	m_protoDecoder.m_onMsg += onMsg;
-	m_protoDecoder.m_onOobData += onOobData;
+	bindingof(m_ssh.m_state) += onTransportStateChanged;
+	m_ssh.m_sink = this;
 
 	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
@@ -344,23 +357,17 @@ bool errorcode SshSerialTapProSession.connect() {
 
 	m_iface = SerialTapProIface.Undefined;
 	m_lines = 0;
-	m_captureState = CaptureState.Idle;
-	m_protoDecoder.reset();
-
 	m_addressCombo.addEditTextToHistory();
 	return m_ssh.connect(m_addressCombo.m_editText, createConnectParams());
 }
 
 void SshSerialTapProSession.disconnect() {
+	m_uploader.cancel(); // completes with false, which re-enters disconnect()
 	if (!m_ssh.m_state)
 		return;
 
+	stopCapture(); // capture stopped goes before disconnected
 	m_ssh.close();
-
-	if (m_captureState == CaptureState.Capturing) {
-		m_logWriter.write(SerialTapProLogRecordCode.CaptureStopped);
-		m_captureState = CaptureState.Idle;
-	}
 
 	m_abr[0].close();
 	m_abr[1].close();
@@ -394,34 +401,93 @@ void SshSerialTapProSession.startCapture() {
 	m_tapUi.m_infoSet.setIface(m_iface);
 	m_tapUi.m_infoSet.setOverflows(0);
 	m_tapUi.m_infoSet.updateLines(lines);
-	m_captureState = CaptureState.Capturing;
+	m_state = State.Capturing;
+}
+
+void SshSerialTapProSession.stopCapture() {
+	if (m_state == State.Capturing)
+		m_logWriter.write(SerialTapProLogRecordCode.CaptureStopped);
+
+	m_state = State.Closed;
 }
 
 void SshSerialTapProSession.onConnected() {
-	// ioninja-hwc starts capturing right away; bring it in sync with the ui
+	m_state = State.UploadingFirmware;
 
-	writeControlMsg();
-	writeNotificationDelayMsg();
 	m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
+	m_uploader.queryVersion();
+	return;
 
 catch:
 	m_logWriter.writeLastError(log.StdRecordCode.Error);
+	disconnect();
+}
+
+void SshSerialTapProSession.onFirmwareVersion(io.RpdVersion version) {
+	// same as the local session: old firmware needs the bootloader updated first
+
+	if (version.m_firmwareVersion < 0x0102) {
+		m_state = State.UploadingBootloader;
+		m_uploader.update(BootloaderFileName, true);
+	} else
+		m_uploader.update(FirmwareFileName);
+
+	return;
+
+catch:
+	m_logWriter.writeLastError(log.StdRecordCode.Error);
+	disconnect();
+}
+
+void SshSerialTapProSession.onUpdateCompleted(bool result) {
+	if (!result) {
+		disconnect();
+		return;
+	}
+
+	if (m_state == State.UploadingBootloader) {
+		m_state = State.UploadingFirmware;
+		m_uploader.update(FirmwareFileName);
+	} else
+		requestCapture();
+
+	return;
+
+catch:
+	m_logWriter.writeLastError(log.StdRecordCode.Error);
+	disconnect();
+}
+
+// hwc replies with SerialTapProCaptureStarted; config changes then apply live
+
+bool errorcode SshSerialTapProSession.requestCapture() {
+	m_state = State.StartingCapture;
+	m_ssh.writeMsg(io.HwcMsgCode.SerialTapProStartCapture);
+	writeSerialConfigMsg();
+	writeControlMsg();
+	writeNotificationDelayMsg();
+	return true;
 }
 
 void SshSerialTapProSession.onDisconnected() {
-	if (!m_protoDecoder.m_msgCount) {
+	m_uploader.cancel(); // completes with false, disconnect() is a no-op by now
+
+	if (!m_ssh.m_msgCount) {
 		std.setError("'ioninja-hwc' on the target machine failed to initialize");
 		m_logWriter.writeLastError(log.StdRecordCode.Error);
 	}
 
-	if (m_captureState == CaptureState.Capturing) {
-		m_logWriter.write(SerialTapProLogRecordCode.CaptureStopped);
-		m_captureState = CaptureState.Idle;
-	}
-
+	stopCapture();
 	m_abr[0].close();
 	m_abr[1].close();
 	m_stdSessionInfoSet.endSession();
+}
+
+// auto-reconnecting (or giving up on it) fires no session events
+
+void SshSerialTapProSession.onTransportStateChanged() {
+	if (m_state <= State.Connecting)
+		m_state = m_ssh.m_state ? State.Connecting : State.Closed;
 }
 
 void SshSerialTapProSession.onMsg(io.HwcMsgHdr const* hdr) {
@@ -834,7 +900,7 @@ iox.SshChannel.ConnectParams const* SshSerialTapProSession.createConnectParams()
 	}
 
 	string_t cmdLine =
-		"ioninja-hwc --stdin --serial-tap-pro --raw-usb-bulk "
+		"ioninja-hwc --stdin --serial-tap-pro --raw-usb-bulk --suspend " // the firmware may need an update first
 		$"--ser-baud %1 "
 		$"--ser-data %2 "
 		$"--ser-stop %3 "
@@ -859,16 +925,7 @@ bool errorcode SshSerialTapProSession.writeMsg(
 	void const* p,
 	size_t size
 ) {
-	io.HwcMsgHdr hdr;
-	hdr.m_stx = 0x02;
-	hdr.m_code = code;
-	hdr.m_dataSize = size;
-
-	std.Buffer buffer;
-	buffer.append(&hdr, sizeof(hdr));
-	buffer.append(p, size);
-	m_ssh.write(buffer.m_p, buffer.m_size);
-	return true;
+	return m_ssh.writeMsg(code, p, size);
 }
 
 bool errorcode SshSerialTapProSession.writeSerialConfigMsg() {

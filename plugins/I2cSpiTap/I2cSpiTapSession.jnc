@@ -8,6 +8,7 @@ import "io_usb.jncx"
 import "io_UsbDevice.jnc"
 import "io_UsbEnumerator.jnc"
 import "iox_FpgaUploader.jnc"
+import "ui_FpgaUploaderProgressDlg.jnc"
 import "ui_BufferPropertySet.jnc"
 import "ui_StdSessionInfoSet.jnc"
 import "log_ThroughputCalc.jnc"
@@ -98,6 +99,7 @@ protected:
 	io.UsbEndpoint* m_outEndpoint; // until we figure out how to use control ep 0
 	io.UsbEndpoint* m_inEndpoint;
 	iox.FpgaUploader m_uploader;
+	ui.FpgaUploaderProgressDlg m_uploaderDlg;
 	std.Buffer m_readBuffer;
 	SpiDecoder m_spiDecoder;
 	I2cDecoder m_i2cDecoder;
@@ -185,6 +187,7 @@ protected:
 I2cSpiTapSession.construct(doc.PluginHost* pluginHost) {
 	basetype.construct(pluginHost);
 	m_uploader.construct(pluginHost);
+	m_uploaderDlg.construct(m_uploader);
 	m_spiDecoder.construct(pluginHost.m_log.m_writer);
 	m_i2cDecoder.construct(pluginHost.m_log.m_writer);
 

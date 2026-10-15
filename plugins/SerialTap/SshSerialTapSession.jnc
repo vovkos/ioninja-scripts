@@ -6,7 +6,7 @@
 import "doc_Session.jnc"
 import "io_base.jncx"
 import "io_Serial.jnc"
-import "iox_SshChannel.jnc"
+import "iox_SshHwc.jnc"
 import "io_HwcProto.jnc"
 import "ui_History.jnc"
 import "ui_SocketUi.jnc"
@@ -24,7 +24,9 @@ using extension ui.ComboBoxHistory;
 
 //..............................................................................
 
-class SshSerialTapSession: doc.Session {
+class SshSerialTapSession:
+	doc.Session,
+	iox.HwcTransportSink {
 protected:
 	alias State = iox.SshChannel.State;
 
@@ -61,8 +63,7 @@ protected:
 protected:
 	// Serial Tap over SSH
 
-	iox.SshChannel m_ssh;
-	io.HwcProtoDecoder m_decoder;
+	iox.SshHwc m_ssh;
 	bool m_isFlippedDteDce;
 	uint_t bindable m_baudRate;
 	uint_t m_dataBits;
@@ -135,22 +136,15 @@ protected:
 
 	void onDisconnected();
 
-	void onIncomingData(
-		void const* p,
-		size_t size
-	) {
-		m_decoder.write(p, size);
-	}
-
 	void onLoginDlgCompleted(
 		string_t userName,
 		ui.AuthenticationMethod authenticationMethod,
 		string_t privateKeyFileName
 	);
 
-	void onMsg(io.HwcMsgHdr const* hdr);
+	override void onMsg(io.HwcMsgHdr const* hdr);
 
-	void onOobData(
+	override void onOobData(
 		void const* p,
 		size_t size
 	) {
@@ -185,9 +179,7 @@ SshSerialTapSession.construct(doc.PluginHost* pluginHost) {
 	m_ssh.m_onLoginDlgCompleted += onLoginDlgCompleted;
 	m_ssh.m_onConnected += onConnected;
 	m_ssh.m_onDisconnected += onDisconnected;
-	m_ssh.m_onIncomingData += onIncomingData;
-	m_decoder.m_onMsg += onMsg;
-	m_decoder.m_onOobData += onOobData;
+	m_ssh.m_sink = this;
 
 	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
@@ -322,7 +314,6 @@ bool errorcode SshSerialTapSession.connect() {
 	m_parity = m_serialUi.m_parity;
 	m_statusLines = 0;
 	m_controlLines = 0;
-	m_decoder.reset();
 
 	m_addressCombo.addEditTextToHistory();
 	return m_ssh.connect(m_addressCombo.m_editText, createConnectParams());
@@ -439,7 +430,7 @@ void SshSerialTapSession.onLoginDlgCompleted(
 }
 
 void SshSerialTapSession.onDisconnected() {
-	if (!m_decoder.m_msgCount) {
+	if (!m_ssh.m_msgCount) {
 		std.setError("'ioninja-hwc' on the target machine failed to initialize");
 		m_logWriter.writeLastError(log.StdRecordCode.Error);
 	}

@@ -8,6 +8,7 @@ import "io_usb.jncx"
 import "io_UsbDevice.jnc"
 import "io_UsbEnumerator.jnc"
 import "iox_FpgaUploader.jnc"
+import "ui_FpgaUploaderProgressDlg.jnc"
 import "io_abr.jncx"
 import "ui_SerialUi.jnc"
 import "ui_LineEdit.jnc"
@@ -86,7 +87,7 @@ protected:
 		_Count,
 	}
 
-	static string_t const BooloaderFileName = __DIR__ "/firmware/serial-tap-pro-1.2-bl.rpd";
+	static string_t const BootloaderFileName = __DIR__ "/firmware/serial-tap-pro-1.2-bl.rpd";
 	static string_t const FirmwareFileName = __DIR__ "/firmware/serial-tap-pro-1.3.rpd";
 
 protected:
@@ -98,6 +99,7 @@ protected:
 	io.UsbEndpoint* m_outEndpoint;
 	io.UsbEndpoint* m_inEndpoint;
 	iox.FpgaUploader m_uploader;
+	ui.FpgaUploaderProgressDlg m_uploaderDlg;
 	std.Buffer m_readBuffer;
 	std.Buffer m_controlBuffer;
 	SerialTapProDecoder m_decoder;
@@ -243,6 +245,7 @@ protected:
 SerialTapProSession.construct(doc.PluginHost* pluginHost) {
 	basetype.construct(pluginHost);
 	m_uploader.construct(pluginHost);
+	m_uploaderDlg.construct(m_uploader);
 
 	m_decoder.construct(
 		pluginHost.m_log.m_writer,
@@ -470,7 +473,7 @@ bool errorcode SerialTapProSession.capture() {
 	io.RpdVersion version = m_uploader.getVersion(m_device);
 	if (version.m_firmwareVersion < 0x0102) {
 		m_state = State.UploadingBootloader;
-		m_uploader.update(m_device, BooloaderFileName, FpgaUploadBaseIndex, true);
+		m_uploader.update(m_device, BootloaderFileName, FpgaUploadBaseIndex, true);
 	} else {
 		m_state = State.UploadingFirmware;
 		m_uploader.update(m_device, FirmwareFileName, FpgaUploadBaseIndex);
