@@ -1,0 +1,44 @@
+//..............................................................................
+//
+// IO Ninja SSH channel to a remote ioninja-hwc (launched with --stdin)
+//
+
+import "iox_SshChannel.jnc"
+import "iox_HwcTransport.jnc"
+import "io_HwcProto.jnc"
+import "std_Buffer.jnc"
+
+namespace iox {
+
+//! \addtogroup common-io
+//! @{
+
+//..............................................................................
+
+class SshHwc:
+	SshChannel,
+	HwcTransport {
+public:
+	construct(doc.PluginHost* pluginHost) {
+		basetype.construct(pluginHost);
+		m_onConnected += resetDecoder;
+		m_onIncomingData += decode;
+	}
+
+	override bool errorcode writeMsg(
+		io.HwcMsgCode code,
+		void const* p = null,
+		size_t size = 0
+	) {
+		std.Buffer buffer;
+		io.packHwcMsg(buffer, code, p, size);
+		write(buffer.m_p, buffer.m_size);
+		return true;
+	}
+}
+
+//..............................................................................
+
+//! @}
+
+} // namespace iox
