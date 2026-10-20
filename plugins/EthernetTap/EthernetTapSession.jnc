@@ -138,14 +138,10 @@ public:
 	}
 
 protected:
-	void onCapture();
-
 	void onInEndpointEvent(
 		uint_t syncId,
 		io.UsbEndpointEvents triggeredEvents
 	);
-
-	void onUpdateCompleted(bool result);
 
 	void createUi();
 	void enumerateDevices();
@@ -167,7 +163,9 @@ EthernetTapSession.construct(doc.PluginHost* pluginHost) {
 	m_uploader.construct(pluginHost);
 	m_uploaderDlg.construct(m_uploader);
 
-	m_uploader.m_onUpdateCompleted += onUpdateCompleted;
+	m_uploader.m_onUpdateCompleted += [](bool result) {
+		result ? try startCapture() : stopCapture();
+	}
 
 	createUi();
 
@@ -187,7 +185,9 @@ void EthernetTapSession.createUi() {
 	m_actionTable[ActionId.Refresh].m_onTriggered += enumerateDevices;
 
 	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable[IconId.Capture]);
-	m_actionTable[ActionId.Capture].m_onTriggered += onCapture;
+	m_actionTable[ActionId.Capture].m_onTriggered += []() {
+		m_state ? stopCapture() : try capture();
+	}
 
 	// status bar
 
@@ -242,20 +242,6 @@ void EthernetTapSession.createUi() {
 
 	enumerateDevices();
 	m_isTransmitEnabled = true;
-}
-
-void EthernetTapSession.onCapture() {
-	if (m_state)
-		stopCapture();
-	else
-		try capture();
-}
-
-void EthernetTapSession.onUpdateCompleted(bool result) {
-	if (result)
-		try startCapture();
-	else
-		stopCapture();
 }
 
 void EthernetTapSession.enumerateDevices() {

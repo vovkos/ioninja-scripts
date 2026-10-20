@@ -130,22 +130,6 @@ public:
 	);
 
 protected:
-	void onRefresh() {
-		ui.enumerateNetworkAdapters(
-			ui.NetworkAdapterUsage.Listener,
-			m_adapterCombo,
-			m_socketPropertySet.m_adapterProp
-		);
-	}
-
-	void onListen() {
-		m_listenerState ? stopListen() : try listen();
-	}
-
-	void onPortComboEnter() {
-		try listen();
-	}
-
 	void onListenerSocketEvent(
 		uint_t syncId,
 		io.SocketEvents triggeredEvents
@@ -187,16 +171,26 @@ void TcpServerSession.createUi() {
 	m_adapterCombo = ui.createNetworkAdapterComboBox(m_pluginHost.m_toolBar, ui.NetworkAdapterUsage.Listener);
 
 	m_actionTable[ActionId.Refresh] = createAction("Re-enumerate adapters", m_iconTable[IconId.Refresh]);
-	m_actionTable[ActionId.Refresh].m_onTriggered += onRefresh;
+	m_actionTable[ActionId.Refresh].m_onTriggered += []() {
+		ui.enumerateNetworkAdapters(
+			ui.NetworkAdapterUsage.Listener,
+			m_adapterCombo,
+			m_socketPropertySet.m_adapterProp
+		);
+	}
 
 	m_pluginHost.m_toolBar.addSpacing();
 	m_pluginHost.m_toolBar.addLabel("Port:");
 	m_portCombo = m_pluginHost.m_toolBar.addComboBox();
 	m_portCombo.m_isEditable = true;
-	m_portCombo.m_onReturnPressed += onPortComboEnter;
+	m_portCombo.m_onReturnPressed += []() {
+		try listen();
+	}
 
 	m_actionTable[ActionId.Listen] = createAction("Listen", m_iconTable[IconId.Listen]);
-	m_actionTable[ActionId.Listen].m_onTriggered += onListen;
+	m_actionTable[ActionId.Listen].m_onTriggered += []() {
+		m_listenerState ? stopListen() : try listen();
+	}
 
 	// form
 
@@ -352,7 +346,7 @@ void TcpServerSession.save(doc.Storage* storage) {
 	m_bufferPropertySet.save(storage);
 
 	m_portCombo.saveHistory(storage, "portHistory");
-	storage.writeInt("adapterIdx", (int) m_adapterCombo.m_currentIndex);
+	storage.writeInt("adapterIdx", (int)m_adapterCombo.m_currentIndex);
 	storage.writeString("port", m_portCombo.m_editText);
 }
 

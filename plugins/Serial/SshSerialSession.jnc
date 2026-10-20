@@ -127,10 +127,6 @@ public:
 	}
 
 protected:
-	void onConnect() {
-		m_ssh.m_state ? disconnect() : try connect();
-	}
-
 	void onComboEnter() {
 		try connect();
 	}
@@ -144,17 +140,7 @@ protected:
 	void onRtsChanged();
 	void onBreakConditionChanged();
 
-	void onConnected() {
-		m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
-	}
-
 	void onDisconnected();
-
-	void onLoginDlgCompleted(
-		string_t userName,
-		ui.AuthenticationMethod authenticationMethod,
-		string_t privateKeyFileName
-	);
 
 	override void onMsg(io.HwcMsgHdr const* hdr);
 
@@ -187,8 +173,20 @@ SshSerialSession.construct(doc.PluginHost* pluginHost) {
 	basetype.construct(pluginHost);
 	m_ssh.construct(pluginHost);
 
-	m_ssh.m_onLoginDlgCompleted += onLoginDlgCompleted;
-	m_ssh.m_onConnected += onConnected;
+	m_ssh.m_onLoginDlgCompleted += [](
+		string_t userName,
+		ui.AuthenticationMethod authenticationMethod,
+		string_t privateKeyFileName
+	) {
+		m_sshPropertySet.m_userNameProp.m_value = userName;
+		m_sshPropertySet.m_authenticationMethodProp.m_value = authenticationMethod;
+		m_sshPropertySet.m_privateKeyFileProp.m_value = privateKeyFileName;
+	}
+
+	m_ssh.m_onConnected += []() {
+		m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
+	}
+
 	m_ssh.m_onDisconnected += onDisconnected;
 	m_ssh.m_sink = this;
 
@@ -218,7 +216,9 @@ void SshSerialSession.createUi() {
 	m_portCombo.m_placeholderText = "Enter a serial port name...";
 
 	m_actionTable[ActionId.Connect] = createAction("Connect", m_iconTable[IconId.Connect]);
-	m_actionTable[ActionId.Connect].m_onTriggered += onConnect;
+	m_actionTable[ActionId.Connect].m_onTriggered += []() {
+		m_ssh.m_state ? disconnect() : try connect();
+	}
 
 	// property grid
 
@@ -485,16 +485,6 @@ void SshSerialSession.disconnect() {
 
 	m_ssh.close();
 	m_stdSessionInfoSet.endSession();
-}
-
-void SshSerialSession.onLoginDlgCompleted(
-	string_t userName,
-	ui.AuthenticationMethod authenticationMethod,
-	string_t privateKeyFileName
-) {
-	m_sshPropertySet.m_userNameProp.m_value = userName;
-	m_sshPropertySet.m_authenticationMethodProp.m_value = authenticationMethod;
-	m_sshPropertySet.m_privateKeyFileProp.m_value = privateKeyFileName;
 }
 
 void SshSerialSession.onDisconnected() {

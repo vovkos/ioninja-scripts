@@ -181,12 +181,6 @@ public:
 	);
 
 protected:
-	void onCapture();
-
-	void onDeviceComboEnter() {
-		try capture();
-	}
-
 	void onBaudRateChanged();
 	void onDataBitsChanged();
 	void onParityChanged();
@@ -276,13 +270,17 @@ void SerialTapProSession.createUi() {
 
 	m_pluginHost.m_toolBar.addLabel("Tap:");
 	m_deviceCombo = m_pluginHost.m_toolBar.addComboBox(-1);
-	m_deviceCombo.m_onReturnPressed += onDeviceComboEnter;
+	m_deviceCombo.m_onReturnPressed += []() {
+		try capture();
+	}
 
 	m_actionTable[ActionId.Refresh]  = createAction("Re-enumerate Serial Tap Pro devices", m_iconTable[IconId.Refresh]);
 	m_actionTable[ActionId.Refresh].m_onTriggered += enumerateDevices;
 
 	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable[IconId.Capture]);
-	m_actionTable[ActionId.Capture].m_onTriggered += onCapture;
+	m_actionTable[ActionId.Capture].m_onTriggered += []() {
+		m_state ? stopCapture() : try capture();
+	}
 
 	/*
 	m_actionTable[ActionId.ReadRegister] = new ui.Action("Read");
@@ -389,13 +387,6 @@ void SerialTapProSession.createUi() {
 
 	enumerateDevices();
 	m_uiReactor.start();
-}
-
-void SerialTapProSession.onCapture() {
-	if (m_state)
-		stopCapture();
-	else
-		try capture();
 }
 
 void SerialTapProSession.onUpdateCompleted(bool result) {

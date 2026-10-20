@@ -133,20 +133,10 @@ protected:
 	void close();
 	void handleSocketError(std.Error const* error);
 
-	void onConnect() {
-		m_state ? disconnect() : try connect();
-	}
-
-	void onAddressComboEnter() {
-		try connect();
-	}
-
 	void onSocketEvent(
 		uint_t syncId,
 		io.SocketEvents triggeredEvents
 	);
-
-	void onResolveCompleted();
 	void onReconnectTimer(uint_t syncId);
 
 	void createUi();
@@ -164,7 +154,12 @@ TcpConnectionSession.construct(doc.PluginHost* pluginHost) {
 
 	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
-	m_resolver.m_onCompleted += onResolveCompleted;
+	m_resolver.m_onCompleted += []() {
+		m_state = State.Closed;
+
+		if (m_resolver.m_state == iox.HostNameResolver.State.Resolved)
+			try connect(m_resolver.m_address);
+	}
 }
 
 void TcpConnectionSession.createUi() {
@@ -173,14 +168,19 @@ void TcpConnectionSession.createUi() {
 	m_pluginHost.m_toolBar.addLabel("Address:");
 	m_addressCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 	m_addressCombo.m_isEditable = true;
-	m_addressCombo.m_onReturnPressed += onAddressComboEnter;
+	m_addressCombo.m_onReturnPressed += []() {
+		try connect();
+	}
+
 	m_addressCombo.m_placeholderText = "Enter a remote IP or hostname...";
 
 	m_iconTable[IconId.Connect] = new ui.Icon("images/connect.png");
 	m_iconTable[IconId.Disconnect] = new ui.Icon("images/disconnect.png");
 
 	m_actionTable[ActionId.Connect] = createAction("Connect", m_iconTable[IconId.Connect]);
-	m_actionTable[ActionId.Connect].m_onTriggered += onConnect;
+	m_actionTable[ActionId.Connect].m_onTriggered += []() {
+		m_state ? disconnect() : try connect();
+	}
 
 	// status bar
 
@@ -563,13 +563,6 @@ void TcpConnectionSession.onSocketEvent(
 		m_isTransmitEnabled = true;
 
 	waitSocketEvents();
-}
-
-void TcpConnectionSession.onResolveCompleted() {
-	m_state = State.Closed;
-
-	if (m_resolver.m_state == iox.HostNameResolver.State.Resolved)
-		try connect(m_resolver.m_address);
 }
 
 void TcpConnectionSession.onReconnectTimer(uint_t syncId) {

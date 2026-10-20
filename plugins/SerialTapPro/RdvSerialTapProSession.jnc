@@ -140,14 +140,6 @@ public:
 	);
 
 protected:
-	void onCapture() {
-		m_rdv.m_state ? disconnect() : try connect();
-	}
-
-	void onDeviceComboEnter() {
-		try connect();
-	}
-
 	void onConnected();
 	void onDisconnected();
 	void onTransportStateChanged();
@@ -231,10 +223,14 @@ void RdvSerialTapProSession.createUi() {
 	m_iconTable[IconId.StopCapture] = new ui.Icon("images/stop.png");
 
 	m_rdvUi.createToolBar("Tap:");
-	m_rdvUi.m_deviceCombo.m_onReturnPressed += onDeviceComboEnter;
+	m_rdvUi.m_deviceCombo.m_onReturnPressed += []() {
+		try connect();
+	}
 
 	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable[IconId.Capture]);
-	m_actionTable[ActionId.Capture].m_onTriggered += onCapture;
+	m_actionTable[ActionId.Capture].m_onTriggered += []() {
+		m_rdv.m_state ? disconnect() : try connect();
+	}
 
 	// status bar
 

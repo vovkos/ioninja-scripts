@@ -113,10 +113,6 @@ public:
 
 protected:
 	void handleConnectError(std.Error const* error);
-
-	void onConnect();
-	void onResolveCompleted();
-
 	void onSocketEvent(
 		uint_t syncId,
 		io.SocketEvents triggeredEvents
@@ -141,7 +137,12 @@ ModbusGatewayMonSession.construct(doc.PluginHost* pluginHost) {
 
 	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
-	m_resolver.m_onCompleted += onResolveCompleted;
+	m_resolver.m_onCompleted += []() {
+		m_state = State.Closed;
+
+		if (m_resolver.m_state == iox.HostNameResolver.State.Resolved)
+			try connect(m_resolver.m_address);
+	}
 }
 
 void ModbusGatewayMonSession.createUi() {
@@ -157,7 +158,9 @@ void ModbusGatewayMonSession.createUi() {
 	m_iconTable[IconId.Disconnect] = new ui.Icon("images/disconnect.png");
 
 	m_actionTable[ActionId.Connect] = createAction("Connect", m_iconTable[IconId.Connect]);
-	m_actionTable[ActionId.Connect].m_onTriggered += onConnect;
+	m_actionTable[ActionId.Connect].m_onTriggered += []() {
+		m_state ? disconnect() : try connect();
+	}
 
 	// status bar
 
@@ -196,13 +199,6 @@ void ModbusGatewayMonSession.createUi() {
 	m_pluginHost.m_informationGrid.resizeNameColumnToContents();
 
 	m_uiReactor.start();
-}
-
-void ModbusGatewayMonSession.onConnect() {
-	if (m_state)
-		disconnect();
-	else
-		try connect();
 }
 
 bool errorcode ModbusGatewayMonSession.connect() {
@@ -493,13 +489,6 @@ void ModbusGatewayMonSession.onSocketEvent(
 	}
 
 	waitSocketEvents();
-}
-
-void ModbusGatewayMonSession.onResolveCompleted() {
-	m_state = State.Closed;
-
-	if (m_resolver.m_state == iox.HostNameResolver.State.Resolved)
-		try connect(m_resolver.m_address);
 }
 
 reactor ModbusGatewayMonSession.m_uiReactor {

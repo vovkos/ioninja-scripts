@@ -156,8 +156,6 @@ public:
 	}
 
 protected:
-	void onResolveCompleted();
-
 	void onSshEvent(
 		uint_t syncId,
 		io.SshEvents triggeredEvents
@@ -165,8 +163,6 @@ protected:
 
 	void onReconnectTimer(uint_t syncId);
 	void onLoginDlgCompleted(ui.StdDlgButton button);
-	void onConsoleSizeChanged();
-
 	void closeImpl();
 	void handleConnectError(std.Error const* error);
 	void handleSshAuthenticateError(std.Error const* error);
@@ -188,9 +184,21 @@ SshChannel.ConnectParams.construct() {
 SshChannel.construct(doc.PluginHost* pluginHost) {
 	m_resolver.construct(pluginHost);
 	m_pluginHost = pluginHost;
-	m_pluginHost.m_terminal.m_onConsoleSizeChanged += onConsoleSizeChanged;
+	m_pluginHost.m_terminal.m_onConsoleSizeChanged += []() {
+		if (m_state == State.Connected)
+			m_ssh.resizePty(
+				m_pluginHost.m_terminal.m_consoleWidth,
+				m_pluginHost.m_terminal.m_consoleHeight
+			);
+	}
+
 	m_readBuffer.setSize(ui.BufferPropertySet.Defaults.ReadBufferSize);
-	m_resolver.m_onCompleted += onResolveCompleted;
+	m_resolver.m_onCompleted += []() {
+		m_state = State.Closed;
+
+		if (m_resolver.m_state == iox.HostNameResolver.State.Resolved)
+			try connect(m_resolver.m_address, &m_connectParams);
+	}
 }
 
 void SshChannel.close() {
@@ -648,21 +656,6 @@ void SshChannel.onReconnectTimer(uint_t syncId) {
 
 	if (!result && m_connectParams.m_useReconnect)
 		startReconnectTimer();
-}
-
-void SshChannel.onResolveCompleted() {
-	m_state = State.Closed;
-
-	if (m_resolver.m_state == iox.HostNameResolver.State.Resolved)
-		try connect(m_resolver.m_address, &m_connectParams);
-}
-
-void SshChannel.onConsoleSizeChanged() {
-	if (m_state == State.Connected)
-		m_ssh.resizePty(
-			m_pluginHost.m_terminal.m_consoleWidth,
-			m_pluginHost.m_terminal.m_consoleHeight
-		);
 }
 
 //..............................................................................

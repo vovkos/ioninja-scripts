@@ -79,8 +79,6 @@ public:
 
 protected:
 	void onRefresh();
-	void onKeyFileDlgCompleted(StdDlgButton button);
-
 	void onEnumeratorEvent(
 		uint_t syncId,
 		io.RendezvousEnumeratorEvents triggeredEvents
@@ -202,21 +200,19 @@ void RendezvousHwcUi.onRefresh() {
 
 	if (!m_keyFileDlg) {
 		m_keyFileDlg = new FileDlg;
-		m_keyFileDlg.m_onCompleted += onKeyFileDlgCompleted;
+		m_keyFileDlg.m_onCompleted += [](StdDlgButton button) {
+			if (button != StdDlgButton.Ok)
+				return;
+
+			m_keyFileProp.m_value = m_keyFileDlg.m_filePath;
+			enumerate();
+		}
 	}
 
 	m_keyFileDlg.m_kind = FileDlgKind.Open;
 	m_keyFileDlg.m_title = m_keyFileProp.m_fileDialogTitle;
 	m_keyFileDlg.m_filter = m_keyFileProp.m_filter;
 	m_keyFileDlg.show();
-}
-
-void RendezvousHwcUi.onKeyFileDlgCompleted(StdDlgButton button) {
-	if (button != StdDlgButton.Ok)
-		return;
-
-	m_keyFileProp.m_value = m_keyFileDlg.m_filePath;
-	enumerate();
 }
 
 void RendezvousHwcUi.enumerate() {

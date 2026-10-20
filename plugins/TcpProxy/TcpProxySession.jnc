@@ -144,28 +144,8 @@ public:
 	override void restoreDefaultProperties();
 
 protected:
-	void onRefresh() {
-		ui.enumerateNetworkAdapters(
-			ui.NetworkAdapterUsage.Listener,
-			m_adapterCombo,
-			m_listenerSocketPropertySet.m_adapterProp
-		);
-	}
-
-	void onListen() {
-		m_listenerState ? stopListen() : try listen();
-	}
-
 	void onTargetAddressChanged() {
 		m_resolver.cancel();
-	}
-
-	void onTargetAddressEnter() {
-		try resolve();
-	}
-
-	void onPortComboEnter() {
-		try listen();
 	}
 
 	void onResolveCompleted();
@@ -236,7 +216,10 @@ void TcpProxySession.createUi() {
 	m_targetAddressCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 	m_targetAddressCombo.m_isEditable = true;
 	bindingof(m_targetAddressCombo.m_editText) += onTargetAddressChanged;
-	m_targetAddressCombo.m_onReturnPressed += onTargetAddressEnter;
+	m_targetAddressCombo.m_onReturnPressed += []() {
+		try resolve();
+	}
+
 	m_targetAddressCombo.m_placeholderText = "Enter a remote IP or hostname...";
 
 	m_pluginHost.m_toolBar.addSpacing();
@@ -244,16 +227,26 @@ void TcpProxySession.createUi() {
 	m_adapterCombo = ui.createNetworkAdapterComboBox(m_pluginHost.m_toolBar, ui.NetworkAdapterUsage.Listener);
 
 	m_actionTable[ActionId.Refresh] = createAction("Re-enumerate adapters", m_iconTable[IconId.Refresh]);
-	m_actionTable[ActionId.Refresh].m_onTriggered += onRefresh;
+	m_actionTable[ActionId.Refresh].m_onTriggered += []() {
+		ui.enumerateNetworkAdapters(
+			ui.NetworkAdapterUsage.Listener,
+			m_adapterCombo,
+			m_listenerSocketPropertySet.m_adapterProp
+		);
+	}
 
 	m_pluginHost.m_toolBar.addSpacing();
 	m_pluginHost.m_toolBar.addLabel("Port:");
 	m_portCombo = m_pluginHost.m_toolBar.addComboBox();
 	m_portCombo.m_isEditable = true;
-	m_portCombo.m_onReturnPressed += onPortComboEnter;
+	m_portCombo.m_onReturnPressed += []() {
+		try listen();
+	}
 
 	m_actionTable[ActionId.Listen] = createAction("Listen", m_iconTable[IconId.Listen]);
-	m_actionTable[ActionId.Listen].m_onTriggered += onListen;
+	m_actionTable[ActionId.Listen].m_onTriggered += []() {
+		m_listenerState ? stopListen() : try listen();
+	}
 
 	// form
 
@@ -508,7 +501,7 @@ void TcpProxySession.save(doc.Storage* storage) {
 	m_connectionSocketPropertySet.save(storage);
 	m_bufferPropertySet.save(storage);
 
-	storage.writeInt("adapterIdx", (int) m_adapterCombo.m_currentIndex);
+	storage.writeInt("adapterIdx", (int)m_adapterCombo.m_currentIndex);
 	storage.writeString("port", m_portCombo.m_editText);
 	storage.writeString("targetAddress", m_targetAddressCombo.m_editText);
 }

@@ -106,14 +106,6 @@ public:
 	}
 
 protected:
-	void onCapture() {
-		m_rdv.m_state ? disconnect() : try connect();
-	}
-
-	void onDeviceComboEnter() {
-		try connect();
-	}
-
 	void onProtocolChanged();
 	void onConnected();
 	void onDisconnected();
@@ -166,13 +158,17 @@ void RdvI2cSpiTapSession.createUi() {
 	m_iconTable[IconId.StopCapture] = new ui.Icon("images/stop.png");
 
 	m_rdvUi.createToolBar("Tap:");
-	m_rdvUi.m_deviceCombo.m_onReturnPressed += onDeviceComboEnter;
+	m_rdvUi.m_deviceCombo.m_onReturnPressed += []() {
+		try connect();
+	}
 
 	m_tapUi.createToolBar();
 	bindingof(m_tapUi.m_protocolCombo.m_currentIndex) += onProtocolChanged;
 
 	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable[IconId.Capture]);
-	m_actionTable[ActionId.Capture].m_onTriggered += onCapture;
+	m_actionTable[ActionId.Capture].m_onTriggered += []() {
+		m_rdv.m_state ? disconnect() : try connect();
+	}
 
 	m_tapUi.createFlipAction();
 

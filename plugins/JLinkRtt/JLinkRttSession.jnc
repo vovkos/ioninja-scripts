@@ -149,10 +149,6 @@ protected:
 	bool errorcode connectJlink();
 	bool errorcode connectSocket();
 
-	void onOpen() {
-		m_state ? close() : try open();
-	}
-
 	void onDeviceComboEnter() {
 		try open();
 	}
@@ -251,7 +247,9 @@ void JLinkRttSession.createUi() {
 	m_actionTable[ActionId.Refresh].m_onTriggered += enumerateDevices;
 
 	m_actionTable[ActionId.Open] = createAction("Open", m_iconTable[IconId.Open]);
-	m_actionTable[ActionId.Open].m_onTriggered += onOpen;
+	m_actionTable[ActionId.Open].m_onTriggered += []() {
+		m_state ? close() : try open();
+	}
 
 	// status bar
 

@@ -173,14 +173,6 @@ protected:
 	void close();
 	void handleSocketError(std.Error const* error);
 
-	void onConnect() {
-		m_state ? disconnect() : try connect();
-	}
-
-	void onAddressComboEnter() {
-		try connect();
-	}
-
 	void onResolveCompleted();
 
 	void onSocketEvent(
@@ -216,14 +208,20 @@ void WebSocketClientSession.createUi() {
 	m_pluginHost.m_toolBar.addLabel("Address:");
 	m_addressCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 	m_addressCombo.m_isEditable = true;
-	m_addressCombo.m_onReturnPressed += onAddressComboEnter;
+	m_addressCombo.m_onReturnPressed += []() {
+		try connect();
+	}
+
 	m_addressCombo.m_placeholderText = "Enter a remote IP or hostname...";
 
 	m_iconTable[IconId.Connect] = new ui.Icon("images/connect.png");
 	m_iconTable[IconId.Disconnect] = new ui.Icon("images/disconnect.png");
 
 	m_actionTable[ActionId.Connect] = createAction("Connect", m_iconTable[IconId.Connect]);
-	m_actionTable[ActionId.Connect].m_onTriggered += onConnect;
+	m_actionTable[ActionId.Connect].m_onTriggered += []() {
+		m_state ? disconnect() : try connect();
+	}
+
 	m_actionTable[ActionId.Ping] = createAction("Ping", "images/ping.png");
 	m_actionTable[ActionId.Ping].m_onTriggered += ping;
 

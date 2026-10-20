@@ -125,14 +125,6 @@ public:
 	}
 
 protected:
-	void onConnect() {
-		m_rdv.m_state ? disconnect() : try connect();
-	}
-
-	void onComboEnter() {
-		try connect();
-	}
-
 	void onBaudRateChanged();
 	void onDataBitsChanged();
 	void onParityChanged();
@@ -198,10 +190,14 @@ void RdvSerialSession.createUi() {
 	// toolbar
 
 	m_rdvUi.createToolBar("Port:");
-	m_rdvUi.m_deviceCombo.m_onReturnPressed += onComboEnter;
+	m_rdvUi.m_deviceCombo.m_onReturnPressed += []() {
+		try connect();
+	}
 
 	m_actionTable[ActionId.Connect] = createAction("Connect", m_iconTable[IconId.Connect]);
-	m_actionTable[ActionId.Connect].m_onTriggered += onConnect;
+	m_actionTable[ActionId.Connect].m_onTriggered += []() {
+		m_rdv.m_state ? disconnect() : try connect();
+	}
 
 	// property grid
 

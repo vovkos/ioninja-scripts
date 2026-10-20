@@ -95,14 +95,6 @@ public:
 	}
 
 protected:
-	void onCapture() {
-		m_state ? close() : try capture();
-	}
-
-	void onPortComboEnter() {
-		try capture();
-	}
-
 	void createUi();
 	void enumeratePorts();
 }
@@ -125,7 +117,9 @@ void SerialMonSession.createUi() {
 	m_pluginHost.m_toolBar.addLabel("Port:");
 	m_portCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 	m_portCombo.m_isEditable = true;
-	m_portCombo.m_onReturnPressed += onPortComboEnter;
+	m_portCombo.m_onReturnPressed += []() {
+		try capture();
+	}
 
 	m_actionTable[ActionId.Refresh] = createAction("Refresh port list", "images/refresh.png");
 	m_actionTable[ActionId.Refresh].m_onTriggered += enumeratePorts;
@@ -134,7 +128,9 @@ void SerialMonSession.createUi() {
 	m_iconTable[IconId.StopCapture] = new ui.Icon("images/pause.png");
 
 	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable[IconId.Capture]);
-	m_actionTable[ActionId.Capture].m_onTriggered += onCapture;
+	m_actionTable[ActionId.Capture].m_onTriggered += []() {
+		m_state ? close() : try capture();
+	}
 
 	// status bar
 

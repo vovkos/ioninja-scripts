@@ -162,14 +162,6 @@ public:
 	}
 
 protected:
-	void onCapture();
-
-	void onFlipMosiMiso() {
-		m_spiDecoder.m_isFlipMosiMiso = m_actionTable[ActionId.Flip].m_isChecked;
-	}
-
-	void onUpdateCompleted(bool result);
-
 	void onInEndpointEvent(
 		uint_t syncId,
 		io.UsbEndpointEvents triggeredEvents
@@ -191,7 +183,10 @@ I2cSpiTapSession.construct(doc.PluginHost* pluginHost) {
 	m_spiDecoder.construct(pluginHost.m_log.m_writer);
 	m_i2cDecoder.construct(pluginHost.m_log.m_writer);
 
-	m_uploader.m_onUpdateCompleted += onUpdateCompleted;
+	m_uploader.m_onUpdateCompleted += [](bool result) {
+		result ? try startCapture() : stopCapture();
+	}
+
 	m_decoder = m_spiDecoder;
 
 	createUi();
@@ -246,10 +241,15 @@ void I2cSpiTapSession.createUi() {
 	);
 
 	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable[IconId.Capture]);
-	m_actionTable[ActionId.Capture].m_onTriggered += onCapture;
+	m_actionTable[ActionId.Capture].m_onTriggered += []() {
+		m_state ? stopCapture() : try capture();
+	}
+
 	m_actionTable[ActionId.Flip] = createAction("Flip SPI MOSI/MISO", m_iconTable[IconId.Flip]);
 	m_actionTable[ActionId.Flip].m_isCheckable = true;
-	m_actionTable[ActionId.Flip].m_onTriggered += onFlipMosiMiso;
+	m_actionTable[ActionId.Flip].m_onTriggered += []() {
+		m_spiDecoder.m_isFlipMosiMiso = m_actionTable[ActionId.Flip].m_isChecked;
+	}
 
 	// status bar
 
@@ -350,20 +350,6 @@ void I2cSpiTapSession.createUi() {
 
 	enumerateDevices();
 	m_isTransmitEnabled = true;
-}
-
-void I2cSpiTapSession.onCapture() {
-	if (m_state)
-		stopCapture();
-	else
-		try capture();
-}
-
-void I2cSpiTapSession.onUpdateCompleted(bool result) {
-	if (result)
-		try startCapture();
-	else
-		stopCapture();
 }
 
 void I2cSpiTapSession.enumerateDevices() {

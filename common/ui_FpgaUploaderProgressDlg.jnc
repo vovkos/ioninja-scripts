@@ -21,9 +21,6 @@ protected:
 
 public:
 	construct(iox.FpgaUploaderBase* uploader);
-
-protected:
-	void onButtonClicked(StdDlgButton button);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -32,17 +29,16 @@ FpgaUploaderProgressDlg.construct(iox.FpgaUploaderBase* uploader) {
 	m_uploader = uploader;
 	m_dlg.m_title = "Updating FPGA Firmware";
 	m_dlg.m_buttons = StdDlgButtons.Abort;
-	m_dlg.m_onButtonClicked += onButtonClicked;
-	m_reactor.start();
-}
-
-void FpgaUploaderProgressDlg.onButtonClicked(StdDlgButton button) {
-	switch (button) {
-	case StdDlgButton.Cancel:
-	case StdDlgButton.Abort:
-		m_uploader.cancel();
-		break;
+	m_dlg.m_onButtonClicked += [](StdDlgButton button) {
+		switch (button) {
+		case StdDlgButton.Cancel:
+		case StdDlgButton.Abort:
+			m_uploader.cancel();
+			break;
+		}
 	}
+
+	m_reactor.start();
 }
 
 reactor FpgaUploaderProgressDlg.m_reactor {

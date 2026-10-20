@@ -147,25 +147,11 @@ public:
 	);
 
 protected:
-	void onCapture() {
-		m_ssh.m_state ? disconnect() : try connect();
-	}
-
-	void onAddressComboEnter() {
-		try connect();
-	}
-
 	void onConnected();
 	void onDisconnected();
 	void onTransportStateChanged();
 	void onFirmwareVersion(io.RpdVersion version);
 	void onUpdateCompleted(bool result);
-
-	void onLoginDlgCompleted(
-		string_t userName,
-		ui.AuthenticationMethod authenticationMethod,
-		string_t privateKeyFileName
-	);
 
 	override void onMsg(io.HwcMsgHdr const* hdr);
 
@@ -227,7 +213,16 @@ SshSerialTapProSession.construct(doc.PluginHost* pluginHost) {
 
 	m_uploader.m_onVersion += onFirmwareVersion;
 	m_uploader.m_onUpdateCompleted += onUpdateCompleted;
-	m_ssh.m_onLoginDlgCompleted += onLoginDlgCompleted;
+	m_ssh.m_onLoginDlgCompleted += [](
+		string_t userName,
+		ui.AuthenticationMethod authenticationMethod,
+		string_t privateKeyFileName
+	) {
+		m_sshPropertySet.m_userNameProp.m_value = userName;
+		m_sshPropertySet.m_authenticationMethodProp.m_value = authenticationMethod;
+		m_sshPropertySet.m_privateKeyFileProp.m_value = privateKeyFileName;
+	}
+
 	m_ssh.m_onConnected += onConnected;
 	m_ssh.m_onDisconnected += onDisconnected;
 	bindingof(m_ssh.m_state) += onTransportStateChanged;
@@ -252,11 +247,16 @@ void SshSerialTapProSession.createUi() {
 	m_pluginHost.m_toolBar.addLabel("Address:");
 	m_addressCombo = m_pluginHost.m_toolBar.addComboBox(-1);
 	m_addressCombo.m_isEditable = true;
-	m_addressCombo.m_onReturnPressed += onAddressComboEnter;
+	m_addressCombo.m_onReturnPressed += []() {
+		try connect();
+	}
+
 	m_addressCombo.m_placeholderText = "Enter a remote IP or hostname...";
 
 	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable[IconId.Capture]);
-	m_actionTable[ActionId.Capture].m_onTriggered += onCapture;
+	m_actionTable[ActionId.Capture].m_onTriggered += []() {
+		m_ssh.m_state ? disconnect() : try connect();
+	}
 
 	// status bar
 
@@ -738,16 +738,6 @@ bool errorcode SshSerialTapProSession.dispatch(
 	}
 
 	return true;
-}
-
-void SshSerialTapProSession.onLoginDlgCompleted(
-	string_t userName,
-	ui.AuthenticationMethod authenticationMethod,
-	string_t privateKeyFileName
-) {
-	m_sshPropertySet.m_userNameProp.m_value = userName;
-	m_sshPropertySet.m_authenticationMethodProp.m_value = authenticationMethod;
-	m_sshPropertySet.m_privateKeyFileProp.m_value = privateKeyFileName;
 }
 
 void SshSerialTapProSession.onBaudRateChanged() {
