@@ -702,8 +702,12 @@ bool errorcode SerialTapSession.applyProperties() {
 	m_serialUi.applyProperties();
 
 	m_deviceCombo.m_currentIndex = m_deviceProp.m_currentIndex;
-	m_actionTable[ActionId.Flip].m_isChecked = m_flipProp.m_value;
 	m_readBuffer.setSize(m_bufferPropertySet.m_readBufferSizeProp.m_value);
+
+	if (m_flipProp.m_value != m_actionTable[ActionId.Flip].m_isChecked) {
+		m_actionTable[ActionId.Flip].m_isChecked = m_flipProp.m_value;
+		flipDteDce();
+	}
 
 	if (m_state != State.Opened)
 		return true;

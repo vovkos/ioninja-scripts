@@ -362,6 +362,11 @@ bool errorcode SshSerialTapSession.applyProperties() {
 	m_addressCombo.m_editText = m_socketPropertySet.m_remoteAddressProp.m_value;
 	m_ssh.applyProperties(m_socketPropertySet, m_sshPropertySet, m_bufferPropertySet);
 
+	if (m_flipProp.m_value != m_actionTable[ActionId.Flip].m_isChecked) {
+		m_actionTable[ActionId.Flip].m_isChecked = m_flipProp.m_value;
+		flipDteDce();
+	}
+
 	if (m_ssh.m_state != State.Connected)
 		return true;
 
