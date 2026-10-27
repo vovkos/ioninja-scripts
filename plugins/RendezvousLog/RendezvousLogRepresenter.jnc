@@ -74,12 +74,12 @@ string_t getRendezvousLogMethodString(RendezvousLogIceConnectedParams const* par
 	)
 		return "relayed (TURN)";
 
-	if (params.m_localCandidate.m_type == io.RendezvousCandidateType.Host &&
-		params.m_remoteCandidate.m_type == io.RendezvousCandidateType.Host
+	if (params.m_localCandidate.m_type == io.RendezvousCandidateType.ServerReflexive ||
+		params.m_remoteCandidate.m_type == io.RendezvousCandidateType.ServerReflexive
 	)
-		return "direct (same network)";
+		return "direct (NAT traversal)";
 
-	return "direct (NAT traversal)";
+	return "direct"; // host IPs may be public; prflx may be a host whose check beat its signaling
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .

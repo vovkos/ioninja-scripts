@@ -20,7 +20,7 @@ namespace ui {
 //..............................................................................
 
 class RendezvousHwcUi {
-	static string_t const DefaultServerUrl = "wss://ioninja.com/rendezvous";
+	static string_t const DefaultServerUrl = "wss://rendezvous.ioninja.com";
 	static string_t const EnumPath = "?enum=ioninja-hwc";
 
 	enum EnumeratorState {
