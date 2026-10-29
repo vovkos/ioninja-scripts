@@ -73,8 +73,6 @@ protected:
 		PacketSize  = 512,
 	}
 
-	static char const m_firmwareFileName[] = __DIR__ "/firmware/eth.rpd";
-
 protected:
 	// usb
 
@@ -289,7 +287,7 @@ bool errorcode EthernetTapSession.capture() {
 
 	m_logWriter.write(EthernetTapLogRecordCode.DeviceOpened, m_deviceCombo.m_currentText);
 	m_uploader.checkSpeed(m_device);
-	m_uploader.update(m_device, m_firmwareFileName, FpgaUploadBaseIndex);
+	m_uploader.update(m_device, EthernetTapFirmwareFileName, FpgaUploadBaseIndex);
 	return true;
 
 catch:
@@ -451,10 +449,10 @@ void EthernetTapSession.parse(
 					break2;
 
 			size_t packetSize = ((*p & 0xffff) + 3) & ~3; // align on 4 bytes
-			size_t bufferSize = sizeof(uint32_t) + sizeof(PacketHdr) + packetSize;
+			size_t bufferSize = sizeof(EthernetTapPacketMeta) + packetSize;
 			m_packetBuffer.setSize(bufferSize);
-			*(uint32_t*)m_packetBuffer.m_p = ++m_packetIndex;
-			m_packetOffset = sizeof(uint32_t);
+			((EthernetTapPacketMeta*)m_packetBuffer.m_p).m_index = ++m_packetIndex;
+			m_packetOffset = offsetof(EthernetTapPacketMeta.m_hdr);
 		}
 
 		size_t dstSize = m_packetBuffer.m_size - m_packetOffset;
@@ -482,13 +480,13 @@ void EthernetTapSession.parse(
 
 		p += dstSize / sizeof(uint32_t);
 
-		PacketHdr* hdr = (PacketHdr*)(m_packetBuffer.m_p + sizeof(uint32_t));
+		EthernetTapPacketHdr* hdr = &((EthernetTapPacketMeta*)m_packetBuffer.m_p).m_hdr;
 		uint64_t recordCode;
 
 //		if (rand() & 1)
-//			hdr.m_flags &= ~PacketFlags.CrcValid;
+//			hdr.m_flags &= ~EthernetTapPacketFlags.CrcValid;
 
-		if (hdr.m_flags & PacketFlags.ChannelId) {
+		if (hdr.m_flags & EthernetTapPacketFlags.ChannelId) {
 			recordCode = EthernetTapLogRecordCode.Packet_ch2;
 			m_pluginHost.m_txRxStats.addRx(m_packetBuffer.m_size);
 		} else {

@@ -57,8 +57,6 @@ protected:
 	}
 
 protected:
-	static string_t const FirmwareFileName = __DIR__ "/firmware/eth.rpd";
-
 	// Ethernet Tap
 
 	iox.SshHwc m_ssh;
@@ -318,7 +316,7 @@ void SshEthernetTapSession.onConnected() {
 	m_state = State.UploadingFirmware;
 
 	m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
-	m_uploader.update(FirmwareFileName);
+	m_uploader.update(EthernetTapFirmwareFileName);
 	return;
 
 catch:

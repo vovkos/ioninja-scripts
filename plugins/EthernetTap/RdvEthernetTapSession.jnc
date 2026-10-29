@@ -50,8 +50,6 @@ protected:
 	}
 
 protected:
-	static string_t const FirmwareFileName = __DIR__ "/firmware/eth.rpd";
-
 	// Ethernet Tap over rendezvous
 
 	iox.RendezvousHwc m_rdv;
@@ -282,7 +280,7 @@ void RdvEthernetTapSession.onConnected() {
 
 	m_rdv.writeActivateDeviceMsg(m_device, io.HwcControllerKind.EthernetTap, io.HwcCmdLineFlags.Suspend);
 	m_stdSessionInfoSet.startSession(m_pluginHost.m_mainThreadScheduler);
-	m_uploader.update(FirmwareFileName);
+	m_uploader.update(EthernetTapFirmwareFileName);
 	return;
 
 catch:
