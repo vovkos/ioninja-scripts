@@ -9,6 +9,9 @@ import "std_String.jnc"
 
 //..............................................................................
 
+string_t const SerialTapProBootloaderFileName = __DIR__ "/firmware/serial-tap-pro-1.2-bl.rpd";
+string_t const SerialTapProFirmwareFileName   = __DIR__ "/firmware/serial-tap-pro-1.4.rpd";
+
 enum SerialTapProUsb {
 	VendorId             = 0x326f,
 	ProductId            = 0x0005,
