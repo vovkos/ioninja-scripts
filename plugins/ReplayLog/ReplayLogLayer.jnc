@@ -100,7 +100,7 @@ protected:
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 ReplayLogLayer.construct(doc.PluginHost* pluginHost) {
-	basetype1.construct(pluginHost);
+	basetype.construct(pluginHost);
 
 	m_fileDlg.m_onCompleted += [](ui.StdDlgButton button) {
 		if (button == ui.StdDlgButton.Ok)
