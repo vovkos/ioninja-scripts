@@ -85,7 +85,7 @@ public:
 	void close();
 
 	// url is the full relay path, device included:
-	// wss://<host>/rendezvous/<owner>/<device>[:<endpoint>]
+	// wss://<rendezvous-server>/<owner>/<device>[:<endpoint>]
 
 	bool errorcode connect(
 		string_t url,
