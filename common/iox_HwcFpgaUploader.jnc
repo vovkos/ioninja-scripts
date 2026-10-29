@@ -248,7 +248,8 @@ void HwcFpgaUploader.onVersion(io.HwcFpgaVersionParams const* params) {
 			params.m_version.m_firmwareVersion >= m_fileVersion.m_firmwareVersion;
 
 		if (isUpToDate) {
-			m_logWriter.write(FpgaUploaderLogRecordCode.FirmwareUpToDate);
+			uint16_t firmwareVersion = params.m_version.m_firmwareVersion;
+			m_logWriter.write(FpgaUploaderLogRecordCode.FirmwareUpToDate, &firmwareVersion, sizeof(firmwareVersion));
 			stop();
 			m_onUpdateCompleted(true);
 		} else if (!try startUpload())
