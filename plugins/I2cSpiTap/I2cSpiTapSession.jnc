@@ -86,8 +86,8 @@ protected:
 	}
 
 	static string_t const m_fileNameTable[] = {
-		__DIR__ "/firmware/spi.rpd",
-		__DIR__ "/firmware/i2c.rpd",
+		SpiTapFirmwareFileName,
+		I2cTapFirmwareFileName,
 	}
 
 protected:

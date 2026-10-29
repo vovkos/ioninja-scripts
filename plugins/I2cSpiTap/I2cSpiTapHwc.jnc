@@ -11,6 +11,8 @@ import "ui_PropertyGrid.jnc"
 import "io_HwcProto.jnc"
 import "std_Buffer.jnc"
 import "I2cSpiTapLogRecordCode.jnc"
+import "I2cDecoder.jnc"
+import "SpiDecoder.jnc"
 
 //..............................................................................
 
@@ -80,8 +82,8 @@ public:
 
 	string_t getFirmwareFileName() {
 		return m_protocol == Protocol.I2c ?
-			__DIR__ "/firmware/i2c.rpd" :
-			__DIR__ "/firmware/spi.rpd";
+			I2cTapFirmwareFileName :
+			SpiTapFirmwareFileName;
 	}
 
 	// start capture command for an ioninja-hwc launched/activated suspended

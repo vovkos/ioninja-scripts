@@ -35,3 +35,6 @@ org.jancy.io.file
 RdvI2cSpiTapSession.jnc
 I2cSpiTapHwc.jnc
 I2cSpiTapLogRecordCode.jnc
+Decoder.jnc
+I2cDecoder.jnc
+SpiDecoder.jnc
