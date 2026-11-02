@@ -81,7 +81,7 @@ string_t getItemDigest(
 	if (!attr)
 		return null;
 
-	ToStringFuncEx thin* func = attr;
+	ToStringFuncEx* func = attr;
 	return func ? func(p, size, decl) : null;
 }
 
@@ -93,7 +93,7 @@ string_t getItemValueString(
 	uint_t bitCount = 0,
 	void const* p
 ) {
-	ToStringFuncEx thin* formatFunc = decl.findAttributeValue("formatFunc");
+	ToStringFuncEx* formatFunc = decl.findAttributeValue("formatFunc");
 	if (formatFunc)
 		return formatFunc(p, type.m_size, decl);
 
@@ -117,7 +117,7 @@ ToStringFunc* getElementValueStringFunc(
 	jnc.Type safe* type,
 	jnc.PtrTypeFlags ptrTypeFlags = 0
 ) {
-	ToStringFuncEx thin* formatFunc = decl.findAttributeValue("valueFormatFunc");
+	ToStringFuncEx* formatFunc = decl.findAttributeValue("valueFormatFunc");
 	if (formatFunc)
 		return formatFunc~(, type.m_size, decl);
 
@@ -390,7 +390,7 @@ void representArray(
 	size_t arraySize = elementSize * elementCount;
 
 	if (!decl.findAttribute("ungroup")) {
-		ToStringFuncEx thin* formatFunc = decl.findAttributeValue("formatFunc");
+		ToStringFuncEx* formatFunc = decl.findAttributeValue("formatFunc");
 		string_t value =
 			formatFunc ? formatFunc(p, arraySize, decl) :
 			elementType.m_typeKind == jnc.TypeKind.Char ? string_t(p, elementCount) :
