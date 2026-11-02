@@ -47,7 +47,7 @@ bool representModbusLog(
 			representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Warning;
 			representation.addHyperText($"Modbus parse error: %1"(promise.m_error.m_description));
 		} else
-			log.representDynamicLayout(representation, layout, builder.m_sectionGroup, foldFlags);
+			log.representDynamicLayout(representation, builder.m_sectionGroup, p, layout.m_size, foldFlags);
 
 		break;
 

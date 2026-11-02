@@ -161,8 +161,9 @@ void setItemBackColor(
 
 void representDynamicLayout(
 	Representation safe* representation,
-	jnc.DynamicLayout safe* layout,
 	jnc.DynamicLayoutSectionGroup const safe* sectionGroup, // from jnc.DynamicLayoutSectionBuilder
+	void const* p,
+	size_t size,
 	uint_t foldFlags,
 	uint_t rawBinPartCode = DynamicLayoutBinPartCode.Raw,
 	string_t indent = ""
@@ -173,7 +174,7 @@ void representDynamicLayout(
 	context.m_rawBinPartCode = rawBinPartCode;
 
 	log.LineAttr prevAttr = representation.m_lineAttr;
-	bool isExpanded = representDynamicSectionGroup(context, sectionGroup, 0, layout.m_p, indent);
+	bool isExpanded = representDynamicLayoutSectionGroup(context, sectionGroup, 0, p, indent);
 	representation.m_lineAttr = prevAttr; // restore
 
 	if (!isExpanded)
@@ -181,7 +182,7 @@ void representDynamicLayout(
 
 	representation.m_lineAttr.m_textColor = ui.StdColor.BrightBlack;
 	representation.addBreak();
-	representation.addBin(rawBinPartCode, layout.m_p, layout.m_size);
+	representation.addBin(rawBinPartCode, p, size);
 	representation.m_lineAttr.m_textColor = prevAttr.m_textColor; // restore again
 
 	size_t rangeCount = context.m_colorRangeTree.m_rangeCount;
@@ -191,17 +192,16 @@ void representDynamicLayout(
 	ui.ColorRange* ranges = new ui.ColorRange[rangeCount];
 	context.m_colorRangeTree.flatten(ranges, rangeCount);
 
-	size_t end = layout.m_size;
 	for (size_t i = 0; i < rangeCount; i++) {
 		ui.ColorRange range = ranges[i];
 		ui.TextAttr attr = { ui.ColorFlags.Undefined, range.m_color, ui.FontFlags.Undefined	}
-		representation.retroColorize(range.m_offset - layout.m_size, range.m_length, attr);
+		representation.retroColorize(range.m_offset - size, range.m_length, attr);
 	}
 }
 
 // returns false if the root group is collapsed
 
-bool representDynamicSectionGroup(
+bool representDynamicLayoutSectionGroup(
 	RepresentDynamicLayoutContext safe* context,
 	jnc.DynamicLayoutSectionGroup const safe* group,
 	size_t offset0,
@@ -265,7 +265,7 @@ bool representDynamicSectionGroup(
 				subIndent = indent + "    ";
 			}
 
-			representDynamicSectionGroup(context, section, offset0, p0, subIndent);
+			representDynamicLayoutSectionGroup(context, section, offset0, p0, subIndent);
 			break;
 		}
 
@@ -365,8 +365,9 @@ bool representBinary(
 
 	representDynamicLayout(
 		context.m_representation,
-		subLayout,
 		builder.m_sectionGroup,
+		subLayout.m_p,
+		subLayout.m_size,
 		context.m_foldFlags,
 		context.m_rawBinPartCode + 1,
 		indent + "    "
