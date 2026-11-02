@@ -1,6 +1,6 @@
 //..............................................................................
 //
-// DNS (domain name system) defitions; also used for NetBIOS, MDNS, LLMNR
+// DNS (domain name system) defitions; also used for NetBIOS, mDNS, LLMNR
 //
 
 import "std_String.jnc"
