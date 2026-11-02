@@ -178,7 +178,7 @@ string_t get$(protocol)Digest(
 	size_t size
 ) {
 	std.StringBuilder digest;
-	jnc.DynamicLayout layout(p, size);
+	jnc.DynamicLayout layout(null, p, size);
 	dylayout (layout) {
 		dyfield $(protocol)Hdr hdr;
 		digest := $"%1 #%2"(typeof($(protocol)Code).getValueName(hdr.m_code), hdr.m_id);

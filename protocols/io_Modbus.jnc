@@ -774,7 +774,7 @@ void appendModbusPduDigest(
 	size_t size,
 	ModbusRole role
 ) {
-	jnc.DynamicLayout layout(p, size);
+	jnc.DynamicLayout layout(null, p, size);
 	dylayout (layout) {
 		static string_t directions[] = {
 			"request",
