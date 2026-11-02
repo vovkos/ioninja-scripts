@@ -1006,7 +1006,7 @@ class HexFieldCodec: ias.FieldCodec {
 	fixedSize
 ]
 void layoutModbusAsciiDecodedRequestAdu(jnc.DynamicLayout* layout) {
-	io.layoutModbusAdu(layout, io.ModbusProtocol.Ascii, ModbusRole.Master);
+	io.layoutModbusAdu(layout, io.ModbusProtocol.Ascii, ModbusRole.Master).blockingWait(); // rethrows errors
 }
 
 [
@@ -1014,7 +1014,7 @@ void layoutModbusAsciiDecodedRequestAdu(jnc.DynamicLayout* layout) {
 	fixedSize
 ]
 void layoutModbusAsciiDecodedReplyAdu(jnc.DynamicLayout* layout) {
-	io.layoutModbusAdu(layout, io.ModbusProtocol.Ascii, ModbusRole.Slave);
+	io.layoutModbusAdu(layout, io.ModbusProtocol.Ascii, ModbusRole.Slave).blockingWait(); // rethrows errors
 }
 
 async void layoutModbusAdu(
