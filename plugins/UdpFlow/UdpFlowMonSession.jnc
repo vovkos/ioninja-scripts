@@ -168,7 +168,9 @@ void UdpFlowMonSession.createUi() {
 
 	m_actionTable[ActionId.Refresh] = createAction("Re-enumerate devices", m_iconTable[IconId.Refresh]);
 	m_actionTable[ActionId.Refresh].m_onTriggered += []() {
-		ui.enumeratePcapDevices(m_deviceCombo, m_deviceProp);
+		size_t count = ui.enumeratePcapDevices(m_deviceCombo, m_deviceProp);
+		if (count)
+			m_deviceCombo.showPopup();
 	}
 
 	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable[IconId.Capture]);
