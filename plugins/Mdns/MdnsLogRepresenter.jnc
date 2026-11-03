@@ -104,29 +104,6 @@ bool detailizeMdnsLog(
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-class MdnsRecordCollector {
-	std.Array m_recordArray;
-
-	void visit(io.MdnsRecord const* record) {
-		m_recordArray.append(record);
-	}
-}
-
-// returns false on a malformed message (the records before the error are collected)
-
-bool collectMdnsRecords(
-	MdnsRecordCollector* collector,
-	void const* p,
-	size_t size
-) {
-	jnc.DynamicLayout layout(null, p, size);
-	io.layoutMdnsMessage(layout, collector.visit);
-	return true;
-
-catch:
-	return false;
-}
-
 // same as NetSnifferLog DNS digests: a header line + a preview of the first RRs
 
 void representMdnsPacketDigest(
@@ -155,8 +132,8 @@ void representMdnsPacketDigest(
 		io.formatDnsDigest(message)
 	));
 
-	MdnsRecordCollector* collector = new MdnsRecordCollector;
-	bool isValid = collectMdnsRecords(collector, message, messageSize);
+	io.MdnsRecordCollector* collector = new io.MdnsRecordCollector;
+	bool isValid = io.collectMdnsRecords(collector, message, messageSize);
 
 	size_t count = collector.m_recordArray.m_count;
 	size_t previewCount = count;

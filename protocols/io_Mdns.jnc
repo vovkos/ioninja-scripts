@@ -226,6 +226,33 @@ string_t getMdnsDigest(
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
+// collects all questions & records of a message
+
+class MdnsRecordCollector {
+	std.Array m_recordArray; // MdnsRecord const*
+
+	void visit(MdnsRecord const* record) {
+		m_recordArray.append(record);
+	}
+}
+
+// returns false on a malformed message (the records before the error are collected)
+
+bool collectMdnsRecords(
+	MdnsRecordCollector* collector,
+	void const* p,
+	size_t size
+) {
+	jnc.DynamicLayout layout(null, p, size);
+	layoutMdnsMessage(layout, collector.visit);
+	return true;
+
+catch:
+	return false;
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
 void const* layoutMdnsRecordTable(
 	jnc.DynamicLayout* layout,
 	MdnsRecordSection section,
