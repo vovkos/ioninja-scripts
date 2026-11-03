@@ -344,6 +344,7 @@ void RendezvousHwcUi.onEnumeratorEvent(
 
 reactor RendezvousHwcUi.m_uiReactor {
 	m_refreshAction.m_isEnabled = m_enumeratorState == EnumeratorState.Idle;
+	m_deviceCombo.m_isEnabled = m_enumeratorState == EnumeratorState.Idle;
 }
 
 //..............................................................................
