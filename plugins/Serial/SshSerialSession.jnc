@@ -7,9 +7,9 @@ import "doc_Session.jnc"
 import "io_base.jncx"
 import "io_Serial.jnc"
 import "iox_SshHwc.jnc"
-import "iox_MdnsBrowser.jnc"
 import "io_HwcProto.jnc"
 import "ui_SerialUi.jnc"
+import "ui_SshHwcUrlUi.jnc"
 import "ui_BufferPropertySet.jnc"
 import "ui_StdSessionInfoSet.jnc"
 import "ui_GroupBox.jnc"
@@ -30,16 +30,12 @@ protected:
 		ServerPort     = 22,
 	}
 
-	static char const MdnsServiceName[] = "_serial._sub._ioninja-hwc._tcp.local";
-
 	enum ActionId {
-		Enumerate,
 		Connect,
 		_Count,
 	}
 
 	enum IconId {
-		Enumerate,
 		Connect,
 		Disconnect,
 		_Count,
@@ -65,11 +61,6 @@ protected:
 	// serial port
 
 	iox.SshHwc m_ssh;
-	iox.MdnsBrowser m_mdnsBrowser;
-	string_t property m_portUrl;
-	string_t m_preEnumPortUrl;
-	bool m_showEnumPopup;
-
 	string_t m_portName;
 	uint_t bindable m_baudRate;
 	uint_t m_dataBits;
@@ -83,7 +74,6 @@ protected:
 
 	// toolbar, status bar & menu
 
-	ui.ComboBox* m_portCombo; // ssh://host/port
 	ui.Action* m_actionTable[ActionId._Count];
 	ui.Icon* m_iconTable[IconId._Count];
 	ui.StatusPane* m_statusPaneTable[StatusPaneId._Count];
@@ -91,9 +81,9 @@ protected:
 	// serial property grid
 
 	ui.SocketPropertySet m_socketPropertySet;
+	ui.SshHwcUrlUi m_urlUi; // ssh://host/port
 	ui.SshPropertySet m_sshPropertySet;
 	ui.SerialUi m_serialUi;
-	ui.ComboProperty* m_portProp;
 	ui.BufferPropertySet m_bufferPropertySet;
 
 	// information grid
@@ -147,9 +137,6 @@ protected:
 	void onBreakConditionChanged();
 
 	void onDisconnected();
-	void enumeratePorts(bool showPopup = false);
-	void onServiceFound(iox.MdnsBrowser.Service const* service);
-	void onEnumerateCompleted();
 
 	override void onMsg(io.HwcMsgHdr const* hdr);
 
@@ -178,27 +165,10 @@ protected:
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-string_t SshSerialSession.m_portUrl.get() {
-	return m_mdnsBrowser.m_isBrowsing ? m_preEnumPortUrl : m_portCombo.m_editText;
-}
-
-void SshSerialSession.m_portUrl.set(string_t value) {
-	if (!m_mdnsBrowser.m_isBrowsing)
-		m_portCombo.m_editText = value;
-	else {
-		m_preEnumPortUrl = value;
-		m_portCombo.m_editText = value ?
-			$"$value (enumerating via mDNS...)" :
-			"Enumerating via mDNS...";
-	}
-}
-
 SshSerialSession.construct(doc.PluginHost* pluginHost) {
 	basetype.construct(pluginHost);
 	m_ssh.construct(pluginHost);
-	m_mdnsBrowser.construct(pluginHost);
-	m_mdnsBrowser.m_onServiceFound += onServiceFound;
-	m_mdnsBrowser.m_onCompleted += onEnumerateCompleted;
+	m_urlUi.construct(pluginHost, m_socketPropertySet, ui.SshHwcUrlUi.DeviceKind.SerialPort, "_serial", "Serial Port");
 
 	m_ssh.m_onLoginDlgCompleted += [](
 		string_t userName,
@@ -224,21 +194,14 @@ SshSerialSession.construct(doc.PluginHost* pluginHost) {
 }
 
 void SshSerialSession.createUi() {
-	m_iconTable[IconId.Enumerate] = new ui.Icon("images/refresh.png");
 	m_iconTable[IconId.Connect] = new ui.Icon("images/connect.png");
 	m_iconTable[IconId.Disconnect] = new ui.Icon("images/pause.png");
 
 	// toolbar
 
-	m_pluginHost.m_toolBar.addLabel("Port:");
-	m_portCombo = m_pluginHost.m_toolBar.addComboBox(-1);
-	m_portCombo.m_isEditable = true;
-	m_portCombo.m_onReturnPressed += onComboEnter;
-	m_portCombo.m_placeholderText = "Enter ssh://host/port...";
-	m_portCombo.m_toolTip = "Enter port URL in form: ssh://host/port\ne.g.: ssh://192.168.1.10/dev/ttyUSB0";
+	m_urlUi.createToolBar("Port:");
+	m_urlUi.m_urlCombo.m_onReturnPressed += onComboEnter;
 
-	m_actionTable[ActionId.Enumerate] = createAction("Enumerate ports via mDNS", m_iconTable[IconId.Enumerate]);
-	m_actionTable[ActionId.Enumerate].m_onTriggered += enumeratePorts~(true);
 	m_actionTable[ActionId.Connect] = createAction("Connect", m_iconTable[IconId.Connect]);
 	m_actionTable[ActionId.Connect].m_onTriggered += []() {
 		m_ssh.m_state ? disconnect() : try connect();
@@ -279,12 +242,7 @@ void SshSerialSession.createUi() {
 		"Serial port-specific connection settings"
 	);
 
-	m_portProp = m_pluginHost.m_propertyGrid.createComboProperty(
-		groupProp,,
-		"Port",
-		"Enter ssh://host/port...",
-		"Specify the remote serial port as [ssh://][user@]host[:port]/port (e.g., ssh://192.168.1.10/dev/ttyUSB0)"
-	);
+	m_urlUi.createProperties(groupProp);
 
 	ui.FormLayout layout;
 	m_serialUi.createForm(layout);
@@ -334,21 +292,12 @@ void SshSerialSession.createUi() {
 	m_pluginHost.m_propertyGrid.resizeNameColumnToContents();
 	m_pluginHost.m_informationGrid.resizeNameColumnToContents();
 
-	enumeratePorts();
+	m_urlUi.enumerate();
 	m_uiReactor.start();
 }
 
 void SshSerialSession.load(doc.Storage* storage) {
-	string_t url = storage.readString("url");
-	if (!url) { // settings from before the port URL
-		iox.SshHwcUrl legacyUrl;
-		legacyUrl.m_address = storage.readString("address");
-		legacyUrl.m_device = storage.readString("port");
-		if (legacyUrl.m_address)
-			url = legacyUrl.getString();
-	}
-
-	m_portUrl = url;
+	m_urlUi.load(storage);
 
 	m_serialUi.load(storage);
 	m_serialUi.load(storage);
@@ -364,18 +313,18 @@ void SshSerialSession.save(doc.Storage* storage) {
 	m_sshPropertySet.save(storage);
 	m_bufferPropertySet.save(storage);
 
-	storage.writeString("url", m_portUrl);
+	m_urlUi.save(storage);
 }
 
 void SshSerialSession.updateProperties() {
 	m_serialUi.updateProperties();
-	m_portProp.m_value = m_portUrl;
+	m_urlUi.updateProperties();
 }
 
 bool errorcode SshSerialSession.applyProperties() {
 	m_serialUi.applyProperties();
 
-	m_portUrl = m_portProp.m_value;
+	m_urlUi.applyProperties();
 
 	m_dtr = m_serialUi.m_dtrProp.m_value;
 	m_rts = m_serialUi.m_rtsProp.m_value;
@@ -490,7 +439,7 @@ bool errorcode SshSerialSession.connect() {
 	startSession();
 
 	iox.SshHwcUrl url;
-	bool result = try url.parse(m_portUrl);
+	bool result = try url.parse(m_urlUi.m_url);
 	if (!result || !url.m_device) {
 		if (result)
 			std.setError("port name not specified");
@@ -530,65 +479,6 @@ void SshSerialSession.onDisconnected() {
 	}
 
 	m_stdSessionInfoSet.endSession();
-}
-
-void SshSerialSession.enumeratePorts(bool showPopup) {
-	m_portCombo.removeAllItems();
-	m_showEnumPopup = showPopup;
-	m_mdnsBrowser.browse(MdnsServiceName);
-}
-
-void SshSerialSession.onServiceFound(iox.MdnsBrowser.Service const* service) {
-	string_t device = service.findTxtValue("port");
-	if (!device)
-		return;
-
-	iox.SshHwcUrl url;
-	url.m_address = service.m_port == m_socketPropertySet.m_remotePortProp.m_value ?
-		service.m_address.m_ip4.m_address.getString() :
-		service.m_address.getString();
-
-	url.m_device = device;
-
-	string_t value = url.getString();
-	size_t i = m_portCombo.addItem($"%1 (%2)"(value, service.m_hostName), value);
-	m_portCombo.m_isItemEnabled[i] = false; // selectable when completed (selection would override the edit text)
-	m_portCombo.m_itemToolTip[i] =
-		$"<table>"
-		$"<tr><td>Host:</td><td>%1</td></tr>"
-		$"<tr><td>Address:</td><td>%2</td></tr>"
-		$"<tr><td>Port:</td><td>%3</td></tr>"
-		$"<tr><td>Service:</td><td>%4</td></tr>"
-		$"</table>"(
-			service.m_hostName,
-			service.m_address.getString(),
-			device,
-			service.m_instanceName
-		);
-
-	if (m_showEnumPopup && i == 0)
-		m_portCombo.showPopup();
-}
-
-void SshSerialSession.onEnumerateCompleted() {
-	m_portCombo.m_editText = m_preEnumPortUrl;
-
-	size_t count = m_portCombo.m_itemCount;
-	ui.EnumPropertyOption* optionArray = new ui.EnumPropertyOption[count];
-	for (size_t i = 0; i < count; i++) {
-		m_portCombo.m_isItemEnabled[i] = true;
-		optionArray[i].m_text = m_portCombo.m_itemText[i];
-		optionArray[i].m_value = m_portCombo.m_itemData[i];
-	}
-
-	m_portProp.setOptions(optionArray, count);
-
-	if (!count) {
-		m_portCombo.addItem("No ports found");
-		m_portCombo.m_isItemEnabled[0] = false;
-		if (m_showEnumPopup)
-			m_portCombo.showPopup();
-	}
 }
 
 void SshSerialSession.onMsg(io.HwcMsgHdr const* hdr) {
@@ -839,7 +729,7 @@ void SshSerialSession.updateLineInfoValue(
 reactor SshSerialSession.m_uiReactor {
 	m_title = m_ssh.m_state == State.Connected ?
 		$"Serial $(m_ssh.m_remoteAddress.getString()) $m_portName $m_baudRate bps" :
-		$"Serial $(m_mdnsBrowser.m_isBrowsing ? m_preEnumPortUrl : m_portCombo.m_currentText) $(m_serialUi.m_baudRateCombo.m_editText)";
+		$"Serial $(m_urlUi.m_displayUrl) $(m_serialUi.m_baudRateCombo.m_editText)";
 
 	m_isTransmitEnabled = m_ssh.m_isTransmitEnabled && !m_breakCondition;
 
@@ -853,8 +743,6 @@ reactor SshSerialSession.m_uiReactor {
 		m_ssh.m_state == State.Closed ? SessionConnectionState.Disconnected :
 		SessionConnectionState.Connecting;
 
-	m_actionTable[ActionId.Enumerate].m_isEnabled = !m_mdnsBrowser.m_isBrowsing;
-	m_portCombo.m_isEditEnabled = !m_mdnsBrowser.m_isBrowsing;
 	m_actionTable[ActionId.Connect].m_text = m_ssh.m_state ? "Close" : "Open";
 	m_actionTable[ActionId.Connect].m_icon = m_iconTable[m_ssh.m_state ? IconId.Disconnect : IconId.Connect];
 	m_serialUi.m_rtsAction.m_isEnabled = m_serialUi.m_flowControlCombo.m_currentData != io.SerialFlowControl.RtsCts;

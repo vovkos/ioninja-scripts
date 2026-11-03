@@ -119,6 +119,44 @@ string_t SshHwcUrl.getString() const {
 	return string.detachString();
 }
 
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+// USB peripherals (taps) are addressed as @bus:address -- e.g., ssh://host/@001:027,
+// as in Avahi service names; no device -- ioninja-hwc opens the first attached one
+
+string_t formatSshHwcUsbDevice(
+	uint_t bus,
+	uint_t address
+) {
+	return $"@%(1;03d):%(2;03d)"(bus, address);
+}
+
+bool errorcode parseSshHwcUsbDevice(
+	string_t device,
+	uint_t* bus,
+	uint_t* address
+) {
+	char const* colon = memchr(device.m_p, ':', device.m_length);
+	if (device.m_length && device.m_p[0] == '@' && colon) {
+		string_t busString = string_t(device.m_p + 1, colon - device.m_p - 1);
+		string_t addressString = string_t(colon + 1, device.m_p + device.m_length - colon - 1);
+
+		size_t busLength;
+		size_t addressLength;
+		*bus = strtoul(busString, &busLength, 10);
+		*address = strtoul(addressString, &addressLength, 10);
+
+		if (busLength &&
+			busLength == busString.m_length &&
+			addressLength &&
+			addressLength == addressString.m_length)
+			return true;
+	}
+
+	std.setError($"invalid tap address '$device' (expected @bus:address, e.g., @001:027)");
+	return false;
+}
+
 //..............................................................................
 
 //! @}

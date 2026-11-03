@@ -8,9 +8,9 @@ import "io_base.jncx"
 import "io_Serial.jnc"
 import "io_abr.jncx"
 import "iox_SshHwc.jnc"
+import "ui_SshHwcUrlUi.jnc"
 import "iox_HwcFpgaUploader.jnc"
 import "io_HwcProto.jnc"
-import "ui_History.jnc"
 import "ui_SocketUi.jnc"
 import "ui_SerialUi.jnc"
 import "ui_SshPropertySet.jnc"
@@ -24,8 +24,6 @@ import "std_Buffer.jnc"
 import "SerialTapProLogRecordCode.jnc"
 import "SerialTapProDispatchCode.jnc"
 import "SerialTapProUi.jnc"
-
-using extension ui.ComboBoxHistory;
 
 //..............................................................................
 
@@ -94,11 +92,11 @@ protected:
 	ui.Action* m_actionTable[ActionId._Count];
 	ui.Icon* m_iconTable[IconId._Count];
 	ui.StatusPane* m_statusPaneTable[StatusPaneId._Count];
-	ui.ComboBox* m_addressCombo;
 
 	// property grid
 
 	ui.SocketPropertySet m_socketPropertySet;
+	ui.SshHwcUrlUi m_urlUi;
 	ui.SshPropertySet m_sshPropertySet;
 	ui.BufferPropertySet m_bufferPropertySet;
 
@@ -175,7 +173,10 @@ protected:
 	void stopCapture();
 	bool errorcode requestCapture();
 
-	iox.SshChannel.ConnectParams const* createConnectParams();
+	iox.SshChannel.ConnectParams const* createConnectParams(
+		string_t userName, // null = from properties
+		string_t hwcArgs
+	);
 
 	bool errorcode writeMsg(
 		io.HwcMsgCode code,
@@ -193,6 +194,7 @@ protected:
 SshSerialTapProSession.construct(doc.PluginHost* pluginHost) {
 	basetype.construct(pluginHost);
 	m_ssh.construct(pluginHost);
+	m_urlUi.construct(pluginHost, m_socketPropertySet, ui.SshHwcUrlUi.DeviceKind.Usb, "_serial-tap-pro", "Serial Tap Pro");
 	m_uploader.construct(pluginHost, m_ssh);
 	m_uploaderDlg.construct(m_uploader);
 
@@ -241,14 +243,10 @@ void SshSerialTapProSession.createUi() {
 	m_iconTable[IconId.Capture] = new ui.Icon("images/capture.png");
 	m_iconTable[IconId.StopCapture] = new ui.Icon("images/stop.png");
 
-	m_pluginHost.m_toolBar.addLabel("Address:");
-	m_addressCombo = m_pluginHost.m_toolBar.addComboBox(-1);
-	m_addressCombo.m_isEditable = true;
-	m_addressCombo.m_onReturnPressed += []() {
+	m_urlUi.createToolBar("Tap:");
+	m_urlUi.m_urlCombo.m_onReturnPressed += []() {
 		try connect();
 	}
-
-	m_addressCombo.m_placeholderText = "Enter a remote IP or hostname...";
 
 	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable[IconId.Capture]);
 	m_actionTable[ActionId.Capture].m_onTriggered += []() {
@@ -268,7 +266,12 @@ void SshSerialTapProSession.createUi() {
 		"TCP-specific connection settings"
 	);
 
-	m_socketPropertySet.createProperties(m_pluginHost.m_propertyGrid, groupProp);
+	m_socketPropertySet.createProperties(
+		m_pluginHost.m_propertyGrid,
+		groupProp,,
+		ui.SocketPropertySet.PropertyId.AllTcpClient & ~ui.SocketPropertySet.PropertyId.RemoteAddress // it's in the URL
+	);
+
 	m_socketPropertySet.m_defaultRemotePort = Defaults.ServerPort;
 
 	groupProp = m_pluginHost.m_propertyGrid.createGroupProperty(
@@ -289,6 +292,7 @@ void SshSerialTapProSession.createUi() {
 		"Settings of the remote Serial Tap Pro"
 	);
 
+	m_urlUi.createProperties(groupProp);
 	m_tapUi.createProperties(m_pluginHost.m_propertyGrid, groupProp);
 
 	ui.SerialUi.ItemId serialUiMask =
@@ -339,6 +343,7 @@ void SshSerialTapProSession.createUi() {
 	m_pluginHost.m_propertyGrid.resizeNameColumnToContents();
 	m_pluginHost.m_informationGrid.resizeNameColumnToContents();
 
+	m_urlUi.enumerate();
 	m_uiReactor.start();
 }
 
@@ -354,8 +359,15 @@ bool errorcode SshSerialTapProSession.connect() {
 
 	m_iface = SerialTapProIface.Undefined;
 	m_lines = 0;
-	m_addressCombo.addEditTextToHistory();
-	return m_ssh.connect(m_addressCombo.m_editText, createConnectParams());
+	iox.SshHwcUrl url;
+	string_t hwcArgs;
+	bool result = try m_urlUi.parseUsbUrl(&url, &hwcArgs);
+	if (!result) {
+		m_logWriter.writeLastError(log.StdRecordCode.Error);
+		return false;
+	}
+
+	return m_ssh.connect(url.m_address, createConnectParams(url.m_userName, hwcArgs));
 }
 
 void SshSerialTapProSession.disconnect() {
@@ -559,8 +571,7 @@ size_t errorcode SshSerialTapProSession.transmit(
 }
 
 void SshSerialTapProSession.load(doc.Storage* storage) {
-	m_addressCombo.loadHistory(storage, "addressHistory");
-	m_addressCombo.m_editText = storage.readString("address");
+	m_urlUi.load(storage);
 
 	m_serialUi.load(storage);
 	m_tapUi.load(storage);
@@ -577,14 +588,13 @@ void SshSerialTapProSession.save(doc.Storage* storage) {
 	m_sshPropertySet.save(storage);
 	m_bufferPropertySet.save(storage);
 
-	m_addressCombo.saveHistory(storage, "addressHistory");
-	storage.writeString("address", m_addressCombo.m_editText);
+	m_urlUi.save(storage);
 }
 
 void SshSerialTapProSession.updateProperties() {
 	m_serialUi.updateProperties();
 	m_tapUi.updateProperties();
-	m_socketPropertySet.m_remoteAddressProp.m_value = m_addressCombo.m_editText;
+	m_urlUi.updateProperties();
 }
 
 bool errorcode SshSerialTapProSession.applyProperties() {
@@ -593,7 +603,7 @@ bool errorcode SshSerialTapProSession.applyProperties() {
 	m_serialUi.applyProperties();
 	m_tapUi.applyProperties();
 
-	m_addressCombo.m_editText = m_socketPropertySet.m_remoteAddressProp.m_value;
+	m_urlUi.applyProperties();
 	m_ssh.applyProperties(m_socketPropertySet, m_sshPropertySet, m_bufferPropertySet);
 
 	if (m_ssh.m_state != SshState.Connected)
@@ -871,7 +881,10 @@ catch:
 	m_logWriter.writeLastError(log.StdRecordCode.Error);
 }
 
-iox.SshChannel.ConnectParams const* SshSerialTapProSession.createConnectParams() {
+iox.SshChannel.ConnectParams const* SshSerialTapProSession.createConnectParams(
+	string_t userName,
+	string_t hwcArgs
+) {
 	static string_t const stopBitsStringTable[] = {
 		"1",
 		"1.5",
@@ -887,7 +900,7 @@ iox.SshChannel.ConnectParams const* SshSerialTapProSession.createConnectParams()
 	}
 
 	string_t cmdLine =
-		"ioninja-hwc --stdin --serial-tap-pro --raw-usb-bulk --suspend " // the firmware may need an update first
+		$"ioninja-hwc --stdin --serial-tap-pro --raw-usb-bulk --suspend$hwcArgs " // the firmware may need an update first
 		$"--ser-baud %1 "
 		$"--ser-data %2 "
 		$"--ser-stop %3 "
@@ -904,6 +917,10 @@ iox.SshChannel.ConnectParams const* SshSerialTapProSession.createConnectParams()
 	params.m_sshParams.m_processType = "exec";
 	params.m_sshParams.m_processExtra = cmdLine.m_p;
 	params.m_sshParams.m_processExtraSize = cmdLine.m_length;
+
+	if (userName)
+		params.m_sshParams.m_userName = userName;
+
 	return params;
 }
 
@@ -938,7 +955,7 @@ bool errorcode SshSerialTapProSession.writeNotificationDelayMsg() {
 reactor SshSerialTapProSession.m_uiReactor {
 	m_title = m_ssh.m_state == SshState.Connected ?
 		$"Serial Tap Pro $(m_ssh.m_remoteAddress.getString()) $m_baudRate bps" :
-		$"Serial Tap Pro $(m_addressCombo.m_currentText) $(m_serialUi.m_baudRateCombo.m_editText)";
+		$"Serial Tap Pro $(m_urlUi.m_displayUrl) $(m_serialUi.m_baudRateCombo.m_editText)";
 
 	m_sessionConnectionState =
 		m_ssh.m_state == SshState.Connected ? SessionConnectionState.Connected :

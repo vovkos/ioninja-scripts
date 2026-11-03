@@ -7,8 +7,8 @@ import "doc_Session.jnc"
 import "iox_SshHwc.jnc"
 import "iox_HwcFpgaUploader.jnc"
 import "io_HwcProto.jnc"
-import "ui_History.jnc"
 import "ui_SocketUi.jnc"
+import "ui_SshHwcUrlUi.jnc"
 import "ui_SshPropertySet.jnc"
 import "ui_BufferPropertySet.jnc"
 import "ui_FpgaUploaderProgressDlg.jnc"
@@ -17,8 +17,6 @@ import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
 import "std_Buffer.jnc"
 import "EthernetTapLogRecordCode.jnc"
-
-using extension ui.ComboBoxHistory;
 
 //..............................................................................
 
@@ -69,11 +67,11 @@ protected:
 	ui.Action* m_actionTable[ActionId._Count];
 	ui.Icon* m_iconTable[IconId._Count];
 	ui.StatusPane* m_statusPaneTable[StatusPaneId._Count];
-	ui.ComboBox* m_addressCombo;
 
 	// property grid
 
 	ui.SocketPropertySet m_socketPropertySet;
+	ui.SshHwcUrlUi m_urlUi;
 	ui.SshPropertySet m_sshPropertySet;
 	ui.BufferPropertySet m_bufferPropertySet;
 
@@ -125,7 +123,10 @@ protected:
 	bool errorcode startCapture();
 	void stopCapture();
 
-	iox.SshChannel.ConnectParams const* createConnectParams();
+	iox.SshChannel.ConnectParams const* createConnectParams(
+		string_t userName, // null = from properties
+		string_t hwcArgs
+	);
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -135,6 +136,7 @@ SshEthernetTapSession.construct(doc.PluginHost* pluginHost) {
 	m_ssh.construct(pluginHost);
 	m_uploader.construct(pluginHost, m_ssh);
 	m_uploaderDlg.construct(m_uploader);
+	m_urlUi.construct(pluginHost, m_socketPropertySet, ui.SshHwcUrlUi.DeviceKind.Usb, "_ethernet-tap", "Ethernet Tap");
 
 	createUi();
 
@@ -164,14 +166,10 @@ void SshEthernetTapSession.createUi() {
 	m_iconTable[IconId.Capture] = new ui.Icon("images/capture.png");
 	m_iconTable[IconId.StopCapture] = new ui.Icon("images/stop.png");
 
-	m_pluginHost.m_toolBar.addLabel("Address:");
-	m_addressCombo = m_pluginHost.m_toolBar.addComboBox(-1);
-	m_addressCombo.m_isEditable = true;
-	m_addressCombo.m_onReturnPressed += []() {
+	m_urlUi.createToolBar("Tap:");
+	m_urlUi.m_urlCombo.m_onReturnPressed += []() {
 		try connect();
 	}
-
-	m_addressCombo.m_placeholderText = "Enter a remote IP or hostname...";
 
 	m_actionTable[ActionId.Capture] = createAction("Capture", m_iconTable[IconId.Capture]);
 	m_actionTable[ActionId.Capture].m_onTriggered += []() {
@@ -191,7 +189,12 @@ void SshEthernetTapSession.createUi() {
 		"TCP-specific connection settings"
 	);
 
-	m_socketPropertySet.createProperties(m_pluginHost.m_propertyGrid, group);
+	m_socketPropertySet.createProperties(
+		m_pluginHost.m_propertyGrid,
+		group,,
+		ui.SocketPropertySet.PropertyId.AllTcpClient & ~ui.SocketPropertySet.PropertyId.RemoteAddress // it's in the URL
+	);
+
 	m_socketPropertySet.m_defaultRemotePort = Defaults.ServerPort;
 
 	group = m_pluginHost.m_propertyGrid.createGroupProperty(
@@ -211,6 +214,8 @@ void SshEthernetTapSession.createUi() {
 		"Ethernet Tap",
 		"Ethernet Tap settings"
 	);
+
+	m_urlUi.createProperties(group);
 
 	ui.BufferPropertySet.PropertyId mask = ui.BufferPropertySet.PropertyId.All;
 	mask &= ~(
@@ -243,14 +248,23 @@ void SshEthernetTapSession.createUi() {
 	m_pluginHost.m_propertyGrid.resizeNameColumnToContents();
 	m_pluginHost.m_informationGrid.resizeNameColumnToContents();
 
+	m_urlUi.enumerate();
 	m_uiReactor.start();
 }
 
 bool errorcode SshEthernetTapSession.connect() {
 	disconnect();
 	startSession();
-	m_addressCombo.addEditTextToHistory();
-	return m_ssh.connect(m_addressCombo.m_editText, createConnectParams());
+
+	iox.SshHwcUrl url;
+	string_t hwcArgs;
+	bool result = try m_urlUi.parseUsbUrl(&url, &hwcArgs);
+	if (!result) {
+		m_logWriter.writeLastError(log.StdRecordCode.Error);
+		return false;
+	}
+
+	return m_ssh.connect(url.m_address, createConnectParams(url.m_userName, hwcArgs));
 }
 
 void SshEthernetTapSession.disconnect() {
@@ -263,10 +277,13 @@ void SshEthernetTapSession.disconnect() {
 	m_stdSessionInfoSet.endSession();
 }
 
-iox.SshChannel.ConnectParams const* SshEthernetTapSession.createConnectParams() {
+iox.SshChannel.ConnectParams const* SshEthernetTapSession.createConnectParams(
+	string_t userName,
+	string_t hwcArgs
+) {
 	// start suspended: the firmware may need an update before capturing
 
-	string_t cmdLine = "ioninja-hwc --stdin --ethernet-tap --suspend";
+	string_t cmdLine = $"ioninja-hwc --stdin --ethernet-tap --suspend$hwcArgs";
 
 	iox.SshChannel.ConnectParams params;
 	iox.SshChannel.initConnectParams(&params, m_socketPropertySet, m_sshPropertySet, m_bufferPropertySet);
@@ -274,13 +291,15 @@ iox.SshChannel.ConnectParams const* SshEthernetTapSession.createConnectParams() 
 	params.m_sshParams.m_processType = "exec";
 	params.m_sshParams.m_processExtra = cmdLine.m_p;
 	params.m_sshParams.m_processExtraSize = cmdLine.m_length;
+
+	if (userName)
+		params.m_sshParams.m_userName = userName;
+
 	return params;
 }
 
 void SshEthernetTapSession.load(doc.Storage* storage) {
-	m_addressCombo.loadHistory(storage, "addressHistory");
-	m_addressCombo.m_editText = storage.readString("address");
-
+	m_urlUi.load(storage);
 	m_socketPropertySet.load(storage);
 	m_sshPropertySet.load(storage);
 	m_bufferPropertySet.load(storage);
@@ -292,16 +311,15 @@ void SshEthernetTapSession.save(doc.Storage* storage) {
 	m_sshPropertySet.save(storage);
 	m_bufferPropertySet.save(storage);
 
-	m_addressCombo.saveHistory(storage, "addressHistory");
-	storage.writeString("address", m_addressCombo.m_editText);
+	m_urlUi.save(storage);
 }
 
 void SshEthernetTapSession.updateProperties() {
-	m_socketPropertySet.m_remoteAddressProp.m_value = m_addressCombo.m_editText;
+	m_urlUi.updateProperties();
 }
 
 bool errorcode SshEthernetTapSession.applyProperties() {
-	m_addressCombo.m_editText = m_socketPropertySet.m_remoteAddressProp.m_value;
+	m_urlUi.applyProperties();
 	m_ssh.applyProperties(m_socketPropertySet, m_sshPropertySet, m_bufferPropertySet);
 	return true;
 }
@@ -398,7 +416,7 @@ void SshEthernetTapSession.onMsg(io.HwcMsgHdr const* hdr) {
 reactor SshEthernetTapSession.m_uiReactor {
 	m_title = m_ssh.m_state == SshState.Connected ?
 		$"Ethernet Tap $(m_ssh.m_remoteAddress.getString())" :
-		$"Ethernet Tap $(m_addressCombo.m_currentText)";
+		$"Ethernet Tap $(m_urlUi.m_displayUrl)";
 
 	m_sessionConnectionState =
 		m_ssh.m_state == SshState.Connected ? SessionConnectionState.Connected :
