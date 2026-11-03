@@ -234,7 +234,7 @@ void TcpProxySession.createUi() {
 			m_listenerSocketPropertySet.m_adapterProp
 		);
 
-		if (count)
+		if (count > 1)
 			m_adapterCombo.showPopup();
 	}
 

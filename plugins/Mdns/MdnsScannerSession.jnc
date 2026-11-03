@@ -194,7 +194,7 @@ void MdnsScannerSession.createUi() {
 			m_adapterProp
 		);
 
-		if (count)
+		if (count > 1)
 			m_adapterCombo.showPopup();
 	}
 

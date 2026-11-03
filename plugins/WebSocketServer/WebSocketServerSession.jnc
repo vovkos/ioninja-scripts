@@ -198,7 +198,7 @@ void WebSocketServerSession.createUi() {
 			m_socketPropertySet.m_adapterProp
 		);
 
-		if (count)
+		if (count > 1)
 			m_adapterCombo.showPopup();
 	}
 

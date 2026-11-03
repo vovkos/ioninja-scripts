@@ -273,7 +273,7 @@ void UsbEndpointSession.createUi() {
 	m_actionTable[ActionId.Refresh]  = createAction("Re-enumerate devices", m_iconTable[IconId.Refresh]);
 	m_actionTable[ActionId.Refresh].m_onTriggered += []() {
 		size_t count = ui.refreshUsbDeviceListUi(m_deviceCombo, m_deviceProp);
-		if (count)
+		if (count > 1)
 			m_deviceCombo.showPopup();
 	}
 
