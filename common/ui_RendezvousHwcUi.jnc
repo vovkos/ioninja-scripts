@@ -36,6 +36,7 @@ protected:
 	io.RendezvousEnumerator m_enumerator;
 	uint_t m_enumeratorSyncId;
 	string_t m_selectedDeviceText; // to re-select once the list arrives
+	bool m_showEnumPopup;
 	FileDlg* m_keyFileDlg;
 
 public:
@@ -75,7 +76,7 @@ public:
 	void restoreDefaults();
 
 	string_t getServerUrl(string_t path);
-	void enumerate();
+	void enumerate(bool showPopup = false);
 
 protected:
 	void onRefresh();
@@ -194,7 +195,7 @@ void RendezvousHwcUi.setDeviceStatus(
 
 void RendezvousHwcUi.onRefresh() {
 	if (m_keyFileProp.m_value.m_length) {
-		enumerate();
+		enumerate(true);
 		return;
 	}
 
@@ -205,7 +206,7 @@ void RendezvousHwcUi.onRefresh() {
 				return;
 
 			m_keyFileProp.m_value = m_keyFileDlg.m_filePath;
-			enumerate();
+			enumerate(true);
 		}
 	}
 
@@ -215,9 +216,11 @@ void RendezvousHwcUi.onRefresh() {
 	m_keyFileDlg.show();
 }
 
-void RendezvousHwcUi.enumerate() {
+void RendezvousHwcUi.enumerate(bool showPopup) {
 	if (m_deviceCombo.m_currentData)
 		m_selectedDeviceText = m_deviceCombo.m_currentText;
+
+	m_showEnumPopup = showPopup;
 
 	m_enumerator.close();
 	m_enumeratorSyncId++;
@@ -334,6 +337,9 @@ void RendezvousHwcUi.onEnumeratorEvent(
 
 	m_deviceProp.setOptions(optionTable, actualCount);
 	m_deviceProp.m_currentIndex = m_deviceCombo.m_currentIndex;
+
+	if (m_showEnumPopup && actualCount > 1)
+		m_deviceCombo.showPopup();
 }
 
 reactor RendezvousHwcUi.m_uiReactor {
