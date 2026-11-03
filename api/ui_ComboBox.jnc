@@ -80,6 +80,7 @@ opaque class ComboBox: Widget {
 	void insertSeparator(size_t index);
 
 	bool removeItem(size_t index);
+	void removeAllItems();
 
 	void setItems(
 		ComboItem const* itemArray,
