@@ -188,7 +188,14 @@ void MdnsScannerSession.createUi() {
 
 	m_actionTable[ActionId.Refresh] = createAction("Re-enumerate adapters", m_iconTable[IconId.Refresh]);
 	m_actionTable[ActionId.Refresh].m_onTriggered += []() {
-		ui.enumerateNetworkAdapters(ui.NetworkAdapterUsage.Listener, m_adapterCombo, m_adapterProp);
+		size_t count = ui.enumerateNetworkAdapters(
+			ui.NetworkAdapterUsage.Listener,
+			m_adapterCombo,
+			m_adapterProp
+		);
+
+		if (count)
+			m_adapterCombo.showPopup();
 	}
 
 	m_actionTable[ActionId.Scan] = createAction("Scan", m_iconTable[IconId.Scan]);

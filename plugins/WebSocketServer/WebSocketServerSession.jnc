@@ -192,11 +192,14 @@ void WebSocketServerSession.createUi() {
 
 	m_actionTable[ActionId.Refresh] = createAction("Re-enumerate adapters", m_iconTable[IconId.Refresh]);
 	m_actionTable[ActionId.Refresh].m_onTriggered += []() {
-		ui.enumerateNetworkAdapters(
+		size_t count = ui.enumerateNetworkAdapters(
 			ui.NetworkAdapterUsage.Listener,
 			m_adapterCombo,
 			m_socketPropertySet.m_adapterProp
 		);
+
+		if (count)
+			m_adapterCombo.showPopup();
 	}
 
 	m_pluginHost.m_toolBar.addSpacing();
