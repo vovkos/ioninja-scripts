@@ -96,7 +96,7 @@ public:
 
 protected:
 	void createUi();
-	void enumeratePorts();
+	size_t enumeratePorts();
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -122,7 +122,11 @@ void SerialMonSession.createUi() {
 	}
 
 	m_actionTable[ActionId.Refresh] = createAction("Refresh port list", "images/refresh.png");
-	m_actionTable[ActionId.Refresh].m_onTriggered += enumeratePorts;
+	m_actionTable[ActionId.Refresh].m_onTriggered += []() {
+		size_t count = enumeratePorts();
+		if (count)
+			m_portCombo.showPopup();
+	}
 
 	m_iconTable[IconId.Capture] = new ui.Icon("images/capture.png");
 	m_iconTable[IconId.StopCapture] = new ui.Icon("images/pause.png");
@@ -190,12 +194,13 @@ void SerialMonSession.createUi() {
 	m_uiReactor.start();
 }
 
-void SerialMonSession.enumeratePorts() {
+size_t SerialMonSession.enumeratePorts() {
 	m_hasDeviceMonitor = io.detectDeviceMonitor();
-	if (!m_hasDeviceMonitor)
-		m_portCombo.m_editText = m_portProp.m_value = null; // clear up the port name to show placeholder text
-	else
-		ui.enumerateSerialPorts(m_portCombo, m_portProp);
+	if (m_hasDeviceMonitor)
+		return ui.enumerateSerialPorts(m_portCombo, m_portProp);
+
+	m_portCombo.m_editText = m_portProp.m_value = null; // clear up the port name to show placeholder text
+	return 0;
 }
 
 bool errorcode SerialMonSession.capture() {
