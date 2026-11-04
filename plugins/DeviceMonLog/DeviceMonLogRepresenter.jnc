@@ -25,13 +25,13 @@ bool representDeviceMonLog  (
 	case DeviceMonLogRecordCode.CaptureStarted_filter:
 		string_t nameFilter = (char const*)p;
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.Listen;
-		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Connect;
 		representation.addHyperText($"Capture started with filter \e[34m$nameFilter");
 		break;
 
 	case DeviceMonLogRecordCode.CaptureStopped:
 		representation.m_lineAttr.m_iconIdx = log.StdLogIcon.StopListen;
-		representation.m_lineAttr.m_backColor = log.StdLogColor.Info;
+		representation.m_lineAttr.m_backColor = log.StdLogColor.Disconnect;
 		representation.addHyperText("Capture stopped");
 		break;
 
