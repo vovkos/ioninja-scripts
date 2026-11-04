@@ -127,6 +127,11 @@ SshSerialMonSession.construct(doc.PluginHost* pluginHost) {
 	}
 
 	m_ssh.m_onDisconnected += []() {
+		if (!m_monitor.m_msgCount) {
+			std.setError("'tdevmon' on the target machine failed to initialize");
+			m_logWriter.writeLastError(log.StdRecordCode.Error);
+		}
+
 		m_stdSessionInfoSet.endSession();
 	}
 
