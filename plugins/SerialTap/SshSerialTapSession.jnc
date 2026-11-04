@@ -156,7 +156,7 @@ protected:
 SshSerialTapSession.construct(doc.PluginHost* pluginHost) {
 	basetype.construct(pluginHost);
 	m_ssh.construct(pluginHost);
-	m_urlUi.construct(pluginHost, m_socketPropertySet, ui.SshHwcUrlUi.DeviceKind.Usb, "_serial-tap", "Serial Tap");
+	m_urlUi.construct(pluginHost, m_socketPropertySet, ui.SshHwcUrlUi.DeviceKind.Usb, "ioninja-hwc", "_serial-tap", "Serial Tap");
 
 	createUi();
 

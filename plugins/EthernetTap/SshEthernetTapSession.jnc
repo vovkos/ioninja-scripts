@@ -136,7 +136,7 @@ SshEthernetTapSession.construct(doc.PluginHost* pluginHost) {
 	m_ssh.construct(pluginHost);
 	m_uploader.construct(pluginHost, m_ssh);
 	m_uploaderDlg.construct(m_uploader);
-	m_urlUi.construct(pluginHost, m_socketPropertySet, ui.SshHwcUrlUi.DeviceKind.Usb, "_ethernet-tap", "Ethernet Tap");
+	m_urlUi.construct(pluginHost, m_socketPropertySet, ui.SshHwcUrlUi.DeviceKind.Usb, "ioninja-hwc", "_ethernet-tap", "Ethernet Tap");
 
 	createUi();
 

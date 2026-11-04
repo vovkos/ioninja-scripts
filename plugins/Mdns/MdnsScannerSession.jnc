@@ -154,8 +154,7 @@ void MdnsScannerSession.createUi() {
 		{ "_hap._tcp.local" },
 		{ "_rfb._tcp.local" },
 		{ "_mqtt._tcp.local" },
-		{ "_ioninja-hwc._tcp.local" },
-		{ "_tdevmon._tcp.local" },
+		{ "_ioninja._tcp.local" },
 	}
 
 	static ui.EnumPropertyOption queryTypeTable[] = {

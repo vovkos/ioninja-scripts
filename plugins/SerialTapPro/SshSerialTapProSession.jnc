@@ -194,7 +194,7 @@ protected:
 SshSerialTapProSession.construct(doc.PluginHost* pluginHost) {
 	basetype.construct(pluginHost);
 	m_ssh.construct(pluginHost);
-	m_urlUi.construct(pluginHost, m_socketPropertySet, ui.SshHwcUrlUi.DeviceKind.Usb, "_serial-tap-pro", "Serial Tap Pro");
+	m_urlUi.construct(pluginHost, m_socketPropertySet, ui.SshHwcUrlUi.DeviceKind.Usb, "ioninja-hwc", "_serial-tap-pro", "Serial Tap Pro");
 	m_uploader.construct(pluginHost, m_ssh);
 	m_uploaderDlg.construct(m_uploader);
 

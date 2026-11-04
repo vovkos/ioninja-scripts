@@ -168,7 +168,7 @@ protected:
 SshSerialSession.construct(doc.PluginHost* pluginHost) {
 	basetype.construct(pluginHost);
 	m_ssh.construct(pluginHost);
-	m_urlUi.construct(pluginHost, m_socketPropertySet, ui.SshHwcUrlUi.DeviceKind.SerialPort, "_serial", "Serial Port");
+	m_urlUi.construct(pluginHost, m_socketPropertySet, ui.SshHwcUrlUi.DeviceKind.SerialPort, "ioninja-hwc", "_serial", "Serial Port");
 
 	m_ssh.m_onLoginDlgCompleted += [](
 		string_t userName,

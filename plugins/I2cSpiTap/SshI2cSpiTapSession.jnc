@@ -142,7 +142,7 @@ protected:
 SshI2cSpiTapSession.construct(doc.PluginHost* pluginHost) {
 	basetype.construct(pluginHost);
 	m_ssh.construct(pluginHost);
-	m_urlUi.construct(pluginHost, m_socketPropertySet, ui.SshHwcUrlUi.DeviceKind.Usb, "_i2c-spi-tap", "I2C/SPI Tap");
+	m_urlUi.construct(pluginHost, m_socketPropertySet, ui.SshHwcUrlUi.DeviceKind.Usb, "ioninja-hwc", "_i2c-spi-tap", "I2C/SPI Tap");
 	m_tapUi.construct(pluginHost);
 	m_uploader.construct(pluginHost, m_ssh);
 	m_uploaderDlg.construct(m_uploader);
