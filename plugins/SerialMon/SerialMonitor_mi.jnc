@@ -137,7 +137,7 @@ bool errorcode SerialMonitor_mi.processMsg(io.DeviceMonitorMiMsgHdr const* hdr) 
 		size_t nameLength = nameEnd ? nameEnd - name : nameSize;
 
 		m_processor.m_deviceName = string_t(strdup(name, nameLength), nameLength);
-		m_logWriter.write(DeviceMonLogRecordCode.CaptureStarted_name, m_processor.m_deviceName);
+		m_logWriter.write(DeviceMonLogRecordCode.CaptureStarted_name, name, nameSize);
 		break;
 
 	case io.DeviceMonitorMiMsgCode.Notification:
