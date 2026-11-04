@@ -1,8 +1,9 @@
 //..............................................................................
 //
-// Remote ioninja-hwc peripheral URL for hardware sessions over SSH:
+// Remote peripheral URL for sessions over SSH (ioninja-hwc, tdevmon):
 // [ssh://][user@]host[:port][/device] in an editable combo, enumerated via mDNS
-// (Avahi services on the box); the edit text is preserved during enumeration
+// (Avahi services on the box): hosts running the agent, then their devices;
+// the edit text is preserved during enumeration
 //
 
 import "doc_PluginHost.jnc"
@@ -11,6 +12,7 @@ import "ui_PropertyGrid.jnc"
 import "ui_SocketUi.jnc"
 import "iox_SshHwc.jnc"
 import "iox_MdnsBrowser.jnc"
+import "std_HashTable.jnc"
 
 namespace ui {
 
@@ -29,7 +31,10 @@ protected:
 	doc.PluginHost* m_pluginHost;
 	SocketPropertySet* m_socketPropertySet; // the SSH port decides if discovered URLs need one
 	DeviceKind m_deviceKind;
-	string_t m_serviceName; // e.g., "_serial-tap._sub._ioninja-hwc._tcp.local"
+	string_t m_agentName;         // e.g., "ioninja-hwc"
+	string_t m_agentServiceName;  // e.g., "_ioninja-hwc._sub._ioninja._tcp.local"
+	string_t m_deviceServiceName; // e.g., "_serial._sub._ioninja._tcp.local"
+	std.StringHashTableIgnoreCase m_agentMap; // host name -> agent iox.MdnsBrowser.Service
 	string_t m_kindName;    // e.g., "Serial Tap"
 	bool m_showEnumPopup;   // enumeration was user-induced
 
@@ -51,7 +56,8 @@ public:
 		doc.PluginHost* pluginHost,
 		SocketPropertySet* socketPropertySet,
 		DeviceKind deviceKind,
-		string_t serviceSubtype, // e.g., "_serial-tap"
+		string_t agentName,     // _<agent>._sub._ioninja._tcp, e.g., "ioninja-hwc", "tdevmon"
+		string_t deviceSubtype, // <subtype>._sub._ioninja._tcp, e.g., "_serial", "_serial-tap"
 		string_t kindName
 	);
 
@@ -91,14 +97,17 @@ SshHwcUrlUi.construct(
 	doc.PluginHost* pluginHost,
 	SocketPropertySet* socketPropertySet,
 	DeviceKind deviceKind,
-	string_t serviceSubtype,
+	string_t agentName,
+	string_t deviceSubtype,
 	string_t kindName
 ) {
 	m_mdnsBrowser.construct(pluginHost);
 	m_pluginHost = pluginHost;
 	m_socketPropertySet = socketPropertySet;
 	m_deviceKind = deviceKind;
-	m_serviceName = $"$serviceSubtype._sub._ioninja-hwc._tcp.local";
+	m_agentName = agentName;
+	m_agentServiceName = $"_$agentName._sub._ioninja._tcp.local";
+	m_deviceServiceName = $"$deviceSubtype._sub._ioninja._tcp.local";
 	m_kindName = kindName;
 	m_mdnsBrowser.m_onServiceFound += onServiceFound;
 	m_mdnsBrowser.m_onCompleted += onEnumerateCompleted;
@@ -185,7 +194,8 @@ void SshHwcUrlUi.enumerate(bool showPopup) {
 	string_t url = m_url;
 	m_urlCombo.removeAllItems();
 	m_showEnumPopup = showPopup;
-	try m_mdnsBrowser.browse(m_serviceName);
+	m_agentMap.clear();
+	try m_mdnsBrowser.browse(m_agentServiceName);
 	m_url = url; // while browsing: kept aside, the edit text is decorated
 }
 
@@ -208,6 +218,16 @@ bool errorcode SshHwcUrlUi.parseUsbUrl(
 }
 
 void SshHwcUrlUi.onServiceFound(iox.MdnsBrowser.Service const* service) {
+	if (service.m_serviceName == m_agentServiceName) {
+		m_agentMap[service.m_hostName] = service;
+		try m_mdnsBrowser.query(m_deviceServiceName, service);
+		return;
+	}
+
+	iox.MdnsBrowser.Service const* agent = m_agentMap[service.m_hostName];
+	if (!agent)
+		return;
+
 	string_t device;
 	if (m_deviceKind == DeviceKind.SerialPort)
 		device = service.findTxtValue("port");
@@ -222,27 +242,29 @@ void SshHwcUrlUi.onServiceFound(iox.MdnsBrowser.Service const* service) {
 		return;
 
 	iox.SshHwcUrl url;
-	url.m_address = service.m_port == m_socketPropertySet.m_remotePortProp.m_value ?
-		service.m_address.m_ip4.m_address.getString() :
-		service.m_address.getString();
+	url.m_address = agent.m_port == m_socketPropertySet.m_remotePortProp.m_value ?
+		agent.m_address.m_ip4.m_address.getString() :
+		agent.m_address.getString();
 
 	url.m_device = device;
 
 	string_t value = url.getString();
-	size_t i = m_urlCombo.addItem($"%1 (%2)"(value, service.m_hostName), value);
+	string_t text = $"%1 (%2)"(value, service.m_hostName);
+	string_t version = agent.findTxtValue("version");
+
+	size_t i = m_urlCombo.addItem(text, value);
 	m_urlCombo.m_isItemEnabled[i] = false; // selectable when completed (selection would override the edit text)
 	m_urlCombo.m_itemToolTip[i] =
 		$"<table>"
 		$"<tr><td>Host:</td><td>%1</td></tr>"
 		$"<tr><td>Address:</td><td>%2</td></tr>"
-		$"<tr><td>%3:</td><td>%4</td></tr>"
-		$"<tr><td>Service:</td><td>%5</td></tr>"
+		$"<tr><td>Device:</td><td>%3</td></tr>"
+		$"<tr><td>Agent:</td><td>%4</td></tr>"
 		$"</table>"(
 			service.m_hostName,
 			service.m_address.getString(),
-			m_deviceKind == DeviceKind.SerialPort ? "Port" : "USB",
 			device,
-			service.m_instanceName
+			version ? $"$m_agentName-$version" : m_agentName
 		);
 }
 
@@ -253,7 +275,7 @@ void SshHwcUrlUi.onEnumerateCompleted() {
 	size_t count = m_urlCombo.m_itemCount;
 	if (!count) {
 		m_urlCombo.m_editText = m_preEnumUrl;
-		m_urlCombo.addItem(m_deviceKind == DeviceKind.SerialPort ? "No ports found" : $"No remote $m_kindName found");
+		m_urlCombo.addItem(m_deviceKind == DeviceKind.SerialPort ? "No SSH-accessible ports found" : "No SSH-accessible taps found");
 		m_urlCombo.m_isItemEnabled[0] = false;
 		m_urlProp.setOptions(null, 0);
 
