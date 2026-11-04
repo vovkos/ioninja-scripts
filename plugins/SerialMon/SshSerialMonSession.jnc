@@ -134,7 +134,11 @@ SshSerialMonSession.construct(doc.PluginHost* pluginHost) {
 		void const* p,
 		size_t size
 	) {
-		m_monitor.write(p, size);
+		bool result = try m_monitor.write(p, size);
+		if (!result) {
+			m_logWriter.writeLastError(log.StdRecordCode.Error);
+			disconnect();
+		}
 	}
 
 	createUi();
