@@ -44,7 +44,7 @@ class Plugin: PluginConfig {
 	);
 
 	virtual bool errorcode dispatch(
-		uint_t code,
+		uint64_t code,
 		variant_t in,
 		variant_t* out = null
 	) {

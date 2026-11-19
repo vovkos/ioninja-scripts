@@ -25,13 +25,13 @@ class PluginDispatch {
 
 protected:
 	bool errorcode dispatch(
-		uint_t code,
+		uint64_t code,
 		variant_t in = null,
 		variant_t* out = null
 	);
 
 	variant_t dispatchGet(
-		uint_t code,
+		uint64_t code,
 		variant_t in = null
 	) const;
 }
