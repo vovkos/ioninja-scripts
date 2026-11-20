@@ -95,18 +95,18 @@ class HidDispatch: ias.PluginDispatch {
 		dispatch(HidDispatchCode.CloseDevice);
 	}
 
-	void sendOutputReport(
+	bool errorcode sendOutputReport(
 		void const* p,
 		size_t size
 	) {
-		dispatch(HidDispatchCode.SendOutputReport, string_t(p, size));
+		return dispatch(HidDispatchCode.SendOutputReport, string_t(p, size));
 	}
 
-	void sendFeatureReport(
+	bool errorcode sendFeatureReport(
 		void const* p,
 		size_t size
 	) {
-		dispatch(HidDispatchCode.SendFeatureReport, string_t(p, size));
+		return dispatch(HidDispatchCode.SendFeatureReport, string_t(p, size));
 	}
 }
 

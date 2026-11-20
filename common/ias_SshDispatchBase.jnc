@@ -1,0 +1,104 @@
+//..............................................................................
+//
+// SSH connection dispatch interface for IAS (shared by all SSH-based plugins)
+//
+
+import "ias_PluginDispatch.jnc"
+import "ias_SshDispatchCode.jnc"
+
+namespace ias {
+
+//! \addtogroup common-ias
+//! @{
+
+//..............................................................................
+
+enum SshState { // mirrors iox.SshChannel.State
+	Closed,
+	Resolving,
+	ReconnectDelay,
+	TcpConnecting,
+	SshHandshaking,
+	SshAuthenticating,
+	WaitingLoginDlg,
+	SshOpeningChannel,
+	SshRequestingPty,
+	SshStartingProcess,
+	SshCompletingConnect,
+	Connected,
+}
+
+enum SshPasswordPersistence { // mirrors iox.SshChannel.PasswordPersistence
+	Remembered,      // reused on subsequent connects (unless "Remember password" is off)
+	NextConnectOnly, // forgotten after the next connect
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+// mixed into a session family interface, e.g. ias.SshDispatchBase<ias.SerialDispatchBase>
+
+class SshDispatchBase<B>: B {
+	property m_url { // [user@]host[:port][/device]
+		string_t get() {
+			return dispatchGet(SshDispatchCode.GetUrl);
+		}
+
+		void set(string_t value) {
+			dispatch(SshDispatchCode.SetUrl, value);
+		}
+	}
+
+	property m_userName {
+		string_t get() {
+			return dispatchGet(SshDispatchCode.GetUserName);
+		}
+
+		void set(string_t value) {
+			dispatch(SshDispatchCode.SetUserName, value);
+		}
+	}
+
+	SshState const property m_sshState {
+		return dispatchGet(SshDispatchCode.GetState);
+	}
+
+	construct(intptr handle) {
+		basetype.construct(handle);
+	}
+
+	// password or private key passphrase; never saved
+
+	void setPassword(
+		string_t password,
+		SshPasswordPersistence persistence = SshPasswordPersistence.Remembered
+	);
+
+	// initiates the connection (doesn't wait for it -- use g_isConnected)
+
+	bool errorcode connect(string_t url = null) { // null = use m_url
+		return dispatch(SshDispatchCode.Connect, url);
+	}
+
+	void disconnect() {
+		dispatch(SshDispatchCode.Disconnect);
+	}
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+void SshDispatchBase<B>.setPassword(
+	string_t password,
+	SshPasswordPersistence persistence
+) {
+	SshDispatchCode code = persistence == SshPasswordPersistence.NextConnectOnly ?
+		SshDispatchCode.SetPasswordNextConnectOnly :
+		SshDispatchCode.SetPassword;
+
+	dispatch(code, password);
+}
+
+//..............................................................................
+
+//! @}
+
+} // namespace ias

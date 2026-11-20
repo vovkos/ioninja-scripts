@@ -1,0 +1,112 @@
+//..............................................................................
+//
+// Serial settings dispatch interface for IAS (shared by all serial plugins)
+//
+
+import "io_base.jncx"
+import "io_Serial.jnc"
+import "ias_PluginDispatch.jnc"
+import "ias_SerialDispatchCode.jnc"
+
+namespace ias {
+
+//! \addtogroup common-ias
+//! @{
+
+//..............................................................................
+
+class SerialDispatchBase: ias.PluginDispatch {
+	property m_baudRate {
+		uint_t get() {
+			return dispatchGet(SerialDispatchCode.GetBaudRate);
+		}
+
+		void set(uint_t value) {
+			dispatch(SerialDispatchCode.SetBaudRate, value);
+		}
+	}
+
+	property m_dataBits {
+		uint_t get() {
+			return dispatchGet(SerialDispatchCode.GetDataBits);
+		}
+
+		void set(uint_t value) {
+			dispatch(SerialDispatchCode.SetDataBits, value);
+		}
+	}
+
+	property m_parity {
+		io.SerialParity get() {
+			return dispatchGet(SerialDispatchCode.GetParity);
+		}
+
+		void set(io.SerialParity value) {
+			dispatch(SerialDispatchCode.SetParity, value);
+		}
+	}
+
+	property m_stopBits {
+		io.SerialStopBits get() {
+			return dispatchGet(SerialDispatchCode.GetStopBits);
+		}
+
+		void set(io.SerialStopBits value) {
+			dispatch(SerialDispatchCode.SetStopBits, value);
+		}
+	}
+
+	property m_flowControl {
+		io.SerialFlowControl get() {
+			return dispatchGet(SerialDispatchCode.GetFlowControl);
+		}
+
+		void set(io.SerialFlowControl value) {
+			dispatch(SerialDispatchCode.SetFlowControl, value);
+		}
+	}
+
+	property m_dtr {
+		bool get() {
+			return dispatchGet(SerialDispatchCode.GetDtr);
+		}
+
+		void set(bool value) {
+			dispatch(SerialDispatchCode.SetDtr, value);
+		}
+	}
+
+	property m_rts {
+		bool get() {
+			return dispatchGet(SerialDispatchCode.GetRts);
+		}
+
+		void set(bool value) {
+			dispatch(SerialDispatchCode.SetRts, value);
+		}
+	}
+
+	property m_breakCondition {
+		bool get() {
+			return dispatchGet(SerialDispatchCode.GetBreakCondition);
+		}
+
+		void set(bool value) {
+			dispatch(SerialDispatchCode.SetBreakCondition, value);
+		}
+	}
+
+	io.SerialStatusLines const property m_statusLines {
+		return dispatchGet(SerialDispatchCode.GetStatusLines);
+	}
+
+	construct(intptr handle) {
+		basetype.construct(handle);
+	}
+}
+
+//..............................................................................
+
+//! @}
+
+} // namespace ias

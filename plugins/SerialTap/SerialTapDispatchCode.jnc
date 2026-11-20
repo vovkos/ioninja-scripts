@@ -1,23 +1,14 @@
 //..............................................................................
 //
-// Serial Tap session dispatch codes for IAS
+// Serial Tap session dispatch codes for IAS (extends ias.SerialDispatchCode)
 //
+
+import "ias_SerialDispatchCode.jnc"
 
 //..............................................................................
 
-enum SerialTapDispatchCode {
-	GetBaudRate,
-	SetBaudRate,
-	GetDataBits,
-	SetDataBits,
-	GetParity,
-	SetParity,
-	GetStopBits,
-	SetStopBits,
-	GetStatusLines,
-	GetDtr,
-	GetRts,
-	Capture,
+enum SerialTapDispatchCode: ias.SerialDispatchCode {
+	Capture = 0x01dd77e7e26d9600,
 	StopCapture,
 }
 

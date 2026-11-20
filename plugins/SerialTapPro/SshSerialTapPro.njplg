@@ -16,7 +16,9 @@ log-guid    = db8c8923-a699-46cc-be7c-f0bcd523082b  # socket
 icon        = images/serialmon.png
 small-icon  = images/serialmon-16x16.png
 
-session-class = SshSerialTapProSession
+session-class     = SshSerialTapProSession
+dispatch-class    = SshSerialTapProDispatch
+dispatch-variable = g_serialTap
 
 [required-capabilities]
 
@@ -39,3 +41,7 @@ SerialTapProInfoSet.jnc
 SerialTapProLogRecordCode.jnc
 SerialTapProDispatchCode.jnc
 uleb128.jnc
+
+[dispatch-scripts]
+
+SshSerialTapProDispatch.jnc

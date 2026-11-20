@@ -17,7 +17,9 @@ log-guid    = db8c8923-a699-46cc-be7c-f0bcd523082b  # socket
 icon        = images/serial.png
 small-icon  = images/serial-16x16.png
 
-session-class = SshSerialSession
+session-class     = SshSerialSession
+dispatch-class    = SshSerialDispatch
+dispatch-variable = g_serial
 
 [required-capabilities]
 
@@ -33,3 +35,7 @@ org.jancy.io.file
 [scripts]
 
 SshSerialSession.jnc
+
+[dispatch-scripts]
+
+SshSerialDispatch.jnc

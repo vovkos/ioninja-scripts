@@ -16,7 +16,9 @@ log-guid    = 7940a0d5-a84b-4509-bae4-b5928511472d  # ssl
 icon        = images/serial.png
 small-icon  = images/serial-16x16.png
 
-session-class = RdvSerialSession
+session-class     = RdvSerialSession
+dispatch-class    = RdvSerialDispatch
+dispatch-variable = g_serial
 
 [required-capabilities]
 
@@ -32,3 +34,7 @@ org.jancy.io.file
 [scripts]
 
 RdvSerialSession.jnc
+
+[dispatch-scripts]
+
+RdvSerialDispatch.jnc

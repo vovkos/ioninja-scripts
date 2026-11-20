@@ -1,28 +1,23 @@
 //..............................................................................
 //
-// Serial Tap Pro session dispatch codes for IAS
+// Serial Tap Pro session dispatch codes for IAS (extends ias.SerialDispatchCode)
 //
+
+import "ias_SerialDispatchCode.jnc"
 
 //..............................................................................
 
-enum SerialTapProDispatchCode {
-	GetBaudRate,
-	SetBaudRate,
-	GetDataBits,
-	SetDataBits,
-	GetParity,
-	SetParity,
-	GetStopBits,
-	SetStopBits,
-	GetStatusLines,
-	GetDtr,
-	GetRts,
-	Capture,
+enum SerialTapProDispatchCode: ias.SerialDispatchCode {
+	Capture = 0x01dd78d2d799ae00,
 	StopCapture,
 }
 
-enum SerialTapProInternalDispatchCode {
-	Flip = 0x1000,
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+// not exposed to IAS (log converter -> session)
+
+enum SerialTapProInternalDispatchCode: uint64_t {
+	Flip = 0x01dd77e7e3062c00,
 }
 
 //..............................................................................

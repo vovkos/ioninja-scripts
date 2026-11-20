@@ -17,10 +17,15 @@ import "std_Buffer.jnc"
 import "std_String.jnc"
 import "sys_Timer.jnc"
 import "SerialLog/SerialLogRecordCode.jnc"
+import "doc_SerialDispatchImpl.jnc"
 
 //..............................................................................
 
-class SerialSession: doc.Session {
+class SerialSession:
+	doc.Session,
+	doc.SerialDispatchImpl<SerialSession> {
+	friend doc.SerialDispatchImpl;
+
 protected:
 	enum Defaults {
 		ReadMode         = SerialReadMode.WaitFirstChar,
@@ -134,7 +139,7 @@ public:
 	}
 
 	override bool errorcode dispatch(
-		uint_t code,
+		uint64_t code,
 		variant_t in,
 		variant_t* out
 	);
@@ -633,10 +638,8 @@ size_t errorcode SerialSession.transmit(
 	void const* p,
 	size_t size
 ) {
-	if (m_state != State.Opened) {
-		std.setError("serial port not opened");
-		return -1;
-	}
+	if (m_state != State.Opened)
+		return std.failEx(-1, "serial port not opened");
 
 	size_t result = m_serial.write(p, size);
 
@@ -652,11 +655,33 @@ size_t errorcode SerialSession.transmit(
 }
 
 bool errorcode SerialSession.dispatch(
-	uint_t code,
+	uint64_t code,
 	variant_t in,
 	variant_t* out
 ) {
 	switch (code) {
+	case SerialDispatchCode.GetBaudRate:
+	case SerialDispatchCode.SetBaudRate:
+	case SerialDispatchCode.GetDataBits:
+	case SerialDispatchCode.SetDataBits:
+	case SerialDispatchCode.GetParity:
+	case SerialDispatchCode.SetParity:
+	case SerialDispatchCode.GetStopBits:
+	case SerialDispatchCode.SetStopBits:
+	case SerialDispatchCode.GetFlowControl:
+	case SerialDispatchCode.SetFlowControl:
+	case SerialDispatchCode.GetDtr:
+	case SerialDispatchCode.SetDtr:
+	case SerialDispatchCode.GetRts:
+	case SerialDispatchCode.SetRts:
+	case SerialDispatchCode.GetBreakCondition:
+	case SerialDispatchCode.SetBreakCondition:
+		return dispatchSerial(code, in, out);
+
+	case SerialDispatchCode.GetStatusLines:
+		*out = m_statusLines;
+		break;
+
 	case SerialDispatchCode.GetPortName:
 		*out = m_portCombo.m_currentText;
 		break;
@@ -665,88 +690,8 @@ bool errorcode SerialSession.dispatch(
 		m_portCombo.m_editText = in;
 		break;
 
-	case SerialDispatchCode.GetBaudRate:
-		*out = m_serialUi.m_baudRate;
-		break;
-
-	case SerialDispatchCode.SetBaudRate:
-		m_serialUi.m_baudRate = in;
-		onBaudRateChanged();
-		break;
-
-	case SerialDispatchCode.GetDataBits:
-		*out = m_serialUi.m_dataBits;
-		break;
-
-	case SerialDispatchCode.SetDataBits:
-		uint_t dataBits = in;
-		m_serialUi.m_dataBits = dataBits;
-		onDataBitsChanged();
-		break;
-
-	case SerialDispatchCode.GetParity:
-		*out = m_serialUi.m_parity;
-		break;
-
-	case SerialDispatchCode.SetParity:
-		io.SerialParity parity = in;
-		m_serialUi.m_parity = parity;
-		onParityChanged();
-		break;
-
-	case SerialDispatchCode.GetStopBits:
-		*out = m_serialUi.m_stopBits;
-		break;
-
-	case SerialDispatchCode.SetStopBits:
-		io.SerialStopBits stopBits = in;
-		m_serialUi.m_stopBits = stopBits;
-		onStopBitsChanged();
-		break;
-
-	case SerialDispatchCode.GetFlowControl:
-		*out = m_serialUi.m_flowControl;
-		break;
-
-	case SerialDispatchCode.SetFlowControl:
-		io.SerialFlowControl flowControl = in;
-		m_serialUi.m_flowControl = flowControl;
-		onFlowControlChanged();
-		break;
-
-	case SerialDispatchCode.GetStatusLines:
-		*out = m_statusLines;
-		break;
-
-	case SerialDispatchCode.GetDtr:
-		*out = m_dtr;
-		break;
-
-	case SerialDispatchCode.SetDtr:
-		m_serialUi.m_dtr = in;
-		onDtrChanged();
-		break;
-
-	case SerialDispatchCode.GetRts:
-		*out = m_rts;
-		break;
-
-	case SerialDispatchCode.SetRts:
-		m_serialUi.m_rts = in;
-		onRtsChanged();
-		break;
-
-	case SerialDispatchCode.GetBreakCondition:
-		*out = m_breakCondition;
-		break;
-
-	case SerialDispatchCode.SetBreakCondition:
-		m_serialUi.m_breakCondition = in;
-		onBreakConditionChanged();
-		break;
-
 	case SerialDispatchCode.Open:
-		if (in)
+		if (in) // null = use the current port name
 			m_portCombo.m_editText = in;
 
 		return open();
@@ -756,8 +701,7 @@ bool errorcode SerialSession.dispatch(
 		break;
 
 	default:
-		std.setError("unsupported dispatch code");
-		return false;
+		return std.fail("unsupported dispatch code");
 	}
 
 	return true;

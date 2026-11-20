@@ -18,12 +18,20 @@ import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
 import "std_Buffer.jnc"
 import "SerialLog/SerialLogRecordCode.jnc"
+import "doc_SerialDispatchImpl.jnc"
+import "doc_RdvDispatchImpl.jnc"
 
 //..............................................................................
 
 class RdvSerialTapSession:
 	doc.Session,
-	iox.HwcTransportSink {
+	iox.HwcTransportSink,
+	doc.SerialDispatchImpl<RdvSerialTapSession>,
+	doc.RdvDispatchImpl<RdvSerialTapSession> {
+	friend
+		doc.SerialDispatchImpl,
+		doc.RdvDispatchImpl;
+
 protected:
 	alias RdvState = iox.Rendezvous.State;
 
@@ -113,6 +121,12 @@ public:
 	override void disconnectSession() {
 		disconnect();
 	}
+
+	override bool errorcode dispatch(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
+	);
 
 protected:
 	void onConnected();
@@ -270,10 +284,8 @@ void RdvSerialTapSession.flipDteDce() {
 
 bool errorcode RdvSerialTapSession.connect() {
 	iox.RendezvousHwcDevice* device = m_rdvUi.m_device;
-	if (!device) {
-		std.setError("no remote Serial Tap selected");
-		return false;
-	}
+	if (!device)
+		return std.fail("no remote Serial Tap selected");
 
 	disconnect();
 	startSession();
@@ -595,6 +607,50 @@ reactor RdvSerialTapSession.m_uiReactor {
 	updateLineInfoValue(InfoId.Rts, m_controlLines & io.SerialStatusLines.Cts);
 	updateLineInfoValue(InfoId.Dsr, m_statusLines & io.SerialStatusLines.Dsr);
 	updateLineInfoValue(InfoId.Cts, m_statusLines & io.SerialStatusLines.Cts);
+}
+
+bool errorcode RdvSerialTapSession.dispatch(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case ias.SerialDispatchCode.GetBaudRate:
+	case ias.SerialDispatchCode.SetBaudRate:
+	case ias.SerialDispatchCode.GetDataBits:
+	case ias.SerialDispatchCode.SetDataBits:
+	case ias.SerialDispatchCode.GetParity:
+	case ias.SerialDispatchCode.SetParity:
+	case ias.SerialDispatchCode.GetStopBits:
+	case ias.SerialDispatchCode.SetStopBits:
+		return dispatchSerial(code, in, out);
+
+	case ias.SerialDispatchCode.GetDtr:
+		*out = (m_controlLines & io.SerialStatusLines.Dsr) != 0;
+		break;
+
+	case ias.SerialDispatchCode.GetRts:
+		*out = (m_controlLines & io.SerialStatusLines.Cts) != 0;
+		break;
+
+	case ias.SerialDispatchCode.GetStatusLines:
+		*out = m_statusLines;
+		break;
+
+	case ias.RdvDispatchCode.GetDevice:
+	case ias.RdvDispatchCode.SetDevice:
+	case ias.RdvDispatchCode.GetServerUrl:
+	case ias.RdvDispatchCode.SetServerUrl:
+	case ias.RdvDispatchCode.GetState:
+	case ias.RdvDispatchCode.Connect:
+	case ias.RdvDispatchCode.Disconnect:
+		return dispatchRdv(code, in, out);
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
+
+	return true;
 }
 
 //..............................................................................

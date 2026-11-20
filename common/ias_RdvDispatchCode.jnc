@@ -1,0 +1,27 @@
+//..............................................................................
+//
+// Rendezvous connection dispatch codes for IAS (shared by all RDV-based plugins)
+//
+
+namespace ias {
+
+//! \addtogroup common-ias
+//! @{
+
+//..............................................................................
+
+enum RdvDispatchCode: uint64_t {
+	GetDevice = 0x01dd7801620b8700,
+	SetDevice,
+	GetServerUrl,
+	SetServerUrl,
+	GetState,
+	Connect,
+	Disconnect,
+}
+
+//..............................................................................
+
+//! @}
+
+} // namespace ias

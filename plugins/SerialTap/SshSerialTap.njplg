@@ -18,7 +18,9 @@ log-guid    = db8c8923-a699-46cc-be7c-f0bcd523082b  # socket
 icon        = images/serialmon.png
 small-icon  = images/serialmon-16x16.png
 
-session-class = SshSerialTapSession
+session-class     = SshSerialTapSession
+dispatch-class    = SshSerialTapDispatch
+dispatch-variable = g_serialTap
 
 [required-capabilities]
 
@@ -34,3 +36,7 @@ org.jancy.io.file
 [scripts]
 
 SshSerialTapSession.jnc
+
+[dispatch-scripts]
+
+SshSerialTapDispatch.jnc

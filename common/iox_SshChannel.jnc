@@ -40,6 +40,11 @@ public:
 		Connected,
 	}
 
+	enum PasswordPersistence {
+		Remembered,      // reused on subsequent connects (unless "Remember password" is off)
+		NextConnectOnly, // forgotten after the next connect (reconnects of that connection still use it)
+	}
+
 	struct ConnectParams {
 		size_t m_readBlockSize;
 		size_t m_readBufferSize;
@@ -69,6 +74,8 @@ protected:
 	uint64_t m_lastReconnectTime;
 	ConnectParams m_connectParams;
 	uint_t m_syncId;
+	string_t m_password; // password or private key passphrase; never saved
+	PasswordPersistence m_passwordPersistence;
 
 	log.Writer* const property m_logWriter {
 		return m_pluginHost.m_log.m_writer;
@@ -149,12 +156,14 @@ public:
 
 	void waitSshEvents();
 
-	string_t getLastPassword() {
-		return m_loginDlg ? m_loginDlg.m_password : null;
-	}
+	// same slot as the password entered in the login dialog
 
-	string_t getLastPrivateKeyPassphrase() {
-		return m_loginDlg ? m_loginDlg.m_privateKeyPassphrase : null;
+	void setPassword(
+		string_t password,
+		PasswordPersistence persistence = PasswordPersistence.Remembered
+	) {
+		m_password = password;
+		m_passwordPersistence = persistence;
 	}
 
 protected:
@@ -270,11 +279,6 @@ bool errorcode SshChannel.connect(
 ) {
 	close();
 
-	if (!m_connectParams.m_rememberLastPassword && m_loginDlg) {
-		m_loginDlg.m_password = null;
-		m_loginDlg.m_privateKeyPassphrase = null;
-	}
-
 	m_ssh.m_readBlockSize = params.m_readBlockSize;
 	m_ssh.m_readBufferSize = params.m_readBufferSize;
 	m_ssh.m_writeBufferSize = params.m_writeBufferSize;
@@ -300,6 +304,12 @@ bool errorcode SshChannel.connect(
 
 	m_connectParams = *params;
 	m_connectParams.m_sshParams.m_address = *address;
+
+	if (m_password) { // stays in m_connectParams for reconnects
+		m_connectParams.m_sshParams.m_password = m_password;
+		if (m_passwordPersistence == PasswordPersistence.NextConnectOnly || !params.m_rememberLastPassword)
+			m_password = null;
+	}
 	m_ssh.connect(&m_connectParams.m_sshParams);
 	waitSshEvents();
 	return true;
@@ -483,6 +493,14 @@ void SshChannel.handleSshAuthenticateError(std.Error const* error) {
 	m_loginDlg.m_authenticationMethod = m_connectParams.m_authenticationMethod;
 	m_loginDlg.m_userName = m_connectParams.m_sshParams.m_userName;
 	m_loginDlg.m_privateKeyFileName = m_connectParams.m_privateKeyFileName;
+
+	if (m_connectParams.m_authenticationMethod == ui.AuthenticationMethod.PrivateKey) {
+		m_loginDlg.m_password = null;
+		m_loginDlg.m_privateKeyPassphrase = m_password;
+	} else {
+		m_loginDlg.m_password = m_password;
+		m_loginDlg.m_privateKeyPassphrase = null;
+	}
 	m_loginDlg.show();
 
 	m_state = State.WaitingLoginDlg;
@@ -527,6 +545,16 @@ void SshChannel.onLoginDlgCompleted(ui.StdDlgButton button) {
 	m_connectParams.m_authenticationMethod = m_loginDlg.m_authenticationMethod;
 	m_connectParams.m_privateKeyFileName = m_loginDlg.m_privateKeyFileName;
 	m_connectParams.m_sshParams.m_userName = m_loginDlg.m_userName;
+
+	string_t password = m_loginDlg.m_authenticationMethod == ui.AuthenticationMethod.PrivateKey ?
+		m_loginDlg.m_privateKeyPassphrase :
+		m_loginDlg.m_password;
+
+	m_connectParams.m_sshParams.m_password = password; // for reconnects
+	m_password = m_connectParams.m_rememberLastPassword ? password : null;
+	m_passwordPersistence = PasswordPersistence.Remembered;
+	m_loginDlg.m_password = null; // don't keep it in the dialog
+	m_loginDlg.m_privateKeyPassphrase = null;
 
 	m_onLoginDlgCompleted(
 		m_loginDlg.m_userName,

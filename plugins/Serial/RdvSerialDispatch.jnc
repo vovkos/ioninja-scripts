@@ -1,0 +1,17 @@
+//..............................................................................
+//
+// Serial over Rendezvous session dispatch interface for IAS
+//
+
+import "ias_SerialDispatchBase.jnc"
+import "ias_RdvDispatchBase.jnc"
+
+//..............................................................................
+
+class RdvSerialDispatch: ias.RdvDispatchBase<ias.SerialDispatchBase> {
+	construct(intptr handle) {
+		basetype.construct(handle);
+	}
+}
+
+//..............................................................................

@@ -23,12 +23,20 @@ import "std_Buffer.jnc"
 import "SerialTapProLogRecordCode.jnc"
 import "SerialTapProDispatchCode.jnc"
 import "SerialTapProUi.jnc"
+import "doc_SerialDispatchImpl.jnc"
+import "doc_RdvDispatchImpl.jnc"
 
 //..............................................................................
 
 class RdvSerialTapProSession:
 	doc.Session,
-	iox.HwcTransportSink {
+	iox.HwcTransportSink,
+	doc.SerialDispatchImpl<RdvSerialTapProSession>,
+	doc.RdvDispatchImpl<RdvSerialTapProSession> {
+	friend
+		doc.SerialDispatchImpl,
+		doc.RdvDispatchImpl;
+
 protected:
 	alias RdvState = iox.Rendezvous.State;
 
@@ -131,7 +139,7 @@ public:
 	}
 
 	override bool errorcode dispatch(
-		uint_t code,
+		uint64_t code,
 		variant_t in,
 		variant_t* out
 	);
@@ -156,6 +164,7 @@ protected:
 	void onDataBitsChanged();
 	void onParityChanged();
 	void onStopBitsChanged();
+
 	void onDtrRtsChanged();
 	void onAbrChanged();
 	void onInjectChanged();
@@ -640,70 +649,58 @@ void RdvSerialTapProSession.restoreDefaultProperties() {
 }
 
 bool errorcode RdvSerialTapProSession.dispatch(
-	uint_t code,
+	uint64_t code,
 	variant_t in,
 	variant_t* out
 ) {
 	switch (code) {
-	case SerialTapProDispatchCode.GetBaudRate:
-		*out = m_serialUi.m_baudRate;
-		break;
-
-	case SerialTapProDispatchCode.SetBaudRate:
-		m_serialUi.m_baudRate = in;
-		onBaudRateChanged();
-		break;
-
-	case SerialTapProDispatchCode.GetDataBits:
-		*out = m_serialUi.m_dataBits;
-		break;
-
-	case SerialTapProDispatchCode.SetDataBits:
-		uint_t dataBits = in;
-		m_serialUi.m_dataBits = dataBits;
-		onDataBitsChanged();
-		break;
-
-	case SerialTapProDispatchCode.GetParity:
-		*out = m_serialUi.m_parity;
-		break;
-
-	case SerialTapProDispatchCode.SetParity:
-		io.SerialParity parity = in;
-		m_serialUi.m_parity = parity;
-		onParityChanged();
-		break;
-
-	case SerialTapProDispatchCode.GetStopBits:
-		*out = m_serialUi.m_stopBits;
-		break;
-
-	case SerialTapProDispatchCode.SetStopBits:
-		io.SerialStopBits stopBits = in;
-		m_serialUi.m_stopBits = stopBits;
-		onStopBitsChanged();
-		break;
-
-	case SerialTapProDispatchCode.GetStatusLines:
-	case SerialTapProDispatchCode.GetDtr:
-	case SerialTapProDispatchCode.GetRts:
-		// not yet
-		break;
-
-	case SerialTapProDispatchCode.Capture:
-		return connect();
-
-	case SerialTapProDispatchCode.StopCapture:
-		disconnect();
-		break;
-
 	case SerialTapProInternalDispatchCode.Flip:
 		m_decoder.flip(in);
 		break;
 
+	case ias.SerialDispatchCode.GetBaudRate:
+	case ias.SerialDispatchCode.SetBaudRate:
+	case ias.SerialDispatchCode.GetDataBits:
+	case ias.SerialDispatchCode.SetDataBits:
+	case ias.SerialDispatchCode.GetParity:
+	case ias.SerialDispatchCode.SetParity:
+	case ias.SerialDispatchCode.GetStopBits:
+	case ias.SerialDispatchCode.SetStopBits:
+		return dispatchSerial(code, in, out);
+
+	case ias.SerialDispatchCode.GetDtr:
+		*out = (m_decoder.m_lines & SerialTapProLines.Dtr) != 0;
+		break;
+
+	case ias.SerialDispatchCode.SetDtr:
+		m_tapUi.m_dtrAction.m_isChecked = in;
+		onDtrRtsChanged();
+		break;
+
+	case ias.SerialDispatchCode.GetRts:
+		*out = (m_decoder.m_lines & SerialTapProLines.Rts) != 0;
+		break;
+
+	case ias.SerialDispatchCode.SetRts:
+		m_tapUi.m_rtsAction.m_isChecked = in;
+		onDtrRtsChanged();
+		break;
+
+	case ias.SerialDispatchCode.GetStatusLines:
+		*out = (io.SerialStatusLines)(m_decoder.m_lines & SerialTapProLines.StatusLineMask);
+		break;
+
+	case ias.RdvDispatchCode.GetDevice:
+	case ias.RdvDispatchCode.SetDevice:
+	case ias.RdvDispatchCode.GetServerUrl:
+	case ias.RdvDispatchCode.SetServerUrl:
+	case ias.RdvDispatchCode.GetState:
+	case ias.RdvDispatchCode.Connect:
+	case ias.RdvDispatchCode.Disconnect:
+		return dispatchRdv(code, in, out);
+
 	default:
-		std.setError("unsupported dispatch code");
-		return false;
+		return std.fail("unsupported dispatch code");
 	}
 
 	return true;

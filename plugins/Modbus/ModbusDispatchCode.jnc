@@ -5,8 +5,8 @@
 
 //..............................................................................
 
-enum ModbusDispatchCode {
-	GetProtocol,
+enum ModbusDispatchCode: uint64_t {
+	GetProtocol = 0x01dd77e7e4375900,
 	SetProtocol,
 	GetStreamRoles,
 	SetStreamRoles,

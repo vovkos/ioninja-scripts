@@ -52,6 +52,10 @@ public:
 		return m_deviceCombo.m_currentData;
 	}
 
+	string_t const property m_deviceText { // as saved in .njssn
+		return m_deviceCombo.m_currentData ? m_deviceCombo.m_currentText : m_selectedDeviceText;
+	}
+
 	reactor m_uiReactor;
 
 public:
@@ -77,6 +81,7 @@ public:
 
 	string_t getServerUrl(string_t path);
 	void enumerate(bool showPopup = false);
+	bool errorcode selectDevice(string_t text); // from the current device list
 
 protected:
 	void onRefresh();
@@ -156,10 +161,7 @@ void RendezvousHwcUi.save(doc.Storage* storage) {
 	storage.writeString("server", m_serverProp.m_value);
 	storage.writeString("keyFile", m_keyFileProp.m_value);
 
-	storage.writeString(
-		"device",
-		m_deviceCombo.m_currentData ? m_deviceCombo.m_currentText : m_selectedDeviceText
-	);
+	storage.writeString("device", m_deviceText);
 }
 
 void RendezvousHwcUi.updateProperties() {
@@ -178,6 +180,18 @@ void RendezvousHwcUi.restoreDefaults() {
 string_t RendezvousHwcUi.getServerUrl(string_t path) {
 	string_t url = m_serverProp.m_value;
 	return url.m_length && url[url.m_length - 1] == '/' ? $"$url$path" : $"$url/$path";
+}
+
+bool errorcode RendezvousHwcUi.selectDevice(string_t text) {
+	size_t count = m_deviceCombo.m_itemCount;
+	for (size_t i = 0; i < count; i++)
+		if (m_deviceCombo.m_itemData[i] && m_deviceCombo.m_itemText[i] == text) {
+			m_deviceCombo.m_currentIndex = i;
+			m_deviceProp.m_currentIndex = i;
+			return true;
+		}
+
+	return std.fail($"device '$text' not found");
 }
 
 void RendezvousHwcUi.setDeviceStatus(

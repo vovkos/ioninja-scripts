@@ -18,12 +18,20 @@ import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
 import "std_Buffer.jnc"
 import "SerialLog/SerialLogRecordCode.jnc"
+import "doc_SerialDispatchImpl.jnc"
+import "doc_RdvDispatchImpl.jnc"
 
 //..............................................................................
 
 class RdvSerialSession:
 	doc.Session,
-	iox.HwcTransportSink {
+	iox.HwcTransportSink,
+	doc.SerialDispatchImpl<RdvSerialSession>,
+	doc.RdvDispatchImpl<RdvSerialSession> {
+	friend
+		doc.SerialDispatchImpl,
+		doc.RdvDispatchImpl;
+
 protected:
 	alias RdvState = iox.Rendezvous.State;
 
@@ -123,6 +131,12 @@ public:
 	override void disconnectSession() {
 		disconnect();
 	}
+
+	override bool errorcode dispatch(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
+	);
 
 protected:
 	void onBaudRateChanged();
@@ -383,10 +397,8 @@ size_t errorcode RdvSerialSession.transmit(
 	void const* p,
 	size_t size
 ) {
-	if (m_rdv.m_state != RdvState.Connected) {
-		std.setError("serial port not opened");
-		return -1;
-	}
+	if (m_rdv.m_state != RdvState.Connected)
+		return std.failEx(-1, "serial port not opened");
 
 	m_rdv.writeMsg(io.HwcMsgCode.SerialTransmit, p, size);
 	m_logWriter.write(log.StdRecordCode.Tx, p, size);
@@ -395,10 +407,8 @@ size_t errorcode RdvSerialSession.transmit(
 
 bool errorcode RdvSerialSession.connect() {
 	iox.RendezvousHwcDevice* device = m_rdvUi.m_device;
-	if (!device) {
-		std.setError("no remote serial port selected");
-		return false;
-	}
+	if (!device)
+		return std.fail("no remote serial port selected");
 
 	disconnect();
 	startSession();
@@ -711,6 +721,50 @@ reactor RdvSerialSession.m_uiReactor {
 	updateLineInfoValue(InfoId.Dsr, m_statusLines & io.SerialStatusLines.Dsr);
 	updateLineInfoValue(InfoId.Cts, m_statusLines & io.SerialStatusLines.Cts);
 	updateLineInfoValue(InfoId.BreakCondition, m_breakCondition);
+}
+
+bool errorcode RdvSerialSession.dispatch(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case ias.SerialDispatchCode.GetBaudRate:
+	case ias.SerialDispatchCode.SetBaudRate:
+	case ias.SerialDispatchCode.GetDataBits:
+	case ias.SerialDispatchCode.SetDataBits:
+	case ias.SerialDispatchCode.GetParity:
+	case ias.SerialDispatchCode.SetParity:
+	case ias.SerialDispatchCode.GetStopBits:
+	case ias.SerialDispatchCode.SetStopBits:
+	case ias.SerialDispatchCode.GetFlowControl:
+	case ias.SerialDispatchCode.SetFlowControl:
+	case ias.SerialDispatchCode.GetDtr:
+	case ias.SerialDispatchCode.SetDtr:
+	case ias.SerialDispatchCode.GetRts:
+	case ias.SerialDispatchCode.SetRts:
+	case ias.SerialDispatchCode.GetBreakCondition:
+	case ias.SerialDispatchCode.SetBreakCondition:
+		return dispatchSerial(code, in, out);
+
+	case ias.SerialDispatchCode.GetStatusLines:
+		*out = m_statusLines;
+		break;
+
+	case ias.RdvDispatchCode.GetDevice:
+	case ias.RdvDispatchCode.SetDevice:
+	case ias.RdvDispatchCode.GetServerUrl:
+	case ias.RdvDispatchCode.SetServerUrl:
+	case ias.RdvDispatchCode.GetState:
+	case ias.RdvDispatchCode.Connect:
+	case ias.RdvDispatchCode.Disconnect:
+		return dispatchRdv(code, in, out);
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
+
+	return true;
 }
 
 //..............................................................................

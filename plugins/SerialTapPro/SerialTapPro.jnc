@@ -90,19 +90,20 @@ enum SerialTapProNotificationCode: uint8_t {
 }
 
 bitflag enum SerialTapProLines: uint16_t {
-	Cts       = 0x0001,
-	Dsr       = 0x0002,
-	Ring      = 0x0004,
-	Dcd       = 0x0008,
-	Rts       = 0x0010,
-	Dtr       = 0x0020,
-	Break_0   = 0x0040,
-	Break_1   = 0x0080,
-	Data_0    = 0x0100,
-	Data_1    = 0x0200,
+	Cts            = 0x0001,
+	Dsr            = 0x0002,
+	Ring           = 0x0004,
+	Dcd            = 0x0008,
+	Rts            = 0x0010,
+	Dtr            = 0x0020,
+	Break_0        = 0x0040,
+	Break_1        = 0x0080,
+	Data_0         = 0x0100,
+	Data_1         = 0x0200,
 
-	LineMask  = 0x003f,
-	BreakMask = 0x00c0,
+	BreakMask      = 0x00c0,
+	LineMask       = 0x003f,
+	StatusLineMask = 0x000f, // same bit layout as io.SerialStatusLines
 }
 
 SerialTapProLines flipSerialTapProLines(SerialTapProLines lines) {

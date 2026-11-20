@@ -1,0 +1,29 @@
+//..............................................................................
+//
+// SSH connection dispatch codes for IAS (shared by all SSH-based plugins)
+//
+
+namespace ias {
+
+//! \addtogroup common-ias
+//! @{
+
+//..............................................................................
+
+enum SshDispatchCode: uint64_t {
+	GetUrl = 0x01dd78016172f100,
+	SetUrl,
+	GetUserName,
+	SetUserName,
+	SetPassword,
+	SetPasswordNextConnectOnly,
+	GetState,
+	Connect,
+	Disconnect,
+}
+
+//..............................................................................
+
+//! @}
+
+} // namespace ias

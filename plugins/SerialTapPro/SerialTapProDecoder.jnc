@@ -27,6 +27,10 @@ public:
 	SerialTapProIface bindable readonly m_serialIface;
 	bool readonly m_isFlipped;
 
+	SerialTapProLines const property m_lines { // current lines as shown in the info set
+		return m_isFlipped ? flipSerialTapProLines(m_recordParams.m_lines) : m_recordParams.m_lines;
+	}
+
 public:
 	construct(
 		log.Writer* logWriter,

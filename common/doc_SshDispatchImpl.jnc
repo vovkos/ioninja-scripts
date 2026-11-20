@@ -1,0 +1,88 @@
+//..............................................................................
+//
+// Session-side implementation of the SSH connection dispatch codes
+//
+
+import "iox_SshChannel.jnc"
+import "ias_SshDispatchCode.jnc"
+
+namespace doc {
+
+//! \addtogroup common-ias
+//! @{
+
+//..............................................................................
+
+class SshDispatchImpl<T> {
+protected:
+	T* m_self; // cached to avoid dynamic casts on every dispatch
+
+	construct() {
+		m_self = dynamic (T*)this;
+	}
+
+	bool errorcode dispatchSsh(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
+	);
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+bool errorcode SshDispatchImpl<T>.dispatchSsh(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case ias.SshDispatchCode.GetUrl:
+		*out = m_self.m_urlUi.m_url;
+		break;
+
+	case ias.SshDispatchCode.SetUrl:
+		m_self.m_urlUi.m_url = in;
+		break;
+
+	case ias.SshDispatchCode.GetUserName:
+		*out = m_self.m_sshPropertySet.m_userNameProp.m_value;
+		break;
+
+	case ias.SshDispatchCode.SetUserName:
+		m_self.m_sshPropertySet.m_userNameProp.m_value = in;
+		break;
+
+	case ias.SshDispatchCode.SetPassword:
+		m_self.m_ssh.setPassword(in, iox.SshChannel.PasswordPersistence.Remembered);
+		break;
+
+	case ias.SshDispatchCode.SetPasswordNextConnectOnly:
+		m_self.m_ssh.setPassword(in, iox.SshChannel.PasswordPersistence.NextConnectOnly);
+		break;
+
+	case ias.SshDispatchCode.GetState:
+		*out = (uint_t)m_self.m_ssh.m_state; // ias.SshState mirrors iox.SshChannel.State
+		break;
+
+	case ias.SshDispatchCode.Connect:
+		if (in) // null = use the current URL
+			m_self.m_urlUi.m_url = in;
+
+		return m_self.connect();
+
+	case ias.SshDispatchCode.Disconnect:
+		m_self.disconnect();
+		break;
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
+
+	return true;
+}
+
+//..............................................................................
+
+//! @}
+
+} // namespace doc

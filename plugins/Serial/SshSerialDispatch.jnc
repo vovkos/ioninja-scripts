@@ -1,0 +1,17 @@
+//..............................................................................
+//
+// Serial over SSH session dispatch interface for IAS
+//
+
+import "ias_SerialDispatchBase.jnc"
+import "ias_SshDispatchBase.jnc"
+
+//..............................................................................
+
+class SshSerialDispatch: ias.SshDispatchBase<ias.SerialDispatchBase> {
+	construct(intptr handle) {
+		basetype.construct(handle);
+	}
+}
+
+//..............................................................................

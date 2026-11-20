@@ -1,0 +1,131 @@
+//..............................................................................
+//
+// Session-side implementation of the shared serial dispatch codes
+//
+
+import "ui_SerialUi.jnc"
+import "ias_SerialDispatchCode.jnc"
+
+namespace doc {
+
+//! \addtogroup common-ias
+//! @{
+
+//..............................................................................
+
+class SerialDispatchImpl<T> {
+protected:
+	T* m_self; // cached to avoid dynamic casts on every dispatch
+
+	construct() {
+		m_self = dynamic (T*)this;
+	}
+
+	void onBaudRateChanged() {}
+	void onDataBitsChanged() {}
+	void onParityChanged() {}
+	void onStopBitsChanged() {}
+	void onFlowControlChanged() {}
+	void onDtrChanged() {}
+	void onRtsChanged() {}
+	void onBreakConditionChanged() {}
+
+	bool errorcode dispatchSerial(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
+	);
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+bool errorcode SerialDispatchImpl<T>.dispatchSerial(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case ias.SerialDispatchCode.GetBaudRate:
+		*out = m_self.m_serialUi.m_baudRate;
+		break;
+
+	case ias.SerialDispatchCode.SetBaudRate:
+		m_self.m_serialUi.m_baudRate = in;
+		m_self.onBaudRateChanged();
+		break;
+
+	case ias.SerialDispatchCode.GetDataBits:
+		*out = m_self.m_serialUi.m_dataBits;
+		break;
+
+	case ias.SerialDispatchCode.SetDataBits:
+		m_self.m_serialUi.m_dataBits = in;
+		m_self.onDataBitsChanged();
+		break;
+
+	case ias.SerialDispatchCode.GetParity:
+		*out = m_self.m_serialUi.m_parity;
+		break;
+
+	case ias.SerialDispatchCode.SetParity:
+		m_self.m_serialUi.m_parity = in;
+		m_self.onParityChanged();
+		break;
+
+	case ias.SerialDispatchCode.GetStopBits:
+		*out = m_self.m_serialUi.m_stopBits;
+		break;
+
+	case ias.SerialDispatchCode.SetStopBits:
+		m_self.m_serialUi.m_stopBits = in;
+		m_self.onStopBitsChanged();
+		break;
+
+	case ias.SerialDispatchCode.GetFlowControl:
+		*out = m_self.m_serialUi.m_flowControl;
+		break;
+
+	case ias.SerialDispatchCode.SetFlowControl:
+		m_self.m_serialUi.m_flowControl = in;
+		m_self.onFlowControlChanged();
+		break;
+
+	case ias.SerialDispatchCode.GetDtr:
+		*out = m_self.m_serialUi.m_dtr;
+		break;
+
+	case ias.SerialDispatchCode.SetDtr:
+		m_self.m_serialUi.m_dtr = in;
+		m_self.onDtrChanged();
+		break;
+
+	case ias.SerialDispatchCode.GetRts:
+		*out = m_self.m_serialUi.m_rts;
+		break;
+
+	case ias.SerialDispatchCode.SetRts:
+		m_self.m_serialUi.m_rts = in;
+		m_self.onRtsChanged();
+		break;
+
+	case ias.SerialDispatchCode.GetBreakCondition:
+		*out = m_self.m_serialUi.m_breakCondition;
+		break;
+
+	case ias.SerialDispatchCode.SetBreakCondition:
+		m_self.m_serialUi.m_breakCondition = in;
+		m_self.onBreakConditionChanged();
+		break;
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
+
+	return true;
+}
+
+//..............................................................................
+
+//! @}
+
+} // namespace doc

@@ -69,7 +69,7 @@ public:
 	override void reset();
 
 	override bool errorcode dispatch(
-		uint_t code,
+		uint64_t code,
 		variant_t in,
 		variant_t* out
 	);
@@ -337,7 +337,7 @@ void ModbusLayer.reset() {
 }
 
 bool errorcode ModbusLayer.dispatch(
-	uint_t code,
+	uint64_t code,
 	variant_t in,
 	variant_t* out
 ) {

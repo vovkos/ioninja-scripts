@@ -1,0 +1,37 @@
+//..............................................................................
+//
+// Serial settings dispatch codes for IAS (shared by all serial plugins)
+//
+
+namespace ias {
+
+//! \addtogroup common-ias
+//! @{
+
+//..............................................................................
+
+enum SerialDispatchCode: uint64_t {
+	GetBaudRate = 0x01dd77e7e13c6900,
+	SetBaudRate,
+	GetDataBits,
+	SetDataBits,
+	GetParity,
+	SetParity,
+	GetStopBits,
+	SetStopBits,
+	GetFlowControl,
+	SetFlowControl,
+	GetDtr,
+	SetDtr,
+	GetRts,
+	SetRts,
+	GetBreakCondition,
+	SetBreakCondition,
+	GetStatusLines,
+}
+
+//..............................................................................
+
+//! @}
+
+} // namespace ias

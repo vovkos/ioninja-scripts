@@ -17,7 +17,9 @@ log-guid    = 7940a0d5-a84b-4509-bae4-b5928511472d  # ssl
 icon        = images/serialmon.png
 small-icon  = images/serialmon-16x16.png
 
-session-class = RdvSerialTapSession
+session-class     = RdvSerialTapSession
+dispatch-class    = RdvSerialTapDispatch
+dispatch-variable = g_serialTap
 
 [required-capabilities]
 
@@ -33,3 +35,7 @@ org.jancy.io.file
 [scripts]
 
 RdvSerialTapSession.jnc
+
+[dispatch-scripts]
+
+RdvSerialTapDispatch.jnc

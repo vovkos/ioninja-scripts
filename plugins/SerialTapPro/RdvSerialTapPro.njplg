@@ -17,7 +17,9 @@ log-guid    = 7940a0d5-a84b-4509-bae4-b5928511472d  # ssl
 icon        = images/serialmon.png
 small-icon  = images/serialmon-16x16.png
 
-session-class = RdvSerialTapProSession
+session-class     = RdvSerialTapProSession
+dispatch-class    = RdvSerialTapProDispatch
+dispatch-variable = g_serialTap
 
 [required-capabilities]
 
@@ -40,3 +42,7 @@ SerialTapProInfoSet.jnc
 SerialTapProLogRecordCode.jnc
 SerialTapProDispatchCode.jnc
 uleb128.jnc
+
+[dispatch-scripts]
+
+RdvSerialTapProDispatch.jnc

@@ -1,0 +1,84 @@
+//..............................................................................
+//
+// Session-side implementation of the Rendezvous connection dispatch codes
+//
+
+import "ui_RendezvousHwcUi.jnc"
+import "ias_RdvDispatchCode.jnc"
+
+namespace doc {
+
+//! \addtogroup common-ias
+//! @{
+
+//..............................................................................
+
+class RdvDispatchImpl<T> {
+protected:
+	T* m_self; // cached to avoid dynamic casts on every dispatch
+
+	construct() {
+		m_self = dynamic (T*)this;
+	}
+
+	bool errorcode dispatchRdv(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
+	);
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+bool errorcode RdvDispatchImpl<T>.dispatchRdv(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case ias.RdvDispatchCode.GetDevice:
+		*out = m_self.m_rdvUi.m_deviceText;
+		break;
+
+	case ias.RdvDispatchCode.SetDevice:
+		return m_self.m_rdvUi.selectDevice(in);
+
+	case ias.RdvDispatchCode.GetServerUrl:
+		*out = m_self.m_rdvUi.m_serverProp.m_value;
+		break;
+
+	case ias.RdvDispatchCode.SetServerUrl:
+		string_t url = in;
+		if (url != m_self.m_rdvUi.m_serverProp.m_value) {
+			m_self.m_rdvUi.m_serverProp.m_value = url;
+			m_self.m_rdvUi.enumerate();
+		}
+
+		break;
+
+	case ias.RdvDispatchCode.GetState:
+		*out = (uint_t)m_self.m_rdv.m_state; // ias.RdvState mirrors iox.Rendezvous.State
+		break;
+
+	case ias.RdvDispatchCode.Connect:
+		if (in) // null = use the current device
+			m_self.m_rdvUi.selectDevice(in);
+
+		return m_self.connect();
+
+	case ias.RdvDispatchCode.Disconnect:
+		m_self.disconnect();
+		break;
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
+
+	return true;
+}
+
+//..............................................................................
+
+//! @}
+
+} // namespace doc

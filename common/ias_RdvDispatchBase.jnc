@@ -1,0 +1,73 @@
+//..............................................................................
+//
+// Rendezvous connection dispatch interface for IAS (shared by all RDV-based plugins)
+//
+
+import "ias_PluginDispatch.jnc"
+import "ias_RdvDispatchCode.jnc"
+
+namespace ias {
+
+//! \addtogroup common-ias
+//! @{
+
+//..............................................................................
+
+enum RdvState { // mirrors iox.Rendezvous.State
+	Closed,
+	ReconnectDelay,
+	Connecting,
+	Pairing,
+	Negotiating,
+	Connected,
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+// mixed into a session family interface, e.g. ias.RdvDispatchBase<ias.SerialDispatchBase>
+
+class RdvDispatchBase<B>: B {
+	property m_device { // as shown in the device combo (and saved in .njssn)
+		string_t get() {
+			return dispatchGet(RdvDispatchCode.GetDevice);
+		}
+
+		bool errorcode set(string_t value) { // fails if not in the current device list
+			return dispatch(RdvDispatchCode.SetDevice, value);
+		}
+	}
+
+	property m_serverUrl {
+		string_t get() {
+			return dispatchGet(RdvDispatchCode.GetServerUrl);
+		}
+
+		void set(string_t value) { // re-enumerates devices if changed
+			dispatch(RdvDispatchCode.SetServerUrl, value);
+		}
+	}
+
+	RdvState const property m_rdvState {
+		return dispatchGet(RdvDispatchCode.GetState);
+	}
+
+	construct(intptr handle) {
+		basetype.construct(handle);
+	}
+
+	// initiates the connection (doesn't wait for it -- use g_isConnected)
+
+	bool errorcode connect(string_t device = null) { // null = use m_device
+		return dispatch(RdvDispatchCode.Connect, device);
+	}
+
+	void disconnect() {
+		dispatch(RdvDispatchCode.Disconnect);
+	}
+}
+
+//..............................................................................
+
+//! @}
+
+} // namespace ias

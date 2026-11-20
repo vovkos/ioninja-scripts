@@ -5,8 +5,8 @@
 
 //..............................................................................
 
-enum HidDispatchCode {
-	GetDeviceVid,
+enum HidDispatchCode: uint64_t {
+	GetDeviceVid = 0x01dd77e7e39ec300,
 	GetDevicePid,
 	GetDeviceUsagePage,
 	GetDeviceUsage,

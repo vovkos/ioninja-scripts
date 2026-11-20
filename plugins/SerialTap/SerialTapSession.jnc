@@ -17,6 +17,7 @@ import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
 import "std_Buffer.jnc"
 import "SerialLog/SerialLogRecordCode.jnc"
+import "doc_SerialDispatchImpl.jnc"
 
 namespace cy {
 
@@ -158,7 +159,11 @@ void SerialIface.release() {
 
 //..............................................................................
 
-class SerialTapSession: doc.Session {
+class SerialTapSession:
+	doc.Session,
+	doc.SerialDispatchImpl<SerialTapSession> {
+	friend doc.SerialDispatchImpl;
+
 protected:
 	enum State {
 		Closed,
@@ -254,7 +259,7 @@ public:
 	}
 
 	override bool errorcode dispatch(
-		uint_t code,
+		uint64_t code,
 		variant_t in,
 		variant_t* out
 	);
@@ -753,53 +758,20 @@ void SerialTapSession.restoreDefaultProperties() {
 }
 
 bool errorcode SerialTapSession.dispatch(
-	uint_t code,
+	uint64_t code,
 	variant_t in,
 	variant_t* out
 ) {
 	switch (code) {
 	case SerialTapDispatchCode.GetBaudRate:
-		*out = m_serialUi.m_baudRate;
-		break;
-
 	case SerialTapDispatchCode.SetBaudRate:
-		m_serialUi.m_baudRate = in;
-		onBaudRateChanged();
-		break;
-
 	case SerialTapDispatchCode.GetDataBits:
-		*out = m_serialUi.m_dataBits;
-		break;
-
 	case SerialTapDispatchCode.SetDataBits:
-		uint_t dataBits = in;
-		m_serialUi.m_dataBits = dataBits;
-		onDataBitsChanged();
-		break;
-
 	case SerialTapDispatchCode.GetParity:
-		*out = m_serialUi.m_parity;
-		break;
-
 	case SerialTapDispatchCode.SetParity:
-		io.SerialParity parity = in;
-		m_serialUi.m_parity = parity;
-		onParityChanged();
-		break;
-
 	case SerialTapDispatchCode.GetStopBits:
-		*out = m_serialUi.m_stopBits;
-		break;
-
 	case SerialTapDispatchCode.SetStopBits:
-		io.SerialStopBits stopBits = in;
-		m_serialUi.m_stopBits = stopBits;
-		onStopBitsChanged();
-		break;
-
-	case SerialTapDispatchCode.GetStatusLines:
-		*out = m_dteIface.m_statusLines;
-		break;
+		return dispatchSerial(code, in, out);
 
 	case SerialTapDispatchCode.GetDtr:
 		*out = (m_dceIface.m_statusLines & io.SerialStatusLines.Dsr) != 0;
@@ -807,6 +779,10 @@ bool errorcode SerialTapSession.dispatch(
 
 	case SerialTapDispatchCode.GetRts:
 		*out = (m_dceIface.m_statusLines & io.SerialStatusLines.Cts) != 0;
+		break;
+
+	case SerialTapDispatchCode.GetStatusLines:
+		*out = m_dteIface.m_statusLines;
 		break;
 
 	case SerialTapDispatchCode.Capture:
@@ -817,8 +793,7 @@ bool errorcode SerialTapSession.dispatch(
 		break;
 
 	default:
-		std.setError("unsupported dispatch code");
-		return false;
+		return std.fail("unsupported dispatch code");
 	}
 
 	return true;

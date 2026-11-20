@@ -22,10 +22,15 @@ import "log_ChecksumCalc.jnc"
 import "std_Buffer.jnc"
 import "SerialTapProLogRecordCode.jnc"
 import "SerialTapProUi.jnc"
+import "doc_SerialDispatchImpl.jnc"
 
 //..............................................................................
 
-class SerialTapProSession: doc.Session {
+class SerialTapProSession:
+	doc.Session,
+	doc.SerialDispatchImpl<SerialTapProSession> {
+	friend doc.SerialDispatchImpl;
+
 protected:
 	enum Protocol {
 		Spi,
@@ -172,7 +177,7 @@ public:
 	}
 
 	override bool errorcode dispatch(
-		uint_t code,
+		uint64_t code,
 		variant_t in,
 		variant_t* out
 	);
@@ -182,6 +187,7 @@ protected:
 	void onDataBitsChanged();
 	void onParityChanged();
 	void onStopBitsChanged();
+
 	void onInjectChanged();
 	void onRs485ModeChanged();
 	void onRs485ChannelChanged();
@@ -586,10 +592,8 @@ uint_t gcd(
 }
 
 bool errorcode SerialTapProSession.setBaudRate(uint_t baudRate) {
-	if (baudRate > BaudRateCap) {
-		std.setError("baud rates over 2.5 Mbps are not supported");
-		return false;
-	}
+	if (baudRate > BaudRateCap)
+		return std.fail("baud rates over 2.5 Mbps are not supported");
 
 	uint_t baudRate16 = baudRate * 16;
 	uint_t freqBaudGcd = gcd(FpgaFreq, baudRate16);
@@ -885,54 +889,45 @@ size_t errorcode SerialTapProSession.transmit(
 }
 
 bool errorcode SerialTapProSession.dispatch(
-	uint_t code,
+	uint64_t code,
 	variant_t in,
 	variant_t* out
 ) {
 	switch (code) {
+	case SerialTapProInternalDispatchCode.Flip:
+		m_decoder.flip(in);
+		break;
+
 	case SerialTapProDispatchCode.GetBaudRate:
-		*out = m_serialUi.m_baudRate;
-		break;
-
 	case SerialTapProDispatchCode.SetBaudRate:
-		m_serialUi.m_baudRate = in;
-		onBaudRateChanged();
-		break;
-
 	case SerialTapProDispatchCode.GetDataBits:
-		*out = m_serialUi.m_dataBits;
-		break;
-
 	case SerialTapProDispatchCode.SetDataBits:
-		uint_t dataBits = in;
-		m_serialUi.m_dataBits = dataBits;
-		onDataBitsChanged();
-		break;
-
 	case SerialTapProDispatchCode.GetParity:
-		*out = m_serialUi.m_parity;
-		break;
-
 	case SerialTapProDispatchCode.SetParity:
-		io.SerialParity parity = in;
-		m_serialUi.m_parity = parity;
-		onParityChanged();
-		break;
-
 	case SerialTapProDispatchCode.GetStopBits:
-		*out = m_serialUi.m_stopBits;
+	case SerialTapProDispatchCode.SetStopBits:
+		return dispatchSerial(code, in, out);
+
+	case SerialTapProDispatchCode.GetDtr:
+		*out = (m_decoder.m_lines & SerialTapProLines.Dtr) != 0;
 		break;
 
-	case SerialTapProDispatchCode.SetStopBits:
-		io.SerialStopBits stopBits = in;
-		m_serialUi.m_stopBits = stopBits;
-		onStopBitsChanged();
+	case SerialTapProDispatchCode.SetDtr:
+		m_tapUi.m_dtrAction.m_isChecked = in;
+		onDtrRtsChanged();
+		break;
+
+	case SerialTapProDispatchCode.GetRts:
+		*out = (m_decoder.m_lines & SerialTapProLines.Rts) != 0;
+		break;
+
+	case SerialTapProDispatchCode.SetRts:
+		m_tapUi.m_rtsAction.m_isChecked = in;
+		onDtrRtsChanged();
 		break;
 
 	case SerialTapProDispatchCode.GetStatusLines:
-	case SerialTapProDispatchCode.GetDtr:
-	case SerialTapProDispatchCode.GetRts:
-		// not yet
+		*out = (io.SerialStatusLines)(m_decoder.m_lines & SerialTapProLines.StatusLineMask);
 		break;
 
 	case SerialTapProDispatchCode.Capture:
@@ -942,13 +937,8 @@ bool errorcode SerialTapProSession.dispatch(
 		stopCapture();
 		break;
 
-	case SerialTapProInternalDispatchCode.Flip:
-		m_decoder.flip(in);
-		break;
-
 	default:
-		std.setError("unsupported dispatch code");
-		return false;
+		return std.fail("unsupported dispatch code");
 	}
 
 	return true;
