@@ -116,7 +116,7 @@ public:
 	}
 
 	override bool errorcode dispatch(
-		uint_t code,
+		uint64_t code,
 		variant_t in,
 		variant_t* out
 	);
@@ -402,7 +402,7 @@ size_t errorcode UdpSession.transmit(
 }
 
 bool errorcode UdpSession.dispatch(
-	uint_t code,
+	uint64_t code,
 	variant_t in,
 	variant_t* out
 ) {

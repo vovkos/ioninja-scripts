@@ -124,7 +124,7 @@ public:
 	}
 
 	override bool errorcode dispatch(
-		uint_t code,
+		uint64_t code,
 		variant_t in,
 		variant_t* out
 	);
@@ -417,7 +417,7 @@ bool errorcode TcpServerSession.connectSession() {
 }
 
 bool errorcode TcpServerSession.dispatch(
-	uint_t code,
+	uint64_t code,
 	variant_t in,
 	variant_t* out
 ) {

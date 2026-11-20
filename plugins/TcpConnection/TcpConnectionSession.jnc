@@ -124,7 +124,7 @@ public:
 	}
 
 	override bool errorcode dispatch(
-		uint_t code,
+		uint64_t code,
 		variant_t in,
 		variant_t* out
 	);
@@ -440,7 +440,7 @@ size_t errorcode TcpConnectionSession.transmit(
 }
 
 bool errorcode TcpConnectionSession.dispatch(
-	uint_t code,
+	uint64_t code,
 	variant_t in,
 	variant_t* out
 ) {

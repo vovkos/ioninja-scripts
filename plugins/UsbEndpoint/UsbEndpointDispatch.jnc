@@ -30,8 +30,8 @@ class UsbEndpointDispatch: ias.PluginDispatch {
 			return dispatchGet(UsbEndpointDispatchCode.GetOutEndpointId);
 		}
 
-		void set(uint_t value) {
-			dispatch(UsbEndpointDispatchCode.SetOutEndpointId, value);
+		bool errorcode set(uint_t value) { // fails if not in the current endpoint list
+			return dispatch(UsbEndpointDispatchCode.SetOutEndpointId, value);
 		}
 	}
 
@@ -114,35 +114,35 @@ class UsbEndpointDispatch: ias.PluginDispatch {
 		dispatch(UsbEndpointDispatchCode.CloseDevice);
 	}
 
-	void claimInterface(uint_t interfaceId) {
-		dispatch(UsbEndpointDispatchCode.ClaimInterface, interfaceId);
+	bool errorcode claimInterface(uint_t interfaceId) {
+		return dispatch(UsbEndpointDispatchCode.ClaimInterface, interfaceId);
 	}
 
-	void releaseInterface(uint_t interfaceId) {
-		dispatch(UsbEndpointDispatchCode.ReleaseInterface, interfaceId);
+	bool errorcode releaseInterface(uint_t interfaceId) {
+		return dispatch(UsbEndpointDispatchCode.ReleaseInterface, interfaceId);
 	}
 
-	void releaseAllInterfaces() {
-		dispatch(UsbEndpointDispatchCode.ReleaseAllInterfaces);
+	bool errorcode releaseAllInterfaces() {
+		return dispatch(UsbEndpointDispatchCode.ReleaseAllInterfaces);
 	}
 
-	void startReadingEndpoint(uint_t endpointId) {
-		dispatch(UsbEndpointDispatchCode.StartReadingEndpoint, endpointId);
+	bool errorcode startReadingEndpoint(uint_t endpointId) {
+		return dispatch(UsbEndpointDispatchCode.StartReadingEndpoint, endpointId);
 	}
 
-	void stopReadingEndpoint(uint_t endpointId) {
-		dispatch(UsbEndpointDispatchCode.StopReadingEndpoint, endpointId);
+	bool errorcode stopReadingEndpoint(uint_t endpointId) {
+		return dispatch(UsbEndpointDispatchCode.StopReadingEndpoint, endpointId);
 	}
 
-	void stopReadingAllEndpoints() {
-		dispatch(UsbEndpointDispatchCode.StopReadingAllEndpoints);
+	bool errorcode stopReadingAllEndpoints() {
+		return dispatch(UsbEndpointDispatchCode.StopReadingAllEndpoints);
 	}
 
-	void startControlTransfer() {
-		dispatch(UsbEndpointDispatchCode.StartControlTransfer);
+	bool errorcode startControlTransfer() {
+		return dispatch(UsbEndpointDispatchCode.StartControlTransfer);
 	}
 
-	void startControlTransfer(
+	bool errorcode startControlTransfer(
 		io.UsbControlDirection direction,
 		io.UsbControlRecipient recipient,
 		io.UsbControlDirection type,
@@ -157,7 +157,7 @@ class UsbEndpointDispatch: ias.PluginDispatch {
 		setup.m_request = request;
 		setup.m_value = value;
 		setup.m_index = index;
-		dispatch(UsbEndpointDispatchCode.StartControlTransfer, setup);
+		return dispatch(UsbEndpointDispatchCode.StartControlTransfer, setup);
 	}
 }
 

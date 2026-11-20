@@ -5,8 +5,8 @@
 
 //..............................................................................
 
-enum UsbEndpointDispatchCode {
-	GetDeviceVid,
+enum UsbEndpointDispatchCode: uint64_t {
+	GetDeviceVid = 0x01dd77e7e699b300,
 	GetDevicePid,
 	SetDeviceVidPid,
 	GetOutEndpointId,

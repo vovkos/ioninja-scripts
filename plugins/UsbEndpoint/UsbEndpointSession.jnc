@@ -150,7 +150,7 @@ public:
 	);
 
 	override bool errorcode dispatch(
-		uint_t code,
+		uint64_t code,
 		variant_t in,
 		variant_t* out
 	);
@@ -884,7 +884,7 @@ catch:
 }
 
 bool errorcode UsbEndpointSession.dispatch(
-	uint_t code,
+	uint64_t code,
 	variant_t in,
 	variant_t* out
 ) {

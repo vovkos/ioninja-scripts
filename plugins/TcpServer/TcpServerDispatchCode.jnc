@@ -5,8 +5,8 @@
 
 //..............................................................................
 
-enum TcpServerDispatchCode {
-	GetLocalPort,
+enum TcpServerDispatchCode: uint64_t {
+	GetLocalPort = 0x01dd77e7e5688600,
 	SetLocalPort,
 	Listen,
 	StopListen,
