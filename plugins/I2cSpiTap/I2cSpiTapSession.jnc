@@ -465,10 +465,8 @@ bool errorcode I2cSpiTapSession.gracefulStop() {
 		GracefulStopWriteTimeout
 	);
 
-	if (events & io.UsbEndpointEvents.IoError) {
-		std.setError("stop capture request failed");
-		return false;
-	}
+	if (events & io.UsbEndpointEvents.IoError)
+		return std.fail("stop capture request failed");
 
 	io.UsbEndpoint* ep = m_iface.openEndpoint(Usb.InEndpoint, true);
 	ep.m_readParallelism = 1;

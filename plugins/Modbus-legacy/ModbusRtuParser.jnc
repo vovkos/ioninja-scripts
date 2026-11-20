@@ -169,8 +169,7 @@ size_t errorcode getModbusPduSize(
 			sizeof(ModbusReadExceptionStatusReplyPdu);
 
 	case io.ModbusFunc.Diagnostics:
-		std.setError("ModbusFunc.Diagnostics is unsupported");
-		return -1;
+		return std.failEx(-1, "ModbusFunc.Diagnostics is unsupported");
 
 	case io.ModbusFunc.GetCommEventCounter:
 		return role == ModbusRole.Master ?
@@ -214,15 +213,13 @@ size_t errorcode getModbusPduSize(
 			sizeof(ModbusReadFifoQueueReplyPdu) + ((ModbusReadFifoQueueReplyPdu const*)pduHdr).m_fifoCount * sizeof(uint16_t);
 
 	case io.ModbusFunc.EncapsulatedInterface:
-		std.setError("ModbusFunc.EncapsulatedInterface is unsupported");
-		return -1;
+		return std.failEx(-1, "ModbusFunc.EncapsulatedInterface is unsupported");
 
 	default:
 		if (pduHdr.m_func & ModbusFunc.ExceptionFlag)
 			return sizeof(ModbusExceptionPdu);
 
-		std.setError("unknown Modbus function");
-		return -1;
+		return std.failEx(-1, "unknown Modbus function");
 	}
 }
 

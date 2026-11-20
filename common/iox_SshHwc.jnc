@@ -73,10 +73,8 @@ bool errorcode SshHwcUrl.parse(string_t string) {
 	char const* hostEnd = p;
 	if (p < end && *p == '[') { // IPv6 literal
 		char const* bracket = memchr(p, ']', end - p);
-		if (!bracket) {
-			std.setError("invalid IPv6 address in URL");
-			return false;
-		}
+		if (!bracket)
+			return std.fail("invalid IPv6 address in URL");
 
 		hostEnd = bracket + 1;
 	}
@@ -84,10 +82,8 @@ bool errorcode SshHwcUrl.parse(string_t string) {
 	slash = memchr(hostEnd, '/', end - hostEnd);
 	char const* addressEnd = slash ? slash : end;
 	m_address = string_t(p, addressEnd - p);
-	if (!m_address.m_length) {
-		std.setError("remote address not specified");
-		return false;
-	}
+	if (!m_address.m_length)
+		return std.fail("remote address not specified");
 
 	if (!slash || slash + 1 == end)
 		m_device = null;
@@ -153,8 +149,7 @@ bool errorcode parseSshHwcUsbDevice(
 			return true;
 	}
 
-	std.setError($"invalid tap address '$device' (expected @bus:address, e.g., @001:027)");
-	return false;
+	return std.fail($"invalid tap address '$device' (expected @bus:address, e.g., @001:027)");
 }
 
 //..............................................................................

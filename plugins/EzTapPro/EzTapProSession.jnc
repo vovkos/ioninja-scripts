@@ -599,10 +599,8 @@ bool errorcode EzTapProSession.decodeResponse(
 			uint_t code = *(uint8_t const*)p & EzTapResponseCode.Mask;
 
 			m_responseSize = g_ezTapResponseSizeMap[code];
-			if (!m_responseSize) {
-				std.setError("invalid packet from EZ-Tap Pro");
-				return false;
-			}
+			if (!m_responseSize)
+				return std.fail("invalid packet from EZ-Tap Pro");
 
 			m_responseBuffer.clear();
 			m_responseBuffer.reserve(m_responseSize);
@@ -667,12 +665,10 @@ bool errorcode EzTapProSession.decodeResponse(
 
 		case EzTapResponseCode.Error:
 			EzTapErrorParams const* params = (EzTapErrorParams const*)m_responseBuffer.m_p;
-			if (params.m_error == EzTapErrorCode.BufferOverflow) {
+			if (params.m_error == EzTapErrorCode.BufferOverflow)
 				m_logWriter.write(log.StdRecordCode.RxBufferFullLossy);
-			} else {
-				std.setError("invalid error code from EZ-Tap Pro");
-				return false;
-			}
+			else
+				return std.fail("invalid error code from EZ-Tap Pro");
 
 			break;
 

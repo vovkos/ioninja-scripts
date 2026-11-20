@@ -209,10 +209,8 @@ void RdvEthernetTapSession.createUi() {
 
 bool errorcode RdvEthernetTapSession.connect() {
 	iox.RendezvousHwcDevice* device = m_rdvUi.m_device;
-	if (!device) {
-		std.setError("no remote Ethernet Tap selected");
-		return false;
-	}
+	if (!device)
+		return std.fail("no remote Ethernet Tap selected");
 
 	disconnect();
 	startSession();

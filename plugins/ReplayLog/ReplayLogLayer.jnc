@@ -336,15 +336,11 @@ void ReplayLogLayer.onPlay() {
 	m_file.open(fileName, io.FileOpenFlags.OpenExisting | io.FileOpenFlags.ReadOnly);
 
 	m_hdr = (log.RecordFileHdr const*)m_file.view(0, sizeof(log.RecordFileHdr), true);
-	if (m_hdr.m_signature != log.RecordFileSignature) {
-		std.setError("invalid log file format (bad file signature)");
-		throw;
-	}
+	if (m_hdr.m_signature != log.RecordFileSignature)
+		throw "invalid log file format (bad file signature)";
 
-	if (!m_hdr.m_totalRecordSize) {
-		std.setError("log file is empty");
-		throw;
-	}
+	if (!m_hdr.m_totalRecordSize)
+		throw "log file is empty";
 
 	updateProgressDlgTitle();
 	readLoop();

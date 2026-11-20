@@ -415,10 +415,8 @@ size_t errorcode SslServerSession.transmit(
 	size_t size
 ) {
 	Client* client = m_clientWidget.m_currentData;
-	if (!client) {
-		std.setError("not connected");
-		return -1;
-	}
+	if (!client)
+		return std.failEx(-1, "not connected");
 
 	setCurrentClient(client);
 

@@ -169,10 +169,8 @@ bool errorcode MdnsBrowser.query(
 	Service const* responder,
 	uint_t timeout
 ) {
-	if (!m_isBrowsing || responder.m_socketIndex >= m_socketArray.m_count) {
-		std.setError("mDNS browsing session is not active");
-		return false;
-	}
+	if (!m_isBrowsing || responder.m_socketIndex >= m_socketArray.m_count)
+		return std.fail("mDNS browsing session is not active");
 
 	io.MdnsQueryBuilder queryBuilder;
 	queryBuilder.addQuestion(serviceName, io.DnsType.PTR);

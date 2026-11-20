@@ -345,10 +345,8 @@ size_t errorcode FileSession.transmit(
 	void const* p,
 	size_t size
 ) {
-	if (m_state != State.Opened) {
-		std.setError("file stream not opened");
-		return -1;
-	}
+	if (m_state != State.Opened)
+		return std.failEx(-1, "file stream not opened");
 
 	size_t result = m_file.write(p, size);
 	if (result)

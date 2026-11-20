@@ -139,10 +139,8 @@ bool errorcode UsbDb.load(string_t fileName) {
 			break;
 
 		case r"\t([0-9a-fA-F]{4})\s+([^\n]+[^\s])\s*\n":
-			if (!vendor) {
-				std.setError("invalid USB database file format");
-				return false;
-			}
+			if (!vendor)
+				return std.fail("invalid USB database file format");
 
 			vendor.addProduct(strtoul($1,, 16), $2);
 			break;

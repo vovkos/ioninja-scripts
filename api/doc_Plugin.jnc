@@ -48,8 +48,7 @@ class Plugin: PluginConfig {
 		variant_t in,
 		variant_t* out = null
 	) {
-		std.setError("this plugin doesn't support IAS dispatch");
-		return false;
+		return std.fail("this plugin doesn't support IAS dispatch");
 	}
 
 	ui.Action* createAction(

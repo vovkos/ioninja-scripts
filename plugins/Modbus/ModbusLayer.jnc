@@ -379,8 +379,7 @@ bool errorcode ModbusLayer.dispatch(
 		break;
 
 	default:
-		std.setError("unsupported dispatch code");
-		return false;
+		return std.fail("unsupported dispatch code");
 	}
 
 	return true;

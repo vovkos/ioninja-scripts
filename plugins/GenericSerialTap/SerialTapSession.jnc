@@ -406,10 +406,8 @@ bool errorcode SerialTapSession.open() {
 	m_dtePort.m_name = m_dtePortCombo.m_currentText;
 	m_dcePort.m_name = m_dcePortCombo.m_currentText;
 
-	if (strcmp(m_dtePort.m_name, m_dcePort.m_name) == 0) {
-		std.setError("DTE and DCE ports cannot be the same");
-		throw;
-	}
+	if (strcmp(m_dtePort.m_name, m_dcePort.m_name) == 0)
+		throw "DTE and DCE ports cannot be the same";
 
 	configurePort(m_dtePort);
 	configurePort(m_dcePort);

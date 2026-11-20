@@ -41,10 +41,9 @@ nestedscope:
 	RecordFileHdr const* logHdr = (RecordFileHdr const*)logFile.view(0, sizeof(RecordFileHdr), true);
 
 	if (logHdr.m_signature != RecordFileSignature ||
-		logHdr.m_recordOffset < sizeof(RecordFileHdr)) {
-		std.setError($"invalid log record file %1: file signature mismatch"(logFileName));
-		throw;
-	}
+		logHdr.m_recordOffset < sizeof(RecordFileHdr)
+	)
+		throw $"invalid log record file %1: file signature mismatch"(logFileName);
 
 	disposable io.MappedFile pcapFile;
 	pcapFile.open(pcapFileName);
@@ -72,10 +71,8 @@ nestedscope:
 
 	while (logOffset < logEndOffset) {
 		Record const* record = (Record const*)logFile.view(logOffset, sizeof(Record));
-		if (record.m_signature != RecordSignature) {
-			std.setError($"invalid log record file %1: record signature mismatch"(logFileName));
-			throw;
-		}
+		if (record.m_signature != RecordSignature)
+			throw $"invalid log record file %1: record signature mismatch"(logFileName);
 
 		record = (Record const*)logFile.view(logOffset, sizeof(Record) + record.m_dataSize);
 		pcapOffset += exportRecordFunc(record, pcapFile, pcapOffset);

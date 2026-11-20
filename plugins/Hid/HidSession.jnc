@@ -558,10 +558,8 @@ size_t errorcode HidSession.transmit(
 	if (!size)
 		return 0;
 
-	if (m_state != State.Opened) {
-		std.setError("HID device is not opened");
-		return -1; // don't throw here
-	}
+	if (m_state != State.Opened)
+		return std.failEx(-1, "HID device is not opened"); // don't throw here
 
 	struct TransmitDetails {
 		string_t m_description;
@@ -586,20 +584,18 @@ size_t errorcode HidSession.transmit(
 
 	uint_t reportId = *(uchar_t const*)p;
 	io.HidReport const* report = m_rd.findReport(details.m_reportType, reportId);
-	if (!report) {
-		std.setError($"%1 #%2 not found"(details.m_description, reportId));
-		return -1;
-	}
+	if (!report)
+		return std.failEx(-1, $"%1 #%2 not found"(details.m_description, reportId));
 
 	size_t writeSize = report.m_size + 1; // plus report ID
 	if (size < writeSize) {
-		std.setError(
+		return std.failEx(
+			-1,
 			$"Incomplete %1 (expected 1 byte for report ID followed %2 bytes of report fields)"(
 				details.m_description,
 				report.m_size
 			)
 		);
-		return -1;
 	}
 
 	size_t result = details.m_reportType == io.HidReportType.Feature ?
@@ -645,10 +641,8 @@ bool errorcode HidSession.dispatch(
 			vidPid & 0xffff
 		);
 
-		if (i == -1) {
-			std.setError("can't find device with specified VID:PID");
-			return false;
-		}
+		if (i == -1)
+			return std.fail("can't find device with specified VID:PID");
 
 		m_deviceCombo.m_currentIndex = i;
 		break;
@@ -663,10 +657,8 @@ bool errorcode HidSession.dispatch(
 			(vidPidUsage >> 32) & 0xffff
 		);
 
-		if (i == -1) {
-			std.setError($"can't find device with specified VID:PID and usage $(vidPidUsage; 0x%llx)");
-			return false;
-		}
+		if (i == -1)
+			return std.fail($"can't find device with specified VID:PID and usage $(vidPidUsage; 0x%llx)");
 
 		m_deviceCombo.m_currentIndex = i;
 		break;
@@ -678,10 +670,8 @@ bool errorcode HidSession.dispatch(
 
 	case HidDispatchCode.SetDevicePath:
 		size_t i = ui.findHidDeviceComboIndex(m_deviceCombo, (string_t)in);
-		if (i == -1) {
-			std.setError("can't find device with specified path");
-			return false;
-		}
+		if (i == -1)
+			return std.fail("can't find device with specified path");
 
 		m_deviceCombo.m_currentIndex = i;
 		break;
@@ -712,8 +702,7 @@ bool errorcode HidSession.dispatch(
 		break;
 
 	default:
-		std.setError("unsupported dispatch code");
-		return false;
+		return std.fail("unsupported dispatch code");
 	}
 
 	return true;

@@ -447,10 +447,8 @@ size_t errorcode PcapSnifferSession.transmit(
 	void const* p,
 	size_t size
 ) {
-	if (!m_pcap.m_isOpen) {
-		std.setError("no capture session");
-		return -1;
-	}
+	if (!m_pcap.m_isOpen)
+		return std.failEx(-1, "no capture session");
 
 	size_t result = m_pcap.write(p, size);
 

@@ -35,8 +35,7 @@ class Session: Plugin {
 	}
 
 	virtual bool errorcode connectSession() {
-		std.setError("this session doesn't know how to connect");
-		return false;
+		return std.fail("this session doesn't know how to connect");
 	}
 
 	virtual void disconnectSession() {}

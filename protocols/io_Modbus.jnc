@@ -757,12 +757,10 @@ async void layoutModbusPdu(
 				break;
 
 			case ModbusFunc.EncapsulatedInterface:
-				std.setError("ModbusFunc.EncapsulatedInterface is unsupported");
-				throw;
+				throw "ModbusFunc.EncapsulatedInterface is unsupported";
 
 			default:
-				std.setError("unknown Modbus function");
-				throw;
+				throw "unknown Modbus function";
 			}
 		}
 	}

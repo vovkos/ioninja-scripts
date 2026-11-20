@@ -861,10 +861,8 @@ size_t errorcode UsbEndpointSession.transmit(
 	void const* p,
 	size_t size
 ) {
-	if (m_state < State.Claimed || m_outEndpointCombo.m_currentIndex == -1) {
-		std.setError("no USB out-endpoint");
-		return -1;
-	}
+	if (m_state < State.Claimed || m_outEndpointCombo.m_currentIndex == -1)
+		return std.failEx(-1, "no USB out-endpoint");
 
 	EndpointInfo const* epInfo = m_outEndpointCombo.m_currentData;
 	if (!m_outEndpoint || m_outEndpoint.m_endpointDescriptor.m_endpointId != epInfo.m_endpointId) {
@@ -915,8 +913,10 @@ bool errorcode UsbEndpointSession.dispatch(
 
 	case UsbEndpointDispatchCode.SetOutEndpointId:
 		size_t i = ui.findUsbEndpointComboIndex(m_outEndpointCombo, (uint_t)in);
-		if (i != -1)
-			m_outEndpointCombo.m_currentIndex = i;
+		if (i == -1)
+			return std.fail($"OUT endpoint $((uint_t)in; 0x%02X) not found");
+
+		m_outEndpointCombo.m_currentIndex = i;
 		break;
 
 	case UsbEndpointDispatchCode.GetControlDirection:
@@ -973,10 +973,8 @@ bool errorcode UsbEndpointSession.dispatch(
 			return openDevice();
 
 		size_t i = ui.findUsbDeviceComboIndex(m_deviceCombo, vidPid >> 16, vidPid & 0xffff);
-		if (i == -1) {
-			std.setError("device not found");
-			return false;
-		}
+		if (i == -1)
+			return std.fail("device not found");
 
 		m_deviceCombo.m_currentIndex = i;
 		return openDevice();
@@ -991,8 +989,7 @@ bool errorcode UsbEndpointSession.dispatch(
 	case UsbEndpointDispatchCode.StartReadingEndpoint:
 	case UsbEndpointDispatchCode.StopReadingEndpoint:
 	case UsbEndpointDispatchCode.StopReadingAllEndpoints:
-		std.setError("not yet implemented");
-		break;
+		return std.fail("not yet implemented");
 
 	case UsbEndpointDispatchCode.StartControlTransfer:
 		return startControlTransfer(
@@ -1005,8 +1002,7 @@ bool errorcode UsbEndpointSession.dispatch(
 		);
 
 	default:
-		std.setError("unsupported dispatch code");
-		return false;
+		return std.fail("unsupported dispatch code");
 	}
 
 	return true;

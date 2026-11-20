@@ -143,8 +143,7 @@ bool errorcode FpgaUploader.checkSpeed(
 	io.UsbSpeed speed = device.m_speed;
 	if (speed && speed != requiredSpeed) {
 		m_logWriter.write(FpgaUploaderLogRecordCode.UnsupportedUsbSpeed);
-		std.setError("incompatible USB speed");
-		return false;
+		return std.fail("incompatible USB speed");
 	}
 
 	return true;
@@ -449,10 +448,8 @@ void FpgaUploader.onTransferCompleted(
 	if (syncId != m_syncId)
 		return;
 
-	if (error) {
-		std.setError(error);
-		throw;
-	}
+	if (error)
+		throw error;
 
 	sendNextBlock(true);
 

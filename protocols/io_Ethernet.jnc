@@ -96,10 +96,8 @@ bool errorcode EthernetAddress.parse(string_t s) {
 	if (s !~
 		"(?i)^\s*([0-9a-f]+):([0-9a-f]+):([0-9a-f]+):"
 		"([0-9a-f]+):([0-9a-f]+):([0-9a-f]+)"
-	) {
-		std.setError("invalid MAC");
-		return false;
-	}
+	)
+		return std.fail("invalid MAC");
 
 	m_mac[0] = strtoul($1,, 16);
 	m_mac[1] = strtoul($2,, 16);

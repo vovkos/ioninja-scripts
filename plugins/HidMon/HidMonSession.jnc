@@ -237,8 +237,7 @@ bool errorcode HidMonSession.capture() {
 			sizeof(sys.OsKind)
 		);
 
-		std.setError("USB capturing service not detected");
-		return false;
+		return std.fail("USB capturing service not detected");
 	}
 
 	size_t snapshotSize = Defaults.SnapshotSize;

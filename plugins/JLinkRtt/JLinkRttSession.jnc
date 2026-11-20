@@ -475,10 +475,8 @@ bool errorcode JLinkRttSession.connectJlink() {
 		m_jlinkLib.lib.JLINK_SelectIP(m_addressCombo.m_currentText, 0);
 
 	char const thin* errorString = m_jlinkLib.lib.JLINK_OpenEx(jlinkTraceInfo, jlinkTraceError);
-	if (errorString) {
-		std.setError(std.format("J-Link open failed: %s", errorString));
-		throw;
-	}
+	if (errorString)
+		throw std.format("J-Link open failed: %s", errorString);
 
 	char buffer[256];
 	int result = m_jlinkLib.lib.JLINK_ExecCommand(
@@ -487,19 +485,15 @@ bool errorcode JLinkRttSession.connectJlink() {
 		sizeof(buffer) - 1
 	);
 
-	if (buffer[0]) {
-		std.setError(buffer);
-		throw;
-	}
+	if (buffer[0])
+		throw buffer;
 
 	m_jlinkLib.lib.JLINK_TIF_Select(m_interfaceProp.m_value);
 	m_jlinkLib.lib.JLINK_SetSpeed(m_speedProp.m_value);
 
 	result = m_jlinkLib.lib.JLINK_Connect();
-	if (result) {
-		std.setError("J-Link connect failed");
-		throw;
-	}
+	if (result)
+		throw "J-Link connect failed";
 
 	int connectionCount = m_jlinkLib.lib.JLINK_EMU_GetNumConnections();
 	int isHalted = m_jlinkLib.lib.JLINK_IsHalted();

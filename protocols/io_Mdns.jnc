@@ -367,10 +367,8 @@ void const* layoutMdnsRecord(
 				p = &suffix + 1;
 
 				void const* dataEnd = p + suffix.m_dataLength;
-				if (dataEnd > end) {
-					std.setError("truncated mDNS record data");
-					throw;
-				}
+				if (dataEnd > end)
+					throw "truncated mDNS record data";
 
 				p = layoutMdnsRecordData(layout, suffix.m_type, base, p, dataEnd, record);
 
@@ -427,10 +425,8 @@ void const* layoutMdnsRecordData(
 		case DnsType.TXT:
 			while (p < end) {
 				size_t length = *(uchar_t const*)p;
-				if (length >= end - p) {
-					std.setError("invalid mDNS TXT record");
-					throw;
-				}
+				if (length >= end - p)
+					throw "invalid mDNS TXT record";
 
 				[
 					displayName = "Text",
@@ -493,10 +489,8 @@ void const* layoutMdnsRecordData(
 		}
 	}
 
-	if (p > end) {
-		std.setError("invalid mDNS record data");
-		throw;
-	}
+	if (p > end)
+		throw "invalid mDNS record data";
 
 	if (record)
 		record.m_targetName = targetName;
@@ -543,10 +537,8 @@ bool errorcode MdnsQueryBuilder.addQuestion(
 	if (length && name.m_p[length - 1] == '.')
 		length--;
 
-	if (length > 253) {
-		std.setError("DNS name too long");
-		return false;
-	}
+	if (length > 253)
+		return std.fail("DNS name too long");
 
 	size_t offset = m_buffer.m_size;
 	size_t i = 0;
@@ -556,8 +548,7 @@ bool errorcode MdnsQueryBuilder.addQuestion(
 		size_t labelLength = j - i;
 		if (!labelLength || labelLength > 63) {
 			m_buffer.setSize(offset);
-			std.setError("invalid DNS name label");
-			return false;
+			return std.fail("invalid DNS name label");
 		}
 
 		m_buffer.append((char)labelLength);

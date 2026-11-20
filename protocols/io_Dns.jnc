@@ -342,29 +342,23 @@ void const* errorcode formatDnsNameImpl(
 	void const* limit = p;
 
 	for (;;) {
-		if (p >= end) {
-			std.setError("truncated DNS name");
-			return null;
-		}
+		if (p >= end)
+			return std.failEx<void*>(null, "truncated DNS name");
 
 		uchar_t c = *(uchar_t const*)p++;
 		if (!c)
 			break;
 
 		if ((c & 0xc0) == 0xc0) { // pointer
-			if (p >= end) {
-				std.setError("truncated DNS name");
-				return null;
-			}
+			if (p >= end)
+				return std.failEx<void*>(null, "truncated DNS name");
 
 			size_t offset = ((c & ~0xc0) << 8) | *(uchar_t const*)p++;
 			if (!nameEnd)
 				nameEnd = p;
 
-			if (offset >= limit - base) {
-				std.setError("invalid DNS name pointer");
-				return null;
-			}
+			if (offset >= limit - base)
+				return std.failEx<void*>(null, "invalid DNS name pointer");
 
 			p = base + offset;
 			limit = p;
@@ -372,8 +366,7 @@ void const* errorcode formatDnsNameImpl(
 		}
 
 		if ((c & 0xc0) || c > end - p) { // 0x40 & 0x80 label types are reserved
-			std.setError("invalid DNS name label");
-			return null;
+			return std.failEx<void*>(null, "invalid DNS name label");
 		}
 
 		if (string.m_length)

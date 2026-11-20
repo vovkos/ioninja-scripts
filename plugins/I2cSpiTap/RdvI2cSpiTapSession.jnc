@@ -222,10 +222,8 @@ void RdvI2cSpiTapSession.createUi() {
 
 bool errorcode RdvI2cSpiTapSession.connect() {
 	iox.RendezvousHwcDevice* device = m_rdvUi.m_device;
-	if (!device) {
-		std.setError("no remote I2C/SPI Tap selected");
-		return false;
-	}
+	if (!device)
+		return std.fail("no remote I2C/SPI Tap selected");
 
 	disconnect();
 	startSession();

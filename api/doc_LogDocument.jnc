@@ -29,8 +29,7 @@ public:
 		void const* p,
 		size_t size
 	) {
-		std.setError("invalid request: LogDocument.transmit");
-		return -1;
+		return std.failEx(-1, "invalid request: LogDocument.transmit");
 	}
 }
 

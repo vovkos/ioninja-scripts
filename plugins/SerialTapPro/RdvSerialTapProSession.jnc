@@ -311,10 +311,8 @@ void RdvSerialTapProSession.createUi() {
 
 bool errorcode RdvSerialTapProSession.connect() {
 	iox.RendezvousHwcDevice* device = m_rdvUi.m_device;
-	if (!device) {
-		std.setError("no remote Serial Tap Pro selected");
-		return false;
-	}
+	if (!device)
+		return std.fail("no remote Serial Tap Pro selected");
 
 	disconnect();
 	startSession();
