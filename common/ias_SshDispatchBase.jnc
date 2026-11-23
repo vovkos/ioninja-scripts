@@ -35,7 +35,7 @@ enum SshPasswordPersistence { // mirrors iox.SshChannel.PasswordPersistence
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-// mixed into a session family interface, e.g. ias.SshDispatchBase<ias.SerialDispatchBase>
+// mixed into the dispatch base chain, e.g. ias.SshDispatchBase<ias.SerialDispatchBase<ias.PluginDispatch> >
 
 class SshDispatchBase<B>: B {
 	property m_url { // [user@]host[:port][/device]

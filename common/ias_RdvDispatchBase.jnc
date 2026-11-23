@@ -24,7 +24,7 @@ enum RdvState { // mirrors iox.Rendezvous.State
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-// mixed into a session family interface, e.g. ias.RdvDispatchBase<ias.SerialDispatchBase>
+// mixed into the dispatch base chain, e.g. ias.RdvDispatchBase<ias.SerialDispatchBase<ias.PluginDispatch> >
 
 class RdvDispatchBase<B>: B {
 	property m_device { // as shown in the device combo (and saved in .njssn)

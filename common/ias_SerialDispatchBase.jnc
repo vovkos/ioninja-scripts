@@ -15,7 +15,9 @@ namespace ias {
 
 //..............................................................................
 
-class SerialDispatchBase: ias.PluginDispatch {
+// mixed into the dispatch base chain, e.g. ias.SerialDispatchBase<ias.PluginDispatch>
+
+class SerialDispatchBase<B>: B {
 	property m_baudRate {
 		uint_t get() {
 			return dispatchGet(SerialDispatchCode.GetBaudRate);

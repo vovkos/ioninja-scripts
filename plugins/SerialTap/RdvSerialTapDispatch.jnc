@@ -8,10 +8,6 @@ import "ias_RdvDispatchBase.jnc"
 
 //..............................................................................
 
-class RdvSerialTapDispatch: ias.RdvDispatchBase<ias.SerialDispatchBase> {
-	construct(intptr handle) {
-		basetype.construct(handle);
-	}
-}
+typedef ias.RdvDispatchBase<ias.SerialDispatchBase<ias.PluginDispatch> > RdvSerialTapDispatch;
 
 //..............................................................................

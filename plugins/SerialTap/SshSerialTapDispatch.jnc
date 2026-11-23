@@ -8,10 +8,6 @@ import "ias_SshDispatchBase.jnc"
 
 //..............................................................................
 
-class SshSerialTapDispatch: ias.SshDispatchBase<ias.SerialDispatchBase> {
-	construct(intptr handle) {
-		basetype.construct(handle);
-	}
-}
+typedef ias.SshDispatchBase<ias.SerialDispatchBase<ias.PluginDispatch> > SshSerialTapDispatch;
 
 //..............................................................................

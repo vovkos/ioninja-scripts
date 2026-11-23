@@ -7,7 +7,7 @@ import "ias_SerialDispatchBase.jnc"
 
 //..............................................................................
 
-class SerialDispatch: ias.SerialDispatchBase {
+class SerialDispatch: ias.SerialDispatchBase<ias.PluginDispatch> {
 	property m_portName {
 		string_t get() {
 			return dispatchGet(SerialDispatchCode.GetPortName);
