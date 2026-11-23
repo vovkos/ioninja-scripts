@@ -992,13 +992,27 @@ bool errorcode UsbEndpointSession.dispatch(
 		return std.fail("not yet implemented");
 
 	case UsbEndpointDispatchCode.StartControlTransfer:
+		io.UsbControlSetup setup = in; // null -> all-zero -> OUT GET_STATUS (invalid) -> use the current settings
+		if (setup.m_requestType.m_direction == io.UsbControlDirection.Out &&
+			setup.m_requestType.m_type == io.UsbControlType.Standard &&
+			setup.m_request == io.UsbControlStdRequest.GetStatus
+		)
+			return startControlTransfer(
+				m_controlDirectionCombo.m_currentData,
+				m_controlRecipientCombo.m_currentData,
+				m_controlTypeCombo.m_currentData,
+				strtoul(m_controlCodeCombo.m_editText),
+				strtoul(m_controlValueEdit.m_text),
+				strtoul(m_controlIndexEdit.m_text)
+			);
+
 		return startControlTransfer(
-			m_controlDirectionCombo.m_currentData,
-			m_controlRecipientCombo.m_currentData,
-			m_controlTypeCombo.m_currentData,
-			strtoul(m_controlCodeCombo.m_editText),
-			strtoul(m_controlValueEdit.m_text),
-			strtoul(m_controlIndexEdit.m_text)
+			(io.UsbControlDirection)setup.m_requestType.m_direction,
+			(io.UsbControlRecipient)setup.m_requestType.m_recipient,
+			(io.UsbControlType)setup.m_requestType.m_type,
+			setup.m_request,
+			setup.m_value,
+			setup.m_index
 		);
 
 	default:

@@ -145,7 +145,7 @@ class UsbEndpointDispatch: ias.PluginDispatch {
 	bool errorcode startControlTransfer(
 		io.UsbControlDirection direction,
 		io.UsbControlRecipient recipient,
-		io.UsbControlDirection type,
+		io.UsbControlType type,
 		uint_t request,
 		uint_t value,
 		uint_t index

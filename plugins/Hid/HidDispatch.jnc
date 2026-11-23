@@ -28,7 +28,7 @@ class HidDispatch: ias.PluginDispatch {
 
 	property m_transmitMode {
 		HidTransmitMode get() {
-			return dispatch(HidDispatchCode.GetTransmitMode);
+			return dispatchGet(HidDispatchCode.GetTransmitMode);
 		}
 
 		void set(HidTransmitMode mode) {
