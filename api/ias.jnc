@@ -135,6 +135,20 @@ void sendMessage(
 	sendMessage(receiverId, messageId, text.m_p, text.m_length);
 }
 
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+// capture the screen area of the main window (incl. title bar and open popups);
+// the rectangle is relative to the visible window frame; -1 means "up to the edge";
+// the image format is deduced from the file extension (.png, .jpg, ...)
+
+bool errorcode captureScreenshot(
+	string_t fileName,
+	int x = 0,
+	int y = 0,
+	uint_t width = -1,
+	uint_t height = -1
+);
+
 //..............................................................................
 
 // entry points for the script (beware the thread context!)
