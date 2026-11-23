@@ -1,0 +1,78 @@
+//..............................................................................
+//
+// IO Ninja IAS (In-App Scripting) screencast API for Jancy
+//
+// Only available in NJ_SCREENCAST_MODE builds and never imported automatically;
+// screenshot/screencast scripts do: import "ias_Screencast.jnc"
+//
+
+import "log_Log.jnc"
+
+//! \addtogroup api-ias
+//! @{
+
+//..............................................................................
+
+// the script's own view of the log (e.g., a folding filter to expand particular
+// records); everything installed here is removed -- and the log is rebuilt --
+// when the script terminates
+
+log.Log* const property g_log;
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+// capture the screen area of the main window (incl. title bar and open popups);
+// the rectangle is relative to the visible window frame; -1 means "up to the edge";
+// the image format is deduced from the file extension (.png, .jpg, ...)
+
+bool errorcode captureScreenshot(
+	string_t fileName,
+	int x = 0,
+	int y = 0,
+	uint_t width = -1,
+	uint_t height = -1
+);
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+// UI control; asynchronous, but ordered with captureScreenshot
+
+enum Pane {
+	Control,
+	Information,
+	Script,
+	Transmit,
+	PacketHistory,
+	PacketLibrary,
+}
+
+void resetLayout(); // View -> Reset Layout
+
+void showPane( // showing also raises a tabbed pane
+	Pane pane,
+	bool isVisible = true
+);
+
+void resizePane(
+	Pane pane,
+	uint_t width = -1, // -1 = keep
+	uint_t height = -1
+);
+
+void setTransmitText(string_t text); // + switch to the Text tab
+
+void setTransmitData( // + switch to the Binary tab
+	void const* p,
+	size_t size
+);
+
+void scrollLog(uint64_t line = 0); // -1 = stick to bottom (the cursor goes to the last record)
+
+void setLogPos( // moves the log cursor (the detail pane shows the record under it)
+	int64_t line, // negative: from the end (-1 = the last line)
+	uint_t col = 0
+);
+
+//..............................................................................
+
+//! @}
