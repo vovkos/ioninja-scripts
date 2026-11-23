@@ -1,0 +1,22 @@
+//..............................................................................
+//
+// Mailslot Monitor session dispatch codes for IAS
+//
+
+//..............................................................................
+
+enum MailslotMonDispatchCode: uint64_t {
+	GetCaptureFilter = 0x01dd7afdfee36000,
+	SetCaptureFilter,
+	GetViewFilterKind,
+	SetViewFilterKind,
+	GetViewFilter,
+	SetViewFilter,
+	GetLanmanMonitorEnabled,
+	SetLanmanMonitorEnabled,
+	Capture,
+	Close,
+	ApplyViewFilter,
+}
+
+//..............................................................................

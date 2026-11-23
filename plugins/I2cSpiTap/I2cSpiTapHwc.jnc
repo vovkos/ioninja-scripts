@@ -13,6 +13,7 @@ import "std_Buffer.jnc"
 import "I2cSpiTapLogRecordCode.jnc"
 import "I2cDecoder.jnc"
 import "SpiDecoder.jnc"
+import "ias_I2cSpiTapDispatchCode.jnc"
 
 //..............................................................................
 
@@ -95,6 +96,14 @@ public:
 	bool writeLog(
 		log.Writer* logWriter,
 		io.HwcMsgHdr const* hdr
+	);
+
+	// handles ias.I2cSpiTapDispatchCode; settings take effect on the next capture
+
+	bool errorcode dispatch(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
 	);
 }
 
@@ -361,6 +370,59 @@ reactor I2cSpiTapHwcUi.m_uiReactor {
 	m_spiFlipMosiMisoProp.m_isEnabled = m_protocolProp.m_value == Protocol.Spi;
 	m_flipAction.m_isEnabled = m_protocolCombo.m_currentData == Protocol.Spi;
 	m_logUpdateRateLimitProp.m_isEnabled = m_useLogUpdateRateLimitProp.m_value;
+}
+
+bool errorcode I2cSpiTapHwcUi.dispatch(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case ias.I2cSpiTapDispatchCode.GetProtocol:
+		*out = m_protocolCombo.m_currentData;
+		break;
+
+	case ias.I2cSpiTapDispatchCode.SetProtocol:
+		m_protocolCombo.m_currentData = in;
+		break;
+
+	case ias.I2cSpiTapDispatchCode.GetSpiMode:
+		*out = m_spiModeProp.m_value;
+		break;
+
+	case ias.I2cSpiTapDispatchCode.SetSpiMode:
+		m_spiModeProp.m_value = in;
+		break;
+
+	case ias.I2cSpiTapDispatchCode.GetSpiDataBits:
+		*out = m_spiDataBitsProp.m_value;
+		break;
+
+	case ias.I2cSpiTapDispatchCode.SetSpiDataBits:
+		m_spiDataBitsProp.m_value = in;
+		break;
+
+	case ias.I2cSpiTapDispatchCode.GetSpiBigEndian:
+		*out = m_spiEndiannessProp.m_value;
+		break;
+
+	case ias.I2cSpiTapDispatchCode.SetSpiBigEndian:
+		m_spiEndiannessProp.m_value = in;
+		break;
+
+	case ias.I2cSpiTapDispatchCode.GetSpiFlipMosiMiso:
+		*out = m_flipAction.m_isChecked;
+		break;
+
+	case ias.I2cSpiTapDispatchCode.SetSpiFlipMosiMiso:
+		m_flipAction.m_isChecked = in;
+		break;
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
+
+	return true;
 }
 
 //..............................................................................

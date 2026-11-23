@@ -16,8 +16,10 @@ log-guid    = 8383248D-607F-431A-9414-178C23FD9603  # mailslot
 icon        = images/mailslot.png
 small-icon  = images/mailslot-16x16.png
 
-session-class = MailslotSession
-null-packets  = true
+session-class     = MailslotSession
+dispatch-class    = MailslotDispatch
+dispatch-variable = g_mailslot
+null-packets      = true
 
 [required-capabilities]
 
@@ -26,3 +28,9 @@ org.jancy.io.win.mailslot
 [scripts]
 
 MailslotSession.jnc
+MailslotDispatchCode.jnc
+
+[dispatch-scripts]
+
+MailslotDispatchCode.jnc
+MailslotDispatch.jnc

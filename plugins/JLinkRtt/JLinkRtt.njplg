@@ -15,7 +15,9 @@ log-guid    = db8c8923-a699-46cc-be7c-f0bcd523082b  # socket
 icon        = images/jlink.png
 small-icon  = images/jlink-16x16.png
 
-session-class = JLinkRttSession
+session-class     = JLinkRttSession
+dispatch-class    = JLinkRttDispatch
+dispatch-variable = g_jlinkRtt
 
 [optional-capabilities]
 
@@ -27,6 +29,7 @@ org.jancy.io.ip6
 [scripts]
 
 JLinkRttSession.jnc
+JLinkRttDispatchCode.jnc
 
 [scripts-win]
 
@@ -39,3 +42,8 @@ io_JLink_lnx.jnc
 [scripts-drw]
 
 io_JLink_drw.jnc
+
+[dispatch-scripts]
+
+JLinkRttDispatchCode.jnc
+JLinkRttDispatch.jnc

@@ -19,7 +19,9 @@ log-guid    = 7940a0d5-a84b-4509-bae4-b5928511472d  # ssl
 icon        = images/sniffer.png
 small-icon  = images/sniffer-16x16.png
 
-session-class = RdvEthernetTapSession
+session-class     = RdvEthernetTapSession
+dispatch-class    = RdvEthernetTapDispatch
+dispatch-variable = g_ethernetTap
 
 [required-capabilities]
 
@@ -36,3 +38,7 @@ org.jancy.io.file
 
 EthernetTap.jnc
 RdvEthernetTapSession.jnc
+
+[dispatch-scripts]
+
+RdvEthernetTapDispatch.jnc

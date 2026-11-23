@@ -19,7 +19,9 @@ log-guid    = db8c8923-a699-46cc-be7c-f0bcd523082b  # socket
 icon        = images/udp-flow-mon.png
 small-icon  = images/udp-flow-mon-16x16.png
 
-session-class = UdpFlowMonSession
+session-class     = UdpFlowMonSession
+dispatch-class    = UdpFlowMonDispatch
+dispatch-variable = g_udpFlowMon
 
 [required-capabilities]
 
@@ -31,3 +33,9 @@ org.jancy.io.pcap
 UdpFlowMonSession.jnc
 UdpFlowLogFilter.jnc
 UdpDecoder.jnc
+UdpFlowMonDispatchCode.jnc
+
+[dispatch-scripts]
+
+UdpFlowMonDispatchCode.jnc
+UdpFlowMonDispatch.jnc

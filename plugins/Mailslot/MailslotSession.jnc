@@ -83,6 +83,12 @@ public:
 	override bool errorcode applyProperties();
 	override void restoreDefaultProperties();
 
+	override bool errorcode dispatch(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
+	);
+
 protected:
 	void createUi();
 
@@ -293,6 +299,37 @@ reactor MailslotSession.m_uiReactor {
 	m_actionTable[ActionId.Open].m_text = m_state ? "Close" : "Open";
 	m_actionTable[ActionId.Open].m_icon = m_iconTable[m_state ? IconId.Close : IconId.Open];
 	m_statusPaneTable[StatusPaneId.State].m_text = m_state ? "Opened" : "Closed";
+}
+
+bool errorcode MailslotSession.dispatch(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case MailslotDispatchCode.GetMailslotName:
+		*out = m_nameCombo.m_editText;
+		break;
+
+	case MailslotDispatchCode.SetMailslotName:
+		m_nameCombo.m_editText = in;
+		break;
+
+	case MailslotDispatchCode.Open:
+		if (in) // null = use the current mailslot name
+			m_nameCombo.m_editText = in;
+
+		return open();
+
+	case MailslotDispatchCode.Close:
+		close();
+		break;
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
+
+	return true;
 }
 
 //..............................................................................

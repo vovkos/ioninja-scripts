@@ -16,7 +16,9 @@ log-guid    = db8c8923-a699-46cc-be7c-f0bcd523082b  # socket
 icon        = images/ssh.png
 small-icon  = images/ssh-16x16.png
 
-session-class = SshChannelSession
+session-class     = SshChannelSession
+dispatch-class    = SshChannelDispatch
+dispatch-variable = g_ssh
 
 [required-capabilities]
 
@@ -32,3 +34,9 @@ org.jancy.io.file
 [scripts]
 
 SshChannelSession.jnc
+SshChannelDispatchCode.jnc
+
+[dispatch-scripts]
+
+SshChannelDispatchCode.jnc
+SshChannelDispatch.jnc

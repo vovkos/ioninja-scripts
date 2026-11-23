@@ -20,7 +20,9 @@ log-guid    = db8c8923-a699-46cc-be7c-f0bcd523082b  # socket
 icon        = images/serialmon.png
 small-icon  = images/serialmon-16x16.png
 
-session-class = SshSerialMonSession
+session-class     = SshSerialMonSession
+dispatch-class    = SshSerialMonDispatch
+dispatch-variable = g_serialMon
 
 [required-capabilities]
 
@@ -40,3 +42,7 @@ SerialMonitor_mi.jnc
 SerialMonProcessor.jnc
 SerialMonProcessor_win.jnc
 SerialMonProcessor_lnx.jnc
+
+[dispatch-scripts]
+
+SshSerialMonDispatch.jnc

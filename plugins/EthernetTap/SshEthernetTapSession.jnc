@@ -17,12 +17,16 @@ import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
 import "std_Buffer.jnc"
 import "EthernetTapLogRecordCode.jnc"
+import "doc_SshDispatchImpl.jnc"
 
 //..............................................................................
 
 class SshEthernetTapSession:
 	doc.Session,
-	iox.HwcTransportSink {
+	iox.HwcTransportSink,
+	doc.SshDispatchImpl<SshEthernetTapSession> {
+	friend doc.SshDispatchImpl;
+
 protected:
 	alias SshState = iox.SshChannel.State;
 
@@ -103,6 +107,12 @@ public:
 	override void disconnectSession() {
 		disconnect();
 	}
+
+	override bool errorcode dispatch(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
+	);
 
 protected:
 	void onConnected();
@@ -430,6 +440,28 @@ reactor SshEthernetTapSession.m_uiReactor {
 		m_ssh.m_remoteAddress.getString() :
 		"<peer-address>";
 	m_statusPaneTable[StatusPaneId.RemoteAddress].m_isVisible = m_ssh.m_state > SshState.Resolving;
+}
+
+bool errorcode SshEthernetTapSession.dispatch(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case ias.SshDispatchCode.GetUrl:
+	case ias.SshDispatchCode.SetUrl:
+	case ias.SshDispatchCode.GetUserName:
+	case ias.SshDispatchCode.SetUserName:
+	case ias.SshDispatchCode.SetPassword:
+	case ias.SshDispatchCode.SetPasswordNextConnectOnly:
+	case ias.SshDispatchCode.GetState:
+	case ias.SshDispatchCode.Connect:
+	case ias.SshDispatchCode.Disconnect:
+		return dispatchSsh(code, in, out);
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
 }
 
 //..............................................................................

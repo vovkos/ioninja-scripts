@@ -1,0 +1,24 @@
+//..............................................................................
+//
+// Ethernet Tap session dispatch interface for IAS
+//
+
+import "ias_PluginDispatch.jnc"
+
+//..............................................................................
+
+class EthernetTapDispatch: ias.PluginDispatch {
+	construct(intptr handle) {
+		basetype.construct(handle);
+	}
+
+	bool errorcode capture() {
+		return dispatch(EthernetTapDispatchCode.Capture);
+	}
+
+	void stopCapture() {
+		dispatch(EthernetTapDispatchCode.StopCapture);
+	}
+}
+
+//..............................................................................

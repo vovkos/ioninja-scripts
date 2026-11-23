@@ -1,0 +1,23 @@
+//..............................................................................
+//
+// SSL Server session dispatch codes for IAS
+//
+
+//..............................................................................
+
+enum SslServerDispatchCode: uint64_t {
+	GetLocalPort = 0x01dd7afdfee28000,
+	SetLocalPort,
+	GetCertificateUsed,
+	SetCertificateUsed,
+	GetCertificateFile,
+	SetCertificateFile,
+	GetPrivateKeyFile,
+	SetPrivateKeyFile,
+	Listen,
+	StopListen,
+	Disconnect,
+	DisconnectAll,
+}
+
+//..............................................................................

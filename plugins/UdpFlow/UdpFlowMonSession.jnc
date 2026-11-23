@@ -111,6 +111,12 @@ public:
 	override bool errorcode applyProperties();
 	override void restoreDefaultProperties();
 
+	override bool errorcode dispatch(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
+	);
+
 protected:
 	void onSetViewFilter() {
 		try applyViewFilter(true);
@@ -549,6 +555,85 @@ reactor UdpFlowMonSession.m_uiReactor {
 	m_actionTable[ActionId.Capture].m_text = m_state ? "Stop Capture" : "Capture";
 	m_actionTable[ActionId.Capture].m_icon = m_iconTable[m_state ? IconId.StopCapture : IconId.Capture];
 	m_statusPaneTable[StatusPaneId.State].m_text = m_state ? "Capturing" : "Closed";
+}
+
+bool errorcode UdpFlowMonSession.dispatch(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case UdpFlowMonDispatchCode.GetDeviceName:
+		io.PcapDeviceDesc const* device = m_deviceCombo.m_currentData;
+		*out = device ? device.m_name : null;
+		break;
+
+	case UdpFlowMonDispatchCode.SetDeviceName:
+		string_t name = in;
+		size_t count = m_deviceCombo.m_itemCount;
+		size_t i = 0;
+		for (; i < count; i++) {
+			io.PcapDeviceDesc const* device = m_deviceCombo.m_itemData[i];
+			if (device.m_name == name || device.m_description == name)
+				break;
+		}
+
+		if (i == count)
+			return std.fail($"pcap device '$(name)' not found");
+
+		m_deviceCombo.m_currentIndex = i;
+		break;
+
+	case UdpFlowMonDispatchCode.GetPromiscuous:
+		*out = m_promisciousProp.m_value;
+		break;
+
+	case UdpFlowMonDispatchCode.SetPromiscuous:
+		m_promisciousProp.m_value = in;
+		break;
+
+	case UdpFlowMonDispatchCode.GetCaptureFilter:
+		*out = m_captureFilterProp.m_value;
+		break;
+
+	case UdpFlowMonDispatchCode.SetCaptureFilter:
+		m_captureFilterProp.m_value = in;
+		break;
+
+	case UdpFlowMonDispatchCode.GetViewFilter:
+		*out = m_viewFilterCombo.m_editText;
+		break;
+
+	case UdpFlowMonDispatchCode.SetViewFilter:
+		m_viewFilterCombo.m_editText = in;
+		break;
+
+	case UdpFlowMonDispatchCode.GetSnapshotSize:
+		*out = m_snapshotSizeProp.m_value;
+		break;
+
+	case UdpFlowMonDispatchCode.SetSnapshotSize:
+		m_snapshotSizeProp.m_value = in;
+		break;
+
+	case UdpFlowMonDispatchCode.Capture:
+		return capture();
+
+	case UdpFlowMonDispatchCode.OpenPcapFile:
+		return openPcapFile((string_t)in);
+
+	case UdpFlowMonDispatchCode.StopCapture:
+		stopCapture();
+		break;
+
+	case UdpFlowMonDispatchCode.ApplyViewFilter:
+		return applyViewFilter(true);
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
+
+	return true;
 }
 
 //..............................................................................

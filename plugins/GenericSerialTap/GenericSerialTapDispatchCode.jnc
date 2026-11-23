@@ -1,0 +1,23 @@
+//..............................................................................
+//
+// Generic Serial Tap session dispatch codes for IAS (extends ias.SerialDispatchCode)
+//
+
+import "ias_SerialDispatchCode.jnc"
+
+//..............................................................................
+
+enum GenericSerialTapDispatchCode: ias.SerialDispatchCode {
+	GetDtePortName = 0x01dd7afdfee41000,
+	SetDtePortName,
+	GetDcePortName,
+	SetDcePortName,
+	GetReadMode,
+	SetReadMode,
+	GetReadInterval,
+	SetReadInterval,
+	Open,
+	Close,
+}
+
+//..............................................................................

@@ -111,6 +111,12 @@ public:
 	override bool errorcode applyProperties();
 	override void restoreDefaultProperties();
 
+	override bool errorcode dispatch(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
+	);
+
 protected:
 	void handleConnectError(std.Error const* error);
 	void onSocketEvent(
@@ -498,6 +504,45 @@ reactor ModbusGatewayMonSession.m_uiReactor {
 	m_statusPaneTable[StatusPaneId.State].m_text = m_stateStringTable[m_state];
 	m_statusPaneTable[StatusPaneId.RemoteAddress].m_text = m_state > State.Resolving ? m_remoteAddress.getString() : "<peer-address>";
 	m_statusPaneTable[StatusPaneId.RemoteAddress].m_isVisible = m_state > State.Resolving;
+}
+
+bool errorcode ModbusGatewayMonSession.dispatch(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case ModbusGatewayMonDispatchCode.GetRemoteAddress:
+		*out = m_addressCombo.m_editText;
+		break;
+
+	case ModbusGatewayMonDispatchCode.SetRemoteAddress:
+		m_addressCombo.m_editText = in;
+		break;
+
+	case ModbusGatewayMonDispatchCode.GetRemotePort:
+		*out = m_socketPropertySet.m_remotePortProp.m_value;
+		break;
+
+	case ModbusGatewayMonDispatchCode.SetRemotePort:
+		m_socketPropertySet.m_remotePortProp.m_value = in;
+		break;
+
+	case ModbusGatewayMonDispatchCode.Connect:
+		if (in)
+			m_addressCombo.m_editText = in;
+
+		return connect();
+
+	case ModbusGatewayMonDispatchCode.Disconnect:
+		disconnect();
+		break;
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
+
+	return true;
 }
 
 //..............................................................................

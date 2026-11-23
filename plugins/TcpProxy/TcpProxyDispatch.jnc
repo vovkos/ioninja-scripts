@@ -1,0 +1,67 @@
+//..............................................................................
+//
+// TCP Proxy session dispatch interface for IAS
+//
+
+import "ias_PluginDispatch.jnc"
+
+//..............................................................................
+
+class TcpProxyDispatch: ias.PluginDispatch {
+	property m_targetAddress {
+		string_t get() {
+			return dispatchGet(TcpProxyDispatchCode.GetTargetAddress);
+		}
+
+		void set(string_t value) {
+			dispatch(TcpProxyDispatchCode.SetTargetAddress, value);
+		}
+	}
+
+	property m_targetPort {
+		uint_t get() {
+			return dispatchGet(TcpProxyDispatchCode.GetTargetPort);
+		}
+
+		void set(uint_t value) {
+			dispatch(TcpProxyDispatchCode.SetTargetPort, value);
+		}
+	}
+
+	property m_localPort {
+		uint_t get() {
+			return dispatchGet(TcpProxyDispatchCode.GetLocalPort);
+		}
+
+		void set(uint_t value) {
+			dispatch(TcpProxyDispatchCode.SetLocalPort, value);
+		}
+	}
+
+	construct(intptr handle) {
+		basetype.construct(handle);
+	}
+
+	bool errorcode listen() {
+		return dispatch(TcpProxyDispatchCode.Listen);
+	}
+
+	bool errorcode listen(uint_t port) {
+		dispatch(TcpProxyDispatchCode.SetLocalPort, port);
+		return dispatch(TcpProxyDispatchCode.Listen);
+	}
+
+	void stopListen() {
+		dispatch(TcpProxyDispatchCode.StopListen);
+	}
+
+	void disconnect() {
+		dispatch(TcpProxyDispatchCode.Disconnect);
+	}
+
+	void disconnectAll() {
+		dispatch(TcpProxyDispatchCode.DisconnectAll);
+	}
+}
+
+//..............................................................................

@@ -13,8 +13,10 @@ log-guid    = 1dfd5eb0-9560-11e3-a5e2-0800200c9a66  # file
 icon        = images/file.png
 small-icon  = images/file-16x16.png
 
-session-class = FileSession
-null-packets  = true
+session-class     = FileSession
+dispatch-class    = FileDispatch
+dispatch-variable = g_file
+null-packets      = true
 
 [required-capabilities]
 
@@ -23,3 +25,9 @@ org.jancy.io.file-stream
 [scripts]
 
 FileSession.jnc
+FileDispatchCode.jnc
+
+[dispatch-scripts]
+
+FileDispatchCode.jnc
+FileDispatch.jnc

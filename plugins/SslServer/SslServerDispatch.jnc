@@ -1,0 +1,77 @@
+//..............................................................................
+//
+// SSL Server session dispatch interface for IAS
+//
+
+import "ias_PluginDispatch.jnc"
+
+//..............................................................................
+
+class SslServerDispatch: ias.PluginDispatch {
+	property m_localPort {
+		uint_t get() {
+			return dispatchGet(SslServerDispatchCode.GetLocalPort);
+		}
+
+		void set(uint_t value) {
+			dispatch(SslServerDispatchCode.SetLocalPort, value);
+		}
+	}
+
+	property m_isCertificateUsed {
+		bool get() {
+			return dispatchGet(SslServerDispatchCode.GetCertificateUsed);
+		}
+
+		void set(bool value) {
+			dispatch(SslServerDispatchCode.SetCertificateUsed, value);
+		}
+	}
+
+	property m_certificateFile {
+		string_t get() {
+			return dispatchGet(SslServerDispatchCode.GetCertificateFile);
+		}
+
+		void set(string_t value) {
+			dispatch(SslServerDispatchCode.SetCertificateFile, value);
+		}
+	}
+
+	property m_privateKeyFile {
+		string_t get() {
+			return dispatchGet(SslServerDispatchCode.GetPrivateKeyFile);
+		}
+
+		void set(string_t value) {
+			dispatch(SslServerDispatchCode.SetPrivateKeyFile, value);
+		}
+	}
+
+	construct(intptr handle) {
+		basetype.construct(handle);
+	}
+
+	bool errorcode listen() {
+		return dispatch(SslServerDispatchCode.Listen);
+	}
+
+	bool errorcode listen(uint_t port) {
+		dispatch(SslServerDispatchCode.SetLocalPort, port);
+		return dispatch(SslServerDispatchCode.Listen);
+	}
+
+	void stopListen() {
+		dispatch(SslServerDispatchCode.StopListen);
+	}
+
+	void disconnect() {
+		dispatch(SslServerDispatchCode.Disconnect);
+	}
+
+	void disconnectAll() {
+		dispatch(SslServerDispatchCode.DisconnectAll);
+	}
+}
+
+//..............................................................................

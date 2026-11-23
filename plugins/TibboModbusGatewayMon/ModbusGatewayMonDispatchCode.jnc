@@ -1,0 +1,17 @@
+//..............................................................................
+//
+// Tibbo Modbus Gateway Monitor session dispatch codes for IAS
+//
+
+//..............................................................................
+
+enum ModbusGatewayMonDispatchCode: uint64_t {
+	GetRemoteAddress = 0x01dd7afdfee2a000,
+	SetRemoteAddress,
+	GetRemotePort,
+	SetRemotePort,
+	Connect,
+	Disconnect,
+}
+
+//..............................................................................

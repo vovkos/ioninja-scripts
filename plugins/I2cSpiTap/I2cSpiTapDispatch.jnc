@@ -1,0 +1,24 @@
+//..............................................................................
+//
+// I2C/SPI Tap session dispatch interface for IAS
+//
+
+import "ias_I2cSpiTapDispatchBase.jnc"
+
+//..............................................................................
+
+class I2cSpiTapDispatch: ias.I2cSpiTapDispatchBase<ias.PluginDispatch> {
+	construct(intptr handle) {
+		basetype.construct(handle);
+	}
+
+	bool errorcode capture() {
+		return dispatch(I2cSpiTapDispatchCode.Capture);
+	}
+
+	void stopCapture() {
+		dispatch(I2cSpiTapDispatchCode.StopCapture);
+	}
+}
+
+//..............................................................................

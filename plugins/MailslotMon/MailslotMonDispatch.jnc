@@ -1,0 +1,78 @@
+//..............................................................................
+//
+// Mailslot Monitor session dispatch interface for IAS
+//
+
+import "ias_PluginDispatch.jnc"
+
+//..............................................................................
+
+enum MailslotMonViewFilterKind { // mirrors log.MonitorFilterKind
+	None,
+	FileName,
+	FileId,
+	ProcessName,
+	ProcessId,
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+class MailslotMonDispatch: ias.PluginDispatch {
+	property m_captureFilter { // name wildcard (* and ?); null = capture all
+		string_t get() {
+			return dispatchGet(MailslotMonDispatchCode.GetCaptureFilter);
+		}
+
+		void set(string_t value) {
+			dispatch(MailslotMonDispatchCode.SetCaptureFilter, value);
+		}
+	}
+
+	property m_viewFilterKind {
+		MailslotMonViewFilterKind get() {
+			return dispatchGet(MailslotMonDispatchCode.GetViewFilterKind);
+		}
+
+		void set(MailslotMonViewFilterKind value) {
+			dispatch(MailslotMonDispatchCode.SetViewFilterKind, value);
+		}
+	}
+
+	property m_viewFilter { // takes effect on capture() or applyViewFilter()
+		string_t get() {
+			return dispatchGet(MailslotMonDispatchCode.GetViewFilter);
+		}
+
+		void set(string_t value) {
+			dispatch(MailslotMonDispatchCode.SetViewFilter, value);
+		}
+	}
+
+	property m_isLanmanMonitorEnabled {
+		bool get() {
+			return dispatchGet(MailslotMonDispatchCode.GetLanmanMonitorEnabled);
+		}
+
+		void set(bool value) {
+			dispatch(MailslotMonDispatchCode.SetLanmanMonitorEnabled, value);
+		}
+	}
+
+	construct(intptr handle) {
+		basetype.construct(handle);
+	}
+
+	bool errorcode capture() {
+		return dispatch(MailslotMonDispatchCode.Capture);
+	}
+
+	void close() {
+		dispatch(MailslotMonDispatchCode.Close);
+	}
+
+	void applyViewFilter() {
+		dispatch(MailslotMonDispatchCode.ApplyViewFilter);
+	}
+}
+
+//..............................................................................

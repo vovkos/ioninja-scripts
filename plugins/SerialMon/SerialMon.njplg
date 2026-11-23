@@ -18,7 +18,9 @@ log-guid    = 323abaeb-7859-48bc-8e24-f8c082b04ff7  # device monitor
 icon        = images/serialmon.png
 small-icon  = images/serialmon-16x16.png
 
-session-class = SerialMonSession
+session-class     = SerialMonSession
+dispatch-class    = SerialMonDispatch
+dispatch-variable = g_serialMon
 
 [required-capabilities]
 
@@ -31,3 +33,9 @@ SerialMonitor.jnc
 SerialMonProcessor.jnc
 SerialMonProcessor_win.jnc
 SerialMonProcessor_lnx.jnc
+SerialMonDispatchCode.jnc
+
+[dispatch-scripts]
+
+SerialMonDispatchCode.jnc
+SerialMonDispatch.jnc

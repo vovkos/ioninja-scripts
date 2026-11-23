@@ -14,7 +14,9 @@ log-guid    = 680a931c-9f3d-46b4-9aad-600a453c61e7  # process
 icon        = images/process.png
 small-icon  = images/process-16x16.png
 
-session-class = ProcessSession
+session-class     = ProcessSession
+dispatch-class    = ProcessDispatch
+dispatch-variable = g_process
 
 [required-capabilities]
 
@@ -27,3 +29,9 @@ org.jancy.io.file-stream
 [scripts]
 
 ProcessSession.jnc
+ProcessDispatchCode.jnc
+
+[dispatch-scripts]
+
+ProcessDispatchCode.jnc
+ProcessDispatch.jnc

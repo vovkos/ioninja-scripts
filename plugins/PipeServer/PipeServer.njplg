@@ -15,7 +15,9 @@ log-guid    = d74419a1-789c-4d9a-8d92-bd44ee19c971  # pipe server
 icon        = images/pipe.png
 small-icon  = images/pipe-16x16.png
 
-session-class = PipeServerSession
+session-class     = PipeServerSession
+dispatch-class    = PipeServerDispatch
+dispatch-variable = g_pipeServer
 
 [required-capabilities]
 
@@ -25,3 +27,9 @@ org.jancy.io.file-stream
 [scripts]
 
 PipeServerSession.jnc
+PipeServerDispatchCode.jnc
+
+[dispatch-scripts]
+
+PipeServerDispatchCode.jnc
+PipeServerDispatch.jnc

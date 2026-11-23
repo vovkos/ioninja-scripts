@@ -17,7 +17,9 @@ log-guid    = 323abaeb-7859-48bc-8e24-f8c082b04ff7  # device monitor
 icon        = images/mailslotmon.png
 small-icon  = images/mailslotmon-16x16.png
 
-session-class = MailslotMonSession
+session-class     = MailslotMonSession
+dispatch-class    = MailslotMonDispatch
+dispatch-variable = g_mailslotMon
 
 [required-capabilities]
 
@@ -28,3 +30,9 @@ org.jancy.io.devmon
 MailslotMonSession.jnc
 MailslotMonitor.jnc
 MailslotMonLogFilter.jnc
+MailslotMonDispatchCode.jnc
+
+[dispatch-scripts]
+
+MailslotMonDispatchCode.jnc
+MailslotMonDispatch.jnc

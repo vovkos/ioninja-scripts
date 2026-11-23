@@ -101,6 +101,12 @@ public:
 		close();
 	}
 
+	override bool errorcode dispatch(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
+	);
+
 protected:
 	void onSetViewFilter() {
 		applyViewFilter(true);
@@ -374,6 +380,62 @@ reactor PipeMonSession.m_uiReactor {
 	m_viewFilterCombo.m_isEnabled = m_viewFilterKindCombo.m_currentData;
 	m_viewFilterCombo.m_placeholderText = log.getMonitorFilterPlaceholderText(m_viewFilterKindCombo.m_currentData);
 	m_viewFilterProp.m_placeholderText = log.getMonitorFilterPlaceholderText(m_viewFilterKindProp.m_value);
+}
+
+bool errorcode PipeMonSession.dispatch(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case PipeMonDispatchCode.GetCaptureFilter:
+		*out = m_captureFilterProp.m_value;
+		break;
+
+	case PipeMonDispatchCode.SetCaptureFilter:
+		m_captureFilterProp.m_value = in;
+		break;
+
+	case PipeMonDispatchCode.GetViewFilterKind:
+		*out = m_viewFilterKindCombo.m_currentData;
+		break;
+
+	case PipeMonDispatchCode.SetViewFilterKind:
+		m_viewFilterKindCombo.m_currentData = (log.MonitorFilterKind)in;
+		break;
+
+	case PipeMonDispatchCode.GetViewFilter:
+		*out = m_viewFilterCombo.m_editText;
+		break;
+
+	case PipeMonDispatchCode.SetViewFilter:
+		m_viewFilterCombo.m_editText = in;
+		break;
+
+	case PipeMonDispatchCode.GetLanmanMonitorEnabled:
+		*out = m_useLanmanMonitorProp.m_value;
+		break;
+
+	case PipeMonDispatchCode.SetLanmanMonitorEnabled:
+		m_useLanmanMonitorProp.m_value = in;
+		break;
+
+	case PipeMonDispatchCode.Capture:
+		return capture();
+
+	case PipeMonDispatchCode.Close:
+		close();
+		break;
+
+	case PipeMonDispatchCode.ApplyViewFilter:
+		applyViewFilter(true);
+		break;
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
+
+	return true;
 }
 
 //..............................................................................

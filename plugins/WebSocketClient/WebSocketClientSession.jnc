@@ -167,6 +167,12 @@ public:
 		disconnect();
 	}
 
+	override bool errorcode dispatch(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
+	);
+
 	void ping();
 
 protected:
@@ -866,6 +872,41 @@ reactor WebSocketClientSession.m_uiReactor {
 	onevent bindingof(m_addressCombo.m_editText)() {
 		m_reconnectTimer.stop();
 	}
+}
+
+bool errorcode WebSocketClientSession.dispatch(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case WebSocketClientDispatchCode.GetRemoteAddress:
+		*out = m_addressCombo.m_editText;
+		break;
+
+	case WebSocketClientDispatchCode.SetRemoteAddress:
+		m_addressCombo.m_editText = in;
+		break;
+
+	case WebSocketClientDispatchCode.Connect:
+		if (in)
+			m_addressCombo.m_editText = in;
+
+		return connect();
+
+	case WebSocketClientDispatchCode.Disconnect:
+		disconnect();
+		break;
+
+	case WebSocketClientDispatchCode.Ping:
+		ping();
+		break;
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
+
+	return true;
 }
 
 //..............................................................................

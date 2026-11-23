@@ -18,8 +18,10 @@ log-guid    = 7940a0d5-a84b-4509-bae4-b5928511472d  # ssl
 icon        = images/websocket-server.png
 small-icon  = images/websocket-server-16x16.png
 
-session-class = WebSocketServerSession
-null-packets  = true
+session-class     = WebSocketServerSession
+dispatch-class    = WebSocketServerDispatch
+dispatch-variable = g_webSocketServer
+null-packets      = true
 
 [required-capabilities]
 
@@ -39,3 +41,9 @@ org.jancy.io.ip6
 WebSocketServerSession.jnc
 iox_WebSocket.jnc
 ui_WebSocketUi.jnc
+WebSocketServerDispatchCode.jnc
+
+[dispatch-scripts]
+
+WebSocketServerDispatchCode.jnc
+WebSocketServerDispatch.jnc

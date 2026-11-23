@@ -1,0 +1,81 @@
+//..............................................................................
+//
+// I2C/SPI Tap settings dispatch interface for IAS (shared by all I2C/SPI Tap plugins)
+//
+
+import "ias_PluginDispatch.jnc"
+import "ias_I2cSpiTapDispatchCode.jnc"
+
+namespace ias {
+
+//..............................................................................
+
+enum I2cSpiTapProtocol { // mirrors I2cSpiTapHwcUi.Protocol
+	Spi,
+	I2c,
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+// mixed into the dispatch base chain, e.g. ias.I2cSpiTapDispatchBase<ias.PluginDispatch>
+// settings take effect on the next capture
+
+class I2cSpiTapDispatchBase<B>: B {
+	property m_protocol {
+		I2cSpiTapProtocol get() {
+			return dispatchGet(I2cSpiTapDispatchCode.GetProtocol);
+		}
+
+		void set(I2cSpiTapProtocol value) {
+			dispatch(I2cSpiTapDispatchCode.SetProtocol, value);
+		}
+	}
+
+	property m_spiMode { // 0..3
+		uint_t get() {
+			return dispatchGet(I2cSpiTapDispatchCode.GetSpiMode);
+		}
+
+		void set(uint_t value) {
+			dispatch(I2cSpiTapDispatchCode.SetSpiMode, value);
+		}
+	}
+
+	property m_spiDataBits { // 4, 8, 12, 16
+		uint_t get() {
+			return dispatchGet(I2cSpiTapDispatchCode.GetSpiDataBits);
+		}
+
+		void set(uint_t value) {
+			dispatch(I2cSpiTapDispatchCode.SetSpiDataBits, value);
+		}
+	}
+
+	property m_isSpiBigEndian {
+		bool get() {
+			return dispatchGet(I2cSpiTapDispatchCode.GetSpiBigEndian);
+		}
+
+		void set(bool value) {
+			dispatch(I2cSpiTapDispatchCode.SetSpiBigEndian, value);
+		}
+	}
+
+	property m_isSpiMosiMisoFlipped {
+		bool get() {
+			return dispatchGet(I2cSpiTapDispatchCode.GetSpiFlipMosiMiso);
+		}
+
+		void set(bool value) {
+			dispatch(I2cSpiTapDispatchCode.SetSpiFlipMosiMiso, value);
+		}
+	}
+
+	construct(intptr handle) {
+		basetype.construct(handle);
+	}
+}
+
+//..............................................................................
+
+} // namespace ias

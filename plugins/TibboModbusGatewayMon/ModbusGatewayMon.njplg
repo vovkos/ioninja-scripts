@@ -16,7 +16,9 @@ log-guid    = 075eb3ef-43e2-460c-9301-a72810de9689  # modbus-gateway-mon
 icon        = images/modbus.png
 small-icon  = images/modbus-16x16.png
 
-session-class = ModbusGatewayMonSession
+session-class     = ModbusGatewayMonSession
+dispatch-class    = ModbusGatewayMonDispatch
+dispatch-variable = g_modbusGatewayMon
 
 [required-capabilities]
 
@@ -31,3 +33,9 @@ org.jancy.io.ip6
 [scripts]
 
 ModbusGatewayMonSession.jnc
+ModbusGatewayMonDispatchCode.jnc
+
+[dispatch-scripts]
+
+ModbusGatewayMonDispatchCode.jnc
+ModbusGatewayMonDispatch.jnc

@@ -1,0 +1,21 @@
+//..............................................................................
+//
+// mDNS Scanner session dispatch codes for IAS
+//
+
+//..............................................................................
+
+enum MdnsScannerDispatchCode: uint64_t {
+	GetQueryName = 0x01dd7afdfee37000,
+	SetQueryName,
+	GetQueryType,
+	SetQueryType,
+	GetAdapterAddress,
+	SetAdapterAddress,
+	GetScanTime,
+	SetScanTime,
+	StartScan,
+	StopScan,
+}
+
+//..............................................................................

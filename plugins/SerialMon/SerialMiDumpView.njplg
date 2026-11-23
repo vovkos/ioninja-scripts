@@ -17,7 +17,9 @@ log-guid    = 1dfd5eb0-9560-11e3-a5e2-0800200c9a66  # file
 icon        = images/serialmon.png
 small-icon  = images/serialmon-16x16.png
 
-session-class = SerialMiDumpViewSession
+session-class     = SerialMiDumpViewSession
+dispatch-class    = SerialMiDumpViewDispatch
+dispatch-variable = g_serialMiDumpView
 
 [required-capabilities]
 
@@ -26,8 +28,13 @@ org.jancy.io.file
 [scripts]
 
 SerialMiDumpViewSession.jnc
+SerialMiDumpViewDispatchCode.jnc
 SerialMonitor_mi.jnc
 SerialMonProcessor.jnc
 SerialMonProcessor_win.jnc
 SerialMonProcessor_lnx.jnc
 
+[dispatch-scripts]
+
+SerialMiDumpViewDispatchCode.jnc
+SerialMiDumpViewDispatch.jnc

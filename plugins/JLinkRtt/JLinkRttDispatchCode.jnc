@@ -1,0 +1,31 @@
+//..............................................................................
+//
+// J-Link RTT session dispatch codes for IAS
+//
+
+//..............................................................................
+
+enum JLinkRttDispatchCode: uint64_t {
+	GetJLinkLibPath = 0x01dd7afdfee3f000,
+	SetJLinkLibPath,
+	GetConnectionType,
+	SetConnectionType,
+	GetAddress,
+	SetAddress,
+	GetDevice,
+	SetDevice,
+	GetInterface,
+	SetInterface,
+	GetSpeed,
+	SetSpeed,
+	GetAutoDetectRttAddress,
+	SetAutoDetectRttAddress,
+	GetRttAddress,
+	SetRttAddress,
+	GetRttChannel,
+	SetRttChannel,
+	Open,
+	Close,
+}
+
+//..............................................................................

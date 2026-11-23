@@ -1,0 +1,34 @@
+//..............................................................................
+//
+// Serial MI Dump Viewer session dispatch interface for IAS
+//
+
+import "ias_PluginDispatch.jnc"
+
+//..............................................................................
+
+class SerialMiDumpViewDispatch: ias.PluginDispatch {
+	property m_fileName {
+		string_t get() {
+			return dispatchGet(SerialMiDumpViewDispatchCode.GetFileName);
+		}
+
+		void set(string_t value) {
+			dispatch(SerialMiDumpViewDispatchCode.SetFileName, value);
+		}
+	}
+
+	construct(intptr handle) {
+		basetype.construct(handle);
+	}
+
+	bool errorcode open(string_t fileName = null) { // null = use m_fileName
+		return dispatch(SerialMiDumpViewDispatchCode.Open, fileName);
+	}
+
+	void close() {
+		dispatch(SerialMiDumpViewDispatchCode.Close);
+	}
+}
+
+//..............................................................................

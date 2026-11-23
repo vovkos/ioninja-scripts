@@ -1,0 +1,44 @@
+//..............................................................................
+//
+// SSL Connection session dispatch interface for IAS
+//
+
+import "ias_PluginDispatch.jnc"
+
+//..............................................................................
+
+class SslConnectionDispatch: ias.PluginDispatch {
+	property m_remoteAddress {
+		string_t get() {
+			return dispatchGet(SslConnectionDispatchCode.GetRemoteAddress);
+		}
+
+		void set(string_t value) {
+			dispatch(SslConnectionDispatchCode.SetRemoteAddress, value);
+		}
+	}
+
+	property m_remotePort {
+		uint_t get() {
+			return dispatchGet(SslConnectionDispatchCode.GetRemotePort);
+		}
+
+		void set(uint_t value) {
+			dispatch(SslConnectionDispatchCode.SetRemotePort, value);
+		}
+	}
+
+	construct(intptr handle) {
+		basetype.construct(handle);
+	}
+
+	bool errorcode connect(string_t address = null) { // null = use m_remoteAddress
+		return dispatch(SslConnectionDispatchCode.Connect, address);
+	}
+
+	void disconnect() {
+		dispatch(SslConnectionDispatchCode.Disconnect);
+	}
+}
+
+//..............................................................................

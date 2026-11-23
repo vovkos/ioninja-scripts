@@ -87,6 +87,12 @@ public:
 	override bool errorcode applyProperties();
 	override void restoreDefaultProperties();
 
+	override bool errorcode dispatch(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
+	);
+
 protected:
 	void createUi();
 	void readThreadFunc();
@@ -233,6 +239,37 @@ reactor SerialMiDumpViewSession.m_uiReactor {
 	m_title = $"MI Dump $(m_fileNameCombo.m_currentText)";
 	m_actionTable[ActionId.Open].m_text = m_state ? "Close" : "Open";
 	m_actionTable[ActionId.Open].m_icon = m_iconTable[m_state ? IconId.Close : IconId.Open];
+}
+
+bool errorcode SerialMiDumpViewSession.dispatch(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case SerialMiDumpViewDispatchCode.GetFileName:
+		*out = m_fileNameCombo.m_editText;
+		break;
+
+	case SerialMiDumpViewDispatchCode.SetFileName:
+		m_fileNameCombo.m_editText = in;
+		break;
+
+	case SerialMiDumpViewDispatchCode.Open:
+		if (in) // null = use the current file name
+			m_fileNameCombo.m_editText = in;
+
+		return open();
+
+	case SerialMiDumpViewDispatchCode.Close:
+		close();
+		break;
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
+
+	return true;
 }
 
 //..............................................................................

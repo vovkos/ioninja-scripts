@@ -143,6 +143,12 @@ public:
 		size_t size
 	);
 
+	override bool errorcode dispatch(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
+	);
+
 protected:
 	void createUi();
 
@@ -730,6 +736,98 @@ void JLinkRttSession.jlinkReadThreadFunc() {
 	}
 
 	(close @ m_pluginHost.m_mainThreadScheduler)();
+}
+
+bool errorcode JLinkRttSession.dispatch(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case JLinkRttDispatchCode.GetJLinkLibPath:
+		*out = m_jlinkLibPathProp.m_value;
+		break;
+
+	case JLinkRttDispatchCode.SetJLinkLibPath:
+		m_jlinkLibPathProp.m_value = in;
+		break;
+
+	case JLinkRttDispatchCode.GetConnectionType:
+		*out = m_connectionTypeCombo.m_currentData;
+		break;
+
+	case JLinkRttDispatchCode.SetConnectionType:
+		m_connectionTypeCombo.m_currentData = in;
+		break;
+
+	case JLinkRttDispatchCode.GetAddress:
+		*out = m_addressCombo.m_currentText;
+		break;
+
+	case JLinkRttDispatchCode.SetAddress:
+		m_addressCombo.m_editText = in;
+		break;
+
+	case JLinkRttDispatchCode.GetDevice:
+		*out = m_deviceCombo.m_currentText;
+		break;
+
+	case JLinkRttDispatchCode.SetDevice:
+		m_deviceCombo.m_editText = in;
+		break;
+
+	case JLinkRttDispatchCode.GetInterface:
+		*out = m_interfaceProp.m_value;
+		break;
+
+	case JLinkRttDispatchCode.SetInterface:
+		m_interfaceProp.m_value = in;
+		break;
+
+	case JLinkRttDispatchCode.GetSpeed:
+		*out = m_speedProp.m_value;
+		break;
+
+	case JLinkRttDispatchCode.SetSpeed:
+		m_speedProp.m_value = in;
+		break;
+
+	case JLinkRttDispatchCode.GetAutoDetectRttAddress:
+		*out = m_autoDetectRttAddressProp.m_value;
+		break;
+
+	case JLinkRttDispatchCode.SetAutoDetectRttAddress:
+		m_autoDetectRttAddressProp.m_value = in;
+		break;
+
+	case JLinkRttDispatchCode.GetRttAddress:
+		*out = m_rttAddressProp.m_value;
+		break;
+
+	case JLinkRttDispatchCode.SetRttAddress:
+		m_rttAddressProp.m_value = in;
+		break;
+
+	case JLinkRttDispatchCode.GetRttChannel:
+		*out = m_rttChannelProp.m_value;
+		break;
+
+	case JLinkRttDispatchCode.SetRttChannel:
+		m_rttChannelProp.m_value = in;
+		break;
+
+	case JLinkRttDispatchCode.Open:
+		return open();
+
+	case JLinkRttDispatchCode.Close:
+		close();
+		break;
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
+
+	return true;
 }
 
 //..............................................................................

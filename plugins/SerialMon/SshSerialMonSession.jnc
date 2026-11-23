@@ -6,7 +6,6 @@
 import "doc_Session.jnc"
 import "iox_SshChannel.jnc"
 import "iox_SshHwc.jnc"
-import "ui_Dialog.jnc"
 import "ui_SocketUi.jnc"
 import "ui_SshHwcUrlUi.jnc"
 import "ui_SshPropertySet.jnc"
@@ -16,10 +15,15 @@ import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
 import "SerialMonitor_mi.jnc"
 import "std_Buffer.jnc"
+import "doc_SshDispatchImpl.jnc"
 
 //..............................................................................
 
-class SshSerialMonSession: doc.Session {
+class SshSerialMonSession:
+	doc.Session,
+	doc.SshDispatchImpl<SshSerialMonSession> {
+	friend doc.SshDispatchImpl;
+
 protected:
 	alias State = iox.SshChannel.State;
 
@@ -56,7 +60,6 @@ protected:
 	ui.Action* m_actionTable[ActionId._Count];
 	ui.Icon* m_iconTable[IconId._Count];
 	ui.StatusPane* m_statusPaneTable[StatusPaneId._Count];
-	ui.LoginDlg* m_loginDlg;
 
 	// property grid
 
@@ -94,6 +97,12 @@ public:
 	override void disconnectSession() {
 		disconnect();
 	}
+
+	override bool errorcode dispatch(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
+	);
 
 protected:
 	void onComboEnter() {
@@ -339,6 +348,28 @@ reactor SshSerialMonSession.m_uiReactor {
 	m_statusPaneTable[StatusPaneId.State].m_text = m_ssh.m_stateStringTable[m_ssh.m_state];
 	m_statusPaneTable[StatusPaneId.RemoteAddress].m_text = m_ssh.m_state > State.Resolving ? m_ssh.m_remoteAddress.getString() : "<peer-address>";
 	m_statusPaneTable[StatusPaneId.RemoteAddress].m_isVisible = m_ssh.m_state > State.Resolving;
+}
+
+bool errorcode SshSerialMonSession.dispatch(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case ias.SshDispatchCode.GetUrl:
+	case ias.SshDispatchCode.SetUrl:
+	case ias.SshDispatchCode.GetUserName:
+	case ias.SshDispatchCode.SetUserName:
+	case ias.SshDispatchCode.SetPassword:
+	case ias.SshDispatchCode.SetPasswordNextConnectOnly:
+	case ias.SshDispatchCode.GetState:
+	case ias.SshDispatchCode.Connect:
+	case ias.SshDispatchCode.Disconnect:
+		return dispatchSsh(code, in, out);
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
 }
 
 //..............................................................................

@@ -125,6 +125,12 @@ public:
 		size_t size
 	);
 
+	override bool errorcode dispatch(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
+	);
+
 protected:
 	void onChildProcessEvent(
 		uint_t syncId,
@@ -596,6 +602,67 @@ reactor ProcessSession.m_uiReactor {
 	m_separateStderrProp.m_isEnabled = !m_ptyProp || !m_ptyProp.m_value;
 	m_environmentToolBar.m_editAction.m_isEnabled = m_environmentWidget.m_selectedItemCount == 1;
 	m_environmentToolBar.m_removeAction.m_isEnabled = m_environmentWidget.m_selectedItemCount > 0;
+}
+
+bool errorcode ProcessSession.dispatch(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case ProcessDispatchCode.GetCommandLine:
+		*out = m_commandLineCombo.m_editText;
+		break;
+
+	case ProcessDispatchCode.SetCommandLine:
+		m_commandLineCombo.m_editText = in;
+		break;
+
+	case ProcessDispatchCode.GetPty:
+		*out = m_ptyProp && m_ptyProp.m_value;
+		break;
+
+	case ProcessDispatchCode.SetPty:
+		if (m_ptyProp) // no PTY property on Windows
+			m_ptyProp.m_value = in;
+
+		break;
+
+	case ProcessDispatchCode.GetSeparateStderr:
+		*out = m_separateStderrProp.m_value;
+		break;
+
+	case ProcessDispatchCode.SetSeparateStderr:
+		m_separateStderrProp.m_value = in;
+		break;
+
+	case ProcessDispatchCode.GetCleanEnvironment:
+		*out = m_cleanEnvironmentCheckBox.m_isChecked;
+		break;
+
+	case ProcessDispatchCode.SetCleanEnvironment:
+		m_cleanEnvironmentCheckBox.m_isChecked = in;
+		break;
+
+	case ProcessDispatchCode.Start:
+		if (in) // null = use the current command line
+			m_commandLineCombo.m_editText = in;
+
+		return start();
+
+	case ProcessDispatchCode.Close:
+		close();
+		break;
+
+	case ProcessDispatchCode.Detach:
+		detach();
+		break;
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
+
+	return true;
 }
 
 //..............................................................................

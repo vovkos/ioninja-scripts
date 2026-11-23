@@ -161,6 +161,12 @@ public:
 		stopCapture();
 	}
 
+	override bool errorcode dispatch(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
+	);
+
 protected:
 	void onInEndpointEvent(
 		uint_t syncId,
@@ -659,6 +665,66 @@ reactor I2cSpiTapSession.m_uiReactor {
 	m_spiFlipMosiMisoProp.m_isEnabled = m_protocolProp.m_value == Protocol.Spi;
 	m_actionTable[ActionId.Flip].m_isEnabled = m_protocolCombo.m_currentData == Protocol.Spi;
 	m_logUpdateRateLimitProp.m_isEnabled = m_useLogUpdateRateLimitProp.m_value;
+}
+
+bool errorcode I2cSpiTapSession.dispatch(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case I2cSpiTapDispatchCode.GetProtocol:
+		*out = m_protocolCombo.m_currentData;
+		break;
+
+	case I2cSpiTapDispatchCode.SetProtocol:
+		m_protocolCombo.m_currentData = in;
+		break;
+
+	case I2cSpiTapDispatchCode.GetSpiMode:
+		*out = m_spiModeProp.m_value;
+		break;
+
+	case I2cSpiTapDispatchCode.SetSpiMode:
+		m_spiModeProp.m_value = in;
+		break;
+
+	case I2cSpiTapDispatchCode.GetSpiDataBits:
+		*out = m_spiDataBitsProp.m_value;
+		break;
+
+	case I2cSpiTapDispatchCode.SetSpiDataBits:
+		m_spiDataBitsProp.m_value = in;
+		break;
+
+	case I2cSpiTapDispatchCode.GetSpiBigEndian:
+		*out = m_spiEndiannessProp.m_value;
+		break;
+
+	case I2cSpiTapDispatchCode.SetSpiBigEndian:
+		m_spiEndiannessProp.m_value = in;
+		break;
+
+	case I2cSpiTapDispatchCode.GetSpiFlipMosiMiso:
+		*out = m_actionTable[ActionId.Flip].m_isChecked;
+		break;
+
+	case I2cSpiTapDispatchCode.SetSpiFlipMosiMiso:
+		m_actionTable[ActionId.Flip].m_isChecked = in;
+		break;
+
+	case I2cSpiTapDispatchCode.Capture:
+		return capture();
+
+	case I2cSpiTapDispatchCode.StopCapture:
+		stopCapture();
+		break;
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
+
+	return true;
 }
 
 //..............................................................................

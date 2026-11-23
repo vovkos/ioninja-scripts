@@ -91,6 +91,12 @@ public:
 	override bool errorcode applyProperties();
 	override void restoreDefaultProperties();
 
+	override bool errorcode dispatch(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
+	);
+
 protected:
 	void onMonitorEvent(
 		uint_t syncId,
@@ -539,6 +545,45 @@ reactor UsbMonSession.m_uiReactor {
 		m_snapshotSizeProp.m_isEnabled = !m_state;
 
 	m_kernelBufferSizeProp.m_isEnabled = !m_state || sys.g_systemInfo.m_osKind != sys.OsKind.Windows;
+}
+
+bool errorcode UsbMonSession.dispatch(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case UsbMonDispatchCode.GetDeviceVid:
+		io.UsbMonDeviceDesc const* device = m_deviceCombo.m_currentData;
+		*out = device ? device.m_vendorId : -1;
+		break;
+
+	case UsbMonDispatchCode.GetDevicePid:
+		io.UsbMonDeviceDesc const* device = m_deviceCombo.m_currentData;
+		*out = device ? device.m_productId : -1;
+		break;
+
+	case UsbMonDispatchCode.SetDeviceVidPid:
+		uint_t vidPid = (uint_t)in;
+		size_t i = ui.findUsbMonDeviceComboIndex(m_deviceCombo, vidPid >> 16, vidPid & 0xffff);
+		if (i == -1)
+			return std.fail("can't find device with specified VID:PID");
+
+		m_deviceCombo.m_currentIndex = i;
+		break;
+
+	case UsbMonDispatchCode.Capture:
+		return capture();
+
+	case UsbMonDispatchCode.Close:
+		close();
+		break;
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
+
+	return true;
 }
 
 //..............................................................................

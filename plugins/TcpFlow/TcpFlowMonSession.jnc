@@ -111,6 +111,12 @@ public:
 	override bool errorcode applyProperties();
 	override void restoreDefaultProperties();
 
+	override bool errorcode dispatch(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
+	);
+
 protected:
 	void onSetViewFilter() {
 		try applyViewFilter(true);
@@ -574,6 +580,85 @@ reactor TcpFlowMonSession.m_uiReactor {
 	m_statusPaneTable[StatusPaneId.State].m_text = (m_state & State.Capturing) ?
 		"Capturing" :
 		"Closed";
+}
+
+bool errorcode TcpFlowMonSession.dispatch(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case TcpFlowMonDispatchCode.GetDeviceName:
+		io.PcapDeviceDesc const* device = m_deviceCombo.m_currentData;
+		*out = device ? device.m_name : null;
+		break;
+
+	case TcpFlowMonDispatchCode.SetDeviceName:
+		string_t name = in;
+		size_t count = m_deviceCombo.m_itemCount;
+		size_t i = 0;
+		for (; i < count; i++) {
+			io.PcapDeviceDesc const* device = m_deviceCombo.m_itemData[i];
+			if (device.m_name == name || device.m_description == name)
+				break;
+		}
+
+		if (i == count)
+			return std.fail($"pcap device '$(name)' not found");
+
+		m_deviceCombo.m_currentIndex = i;
+		break;
+
+	case TcpFlowMonDispatchCode.GetPromiscuous:
+		*out = m_promisciousProp.m_value;
+		break;
+
+	case TcpFlowMonDispatchCode.SetPromiscuous:
+		m_promisciousProp.m_value = in;
+		break;
+
+	case TcpFlowMonDispatchCode.GetCaptureFilter:
+		*out = m_captureFilterProp.m_value;
+		break;
+
+	case TcpFlowMonDispatchCode.SetCaptureFilter:
+		m_captureFilterProp.m_value = in;
+		break;
+
+	case TcpFlowMonDispatchCode.GetViewFilter:
+		*out = m_viewFilterCombo.m_editText;
+		break;
+
+	case TcpFlowMonDispatchCode.SetViewFilter:
+		m_viewFilterCombo.m_editText = in;
+		break;
+
+	case TcpFlowMonDispatchCode.GetSnapshotSize:
+		*out = m_snapshotSizeProp.m_value;
+		break;
+
+	case TcpFlowMonDispatchCode.SetSnapshotSize:
+		m_snapshotSizeProp.m_value = in;
+		break;
+
+	case TcpFlowMonDispatchCode.Capture:
+		return capture();
+
+	case TcpFlowMonDispatchCode.OpenPcapFile:
+		return openPcapFile((string_t)in);
+
+	case TcpFlowMonDispatchCode.StopCapture:
+		stopCapture();
+		break;
+
+	case TcpFlowMonDispatchCode.ApplyViewFilter:
+		return applyViewFilter(true);
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
+
+	return true;
 }
 
 //..............................................................................

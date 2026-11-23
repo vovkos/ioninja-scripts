@@ -1,0 +1,78 @@
+//..............................................................................
+//
+// Pipe Monitor session dispatch interface for IAS
+//
+
+import "ias_PluginDispatch.jnc"
+
+//..............................................................................
+
+enum PipeMonViewFilterKind { // mirrors log.MonitorFilterKind
+	None,
+	FileName,
+	FileId,
+	ProcessName,
+	ProcessId,
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+class PipeMonDispatch: ias.PluginDispatch {
+	property m_captureFilter { // name wildcard (* and ?); null = capture all
+		string_t get() {
+			return dispatchGet(PipeMonDispatchCode.GetCaptureFilter);
+		}
+
+		void set(string_t value) {
+			dispatch(PipeMonDispatchCode.SetCaptureFilter, value);
+		}
+	}
+
+	property m_viewFilterKind {
+		PipeMonViewFilterKind get() {
+			return dispatchGet(PipeMonDispatchCode.GetViewFilterKind);
+		}
+
+		void set(PipeMonViewFilterKind value) {
+			dispatch(PipeMonDispatchCode.SetViewFilterKind, value);
+		}
+	}
+
+	property m_viewFilter { // takes effect on capture() or applyViewFilter()
+		string_t get() {
+			return dispatchGet(PipeMonDispatchCode.GetViewFilter);
+		}
+
+		void set(string_t value) {
+			dispatch(PipeMonDispatchCode.SetViewFilter, value);
+		}
+	}
+
+	property m_isLanmanMonitorEnabled {
+		bool get() {
+			return dispatchGet(PipeMonDispatchCode.GetLanmanMonitorEnabled);
+		}
+
+		void set(bool value) {
+			dispatch(PipeMonDispatchCode.SetLanmanMonitorEnabled, value);
+		}
+	}
+
+	construct(intptr handle) {
+		basetype.construct(handle);
+	}
+
+	bool errorcode capture() {
+		return dispatch(PipeMonDispatchCode.Capture);
+	}
+
+	void close() {
+		dispatch(PipeMonDispatchCode.Close);
+	}
+
+	void applyViewFilter() {
+		dispatch(PipeMonDispatchCode.ApplyViewFilter);
+	}
+}
+
+//..............................................................................

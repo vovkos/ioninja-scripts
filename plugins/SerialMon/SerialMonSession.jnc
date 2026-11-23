@@ -94,6 +94,12 @@ public:
 		close();
 	}
 
+	override bool errorcode dispatch(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
+	);
+
 protected:
 	void createUi();
 	size_t enumeratePorts();
@@ -306,6 +312,37 @@ reactor SerialMonSession.m_uiReactor {
 	m_portCombo.m_placeholderText =
 	m_portProp.m_placeholderText = m_hasDeviceMonitor ? "Enter a serial port name..."  : "(tdevmon not detected)";
 	m_statusPaneTable[StatusPaneId.State].m_text = m_state ? "Capturing" : "Closed";
+}
+
+bool errorcode SerialMonSession.dispatch(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case SerialMonDispatchCode.GetPortName:
+		*out = m_portCombo.m_editText;
+		break;
+
+	case SerialMonDispatchCode.SetPortName:
+		m_portCombo.m_editText = in;
+		break;
+
+	case SerialMonDispatchCode.Capture:
+		if (in) // null = use the current port name
+			m_portCombo.m_editText = in;
+
+		return capture();
+
+	case SerialMonDispatchCode.Close:
+		close();
+		break;
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
+
+	return true;
 }
 
 //..............................................................................

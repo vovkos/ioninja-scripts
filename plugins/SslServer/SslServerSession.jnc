@@ -132,6 +132,12 @@ public:
 		disconnectAll();
 	}
 
+	override bool errorcode dispatch(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
+	);
+
 protected:
 	void onListenerSocketEvent(
 		uint_t syncId,
@@ -658,6 +664,66 @@ reactor SslServerSession.m_uiReactor {
 
 	if (!m_listenerState && m_sessionConnectionState == SessionConnectionState.Connecting)
 		m_sessionConnectionState = SessionConnectionState.Disconnected;
+}
+
+bool errorcode SslServerSession.dispatch(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case SslServerDispatchCode.GetLocalPort:
+		*out = atoi(m_portCombo.m_editText);
+		break;
+
+	case SslServerDispatchCode.SetLocalPort:
+		m_portCombo.m_editText = $"%d"((uint_t)in);
+		break;
+
+	case SslServerDispatchCode.GetCertificateUsed:
+		*out = m_sslPropertySet.m_useCertificateProp.m_value;
+		break;
+
+	case SslServerDispatchCode.SetCertificateUsed:
+		m_sslPropertySet.m_useCertificateProp.m_value = in;
+		break;
+
+	case SslServerDispatchCode.GetCertificateFile:
+		*out = m_sslPropertySet.m_certificateFileProp.m_value;
+		break;
+
+	case SslServerDispatchCode.SetCertificateFile:
+		m_sslPropertySet.m_certificateFileProp.m_value = in;
+		break;
+
+	case SslServerDispatchCode.GetPrivateKeyFile:
+		*out = m_sslPropertySet.m_privateKeyFileProp.m_value;
+		break;
+
+	case SslServerDispatchCode.SetPrivateKeyFile:
+		m_sslPropertySet.m_privateKeyFileProp.m_value = in;
+		break;
+
+	case SslServerDispatchCode.Listen:
+		return listen();
+
+	case SslServerDispatchCode.StopListen:
+		stopListen();
+		break;
+
+	case SslServerDispatchCode.Disconnect:
+		disconnect();
+		break;
+
+	case SslServerDispatchCode.DisconnectAll:
+		disconnectAll();
+		break;
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
+
+	return true;
 }
 
 //..............................................................................

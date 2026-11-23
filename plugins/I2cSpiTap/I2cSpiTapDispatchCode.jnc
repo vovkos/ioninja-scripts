@@ -1,0 +1,15 @@
+//..............................................................................
+//
+// I2C/SPI Tap session dispatch codes for IAS (extends ias.I2cSpiTapDispatchCode)
+//
+
+import "ias_I2cSpiTapDispatchCode.jnc"
+
+//..............................................................................
+
+enum I2cSpiTapDispatchCode: ias.I2cSpiTapDispatchCode {
+	Capture = 0x01dd7afd4b4bff00,
+	StopCapture,
+}
+
+//..............................................................................

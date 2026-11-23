@@ -1,0 +1,22 @@
+//..............................................................................
+//
+// Pipe Monitor session dispatch codes for IAS
+//
+
+//..............................................................................
+
+enum PipeMonDispatchCode: uint64_t {
+	GetCaptureFilter = 0x01dd7afdfee35000,
+	SetCaptureFilter,
+	GetViewFilterKind,
+	SetViewFilterKind,
+	GetViewFilter,
+	SetViewFilter,
+	GetLanmanMonitorEnabled,
+	SetLanmanMonitorEnabled,
+	Capture,
+	Close,
+	ApplyViewFilter,
+}
+
+//..............................................................................

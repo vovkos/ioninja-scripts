@@ -1,0 +1,72 @@
+//..............................................................................
+//
+// Generic Serial Tap session dispatch interface for IAS
+//
+
+import "ias_SerialDispatchBase.jnc"
+
+//..............................................................................
+
+enum GenericSerialTapReadMode { // mirrors SerialReadMode
+	CheckComstat,
+	WaitFirstChar,
+	IntervalBased,
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+class GenericSerialTapDispatch: ias.SerialDispatchBase<ias.PluginDispatch> {
+	property m_dtePortName {
+		string_t get() {
+			return dispatchGet(GenericSerialTapDispatchCode.GetDtePortName);
+		}
+
+		void set(string_t value) {
+			dispatch(GenericSerialTapDispatchCode.SetDtePortName, value);
+		}
+	}
+
+	property m_dcePortName {
+		string_t get() {
+			return dispatchGet(GenericSerialTapDispatchCode.GetDcePortName);
+		}
+
+		void set(string_t value) {
+			dispatch(GenericSerialTapDispatchCode.SetDcePortName, value);
+		}
+	}
+
+	property m_readMode { // Windows only
+		GenericSerialTapReadMode get() {
+			return dispatchGet(GenericSerialTapDispatchCode.GetReadMode);
+		}
+
+		void set(GenericSerialTapReadMode value) {
+			dispatch(GenericSerialTapDispatchCode.SetReadMode, value);
+		}
+	}
+
+	property m_readInterval { // ms; Windows only, used with GenericSerialTapReadMode.IntervalBased
+		uint_t get() {
+			return dispatchGet(GenericSerialTapDispatchCode.GetReadInterval);
+		}
+
+		void set(uint_t value) {
+			dispatch(GenericSerialTapDispatchCode.SetReadInterval, value);
+		}
+	}
+
+	construct(intptr handle) {
+		basetype.construct(handle);
+	}
+
+	bool errorcode open() {
+		return dispatch(GenericSerialTapDispatchCode.Open);
+	}
+
+	void close() {
+		dispatch(GenericSerialTapDispatchCode.Close);
+	}
+}
+
+//..............................................................................

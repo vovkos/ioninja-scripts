@@ -93,6 +93,12 @@ public:
 	override bool errorcode applyProperties();
 	override void restoreDefaultProperties();
 
+	override bool errorcode dispatch(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
+	);
+
 protected:
 	void onSetViewFilter() {
 		applyViewFilter(true);
@@ -357,6 +363,62 @@ reactor MailslotMonSession.m_uiReactor {
 	m_viewFilterCombo.m_isEnabled = m_viewFilterKindCombo.m_currentData;
 	m_viewFilterCombo.m_placeholderText = log.getMonitorFilterPlaceholderText(m_viewFilterKindCombo.m_currentData);
 	m_viewFilterProp.m_placeholderText = log.getMonitorFilterPlaceholderText(m_viewFilterKindProp.m_value);
+}
+
+bool errorcode MailslotMonSession.dispatch(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case MailslotMonDispatchCode.GetCaptureFilter:
+		*out = m_captureFilterProp.m_value;
+		break;
+
+	case MailslotMonDispatchCode.SetCaptureFilter:
+		m_captureFilterProp.m_value = in;
+		break;
+
+	case MailslotMonDispatchCode.GetViewFilterKind:
+		*out = m_viewFilterKindCombo.m_currentData;
+		break;
+
+	case MailslotMonDispatchCode.SetViewFilterKind:
+		m_viewFilterKindCombo.m_currentData = (log.MonitorFilterKind)in;
+		break;
+
+	case MailslotMonDispatchCode.GetViewFilter:
+		*out = m_viewFilterCombo.m_editText;
+		break;
+
+	case MailslotMonDispatchCode.SetViewFilter:
+		m_viewFilterCombo.m_editText = in;
+		break;
+
+	case MailslotMonDispatchCode.GetLanmanMonitorEnabled:
+		*out = m_useLanmanMonitorProp.m_value;
+		break;
+
+	case MailslotMonDispatchCode.SetLanmanMonitorEnabled:
+		m_useLanmanMonitorProp.m_value = in;
+		break;
+
+	case MailslotMonDispatchCode.Capture:
+		return capture();
+
+	case MailslotMonDispatchCode.Close:
+		close();
+		break;
+
+	case MailslotMonDispatchCode.ApplyViewFilter:
+		applyViewFilter(true);
+		break;
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
+
+	return true;
 }
 
 //..............................................................................

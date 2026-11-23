@@ -18,12 +18,16 @@ import "log_ChecksumCalc.jnc"
 import "std_Buffer.jnc"
 import "I2cSpiTapLogRecordCode.jnc"
 import "I2cSpiTapHwc.jnc"
+import "doc_SshDispatchImpl.jnc"
 
 //..............................................................................
 
 class SshI2cSpiTapSession:
 	doc.Session,
-	iox.HwcTransportSink {
+	iox.HwcTransportSink,
+	doc.SshDispatchImpl<SshI2cSpiTapSession> {
+	friend doc.SshDispatchImpl;
+
 protected:
 	alias SshState = iox.SshChannel.State;
 	alias Protocol = I2cSpiTapHwcUi.Protocol;
@@ -109,6 +113,12 @@ public:
 	override void disconnectSession() {
 		disconnect();
 	}
+
+	override bool errorcode dispatch(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
+	);
 
 protected:
 	void onProtocolChanged();
@@ -462,6 +472,40 @@ reactor SshI2cSpiTapSession.m_uiReactor {
 		m_ssh.m_remoteAddress.getString() :
 		"<peer-address>";
 	m_statusPaneTable[StatusPaneId.RemoteAddress].m_isVisible = m_ssh.m_state > SshState.Resolving;
+}
+
+bool errorcode SshI2cSpiTapSession.dispatch(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case ias.I2cSpiTapDispatchCode.GetProtocol:
+	case ias.I2cSpiTapDispatchCode.SetProtocol:
+	case ias.I2cSpiTapDispatchCode.GetSpiMode:
+	case ias.I2cSpiTapDispatchCode.SetSpiMode:
+	case ias.I2cSpiTapDispatchCode.GetSpiDataBits:
+	case ias.I2cSpiTapDispatchCode.SetSpiDataBits:
+	case ias.I2cSpiTapDispatchCode.GetSpiBigEndian:
+	case ias.I2cSpiTapDispatchCode.SetSpiBigEndian:
+	case ias.I2cSpiTapDispatchCode.GetSpiFlipMosiMiso:
+	case ias.I2cSpiTapDispatchCode.SetSpiFlipMosiMiso:
+		return m_tapUi.dispatch(code, in, out);
+
+	case ias.SshDispatchCode.GetUrl:
+	case ias.SshDispatchCode.SetUrl:
+	case ias.SshDispatchCode.GetUserName:
+	case ias.SshDispatchCode.SetUserName:
+	case ias.SshDispatchCode.SetPassword:
+	case ias.SshDispatchCode.SetPasswordNextConnectOnly:
+	case ias.SshDispatchCode.GetState:
+	case ias.SshDispatchCode.Connect:
+	case ias.SshDispatchCode.Disconnect:
+		return dispatchSsh(code, in, out);
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
 }
 
 //..............................................................................

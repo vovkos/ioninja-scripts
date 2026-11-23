@@ -1,0 +1,16 @@
+//..............................................................................
+//
+// WebSocket Client session dispatch codes for IAS
+//
+
+//..............................................................................
+
+enum WebSocketClientDispatchCode: uint64_t {
+	GetRemoteAddress = 0x01dd7afdfee2b000,
+	SetRemoteAddress,
+	Connect,
+	Disconnect,
+	Ping,
+}
+
+//..............................................................................

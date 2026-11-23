@@ -1,0 +1,25 @@
+//..............................................................................
+//
+// TCP Flow Monitor session dispatch codes for IAS
+//
+
+//..............................................................................
+
+enum TcpFlowMonDispatchCode: uint64_t {
+	GetDeviceName = 0x01dd7afdfee31000,
+	SetDeviceName,
+	GetPromiscuous,
+	SetPromiscuous,
+	GetCaptureFilter,
+	SetCaptureFilter,
+	GetViewFilter,
+	SetViewFilter,
+	GetSnapshotSize,
+	SetSnapshotSize,
+	Capture,
+	OpenPcapFile,
+	StopCapture,
+	ApplyViewFilter,
+}
+
+//..............................................................................

@@ -143,6 +143,12 @@ public:
 	override bool errorcode applyProperties();
 	override void restoreDefaultProperties();
 
+	override bool errorcode dispatch(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
+	);
+
 protected:
 	void onTargetAddressChanged() {
 		m_resolver.cancel();
@@ -789,6 +795,58 @@ reactor TcpProxySession.m_uiReactor {
 	onevent bindingof(m_resolver.m_state)() {
 		m_resolver.updateStatusPane(m_statusPaneTable[StatusPaneId.TargetAddress]);
 	}
+}
+
+bool errorcode TcpProxySession.dispatch(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case TcpProxyDispatchCode.GetTargetAddress:
+		*out = m_targetAddressCombo.m_editText;
+		break;
+
+	case TcpProxyDispatchCode.SetTargetAddress:
+		m_targetAddressCombo.m_editText = in;
+		break;
+
+	case TcpProxyDispatchCode.GetTargetPort:
+		*out = m_connectionSocketPropertySet.m_remotePortProp.m_value;
+		break;
+
+	case TcpProxyDispatchCode.SetTargetPort:
+		m_connectionSocketPropertySet.m_remotePortProp.m_value = in;
+		break;
+
+	case TcpProxyDispatchCode.GetLocalPort:
+		*out = atoi(m_portCombo.m_editText);
+		break;
+
+	case TcpProxyDispatchCode.SetLocalPort:
+		m_portCombo.m_editText = $"%d"((uint_t)in);
+		break;
+
+	case TcpProxyDispatchCode.Listen:
+		return listen();
+
+	case TcpProxyDispatchCode.StopListen:
+		stopListen();
+		break;
+
+	case TcpProxyDispatchCode.Disconnect:
+		disconnect();
+		break;
+
+	case TcpProxyDispatchCode.DisconnectAll:
+		disconnectAll();
+		break;
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
+
+	return true;
 }
 
 //..............................................................................

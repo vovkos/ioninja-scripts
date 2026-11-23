@@ -1,0 +1,21 @@
+//..............................................................................
+//
+// TCP Proxy session dispatch codes for IAS
+//
+
+//..............................................................................
+
+enum TcpProxyDispatchCode: uint64_t {
+	GetTargetAddress = 0x01dd7afdfee29000,
+	SetTargetAddress,
+	GetTargetPort,
+	SetTargetPort,
+	GetLocalPort,
+	SetLocalPort,
+	Listen,
+	StopListen,
+	Disconnect,
+	DisconnectAll,
+}
+
+//..............................................................................

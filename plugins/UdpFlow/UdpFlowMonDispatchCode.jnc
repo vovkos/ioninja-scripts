@@ -1,0 +1,25 @@
+//..............................................................................
+//
+// UDP Flow Monitor session dispatch codes for IAS
+//
+
+//..............................................................................
+
+enum UdpFlowMonDispatchCode: uint64_t {
+	GetDeviceName = 0x01dd7afdfee32000,
+	SetDeviceName,
+	GetPromiscuous,
+	SetPromiscuous,
+	GetCaptureFilter,
+	SetCaptureFilter,
+	GetViewFilter,
+	SetViewFilter,
+	GetSnapshotSize,
+	SetSnapshotSize,
+	Capture,
+	OpenPcapFile,
+	StopCapture,
+	ApplyViewFilter,
+}
+
+//..............................................................................

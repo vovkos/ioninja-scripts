@@ -129,6 +129,12 @@ public:
 		disconnect();
 	}
 
+	override bool errorcode dispatch(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
+	);
+
 protected:
 	void close();
 	void handleSocketError(std.Error const* error);
@@ -631,6 +637,45 @@ reactor SslConnectionSession.m_uiReactor {
 	onevent bindingof(m_addressCombo.m_editText)() {
 		m_reconnectTimer.stop();
 	}
+}
+
+bool errorcode SslConnectionSession.dispatch(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case SslConnectionDispatchCode.GetRemoteAddress:
+		*out = m_addressCombo.m_editText;
+		break;
+
+	case SslConnectionDispatchCode.SetRemoteAddress:
+		m_addressCombo.m_editText = in;
+		break;
+
+	case SslConnectionDispatchCode.GetRemotePort:
+		*out = m_socketPropertySet.m_remotePortProp.m_value;
+		break;
+
+	case SslConnectionDispatchCode.SetRemotePort:
+		m_socketPropertySet.m_remotePortProp.m_value = in;
+		break;
+
+	case SslConnectionDispatchCode.Connect:
+		if (in)
+			m_addressCombo.m_editText = in;
+
+		return connect();
+
+	case SslConnectionDispatchCode.Disconnect:
+		disconnect();
+		break;
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
+
+	return true;
 }
 
 //..............................................................................

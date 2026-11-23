@@ -16,12 +16,16 @@ import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
 import "std_Buffer.jnc"
 import "EthernetTapLogRecordCode.jnc"
+import "doc_RdvDispatchImpl.jnc"
 
 //..............................................................................
 
 class RdvEthernetTapSession:
 	doc.Session,
-	iox.HwcTransportSink {
+	iox.HwcTransportSink,
+	doc.RdvDispatchImpl<RdvEthernetTapSession> {
+	friend doc.RdvDispatchImpl;
+
 protected:
 	alias RdvState = iox.Rendezvous.State;
 
@@ -98,6 +102,12 @@ public:
 	override void disconnectSession() {
 		disconnect();
 	}
+
+	override bool errorcode dispatch(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
+	);
 
 protected:
 	void onConnected();
@@ -372,6 +382,26 @@ reactor RdvEthernetTapSession.m_uiReactor {
 	m_statusPaneTable[StatusPaneId.State].m_text = m_rdv.m_stateStringTable[m_rdv.m_state];
 	m_statusPaneTable[StatusPaneId.RemoteAddress].m_text = m_rdv.m_state ? m_rdv.m_url : "<tap-url>";
 	m_statusPaneTable[StatusPaneId.RemoteAddress].m_isVisible = m_rdv.m_state != RdvState.Closed;
+}
+
+bool errorcode RdvEthernetTapSession.dispatch(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case ias.RdvDispatchCode.GetDevice:
+	case ias.RdvDispatchCode.SetDevice:
+	case ias.RdvDispatchCode.GetServerUrl:
+	case ias.RdvDispatchCode.SetServerUrl:
+	case ias.RdvDispatchCode.GetState:
+	case ias.RdvDispatchCode.Connect:
+	case ias.RdvDispatchCode.Disconnect:
+		return dispatchRdv(code, in, out);
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
 }
 
 //..............................................................................

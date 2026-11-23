@@ -1,0 +1,23 @@
+//..............................................................................
+//
+// EZ-Tap Pro session dispatch codes for IAS
+//
+
+//..............................................................................
+
+enum EzTapProDispatchCode: uint64_t {
+	GetPortName = 0x01dd7afdfee40000,
+	SetPortName,
+	GetSignalLevel,
+	SetSignalLevel,
+	GetFlipDteDce,
+	SetFlipDteDce,
+	GetReadMode,
+	SetReadMode,
+	GetReadInterval,
+	SetReadInterval,
+	Capture,
+	StopCapture,
+}
+
+//..............................................................................

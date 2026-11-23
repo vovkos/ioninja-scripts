@@ -1,0 +1,13 @@
+//..............................................................................
+//
+// I2C/SPI Tap over SSH session dispatch interface for IAS
+//
+
+import "ias_I2cSpiTapDispatchBase.jnc"
+import "ias_SshDispatchBase.jnc"
+
+//..............................................................................
+
+typedef ias.SshDispatchBase<ias.I2cSpiTapDispatchBase<ias.PluginDispatch> > SshI2cSpiTapDispatch;
+
+//..............................................................................

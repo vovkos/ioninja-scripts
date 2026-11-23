@@ -1,0 +1,13 @@
+//..............................................................................
+//
+// I2C/SPI Tap over Rendezvous session dispatch interface for IAS
+//
+
+import "ias_I2cSpiTapDispatchBase.jnc"
+import "ias_RdvDispatchBase.jnc"
+
+//..............................................................................
+
+typedef ias.RdvDispatchBase<ias.I2cSpiTapDispatchBase<ias.PluginDispatch> > RdvI2cSpiTapDispatch;
+
+//..............................................................................

@@ -1,0 +1,88 @@
+//..............................................................................
+//
+// EZ-Tap Pro session dispatch interface for IAS
+//
+
+import "ias_PluginDispatch.jnc"
+
+//..............................................................................
+
+enum EzTapProSignalLevel { // mirrors EzTapSignalLevel
+	Rs232OrTtl,
+	Rs422Or485,
+	InvertedRs232OrTtl,
+}
+
+enum EzTapProReadMode { // mirrors SerialReadMode
+	CheckComstat,
+	WaitFirstChar,
+	IntervalBased,
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+class EzTapProDispatch: ias.PluginDispatch {
+	property m_portName {
+		string_t get() {
+			return dispatchGet(EzTapProDispatchCode.GetPortName);
+		}
+
+		void set(string_t value) {
+			dispatch(EzTapProDispatchCode.SetPortName, value);
+		}
+	}
+
+	property m_signalLevel {
+		EzTapProSignalLevel get() {
+			return dispatchGet(EzTapProDispatchCode.GetSignalLevel);
+		}
+
+		void set(EzTapProSignalLevel value) {
+			dispatch(EzTapProDispatchCode.SetSignalLevel, value);
+		}
+	}
+
+	property m_isDteDceFlipped {
+		bool get() {
+			return dispatchGet(EzTapProDispatchCode.GetFlipDteDce);
+		}
+
+		void set(bool value) {
+			dispatch(EzTapProDispatchCode.SetFlipDteDce, value);
+		}
+	}
+
+	property m_readMode { // Windows only
+		EzTapProReadMode get() {
+			return dispatchGet(EzTapProDispatchCode.GetReadMode);
+		}
+
+		void set(EzTapProReadMode value) {
+			dispatch(EzTapProDispatchCode.SetReadMode, value);
+		}
+	}
+
+	property m_readInterval { // ms; Windows only, used with EzTapProReadMode.IntervalBased
+		uint_t get() {
+			return dispatchGet(EzTapProDispatchCode.GetReadInterval);
+		}
+
+		void set(uint_t value) {
+			dispatch(EzTapProDispatchCode.SetReadInterval, value);
+		}
+	}
+
+	construct(intptr handle) {
+		basetype.construct(handle);
+	}
+
+	bool errorcode capture(string_t portName = null) { // null = use m_portName
+		return dispatch(EzTapProDispatchCode.Capture, portName);
+	}
+
+	void stopCapture() {
+		dispatch(EzTapProDispatchCode.StopCapture);
+	}
+}
+
+//..............................................................................

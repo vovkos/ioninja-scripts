@@ -1,0 +1,12 @@
+//..............................................................................
+//
+// Serial Monitor over SSH session dispatch interface for IAS
+//
+
+import "ias_SshDispatchBase.jnc"
+
+//..............................................................................
+
+typedef ias.SshDispatchBase<ias.PluginDispatch> SshSerialMonDispatch;
+
+//..............................................................................

@@ -1,0 +1,38 @@
+//..............................................................................
+//
+// WebSocket Client session dispatch interface for IAS
+//
+
+import "ias_PluginDispatch.jnc"
+
+//..............................................................................
+
+class WebSocketClientDispatch: ias.PluginDispatch {
+	property m_remoteAddress { // ws://host[:port][/resource] or wss://...
+		string_t get() {
+			return dispatchGet(WebSocketClientDispatchCode.GetRemoteAddress);
+		}
+
+		void set(string_t value) {
+			dispatch(WebSocketClientDispatchCode.SetRemoteAddress, value);
+		}
+	}
+
+	construct(intptr handle) {
+		basetype.construct(handle);
+	}
+
+	bool errorcode connect(string_t address = null) { // null = use m_remoteAddress
+		return dispatch(WebSocketClientDispatchCode.Connect, address);
+	}
+
+	void disconnect() {
+		dispatch(WebSocketClientDispatchCode.Disconnect);
+	}
+
+	void ping() {
+		dispatch(WebSocketClientDispatchCode.Ping);
+	}
+}
+
+//..............................................................................

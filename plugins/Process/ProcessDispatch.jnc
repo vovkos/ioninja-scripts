@@ -1,0 +1,68 @@
+//..............................................................................
+//
+// Process session dispatch interface for IAS
+//
+
+import "ias_PluginDispatch.jnc"
+
+//..............................................................................
+
+class ProcessDispatch: ias.PluginDispatch {
+	property m_commandLine {
+		string_t get() {
+			return dispatchGet(ProcessDispatchCode.GetCommandLine);
+		}
+
+		void set(string_t value) {
+			dispatch(ProcessDispatchCode.SetCommandLine, value);
+		}
+	}
+
+	property m_isPty { // ignored on Windows
+		bool get() {
+			return dispatchGet(ProcessDispatchCode.GetPty);
+		}
+
+		void set(bool value) {
+			dispatch(ProcessDispatchCode.SetPty, value);
+		}
+	}
+
+	property m_isSeparateStderr { // ignored if m_isPty
+		bool get() {
+			return dispatchGet(ProcessDispatchCode.GetSeparateStderr);
+		}
+
+		void set(bool value) {
+			dispatch(ProcessDispatchCode.SetSeparateStderr, value);
+		}
+	}
+
+	property m_isCleanEnvironment {
+		bool get() {
+			return dispatchGet(ProcessDispatchCode.GetCleanEnvironment);
+		}
+
+		void set(bool value) {
+			dispatch(ProcessDispatchCode.SetCleanEnvironment, value);
+		}
+	}
+
+	construct(intptr handle) {
+		basetype.construct(handle);
+	}
+
+	bool errorcode start(string_t commandLine = null) { // null = use m_commandLine
+		return dispatch(ProcessDispatchCode.Start, commandLine);
+	}
+
+	void close() { // terminates the process
+		dispatch(ProcessDispatchCode.Close);
+	}
+
+	void detach() {
+		dispatch(ProcessDispatchCode.Detach);
+	}
+}
+
+//..............................................................................

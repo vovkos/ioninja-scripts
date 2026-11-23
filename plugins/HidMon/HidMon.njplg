@@ -17,7 +17,9 @@ log-guid    = 3b5bd445-951e-4f76-9d8d-fe97aecbdd73  # USB
 icon        = images/hidmon.png
 small-icon  = images/hidmon-16x16.png
 
-session-class = HidMonSession
+session-class     = HidMonSession
+dispatch-class    = HidMonDispatch
+dispatch-variable = g_hidMon
 
 [required-capabilities]
 
@@ -27,3 +29,9 @@ org.jancy.io.usb
 
 HidMonSession.jnc
 ../HidLog/HidLogReportWriter.jnc
+HidMonDispatchCode.jnc
+
+[dispatch-scripts]
+
+HidMonDispatchCode.jnc
+HidMonDispatch.jnc

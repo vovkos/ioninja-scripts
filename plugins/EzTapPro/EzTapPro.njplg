@@ -16,7 +16,9 @@ log-guid    = 29725452-e64f-4c0e-a871-776277b68572  # serial log
 icon        = images/serialmon.png
 small-icon  = images/serialmon-16x16.png
 
-session-class = EzTapProSession
+session-class     = EzTapProSession
+dispatch-class    = EzTapProDispatch
+dispatch-variable = g_ezTapPro
 
 [required-capabilities]
 
@@ -26,3 +28,9 @@ org.jancy.io.serial
 
 EzTapProSession.jnc
 EzTapPro.jnc
+EzTapProDispatchCode.jnc
+
+[dispatch-scripts]
+
+EzTapProDispatchCode.jnc
+EzTapProDispatch.jnc

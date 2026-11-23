@@ -1,0 +1,22 @@
+//..............................................................................
+//
+// Pcap Sniffer session dispatch codes for IAS
+//
+
+//..............................................................................
+
+enum PcapSnifferDispatchCode: uint64_t {
+	GetDeviceName = 0x01dd7afdfee30000,
+	SetDeviceName,
+	GetPromiscuous,
+	SetPromiscuous,
+	GetCaptureFilter,
+	SetCaptureFilter,
+	GetSnapshotSize,
+	SetSnapshotSize,
+	Capture,
+	OpenPcapFile,
+	StopCapture,
+}
+
+//..............................................................................

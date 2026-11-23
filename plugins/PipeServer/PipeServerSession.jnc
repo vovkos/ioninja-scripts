@@ -119,6 +119,12 @@ public:
 		disconnectAll();
 	}
 
+	override bool errorcode dispatch(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
+	);
+
 protected:
 	void onListenerPipeEvent(
 		uint_t syncId,
@@ -536,6 +542,49 @@ reactor PipeServerSession.m_uiReactor {
 	m_sessionConnectionState = m_clientWidget.m_currentData ?
 		SessionConnectionState.Connected :
 		SessionConnectionState.Disconnected;
+}
+
+bool errorcode PipeServerSession.dispatch(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case PipeServerDispatchCode.GetPipeName:
+		*out = m_pipeNameCombo.m_editText;
+		break;
+
+	case PipeServerDispatchCode.SetPipeName:
+		m_pipeNameCombo.m_editText = in;
+		break;
+
+	case PipeServerDispatchCode.GetMessageMode:
+		*out = m_messageModeProp.m_value;
+		break;
+
+	case PipeServerDispatchCode.SetMessageMode:
+		m_messageModeProp.m_value = in;
+		break;
+
+	case PipeServerDispatchCode.Listen:
+		if (in) // null = use the current pipe name
+			m_pipeNameCombo.m_editText = in;
+
+		return listen();
+
+	case PipeServerDispatchCode.StopListen:
+		stopListen();
+		break;
+
+	case PipeServerDispatchCode.DisconnectAll:
+		disconnectAll();
+		break;
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
+
+	return true;
 }
 
 //..............................................................................

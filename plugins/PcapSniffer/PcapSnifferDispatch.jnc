@@ -1,0 +1,68 @@
+//..............................................................................
+//
+// Pcap Sniffer session dispatch interface for IAS
+//
+
+import "ias_PluginDispatch.jnc"
+
+//..............................................................................
+
+class PcapSnifferDispatch: ias.PluginDispatch {
+	property m_deviceName { // set: pcap device name or description
+		string_t get() {
+			return dispatchGet(PcapSnifferDispatchCode.GetDeviceName);
+		}
+
+		bool errorcode set(string_t value) {
+			return dispatch(PcapSnifferDispatchCode.SetDeviceName, value);
+		}
+	}
+
+	property m_isPromiscuous {
+		bool get() {
+			return dispatchGet(PcapSnifferDispatchCode.GetPromiscuous);
+		}
+
+		void set(bool value) {
+			dispatch(PcapSnifferDispatchCode.SetPromiscuous, value);
+		}
+	}
+
+	property m_captureFilter { // pcap-filter syntax
+		string_t get() {
+			return dispatchGet(PcapSnifferDispatchCode.GetCaptureFilter);
+		}
+
+		void set(string_t value) {
+			dispatch(PcapSnifferDispatchCode.SetCaptureFilter, value);
+		}
+	}
+
+	property m_snapshotSize {
+		uint_t get() {
+			return dispatchGet(PcapSnifferDispatchCode.GetSnapshotSize);
+		}
+
+		void set(uint_t value) {
+			dispatch(PcapSnifferDispatchCode.SetSnapshotSize, value);
+		}
+	}
+
+	construct(intptr handle) {
+		basetype.construct(handle);
+	}
+
+	bool errorcode capture() {
+		return dispatch(PcapSnifferDispatchCode.Capture);
+	}
+
+	bool errorcode openPcapFile(string_t fileName) {
+		return dispatch(PcapSnifferDispatchCode.OpenPcapFile, fileName);
+	}
+
+	void stopCapture() {
+		dispatch(PcapSnifferDispatchCode.StopCapture);
+	}
+}
+
+//..............................................................................

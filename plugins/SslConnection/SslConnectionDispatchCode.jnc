@@ -1,0 +1,17 @@
+//..............................................................................
+//
+// SSL Connection session dispatch codes for IAS
+//
+
+//..............................................................................
+
+enum SslConnectionDispatchCode: uint64_t {
+	GetRemoteAddress = 0x01dd7afdfee27000,
+	SetRemoteAddress,
+	GetRemotePort,
+	SetRemotePort,
+	Connect,
+	Disconnect,
+}
+
+//..............................................................................

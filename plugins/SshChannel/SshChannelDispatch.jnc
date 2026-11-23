@@ -1,0 +1,60 @@
+//..............................................................................
+//
+// SSH Channel session dispatch interface for IAS
+//
+
+import "ias_PluginDispatch.jnc"
+
+//..............................................................................
+
+class SshChannelDispatch: ias.PluginDispatch {
+	property m_remoteAddress {
+		string_t get() {
+			return dispatchGet(SshChannelDispatchCode.GetRemoteAddress);
+		}
+
+		void set(string_t value) {
+			dispatch(SshChannelDispatchCode.SetRemoteAddress, value);
+		}
+	}
+
+	property m_remotePort {
+		uint_t get() {
+			return dispatchGet(SshChannelDispatchCode.GetRemotePort);
+		}
+
+		void set(uint_t value) {
+			dispatch(SshChannelDispatchCode.SetRemotePort, value);
+		}
+	}
+
+	property m_userName {
+		string_t get() {
+			return dispatchGet(SshChannelDispatchCode.GetUserName);
+		}
+
+		void set(string_t value) {
+			dispatch(SshChannelDispatchCode.SetUserName, value);
+		}
+	}
+
+	construct(intptr handle) {
+		basetype.construct(handle);
+	}
+
+	// password or private key passphrase; never saved
+
+	void setPassword(string_t password) {
+		dispatch(SshChannelDispatchCode.SetPassword, password);
+	}
+
+	bool errorcode connect(string_t address = null) { // null = use m_remoteAddress
+		return dispatch(SshChannelDispatchCode.Connect, address);
+	}
+
+	void disconnect() {
+		dispatch(SshChannelDispatchCode.Disconnect);
+	}
+}
+
+//..............................................................................

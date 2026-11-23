@@ -1,0 +1,20 @@
+//..............................................................................
+//
+// SSH Channel session dispatch codes for IAS
+//
+
+//..............................................................................
+
+enum SshChannelDispatchCode: uint64_t {
+	GetRemoteAddress = 0x01dd7afdfee2d000,
+	SetRemoteAddress,
+	GetRemotePort,
+	SetRemotePort,
+	GetUserName,
+	SetUserName,
+	SetPassword,
+	Connect,
+	Disconnect,
+}
+
+//..............................................................................

@@ -16,6 +16,7 @@ import "log_ThroughputCalc.jnc"
 import "log_ChecksumCalc.jnc"
 import "std_Buffer.jnc"
 import "SerialLog/SerialLogRecordCode.jnc"
+import "doc_SerialDispatchImpl.jnc"
 
 //..............................................................................
 
@@ -28,7 +29,11 @@ class SerialPort {
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-class SerialTapSession: doc.Session {
+class SerialTapSession:
+	doc.Session,
+	doc.SerialDispatchImpl<SerialTapSession> {
+	friend doc.SerialDispatchImpl;
+
 protected:
 	enum Defaults {
 		BaudRate     = 38400,
@@ -120,6 +125,12 @@ public:
 	override void updateProperties();
 	override bool errorcode applyProperties();
 	override void restoreDefaultProperties();
+
+	override bool errorcode dispatch(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
+	);
 
 protected:
 	void onPortComboEnter() {
@@ -730,6 +741,80 @@ reactor SerialTapSession.m_uiReactor {
 	updateLineInfoValue(InfoId.Rts, m_dcePort.m_serialStatusLines & io.SerialStatusLines.Cts);
 	updateLineInfoValue(InfoId.Dsr, m_dtePort.m_serialStatusLines & io.SerialStatusLines.Dsr);
 	updateLineInfoValue(InfoId.Cts, m_dtePort.m_serialStatusLines & io.SerialStatusLines.Cts);
+}
+
+bool errorcode SerialTapSession.dispatch(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case GenericSerialTapDispatchCode.GetBaudRate:
+	case GenericSerialTapDispatchCode.SetBaudRate:
+	case GenericSerialTapDispatchCode.GetDataBits:
+	case GenericSerialTapDispatchCode.SetDataBits:
+	case GenericSerialTapDispatchCode.GetParity:
+	case GenericSerialTapDispatchCode.SetParity:
+	case GenericSerialTapDispatchCode.GetStopBits:
+	case GenericSerialTapDispatchCode.SetStopBits:
+		return dispatchSerial(code, in, out);
+
+	case GenericSerialTapDispatchCode.GetDtr:
+		*out = (m_dcePort.m_serialStatusLines & io.SerialStatusLines.Dsr) != 0;
+		break;
+
+	case GenericSerialTapDispatchCode.GetRts:
+		*out = (m_dcePort.m_serialStatusLines & io.SerialStatusLines.Cts) != 0;
+		break;
+
+	case GenericSerialTapDispatchCode.GetStatusLines:
+		*out = m_dtePort.m_serialStatusLines;
+		break;
+
+	case GenericSerialTapDispatchCode.GetDtePortName:
+		*out = m_dtePortCombo.m_currentText;
+		break;
+
+	case GenericSerialTapDispatchCode.SetDtePortName:
+		m_dtePortCombo.m_editText = in;
+		break;
+
+	case GenericSerialTapDispatchCode.GetDcePortName:
+		*out = m_dcePortCombo.m_currentText;
+		break;
+
+	case GenericSerialTapDispatchCode.SetDcePortName:
+		m_dcePortCombo.m_editText = in;
+		break;
+
+	case GenericSerialTapDispatchCode.GetReadMode:
+		*out = m_readModeProp.m_value;
+		break;
+
+	case GenericSerialTapDispatchCode.SetReadMode:
+		m_readModeProp.m_value = in;
+		break;
+
+	case GenericSerialTapDispatchCode.GetReadInterval:
+		*out = m_readIntervalProp.m_value;
+		break;
+
+	case GenericSerialTapDispatchCode.SetReadInterval:
+		m_readIntervalProp.m_value = in;
+		break;
+
+	case GenericSerialTapDispatchCode.Open:
+		return open();
+
+	case GenericSerialTapDispatchCode.Close:
+		close();
+		break;
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
+
+	return true;
 }
 
 //..............................................................................

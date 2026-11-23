@@ -1,0 +1,18 @@
+//..............................................................................
+//
+// Pipe Server session dispatch codes for IAS
+//
+
+//..............................................................................
+
+enum PipeServerDispatchCode: uint64_t {
+	GetPipeName = 0x01dd7afdfee3c000,
+	SetPipeName,
+	GetMessageMode,
+	SetMessageMode,
+	Listen,
+	StopListen,
+	DisconnectAll,
+}
+
+//..............................................................................

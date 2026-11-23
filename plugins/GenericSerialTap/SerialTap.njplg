@@ -16,7 +16,9 @@ log-guid    = 29725452-e64f-4c0e-a871-776277b68572  # serial log
 icon        = images/serialmon.png
 small-icon  = images/serialmon-16x16.png
 
-session-class = SerialTapSession
+session-class     = SerialTapSession
+dispatch-class    = GenericSerialTapDispatch
+dispatch-variable = g_serialTap
 
 [required-capabilities]
 
@@ -25,3 +27,9 @@ org.jancy.io.serial
 [scripts]
 
 SerialTapSession.jnc
+GenericSerialTapDispatchCode.jnc
+
+[dispatch-scripts]
+
+GenericSerialTapDispatchCode.jnc
+GenericSerialTapDispatch.jnc

@@ -19,7 +19,9 @@ log-guid    = db8c8923-a699-46cc-be7c-f0bcd523082b  # socket
 icon        = images/tcp-flow-mon.png
 small-icon  = images/tcp-flow-mon-16x16.png
 
-session-class = TcpFlowMonSession
+session-class     = TcpFlowMonSession
+dispatch-class    = TcpFlowMonDispatch
+dispatch-variable = g_tcpFlowMon
 
 [required-capabilities]
 
@@ -32,3 +34,9 @@ TcpFlowMonSession.jnc
 TcpFlowLogFilter.jnc
 TcpDecoder.jnc
 TcpSequencer.jnc
+TcpFlowMonDispatchCode.jnc
+
+[dispatch-scripts]
+
+TcpFlowMonDispatchCode.jnc
+TcpFlowMonDispatch.jnc

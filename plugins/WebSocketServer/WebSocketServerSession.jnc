@@ -142,6 +142,12 @@ public:
 		disconnectAll();
 	}
 
+	override bool errorcode dispatch(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
+	);
+
 protected:
 	void onListenerSocketEvent(
 		uint_t syncId,
@@ -782,6 +788,54 @@ reactor WebSocketServerSession.m_uiReactor {
 	m_sessionConnectionState = m_clientWidget.m_currentData ?
 		SessionConnectionState.Connected :
 		SessionConnectionState.Disconnected;
+}
+
+bool errorcode WebSocketServerSession.dispatch(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case WebSocketServerDispatchCode.GetLocalPort:
+		*out = atoi(m_portCombo.m_editText);
+		break;
+
+	case WebSocketServerDispatchCode.SetLocalPort:
+		m_portCombo.m_editText = $"%d"((uint_t)in);
+		break;
+
+	case WebSocketServerDispatchCode.GetSecure:
+		*out = m_actionTable[ActionId.UseSsl].m_isChecked;
+		break;
+
+	case WebSocketServerDispatchCode.SetSecure:
+		m_actionTable[ActionId.UseSsl].m_isChecked = in;
+		break;
+
+	case WebSocketServerDispatchCode.Listen:
+		return listen();
+
+	case WebSocketServerDispatchCode.StopListen:
+		stopListen();
+		break;
+
+	case WebSocketServerDispatchCode.Disconnect:
+		disconnect();
+		break;
+
+	case WebSocketServerDispatchCode.DisconnectAll:
+		disconnectAll();
+		break;
+
+	case WebSocketServerDispatchCode.Ping:
+		ping();
+		break;
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
+
+	return true;
 }
 
 //..............................................................................

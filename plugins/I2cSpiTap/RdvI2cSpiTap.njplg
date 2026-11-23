@@ -18,7 +18,9 @@ log-guid    = 7940a0d5-a84b-4509-bae4-b5928511472d  # ssl
 icon        = images/sniffer.png
 small-icon  = images/sniffer-16x16.png
 
-session-class = RdvI2cSpiTapSession
+session-class     = RdvI2cSpiTapSession
+dispatch-class    = RdvI2cSpiTapDispatch
+dispatch-variable = g_i2cSpiTap
 
 [required-capabilities]
 
@@ -39,3 +41,10 @@ I2cSpiTapLogRecordCode.jnc
 Decoder.jnc
 I2cDecoder.jnc
 SpiDecoder.jnc
+ias_I2cSpiTapDispatchCode.jnc
+
+[dispatch-scripts]
+
+ias_I2cSpiTapDispatchCode.jnc
+ias_I2cSpiTapDispatchBase.jnc
+RdvI2cSpiTapDispatch.jnc

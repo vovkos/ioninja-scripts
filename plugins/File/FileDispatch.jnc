@@ -1,0 +1,52 @@
+//..............................................................................
+//
+// File Stream session dispatch interface for IAS
+//
+
+import "ias_PluginDispatch.jnc"
+
+//..............................................................................
+
+enum FileAccess { // mirrors FileSession.Access
+	ReadWrite,
+	ReadOnly,
+	WriteOnly,
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+class FileDispatch: ias.PluginDispatch {
+	property m_fileName {
+		string_t get() {
+			return dispatchGet(FileDispatchCode.GetFileName);
+		}
+
+		void set(string_t value) {
+			dispatch(FileDispatchCode.SetFileName, value);
+		}
+	}
+
+	property m_access {
+		FileAccess get() {
+			return dispatchGet(FileDispatchCode.GetAccess);
+		}
+
+		void set(FileAccess value) {
+			dispatch(FileDispatchCode.SetAccess, value);
+		}
+	}
+
+	construct(intptr handle) {
+		basetype.construct(handle);
+	}
+
+	bool errorcode open(string_t fileName = null) { // null = use m_fileName
+		return dispatch(FileDispatchCode.Open, fileName);
+	}
+
+	void close() {
+		dispatch(FileDispatchCode.Close);
+	}
+}
+
+//..............................................................................

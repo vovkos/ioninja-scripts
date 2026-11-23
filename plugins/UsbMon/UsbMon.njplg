@@ -16,7 +16,9 @@ log-guid    = 3b5bd445-951e-4f76-9d8d-fe97aecbdd73  # USB
 icon        = images/usbmon.png
 small-icon  = images/usbmon-16x16.png
 
-session-class = UsbMonSession
+session-class     = UsbMonSession
+dispatch-class    = UsbMonDispatch
+dispatch-variable = g_usbMon
 
 [required-capabilities]
 
@@ -25,3 +27,9 @@ org.jancy.io.usb
 [scripts]
 
 UsbMonSession.jnc
+UsbMonDispatchCode.jnc
+
+[dispatch-scripts]
+
+UsbMonDispatchCode.jnc
+UsbMonDispatch.jnc

@@ -97,6 +97,12 @@ public:
 		disconnect();
 	}
 
+	override bool errorcode dispatch(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
+	);
+
 protected:
 	void createUi();
 	iox.SshChannel.ConnectParams const* createConnectParams();
@@ -302,6 +308,57 @@ reactor SshChannelSession.m_uiReactor {
 	m_statusPaneTable[StatusPaneId.State].m_text = m_ssh.m_stateStringTable[m_ssh.m_state];
 	m_statusPaneTable[StatusPaneId.RemoteAddress].m_text = m_ssh.m_state > State.Resolving ? m_ssh.m_remoteAddress.getString() : "<peer-address>";
 	m_statusPaneTable[StatusPaneId.RemoteAddress].m_isVisible = m_ssh.m_state > State.Resolving;
+}
+
+bool errorcode SshChannelSession.dispatch(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case SshChannelDispatchCode.GetRemoteAddress:
+		*out = m_addressCombo.m_editText;
+		break;
+
+	case SshChannelDispatchCode.SetRemoteAddress:
+		m_addressCombo.m_editText = in;
+		break;
+
+	case SshChannelDispatchCode.GetRemotePort:
+		*out = m_socketPropertySet.m_remotePortProp.m_value;
+		break;
+
+	case SshChannelDispatchCode.SetRemotePort:
+		m_socketPropertySet.m_remotePortProp.m_value = in;
+		break;
+
+	case SshChannelDispatchCode.GetUserName:
+		*out = m_sshPropertySet.m_userNameProp.m_value;
+		break;
+
+	case SshChannelDispatchCode.SetUserName:
+		m_sshPropertySet.m_userNameProp.m_value = in;
+		break;
+
+	case SshChannelDispatchCode.SetPassword:
+		m_ssh.setPassword(in);
+		break;
+
+	case SshChannelDispatchCode.Connect:
+		if (in)
+			m_addressCombo.m_editText = in;
+
+		return connect();
+
+	case SshChannelDispatchCode.Disconnect:
+		disconnect();
+		break;
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
+
+	return true;
 }
 
 //..............................................................................

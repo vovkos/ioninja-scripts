@@ -16,7 +16,9 @@ log-guid    = db8c8923-a699-46cc-be7c-f0bcd523082b  # socket
 icon        = images/ssl.png
 small-icon  = images/ssl-16x16.png
 
-session-class = SslConnectionSession
+session-class     = SslConnectionSession
+dispatch-class    = SslConnectionDispatch
+dispatch-variable = g_ssl
 
 [required-capabilities]
 
@@ -31,3 +33,9 @@ org.jancy.io.ip6
 [scripts]
 
 SslConnectionSession.jnc
+SslConnectionDispatchCode.jnc
+
+[dispatch-scripts]
+
+SslConnectionDispatchCode.jnc
+SslConnectionDispatch.jnc

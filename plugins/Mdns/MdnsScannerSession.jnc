@@ -108,6 +108,12 @@ public:
 		stopScan();
 	}
 
+	override bool errorcode dispatch(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
+	);
+
 protected:
 	void createUi();
 
@@ -447,6 +453,73 @@ reactor MdnsScannerSession.m_uiReactor {
 	m_actionTable[ActionId.Scan].m_icon = m_iconTable[m_state ? IconId.Stop : IconId.Scan];
 	m_statusPaneTable[StatusPaneId.State].m_text = m_state ? "Scanning..." : "Idle";
 	m_statusPaneTable[StatusPaneId.ReplyCount].m_text = $"$m_replyCount reply(s)";
+}
+
+bool errorcode MdnsScannerSession.dispatch(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case MdnsScannerDispatchCode.GetQueryName:
+		*out = m_queryNameCombo.m_editText;
+		break;
+
+	case MdnsScannerDispatchCode.SetQueryName:
+		m_queryNameCombo.m_editText = in;
+		break;
+
+	case MdnsScannerDispatchCode.GetQueryType:
+		*out = m_queryTypeProp.m_value;
+		break;
+
+	case MdnsScannerDispatchCode.SetQueryType:
+		m_queryTypeProp.m_value = (io.DnsType)in;
+		break;
+
+	case MdnsScannerDispatchCode.GetAdapterAddress:
+		io.SocketAddress const* address = m_adapterCombo.m_currentData;
+		*out = address ? address.getString() : null;
+		break;
+
+	case MdnsScannerDispatchCode.SetAdapterAddress:
+		io.SocketAddress address;
+		address.parse((string_t)in);
+
+		size_t count = m_adapterCombo.m_itemCount;
+		size_t i = 0;
+		for (; i < count; i++) {
+			io.SocketAddress const* address2 = m_adapterCombo.m_itemData[i];
+			if (address.isEqual(address2))
+				break;
+		}
+
+		if (i == count)
+			return std.fail($"adapter with address '$((string_t)in)' not found");
+
+		m_adapterCombo.m_currentIndex = i;
+		break;
+
+	case MdnsScannerDispatchCode.GetScanTime:
+		*out = m_scanTimeProp.m_value;
+		break;
+
+	case MdnsScannerDispatchCode.SetScanTime:
+		m_scanTimeProp.m_value = in;
+		break;
+
+	case MdnsScannerDispatchCode.StartScan:
+		return startScan();
+
+	case MdnsScannerDispatchCode.StopScan:
+		stopScan();
+		break;
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
+
+	return true;
 }
 
 //..............................................................................

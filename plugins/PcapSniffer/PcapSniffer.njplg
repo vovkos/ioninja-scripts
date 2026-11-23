@@ -18,8 +18,10 @@ small-icon  = images/sniffer-16x16.png
 terminal    = false
 sudo        = true
 
-session-class = PcapSnifferSession
-null-packets  = true
+session-class     = PcapSnifferSession
+dispatch-class    = PcapSnifferDispatch
+dispatch-variable = g_pcap
+null-packets      = true
 
 [required-capabilities]
 
@@ -29,3 +31,9 @@ org.jancy.io.pcap
 
 PcapSnifferSession.jnc
 io_EthernetTemplates.jnc
+PcapSnifferDispatchCode.jnc
+
+[dispatch-scripts]
+
+PcapSnifferDispatchCode.jnc
+PcapSnifferDispatch.jnc

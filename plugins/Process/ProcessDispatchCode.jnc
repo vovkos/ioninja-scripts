@@ -1,0 +1,22 @@
+//..............................................................................
+//
+// Process session dispatch codes for IAS
+//
+
+//..............................................................................
+
+enum ProcessDispatchCode: uint64_t {
+	GetCommandLine = 0x01dd7afdfee3d000,
+	SetCommandLine,
+	GetPty,
+	SetPty,
+	GetSeparateStderr,
+	SetSeparateStderr,
+	GetCleanEnvironment,
+	SetCleanEnvironment,
+	Start,
+	Close,
+	Detach,
+}
+
+//..............................................................................

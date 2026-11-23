@@ -1,0 +1,39 @@
+//..............................................................................
+//
+// USB Monitor session dispatch interface for IAS
+//
+
+import "ias_PluginDispatch.jnc"
+
+//..............................................................................
+
+class UsbMonDispatch: ias.PluginDispatch {
+	uint_t const property m_deviceVid {
+		return dispatchGet(UsbMonDispatchCode.GetDeviceVid);
+	}
+
+	uint_t const property m_devicePid {
+		return dispatchGet(UsbMonDispatchCode.GetDevicePid);
+	}
+
+	construct(intptr handle) {
+		basetype.construct(handle);
+	}
+
+	bool errorcode setDeviceVidPid(
+		uint_t vid,
+		uint_t pid
+	) {
+		return dispatch(UsbMonDispatchCode.SetDeviceVidPid, (vid << 16) | (pid & 0xffff));
+	}
+
+	bool errorcode capture() {
+		return dispatch(UsbMonDispatchCode.Capture);
+	}
+
+	void close() {
+		dispatch(UsbMonDispatchCode.Close);
+	}
+}
+
+//..............................................................................

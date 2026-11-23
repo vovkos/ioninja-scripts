@@ -1,0 +1,82 @@
+//..............................................................................
+//
+// UDP Flow Monitor session dispatch interface for IAS
+//
+
+import "ias_PluginDispatch.jnc"
+
+//..............................................................................
+
+class UdpFlowMonDispatch: ias.PluginDispatch {
+	property m_deviceName { // set: pcap device name or description
+		string_t get() {
+			return dispatchGet(UdpFlowMonDispatchCode.GetDeviceName);
+		}
+
+		bool errorcode set(string_t value) {
+			return dispatch(UdpFlowMonDispatchCode.SetDeviceName, value);
+		}
+	}
+
+	property m_isPromiscuous {
+		bool get() {
+			return dispatchGet(UdpFlowMonDispatchCode.GetPromiscuous);
+		}
+
+		void set(bool value) {
+			dispatch(UdpFlowMonDispatchCode.SetPromiscuous, value);
+		}
+	}
+
+	property m_captureFilter { // address[:port]; null = capture all
+		string_t get() {
+			return dispatchGet(UdpFlowMonDispatchCode.GetCaptureFilter);
+		}
+
+		void set(string_t value) {
+			dispatch(UdpFlowMonDispatchCode.SetCaptureFilter, value);
+		}
+	}
+
+	property m_viewFilter { // address[:port]; takes effect on applyViewFilter()
+		string_t get() {
+			return dispatchGet(UdpFlowMonDispatchCode.GetViewFilter);
+		}
+
+		void set(string_t value) {
+			dispatch(UdpFlowMonDispatchCode.SetViewFilter, value);
+		}
+	}
+
+	property m_snapshotSize {
+		uint_t get() {
+			return dispatchGet(UdpFlowMonDispatchCode.GetSnapshotSize);
+		}
+
+		void set(uint_t value) {
+			dispatch(UdpFlowMonDispatchCode.SetSnapshotSize, value);
+		}
+	}
+
+	construct(intptr handle) {
+		basetype.construct(handle);
+	}
+
+	bool errorcode capture() {
+		return dispatch(UdpFlowMonDispatchCode.Capture);
+	}
+
+	bool errorcode openPcapFile(string_t fileName) {
+		return dispatch(UdpFlowMonDispatchCode.OpenPcapFile, fileName);
+	}
+
+	void stopCapture() {
+		dispatch(UdpFlowMonDispatchCode.StopCapture);
+	}
+
+	bool errorcode applyViewFilter() {
+		return dispatch(UdpFlowMonDispatchCode.ApplyViewFilter);
+	}
+}
+
+//..............................................................................

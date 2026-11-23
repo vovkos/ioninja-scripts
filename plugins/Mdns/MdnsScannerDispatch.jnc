@@ -1,0 +1,75 @@
+//..............................................................................
+//
+// mDNS Scanner session dispatch interface for IAS
+//
+
+import "ias_PluginDispatch.jnc"
+
+//..............................................................................
+
+enum MdnsQueryType { // mirrors io.DnsType (subset)
+	A    = 1,
+	PTR  = 12,
+	TXT  = 16,
+	AAAA = 28,
+	SRV  = 33,
+	ALL  = 255,
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+class MdnsScannerDispatch: ias.PluginDispatch {
+	property m_queryName { // DNS-SD service type or .local host name
+		string_t get() {
+			return dispatchGet(MdnsScannerDispatchCode.GetQueryName);
+		}
+
+		void set(string_t value) {
+			dispatch(MdnsScannerDispatchCode.SetQueryName, value);
+		}
+	}
+
+	property m_queryType {
+		MdnsQueryType get() {
+			return dispatchGet(MdnsScannerDispatchCode.GetQueryType);
+		}
+
+		void set(MdnsQueryType value) {
+			dispatch(MdnsScannerDispatchCode.SetQueryType, value);
+		}
+	}
+
+	property m_adapterAddress { // "0.0.0.0" = all IPv4 adapters, "::" = all IPv6 adapters
+		string_t get() {
+			return dispatchGet(MdnsScannerDispatchCode.GetAdapterAddress);
+		}
+
+		bool errorcode set(string_t value) {
+			return dispatch(MdnsScannerDispatchCode.SetAdapterAddress, value);
+		}
+	}
+
+	property m_scanTime { // ms
+		uint_t get() {
+			return dispatchGet(MdnsScannerDispatchCode.GetScanTime);
+		}
+
+		void set(uint_t value) {
+			dispatch(MdnsScannerDispatchCode.SetScanTime, value);
+		}
+	}
+
+	construct(intptr handle) {
+		basetype.construct(handle);
+	}
+
+	bool errorcode startScan() {
+		return dispatch(MdnsScannerDispatchCode.StartScan);
+	}
+
+	void stopScan() {
+		dispatch(MdnsScannerDispatchCode.StopScan);
+	}
+}
+
+//..............................................................................

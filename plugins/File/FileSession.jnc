@@ -107,6 +107,12 @@ public:
 		close();
 	}
 
+	override bool errorcode dispatch(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
+	);
+
 protected:
 	void onFileStreamEvent(
 		uint_t syncId,
@@ -406,6 +412,45 @@ reactor FileSession.m_uiReactor {
 	m_actionTable[ActionId.Open].m_icon = m_iconTable[m_state ? IconId.Close : IconId.Open];
 	m_actionTable[ActionId.Clear].m_isEnabled = m_state && m_file.m_kind == io.FileKind.Disk;
 	m_statusPaneTable[StatusPaneId.State].m_text = m_state ? "Opened" : "Closed";
+}
+
+bool errorcode FileSession.dispatch(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case FileDispatchCode.GetFileName:
+		*out = m_fileNameCombo.m_editText;
+		break;
+
+	case FileDispatchCode.SetFileName:
+		m_fileNameCombo.m_editText = in;
+		break;
+
+	case FileDispatchCode.GetAccess:
+		*out = m_accessCombo.m_currentData;
+		break;
+
+	case FileDispatchCode.SetAccess:
+		m_accessCombo.m_currentData = in;
+		break;
+
+	case FileDispatchCode.Open:
+		if (in) // null = use the current file name
+			m_fileNameCombo.m_editText = in;
+
+		return open();
+
+	case FileDispatchCode.Close:
+		close();
+		break;
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
+
+	return true;
 }
 
 //..............................................................................

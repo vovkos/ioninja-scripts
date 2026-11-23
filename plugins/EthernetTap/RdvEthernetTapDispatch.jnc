@@ -1,0 +1,12 @@
+//..............................................................................
+//
+// Ethernet Tap over Rendezvous session dispatch interface for IAS
+//
+
+import "ias_RdvDispatchBase.jnc"
+
+//..............................................................................
+
+typedef ias.RdvDispatchBase<ias.PluginDispatch> RdvEthernetTapDispatch;
+
+//..............................................................................

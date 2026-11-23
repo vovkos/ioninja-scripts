@@ -1,0 +1,129 @@
+//..............................................................................
+//
+// J-Link RTT session dispatch interface for IAS
+//
+
+import "ias_PluginDispatch.jnc"
+
+//..............................................................................
+
+enum JLinkRttConnectionType { // mirrors JLinkRttSession.ConnectionType
+	Usb,
+	TcpIp,
+	Attach,
+}
+
+enum JLinkRttInterface { // mirrors io.JLINKARM_TIF_*
+	Jtag  = 0,
+	Swd   = 1,
+	Fine  = 3,
+	Cjtag = 7,
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+class JLinkRttDispatch: ias.PluginDispatch {
+	property m_jlinkLibPath {
+		string_t get() {
+			return dispatchGet(JLinkRttDispatchCode.GetJLinkLibPath);
+		}
+
+		void set(string_t value) {
+			dispatch(JLinkRttDispatchCode.SetJLinkLibPath, value);
+		}
+	}
+
+	property m_connectionType {
+		JLinkRttConnectionType get() {
+			return dispatchGet(JLinkRttDispatchCode.GetConnectionType);
+		}
+
+		void set(JLinkRttConnectionType value) {
+			dispatch(JLinkRttDispatchCode.SetConnectionType, value);
+		}
+	}
+
+	property m_address { // TCP/IP server (JLinkRttConnectionType.TcpIp)
+		string_t get() {
+			return dispatchGet(JLinkRttDispatchCode.GetAddress);
+		}
+
+		void set(string_t value) {
+			dispatch(JLinkRttDispatchCode.SetAddress, value);
+		}
+	}
+
+	property m_device {
+		string_t get() {
+			return dispatchGet(JLinkRttDispatchCode.GetDevice);
+		}
+
+		void set(string_t value) {
+			dispatch(JLinkRttDispatchCode.SetDevice, value);
+		}
+	}
+
+	property m_interface {
+		JLinkRttInterface get() {
+			return dispatchGet(JLinkRttDispatchCode.GetInterface);
+		}
+
+		void set(JLinkRttInterface value) {
+			dispatch(JLinkRttDispatchCode.SetInterface, value);
+		}
+	}
+
+	property m_speed { // kHz
+		uint_t get() {
+			return dispatchGet(JLinkRttDispatchCode.GetSpeed);
+		}
+
+		void set(uint_t value) {
+			dispatch(JLinkRttDispatchCode.SetSpeed, value);
+		}
+	}
+
+	property m_isAutoDetectRttAddress {
+		bool get() {
+			return dispatchGet(JLinkRttDispatchCode.GetAutoDetectRttAddress);
+		}
+
+		void set(bool value) {
+			dispatch(JLinkRttDispatchCode.SetAutoDetectRttAddress, value);
+		}
+	}
+
+	property m_rttAddress { // e.g. "0x20000000"; used if !m_isAutoDetectRttAddress
+		string_t get() {
+			return dispatchGet(JLinkRttDispatchCode.GetRttAddress);
+		}
+
+		void set(string_t value) {
+			dispatch(JLinkRttDispatchCode.SetRttAddress, value);
+		}
+	}
+
+	property m_rttChannel {
+		uint_t get() {
+			return dispatchGet(JLinkRttDispatchCode.GetRttChannel);
+		}
+
+		void set(uint_t value) {
+			dispatch(JLinkRttDispatchCode.SetRttChannel, value);
+		}
+	}
+
+	construct(intptr handle) {
+		basetype.construct(handle);
+	}
+
+	bool errorcode open() {
+		return dispatch(JLinkRttDispatchCode.Open);
+	}
+
+	void close() {
+		dispatch(JLinkRttDispatchCode.Close);
+	}
+}
+
+//..............................................................................

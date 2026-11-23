@@ -1,0 +1,20 @@
+//..............................................................................
+//
+// WebSocket Server session dispatch codes for IAS
+//
+
+//..............................................................................
+
+enum WebSocketServerDispatchCode: uint64_t {
+	GetLocalPort = 0x01dd7afdfee2c000,
+	SetLocalPort,
+	GetSecure,
+	SetSecure,
+	Listen,
+	StopListen,
+	Disconnect,
+	DisconnectAll,
+	Ping,
+}
+
+//..............................................................................

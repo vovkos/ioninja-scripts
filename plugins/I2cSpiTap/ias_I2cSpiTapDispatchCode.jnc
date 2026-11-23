@@ -1,0 +1,25 @@
+//..............................................................................
+//
+// I2C/SPI Tap settings dispatch codes for IAS (shared by all I2C/SPI Tap plugins)
+//
+
+namespace ias {
+
+//..............................................................................
+
+enum I2cSpiTapDispatchCode: uint64_t {
+	GetProtocol = 0x01dd7afd4b4bfb00,
+	SetProtocol,
+	GetSpiMode,
+	SetSpiMode,
+	GetSpiDataBits,
+	SetSpiDataBits,
+	GetSpiBigEndian,
+	SetSpiBigEndian,
+	GetSpiFlipMosiMiso,
+	SetSpiFlipMosiMiso,
+}
+
+//..............................................................................
+
+} // namespace ias

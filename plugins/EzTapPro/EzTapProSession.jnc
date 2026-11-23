@@ -124,6 +124,12 @@ public:
 		size_t size
 	);
 
+	override bool errorcode dispatch(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
+	);
+
 protected:
 	void onSerialSettingChanged();
 
@@ -848,6 +854,69 @@ reactor EzTapProSession.m_uiReactor {
 	updateLineInfoValue(InfoId.Rts, m_dteControlLines & io.SerialStatusLines.Cts);
 	updateLineInfoValue(InfoId.Dsr, m_dceControlLines & io.SerialStatusLines.Dsr);
 	updateLineInfoValue(InfoId.Cts, m_dceControlLines & io.SerialStatusLines.Cts);
+}
+
+bool errorcode EzTapProSession.dispatch(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case EzTapProDispatchCode.GetPortName:
+		*out = m_portCombo.m_currentText;
+		break;
+
+	case EzTapProDispatchCode.SetPortName:
+		m_portCombo.m_editText = in;
+		break;
+
+	case EzTapProDispatchCode.GetSignalLevel:
+		*out = m_signalLevelProp.m_value;
+		break;
+
+	case EzTapProDispatchCode.SetSignalLevel:
+		m_signalLevelProp.m_value = in;
+		break;
+
+	case EzTapProDispatchCode.GetFlipDteDce:
+		*out = m_actionTable[ActionId.Flip].m_isChecked;
+		break;
+
+	case EzTapProDispatchCode.SetFlipDteDce:
+		m_actionTable[ActionId.Flip].m_isChecked = in;
+		break;
+
+	case EzTapProDispatchCode.GetReadMode:
+		*out = m_readModeProp.m_value;
+		break;
+
+	case EzTapProDispatchCode.SetReadMode:
+		m_readModeProp.m_value = in;
+		break;
+
+	case EzTapProDispatchCode.GetReadInterval:
+		*out = m_readIntervalProp.m_value;
+		break;
+
+	case EzTapProDispatchCode.SetReadInterval:
+		m_readIntervalProp.m_value = in;
+		break;
+
+	case EzTapProDispatchCode.Capture:
+		if (in) // null = use the current port name
+			m_portCombo.m_editText = in;
+
+		return capture();
+
+	case EzTapProDispatchCode.StopCapture:
+		stopCapture();
+		break;
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
+
+	return true;
 }
 
 //..............................................................................

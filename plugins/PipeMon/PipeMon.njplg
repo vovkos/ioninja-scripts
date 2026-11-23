@@ -17,7 +17,9 @@ log-guid    = 323abaeb-7859-48bc-8e24-f8c082b04ff7  # device monitor
 icon        = images/pipemon.png
 small-icon  = images/pipemon-16x16.png
 
-session-class = PipeMonSession
+session-class     = PipeMonSession
+dispatch-class    = PipeMonDispatch
+dispatch-variable = g_pipeMon
 
 [required-capabilities]
 
@@ -28,3 +30,9 @@ org.jancy.io.devmon
 PipeMonSession.jnc
 PipeMonitor.jnc
 PipeMonLogFilter.jnc
+PipeMonDispatchCode.jnc
+
+[dispatch-scripts]
+
+PipeMonDispatchCode.jnc
+PipeMonDispatch.jnc

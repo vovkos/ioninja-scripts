@@ -123,6 +123,12 @@ public:
 		size_t size
 	);
 
+	override bool errorcode dispatch(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
+	);
+
 protected:
 	void onPcapEvent(
 		uint_t syncId,
@@ -572,6 +578,74 @@ reactor PcapSnifferSession.m_uiReactor {
 	m_actionTable[ActionId.Capture].m_text = m_state ? "Stop Capture" : "Capture";
 	m_actionTable[ActionId.Capture].m_icon = m_iconTable[m_state ? IconId.StopCapture : IconId.Capture];
 	m_statusPaneTable[StatusPaneId.State].m_text = m_state ? "Capturing" : "Closed";
+}
+
+bool errorcode PcapSnifferSession.dispatch(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case PcapSnifferDispatchCode.GetDeviceName:
+		io.PcapDeviceDesc const* device = m_deviceCombo.m_currentData;
+		*out = device ? device.m_name : null;
+		break;
+
+	case PcapSnifferDispatchCode.SetDeviceName:
+		string_t name = in;
+		size_t count = m_deviceCombo.m_itemCount;
+		size_t i = 0;
+		for (; i < count; i++) {
+			io.PcapDeviceDesc const* device = m_deviceCombo.m_itemData[i];
+			if (device.m_name == name || device.m_description == name)
+				break;
+		}
+
+		if (i == count)
+			return std.fail($"pcap device '$(name)' not found");
+
+		m_deviceCombo.m_currentIndex = i;
+		break;
+
+	case PcapSnifferDispatchCode.GetPromiscuous:
+		*out = m_promisciousProp.m_value;
+		break;
+
+	case PcapSnifferDispatchCode.SetPromiscuous:
+		m_promisciousProp.m_value = in;
+		break;
+
+	case PcapSnifferDispatchCode.GetCaptureFilter:
+		*out = m_captureFilterProp.m_value;
+		break;
+
+	case PcapSnifferDispatchCode.SetCaptureFilter:
+		m_captureFilterProp.m_value = in;
+		break;
+
+	case PcapSnifferDispatchCode.GetSnapshotSize:
+		*out = m_snapshotSizeProp.m_value;
+		break;
+
+	case PcapSnifferDispatchCode.SetSnapshotSize:
+		m_snapshotSizeProp.m_value = in;
+		break;
+
+	case PcapSnifferDispatchCode.Capture:
+		return capture();
+
+	case PcapSnifferDispatchCode.OpenPcapFile:
+		return openPcapFile((string_t)in, m_captureFilterProp.m_value);
+
+	case PcapSnifferDispatchCode.StopCapture:
+		stopCapture();
+		break;
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
+
+	return true;
 }
 
 //..............................................................................

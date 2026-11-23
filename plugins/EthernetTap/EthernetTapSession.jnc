@@ -135,6 +135,12 @@ public:
 		stopCapture();
 	}
 
+	override bool errorcode dispatch(
+		uint64_t code,
+		variant_t in,
+		variant_t* out
+	);
+
 protected:
 	void onInEndpointEvent(
 		uint_t syncId,
@@ -552,6 +558,26 @@ reactor EthernetTapSession.m_uiReactor {
 	m_actionTable[ActionId.Capture].m_text = m_state ? "Stop capture" : "Capture";
 	m_actionTable[ActionId.Capture].m_icon = m_iconTable[m_state ? IconId.StopCapture : IconId.Capture];
 	m_statusPaneTable[StatusPaneId.State].m_text = m_statusTextTable[m_state];
+}
+
+bool errorcode EthernetTapSession.dispatch(
+	uint64_t code,
+	variant_t in,
+	variant_t* out
+) {
+	switch (code) {
+	case EthernetTapDispatchCode.Capture:
+		return capture();
+
+	case EthernetTapDispatchCode.StopCapture:
+		stopCapture();
+		break;
+
+	default:
+		return std.fail("unsupported dispatch code");
+	}
+
+	return true;
 }
 
 //..............................................................................
