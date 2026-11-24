@@ -70,6 +70,10 @@ bool errorcode RdvDispatchImpl<T>.dispatchRdv(
 		m_self.disconnect();
 		break;
 
+	case ias.RdvDispatchCode.ShowDevicePopup:
+		m_self.m_rdvUi.m_deviceCombo.showPopup();
+		break;
+
 	default:
 		return std.fail("unsupported dispatch code");
 	}

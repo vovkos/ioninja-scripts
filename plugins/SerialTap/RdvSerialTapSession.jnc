@@ -645,6 +645,7 @@ bool errorcode RdvSerialTapSession.dispatch(
 	case ias.RdvDispatchCode.GetState:
 	case ias.RdvDispatchCode.Connect:
 	case ias.RdvDispatchCode.Disconnect:
+	case ias.RdvDispatchCode.ShowDevicePopup:
 		return dispatchRdv(code, in, out);
 
 	default:

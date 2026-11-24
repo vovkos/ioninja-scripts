@@ -74,6 +74,10 @@ bool errorcode SshDispatchImpl<T>.dispatchSsh(
 		m_self.disconnect();
 		break;
 
+	case ias.SshDispatchCode.ShowDevicePopup:
+		m_self.m_urlUi.m_urlCombo.showPopup();
+		break;
+
 	default:
 		return std.fail("unsupported dispatch code");
 	}

@@ -82,6 +82,10 @@ class SshDispatchBase<B>: B {
 	void disconnect() {
 		dispatch(SshDispatchCode.Disconnect);
 	}
+
+	void showDevicePopup() { // same as clicking the device combo
+		dispatch(SshDispatchCode.ShowDevicePopup);
+	}
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .

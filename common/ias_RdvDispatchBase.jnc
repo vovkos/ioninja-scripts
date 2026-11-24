@@ -64,6 +64,10 @@ class RdvDispatchBase<B>: B {
 	void disconnect() {
 		dispatch(RdvDispatchCode.Disconnect);
 	}
+
+	void showDevicePopup() { // same as clicking the device combo
+		dispatch(RdvDispatchCode.ShowDevicePopup);
+	}
 }
 
 //..............................................................................

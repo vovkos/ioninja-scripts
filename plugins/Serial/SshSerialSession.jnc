@@ -819,6 +819,7 @@ bool errorcode SshSerialSession.dispatch(
 	case ias.SshDispatchCode.GetState:
 	case ias.SshDispatchCode.Connect:
 	case ias.SshDispatchCode.Disconnect:
+	case ias.SshDispatchCode.ShowDevicePopup:
 		return dispatchSsh(code, in, out);
 
 	default:

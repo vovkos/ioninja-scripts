@@ -18,6 +18,7 @@ enum RdvDispatchCode: uint64_t {
 	GetState,
 	Connect,
 	Disconnect,
+	ShowDevicePopup,
 }
 
 //..............................................................................
