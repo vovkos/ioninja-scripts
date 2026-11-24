@@ -7,6 +7,7 @@
 //
 
 import "log_Log.jnc"
+import "ui_Widget.jnc"
 
 //! \addtogroup api-ias
 //! @{
@@ -58,6 +59,10 @@ void resizePane(
 	uint_t width = -1, // -1 = keep
 	uint_t height = -1
 );
+
+// fit the Control pane width to the forms as per the size policy
+
+void resizeFormToContents(ui.SizePolicy policy = ui.SizePolicy.Preferred);
 
 void setTransmitText(string_t text); // + switch to the Text tab
 

@@ -289,6 +289,7 @@ void HidSession.createUi() {
 
 	m_pluginHost.m_propertyGrid.resizeNameColumnToContents();
 	m_pluginHost.m_informationGrid.resizeNameColumnToContents();
+	m_pluginHost.resizeFormToContents(ui.SizePolicy.Minimum);
 
 	setupReportUi();
 	ui.refreshHidDeviceListUi(m_deviceCombo, m_deviceProp);

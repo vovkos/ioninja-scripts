@@ -149,6 +149,7 @@ void TxModifierLayer.createUi() {
 	layout.addRow(m_isInterCharDelayEnabledCheckBox, m_interCharDelaySpin);
 
 	m_pluginHost.createForm(groupBox);
+	m_pluginHost.resizeFormToContents(ui.SizePolicy.Minimum);
 
 	// property grid
 

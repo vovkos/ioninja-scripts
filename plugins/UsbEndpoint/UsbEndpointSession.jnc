@@ -467,6 +467,7 @@ void UsbEndpointSession.createUi() {
 
 	m_pluginHost.m_propertyGrid.resizeNameColumnToContents();
 	m_pluginHost.m_informationGrid.resizeNameColumnToContents();
+	m_pluginHost.resizeFormToContents(ui.SizePolicy.Minimum);
 
 	ui.refreshUsbDeviceListUi(m_deviceCombo, m_deviceProp);
 	m_uiReactor.start();

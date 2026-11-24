@@ -172,6 +172,7 @@ void ModbusLayer.createUi() {
 	layout.addRow(toolBar);
 
 	m_pluginHost.createForm(groupBox);
+	m_pluginHost.resizeFormToContents(ui.SizePolicy.Minimum);
 
 	// property grid
 

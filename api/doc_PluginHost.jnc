@@ -45,6 +45,8 @@ opaque class PluginHost {
 		ui.Layout* layout,
 		int stretch = 0
 	);
+
+	void resizeFormToContents(ui.SizePolicy policy = ui.SizePolicy.Preferred);
 }
 
 //..............................................................................

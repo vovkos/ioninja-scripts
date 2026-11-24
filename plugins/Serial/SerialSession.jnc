@@ -352,6 +352,7 @@ void SerialSession.createUi() {
 
 	m_pluginHost.m_propertyGrid.resizeNameColumnToContents();
 	m_pluginHost.m_informationGrid.resizeNameColumnToContents();
+	m_pluginHost.resizeFormToContents(ui.SizePolicy.Minimum);
 
 	ui.enumerateSerialPorts(m_portCombo, m_portProp);
 	m_uiReactor.start();

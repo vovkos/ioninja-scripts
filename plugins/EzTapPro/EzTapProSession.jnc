@@ -359,6 +359,7 @@ void EzTapProSession.createUi() {
 
 	m_pluginHost.m_propertyGrid.resizeNameColumnToContents();
 	m_pluginHost.m_informationGrid.resizeNameColumnToContents();
+	m_pluginHost.resizeFormToContents(ui.SizePolicy.Minimum);
 
 	enumeratePorts();
 	m_uiReactor.start();
