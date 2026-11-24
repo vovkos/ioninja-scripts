@@ -145,13 +145,6 @@ protected:
 		ui.enumerateSerialPorts(m_portCombo, m_portProp);
 	}
 
-	ui.ComboBox* createSerialSettingComboBox(
-		string_t labelText,
-		ui.EnumPropertyOption const* optionTable,
-		size_t optionCount,
-		function* onChanged()
-	);
-
 	void waitSerialEvents();
 	io.SerialOptions getSerialOptions();
 
@@ -369,24 +362,6 @@ void EzTapProSession.createUi() {
 
 	enumeratePorts();
 	m_uiReactor.start();
-}
-
-ui.ComboBox* EzTapProSession.createSerialSettingComboBox(
-	string_t labelText,
-	ui.EnumPropertyOption const* optionTable,
-	size_t optionCount,
-	function* onChanged()
-) {
-	m_pluginHost.m_toolBar.addLabel(labelText);
-	ui.ComboBox* comboBox = m_pluginHost.m_toolBar.addComboBox();
-
-	for (size_t i = 0; i < optionCount; i++)
-		comboBox.addItem(optionTable[i].m_text, optionTable[i].m_value);
-
-	comboBox.adjustSizeToContents();
-	bindingof(comboBox.m_currentIndex) += onChanged;
-
-	return comboBox;
 }
 
 void EzTapProSession.flipDteDce() {

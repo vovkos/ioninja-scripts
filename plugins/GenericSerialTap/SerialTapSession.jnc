@@ -152,13 +152,6 @@ protected:
 	void enumeratePorts();
 	void flipDteDce();
 
-	ui.ComboBox* createSerialSettingComboBox(
-		string_t labelText,
-		ui.EnumPropertyOption const* optionTable,
-		size_t optionCount,
-		function* onChanged()
-	);
-
 	bool errorcode configurePort(SerialPort* port);
 	void waitSerialEvents(SerialPort* port);
 	io.SerialOptions getSerialOptions();
@@ -333,27 +326,10 @@ void SerialTapSession.createUi() {
 
 	m_pluginHost.m_propertyGrid.resizeNameColumnToContents();
 	m_pluginHost.m_informationGrid.resizeNameColumnToContents();
+	m_pluginHost.resizeFormToContents(ui.SizePolicy.Minimum);
 
 	enumeratePorts();
 	m_uiReactor.start();
-}
-
-ui.ComboBox* SerialTapSession.createSerialSettingComboBox(
-	string_t labelText,
-	ui.EnumPropertyOption const* optionTable,
-	size_t optionCount,
-	function* onChanged()
-) {
-	m_pluginHost.m_toolBar.addLabel(labelText);
-	ui.ComboBox* comboBox = m_pluginHost.m_toolBar.addComboBox();
-
-	for (size_t i = 0; i < optionCount; i++)
-		comboBox.addItem(optionTable[i].m_text, optionTable[i].m_value);
-
-	comboBox.adjustSizeToContents();
-	bindingof(comboBox.m_currentIndex) += onChanged;
-
-	return comboBox;
 }
 
 void SerialTapSession.enumeratePorts() {
