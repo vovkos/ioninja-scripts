@@ -105,11 +105,11 @@ void representStruct(
 			else if (!(field.m_ptrTypeFlags & (jnc.PtrTypeFlags.BitField | jnc.PtrTypeFlags.BigEndian)))
 				valueString = displayType.getValueString(p, formatSpec);
 			else {
-				jnc.DataPtrType* displayPtrType = (field.m_ptrTypeFlags & jnc.PtrTypeFlags.BitField) ?
-					displayType.getDataPtrType(field.m_bitOffset, field.m_bitCount,,, field.m_ptrTypeFlags) :
-					displayType.getDataPtrType(,, field.m_ptrTypeFlags);
+				jnc.DataPtrType* ptrType = (field.m_ptrTypeFlags & jnc.PtrTypeFlags.BitField) ?
+					field.m_type.getDataPtrType(field.m_bitOffset, field.m_bitCount,,, field.m_ptrTypeFlags) :
+					field.m_type.getDataPtrType(,, field.m_ptrTypeFlags);
 
-				valueString = displayPtrType.getTargetValueString(p, formatSpec);
+				valueString = displayType.getValueString(ptrType.load(p), formatSpec);
 			}
 		}
 

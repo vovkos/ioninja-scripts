@@ -105,11 +105,11 @@ string_t getItemValueString(
 	if (!(ptrTypeFlags & (jnc.PtrTypeFlags.BitField | jnc.PtrTypeFlags.BigEndian)))
 		return displayType.getValueString(p, formatSpec);
 
-	jnc.DataPtrType* displayPtrType = (ptrTypeFlags & jnc.PtrTypeFlags.BitField) ?
-		displayType.getDataPtrType(bitOffset, bitCount,,, ptrTypeFlags) :
-		displayType.getDataPtrType(,, ptrTypeFlags);
+	jnc.DataPtrType* ptrType = (ptrTypeFlags & jnc.PtrTypeFlags.BitField) ?
+		type.getDataPtrType(bitOffset, bitCount,,, ptrTypeFlags) :
+		type.getDataPtrType(,, ptrTypeFlags);
 
-	return displayPtrType.getTargetValueString(p, formatSpec);
+	return displayType.getValueString(ptrType.load(p), formatSpec);
 }
 
 ToStringFunc* getElementValueStringFunc(
@@ -137,8 +137,10 @@ ToStringFunc* getElementValueStringFunc(
 		return getValueString~(, formatSpec);
 	}
 
-	jnc.DataPtrType* ptrType = displayType.getDataPtrType(,, ptrTypeFlags);
-	return ptrType.getTargetValueString~(, formatSpec);
+	jnc.DataPtrType* ptrType = type.getDataPtrType(,, ptrTypeFlags); // the storage type, see getItemValueString
+	return [=] string_t(void const* p) {
+		return displayType.getValueString(ptrType.load(p), formatSpec);
+	};
 }
 
 void setItemBackColor(
