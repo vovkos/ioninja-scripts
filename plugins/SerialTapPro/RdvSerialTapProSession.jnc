@@ -30,7 +30,7 @@ import "doc_RdvDispatchImpl.jnc"
 
 class RdvSerialTapProSession:
 	doc.Session,
-	iox.HwcTransportSink,
+	iox.HwcSink,
 	doc.SerialDispatchImpl<RdvSerialTapProSession>,
 	doc.RdvDispatchImpl<RdvSerialTapProSession> {
 	friend
@@ -188,7 +188,7 @@ protected:
 
 RdvSerialTapProSession.construct(doc.PluginHost* pluginHost) {
 	basetype.construct(pluginHost);
-	m_rdv.construct(pluginHost);
+	m_rdv.construct(this, pluginHost);
 	m_rdvUi.construct(pluginHost, io.RendezvousHwcPeripheralKind.SerialTapPro, "Serial Tap Pro");
 	m_uploader.construct(pluginHost, m_rdv);
 	m_uploaderDlg.construct(m_uploader);
@@ -210,7 +210,6 @@ RdvSerialTapProSession.construct(doc.PluginHost* pluginHost) {
 	m_rdv.m_onConnected += onConnected;
 	m_rdv.m_onDisconnected += onDisconnected;
 	bindingof(m_rdv.m_state) += onTransportStateChanged;
-	m_rdv.m_sink = this;
 
 	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));

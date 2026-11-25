@@ -25,7 +25,7 @@ import "doc_RdvDispatchImpl.jnc"
 
 class RdvSerialTapSession:
 	doc.Session,
-	iox.HwcTransportSink,
+	iox.HwcSink,
 	doc.SerialDispatchImpl<RdvSerialTapSession>,
 	doc.RdvDispatchImpl<RdvSerialTapSession> {
 	friend
@@ -162,14 +162,13 @@ protected:
 
 RdvSerialTapSession.construct(doc.PluginHost* pluginHost) {
 	basetype.construct(pluginHost);
-	m_rdv.construct(pluginHost);
+	m_rdv.construct(this, pluginHost);
 	m_rdvUi.construct(pluginHost, io.RendezvousHwcPeripheralKind.SerialTap, "Serial Tap");
 
 	createUi();
 
 	m_rdv.m_onConnected += onConnected;
 	m_rdv.m_onDisconnected += onDisconnected;
-	m_rdv.m_sink = this;
 
 	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));

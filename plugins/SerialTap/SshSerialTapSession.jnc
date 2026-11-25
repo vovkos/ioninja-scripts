@@ -26,7 +26,7 @@ import "doc_SshDispatchImpl.jnc"
 
 class SshSerialTapSession:
 	doc.Session,
-	iox.HwcTransportSink,
+	iox.HwcSink,
 	doc.SerialDispatchImpl<SshSerialTapSession>,
 	doc.SshDispatchImpl<SshSerialTapSession> {
 	friend
@@ -169,7 +169,7 @@ protected:
 
 SshSerialTapSession.construct(doc.PluginHost* pluginHost) {
 	basetype.construct(pluginHost);
-	m_ssh.construct(pluginHost);
+	m_ssh.construct(this, pluginHost);
 	m_urlUi.construct(pluginHost, m_socketPropertySet, ui.SshHwcUrlUi.DeviceKind.Usb, "ioninja-hwc", "_serial-tap", "Serial Tap");
 
 	createUi();
@@ -189,7 +189,6 @@ SshSerialTapSession.construct(doc.PluginHost* pluginHost) {
 	}
 
 	m_ssh.m_onDisconnected += onDisconnected;
-	m_ssh.m_sink = this;
 
 	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));

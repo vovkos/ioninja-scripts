@@ -667,6 +667,9 @@ void SshChannel.onSshEvent(
 		return;
 	}
 
+	if (triggeredEvents & io.SshEvents.WriteBufferReady)
+		m_isTransmitEnabled = true;
+
 	if (triggeredEvents & io.SshEvents.IncomingData) {
 		size_t size = m_ssh.read(m_readBuffer.m_p, m_readBuffer.m_size);
 		if (size)

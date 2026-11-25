@@ -317,23 +317,4 @@ struct HwcFpgaUploadProgressParams {
 
 //..............................................................................
 
-void packHwcMsg(
-	std.Buffer* buffer,
-	HwcMsgCode code,
-	void const* p = null,
-	size_t size = 0
-) {
-	HwcMsgHdr hdr;
-	hdr.m_stx = 0x02;
-	hdr.m_code = code;
-	hdr.m_dataSize = size;
-
-	buffer.copy(&hdr, sizeof(hdr));
-	buffer.append(p, size);
-}
-
-//..............................................................................
-
-pragma(Alignment, default)
-
 } // namespace io

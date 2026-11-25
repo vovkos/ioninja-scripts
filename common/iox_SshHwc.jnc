@@ -4,7 +4,7 @@
 //
 
 import "iox_SshChannel.jnc"
-import "iox_HwcTransport.jnc"
+import "iox_HwcBase.jnc"
 import "io_HwcProto.jnc"
 import "std_Buffer.jnc"
 import "std_String.jnc"
@@ -17,24 +17,37 @@ namespace iox {
 //..............................................................................
 
 class SshHwc:
-	SshChannel,
-	HwcTransport {
+	HwcBase,
+	SshChannel {
 public:
-	construct(doc.PluginHost* pluginHost) {
-		basetype.construct(pluginHost);
-		m_onConnected += resetDecoder;
-		m_onIncomingData += decode;
-	}
+	construct(
+		HwcSink* sink,
+		doc.PluginHost* pluginHost
+	);
 
-	override bool errorcode writeMsg(
-		io.HwcMsgCode code,
-		void const* p = null,
-		size_t size = 0
+protected:
+	override size_t errorcode writeTransport(
+		void const* p,
+		size_t size
 	) {
-		std.Buffer buffer;
-		io.packHwcMsg(buffer, code, p, size);
-		write(buffer.m_p, buffer.m_size);
-		return true;
+		return write(p, size);
+	}
+}
+
+// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+SshHwc.construct(
+	HwcSink* sink,
+	doc.PluginHost* pluginHost
+) {
+	HwcBase.construct(sink);
+	SshChannel.construct(pluginHost);
+	m_onConnected += resetBuffers;
+	m_onIncomingData += decode;
+
+	bindingof(m_isTransmitEnabled) += []() {
+		if (m_isTransmitEnabled)
+			try flushWriteBuffer();
 	}
 }
 

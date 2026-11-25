@@ -10,7 +10,7 @@
 //
 
 import "iox_FpgaUploaderBase.jnc"
-import "iox_HwcTransport.jnc"
+import "iox_HwcBase.jnc"
 import "io_HwcProto.jnc"
 import "io_base.jncx"
 import "io_MappedFile.jnc"
@@ -25,15 +25,15 @@ namespace iox {
 
 class HwcFpgaUploader:
 	FpgaUploaderBase,
-	HwcTransportSink {
+	HwcSink {
 protected:
 	enum {
 		BlockSize = 16 * 1024,
 	}
 
 protected:
-	HwcTransport* m_transport;
-	HwcTransportSink* m_prevSink;
+	HwcBase* m_hwc;
+	HwcSink* m_prevSink;
 	io.MappedFile m_file;
 	string_t m_fileName;
 	io.RpdVersion m_fileVersion;
@@ -46,11 +46,8 @@ public:
 public:
 	construct(
 		doc.PluginHost* pluginHost,
-		HwcTransport* transport
-	) {
-		basetype.construct(pluginHost);
-		m_transport = transport;
-	}
+		HwcBase* hwc
+	);
 
 	override void cancel();
 
@@ -62,12 +59,17 @@ public:
 	);
 
 protected:
-	override void onMsg(io.HwcMsgHdr const* hdr);
+	override void onMsg(io.HwcMsgHdr const* hdr) {
+		if (!processMsg(hdr))
+			m_prevSink.onMsg(hdr);
+	}
 
 	override void onOobData(
 		void const* p,
 		size_t size
-	);
+	) {
+		m_prevSink.onOobData(p, size);
+	}
 
 	void start(FpgaUploaderState state); // take over the transport
 	void stop();                         // hand it back, go idle
@@ -81,6 +83,14 @@ protected:
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
+HwcFpgaUploader.construct(
+	doc.PluginHost* pluginHost,
+	HwcBase* hwc
+) {
+	basetype.construct(pluginHost);
+	m_hwc = hwc;
+}
+
 void HwcFpgaUploader.cancel() {
 	switch (m_state) {
 	case FpgaUploaderState.Idle:
@@ -90,7 +100,7 @@ void HwcFpgaUploader.cancel() {
 	case FpgaUploaderState.Erasing:
 	case FpgaUploaderState.Writing:
 	case FpgaUploaderState.Loading:
-		try m_transport.writeMsg(io.HwcMsgCode.FpgaUploadCancel);
+		try m_hwc.writeMsg(io.HwcMsgCode.FpgaUploadCancel);
 		break;
 	}
 
@@ -101,7 +111,7 @@ void HwcFpgaUploader.cancel() {
 bool errorcode HwcFpgaUploader.queryVersion() {
 	cancel();
 	start(FpgaUploaderState.QueryingVersion);
-	m_transport.writeMsg(io.HwcMsgCode.FpgaGetVersion);
+	m_hwc.writeMsg(io.HwcMsgCode.FpgaGetVersion);
 	return true;
 
 catch:
@@ -124,7 +134,7 @@ bool errorcode HwcFpgaUploader.update(
 	if (skipVersionCheck)
 		startUpload();
 	else
-		m_transport.writeMsg(io.HwcMsgCode.FpgaGetVersion);
+		m_hwc.writeMsg(io.HwcMsgCode.FpgaGetVersion);
 
 	return true;
 
@@ -134,14 +144,13 @@ catch:
 }
 
 void HwcFpgaUploader.start(FpgaUploaderState state) {
-	m_prevSink = m_transport.m_sink;
-	m_transport.m_sink = this;
+	m_prevSink = m_hwc.m_sink;
+	m_hwc.m_sink = this;
 	m_state = state;
 }
 
 void HwcFpgaUploader.stop() {
-	m_transport.m_sink = m_prevSink;
-	m_prevSink = null;
+	m_hwc.m_sink = m_prevSink;
 	m_file.close();
 	m_state = FpgaUploaderState.Idle;
 }
@@ -160,31 +169,18 @@ bool errorcode HwcFpgaUploader.startUpload() {
 	m_ackCount = 0;
 	m_ackTotal = 1 + (fileSize + BlockSize - 1) / BlockSize; // begin + blocks
 
-	m_transport.writeMsg(io.HwcMsgCode.FpgaUploadBegin, &fileSize, sizeof(fileSize));
+	m_hwc.writeMsg(io.HwcMsgCode.FpgaUploadBegin, &fileSize, sizeof(fileSize));
 
 	for (size_t offset = 0; offset < fileSize; offset += BlockSize) {
 		size_t size = fileSize - offset;
 		if (size > BlockSize)
 			size = BlockSize;
 
-		m_transport.writeMsg(io.HwcMsgCode.FpgaUploadData, m_file.view(offset, size), size);
+		m_hwc.writeMsg(io.HwcMsgCode.FpgaUploadData, m_file.view(offset, size), size);
 	}
 
-	m_transport.writeMsg(io.HwcMsgCode.FpgaUploadEnd);
+	m_hwc.writeMsg(io.HwcMsgCode.FpgaUploadEnd);
 	return true;
-}
-
-void HwcFpgaUploader.onMsg(io.HwcMsgHdr const* hdr) {
-	if (!processMsg(hdr) && m_prevSink)
-		m_prevSink.onMsg(hdr);
-}
-
-void HwcFpgaUploader.onOobData(
-	void const* p,
-	size_t size
-) {
-	if (m_prevSink)
-		m_prevSink.onOobData(p, size);
 }
 
 bool HwcFpgaUploader.processMsg(io.HwcMsgHdr const* hdr) {
@@ -315,7 +311,7 @@ void HwcFpgaUploader.onProgress(io.HwcFpgaUploadProgressParams const* params) {
 
 	case io.HwcFpgaUploadStage.Completed:
 		m_state = FpgaUploaderState.Verifying;
-		if (!try m_transport.writeMsg(io.HwcMsgCode.FpgaGetVersion))
+		if (!try m_hwc.writeMsg(io.HwcMsgCode.FpgaGetVersion))
 			fail();
 
 		break;

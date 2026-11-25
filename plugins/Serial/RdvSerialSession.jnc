@@ -25,7 +25,7 @@ import "doc_RdvDispatchImpl.jnc"
 
 class RdvSerialSession:
 	doc.Session,
-	iox.HwcTransportSink,
+	iox.HwcSink,
 	doc.SerialDispatchImpl<RdvSerialSession>,
 	doc.RdvDispatchImpl<RdvSerialSession> {
 	friend
@@ -184,12 +184,11 @@ protected:
 
 RdvSerialSession.construct(doc.PluginHost* pluginHost) {
 	basetype.construct(pluginHost);
-	m_rdv.construct(pluginHost);
+	m_rdv.construct(this, pluginHost);
 	m_rdvUi.construct(pluginHost, io.RendezvousHwcPeripheralKind.Serial, "serial port");
 
 	m_rdv.m_onConnected += onConnected;
 	m_rdv.m_onDisconnected += onDisconnected;
-	m_rdv.m_sink = this;
 
 	createUi();
 

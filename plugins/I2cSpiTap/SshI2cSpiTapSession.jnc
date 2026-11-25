@@ -24,7 +24,7 @@ import "doc_SshDispatchImpl.jnc"
 
 class SshI2cSpiTapSession:
 	doc.Session,
-	iox.HwcTransportSink,
+	iox.HwcSink,
 	doc.SshDispatchImpl<SshI2cSpiTapSession> {
 	friend doc.SshDispatchImpl;
 
@@ -151,7 +151,7 @@ protected:
 
 SshI2cSpiTapSession.construct(doc.PluginHost* pluginHost) {
 	basetype.construct(pluginHost);
-	m_ssh.construct(pluginHost);
+	m_ssh.construct(this, pluginHost);
 	m_urlUi.construct(pluginHost, m_socketPropertySet, ui.SshHwcUrlUi.DeviceKind.Usb, "ioninja-hwc", "_i2c-spi-tap", "I2C/SPI Tap");
 	m_tapUi.construct(pluginHost);
 	m_uploader.construct(pluginHost, m_ssh);
@@ -173,7 +173,6 @@ SshI2cSpiTapSession.construct(doc.PluginHost* pluginHost) {
 	m_ssh.m_onConnected += onConnected;
 	m_ssh.m_onDisconnected += onDisconnected;
 	bindingof(m_ssh.m_state) += onTransportStateChanged;
-	m_ssh.m_sink = this;
 
 	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));

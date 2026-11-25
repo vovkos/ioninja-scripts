@@ -22,7 +22,7 @@ import "doc_RdvDispatchImpl.jnc"
 
 class RdvEthernetTapSession:
 	doc.Session,
-	iox.HwcTransportSink,
+	iox.HwcSink,
 	doc.RdvDispatchImpl<RdvEthernetTapSession> {
 	friend doc.RdvDispatchImpl;
 
@@ -135,7 +135,7 @@ protected:
 
 RdvEthernetTapSession.construct(doc.PluginHost* pluginHost) {
 	basetype.construct(pluginHost);
-	m_rdv.construct(pluginHost);
+	m_rdv.construct(this, pluginHost);
 	m_rdvUi.construct(pluginHost, io.RendezvousHwcPeripheralKind.EthernetTap, "Ethernet Tap");
 	m_uploader.construct(pluginHost, m_rdv);
 	m_uploaderDlg.construct(m_uploader);
@@ -146,7 +146,6 @@ RdvEthernetTapSession.construct(doc.PluginHost* pluginHost) {
 	m_rdv.m_onConnected += onConnected;
 	m_rdv.m_onDisconnected += onDisconnected;
 	bindingof(m_rdv.m_state) += onTransportStateChanged;
-	m_rdv.m_sink = this;
 
 	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));
 }

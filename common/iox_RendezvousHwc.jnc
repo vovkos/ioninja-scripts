@@ -7,7 +7,7 @@
 //
 
 import "iox_Rendezvous.jnc"
-import "iox_HwcTransport.jnc"
+import "iox_HwcBase.jnc"
 import "io_HwcProto.jnc"
 import "std_Buffer.jnc"
 
@@ -32,19 +32,12 @@ class RendezvousHwcDevice {
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
 class RendezvousHwc:
-	Rendezvous,
-	HwcTransport {
+	HwcBase,
+	Rendezvous {
 public:
-	construct(doc.PluginHost* pluginHost) {
-		basetype.construct(pluginHost);
-		m_onConnected += resetDecoder;
-		m_onIncomingData += decode;
-	}
-
-	override bool errorcode writeMsg(
-		io.HwcMsgCode code,
-		void const* p = null,
-		size_t size = 0
+	construct(
+		HwcSink* sink,
+		doc.PluginHost* pluginHost
 	);
 
 	bool errorcode writeActivateDeviceMsg(
@@ -52,19 +45,30 @@ public:
 		io.HwcControllerKind controllerKind,
 		io.HwcCmdLineFlags cmdLineFlags = 0
 	);
+
+protected:
+	override size_t errorcode writeTransport(
+		void const* p,
+		size_t size
+	) {
+		return write(p, size);
+	}
 }
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-bool errorcode RendezvousHwc.writeMsg(
-	io.HwcMsgCode code,
-	void const* p,
-	size_t size
+RendezvousHwc.construct(
+	HwcSink* sink,
+	doc.PluginHost* pluginHost
 ) {
-	std.Buffer buffer;
-	io.packHwcMsg(buffer, code, p, size);
-	write(buffer.m_p, buffer.m_size);
-	return true;
+	HwcBase.construct(sink);
+	Rendezvous.construct(pluginHost);
+	m_onConnected += resetBuffers;
+	m_onIncomingData += decode;
+	bindingof(m_isTransmitEnabled) += []() {
+		if (m_isTransmitEnabled)
+			try flushWriteBuffer();
+	}
 }
 
 bool errorcode RendezvousHwc.writeActivateDeviceMsg(

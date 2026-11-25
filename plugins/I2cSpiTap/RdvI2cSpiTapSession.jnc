@@ -23,7 +23,7 @@ import "doc_RdvDispatchImpl.jnc"
 
 class RdvI2cSpiTapSession:
 	doc.Session,
-	iox.HwcTransportSink,
+	iox.HwcSink,
 	doc.RdvDispatchImpl<RdvI2cSpiTapSession> {
 	friend doc.RdvDispatchImpl;
 
@@ -143,7 +143,7 @@ protected:
 
 RdvI2cSpiTapSession.construct(doc.PluginHost* pluginHost) {
 	basetype.construct(pluginHost);
-	m_rdv.construct(pluginHost);
+	m_rdv.construct(this, pluginHost);
 	m_rdvUi.construct(pluginHost, io.RendezvousHwcPeripheralKind.I2cSpiTap, "I2C/SPI Tap");
 	m_tapUi.construct(pluginHost);
 	m_uploader.construct(pluginHost, m_rdv);
@@ -155,7 +155,6 @@ RdvI2cSpiTapSession.construct(doc.PluginHost* pluginHost) {
 	m_rdv.m_onConnected += onConnected;
 	m_rdv.m_onDisconnected += onDisconnected;
 	bindingof(m_rdv.m_state) += onTransportStateChanged;
-	m_rdv.m_sink = this;
 
 	pluginHost.m_log.addSelectionProcessor(log.ThroughputCalcRangeProcessor.factory~(m_throughputInfoSet));
 	pluginHost.m_log.addSelectionProcessor(log.ChecksumCalcRangeProcessor.factory~(m_checksumInfoSet));

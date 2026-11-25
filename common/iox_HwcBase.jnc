@@ -5,6 +5,9 @@
 // incoming hwc messages go to the current sink -- normally the session; the
 // FPGA uploader takes the sink over for the duration of its requests
 //
+// outgoing messages are queued and written as fast as the transport's buffer
+// allows -- the derived class calls flushWriteBuffer() when it can take more
+//
 
 import "io_HwcProto.jnc"
 import "std_Buffer.jnc"
@@ -16,7 +19,7 @@ namespace iox {
 
 //..............................................................................
 
-class HwcTransportSink {
+class HwcSink {
 	abstract void onMsg(io.HwcMsgHdr const* hdr);
 
 	abstract void onOobData(
@@ -27,22 +30,36 @@ class HwcTransportSink {
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-class HwcTransport {
+class HwcBase {
+protected:
+	std.Buffer m_writeBuffer; // packed messages not yet accepted by the transport
+
 public:
-	HwcTransportSink* m_sink;
+	HwcSink* m_sink;
 	readonly std.Buffer m_msgBuffer; // not yet complete message
 	readonly size_t m_msgCount;      // since the last connect
 
 public:
-	abstract bool errorcode writeMsg(
+	construct(HwcSink* sink) {
+		m_sink = sink;
+	}
+
+	bool errorcode writeMsg(
 		io.HwcMsgCode code,
 		void const* p = null,
 		size_t size = 0
 	);
 
 protected:
-	void resetDecoder(); // on connect
-	void decode(        // on incoming data
+	abstract size_t errorcode writeTransport(
+		void const* p,
+		size_t size
+	);
+
+	bool errorcode flushWriteBuffer(); // as much as the transport takes; call again when it can take more
+
+	void resetBuffers(); // on connect
+	void decode(         // on incoming data
 		void const* p,
 		size_t size
 	);
@@ -50,12 +67,36 @@ protected:
 
 // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
-void HwcTransport.resetDecoder() {
+bool errorcode HwcBase.writeMsg(
+	io.HwcMsgCode code,
+	void const* p,
+	size_t size
+) {
+	io.HwcMsgHdr hdr;
+	hdr.m_stx = 0x02;
+	hdr.m_code = code;
+	hdr.m_dataSize = size;
+	m_writeBuffer.append(&hdr, sizeof(hdr));
+	m_writeBuffer.append(p, size);
+	return flushWriteBuffer();
+}
+
+bool errorcode HwcBase.flushWriteBuffer() {
+	if (!m_writeBuffer.m_size)
+		return true;
+
+	size_t size = writeTransport(m_writeBuffer.m_p, m_writeBuffer.m_size);
+	m_writeBuffer.remove(0, size); // the rest goes on the next flush
+	return true;
+}
+
+void HwcBase.resetBuffers() {
+	m_writeBuffer.clear();
 	m_msgBuffer.clear();
 	m_msgCount = 0;
 }
 
-void HwcTransport.decode(
+void HwcBase.decode(
 	void const* p,
 	size_t size
 ) {
@@ -66,9 +107,7 @@ void HwcTransport.decode(
 		if (hdr.m_stx != 0x02) {
 			char const* stx = memchr(m_msgBuffer.m_p, 0x02, m_msgBuffer.m_size);
 			size_t skipSize = stx ? stx - m_msgBuffer.m_p : m_msgBuffer.m_size;
-			if (m_sink)
-				m_sink.onOobData(m_msgBuffer.m_p, skipSize);
-
+			m_sink.onOobData(m_msgBuffer.m_p, skipSize);
 			m_msgBuffer.remove(0, skipSize);
 			if (m_msgBuffer.m_size < sizeof(io.HwcMsgHdr))
 				break; // header not buffered yet
@@ -78,9 +117,7 @@ void HwcTransport.decode(
 		if (m_msgBuffer.m_size < msgSize)
 			break; // not fully buffered yet
 
-		if (m_sink)
-			m_sink.onMsg(hdr);
-
+		m_sink.onMsg(hdr);
 		m_msgCount++;
 		m_msgBuffer.remove(0, msgSize);
 	}

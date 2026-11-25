@@ -24,7 +24,7 @@ import "doc_SshDispatchImpl.jnc"
 
 class SshSerialSession:
 	doc.Session,
-	iox.HwcTransportSink,
+	iox.HwcSink,
 	doc.SerialDispatchImpl<SshSerialSession>,
 	doc.SshDispatchImpl<SshSerialSession> {
 	friend
@@ -181,7 +181,7 @@ protected:
 
 SshSerialSession.construct(doc.PluginHost* pluginHost) {
 	basetype.construct(pluginHost);
-	m_ssh.construct(pluginHost);
+	m_ssh.construct(this, pluginHost);
 	m_urlUi.construct(pluginHost, m_socketPropertySet, ui.SshHwcUrlUi.DeviceKind.SerialPort, "ioninja-hwc", "_serial", "Serial Port");
 
 	m_ssh.m_onLoginDlgCompleted += [](
@@ -199,7 +199,6 @@ SshSerialSession.construct(doc.PluginHost* pluginHost) {
 	}
 
 	m_ssh.m_onDisconnected += onDisconnected;
-	m_ssh.m_sink = this;
 
 	createUi();
 
