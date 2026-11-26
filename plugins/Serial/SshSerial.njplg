@@ -24,6 +24,7 @@ dispatch-variable = g_serial
 [required-capabilities]
 
 org.jancy.io.net
+org.jancy.io.tcp
 org.jancy.io.ssh
 
 [optional-capabilities]

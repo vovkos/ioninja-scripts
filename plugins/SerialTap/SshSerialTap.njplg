@@ -25,6 +25,7 @@ dispatch-variable = g_serialTap
 [required-capabilities]
 
 org.jancy.io.net
+org.jancy.io.tcp
 org.jancy.io.ssh
 
 [optional-capabilities]

@@ -27,6 +27,7 @@ dispatch-variable = g_serialMon
 [required-capabilities]
 
 org.jancy.io.net
+org.jancy.io.tcp
 org.jancy.io.ssh
 
 [optional-capabilities]

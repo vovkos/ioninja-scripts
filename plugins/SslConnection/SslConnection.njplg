@@ -23,6 +23,7 @@ dispatch-variable = g_ssl
 [required-capabilities]
 
 org.jancy.io.net
+org.jancy.io.tcp
 org.jancy.io.ssl
 
 [optional-capabilities]

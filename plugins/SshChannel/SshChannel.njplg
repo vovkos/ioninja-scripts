@@ -23,6 +23,7 @@ dispatch-variable = g_ssh
 [required-capabilities]
 
 org.jancy.io.net
+org.jancy.io.tcp
 org.jancy.io.ssh
 
 [optional-capabilities]

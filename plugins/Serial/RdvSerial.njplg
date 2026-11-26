@@ -22,8 +22,9 @@ dispatch-variable = g_serial
 
 [required-capabilities]
 
-com.ioninja.rendezvous
 org.jancy.io.net
+org.jancy.io.tcp
+com.ioninja.rendezvous
 
 [optional-capabilities]
 

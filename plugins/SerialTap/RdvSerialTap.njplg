@@ -23,8 +23,9 @@ dispatch-variable = g_serialTap
 
 [required-capabilities]
 
-com.ioninja.rendezvous
 org.jancy.io.net
+org.jancy.io.tcp
+com.ioninja.rendezvous
 
 [optional-capabilities]
 
