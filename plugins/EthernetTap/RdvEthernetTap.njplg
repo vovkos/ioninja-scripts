@@ -27,7 +27,6 @@ dispatch-variable = g_ethernetTap
 
 org.jancy.io.net
 org.jancy.io.tcp
-com.ioninja.rendezvous
 
 [optional-capabilities]
 
